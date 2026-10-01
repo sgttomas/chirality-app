@@ -22,7 +22,7 @@
       },
       {
         "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/prototype/observe_map.py",
-        "sha256": "a0b0174799b181f4ca84e71890d119012d43988a5df00310f302059ce4ba801f"
+        "sha256": "1e0402c016a73920e95c5d7d5fc03b4d384f156e7286d59fd75087df2b6b971a"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"

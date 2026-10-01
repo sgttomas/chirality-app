@@ -97,10 +97,10 @@
           "additionalProperties": false,
           "properties": {
             "assigned": {"const": true},
-            "effect": {"enum": ["CE-0 no domain change", "CE-1 App-side only", "CE-2 queued proposal only", "CE-3 domain change, bounded objects", "CE-4 domain change, model-wide", "CE-5 effect outside the host"]},
-            "reversibility": {"enum": ["CR-1 host undo with receipt", "CR-2 host undo without receipt", "CR-3 reversed only by a further change", "CR-4 not reversible", "CR-0 not stated"]},
-            "examination": {"enum": ["CX-1 host checks available on the result", "CX-2 agent examination only", "CX-3 the person's examination only", "CX-4 none before reliance", "CX-0 not stated"]},
-            "delegation": {"enum": ["CD-1 the person decides each item", "CD-2 the person decides the batch", "CD-3 agent applies within scope; the person checks later", "CD-4 agent applies within scope; no follow-up act expected"]}
+            "effect": {"enum": ["CQ-E0 no domain change", "CQ-E1 App-side only", "CQ-E2 queued proposal only", "CQ-E3 domain change, bounded objects", "CQ-E4 domain change, model-wide", "CQ-E5 effect outside the host"]},
+            "reversibility": {"enum": ["CQ-R1 host undo with receipt", "CQ-R2 host undo without receipt", "CQ-R3 reversed only by a further change", "CQ-R4 not reversible", "CQ-R0 not stated"]},
+            "examination": {"enum": ["CQ-X1 host checks available on the result", "CQ-X2 agent examination only", "CQ-X3 the person's examination only", "CQ-X4 none before reliance", "CQ-X0 not stated"]},
+            "delegation": {"enum": ["CQ-D1 the person decides each item", "CQ-D2 the person decides the batch", "CQ-D3 agent applies within scope; the person checks later", "CQ-D4 agent applies within scope; no follow-up act expected"]}
           }
         },
         {

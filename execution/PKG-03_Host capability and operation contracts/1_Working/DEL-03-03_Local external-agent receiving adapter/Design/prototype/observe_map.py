@@ -372,8 +372,11 @@ def channel_statuses(events):
 # -- RS-v0.8 §5 receiving (R14-3): ADAPTER tokens -> RS record values, stated once in RS §5
 RS_OUTCOME = {"applied": "applied (receipt)", "refused_invalid": "refused — invalid", "refused_stale": "refused — stale",
               "refused_not_permitted": "not permitted", "refused_identity_conflict": "refused — identity conflict"}
+# Every token the underscore rule does not produce is listed (RS §5; RQ, V19-A M-1); vocabulary_check() maps every
+# outcome, request-kind and evidence-limit value of this file's schema through the chain.
 RS_LIMIT = {"host_reachable_without_evidenced_A13": "host reachable without evidenced A13",
-            "app_restart_interruption": "App-restart interruption", "dedup_scope_exceeded": "de-duplication scope exceeded"}
+            "app_restart_interruption": "App-restart interruption", "dedup_scope_exceeded": "de-duplication scope exceeded",
+            "agent_written_configuration": "agent-written configuration"}
 RS_ROUTE = {"submission": "proposal", "observation": "proposal", "examination": "examination", "change_call": "direct"}
 
 
@@ -428,6 +431,35 @@ def rs_chain(recs):
             if v:
                 errs.append(f"{r['observed_at']} {kind}: {v[:1]}")
     return n_ok, n_all, errs
+
+
+def vocabulary_check(ids, base):
+    """RQ (V19-A M-1): every outcome value, request kind and evidence limit of external_dispatch_record.schema.json,
+    not only those SH-1 emits, goes through rs_entries() and is validated as RS entries (rs_chain). The records are
+    built from one SH-1 record with one value changed each; they test the vocabulary map, not ADAPTER's own rules."""
+    props = ids[DISPATCH]["properties"]
+    outcomes = props["outcome"]["properties"]["value"]["enum"]
+    kinds = props["request_kind"]["enum"]
+    limits = props["evidence_limits"]["items"]["enum"]
+    recs = []
+    for v in outcomes:
+        r = copy.deepcopy(base)
+        r["outcome"] = {"value": v, "reporter": "host", **({"last_observed_state": "queued"} if v == "outcome_unknown" else {})}
+        r["evidence_limits"] = []
+        r["observed_at"] = "VOC-outcome-" + v
+        recs.append(r)
+    for k in kinds:
+        r = copy.deepcopy(base)
+        r["request_kind"] = k
+        r["evidence_limits"] = []
+        r["observed_at"] = "VOC-kind-" + k
+        recs.append(r)
+    r = copy.deepcopy(base)
+    r["evidence_limits"] = list(limits)
+    r["observed_at"] = "VOC-limits"
+    recs.append(r)
+    n_ok, n_all, errs = rs_chain(recs)
+    return len(outcomes), len(kinds), len(limits), n_ok, n_all, errs
 
 
 def self_checks(reg, ids):
@@ -507,6 +539,10 @@ def main():
     bad += bool(errs)
     print(f"{'PASS' if not errs else 'FAIL'} RS-v0.8 receiving (R14-3): {len(recs)} dispatch records -> {n_ok} of {n_all} RS entries "
           f"(operation entries and R11 evidence limits) valid against RS_RECORD.schema.json" + (f"  {errs[:3]}" if errs else ""))
+    n_o, n_k, n_l, v_ok, v_all, v_errs = vocabulary_check(ids, next(r for r in recs if r["observed_at"] == "T10"))
+    bad += bool(v_errs)
+    print(f"{'PASS' if not v_errs else 'FAIL'} RS-v0.8 §5 token map (RQ): every schema value -- {n_o} outcomes, {n_k} request "
+          f"kinds, {n_l} evidence limits -> {v_ok} of {v_all} RS entries valid" + (f"  {v_errs[:3]}" if v_errs else ""))
     if a.write_examples:
         d = HERE.parent
         valid = next(r for r in recs if r["observed_at"] == "T10")

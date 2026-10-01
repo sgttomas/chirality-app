@@ -89,8 +89,8 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | RX Residual cross-file sweep | 16 Design files | RP | Every "other files must now say" item checked | COMPLETE `a05b46741` — 47 items: 30 said, 15 fixed, 2 → R15 |
 | B8 GUIDE for Wave B, R15-1, final re-pin | GUIDE; LOOP F-2, MS-02; RS cause | RX; R15 | 18/18 | COMPLETE `2caccef12` — GUIDE v0.5 18/18 |
 | V19 Independent review of the Wave B candidate (V19-A, V19-B) | `reviews/V19-*.md` | B8 | Verdict | COMPLETE at `2caccef12` — V19-A MERGE AS DRAFTS (0/1/7/6); V19-B HOLD (1 BLOCKING: PANEL against R15-1; 1 MAJOR: this graph stale) |
-| RQ Repairs from V19; final GUIDE re-pin | Design files; GUIDE | V19 | Findings closed; 18/18 | ACTIVE |
-| V19b Recheck of the repairs | `reviews/V19b.md` | RQ | Verdict | PLANNED |
+| RQ Repairs from V19; final GUIDE re-pin | Design files; GUIDE | V19 | Findings closed; 18/18 | COMPLETE (this commit) — all BLOCKING, MAJOR and MINOR findings fixed; 18/18 |
+| V19b Recheck of the repairs | `reviews/V19b.md` | RQ | Verdict | ACTIVE |
 | P2 PR-2: Wave B | — | V19b, CI | Merged under the standing direction | PLANNED |
 | **Closeout** | | | | |
 | D0 DAG-003 currency recheck | Read-only | P2 | Both manifests pass; no bound file changed | PLANNED |
@@ -107,6 +107,6 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Next safe action
 
-When RQ returns: verify its fence, rerun every prototype, commit; dispatch
-V19b; then open PR-2 with the CI monitor and auto-merge on once nothing
+When V19b returns: repair any blocking finding and recheck it; then open
+PR-2 with the CI monitor and auto-merge on once nothing
 blocking remains. After PR-2: the closeout (D0, C1, F).

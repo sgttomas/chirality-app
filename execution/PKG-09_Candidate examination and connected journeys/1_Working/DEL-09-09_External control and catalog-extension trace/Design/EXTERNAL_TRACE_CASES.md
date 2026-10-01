@@ -810,6 +810,7 @@ v0.5 = XT-v0.5 (sha256 9879c4fc0578af3a80800fdd75fc730057786acd341801761e4e16ce0
 | RP-4: V18-4 n-5, n-6 | §0 names A1–A15; XC-07's expectation reads the per-item last observed state, as the rehearsal records it | §0; §3.2 XC-07 |
 | RP-4: R13-6 | "OBS-1 pending" in the rehearsal records replaced: OBS-1 observed supplier turns on one local route, not App runs | prototype; examples |
 | RX (residual sweep; RP-2 return §3) | F-25 answered as recorded: C-v0.8 §10.8 lists SH-1's missing profiles, none added | §9 F-25 |
+| RQ (repairs from V19; in place, no version bump) | V19-A M-1: the prototype's token map gains `agent_written_configuration`; `xt-result-record.example.{valid,invalid}.json` regenerated (`--write-examples`) because `observe_map.py` changed (only its recorded sha256 differs). No text rule changed | `prototype/run_xt_suite.py`; examples |
 
 Identifiers kept. Added: §3.5, §3.6, §5.1.1, §6.1, §9.10, §9.11, IN-30, SR-1…SR-5, X-R1…X-R5, RO-1…RO-17, BP-T9, BP-T10, BP-T11, F-25…F-28, VC-T-10…VC-T-12. No identifier retired.
 

@@ -75,7 +75,7 @@
       "type": "object", "additionalProperties": false, "required": ["received", "refusal"],
       "properties": {
         "received": {"type": "boolean"},
-        "refusal": {"anyOf": [{"type": "null"}, {"enum": ["no model chosen", "no credential", "turn not active", "run already ended", "selection not established", "not delivered"]}]}
+        "refusal": {"description": "The loop's refusal reason; 'run not started — no model selected' is not a boundary refusal (LOOP F-2 (a); R15-1; RQ).", "anyOf": [{"type": "null"}, {"enum": ["run not started — no model selected", "no credential", "turn not active", "run already ended", "selection not established", "not delivered"]}]}
       }
     }
   }

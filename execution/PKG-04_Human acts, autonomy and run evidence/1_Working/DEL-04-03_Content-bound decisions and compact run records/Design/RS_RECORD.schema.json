@@ -1149,6 +1149,7 @@
           }
         },
         {
+          "description": "The labels 'waiting — re-held, lapsed after resume' and 'hold not enforceable' are governance-phase labels (RS R8): written only for a governed checkpoint in the governance phase, never in Phase 1 (RQ; V19-A n-6).",
           "type": "object",
           "required": [
             "label"

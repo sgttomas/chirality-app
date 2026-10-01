@@ -71,7 +71,8 @@ ADAPTER_TO_RS = {"lost_acknowledgement": "lost acknowledgement",
                  "basis_lineage_not_supplied": "basis lineage not supplied",
                  "dedup_scope_exceeded": "de-duplication scope exceeded",
                  "host_result_not_isolated": "host result not isolated",
-                 "dispatch_recognized_from_compound_command": "dispatch recognized from compound command"}
+                 "dispatch_recognized_from_compound_command": "dispatch recognized from compound command",
+                 "agent_written_configuration": "agent-written configuration"}  # RQ (V19-A M-1)
 
 
 def rs_r11_labels():

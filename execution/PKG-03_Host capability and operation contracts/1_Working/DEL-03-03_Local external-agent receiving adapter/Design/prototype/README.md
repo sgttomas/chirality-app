@@ -20,7 +20,12 @@ imports DEL-03-01's `schema_subset.py` by relative path.
   (`channel_status.schema.json`).
 
 Every record is validated against its schema; `--write-examples` writes the
-ADAPTER example instances beside the schemas.
+ADAPTER example instances beside the schemas. Each dispatch record is also
+written as RS entries through RS-v0.8 §5's token map and validated against
+DEL-04-03's schema; since RQ (V19-A M-1) the run also maps **every** outcome
+value, request kind and evidence limit of
+`external_dispatch_record.schema.json`, not only those SH-1 emits, through
+the same map and validates the resulting entries.
 
 The items are **imitations** of supplier item shapes (field names observed in
 generated types at pin 0.158.0, ADAPTER §3.5), produced by the driver, not by

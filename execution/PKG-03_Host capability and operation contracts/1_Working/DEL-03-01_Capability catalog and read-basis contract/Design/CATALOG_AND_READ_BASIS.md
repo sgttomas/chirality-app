@@ -1,7 +1,7 @@
 # Capability catalog and read-basis contract
 - Contribution: DEL-03-01/C-v0.8 (supersedes DEL-03-01/C-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, file sha256 eaf16b82b4250c56446544dd97a65baf064091d196013fb28abda40d543e010c; C-v0.7 superseded DEL-03-01/C-v0.6, last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, file sha256 8282c003024e54708f3b9842e04b6b0dc8c4e1c496027afae582eb6387675ce4; C-v0.6 superseded DEL-03-01/C-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, file sha256 72ac4f0f853213f9778d69c4b3eb84d6b19d1bab80a147d98b7bc5068bb0eacf)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
-- Phase (R8-1; R9-1): in the current phase (Phase 1), this increment, declared workflow checkpoints are **plan guidance** (EXEC-v0.5 §2.1; WD-v0.7 §4.3.0). The checkpoint-constraint and hold-support statements in this file are the **governance-phase definition (retained)**, stated beside a Phase-1 statement. V4-WF-05 and V4-HI-42 are cited as amended by SCA-V4-001 (accepted 2026-09-29): in force in every phase, the required human act is requested, it is recorded as done only when the person performs it, and the reserved acts bind; holding the run until the act is **phased to the governance layer, not withdrawn** (§0). SWBPIPE's answers are recorded as answers about its current state, not commitments; host joins are deferred (DECISION-3)
+- Phase (R8-1; R9-1): in the current phase (Phase 1), this increment, declared workflow checkpoints are **plan guidance** (EXEC-v0.6 §2.1; WD-v0.8 §4.3.0). The checkpoint-constraint and hold-support statements in this file are the **governance-phase definition (retained)**, stated beside a Phase-1 statement. V4-WF-05 and V4-HI-42 are cited as amended by SCA-V4-001 (accepted 2026-09-29): in force in every phase, the required human act is requested, it is recorded as done only when the person performs it, and the reserved acts bind; holding the run until the act is **phased to the governance layer, not withdrawn** (§0). SWBPIPE's answers are recorded as answers about its current state, not commitments; host joins are deferred (DECISION-3)
 - Serves: OUT-001 (catalog and read-basis schema meaning; at v0.8 also three PROPOSED JSON Schemas beside this file, R12-1), OUT-002 (three-surface responsibility map skeleton), OUT-003 (designed contract fixtures, the shared fixture catalogue and, at v0.8, the simulated host SH-1, §10.8); REQ-001–REQ-007; AC-001–AC-008; VER-001–VER-008
 - Wave B (run APP-V4-DESIGN-PASS-2-20260930, node B3; v0.8): design development under R12 (R12_RESOLUTIONS.md sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1: R12-1…R12-4, R12-9), for S1-B items C 4, 5, 6 and 8 (SURVEY/S1-B.md sha256 eae76ecf9e941bb841fbc3a655a8e887c7684b8d47ef7728f4809992b0b6587d §1.5, §1.8), under BRIEFS.md sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B", row B3), with OWNER_DECISIONS.md sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1; K1-6 prototypes) and R10_RESOLUTIONS.md R10-5. P-v0.8 and ADAPTER-v0.6 were developed in the same node; other siblings are cited at their Wave A labels (below) because they were being edited in parallel. New files beside this one: `catalog.schema.json`, `edition_change_event.schema.json`, `read_result.schema.json`, their `*.example-valid*.json` / `*.example-invalid*.json` instances, and `prototype/` (SH-1 and the checks; its README states that it is not product code). **Repair RP-2 (same run, in place, no version step):** R14_RESOLUTIONS.md sha256 c6a603303693f50e24ea27fcbc9f381a297434e4182f023fbcee941073623576 (R14-7, R14-8; binding) with R13_RESOLUTIONS.md sha256 d0385313660e5820258b4089372313f382afcebc57d37265389274ca470a8d3a (R13-1) and the four receiver comparisons `comparisons/V18-1.md`…`V18-4.md` (sha256 prefixes fb07e07c66c1, 0b00e79b161b, 68a067e26af7, 078113d7055b), under BRIEFS.md sha256 e3f98d1c8449292965dd244a0f2821b221bcd0f3b0294e592f73b8eaaaaf6321 ("RP", row RP-2); siblings are named at their Wave B labels where a repair row says so
 - Basis (re-pinned in Wave A, R9-5; each sha256 below recomputed with `shasum -a 256` on 2026-09-30, working tree at `3dd7c22c73`): the accepted basis as amended by SCA-V4-001 (accepted 2026-09-29) and SCA-V4-002 (in these four files, HOST_INTEGRATION line layout only) — `P/docs/HOST_INTEGRATION.md` (sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f) §§1–3, §5 V4-HI-30–33, §6 V4-HI-40–42 (V4-HI-42 amended), §7, §10 item 3, §11; `P/docs/PRD.md` (sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd) V4-HOST-02 and V4-WF-05 (both amended; cited in §4.1 and §0), V4-HOST-03, V4-EXT-01, V4-PAR-01–05, V4-AUT-03–05, V4-SHR-02, §9 OQ-02/OQ-10/OQ-11; `P/docs/ARCHITECTURE.md` (sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c) V4-ARC-20–21; `P/docs/EXAMINATION.md` (sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0) V4-EXM-20/21/24/25; ScopeOfWork.md sha256 9ada531b59a6efc007c273f131a8d51df390994ef5f379b1d523d635d3849449 (revised under SCA-V4-001, its AX-004: OUT-001, CLM-002, REQ-002, REQ-004, VER-004 and TBD-001); DECISION_BRIEF #d2/#d3/#d4/#d5; the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29); SCC-CASE-002 Case_Datasheet rows M1-C, M3-CP, M4-X (sha256 a12abfaf82c34ae1e7c10d8b553d3e1a0da4772b160e02257c0bf70edce04d5c; additions only since the state pinned below); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c, the state that also carries DECISION-2; the DECISION-1 text is unchanged) D2/D3. At v0.6 this line pinned repo 6e18505e3, ScopeOfWork.md 179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84, HOST_INTEGRATION.md 08c8fc7d…60da and Case_Datasheet 6acdc6c4…a71a6, each true at `6e18505e3`, and OWNER_DECISIONS.md f3f8e5f3…81f2e, true at `be8bb46dd3` (history). Rulings, by file: R1_RESOLUTIONS.md (sha256 2f9c7e72…7ec4) R-1–R-9; R2_RESOLUTIONS.md (sha256 77cfb845…d088) R2-1–R2-21; R3_RESOLUTIONS.md (sha256 202d52c7…afbf) R3-4; R4_RESOLUTIONS.md at `f05c7e4cd` (sha256 50a009b2…2a24) R4-1, R4-13, R4-16, R4-18–R4-20; R5_RESOLUTIONS.md at `8fb51f07f` (sha256 254d0b93…d6f1) R5-1, R5-2, R5-4, R5-7, R5-9; R6_RESOLUTIONS.md (sha256 8703e85aa7324e233fab285321e277d720923d3e36e342c865917b55083cb841) R6-2, R6-4, R6-5; R7_RESOLUTIONS.md (sha256 1f6ab3b2355e164f803657ceae08841af92d21a821feede3800a6df861b2a1ea) R7-4; R8_RESOLUTIONS.md (APP-V4-SWBPIPE-INTAKE-20260928; sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b) R8-1…R8-13; R9_RESOLUTIONS.md (APP-V4-DESIGN-PASS-2-20260930; sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8) R9-1…R9-11, with that run's R10_RESOLUTIONS.md (sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796) R10-1…R10-11, R11_RESOLUTIONS.md (sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615) R11-1…R11-9 and OWNER_DECISIONS.md (sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5) DECISION-K1 (these four recomputed with `shasum -a 256` at node A4, R11-3, at their final bytes; the R9_RESOLUTIONS.md pin in the node A1 input line below records the bytes A1 read) (R1…R5 pins recomputed: current); reviews V3-A (sha256 f25f5af1…1d87) and V3-B (sha256 5662fbd0…54a3) minors addressed to C; OWNER_DECISIONS DECISION-2 D5 (via R4-1); review V2 (sha256 75ba1dff…e6ef) m-5, m-8, m-12; comparisons V1-A (01811533…4c09), V1-B (09eebfe0…1cae), V1-C (8d46258a…94a6); reviews IR1-A (31b3c7f8…8284), IR1-B (70e4a4f6…2846), IR1-C (295e96b3…26b9)
@@ -64,7 +64,7 @@ EXEC-v0.6 §2.4–§2.5; this file states the ruling and adds no mechanism.
 
 Hold support, the governing checkpoint constraint and its carriage assurance
 (R2-12) are the **governance-phase definition, retained** (EXEC GV-1), for
-checkpoints declared **`governed`** (WD-v0.7 §4.3.1, PROPOSED). Where this
+checkpoints declared **`governed`** (WD-v0.8 §4.3.1, PROPOSED). Where this
 file states a checkpoint case, it gives the Phase-1 result and the
 governance-phase value. The governance-phase values read the fixture's
 checkpoints as if they were declared governed; no fixture declares the flag
@@ -257,7 +257,7 @@ semantic.
 | Class value | One of five (R2-1): **none**; **may apply within granted autonomy**; **proposal only**; **reserved to the person** — the four V4-HI-02 values (vocabulary SETTLED by V4-HI-02) — and **no policy basis** (SoW REQ-002 as revised under SCA-V4-001: "represent an operation without an adopted class explicitly (no policy basis)"; named by R-3.5/R2-1) |
 | No-policy-basis reason | Present only with *no policy basis*: **omitted** (no class stated), **unassigned** (stated but no policy record), or **pending OI-021** (operation-specific addition awaited under `UNRESOLVED{OI-021}`) |
 | Policy record reference | The DEL-04-01 policy-class record (e.g. P-01…P-06) and its policy revision identity, citing its decision basis (for D2/D3: `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`) (V1-A AB-07) |
-| Value standing | Mirrors DEL-04-01 §8.1 *decision standing* (IR1-B B-m12): settled-by-basis · adopted decision · DERIVED · accepted default (host adoption unevidenced) · INTEGRATION · PROPOSED · `UNRESOLVED{…}` (ACT-POLICY-v0.7 §8.1 lists PROPOSED; it was missing from this list through C-v0.6) |
+| Value standing | Mirrors DEL-04-01 §8.1 *decision standing* (IR1-B B-m12): settled-by-basis · adopted decision · DERIVED · accepted default (host adoption unevidenced) · INTEGRATION · PROPOSED · `UNRESOLVED{…}` (ACT-POLICY-v0.8 §8.1 lists PROPOSED; it was missing from this list through C-v0.6) |
 | Consequence statement | The operation's consequence in DEL-04-01's consequence vocabulary. Vocabulary not yet defined: `UNRESOLVED` (DEL-04-01 U-02 with host policy owner) |
 | Host adoption | Whether the host has adopted and enforces this value. Not evidenced for SWBPIPE (DEP-001); the host names and enforces its own list (V4-HI-30). SWBPIPE (SQ-05): no class system and no grants; every change requires the person's Apply (hard-coded); its autonomy is SWBPIPE owner decision OI-016. The class values here stay App/shared meaning |
 
@@ -496,8 +496,8 @@ embedded agent, not the App's external channel:
 
 > A host's agent sends data only to the model service the person selected and to destinations the person has allowed — in advance in an allow list (by category, such as web access, MCP servers or other APIs, or by named destination) or when the agent asks during its work. Nothing else is contacted: no analytics, silent provider switch or background download unless the person turns it on. Every destination contacted is recorded and shown.
 
-It changes no §4.1 result and no §6 standing. Its rules are LOOP-v0.7
-§5.1.1, and from v0.8 the flow is LOOP-v0.8 §5.3; the two "destination not
+It changes no §4.1 result and no §6 standing. Its rules are LOOP-v0.8
+§5.1.1, and the flow is LOOP-v0.8 §5.3; the two "destination not
 allowed" rows above are its results for a host's agent (node B5).
 
 ### 4.2 Unavailable reason
@@ -701,14 +701,14 @@ for an agent channel. An empty table is a successful read with zero rows
 
 Rules:
 
-- **RC-1** The person's view of the same operation and basis and the agent's
+- **RR-1** The person's view of the same operation and basis and the agent's
   result carry the same tables, rows, results, diagnostics and standing
   (V4-HI-10). Presentation may differ; nothing is dropped.
-- **RC-2** A diagnostic or finding attached to a row stays attached to that
+- **RR-2** A diagnostic or finding attached to a row stays attached to that
   subject; it never moves up to the table or the read.
-- **RC-3** Units belong to the column or the result value, not to the cell
+- **RR-3** Units belong to the column or the result value, not to the cell
   text.
-- **RC-4** A result the host cannot express in this model is not
+- **RR-4** A result the host cannot express in this model is not
   summarized to fit: the read is an *error* with its error identity
   (element 7).
 
@@ -837,7 +837,7 @@ happens next. "Consumer" is the host loop on E (DEL-05-01) or the App on X
 | 1 Consumer calls CI-1 on its surface | Endpoint not reachable (X: *endpoint unavailable*, ADAPTER §3.2); channel off (*channel not enabled*); catalog unreadable (CF-1); partial (CF-2); no catalog (CF-3) | The consumer, naming itself; the host for *channel not enabled* and *partial* | Discovery record: the edition, or the failure with its reason | On failure nothing is offered, and requirements are *not established* |
 | 2 Consumer reads the basis profile (CI-3) | Profile not supplied | The consumer | "Basis profile not supplied" | Each read is judged by its own descriptor (§5.2 rule 1) |
 | 3 Consumer maps entries to its native surface and offers them (CI-5) | An entry cannot be mapped (ADAPTER NM-2) | The consumer | Offering record naming the edition; unmapped entries *not established* | — |
-| 4 Required-tool check against the edition (EXEC-v0.5 §3.4) | Entry *missing*; *not exposed on this surface* (element 9) | EXEC's evaluator | Compatibility report naming the edition (EI-4) | Per EXEC |
+| 4 Required-tool check against the edition (EXEC-v0.6 §3.4) | Entry *missing*; *not exposed on this surface* (element 9) | EXEC's evaluator | Compatibility report naming the edition (EI-4) | Per EXEC |
 
 On E the host loop does steps 1–3 for its own tool offering (LOOP). On X
 the App's Codex discovers natively; the App records steps 1–3 from what it
@@ -1264,7 +1264,7 @@ new structure is PROPOSED (R12-1).
 | R12 ID / survey item | Change in v0.8 | Where |
 |---|---|---|
 | R12-1; S1-B C 5 | The catalog as an interface: discover (CI-1), read entry (CI-2), basis profile (CI-3), edition-change event (CI-4, moved here from fixture variant V-ED1), offering record (CI-5); edition identity rules EI-1…EI-5; two edition transition tables (host and consumer-held); catalog-level failures CF-1…CF-5, including an unreadable, partial or absent catalog and a read lacking basis elements | §2.1–§2.3; §10.4 V-ED1 |
-| S1-B C 4 | Read-result content model: element table (view, table, column, row, result value, diagnostic, finding, attachment, host check) and RC-1…RC-4. Entry sub-elements: named host checks (element 6) and "accepts a requested basis" (element 3) | §6.1; §3.4 |
+| S1-B C 4 | Read-result content model: element table (view, table, column, row, result value, diagnostic, finding, attachment, host check) and RR-1…RR-4. Entry sub-elements: named host checks (element 6) and "accepts a requested basis" (element 3) | §6.1; §3.4 |
 | S1-B C 5 | Currency transitions CU-1…CU-3 with a table; historical reads HR-1…HR-3 (an aged result versus a requested historical read) | §6.3; §6.4 |
 | R12-1; S1-B C 5 | Operating sequences SQ-C1…SQ-C6 (discovery and offering per surface, edition change during a run, current read, requested historical read, reliance on several reads, generation change), each step with its failure, reporter, record and next step | §7.1 |
 | R12-1, R12-2; S1-B C 6 | Required elements and cardinality for the catalog edition, entry, class, basis descriptor, unavailable reason and standing. Three PROPOSED JSON Schemas beside this file, each with valid and invalid instances; §0 states that they select no wire field | §0; §3.5; `catalog.schema.json`, `edition_change_event.schema.json`, `read_result.schema.json` |
@@ -1284,9 +1284,10 @@ new structure is PROPOSED (R12-1).
 | V18-1 m-8, V18-3 n-1 (RP-2) | §4.1 says C-v0.8 and P-v0.8 added rows and that DEL-04-03 receives the two destination rows as R15 entries, not R7 outcomes (RS §5 to say so); EI-4 cites EXEC-v0.6 §3.3 and LOOP-v0.8 §6.2; §6.2 cites RS-v0.8 §6.1 and §7; §0 cites EXEC-v0.6 §2.4–§2.5 for the App-run mechanism | §0; §2.1 EI-4; §4.1; §6.2 |
 | V18-4 n-2 (RP-2; NOTE) | §8 cites XT-v0.6 §5.1.1, the account tied to its rows | §8 |
 | — (RP-2) | Header: the repair's inputs (R14, R13, V18-1…V18-4, BRIEFS) pinned on the Wave B line. VC-C-09 and VC-C-10 record the rerun | Header; Verification cases |
+| RQ (repairs from V19; in place, no version bump) | V19-A m-5: §6.1's read-result rules renamed RC-1…RC-4 → **RR-1…RR-4** while PROPOSED, so they no longer share the fixture's receipt identities RC-1…RC-3 in this file; no meaning changed. V19-A m-3: live citations moved to Wave B labels (Phase line EXEC-v0.6 §2.1 and WD-v0.8 §4.3.0; WD-v0.8 §4.3.1; ACT-POLICY-v0.8 §8.1; LOOP-v0.8 §5.1.1; EXEC-v0.6 §3.4); history citations kept | Header; §0; §3.1; §4.1; §6.1; §7; this table |
 
 No fixture identifier is re-meant and no FX-PIPE-01 value changes. New
-identifiers: CI-1…CI-5, EI-1…EI-5, CF-1…CF-5, RC-1…RC-4, CU-1…CU-3,
+identifiers: CI-1…CI-5, EI-1…EI-5, CF-1…CF-5, RR-1…RR-4, CU-1…CU-3,
 HR-1…HR-3, SQ-C1…SQ-C6, SH-1, VC-C-09, VC-C-10, U-C14, U-C15, and at the
 RP-2 repair CX-1 (U-C14 closed there). The catalog
 edition (§2) stays PROPOSED. Not done here: S1-B C items 1–3 and 7 belong to

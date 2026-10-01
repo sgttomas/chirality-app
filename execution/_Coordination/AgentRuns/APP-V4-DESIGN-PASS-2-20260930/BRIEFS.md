@@ -670,3 +670,16 @@ the integrator's and is done. Rulings for the findings:
 SWBPIPE's files); `WAVE_B/RQ.md`. Rows "RQ" in each file's Wave B change
 table; no version bump. **GUIDE's 18-row input table is re-pinned last**, by
 script, after every other edit, showing 18/18. Rerun every prototype.
+
+## V19b — recheck of the V19 repairs (one Type 2 reviewer)
+
+**Candidate:** the commit named in your launch message; the repairs are the
+diff from `8c575f739e` to it. Read-only; write only `reviews/V19b.md`. Check
+that every V19-A and V19-B finding is closed as `WAVE_B/RQ.md` says (quote the
+fixed passage), with the RQ brief's rulings; that the RQ diff introduced
+nothing false, inconsistent across files, or beyond the findings (look hard
+at anything new it labels PROPOSED); rerun every prototype; GUIDE 18/18; RELAY
+§0–§3, PIN_SPIKE, OBS_1, SWBPIPE's files and every ScopeOfWork, register,
+status, basis, decomposition, scope-change and DAG file unchanged; DAG-003's
+manifests pass; and that the work graph and DISPATCH are true against git.
+Verdict **MERGE AS DRAFTS** or **HOLD**; findings classed as in V19.

@@ -31,7 +31,7 @@
       "formatVersion": "0.1",
       "policyRevision": {"label": "DEL-04-01/ACT-POLICY-v0.8", "contentIdentity": {"method": "unselected", "value": "x"}},
       "records": [
-        {"recordId": "P-03", "title": "SWB model changes", "recordRole": "catalog class", "classIdentity": {"kind": "host-named operation class", "name": "SWB model change"}, "humanActClass": "may apply within granted autonomy", "widenable": "yes, bounded by ACT §5.6", "consequence": {"assigned": true, "effect": "harmless", "reversibility": "CR-1 host undo with receipt", "examination": "CX-1 host checks available on the result", "delegation": "CD-2 the person decides the batch"}, "decisionBasis": [{"identity": "V4-HI-41", "standing": "DERIVED"}], "decisionStanding": ["DERIVED"], "hostAdoption": {"state": "unevidenced"}}
+        {"recordId": "P-03", "title": "SWB model changes", "recordRole": "catalog class", "classIdentity": {"kind": "host-named operation class", "name": "SWB model change"}, "humanActClass": "may apply within granted autonomy", "widenable": "yes, bounded by ACT §5.6", "consequence": {"assigned": true, "effect": "harmless", "reversibility": "CQ-R1 host undo with receipt", "examination": "CQ-X1 host checks available on the result", "delegation": "CQ-D2 the person decides the batch"}, "decisionBasis": [{"identity": "V4-HI-41", "standing": "DERIVED"}], "decisionStanding": ["DERIVED"], "hostAdoption": {"state": "unevidenced"}}
       ]
     }
   }

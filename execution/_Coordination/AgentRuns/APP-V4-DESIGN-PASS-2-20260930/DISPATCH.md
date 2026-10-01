@@ -61,3 +61,5 @@ not on the executor's report. A user-level agent definition
 | V19 | Two reviewers (type2-opus-high) launched on the candidate named at launch |
 | V19 return | V19-A MERGE AS DRAFTS (0 BLOCKING, 1 MAJOR, 7 MINOR, 6 NOTE); V19-B HOLD (1 BLOCKING: PANEL against R15-1; 1 MAJOR: the work graph was stale — corrected by the integrator in this commit; 5 MINOR; 7 NOTE). Every prototype reproduced; an independent jsonschema check agreed. V19-B's note that OBS-1_BRIEF.md carries the scratchpad path with the user name is recorded: it is a run brief, not the redacted observation record, and is left as written |
 | RQ | One repair executor (type2-opus-high) on every V19 file finding, with the final GUIDE re-pin |
+| RQ return | V19-B B-1 fixed (PANEL RI-1, RT-d, PC-42 and schema; LOOP §3.2 split); V19-A M-1 fixed (label map plus a check over every ADAPTER value: 48/48); 12 MINOR and 9 NOTE fixed. Every prototype reran; jsonschema 4.26 resolves RS's references with a file-relative retrieval rule (56/56 valid, 15/15 invalid rejected). GUIDE re-pinned last: 18/18. Fence verified |
+| V19b | One recheck reviewer (type2-opus-high) |

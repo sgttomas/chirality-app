@@ -35,6 +35,11 @@ python3 assemble_tool_calls.py
 python3 schema_subset.py ../LOOP_TOOL_CALL.schema.json ../LOOP_TOOL_CALL.example.valid.json ../LOOP_TOOL_CALL.example.invalid.json
 ```
 
+`schema_subset.py` exits with status 1 whenever any instance it is given is
+invalid, so the commands above that pass the invalid example exit 1 by
+design; the expected output is VALID for the valid example and INVALID for
+the invalid one (RQ; V19-B n-7).
+
 ## Recorded run (2026-09-30, Python 3.13.7, macOS)
 
 `python3 assemble_tool_calls.py`:

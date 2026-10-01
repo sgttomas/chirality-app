@@ -8,7 +8,7 @@ writer and reader failure behaviour of RS-v0.8 §14. It selects no placement
 
 | File | What it is |
 |---|---|
-| `minischema.py` | A JSON Schema draft 2020-12 validator for a declared keyword subset: `type`, `enum`, `const`, `required`, `properties`, `additionalProperties`, `items`, `minItems`, `minLength`, `pattern`, `minimum`, `oneOf`, `anyOf`, `allOf`, `not`, `$ref` (local pointers, `$id` URNs through a registry, and relative file paths resolved against the referring schema's directory — how RS references EXEC's CE bodies, R14-1), `$defs`; annotations `$schema`, `$id`, `$comment`, `title`, `description`, `examples`. Any other keyword fails the schema load, so no schema relies on a keyword this validator ignores. |
+| `minischema.py` | A JSON Schema draft 2020-12 validator for a declared keyword subset: `type`, `enum`, `const`, `required`, `properties`, `additionalProperties`, `items`, `minItems`, `minLength`, `pattern`, `minimum`, `oneOf`, `anyOf`, `allOf`, `not`, `$ref` (local pointers, `$id` URNs through a registry, and relative file paths resolved against the referring schema's directory — how RS references EXEC's CE bodies, R14-1; a standard validator needs the same retrieval rule, RS §13), `$defs`; annotations `$schema`, `$id`, `$comment`, `title`, `description`, `examples`. Any other keyword fails the schema load, so no schema relies on a keyword this validator ignores. |
 | `record_store.py` | The prototype writer (W-0 open, W-1 append, W-2 late write after a failure, W-3 correction) and reader (R-1…R-8) of RS §14 |
 | `run_prototype.py` | Loads the three schemas (ACT, AS, RS), validates every valid and invalid example beside them, round-trips each valid RS example log through the writer and reader, and runs the failure cases FC-1…FC-7 ; then runs `exec_to_rs.py`'s checks |
 | `exec_to_rs.py` | R14-1: RS format 0.1 is the one container. Checks that each of EXEC's 19 CE bodies has an RS kind that references it, writes EXEC's valid recorder outputs (DEL-02-03 `checkpoint-record-entries.example.valid.json`) through the writer as RS entries and reads them back, then does the same for EXEC's other CH scripts and one sample of each remaining kind. Every entry must be valid and none without a kind |
@@ -34,8 +34,12 @@ files; nothing is written beside the Design files.
   records fail for their stated reasons.
 - AS: two settings-in versions validate; three invalid ones fail for their
   stated reasons.
-- RS: the three example logs (20, 20 and 3 entries) validate; nine invalid
-  entries fail for their stated reasons.
+- RS: the three example logs of node B4 (20, 20 and 3 entries) validate;
+  nine invalid entries fail for their stated reasons. Since then two logs
+  were added (host destinations, 12 entries, node B5; run not started, 1
+  entry, node B8) and six invalid entries (INV-RS-10…15): at the RQ rerun
+  all five logs (3, 20, 12, 20 and 1 entries) validate and round-trip, and
+  INV-RS-1…15 fail for their stated reasons.
 - Each valid log written through the writer and read back gives identical
   entries and identical bytes.
 - FC-1…FC-7 each hold: a failed write is reported and later written in

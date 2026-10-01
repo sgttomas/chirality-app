@@ -19,7 +19,7 @@
   - Owner confirmations at the amendment checkpoints: run `APP-V4-BASIS-ALIGN-20260928`, `OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-7 accepts `AMENDMENT_PACKET/OWNER_ITEMS.md`, sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef, "as recommended": O-4, O-6, O-10, O-15, O-17, O-25); run `APP-V4-SCA002-20260929`, `OWNER_DECISIONS.md` sha256 36ffcbbea923504581844456751c2eb3db617b5471a3595e63f036bf0634b480 (DECISION-2 accepts its `OWNER_ITEMS.md`, sha256 1d46458c966b6cc41be361eb2ddbc75df409bcc43202aff17478b81438ca51a8: Q-5 option A).
   - Accepted graph: `P/execution/_DAG/_LATEST.md` (sha256 4d381ba4e87b41a83b9d0d2dc591c4bf04eacb84df0b5c27314091cd2a992f56) → DAG-003.
 - **Consumed inputs for v0.8 (Wave B of run `APP-V4-DESIGN-PASS-2-20260930`, node B4; read from the working tree on commit `86cafc0e1c`; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`).** `BRIEFS.md` sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules"; "Wave B — design development", row B4); `R12_RESOLUTIONS.md` sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1 (R12-1…R12-10; binding); `OWNER_DECISIONS.md` sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1, with the later model-download record; supersedes for currency the pin in the node A4 line below); `SURVEY/S1-A.md` sha256 87baa03d7cbc9b0a6b8e8543d8cd80a7d71c754da80fbfdc053c8e6ef21045f6 (§1.5, §1.8 items 7–8; advice, checked against the current text); `DECISION_BRIEF.html#d3` (sha256 02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8 as pinned above; its "Reconsider when" line names the four dimensions of §8.5); DEL-02-02 ScopeOfWork REQ-002, AC-002, AC-006 (A15, R12-5). Siblings by label and section (R9-5): DEL-03-01/C-v0.7 §3.1 (element 8); DEL-02-03/EXEC-v0.5 §2.1 PH-6, §5 CAP-1…CAP-9. AS-v0.8 and RS-v0.8 were revised by this executor in the same node.
-- **Current pins of this run's records (node A4 of run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump; R11-3).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R9_RESOLUTIONS.md` sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 (R9-1…R9-11; R9-2's second bullet as corrected by R10-1); `R10_RESOLUTIONS.md` sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 (R10-1…R10-11); `R11_RESOLUTIONS.md` sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-1…R11-9, the repairs from review V17); `OWNER_DECISIONS.md` sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (DECISION-K1). These supersede for currency the earlier pins of the same records in this header and in the change-table rows, which record the bytes read at node A1 or A3.
+- **Pins as of node A4 of this run's records (run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump; R11-3; relabelled at RQ, V19-B n-1: later pins of the same records are in the Wave B input lines and in GUIDE's basis).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R9_RESOLUTIONS.md` sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 (R9-1…R9-11; R9-2's second bullet as corrected by R10-1); `R10_RESOLUTIONS.md` sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 (R10-1…R10-11); `R11_RESOLUTIONS.md` sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-1…R11-9, the repairs from review V17); `OWNER_DECISIONS.md` sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (DECISION-K1). At node A4 these superseded for currency the earlier pins of the same records in this header and in the change-table rows, which record the bytes read at node A1 or A3.
 - Consumed inputs for v0.7 (Wave A of run `APP-V4-DESIGN-PASS-2-20260930`, node A1-A; read from the working tree on commit `3dd7c22c73`). Paths are under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/` unless stated:
   - `R9_RESOLUTIONS.md` (sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c): R9-1…R9-11 (binding). `BRIEFS.md` (sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a): "Common rules" and "A1 — alignment wave", row A1-A. `SURVEY/S1-A.md` (sha256 87baa03d7cbc9b0a6b8e8543d8cd80a7d71c754da80fbfdc053c8e6ef21045f6): advice; each item applied was checked against the current source.
   - Rulings R1–R8, by file: `R1_RESOLUTIONS.md`…`R7_RESOLUTIONS.md` in `AgentRuns/APP-V4-FIRST-INCREMENT-20260928/`, and `R8_RESOLUTIONS.md` in `AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/` at its current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b. They stand except where R9 amends them: R9-2 restates R8-11 item 2 and R8-12 item 2.
@@ -115,6 +115,7 @@ cited text decides it.
 | **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §2.7 joined to the one destination flow: the agent's request is a call to the host's destination request entry carrying the call it needs ("the requesting call" of ND-A2, ND-A3), its A8 mapping DERIVED from §2.1 as AP-12; the decline row states the result class and that recording it as a destination entry is PROPOSED (R12-10); the non-stateless row cites DF-3 A-3, DF-6 and the evidence rule DF-7. §4.7's A12 paragraph points to DF-5 and the DF-F rows | §2.7; §4.7 |
 | Verification | New VC-012 (schema and instances); VC-007 traces V-29; VC-009 reconciles FX-01…57 | Verification cases |
 | RP-4: V18-2 m-11 | §4.1's examples of recognized kinds outside the closed list now name A15, as its own bullet already rules (WD-v0.8 FB-03) | §4.1 |
+| RQ (repairs from V19; in place, no version bump) | V19-A m-3: live citations moved to Wave B labels (LOOP-v0.8 §5.1.1; EXEC-v0.6 §2.1, §4; WD-v0.8 §4.3.0, §4.3.1; fixtures "carried in C-v0.8"); history and origin citations kept. V19-A m-5: §8.5's consequence codes renamed while PROPOSED, CE-n, CR-n, CX-n, CD-n → **CQ-E0…CQ-E5, CQ-R0…CQ-R4, CQ-X0…CQ-X4, CQ-D1…CQ-D4** (they shared EXEC's CE kinds, EXEC's CR elements and C's CX-1), in text, schema and the invalid example; no meaning changed. V19-A n-3: LC-2 cites RS FC-1 for the late write and RS §6.1 for faithful recording. V19-B n-1: the node-A4 pins bullet relabelled "as of node A4" | Header; §2.8 LC-2; §2.7; §4.0; AP-10; §7; §8.5; §13; `ACT_POLICY_CLASS_RECORD.schema.json`; `ACT_POLICY_CLASS_RECORD.invalid.examples.json` |
 
 ## Changes from v0.6
 
@@ -540,7 +541,7 @@ Notes:
   *network-destination grant*. D2 (e) already reserves changing the
   autonomy grant.
 
-The network rules themselves are LOOP-v0.7 §5.1.1 (NW-8…NW-16). From
+The network rules themselves are LOOP-v0.8 §5.1.1 (NW-8…NW-16). From
 v0.8 (node B5) the flow they run in is DEL-05-01/LOOP-v0.8 §5.3, the one
 account that this section, AS, RS, PANEL, C, P and ADAPTER cite (DF-1…DF-10).
 
@@ -589,7 +590,7 @@ listed below the table. RS-v0.8 §3 gives the states of a written entry
 | # | State | Entered when (evidence) | Kinds | Leaves to | RS entry (§13) |
 |---|---|---|---|---|---|
 | LC-1 | **requested** — no act yet | The agent's A8 is identified (AP-12) | A4–A7, A10, A12, A13, A15 | LC-2 when the person acts; LC-D when the person declines; stays while nobody acts, never a grant or act by silence (S12) | `act_request` (R16) |
-| LC-2 | **captured, not yet recorded** | The person operates the capturing surface (§2.6); capture evidence exists there | All | LC-3 when written. If the write fails the capture evidence still exists and the act can be recorded later, faithfully, citing it (RS §14.3 FC-1) | — |
+| LC-2 | **captured, not yet recorded** | The person operates the capturing surface (§2.6); capture evidence exists there | All | LC-3 when written. If the write fails, the writer reports it and writes the entry later in order, followed by "record write failed" (RS §14.3 FC-1); the capture evidence still exists, so another recorder can also record the act faithfully, citing it (RS §6.1, recording mode *faithful recording*) | — |
 | LC-3 | **recorded, current** | A human-act record is written: direct capture by the surface, or faithful recording citing the same capture evidence (A9) | All | LC-4, LC-5 (content-bound acts); LC-6 (A12, A13); LC-8. A15 stays here (§2.5) | `human_act` |
 | LC-3a | A12 **control relation** | The control's report: *pending* · *established ⟨settings version⟩* · *refused ⟨reason⟩* · *unconfirmed* (§2.5) | A12 (both subclasses) | *established* → LC-6 only by a later established A12; *refused* establishes and supersedes nothing | the next `settings_version` naming the A12 |
 | LC-4 | **lapsed** · **partially lapsed** · **lapsed (subject absent)** | The bound content is observed changed (act-lapsed event, both phases) | A4, A6, A7; A5 and A10 per item (never by applying or undoing that item) | "matches c₀ again after observed lapse" (L-11), keeping the lapse visible; never silently back to LC-3 | `act_lapsed` |
@@ -690,7 +691,7 @@ table is a proposed interpretation only.
 ## 4. Checkpoints (R-5; R2-5, R2-10, R2-12, R2-17…R2-20; R4-2…R4-6, R4-9, R4-14)
 
 DEL-02-01 declares checkpoints (WD §4.3). DEL-05-01 evaluates them in hosts.
-DEL-02-03 owns the hold machine (EXEC-v0.5 §4). This section supplies the act-policy
+DEL-02-03 owns the hold machine (EXEC-v0.6 §4). This section supplies the act-policy
 meaning that those three consume.
 
 ### 4.0 Phase 1: checkpoints are plan guidance (R8-1; DECISION-4 D4-1)
@@ -699,8 +700,8 @@ The phasing is SETTLED: PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended
 by SCA-V4-001, which applies DECISION-4 D4-1 and its clarification, and
 ScopeOfWork TBD-004. The framing of the rules below beyond those texts is
 INTEGRATION (R8-1, R8-11; R9-1, R9-2), except who requests the act (AP-12),
-which is SETTLED by DECISION-K1 K1-1. The execution rules are EXEC-v0.5 §2.1
-(PH-1…PH-10) and §2.2 (GV-1…GV-5); the declaration side is WD-v0.7 §4.3.0
+which is SETTLED by DECISION-K1 K1-1. The execution rules are EXEC-v0.6 §2.1
+(PH-1…PH-10) and §2.2 (GV-1…GV-5); the declaration side is WD-v0.8 §4.3.0
 (CG-1…CG-7). This contract states what they mean for acts and policy.
 
 **The amended texts (quoted; R9-1).**
@@ -737,7 +738,7 @@ which is SETTLED by DECISION-K1 K1-1. The execution rules are EXEC-v0.5 §2.1
 | **AP-7 Lapse is recorded; nothing re-holds** | A performed act whose bound content changes is still recorded as lapsed, with an act-lapsed event, and outputs it gated show their standing lapsed (V4-REC-05; §2.5). This is record truthfulness, not enforcement. Re-hold is governance phase only (EXEC PH-8; confirmed by R8-11 item 1) |
 | **AP-8 Checkpoint clause of D2** | For a declared checkpoint, V4-HI-42's request clause and record clause are in force whatever the autonomy setting (AP-3, AP-12). Whether the run goes on before the act is for the person and the agents in the current phase, and the host's own treatment of its operations decides what the host does (R9-2, restating R8-11 item 2). WD I-7 (the acceptance-checkpoint constraint, §4.4) is plan guidance in the current phase: the agent proposes where the declaration calls for an A5. Holding the run binds only for governed checkpoints in the governance phase |
 | **AP-9 Invalid declarations** | A checkpoint declaration that is invalid (§4.1, §4.2) is reported as a **declaration finding**, invalid with its FB code. In Phase 1 it gives no hold-support value and does not make the workflow *not established* (R8-11 item 3) |
-| **AP-10 `governed`** | A checkpoint declared **`governed`** (WD-v0.7 §4.3.1; PROPOSED) is honoured in Phase 1 **only as guidance** (EXEC PH-9) |
+| **AP-10 `governed`** | A checkpoint declared **`governed`** (WD-v0.8 §4.3.1; PROPOSED) is honoured in Phase 1 **only as guidance** (EXEC PH-9) |
 | **AP-11 V4-WF-05 and V4-HI-42** | The amended texts are quoted above. Their request clause and record clause are in force in every phase (AP-3, AP-12), and the reserved acts bind (AP-4). Only holding the run until the act is **phased to the governance layer, not withdrawn** (EXEC PH-10) |
 | **AP-12 Who requests** | SETTLED by DECISION-K1 K1-1 (the owner's decision of 2026-09-30 in run `APP-V4-DESIGN-PASS-2-20260930`, confirming R9-1's reading of DECISION-4's text). The **agent carrying out the workflow** asks the person for the act when its work reaches the checkpoint, because the declared checkpoint is part of the plan it was given. Its request is an A8 (§2.1; DERIVED). The product's part is: (i) to give the agent the declared checkpoint with the workflow; (ii) to offer the person the means to perform the act; (iii) to record what it observes: the checkpoint's identity, the request where it can be identified, and the act only when the person performs it. A record never says *performed* without the act. Neither the App nor a host's embedded loop issues the request in the agent's place, pauses the run, or otherwise reacts to the arrival. How an App run observes an arrival and a request is defined in EXEC in Wave B; the record element is RS-v0.8 R16, and §4.7 gives the sequence from request to record; this contract defines no observation mechanism |
 
@@ -1370,7 +1371,7 @@ A host refusal on validation is *refused* (an A2 outcome). It is never A10.
 > owner decision OI-016.
 
 The policy-class record is P-03 (§8.3). In the fixture, OP-C4, OP-C5 and
-OP-C9 carry it (C-v0.4 §10.2; carried in C-v0.7).
+OP-C9 carry it (C-v0.4 §10.2; carried in C-v0.8).
 
 - Acceptance granularity:
   - Row-by-row acceptance is one A5 per change item.
@@ -1384,7 +1385,7 @@ OP-C9 carry it (C-v0.4 §10.2; carried in C-v0.7).
 - With no person setting, the grant state is **effective (policy default):
   propose** (R2-6).
 
-**Fixture walk-through (C-v0.4 §10.3, carried in C-v0.7; invented material).**
+**Fixture walk-through (C-v0.4 §10.3, carried in C-v0.8; invented material).**
 
 | Step | Rev | What happens | Treatment, act or outcome |
 |---|---|---|---|
@@ -1592,36 +1593,36 @@ statement (§8.1).
 
 | Dimension (d3) | Code | Value | Meaning | Fixture illustration (invented) |
 |---|---|---|---|---|
-| **Effect** | CE-0 | no domain change | Reads and examinations | OP-C1, OP-C3 |
-| | CE-1 | App-side only | App files or App outputs only | an edit of AF-1 |
-| | CE-2 | queued proposal only | Nothing changes until the person accepts and the host applies | OP-C4 under *propose* |
-| | CE-3 | domain change, bounded objects | Changes named objects | OP-C9 on S-4 |
-| | CE-4 | domain change, model-wide | Changes structure or the whole model | none in the fixture |
-| | CE-5 | effect outside the host | Sends data or starts a process beyond the host | a network destination (governed separately by §2.7) |
-| **Reversibility** | CR-1 | host undo with receipt | The host's undo route writes a receipt that reverses the change | OP-C10, RC-3 reverses RC-2 |
-| | CR-2 | host undo without receipt | Reversible, but no receipt names the reversal | SWBPIPE's session undo (SQ-10) |
-| | CR-3 | reversed only by a further change | No undo route; another change can restore | — |
-| | CR-4 | not reversible | — | — |
-| | CR-0 | not stated | The host states nothing | — |
-| **Available examination** | CX-1 | host checks available on the result | The host can check the result (host checks, named) | OP-C12 |
-| | CX-2 | agent examination only | Only an agent's findings (A3) | OP-C3 |
-| | CX-3 | the person's examination only | Only the person can examine it | — |
-| | CX-4 | none before reliance | No examination is available before the result is relied on | — |
-| | CX-0 | not stated | — | — |
-| **Intended delegation** | CD-1 | the person decides each item | Row-by-row A5 | T11 |
-| | CD-2 | the person decides the batch | Multi-row or whole-batch A5 | SWBPIPE's Apply (per batch) |
-| | CD-3 | agent applies within scope; the person checks later | Direct application with a later A4 on the result (S1's "later checking") | T16, T16a |
-| | CD-4 | agent applies within scope; no follow-up act expected | Direct application alone | — |
+| **Effect** | CQ-E0 | no domain change | Reads and examinations | OP-C1, OP-C3 |
+| | CQ-E1 | App-side only | App files or App outputs only | an edit of AF-1 |
+| | CQ-E2 | queued proposal only | Nothing changes until the person accepts and the host applies | OP-C4 under *propose* |
+| | CQ-E3 | domain change, bounded objects | Changes named objects | OP-C9 on S-4 |
+| | CQ-E4 | domain change, model-wide | Changes structure or the whole model | none in the fixture |
+| | CQ-E5 | effect outside the host | Sends data or starts a process beyond the host | a network destination (governed separately by §2.7) |
+| **Reversibility** | CQ-R1 | host undo with receipt | The host's undo route writes a receipt that reverses the change | OP-C10, RC-3 reverses RC-2 |
+| | CQ-R2 | host undo without receipt | Reversible, but no receipt names the reversal | SWBPIPE's session undo (SQ-10) |
+| | CQ-R3 | reversed only by a further change | No undo route; another change can restore | — |
+| | CQ-R4 | not reversible | — | — |
+| | CQ-R0 | not stated | The host states nothing | — |
+| **Available examination** | CQ-X1 | host checks available on the result | The host can check the result (host checks, named) | OP-C12 |
+| | CQ-X2 | agent examination only | Only an agent's findings (A3) | OP-C3 |
+| | CQ-X3 | the person's examination only | Only the person can examine it | — |
+| | CQ-X4 | none before reliance | No examination is available before the result is relied on | — |
+| | CQ-X0 | not stated | — | — |
+| **Intended delegation** | CQ-D1 | the person decides each item | Row-by-row A5 | T11 |
+| | CQ-D2 | the person decides the batch | Multi-row or whole-batch A5 | SWBPIPE's Apply (per batch) |
+| | CQ-D3 | agent applies within scope; the person checks later | Direct application with a later A4 on the result (S1's "later checking") | T16, T16a |
+| | CQ-D4 | agent applies within scope; no follow-up act expected | Direct application alone | — |
 
 **If adopted,** a policy-class record's consequence statement would carry one
 value per dimension; a grant's scope could name a set of values (for example
-"CE-3 with CR-1"); and the conservative default *propose* would stand
+"CQ-E3 with CQ-R1"); and the conservative default *propose* would stand
 whatever the values (V4-HI-41). Nothing here makes an operation reserved or
 unreserved: that stays D2's and OI-021's.
 
 **Questions for the owner's phase review:** (1) the four dimensions as
 named; (2) each value set; (3) whether intended delegation belongs in the
-operation's record or only in the person's grant; (4) whether CE-5 belongs
+operation's record or only in the person's grant; (4) whether CQ-E5 belongs
 here or stays with §2.7 alone. Owner: DEL-04-01 with the host policy owner
 (U-02). Point of need: before class assignment in DEL-03-01.
 
@@ -1803,7 +1804,7 @@ This contract's existence claims none of the following:
 
 ## 13. Fixture catalogue (OUT-003) — designed, not run
 
-**Sources.** Subjects come from **C-v0.4 §10**, carried in C-v0.7 §10 (R2-21; R4-18; R5-9; R8-12 item 7):
+**Sources.** Subjects come from **C-v0.4 §10**, carried in C-v0.8 §10 (R2-21; R4-18; R5-9; R8-12 item 7):
 
 - **Model:** FX-PIPE-01, run 12, R-100, supports S-1…S-4 and S-5 (created at T12), Engineer A.
 - **Fixture assumptions:** FXA-1…FXA-5, renamed from FA-n; the alias is kept by C (R5-9; V3-A m-3). FXA-1 exposes every entry on all three surfaces. FXA-5 states that ⟨rev-3⟩ (WD-EX E1) declares `CP-accept` (A5) and `CP-check` (A4 on objects changed by `CP-accept` items' applied outcomes).
@@ -1811,7 +1812,7 @@ This contract's existence claims none of the following:
 - **Entries:** OP-C1…C12.
 - **Timeline:** T1–T17, including T4a and T16a.
 - **Proposals, receipts and settings:** PR-1/PR-2, RC-1…RC-3, ⟨set-1⟩/⟨set-2⟩.
-- **Variants:** V-S1, V-CP1, V-NP1, V-R1, V-X1, V-OU1 and V-ED1, plus **V-GR1** (R5-7; present in C-v0.5 §10.4 with GR-P/GR-R/GR-S, and carried in C-v0.7). V-GR1 is a run of WD-EX E1d in which `CP-grant` arrives at r15, T15's A12 is captured *after* the arrival, and the held OP-C9 call is then dispatched unchanged as T16.
+- **Variants:** V-S1, V-CP1, V-NP1, V-R1, V-X1, V-OU1 and V-ED1, plus **V-GR1** (R5-7; present in C-v0.5 §10.4 with GR-P/GR-R/GR-S, and carried in C-v0.8). V-GR1 is a run of WD-EX E1d in which `CP-grant` arrives at r15, T15's A12 is captured *after* the arrival, and the held OP-C9 call is then dispatched unchanged as T16.
 
 **Local additions, named per R2-21 (V3-A m-13).** Retired labels are not reused (V3-A MAJOR-4):
 - L-ACT-1 and L-ACT-3 were retired in v0.4;
