@@ -64,6 +64,7 @@ answer.
 | (verification) | Prototype rerun after the repair: `python3 run_cases.py`, 35 results, all as expected (`prototype/results/RUN_2026-09-30_RP-3.txt`) | `prototype/results/` |
 | RX (residual sweep; RP-1 return §4) | §6.8 names the required-tool check's catalog read as an App-origin read (ADAPTER-v0.6 §7.7; EXEC-v0.6 §3), recorded with initiator App; its carrying surface is left open, and a use of `mcpServer/tool/call` for it stays under U-24 | §6.8 |
 | RQ (repairs from V19; in place, no version bump) | V19-A m-2 (carried here for consistency with OB-1 and the OBS record): L-3 and F-31 state what OBS-1 observed (LM Studio logged the `namespace` tool type as unsupported; no MCP tool reached the model) and label "Codex offered them as a `namespace` tool" the record's inference, as OB-1 already does. V19-B n-1: the node-A4 pins bullet relabelled. No prototype file changed | Header; §8.1 L-3; F-31 |
+| C0 (closeout; V19b m-4; in place, no version bump) | §6.8's preamble no longer says no surface was exercised live: `mcpServerStatus/list` and `mcpServer/startupStatus/updated` were observed live at OBS-1 (§10.1 OB-10; one local route; not qualification), and the first row is marked *Observed (OBS-1)* with what was seen. No prototype file changed | §6.8 |
 
 ## Changes from v0.6
 
@@ -828,12 +829,17 @@ that phase this boundary supplies only these facts and limits:
 ### 6.8 MCP surfaces at 0.158.0 (R4-12; ADAPTER F-3)
 
 Classified from the committed 0.158.0 JSON Schema bundle and the spike
-inventory; all rows are `observed-in-generated-types` unless marked, none
-exercised live. "Caller" is who initiates the MCP-side effect.
+inventory; all rows are `observed-in-generated-types` unless marked.
+`mcpServerStatus/list` and `mcpServer/startupStatus/updated` (first row,
+marked *Observed (OBS-1)*) were observed live at OBS-1 (§10.1 OB-10;
+`OBS_1_0.158.0.md` §5, §7, A-1; one local route, one model; not
+qualification). The `mcpToolCall` row states what OBS-1 did not observe.
+No other surface of this table was exercised live (C0; V19b m-4). "Caller"
+is who initiates the MCP-side effect.
 
 | Surface (supplier name) | Kind / variant | Caller | Boundary treatment | Receiver; evidence standing |
 |---|---|---|---|---|
-| `mcpServerStatus/list` (optional thread identity, detail, paging); `mcpServer/startupStatus/updated` notification | Client request (stable); notification (stable) | App (read) / supplier (report) | Generic request path; native delivery (H6) | DEL-03-03 channel state. A supplier status `disabled` is an **App-side configuration fact, never A13** (R4-13) |
+| `mcpServerStatus/list` (optional thread identity, detail, paging); `mcpServer/startupStatus/updated` notification | Client request (stable); notification (stable) | App (read) / supplier (report) | Generic request path; native delivery (H6) | DEL-03-03 channel state. A supplier status `disabled` is an **App-side configuration fact, never A13** (R4-13). *Observed (OBS-1)*: before any thread, `mcpServerStatus/list {}` listed the configured server with `runtimeStatus` null and no startup notification; on a thread, `mcpServer/startupStatus/updated` went `starting` → `ready`, and a thread-scoped list showed `connected` (OBS record A-1, §7; §10.1 OB-10) |
 | `config/mcpServer/reload`; `config/value/write`, `config/batchWrite` (write a key path into the user's Codex configuration) | Client requests (stable) | App, only as **person-directed** through the owning interface (DEL-03-03 OC-3; DEL-01-05) | Carries the change and records initiator; never initiated by an App rule or on an agent's instruction (H9: the person's own Codex configuration) | App-side configuration is **never A13 evidence**; any configuration an agent could write is not act evidence (R4-13). The host's refusal is the authoritative "off" (ADAPTER) |
 | `mcpServer/oauth/login`; `mcpServer/oauthLogin/completed` | Client request; notification (stable) | App, person-directed | As above; credentials stay with the supplier | DEL-01-05 / DEL-03-03 (OC-6); not an act |
 | Thread item `mcpToolCall` {server, tool, arguments, status, result, error, …}; `item/mcpToolCall/progress` | Items and notification (stable) | **The agent** (model-issued call) | Native delivery only; the boundary never alters, retries or answers these calls | DEL-03-03 dispatch observation; host outcome per DEL-03-02/03-03. Whether an MCP tool call raises an A14 request at 0.158.0 is **not observed**: on the local Responses route of OBS-1 no MCP tool reached the model (`namespace` tool dropped; §10.1 OB-1), so no such item was produced |

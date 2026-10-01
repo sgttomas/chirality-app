@@ -683,3 +683,46 @@ at anything new it labels PROPOSED); rerun every prototype; GUIDE 18/18; RELAY
 status, basis, decomposition, scope-change and DAG file unchanged; DAG-003's
 manifests pass; and that the work graph and DISPATCH are true against git.
 Verdict **MERGE AS DRAFTS** or **HOLD**; findings classed as in V19.
+
+# Closeout
+
+## C0 — the four V19b MINORs and the last GUIDE re-pin (one Type 2)
+
+Fix V19b m-1…m-4 (`reviews/V19b.md`): LOOP §3.2's run opening against a
+no-credential refusal (state when a host-loop run opens so that a
+`boundary_refusal` is recorded on an opened run, consistent with R15-1);
+GUIDE's pin-provenance text; GUIDE F-17's wording; HOSTING §6.8 "not
+exercised live" against OBS-1 (§10.1). Write fence: LOOP, GUIDE, HOSTING
+(and LOOP's or RS's schema/example only if m-1 needs it); `closeout/C0.md`.
+Rerun LOOP's and RS's prototypes; re-pin GUIDE's 18-row table last, 18/18.
+
+## C1 — bounded closeout (three Type 2, read-only on Design files)
+
+Method: `chirality-root:bundled:workflow:bounded-reconciliation`
+(`workflows/bounded-reconciliation/WORKFLOW.md`, read it whole). Same
+boundary as the first increment's closeout: DAG-003's `SOURCE_MANIFEST`
+binds every `ScopeOfWork.md`, `Dependencies.csv` and `_DEPENDENCIES.md`, so
+this closeout **applies no change** to them, or to `_STATUS.md`,
+`_CONTEXT.md` or `_REFERENCES.md`; every warranted change is a precise
+proposal (file, section or row, old → new, reason, source finding) for a
+later amendment and `dependency-extract` run.
+
+| ID | Deliverables (Design files compared at the candidate named at launch) |
+|---|---|
+| C1-A | DEL-04-01, DEL-04-02, DEL-04-03, DEL-02-01, DEL-02-03 |
+| C1-B | DEL-03-01, DEL-03-02, DEL-03-03, DEL-03-04, DEL-01-01 |
+| C1-C | DEL-05-01, DEL-05-02, DEL-09-06, DEL-09-09 |
+
+For each deliverable: commitments (ScopeOfWork OUT, REQ, AC, VER) → where the
+Design files now answer them (developed, partial, named only, absent), and
+results in the Design files → whether a commitment supports them; what the
+60% description in `loop/LOOP_INIT.md` still lacks; the register rows the
+Design files now show to be wrong, missing or stale; lifecycle observation
+(no change made). **Collect every proposed ScopeOfWork, register or basis
+item** raised in this run — the "proposed" parts of `WAVE_A/*.md`,
+`WAVE_B/*.md`, `comparisons/*.md`, `reviews/*.md` and the S1 surveys — that
+falls in your deliverables, deduplicated, each with its source; include, at
+least, the DEL-01-04 act-control obligation (DECISION-K1 K1-4), whether
+DEL-05-02's contract names the panel's destination surfaces, DEL-04-01's
+contract and DECISION-5, and DEL-09-09 REQ-001's TBD range. Write
+`closeout/C1-A.md` (or B, C). No other file.
