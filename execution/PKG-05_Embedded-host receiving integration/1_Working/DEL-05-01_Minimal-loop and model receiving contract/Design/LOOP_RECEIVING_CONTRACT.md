@@ -74,7 +74,9 @@
   SWBPIPE's answer about its current state. It is not a commitment,
   delivery, adoption or host evidence, and it moves no case out of AWAITING
   INPUT unless it supplies the named input. Host joins are deferred.
-- **Act names.** DEL-04-01 canonical names A1–A14 (ACT §2.1). Unqualified
+- **Act names.** DEL-04-01 canonical names A1–A15 (ACT-POLICY-v0.8 §2.1;
+  A15 *register workflow revision*, R12-5, is an App act that no checkpoint
+  may require in this increment and that no host-loop event carries, §9). Unqualified
   "checked" means only A4. "Approval" means only A6 (R-4).
 - **Fixture.** Cases use the shared fixture **FX-PIPE-01** of DEL-03-01/C-v0.4
   §10 (carried in C-v0.7 §10), and cite its identifiers (re-pointed from C-v0.2 per V2 m-13). The
@@ -123,9 +125,11 @@
   selection"** (§4.1). Where §4.1 or §7 names a member of that reference
   (for example `finish_reason` or `index`), it is cited to locate the
   passage relied on; it is not this contract's element name, and no wire
-  field is selected. Rules written from FB-CC-1 are PROPOSED until a local
-  OpenAI-compatible server is observed (OBS-1), whose record is to be
-  written beside them (§4.1, "OBS-1" column).
+  field is selected. Rules written from FB-CC-1 are PROPOSED. OBS-1
+  observed the four points on one local OpenAI-compatible server
+  (DEL-01-01 `OBS_1_0.158.0.md` §10, Part C), and §4.1's "OBS-1" column
+  records it beside them; one observation at one server version is not
+  qualification, so the rules stay PROPOSED (R13-6; RP-4).
 - **Schemas and prototypes (R12-1…R12-3; v0.8).** `LOOP_TOOL_CALL.schema.json`
   (JSON Schema 2020-12, PROPOSED) sits beside this file with a valid and an
   invalid example. `prototype/` holds a standard-library script that
@@ -171,6 +175,20 @@ carry the ID "B5" (no further version step).
 | B5 (R12-11) | §4: one statement that the loop reaches its model through one model-interface boundary, so a second interface (Responses API the likely one) can be added without restructuring; nothing selected | §4 |
 | B5 (verification) | MS-24…MS-27 and FX-N24…N27; MS-23's result class stated (G-10 closed on it); VC-01 extended; VC-10 new. Schema `LOOP_DESTINATION_REQUEST.schema.json` with a valid and an invalid example; prototype `prototype/destination_flow.py` | §5.2; §11; Verification cases; new files |
 | B5 (joins) | §9 A-5, §10.1 and §10.4 name the owners (AS §3.2 for the contacted-destinations display, G-14) | §9; §10.1; §10.4; Findings |
+| **RP-4: R14-7 / R13-5** (V18-1 m-14; V18-3 m-21) | §5.3 states R13-5: the carried call waits for the person's answer; that wait is the grant being sought, not a checkpoint hold, so DECISION-4 does not bear on it; other work continues; the person may end the turn and the request closes *unanswered at end*. NW-12 and G-8 cite it | §5.1.1 NW-12; §5.3; Findings G-8 |
+| **RP-4: R14-7 / R13-6** (V18-3 m-20) | §4.1's OBS-1 column takes OBS-1 Part C's four observed points (C1–C3 on LM Studio 0.4.16+2, `qwen/qwen3.5-9b`, 2026-09-30) beside FB-CC-1's reference, as observation, not qualification; rules unchanged and PROPOSED. §4.2 notes the reasoning member seen outside FB-CC-1. Prototype fixtures OBS1-C1…OBS1-C3 reproduce the observed shapes (22/22). The OBS-1 UNRESOLVED row closed; "until OBS-1" wording replaced | §0; §4; §4.1; §4.2; §7; MC-8; §7.3; §11; Findings G-3, G-11; UNRESOLVED; VC-05; `prototype/fixtures/stream_fixtures.json`, `prototype/README.md`, `prototype/assemble_tool_calls.py` (docstring) |
+| **RP-4: R14-1** (V18-1 B-1) | New E-8: each checkpoint event the loop emits, with its EXEC-v0.6 §2.4.2 counterpart (CE-1…CE-19); the RS entry kind is the one RS-v0.8 §13.3 states for that CE kind. E-4 points to it | §2.3 E-4, E-8 |
+| RP-4: V18-1 m-1; V18-2 m-7 (R12-10) | "prior act on this subject, not counted" → **"prior act not counted"** with its reason, in live text; history rows keep the old words | §2.3; §2.4.1; §2.4.3 C-2; §11 FX-C4b, FX-C11b, FX-C15 |
+| RP-4: V18-1 m-5 | A15 named (R12-5): not a host-loop act, not checkpoint-requirable | §0; §9 |
+| RP-4: V18-1 m-10 | A not-grantable or prompt-not-shown request is recorded and closed *not granted* without entering *pending*; an already-allowed request raises and records no request (returned to RS for R15's text); AS DG-15 and PANEL PS-5 follow | §3.2; §5.3 DF-5 Q-3 |
+| RP-4: V18-1 m-11 | F-2's refusal recorded as `boundary_refusal` at stage *model request*; RS has no reason value for it (returned) | §3.1 F-2 |
+| RP-4: V18-1 m-12 | E-6's ordinal is not carried by the run record; F-10 cites RS §14.1 W-1 and W-2 | §2.3 E-6; §3.1 F-10 |
+| RP-4: V18-1 m-15 | §6.2 "Grant in force" cites AS-v0.8 §12.1, with "unconfirmed", "not received" and the destination settings version | §6.2 |
+| RP-4: V18-1 M-5 (R14-3) | §7's report to the record names the loop-side refusal values RS R7 is to carry | §7 |
+| RP-4: V18-2 m-6 | WD-v0.8 taken up: OP-1…OP-6 for kind (b), with what a "completed assistant message" is in a host loop (PROPOSED); `on subject absent`, `fresh act required`; tool local names and output production; FB-20…FB-22 in LP-9; message content identity for "named output" | §2.4; §2.4.0 LP-9; §2.4.1; §2.4.2; §3.2 |
+| RP-4: V18-3 m-10 | The operation reference is stated as a C operation identity of the offered edition, one element with the destination request's `operationReference` | §2.2; §7.2 |
+| RP-4: V18-3 m-11 | P-v0.8 taken up: *refused — identity conflict* and *not known to host* in TL-2; minting party and handles on the dispatch record; R-d follows PM-4 and SQ-P6; MC-8 cites P-v0.8 | §2.2 TL-2; §6.2; §6.3; §7 MC-8; UNRESOLVED |
+| RP-4: V18-3 m-16 | The catalog edition is held as C-v0.8 §2.2 states, with CI-4; the pre-screen compares with the edition held current | §2.2; §2.3 |
 
 ## Changes from v0.6
 
@@ -394,9 +412,9 @@ Loop obligations:
 
 | Semantic element | Meaning | Consumed from |
 |---|---|---|
-| Catalog edition | Identity of the adopted catalog state from which offerings were made | C §2; one name on both sides |
+| Catalog edition | Identity of the adopted catalog state from which offerings were made. The loop holds it as C-v0.8 §2.2 states (*held current* · *held superseded* · *held unknown*): after a CI-4 edition-change event, or a discovery that returns another edition, the next model request offers the new edition, and calls already prepared keep their entry versions (C §2.2; SQ-C2). Nothing is offered as current from an edition held unknown (C CF-1) (v0.8, RP-4; V18-3 m-16) | C §2, §2.1 CI-4, §2.2; one name on both sides |
 | Tool offering | One catalog entry with all C elements 1–9:<ol><li>identity and entry version</li><li>purpose</li><li>input schema</li><li>availability and unavailable reason, as evaluated at offering (historical; re-evaluated at request)</li><li>effects</li><li>result schema with standing</li><li>errors with effect statements</li><li>class element (§3.1 sub-elements)</li><li>per-surface exposure</li></ol> | C §3, §3.1 |
-| Tool call | Call correlation identity; position in the model response; operation reference; argument text; parse state (§7). The received record after V-1 and V-2 is `LOOP_TOOL_CALL.schema.json` (PROPOSED; §7.2) | This contract. Representation: for fixtures, FB-CC-1 (§4.1, fixture basis, not a product selection); for a product, DEP-05-01-024 |
+| Tool call | Call correlation identity; position in the model response; operation reference (a C operation identity of the offered edition; the entry version is the one that edition offers, O-3; v0.8, RP-4); argument text; parse state (§7). The received record after V-1 and V-2 is `LOOP_TOOL_CALL.schema.json` (PROPOSED; §7.2) | This contract. Representation: for fixtures, FB-CC-1 (§4.1, fixture basis, not a product selection); for a product, DEP-05-01-024 |
 | Schema-conformant call | Parsed completely and conforming to the input schema of the named entry version in the offered edition. **Not** P's lifecycle state *validated* | This contract |
 | Tool result | One of four classes (TL-2) | P §9 and C §4.1, unchanged (R-7) |
 
@@ -457,13 +475,17 @@ Loop obligations:
      offered*, V-3 schema, or the optional edition pre-screen.
   2. **Host non-success outcome:** unavailable; not permitted; channel not
      enabled; **not exposed on this surface** (host-reported, relayed);
-     refused — invalid; refused — stale; error; application error;
+     refused — invalid; refused — stale; **refused — identity conflict**
+     (P-v0.8 §9, §3.5 PM-3; v0.8, RP-4); error; application error;
      **destination not allowed** (reason; reported by the native layer at
      V-D; not dispatched) and **destination not allowed by the person** (a
      decline; reported by the host's control) (v0.8, node B5; PROPOSED;
      C-v0.8 §4.1; §5.3 DF-6).
   3. **Host outcome:** success (ran); queued; accepted; rejected; withdrawn;
-     applied with receipt.
+     applied with receipt; and, for an observation of a proposal by its
+     identity (P-v0.8 §3.5 PM-4), the recorded state or **not known to
+     host** with the host's de-duplication scope (P §9: an observation
+     result, never a refusal; v0.8, RP-4).
   4. **Dispatched, outcome not observed:** *outcome unknown*, reporter = the
      loop, with the last observed state.
 
@@ -521,7 +543,7 @@ itself a human act.
 | Tool call rejected: unparseable or truncated | Tool call | Loop | Parse state and reason; "not dispatched" |
 | Tool call rejected: not offered | Tool call | Loop | Operation reference; catalog edition; "not dispatched" |
 | Tool call rejected: schema | Tool call | Loop | Edition, entry version, schema reason; "not dispatched" |
-| Offer out of date (optional edition pre-screen) | Tool call | Loop | Offered vs current edition; "not dispatched; re-offer" |
+| Offer out of date (optional edition pre-screen) | Tool call | Loop | Offered edition vs the edition held current (C-v0.8 §2.2); "not dispatched; re-offer" |
 | Call held at checkpoint (**governance phase**) | Schema-conformant call | Loop | Checkpoint name; "held, not dispatched" (§2.4.1 kind a). Never emitted in Phase 1, where no call is held (§2.4.0) |
 | Tool call dispatched | Schema-conformant call | Loop | Dispatch record (§6.2) |
 | Host outcome | Operation or proposal | Host | P §9 outcome unchanged: item dispositions, last observed state, evaluated basis on every non-success, both bases on stale, applied-outcome association with resulting objects (R2-14), **reverses ⟨receipt⟩** for an undo (R2-15) |
@@ -532,7 +554,7 @@ itself a human act.
 | Checkpoint reached | Declared checkpoint | Loop | Checkpoint name; **arrival ordinal**; the observed event that met reached-when, with its evidenced time; bound subject referents and content identities; **purpose** and **scope** |
 | Checkpoint disposition changed | Declared arrival | Loop | New disposition; **performance ordinal**; evidence reference; annotations (EXEC §4.3): per-item partial, re-held, replaced, by earlier act ‹act› at ‹t›, answered by ‹n› acts, prior act not counted, act order unknown (governance-phase option only), A12 control effect, hold not enforceable. In Phase 1 the disposition is a **record label** (EXEC PH-6; R8-11 item 1): *waiting* means "reached; act not yet recorded", never "the run is held". The *re-held* and *hold not enforceable* annotations are governance phase |
 | A8 request issued | Act kind and subject | Agent (requester) | Request text; purpose and scope (at a checkpoint: the declared ones). At a declared checkpoint the agent's A8 is the request V4-WF-05 requires (R9-1; §2.4.0 LP-5) |
-| Human act observed | Actual act | Person (actor); capturing surface records | Capture evidence reference with capture time; recorder; recording mode; bound content. Annotated "by earlier act ‹act› at ‹t›" where it answers a later arrival, "prior act on this subject, not counted" (content no longer current, another kind, or the governance-phase option), or "after run end" where applicable (R4-4, R4-5; DECISION-K1 K1-2) |
+| Human act observed | Actual act | Person (actor); capturing surface records | Capture evidence reference with capture time; recorder; recording mode; bound content. Annotated "by earlier act ‹act› at ‹t›" where it answers a later arrival, "prior act not counted" with its reason (content no longer current · another act kind · captured before arrival (governance-phase option); RS-v0.8 L-13; R12-10), or "after run end" where applicable (R4-4, R4-5; DECISION-K1 K1-2) |
 | **Act-declined event** | A4, A6, A7 or A12 not performed | Person; capturing surface records | Declined act kind; bound subject; time; capture evidence (R2-5). Not an act of that kind |
 | Act lapsed | Performed act | Host reports the change | Changed content identity; time (any time after performance) |
 | Act superseded | Earlier established A12 | Person (later A12), **only once the control establishes it** | Superseding act reference and settings version (R4-6). A refused or pending A12 supersedes nothing |
@@ -575,7 +597,8 @@ Loop obligations:
     §5.3 DF-8; the recording of declines and refusals PROPOSED, R12-10);
   - continues ⟨run⟩.
 
-  The field mapping is DEL-04-03's.
+  The field mapping is DEL-04-03's (RS-v0.8 §13.3; R14-1). E-8 lists the
+  checkpoint events with their counterparts.
 - E-5. Findings reach the panel in one of two ways:
   - (a) as agent message content with references;
   - (b) as a host outcome, if the host holds findings (`UNRESOLVED{C U-C5}`).
@@ -587,13 +610,52 @@ Loop obligations:
   so that a receiver can see a gap and ask for the events from a given
   ordinal (PANEL-v0.8 FD-3). The ordinal orders delivery; it is not an
   evidenced time, and it does not replace the arrival and performance
-  ordinals of §2.4.
+  ordinals of §2.4. It is the loop's, kept with the conversation's events
+  for replay (operational state, M-3); the run record does not carry it,
+  and the record's own order is RS's (`seq`, RS-v0.8 §13.2, §14.1 W-1)
+  (v0.8, RP-4; V18-1 m-12).
 - E-7. **Delivery is not recording** (v0.8; PROPOSED). An event that cannot
   be delivered to the panel is still written to the run record, and the
   failure changes nothing in the run. With no panel attached the loop
   continues; nothing is recorded as shown to the person, and nothing the
   person must answer through the host's control is taken as answered
   (§3.1 steps F-9, F-10).
+- E-8. **Checkpoint events and the record (R14-1, INTEGRATION; v0.8, RP-4).**
+  RS-v0.8 is the one record container. EXEC-v0.6 §2.4.2 defines the bodies
+  of the checkpoint entry kinds CE-1…CE-19, and **RS-v0.8 §13.3 states the
+  RS entry kind that carries each** (the mapping is RS's; R14-1). A host
+  loop records the same checkpoint facts as an App run, so each checkpoint
+  event the loop emits names its CE counterpart below, and its RS entry
+  kind is the one RS §13.3 gives that CE kind. The loop defines no
+  checkpoint entry kind of its own, and the spellings are RS's (disposition
+  words spaced as WD §4.3.4; performance ordinal from 1; annotations as
+  RS's structured objects; R14-1).
+
+  | Event the loop emits (§2.3; §3.2) | EXEC-v0.6 §2.4.2 counterpart | Note |
+  |---|---|---|
+  | Workflow run started, with its declared checkpoints listed as guidance (§3.2 workflow run) | CE-1 | Evaluability on the embedded surface: every reached-when kind is evaluated against the loop's own observations (§2.4.1) |
+  | Declaration finding (LP-9) | CE-2 | With the FB code |
+  | Checkpoint reached | CE-3 | Event source: the loop's observation (a dispatch, a host outcome, a completed assistant message) with its evidenced time |
+  | A8 request issued, at a declared checkpoint | CE-4 | Form: the host-loop A8 event, associated with the current arrival (RS R16 `act_request`) |
+  | Human act observed, answering the arrival or "by earlier act ‹act› at ‹t›"; "answered by ‹n› acts" | CE-5 | Relation *after arrival* or *earlier act*; each act with its referents (K1-3) |
+  | Human act observed, "prior act not counted" with its reason | CE-6 | |
+  | Proposal decision relayed; item left subject | CE-7 | Per item: A5, A10, left (with its cause), unknown |
+  | Act-declined event | CE-8 | |
+  | Grant change observed; act superseded (the A12 control relation) | CE-9 | |
+  | Act lapsed | CE-10 | Before resume · after resume · after run end |
+  | Run-resumed event | CE-11 | |
+  | Continued past ‹checkpoint› before ‹act› | CE-12 | Optional; the loop is its one writer in a host loop |
+  | Run interrupted; observation recovered | CE-13; CE-14 | |
+  | Checkpoint disposition changed to "replaced by arrival n+1" | CE-15 | |
+  | Human act observed, "after run end" | CE-16 | |
+  | Run ended | CE-17 | `by`: the person for cause "person stopped"; otherwise the loop as observer, with the cause (model ended · declared negative path · failure · interruption not recovered) |
+  | Checkpoint disposition changed | CE-18 | |
+  | Run record write failure (§3.1 F-10) | CE-19 | RS's "record write failed" limit, written in RS's order (R14-1) |
+  | Call held at checkpoint; action during hold (governance phase) | — | Never emitted in Phase 1 (§2.4.0) |
+
+  The destination events map to RS R15 (§5.3 DF-8). The operation events
+  (tool call dispatched, host outcome, outcome not observed, the loop-side
+  rejections of §7) map to RS R7.
 
 ### 2.4 Checkpoints
 
@@ -613,7 +675,11 @@ be enforced. The reserved acts (V4-HI-30) still bind.
 - **Phased to the governance layer:** holding the run until the act.
 
 Who requests in the current phase is §2.4.0 LP-5 (R9-1). The loop consumes
-the full WD §4.3.1 element set (IR1C-14a).
+the full WD §4.3.1 element set (IR1C-14a). From WD-v0.8 (v0.8, RP-4): a
+required tool is referred to by its **tool local name** (WD §4.2.2), and an
+output names its **production** (WD §4.4: a host outcome, a file path, or a
+message's designating line, OP-1…OP-6), which reached-when kind (b) reads
+(§2.4.1).
 
 | Declared element (WD §4.3.1) | Loop use |
 |---|---|
@@ -629,6 +695,8 @@ the full WD §4.3.1 element set (IR1C-14a).
 | expected act evidence | The act record and its capturing surface |
 | held actions | Phase 1: guidance on what the agent's plan should not do before the act. Governance phase: what the loop holds (§2.4.4) |
 | **governed** (optional; PROPOSED, WD-v0.7 §4.3.1) | Shown with the checkpoint. Phase 1: honoured only as guidance (EXEC PH-9). Governance phase: the loop holds governed checkpoints per §2.4.4. An unrecognized value is preserved and reported (WD FB-19) |
+| **on subject absent** (optional; PROPOSED, WD-v0.8 §4.3.1; v0.8, RP-4) | Phase 1: guidance for the agent's plan. It changes no disposition: the arrival stays *waiting* "subject absent" until an act-declined event or the run's end (EXEC §4.7; CH-24). Governance phase: as EXEC defines it |
+| **fresh act required** (optional; PROPOSED, WD-v0.8 §4.3.1 FA-1…FA-5; v0.8, RP-4) | Shown with the checkpoint. Phase 1: guidance only; the record applies SP-6 (C-2; FA-2). Governance phase, declared with `governed`: EXEC SP-6F applies to its arrivals (FA-1). Without `governed` it has no effect in either phase (FA-3) |
 
 Dispositions (shared): **waiting · performed · resolved negatively · lapsed ·
 not reached · unknown**. Everything else is an annotation (EXEC §4.3). In
@@ -663,7 +731,7 @@ are this contract's statement of EXEC-v0.5 §2.1 (PH-1…PH-10) and WD-v0.7
 | **LP-6 Reserved acts stand** | DECISION-1 D2 is unchanged (PH-5; R8-1). A4, A5 (where a proposal is required), A6, A7, A12 and enabling external access (A13) stay the person's, and the host enforces its own list through its operations (V4-HI-30). TL-5 applies: a reserved entry returns *not permitted* with an A8 offered. **R8-11 item 2 as restated by R9-2 (DERIVED; the owner confirmed the R8-11 reading of D2, SCA-V4-001 OWNER_ITEMS O-25, DECISION-7):** D2's "no autonomy grant widens past a reserved act" binds, enforced by the host. For a declared checkpoint, V4-HI-42's request clause and record clause are in force whatever the autonomy setting; whether the run goes on before the act is for the person and the agents in the current phase, and the host's own treatment of its operations decides what the host does. So no governing checkpoint constraint is carried as enforcement in Phase 1 (C-6) |
 | **LP-7 Lapse recorded; nothing re-holds** | A performed act whose bound content changes is still recorded as lapsed: an act-lapsed event against the affected referents, with gated outputs showing their standing lapsed (V4-REC-05; R2-19 recording). The run is not re-held, and the agent re-requests the act as its plan requires (PH-8; confirmed INTEGRATION by R8-11 item 1). Re-hold (C-4 after resume) is governance phase |
 | **LP-8 Negative decisions and paths** | A10 or an act-declined event is recorded as *resolved negatively* (C-5). The declared *on negative decision* or *on mixed decision* path is guidance the agent follows in its plan; the loop does not stop the run for it (EXEC §2.1 keeps §4.8 as recorded) |
-| **LP-9 Invalid declarations** | An invalid or not-established checkpoint declaration is reported as a **declaration finding** (invalid, with its FB code; or not established). No arrival is created, no hold-support value is given, and it does not make the workflow *not established* (R8-11 item 3; EXEC §4.14) |
+| **LP-9 Invalid declarations** | An invalid or not-established checkpoint declaration is reported as a **declaration finding** (invalid, with its FB code, WD-v0.8 §3.7's FB-20…FB-22 included; or not established). No arrival is created, no hold-support value is given, and it does not make the workflow *not established* (R8-11 item 3; EXEC §4.14) |
 | **LP-10 `governed` in Phase 1** | A checkpoint declared **governed** is shown with its flag and treated only as guidance: LP-1…LP-9 apply unchanged (PH-9) |
 
 **Which rules are which.** In Phase 1 the following apply as recording and
@@ -699,7 +767,7 @@ the model's claims.
 | Kind | Evaluated when | Phase 1 (R8-1): on match | Governance phase (retained): on match |
 |---|---|---|---|
 | (a) before dispatch of a named required-tool reference | After a call to that operation passes V-1 to V-3, and before dispatch | Record the arrival, then dispatch the call as usual. Nothing is held. If the act is not yet recorded, the dispatch may carry "continued past ‹checkpoint› before ‹act›" (LP-4). "The held call" names the call whose dispatch met reached-when (subject class *targets of the held call*) | Hold the schema-conformant call undispatched. Emit "call held at checkpoint". Return to the model a tool result saying the run is held (a loop state, not a failure). After *performed*, dispatch the **same** held call unchanged. A different call is a new call, and the act does not carry to it |
-| (b) observed production of a named declared output | An observed event establishes the output: a host outcome producing it, or a completed agent message the declaration designates as that output. A model statement that it exists does not count. *Note (R10-8):* WD-v0.7 does not yet define the element that designates a message as a declared output; WD adds it in Wave B (node B1), and EXEC's App-side table uses it (node B2) | Record the arrival. Nothing is stopped | Stop acting on the run |
+| (b) observed production of a named declared output | An observed event establishes the output: a host outcome producing it, or a completed agent message the declaration designates as that output. A model statement that it exists does not count. *Designation (WD-v0.8 §4.4 OP-1…OP-6; v0.8, RP-4):* a message is the output when its first non-empty line, trimmed, equals the declared designating line. OP-2's "completed assistant message" in a host loop is (PROPOSED) the assistant content of a model response that terminated *stop* or *tool calls* (complete under FB-CC-1, §4.1 point 2), whether or not that response also carried tool calls; content of a response cut off (*length*), filtered or interrupted never counts, and whitespace-only content has no non-empty line (OBS-1 C1 observed such content beside a call, §4.1). Each such message is a production, and the checkpoint arrives each time (OP-4; WD RW-4) | Record the arrival. Nothing is stopped | Stop acting on the run |
 | (c) observed host outcome of a named operation, e.g. *proposal queued* | The host outcome for that operation matches the named outcome | Record the arrival. Nothing is stopped | Stop acting on the run |
 
 On a match the loop emits "checkpoint reached" with purpose, scope and the
@@ -728,7 +796,8 @@ R2-20; EXEC §4.9; R4-4, PROPOSED):
   act (including a post-end act) counts at its arrival when it is of the
   required kind and its content is still current, and is cited with its
   time (SP-6; DECISION-K1 K1-2); under the governance-phase option (EXEC
-  SP-6F) it is "prior act on this subject, not counted".
+  SP-6F) it is "prior act not counted" (reason: captured before arrival
+  (governance-phase option)).
 - **An interruption is not a run end** (EXEC RE-4). The run is resumed as
   the same run. Before acting, the loop re-observes and records each
   recovered observation as a new event; nothing is back-filled (EXEC
@@ -749,7 +818,7 @@ and the referents the class names.
 | Declared subject class (R2-17) | Bound referents and content identity |
 |---|---|
 | Change items of a named proposal | Proposal and item identities, and each item's **change-item content identity** (P §3.1) |
-| Named output | The output and its content identity (host-supplied, or file content identity for App files) |
+| Named output | The output and its content identity (host-supplied; file content identity for App files; for a message output, the content identity of the completed message text, WD-v0.8 §4.4 OP-3) |
 | Objects changed by a named outcome | The created and changed object identities in that outcome's applied-outcome association, with their **post-application subject content identities** (R2-14; C §5.3) |
 | **Objects a named output concerns** (R3-1, INTEGRATION) | The objects identified in a named read or examination output (e.g. the rows OP-C3 examined at T4), bound through their **subject content identities as read** in that output's basis (C §5.3). Lets a review-only workflow require A4 on the rows it examined |
 | Targets of the held call (**valid only with reached-when kind (a)**, R3-2, INTEGRATION) | The targets the held call names, bound through the **subject content identities of the relied-on read** that the call cites (C §5.3/§5.4). Argument text is never used. Declared with any other reached-when kind, the checkpoint is invalid, and the loop reports it without evaluating it |
@@ -791,14 +860,16 @@ Each obligation is marked by phase where the phases differ (§2.4.0).
     on is still current. The loop relays it as answering the arrival, citing
     the earlier act and its time.
     - An earlier act whose content is no longer current, or whose kind
-      differs, is relayed as **"prior act on this subject, not counted"**.
+      differs, is relayed as **"prior act not counted"**, with its reason
+      (content no longer current · another act kind; RS-v0.8 L-13).
     - SP-6 adds no ordering between act kinds (C-3 stands).
     - **Governance-phase option (EXEC SP-6F; retained; PROPOSED; formerly
       this rule, R4-5).** A workflow that takes up the governance phase may
       require a fresh act, counted only if captured at or after the
       arrival's event, ordered by a request relation where the capturing
       surface records one, otherwise by evidenced times. Under it any
-      earlier act is relayed "prior act on this subject, not counted", and
+      earlier act is relayed "prior act not counted" (reason: captured
+      before arrival (governance-phase option)), and
       where the order cannot be established: **"act order unknown"**, and
       the act does not count.
 - C-3. There is no synthetic ordering. For example, A5 is not required
@@ -1058,7 +1129,7 @@ these rules is a checkpoint hold: in Phase 1 nothing holds for a checkpoint
 | # | Step | What fails | Who reports | Record left | What happens next |
 |---|---|---|---|---|---|
 | F-1 | Person input reaches the loop | The return input is not delivered | Panel (PANEL-v0.8 §3.9, outcome *not delivered*) | None: no turn started | The person resubmits. The panel never shows an undelivered message as sent |
-| F-2 | Model setting check | Unconfigured, or cloud chosen with no credential | Native layer | "Model request refused at boundary" (no credential content); turn failed | No request is made and nothing falls back (NW-5; MS-02, MS-04). Only the person chooses or signs in (NW-4) |
+| F-2 | Model setting check | Unconfigured, or cloud chosen with no credential | Native layer | "Model request refused at boundary" (no credential content), recorded as `boundary_refusal` at stage *model request*; RS-v0.8's reason values have none for "no model chosen" or "no credential" (returned to RS; v0.8, RP-4, V18-1 m-11); turn failed | No request is made and nothing falls back (NW-5; MS-02, MS-04). Only the person chooses or signs in (NW-4) |
 | F-3 | Native-layer destination check on the model request | The request names a destination other than the selected model service (MS-05) | Native layer | Refusal event; turn failed | Setting unchanged; no fallback (NW-5) |
 | F-4 | Native layer records the contact | The destination record cannot be written | Native layer | The refusal, when it can be written (recording PROPOSED, R12-10) | The request is **not sent** (fail closed), because every destination contacted is recorded (V4-ARC-12 as amended). For the model request: turn failed. For a tool call's contact: the host outcome as reported. Joined to §5.1.1 at v0.8: §5.3 DF-4 (c), DF-F2 |
 | F-5 | Model server and transport | Unreachable server, rejected or expired credential, service error before any stream | Model server or transport / loop | Model interface failure (termination reason "error"; §4.1 point 2); turn failed | No switch between local and cloud (MS-08, MS-09) |
@@ -1066,7 +1137,7 @@ these rules is a checkpoint hold: in Phase 1 nothing holds for a checkpoint
 | F-7 | Stream | Termination "length" or "content filter" | Loop | Agent message *truncated* (length) or *failed* (content filter); every call of the response rejected (MC-1, MC-11) | Class 1 results go to the model; the turn continues with the next model request, or completes if the response had no calls |
 | F-8 | V-1…V-3 per call | Parse, offering or schema failure | Loop | Per §7: three reports (model, events, record) | Each call is judged on its own; the other calls of the response go on (MC-8; R12-7) |
 | F-9 | Dispatch to the host route | The route is unreachable, or delivery is not confirmed | Loop (observer) | Class 4 *outcome unknown*, last observed state "dispatch attempted; host route unreachable" | The loop seeks observation before any resubmission (§6.3 R-d); a resubmission keeps the proposal identity (R-a) |
-| F-10 | Run record write | The record does not accept a write | Loop | Events already emitted; the failure itself is written once the record accepts writes | The loop makes **no further dispatch** until a dispatch can be recorded: a call that cannot be recorded is not made (V4-HI-70 inventory; E-4). If the record cannot be restored, the run ends with cause *failure* and the run-ended event is written when the record returns. This pause is a failure rule, not a checkpoint hold |
+| F-10 | Run record write | The record does not accept a write | Loop | Events already emitted; the failure itself is written once the record accepts writes, as RS's "record write failed" limit (RS-v0.8 §14.1 W-2; E-8, CE-19). A write is done only when RS §14.1 W-1 says so: one complete line appended and synced (v0.8, RP-4) | The loop makes **no further dispatch** until a dispatch can be recorded: a call that cannot be recorded is not made (V4-HI-70 inventory; E-4). If the record cannot be restored, the run ends with cause *failure* and the run-ended event is written when the record returns. This pause is a failure rule, not a checkpoint hold |
 | F-11 | Turn cancel (RS-3) | — (the person cancels) | Person (panel return input) / loop | Turn cancelled; undispatched calls "not dispatched: turn cancelled" (§2.3); dispatched calls keep their outcomes | Nothing dispatched is recalled or undone. Outcomes are observed and recorded, or become class 4. A destination request still pending ends *unanswered at end* (turn cancelled); its carried call is not sent (§5.3 DF-5 Q-9, DF-F6) |
 | F-12 | Event delivery to the panel | No panel attached, or a delivery gap | Loop / panel | Every event stays in the record (E-7) | The panel detects the gap by ordinal and asks from the last ordinal it holds (PANEL-v0.8 FD-3). The run is unaffected |
 | F-13 | Host outcome observation | Lost after dispatch | Loop (observer) | Class 4 with the last observed state | As F-9. A kind (c) arrival deciding on that outcome is *unknown* (§2.4.1) |
@@ -1101,7 +1172,7 @@ phase* never arise in Phase 1. PROPOSED unless a cited rule decides it.
 | streaming | Termination *content filter* with no tool calls | failed | Agent message *failed* (F-7) |
 | streaming | Termination *tool calls*, or *length* / *content filter* with calls | running tool calls | Tool calls received (§7) |
 | streaming | Stream ends with no termination reason | failed | F-6 |
-| running tool calls | Every call of the response has a result of class 1–4, or an interim notice for a pending destination request (§5.3 DF-5 Q-5) | awaiting model | Results returned by correlation identity |
+| running tool calls | Every call of the response has a result of class 1–4, or an interim notice for a pending destination request (§5.3 DF-5 Q-5) | awaiting model | Results returned by correlation identity. Assistant text in a response that terminated *tool calls* is complete at that termination (§2.4.1 kind (b); v0.8, RP-4) |
 | streaming | Termination *stop* with no tool calls while a destination request of this turn is pending (v0.8, node B5) | awaiting destination answer | The turn does not complete (DF-5 Q-5) |
 | awaiting destination answer | The request is answered (granted and in force, declined or not granted) | awaiting model | The deferred outcome is sent with the next model request (DF-5 Q-7, Q-8) |
 | awaiting destination answer | Run ends | failed | The request ends *unanswered at end* (DF-F7); turn recorded as ended by the run's end |
@@ -1131,15 +1202,24 @@ now a reason of *not granted*.
 
 | From | Event | To | Record (RS R15) | Result of the request call |
 |---|---|---|---|---|
-| — | Request call passes V-1…V-3 and the target is already allowed | (no request raised) | — | The carried call's outcome, or class 3 "already allowed" |
+| — | Request call passes V-1…V-3 and the target is already allowed | (no request raised) | — (nothing is recorded as a destination request; the carried call's contact is `destination_contacted` under its allowing entry) | The carried call's outcome, or class 3 "already allowed" |
 | — | Target not grantable (A-3; an always-off item) | **not granted** ("not grantable") | `destination_requested`; `destination_request_closed` | Class 2 "destination not allowed" (reason) |
 | — | Request recorded and prompt shown | **pending** | `destination_requested` | Interim notice |
-| — | Prompt cannot be shown (DF-F4) | **not granted** ("prompt not shown") | `destination_request_closed` | Class 2 "destination not allowed" (prompt not shown) |
+| — | Prompt cannot be shown (DF-F4) | **not granted** ("prompt not shown") | `destination_requested`; `destination_request_closed` | Class 2 "destination not allowed" (prompt not shown) |
 | pending | Person grants and the control establishes the grant | **granted** (once · this run · always) | `human_act` (A12); `destination_grant` | Deferred: the carried call's outcome, or class 3 "granted: ‹scope›" |
 | pending | Person grants and the control refuses | **not granted** ("grant refused by control: ‹reason›") | `human_act` (A12, refused by control); `destination_request_closed` | Deferred: class 2 "destination not allowed" (reason) |
 | pending | Person declines | **declined** | `act_declined` (A12); `destination_declined` (PROPOSED recording) | Deferred: class 2 "destination not allowed by the person" |
 | pending | Run ends, or the person cancels the turn | **unanswered at end** | `destination_request_closed` | None (never a grant by silence, NW-13) |
 | pending | No answer yet | pending (unchanged) | — | — |
+
+**No *pending* before *not granted* (v0.8, RP-4; V18-1 m-10; PROPOSED).** A
+request that is not grantable, or whose prompt cannot be shown, is recorded
+(`destination_requested`) and closed *not granted* in the same step: it
+never enters *pending*, no prompt state precedes it (PANEL ND-2 PS-5), and
+settings-in carries it with the state *not granted* only (AS §3.1 DG-15). An
+already-allowed request raises no request (Q-3); the record shows the
+contact under its allowing entry. RS R15's "each destination requested" is
+read here as each request raised (returned to RS for its text).
 
 Checkpoint dispositions (§2.4) and grant states (O-6) are defined where
 they are and are not repeated here.
@@ -1158,7 +1238,10 @@ they are and are not repeated here.
 
 No provider, server, model or version is selected. ARCH §6 names are dated
 assumptions. The three representation rows that v0.7 left open are closed
-**as PROPOSED** from FB-CC-1 below (R12-8); they stay PROPOSED until OBS-1.
+**as PROPOSED** from FB-CC-1 below (R12-8). OBS-1 has since observed all
+four points on one local server (§4.1, OBS-1 column; R13-6). The rows stay
+PROPOSED: one observation at one server version is not qualification, and
+DEP-05-01-024 is still open for a product.
 
 **One model-interface boundary (R12-11; INTEGRATION, on the owner's
 direction of 2026-09-30 to keep Chat Completions for the host loop).** The
@@ -1202,15 +1285,25 @@ pinned above.
 
 | # | Point | What the reference says (short quotes; schema; line) | What FB-CC-1 establishes, and what it does not | Receiving rule (PROPOSED) | OBS-1 (local OpenAI-compatible server) |
 |---|---|---|---|---|---|
-| 1 | Fragmented (streamed) tool calls | `ChatCompletionStreamResponseDelta` is "A chat completion delta generated by streamed model responses." (L41805); its `tool_calls` items are `ChatCompletionMessageToolCallChunk`, whose only required member is `index` (`required: - index`, L41043–41044); `id`, `type`, `function.name` and `function.arguments` are optional in a chunk | A streamed call arrives as fragments correlated by their position in the response; any fragment may lack the identity, the name or an argument piece. The reference does not say in words that argument pieces are concatenated: that is an **inference** from `arguments` being a string in each chunk with only `index` required | R-F1…R-F4 (§7.1): join fragments by position; append argument text in arrival order, never repaired (MC-9); identity and name from the fragment that carries them; a conflicting later fragment is MC-10; a fragment with no position rejects the response's calls (MC-13) | Pending (not observed) |
-| 2 | Termination (finish) reasons | `finish_reason` enum `stop`, `length`, `tool_calls`, `content_filter`, `function_call` (L43466–43471 complete response; L43653–43659 streamed, where it may also be `null`). "`length` if the maximum number of tokens specified in the request was reached"; "`tool_calls` if the model called a tool" (L43451–43462). `function_call` is marked deprecated | *Complete* = `stop` or `tool_calls`; *length-truncated* = `length`; content omitted by a filter = `content_filter`. **No value names an error**: an error is a transport or service failure, or a stream that ends with no reason (every chunk `null`). The deprecated `function_call` form is outside the fixture basis | §7 MC-1 (length: every call of the response truncated), MC-2 (no reason: interrupted), MC-11 (content filter), MC-4 (deprecated form); §3.1 F-5…F-7 | Pending |
-| 3 | Several tool calls in one response | The message's tool calls are "The tool calls generated by the model, such as function calls." (an array, L41045–41047); the request member `parallel_tool_calls` is "Whether to enable [parallel function calling] … during tool use.", `default: true` (L55894–55899). Choices "Can be more than one if `n` is greater than 1." (L43438) | A response may carry several calls, in order, and by default the service may produce them. Several *choices* arise only with `n` above 1 | Each call is judged on its own (MC-8; R12-7). Fixtures request one choice; a chunk for a second choice is outside the basis (MC-12). Position order is kept (M-1) | Pending |
-| 4 | How "no arguments" is expressed | A complete call's `function.arguments` is a required string, "as generated by the model in JSON format" (`ChatCompletionMessageToolCall`, L40980–41011); "Note that the model does not always generate valid JSON" (L41005). For a tool: "Omitting `parameters` defines a function with an empty parameter list." (L50720) | An entry may have an empty parameter list, and argument text is always JSON text. The reference does **not** state the text the model sends for an empty list. **Inference:** "no arguments" is argument text that parses to a JSON object with no members (`{}`) | MC-6: `{}` parses and goes on to V-3 against the entry's input schema; absent or empty text is malformed and is **never** coerced to no arguments (ARCH §4; SOW-142) | Pending |
+| 1 | Fragmented (streamed) tool calls | `ChatCompletionStreamResponseDelta` is "A chat completion delta generated by streamed model responses." (L41805); its `tool_calls` items are `ChatCompletionMessageToolCallChunk`, whose only required member is `index` (`required: - index`, L41043–41044); `id`, `type`, `function.name` and `function.arguments` are optional in a chunk | A streamed call arrives as fragments correlated by their position in the response; any fragment may lack the identity, the name or an argument piece. The reference does not say in words that argument pieces are concatenated: that is an **inference** from `arguments` being a string in each chunk with only `index` required | R-F1…R-F4 (§7.1): join fragments by position; append argument text in arrival order, never repaired (MC-9); identity and name from the fragment that carries them; a conflicting later fragment is MC-10; a fragment with no position rejects the response's calls (MC-13) | **Observed (C1):** the call came in **two** fragments at position 0: first the identity, type and name with argument text `""`, then the whole argument text (`{"key":"EX-1"}`) as one piece. The identity was a numeric string. Consistent with R-F1…R-F4 (the empty first piece appends nothing). Not observed: argument text split over several fragments; a later fragment repeating the identity or name (MC-10) |
+| 2 | Termination (finish) reasons | `finish_reason` enum `stop`, `length`, `tool_calls`, `content_filter`, `function_call` (L43466–43471 complete response; L43653–43659 streamed, where it may also be `null`). "`length` if the maximum number of tokens specified in the request was reached"; "`tool_calls` if the model called a tool" (L43451–43462). `function_call` is marked deprecated | *Complete* = `stop` or `tool_calls`; *length-truncated* = `length`; content omitted by a filter = `content_filter`. **No value names an error**: an error is a transport or service failure, or a stream that ends with no reason (every chunk `null`). The deprecated `function_call` form is outside the fixture basis | §7 MC-1 (length: every call of the response truncated), MC-2 (no reason: interrupted), MC-11 (content filter), MC-4 (deprecated form); §3.1 F-5…F-7 | **Observed (C1–C3):** the last chunk had an empty delta and `finish_reason` `tool_calls`, followed by `data: [DONE]`; every other chunk had `finish_reason` `null`. Not observed: `stop` beside calls, `length`, `content_filter`, an error, or a stream ending with no reason |
+| 3 | Several tool calls in one response | The message's tool calls are "The tool calls generated by the model, such as function calls." (an array, L41045–41047); the request member `parallel_tool_calls` is "Whether to enable [parallel function calling] … during tool use.", `default: true` (L55894–55899). Choices "Can be more than one if `n` is greater than 1." (L43438) | A response may carry several calls, in order, and by default the service may produce them. Several *choices* arise only with `n` above 1 | Each call is judged on its own (MC-8; R12-7). Fixtures request one choice; a chunk for a second choice is outside the basis (MC-12). Position order is kept (M-1) | **Observed (C2):** two calls in one response at positions 0 and 1, each in the two-fragment pattern; position 0 completed before position 1 began; one final `tool_calls`. Not observed: interleaved fragments (FX-V1i); a malformed sibling, so MC-8 stays PROPOSED (R12-7); a second choice |
+| 4 | How "no arguments" is expressed | A complete call's `function.arguments` is a required string, "as generated by the model in JSON format" (`ChatCompletionMessageToolCall`, L40980–41011); "Note that the model does not always generate valid JSON" (L41005). For a tool: "Omitting `parameters` defines a function with an empty parameter list." (L50720) | An entry may have an empty parameter list, and argument text is always JSON text. The reference does **not** state the text the model sends for an empty list. **Inference:** "no arguments" is argument text that parses to a JSON object with no members (`{}`) | MC-6: `{}` parses and goes on to V-3 against the entry's input schema; absent or empty text is malformed and is **never** coerced to no arguments (ARCH §4; SOW-142) | **Observed (C3):** for a tool whose parameters are an empty object the argument text sent was **`{}`** (not `""`, not null), with `finish_reason` `tool_calls`. Agrees with the MC-6 inference |
 
-When OBS-1 runs (after round 2, on the owner's approval of the model; K1-6),
-its dated record at one server version is written in the OBS-1 column
-beside these rules. A difference between the observation and FB-CC-1 is
-recorded as observed; it does not silently change a rule.
+**The OBS-1 column (R13-6; observation, not qualification; v0.8, RP-4).**
+Source: DEL-01-01 `OBS_1_0.158.0.md` §10, Part C (sha256 `85707703e97b…`
+as read at this pass): three streamed requests (C1, C2, C3) to
+`POST /v1/chat/completions` on LM Studio 0.4.16+2 serving `qwen/qwen3.5-9b`
+(4-bit MLX, context 24576), with invented content, on 2026-09-30, under
+DECISION-K1 K1-6. It was not a Codex turn and observed no host; the raw
+streams stay in the observer's scratch folder and are not committed. Each
+cell is one server at one version. A difference between the observation and
+FB-CC-1 is recorded as observed and does not silently change a rule; none
+was found on the four points. Two things outside FB-CC-1 were also seen:
+reasoning streamed first as `delta.reasoning_content`, and whitespace-only
+`delta.content` beside a call (§4.2). The three observed shapes are
+reproduced as prototype fixtures OBS1-C1…OBS1-C3, with FX-PIPE-01 entries
+in place of the observed tool names (§7.3).
 
 ### 4.2 Where FB-CC-1 stops
 
@@ -1220,6 +1313,11 @@ recorded as observed; it does not silently change a rule.
 - A custom tool call (another item kind in the same array) and the
   deprecated `function_call` form are outside the fixture basis and are
   rejected as MC-4.
+- Members outside it (v0.8, RP-4; PROPOSED). OBS-1 saw `delta.reasoning_content`
+  stream before the content and calls (§4.1). Reasoning is neither a tool
+  call nor the agent message's content: the assembly reads it as neither
+  (§7.1), and it never counts as a completed message for a declared output
+  (WD-v0.8 §4.4 OP-2). How a product records it is DEP-05-01-024's.
 
 ## 5. Model selection, destination and key boundary
 
@@ -1388,7 +1486,9 @@ property; HOSTING §2; D-GOV-43).
   - NW-12 **Only the requesting call waits.** The requesting call is not
     sent until the person answers. The agent continues its other work,
     and no other call waits. This wait is not a checkpoint hold: it is the
-    same in Phase 1 and the governance phase, and §2.4 is unaffected.
+    same in Phase 1 and the governance phase, and §2.4 is unaffected. It is
+    the grant being sought, so DECISION-4 does not bear on it (R13-5; §5.3
+    DF-5).
   - NW-13 **Decline.** A decline is reported to the agent as
     **"destination not allowed by the person"**. The call is not sent.
     The decline is recorded as an act-declined event of kind A12 (ACT
@@ -1590,13 +1690,23 @@ layer (NW-7; V4-ARC-12):
 |---|---|---|---|
 | Q-1 | The agent calls the destination request entry (its A8): target, purpose, scope sought, carried call | — | — |
 | Q-2 | The loop runs V-1…V-3 on the request call and, against its own entry, on the carried call | — | Class 1 for the request call; nothing is asked |
-| Q-3 | The native layer applies DF-3 to the target (and to the carried call's destination). Already allowed: no prompt; the carried call goes on to dispatch and its outcome is the request call's result, or class 3 "already allowed" without a carried call. Not grantable (A-3; an always-off item, which only an allow-list edit turns on): state *not granted*, reason "not grantable" | `destination_requested`; `destination_request_closed` (*not granted*) | — |
+| Q-3 | The native layer applies DF-3 to the target (and to the carried call's destination). Already allowed: no prompt and no request recorded (§3.2); the carried call goes on to dispatch and its outcome is the request call's result, or class 3 "already allowed" without a carried call. Not grantable (A-3; an always-off item, which only an allow-list edit turns on): state *not granted*, reason "not grantable" | `destination_requested`; `destination_request_closed` (*not granted*) | — |
 | Q-4 | Otherwise the loop records the request and the host's control shows the prompt (PANEL ND-2). State **pending** | `destination_requested` | DF-F3, DF-F4 |
 | Q-5 | The loop returns to the model, for the request call, an **interim notice**: "waiting for the person's answer on ‹target›" (a loop state, not a result class, as TL-3 states for a held call). Only the carried call waits; the agent's other calls go on (NW-12). A turn whose request is still pending does not complete: after the model's last response it waits in *awaiting destination answer* (§3.2) | — | — |
 | Q-6 | The person answers through the host's control, never through a panel input (PANEL §3.9): a grant (A12, network-destination grant, once · this run · always, for the destination or its category) or a decline (act-declined event of kind A12) | `human_act` or `act_declined` (R9); `destination_grant` once the control establishes it | DF-F5 |
 | Q-7 | **Granted** and the grant **in force**: the carried call passes V-D (A-6) and is dispatched unchanged; its host outcome (class 2, 3 or 4) is the request call's **deferred outcome**. With no carried call, the deferred outcome is class 3 "granted: ‹scope›". A grant the control refuses: *not granted*, reason "grant refused by control: ‹reason›" (AS DG-4) | `destination_contacted` at contact; `destination_request_closed` (*not granted*) on refusal | DF-F2, DF-F8 |
 | Q-8 | **Declined**: nothing is sent; the deferred outcome is class 2 **"destination not allowed by the person"** (reporter: the host's control) | `destination_declined` (recording PROPOSED, R12-10) | — |
 | Q-9 | **Unanswered at end**: the run ends, or the person cancels the turn (F-11), while the request is pending. No grant; the carried call is not sent; no result is delivered, because no further model request follows in that turn. Never a grant by silence (NW-13) | `destination_request_closed` (*unanswered at end*) | — |
+
+**The wait, and ending the turn (R13-5; INTEGRATION; v0.8, RP-4).** The
+call that needs the destination (the carried call) waits for the person's
+answer. That wait is the grant being sought (V4-HOST-02: "when the agent
+asks during its work"), not a checkpoint hold, so DECISION-4 does not bear
+on it (NW-12; ACT ND-A3; G-8). The loop may continue other work in the
+turn: the agent's other calls go on (Q-5). The person may end the turn
+while the request is pending; the request then closes **unanswered at end**
+(cause turn cancelled; Q-9, DF-F6): no grant is made and the carried call is
+not sent. The run's end closes it the same way (cause run ended; DF-F7).
 
 The deferred outcome is delivered with the next model request of the same
 turn as a message of speaker kind *tool result* naming the request call's
@@ -1789,12 +1899,12 @@ application. The loop relays intent.
 |---|---|
 | Origin | Author type (agent); author identity (seat); channel (embedded); conversation; run identity; workflow identity tuple; holding library (V4-HI-21; P §3.3) |
 | Seat role meaning | Per §2.1, or *unknown* |
-| Grant in force | Settings reference, display state (O-6) and scope, as last observed |
+| Grant in force | As AS-v0.8 §12.1 defines it for DEP-05-01-025: the settings version identity in force at route decision; for the operation's class its grant value, display state (O-6), scope and policy-class record reference; for a call with an external-contact declaration, the destination settings version in force. As last observed: "grant in force: unconfirmed" when the control's confirmation is lost, "grant in force: not received" when no report arrived; no default is assumed (AS §12.1; v0.8, RP-4) |
 | Requested mode | Apply directly or propose, as the call or the entry's meaning expresses it |
 | Governing checkpoint constraint | Per C-6, where applicable (R2-12) |
 | Relied-on basis | As cited, with method designations; per-target subject content identities |
 | Catalog edition and entry version | O-3 |
-| Proposal identity | The existing identity for a resubmission (§6.3); otherwise per DEL-03-02 |
+| Proposal identity | The existing identity for a resubmission (§6.3); otherwise per DEL-03-02. With it, the party that minted it (*proposer-minted* or *host-minted*, P-v0.8 §3.5 PM-1) and any host handles associated with it (PM-2), never in its place (v0.8, RP-4) |
 | Reason | The proposer's reason (P §3.3) |
 | Correlation identity | The model's call identity |
 
@@ -1821,7 +1931,13 @@ application. The loop relays intent.
   any model change stales every queued proposal (SQ-07 (d)). De-duplication
   first (R-b) is unchanged. The host rule is still U-C3.
 - R-d. **After outcome unknown**, the loop seeks observation before
-  resubmitting. The mechanism is DEL-03-02 U-P1/TBD-002.
+  resubmitting. It observes the proposal by its identity (P-v0.8 §3.5
+  PM-4) and follows P §4.7 SQ-P6's order: a recorded state is reported
+  separately and needs no resubmission; *not known to host* within the
+  host's de-duplication scope allows a retry with the same identity and
+  content; outside the scope, or with no scope stated, one effect stays
+  unevidenced, and under *apply directly* there is no retry (v0.8, RP-4).
+  Representation and encoding stay DEL-03-02 TBD-002.
 - R-e. **A re-draft is a new proposal** with lineage, a fresh read and new
   change-item content identities, as for T9's PR-2 relative to PR-1. No
   acceptance carries over, and there is no retarget (V4-HI-23).
@@ -1866,7 +1982,8 @@ empty arguments (ARCH §4; SOW-142). These are parse-level local cases,
 `L-LOOP-MC-n`, because FX-PIPE-01 has no model-output subjects. From v0.8
 each condition is stated in the representation of FB-CC-1 (§4.1; fixture
 basis, not a product selection). Every rule below is PROPOSED unless marked
-otherwise, and stays PROPOSED until OBS-1 (R12-7, R12-8).
+otherwise (R12-7, R12-8). OBS-1's observation of one local server
+(§4.1) changes none of them (R13-6).
 
 | ID | Condition (FB-CC-1 representation) | Expected handling | Fixture (§11) |
 |---|---|---|---|
@@ -1877,7 +1994,7 @@ otherwise, and stays PROPOSED until OBS-1 (R12-7, R12-8).
 | MC-5 | Operation reference missing, empty, or not in the offered edition | V-2 **not offered**; not dispatched | FX-M5 |
 | MC-6 | "No arguments" (§4.1 point 4). **Closed at v0.8 as PROPOSED:** argument text that parses to an object with no members (`{}`) is a complete call and goes on to V-3 against the entry's input schema. Argument text absent or empty is malformed | Never coerced to empty arguments (SETTLED, ARCH §4) | FX-M6a, FX-M6b, FX-M6c |
 | MC-7 | Two calls at different positions share a correlation identity | Failure for both (PROPOSED; uniqueness is within one response) | FX-M7 |
-| MC-8 | Several calls in one response, one of them malformed | **R12-7 (INTEGRATION; `T-OPEN-1` closed):** the valid calls are handled on their own, each through V-2, V-3 and dispatch on its own validation; the malformed call gets its own refusal result (class 1) for its correlation identity. This is P-v0.7 §3.1 rule 5 applied to a malformed sibling: each call of a response is its own unit, and **grouping follows rule 5**: sibling calls form separate proposals, unless a call explicitly names an existing proposal it extends; that is the drafter's choice, not a loop merge. The rule stays PROPOSED until the fixture basis is observed (OBS-1). In the governance phase LH-0 is unchanged: siblings not yet dispatched when an arrival is observed are held (§2.4.4) | FX-M8 |
+| MC-8 | Several calls in one response, one of them malformed | **R12-7 (INTEGRATION; `T-OPEN-1` closed):** the valid calls are handled on their own, each through V-2, V-3 and dispatch on its own validation; the malformed call gets its own refusal result (class 1) for its correlation identity. This is P-v0.8 §3.1 rule 5 applied to a malformed sibling: each call of a response is its own unit, and **grouping follows rule 5**: sibling calls form separate proposals, unless a call explicitly names an existing proposal it extends; that is the drafter's choice, not a loop merge. OBS-1 observed several well-formed calls in one response (§4.1 point 3) but no malformed sibling, so the rule stays PROPOSED (R12-7). In the governance phase LH-0 is unchanged: siblings not yet dispatched when an arrival is observed are held (§2.4.4) | FX-M8 |
 | MC-9 | The loop "repairs" incomplete text | Prohibited. A re-issued call is a new call | FX-M3 (no repair) |
 | MC-10 | A later fragment at the same position carries a different correlation identity, name or tool type (new at v0.8) | Failure "malformed" for that call | FX-M10 |
 | MC-11 | Termination reason `content_filter` (new at v0.8) | Every call of that response fails "filtered"; not dispatched; the agent message *failed* (§3.1 F-7) | FX-M11 |
@@ -1889,7 +2006,11 @@ Reports go to three recipients:
 1. the model (class 1 result, by correlation identity where one exists);
 2. the event stream / panel ("tool call rejected", "not dispatched");
 3. the run record (requested; "not executed: rejected before host
-   validation").
+   validation", with the rejection kind: *truncated*, *interrupted*,
+   *malformed*, *filtered*, *not offered*, *schema* or *offer out of
+   date*; for F-11, "not dispatched: turn cancelled"). These are the
+   loop-side refusals RS R7 carries (R14-3; RS states the values; v0.8,
+   RP-4).
 
 Dispatch observation: zero host-route calls for a rejected correlation
 identity. FX-V1 is the valid comparison.
@@ -1917,8 +2038,10 @@ identity. FX-V1 is the valid comparison.
 
 `LOOP_TOOL_CALL.schema.json` (JSON Schema 2020-12, beside this file) gives
 one record per call after V-1 and V-2: model-interface basis label;
-position in the response; call correlation identity; operation reference;
-argument text as received; parsed argument object (only when the text
+position in the response; call correlation identity; operation reference (a C operation identity of the offered edition; the
+same element as `operationReference` in `LOOP_DESTINATION_REQUEST.schema.json`,
+whose names follow RS's style because its elements pass into RS R15 entries;
+v0.8, RP-4); argument text as received; parsed argument object (only when the text
 parsed to an object); parse state (*complete*, *truncated*, *interrupted*,
 *malformed*, *filtered*); the response's termination (*tool-calls*, *stop*,
 *length-truncated*, *content-filtered*, *deprecated-function-call*,
@@ -1947,8 +2070,13 @@ record validated against the schema. The same validator gives
 `LOOP_TOOL_CALL.example.valid.json` VALID and
 `LOOP_TOOL_CALL.example.invalid.json` INVALID (oneOf matched no branch).
 This shows the rules are consistent and executable on FB-CC-1-shaped
-input. It does not show that any model server emits those shapes (OBS-1),
-and no loop is built; the §12 standing of the MC cases is unchanged.
+input. Rerun at RP-4 (2026-09-30, same command) with three added fixtures,
+OBS1-C1…OBS1-C3, in the shapes OBS-1 observed (§4.1; reasoning and
+whitespace content deltas included, observed tool names replaced by
+FX-PIPE-01 entries): **22/22 as expected**, every record valid. That
+shows the assembly accepts what one local server sent; it does not show
+that model servers in general emit FB-CC-1's shapes, and no loop is built;
+the §12 standing of the MC cases is unchanged.
 
 ## 8. Responsiveness: observation protocol (no numeric thresholds)
 
@@ -1997,6 +2125,7 @@ Verdict form: "continued usability observed for X on candidate Y".
 | A12 set grant | Person (D2e, SETTLED). Includes the **network-destination grant** subclass (INTEGRATION, R8-13; ACT §2.7) | "Grant change observed" (T15); supersession (R2-7); "destination grant observed" and "destination declined" (§2.3) | A grant change or a destination grant from an A8 |
 | A13 enable/disable external access | Person. Enabling: D2e, SETTLED. Disabling as A13: INTEGRATION (R2-3) | Not a loop event (external channel). An agent may request it (A8) | — |
 | A14 tool permission | App only | Not applicable in host-loop runs. R13 is not applicable (R2-8) | — |
+| A15 register workflow revision (R12-5; v0.8, RP-4) | Person, in the App (ACT-POLICY-v0.8 §2.1; DEL-02-02) | Nothing: not a host-loop act, and no checkpoint may require it in this increment (ACT §4.1) | Inference from a workflow's selection or use |
 
 - A-1. Evidence of one act never establishes another.
 - A-2. An agent may request (A8) and prepare. It never records an act as
@@ -2107,7 +2236,8 @@ carried in C-v0.7 §10. The model-interface basis of the fixtures is
 product basis DEP-05-01-024 stays UNKNOWN. The parse-level fixtures FX-M
 and the stream variants of FX-V1 are written as FB-CC-1 streams in
 `prototype/fixtures/stream_fixtures.json` and ran on the §7.3 prototype
-(parse step only; 19/19 as expected, 2026-09-30). The other fixtures remain
+(parse step only; 19/19 as expected, 2026-09-30; 22/22 at RP-4 with
+OBS1-C1…OBS1-C3, the shapes OBS-1 observed, §4.1). The other fixtures remain
 case designs. Fixture exposure is "exposed on all
 three surfaces" (a fixture assumption, R2-21) unless a variant is named.
 
@@ -2145,7 +2275,7 @@ the same in each, with dispositions as record labels in Phase 1 (LP-3).
 | FX-C2 | The same checkpoint; model text claims it was checked | Assertion | **Both phases:** no act recorded; still *waiting* (LP-5). Governance phase: the run stays held | VER-008 |
 | FX-C3 | FX-C1 performed; then S-5 is edited, (i) before the resume point and (ii) after it with the run live; (iii) variant: the run has ended | Lapse | **Phase 1:** (i) and (ii) act-lapsed event recorded; label (i) "waiting — lapsed at ‹t›", (ii) **"act lapsed at ‹t›"** (R8-12 item 1); gated outputs show standing lapsed; **not re-held**; the agent re-requests the act as its plan requires (LP-7; R8-11 item 1). (iii) *lapsed* (standing). **Governance phase:** (i) act-lapsed event, then "waiting — lapsed at ‹t›". (ii) **Re-held**: "waiting — re-held, lapsed at ‹t› after resume"; stops at next action boundary; nothing undone; request re-issued for the whole scope. (iii) *lapsed* (standing). If the run ends while re-held: *waiting* (RH-7) | VER-008 |
 | FX-C4 | Checkpoint A4, reached-when (c) *applied* for OP-C9 (T16, RC-2), subject class "objects changed by a named outcome" (S-4 ⟨S-4@r16⟩); T16a A4 on S-4 captured after the arrival; no A5 anywhere (direct branch) | Independent act | **Both phases:** *performed* on its own evidence. No acceptance prerequisite (C-3). SP-6 holds (T16a after T16) | VER-008 |
-| FX-C4b | Same shape with a checkpoint arriving at T4 (subject "objects a named output concerns", OP-C3 findings on S-2/S-3); T2's A4 on S-2 predates it | Prior act | **Both phases:** T2's A4, on ⟨S-2@r12⟩ still current at T4, counts for S-2 and is relayed with its time (SP-6; DECISION-K1 K1-2); the arrival is answered once an A4 on S-3 is added, the two acts together (joint answer; K1-3), or by an A4 on S-2 and S-3. Phase 1: until then the record shows the arrival unanswered for S-3; nothing stopped. Governance phase: the arrival waits for S-3. Under the governance-phase option (EXEC SP-6F): T2 is "prior act on this subject, not counted", and only an A4 captured after T4 answers | VER-008 |
+| FX-C4b | Same shape with a checkpoint arriving at T4 (subject "objects a named output concerns", OP-C3 findings on S-2/S-3); T2's A4 on S-2 predates it | Prior act | **Both phases:** T2's A4, on ⟨S-2@r12⟩ still current at T4, counts for S-2 and is relayed with its time (SP-6; DECISION-K1 K1-2); the arrival is answered once an A4 on S-3 is added, the two acts together (joint answer; K1-3), or by an A4 on S-2 and S-3. Phase 1: until then the record shows the arrival unanswered for S-3; nothing stopped. Governance phase: the arrival waits for S-3. Under the governance-phase option (EXEC SP-6F): T2 is "prior act not counted" (captured before arrival (governance-phase option)), and only an A4 captured after T4 answers | VER-008 |
 | FX-C5 | A5 checkpoint, reached-when (c) *PR-2 queued* (T10); subject PR-2 change items; T11 accept item 1, reject item 2 | Mixed | **Both phases:** *resolved negatively*, **partial** annotation (item 1 A5) per WD §4.3.7. Phase 1: the *on mixed decision* path, if declared, is guidance for the agent's plan (LP-8). Governance phase: the loop follows it | VER-008 |
 | FX-C6 | A6 checkpoint; the person declines | Act-declined | **Both phases:** *resolved negatively*; no A6. Phase 1: the negative path is guidance (LP-8). Governance phase: the loop follows it | VER-008 |
 | FX-C6b | A12 checkpoint; the person declines | Act-declined | **Both phases:** *resolved negatively* | VER-008 |
@@ -2155,11 +2285,11 @@ the same in each, with dispositions as record labels in Phase 1 (LP-3).
 | FX-C9 | A5 checkpoint on OP-C4's result (C V-CP1 shape; `CP-accept` per FXA-5); grant effective direct; direct requested | Constraint | **Phase 1** (R8-11 item 2 as restated by R9-2; C-6): no constraint is carried as enforcement. The host's own treatment decides the direct request under the effective direct grant, and the loop relays the outcome as observed. If the host applies directly, no proposal is queued, so the A5 checkpoint (kind (c) *queued*) is not reached, and the record shows the direct application under the person's grant. Nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded (R9-2 as corrected by R10-1; G-9 closed). Following the checkpoint as guidance, the agent's plan proposes instead. DESIGNED. **Governance phase:** dispatch carries the governing checkpoint constraint; *not permitted* naming it. **AWAITING INPUT** (R2-12; §13 Q-1) — SQ-02 answered 2026-09-28: no host loop and no host-held evaluation; route (iv) (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) | VER-008 |
 | FX-C10 | Agent-authored A9 of an A4, with no capture evidence | Record only | **Both phases:** no act recorded; checkpoint stays *waiting* | VER-008 |
 | FX-C11 | C named variant **V-GR1** (R5-7): a run of WD-EX E1d (`label-with-grant`; `CP-grant` requires A12; reached-when kind (a) before dispatch of OP-C9; declared content {P-03, *direct*, {FX-W1; {S-4}}}), branching from T14 (r15). The agent's OP-C9 call on S-4 meets reached-when, so `CP-grant` arrives at r15; T15's A12 is captured **after** the arrival; the control establishes it | A12 at the arriving call | **Phase 1:** the arrival is recorded and the OP-C9 call is **dispatched, not held**. Requested direct under ⟨set-1⟩, the host's treatment answers *not permitted* (FX-V3 shape). The dispatch may carry "continued past CP-grant before A12". T15's A12 (captured after the arrival, established) is recorded as answering `CP-grant` (*performed*). A re-issued OP-C9 call is a new call (T16 shape under ⟨set-2⟩). Sub-variants label the record as below, with no call held. **Governance phase:** *performed* (SP-6 holds; established). The held call is dispatched unchanged as T16 (RC-2). Sub-variants: **pending** → *waiting*; **refused** → *waiting* "A12 refused by control: ‹reason›", call stays held, earlier setting not superseded; confirmation lost → *unknown*; a later **established** A12 on an overlapping scope → "superseded by ‹act›", checkpoint stays *performed* | VER-008 |
-| FX-C11b | Main timeline order: T15's A12 captured **before** a `CP-grant` arrival (any run declaring CP-grant that arrives after T15) | Prior act | **Both phases:** T15's A12, on the declared content with ⟨set-2⟩ still in force, counts: the arrival is *performed*, citing T15 and its time (SP-6; DECISION-K1 K1-2). Phase 1: recorded so; nothing is held. Governance phase: the run proceeds without a repeated A12. Under the governance-phase option (EXEC SP-6F): T15 is "prior act on this subject, not counted", and the person must perform A12 again before the run proceeds (R5-7) | VER-008 |
+| FX-C11b | Main timeline order: T15's A12 captured **before** a `CP-grant` arrival (any run declaring CP-grant that arrives after T15) | Prior act | **Both phases:** T15's A12, on the declared content with ⟨set-2⟩ still in force, counts: the arrival is *performed*, citing T15 and its time (SP-6; DECISION-K1 K1-2). Phase 1: recorded so; nothing is held. Governance phase: the run proceeds without a repeated A12. Under the governance-phase option (EXEC SP-6F): T15 is "prior act not counted" (captured before arrival (governance-phase option)), and the person must perform A12 again before the run proceeds (R5-7) | VER-008 |
 | FX-C12 | FX-C5 variant: item 2 refused stale before a decision; item 1 A5 | Item left | **Both phases:** item 2 left with its event; *performed* over a reduced subject, **never** "all accepted". On SWBPIPE any model change would stale every queued item (whole-model scope, R8-3) | VER-008 |
 | FX-C13 | Declaration with required act A10 (recognized, not allowed); a declaration with an unrecognized act name | Invalid / not established | **Phase 1:** reported as a declaration finding (*invalid*, with its FB code / *not established*); not evaluated; no arrival; the workflow check result is unchanged by it (R8-11 item 3). **Governance phase:** reported *invalid* / *not established*; not evaluated (R2-10); no value; check *not established* (EXEC §4.14) | VER-008 |
 | FX-C14 | Kind (c) checkpoint on *PR-2 queued* (T10). In the same model response the agent also issued an OP-C1 read that the loop dispatched before observing the queued outcome | Continued past / action during hold | **Phase 1:** arrival recorded. The OP-C1 dispatch may carry "continued past ‹checkpoint› before A5" with its reference (LP-4). Nothing is stopped, and later dispatches follow the agent's plan. **Governance phase:** arrival waits. The OP-C1 dispatch is recorded as **action during hold** with its reference; nothing further is dispatched (§2.4.4) | VER-008 |
-| FX-C15 | The run of FX-C7b ended; Engineer A starts a new run of `supports-adjust` recording **continues ⟨run 12⟩** | Continuation | **Both phases:** new run's checkpoints start *not reached*; no arrival or disposition is inherited. At the new arrival the post-end act counts for the bound referents whose content is still the one it was made on, cited with its time (SP-6; DECISION-K1 K1-2); under the governance-phase option (EXEC SP-6F) it is "prior act on this subject, not counted" | VER-008 |
+| FX-C15 | The run of FX-C7b ended; Engineer A starts a new run of `supports-adjust` recording **continues ⟨run 12⟩** | Continuation | **Both phases:** new run's checkpoints start *not reached*; no arrival or disposition is inherited. At the new arrival the post-end act counts for the bound referents whose content is still the one it was made on, cited with its time (SP-6; DECISION-K1 K1-2); under the governance-phase option (EXEC SP-6F) it is "prior act not counted" (captured before arrival (governance-phase option)) | VER-008 |
 
 ## 12. Evidence standing labels
 
@@ -2240,7 +2370,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
 - **G-3 (answered on the App side at v0.8; relayed as SQ-31).** Undispatched sibling calls are held,
   not run, during a hold (LH-0; governance phase). T-OPEN-1 is closed by
   R12-7: each call of a response is handled on its own, and a malformed
-  sibling gets its own refusal (MC-8, PROPOSED until OBS-1). LH-0 is
+  sibling gets its own refusal (MC-8, PROPOSED; OBS-1 observed no malformed sibling, §4.1). LH-0 is
   unchanged. SWBPIPE has not decided (SQ-31).
 - **G-4 (retained).** One executor drafted LOOP and PANEL, and the same
   executor revised both at v0.6, so the v0.6 pair needs an independent
@@ -2271,7 +2401,9 @@ joins are deferred. The questions below are kept as prepared. Gists:
     in host loops).
   - "Nothing holds" in Phase 1 (§2.4.0) concerns checkpoints. NW-12's
     wait is the one requesting call awaiting the person's grant; it holds
-    no run and no other call.
+    no run and no other call. R13-5 states the reading: the wait is the
+    grant being sought, not a checkpoint hold, so DECISION-4 does not bear
+    on it (§5.3; v0.8, RP-4).
 - **G-9 (new, v0.7; R9-2; closed by R10-1).** R9-2 said that
   in the FX-C9 case "the checkpoint's disposition stays *act not performed*
   unless the person performs it". §2.4 has six shared dispositions and none
@@ -2301,8 +2433,11 @@ joins are deferred. The questions below are kept as prepared. Gists:
   concatenated in order; that "no arguments" is `{}`; and that an error has
   no termination-reason value. Two choices are this file's, not the
   reference's: MC-1 rejects every call of a length-truncated response
-  (§7), and MC-12 rejects a response with a second choice. OBS-1 is to
-  record what a local server does on each point.
+  (§7), and MC-12 rejects a response with a second choice. OBS-1 recorded
+  what one local server does on each point (§4.1): `{}` for no arguments,
+  one argument piece per call (consistent with ordered concatenation), a
+  final `tool_calls`; it showed no error stream, so the third inference
+  stays unobserved (v0.8, RP-4).
 - **G-12 (new, v0.8; S1-D LOOP item 8).** Two failure rules of §3.1 touch
   other owners and are returned for joining: F-4 (the request is not sent
   when the destination record cannot be written) belongs with §5.1.1 and
@@ -2349,10 +2484,10 @@ joins are deferred. The questions below are kept as prepared. Gists:
 
 | Item | Owner | Point of need | Effect |
 |---|---|---|---|
-| OBS-1: an observation of a local OpenAI-compatible server on the four FB-CC-1 points (§4.1; R12-8) | The OBS-1 node after round 2 (K1-6; its brief is node B6's `WAVE_B/OBS-1_BRIEF.md`). OBS-1 is briefed as one live Codex turn; these points are observed only if its brief includes a Chat Completions stream from the same local server | Before §4's representation rows and MC-1…MC-13 leave PROPOSED | §4.1 OBS-1 column pending |
+| *Closed at v0.8 (RP-4; R13-6).* OBS-1: an observation of a local OpenAI-compatible server on the four FB-CC-1 points (§4.1; R12-8) | OBS-1 (Part C, run 2026-09-30) | — | §4.1's OBS-1 column holds the observation (DEL-01-01 `OBS_1_0.158.0.md` §10). It is one server at one version: §4's rows and MC-1…MC-13 stay PROPOSED, and DEP-05-01-024 stays open for a product |
 | OI-013 loop placement, parsing, persistence, panel assembly | Shared contract owner with SWB implementation owner | Before shared/host implementation boundary contracts | Outcomes only |
 | OI-014 shared placement | App/shared contract owners | Before structural/production allocation | No common loop |
-| DEP-05-01-024 model interface and representation (for a product) | UNKNOWN supplier; App/shared embedded-integration owner receives or agrees | At conformance use | Fixtures use FB-CC-1, fixture basis, not a product selection (§4.1; R12-8); §4's representation rows, MC-6 and MC-8 are PROPOSED from it until OBS-1. No product basis is selected. SWBPIPE: no model interface exists or is selected; the successor under SWBPIPE D-58 is an owner decision (SQ-20, SQ-29) |
+| DEP-05-01-024 model interface and representation (for a product) | UNKNOWN supplier; App/shared embedded-integration owner receives or agrees | At conformance use | Fixtures use FB-CC-1, fixture basis, not a product selection (§4.1; R12-8); §4's representation rows, MC-6 and MC-8 are PROPOSED from it; OBS-1 observed the four points on one local server (§4.1) and changed none of them. No product basis is selected. SWBPIPE: no model interface exists or is selected; the successor under SWBPIPE D-58 is an owner decision (SQ-20, SQ-29) |
 | DEP-001 host evidence, including Q-1…Q-7 | SWBPIPE outside implementation session. Q-1…Q-7 answered 2026-09-28 (§13); SWBPIPE owner decisions listed in ANS §2 remain open | Before corresponding integration/examination and fallback-replacement decision; when the owner resumes UI-SUCCESSOR (DECISION-3) | All host conformance NOT-OBSERVED. FX-C9's governance-phase value AWAITING INPUT (STD-2 annotation); its Phase-1 result DESIGNED |
 | OI-021 first connected operation; operation-specific reserved additions; OP-C11 class | Owner via outside SWB session and App/shared owner | Before connected SoW and execution | FX-NP1 HELD; fixtures invented. OI-021 stays open; SWBPIPE's candidates are recorded (SQ-04; R8-10) |
 | Consequence vocabulary | DEL-04-01 with host policy owner | Before class assignment | Classes as supplied |
@@ -2360,7 +2495,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | C U-C5 findings location | DEL-03-01 with host owner | Before E-5 route (b) is used | E-5 conditional |
 | C U-C3 / R2-13 staleness rule host confirmation | Host owner with DEL-03-01/03-02 | Before FX-D2/FX-O1 execution | §6.3 R-c meaning only. R2-13 amended by R8-3: host scope where no subject identities; SWBPIPE: whole model (SQ-07 (d)) |
 | C U-C6 entry-version mismatch | Host input | Before FX-D-series execution | O-3 |
-| U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 | Meaning only. The malformed-sibling part of U-P9 (= T-OPEN-1) is ruled by R12-7 (MC-8); the grouping mechanics stay with DEL-03-02 |
+| U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 | Meaning given by P-v0.8 §3.5 PM-4 and §4.7 SQ-P6 (§6.3 R-d; v0.8, RP-4); mechanics open. The malformed-sibling part of U-P9 (= T-OPEN-1) is ruled by R12-7 (MC-8); the grouping mechanics stay with DEL-03-02 |
 | N-OPEN-1 (**closed at v0.8 by R12-7**: a class label local or cloud in the destination record, not a gate; MS-11 released); N-OPEN-2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine (**closed by DECISION-K1 K1-5**, 2026-09-30: a named entry is allowed on its own; a switch allows the whole category; NW-8); N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13; **closed at v0.8 as PROPOSED**: §5.3 DF-7, SE-1…SE-3, with the limit "stateless revision declared, not verified") | App/shared embedded-integration owner with SWBPIPE owner (N-OPEN-4 decided by the owner). SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 released (R12-7). NW-8 states the settled rule for N-OPEN-4 (MS-15, MS-18 follow it), and NW-10 treats unevidenced conformance as not following (PROPOSED); DF-7 says what evidences conformance (MS-26). N-OPEN-3 narrowed: declared traffic is the agent's (§5.3 DF-1, DF-F8) |
 | CLOSED at v0.7 (SCA-V4-001, accepted 2026-09-29; R9-8) — the revised V4-HOST-02 (DECISION-5; R8-13) is the accepted text | Owner | — | NW-2 quotes the accepted text (P/docs/PRD.md `bb6e786f…49bd`); §5.1.1 cites it with V4-ARC-12 and ARCH §4 |
 | CLOSED — DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands): the person-only grant (point 3); the recorder's reading of "MCP V2" as the stateless MCP revision 2026-07-28 | Owner | Before §5.1.1 is relied on for implementation | NW-10 and NW-11 applied as recorded |
@@ -2371,7 +2506,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | CLOSED (R10-1) — FX-C9 disposition wording, *act not performed* against *not reached* (G-9) | Integrator | — | FX-C9 and PANEL PC-24 say *not reached* |
 | Governance phase taken up (R8-1) | Owner, per workflow that needs it (DECISION-4 D4-1) | When a workflow needs enforced checkpoints | §2.4.4 and the governance-phase columns apply to governed checkpoints only then |
 | SWBPIPE embedded direction ("embedded Runtime", RUNTIME-ADOPT; D-58) predates D-20 (R8-8; DECISION-4 D4-2) | SWBPIPE (its to act on) | When the owner resumes UI-SUCCESSOR | None on this contract; note in §1 |
-| *Closed at v0.8 (R12-7, INTEGRATION).* T-OPEN-1 valid siblings beside a malformed call | Integrator (ruled) | — | MC-8: the valid calls are handled on their own; the malformed call gets its own refusal (P-v0.7 §3.1 rule 5). PROPOSED until OBS-1. SWBPIPE: not decided (no loop; SQ-31) |
+| *Closed at v0.8 (R12-7, INTEGRATION).* T-OPEN-1 valid siblings beside a malformed call | Integrator (ruled) | — | MC-8: the valid calls are handled on their own; the malformed call gets its own refusal (P-v0.8 §3.1 rule 5). PROPOSED; OBS-1 observed no malformed sibling (§4.1). SWBPIPE: not decided (no loop; SQ-31) |
 | R-OPEN-1 quantitative responsiveness | Owner, if wanted | Before any numeric criterion | None set (SQ-32: SWBPIPE's solve is a background job with poll and cancel) |
 | Seat role mapping (U-09) | DEL-02-01 with SWB owner and DEL-02-04 | Before record fixtures | *unknown* allowed. SEAT-1…SEAT-3 kept (R8-8). SWBPIPE: no seat concept; its one agent panel is the likely counterpart (SQ-19 (d)); not decided |
 | Holding library (U-24) | Confirmed by EXEC §6.2 (HL-1…HL-3) | — | Carried (§2.1) |
@@ -2391,7 +2526,7 @@ These are designed, not run.
 | VC-02 | Inspect NW-3/NW-6/NW-7 and MS-03/06/07/08/12 against V4-ARC-12 | Native layer is the enforcement point; neither key nor sign-in credential reaches the script; labels applied | VER-002 |
 | VC-03 | Review §1, §2 and §4 (with §4.1) | Four subjects; the App path is distinct (Responses API unobserved); FB-CC-1 labelled "fixture basis, not a product selection" with URL, retrieval date, sha256 and the passages relied on; its four points PROPOSED with the inferences marked; DEP-05-01-024 open for a product; Pi excluded; D3 attribution per R2-11 | VER-003 |
 | VC-04 | Review §6 and the FX-V/S/D/U/NP fixtures against C-v0.7 §4.1 and P-v0.7 §9 | V-2 split holds; "not exposed" only host-reported; five class values; O-1…O-6 hold; FX-D1/D1b distinguish invalid from unavailable; FX-D2 is a revision within g1 | VER-004 |
-| VC-05 | Run the §7.3 prototype on the FX-M and FX-V1 streams (parse step, FB-CC-1); exercise FX-M, FX-V1, FX-U1 and FX-O1 against a loop test double once a loop and C's simulated host exist | Prototype: every fixture as expected and every record valid against `LOOP_TOOL_CALL.schema.json` (2026-09-30: 19/19). Loop double: zero dispatch for rejected calls; each valid sibling of a malformed call handled on its own (R12-7); de-duplication before the basis check; class 4 reporter is the loop | VER-005 |
+| VC-05 | Run the §7.3 prototype on the FX-M and FX-V1 streams (parse step, FB-CC-1); exercise FX-M, FX-V1, FX-U1 and FX-O1 against a loop test double once a loop and C's simulated host exist | Prototype: every fixture as expected and every record valid against `LOOP_TOOL_CALL.schema.json` (2026-09-30: 19/19; at RP-4, 22/22 with the OBS-1 shapes). Loop double: zero dispatch for rejected calls; each valid sibling of a malformed call handled on its own (R12-7); de-duplication before the basis check; class 4 reporter is the loop | VER-005 |
 | VC-06 | Review §8. On host observations, check candidate, configuration and placement | No threshold; results limited to observed scenarios | VER-006 |
 | VC-07 | Compare §10 with SoW CLM-001/002/003, REQ-006, OI-013/014, DEP-001 and the Clarification | Every excluded act has its owner; no common construction allocated | VER-007 |
 | VC-08 | Review §2.3, §2.4 (incl. §2.4.0), §9 and FX-C1…C15 (incl. FX-C11 on V-GR1 and FX-C11b), FX-R1/R2 and FX-UNDO against EXEC-v0.5 §2.1, §2.2 and §4, WD-v0.7 §4.3, ACT, P and AS | **Phase 1:** no hold, stop or re-hold anywhere; no hold-support value; no *unsupported* for a hold reason; the required act requested by the agent, never by the loop (LP-5); arrivals and acts recorded as observation; "continued past" only as an optional annotation; acts only when performed; reserved acts stand; lapses recorded; invalid declarations a finding only. **Both phases:** declared subject class bound, including the declared A12 setting (R5-3); reached-when observed-only; SP-6 earlier acts counted on current content with their time (DECISION-K1 K1-2; SP-6F ordering only under the governance-phase option); joint answer after a partial lapse (K1-3); no resumption; act-declined for A4/A6/A7/A12; MX rules; A12 supersedes only when established. **Governance phase:** re-hold after resume and after the person's undo; hold support in the four R5-1 values; constraint host-held; values read as if governed | VER-008 |

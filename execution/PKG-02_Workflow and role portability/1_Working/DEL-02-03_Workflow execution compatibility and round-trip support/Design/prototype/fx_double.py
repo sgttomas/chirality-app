@@ -112,7 +112,7 @@ def workflow(name):
     elif name == "E1d-harness-grant":          # L-EXEC-6 (MT-15)
         wf.update(identity=_ID("label-with-grant", "rev-D1h"),
                   requirements=[_req("OP-C9", purpose="label a support"),
-                                _req("shell command", cls="harness_capability", version=None,
+                                _req("shell-command", cls="harness_capability", version=None,
                                      purpose="run a shell command")],
                   checkpoints=[dict(copy.deepcopy(_CP_GRANT), held_on_harness=True,
                                     held_actions={"form": "host_operations_only", "app_side": True}),
@@ -121,7 +121,7 @@ def workflow(name):
         wf = workflow("E1-rev-3")
     elif name == "E1-harness-file-writing":    # L-EXEC-3 (MT-8)
         wf = workflow("E1-rev-3")
-        wf["requirements"].append(_req("file writing", cls="harness_capability", version=None,
+        wf["requirements"].append(_req("file-change", cls="harness_capability", version=None,
                                        purpose="write the summary file"))
     elif name == "requires-OP-C2":             # MT-6 (C §10.6 T8)
         wf.update(identity=_ID("results-review", "rev-R1"),

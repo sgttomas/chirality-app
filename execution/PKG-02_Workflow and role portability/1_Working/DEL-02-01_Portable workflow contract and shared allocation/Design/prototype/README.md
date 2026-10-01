@@ -26,7 +26,17 @@ qualification.
 4. **Examples agree with fixtures.** The E1 and E1d `WORKFLOW.md` renderings in
    `../EXAMPLES.md` are byte-identical to what `render` produces, and its E1b
    and E1e JSON equals the fixtures.
-5. **Revision file set (WD §6.1 RV-1…RV-5).** The file set and
+5. **Workflow identity (WD §6.1, §3.6; RP-3 repair).** The schema's
+   `$defs/workflow_identity` accepts the three valid instances of
+   `fixtures/workflow-identity.examples.json` and rejects each invalid one
+   with its one named error (origin `host-supplied`; derived-from as a
+   string; no source root) (S-10).
+6. **Name-to-group mapping (WD §4.2.5 HC-7; R14-5; RP-3 repair).** Each of
+   the ten harness capability names resolves to one HOSTING §8.4 Part A
+   group, and every supplier name a row cites that HOSTING places in a group
+   is a member of that group (S-11). The check reads DEL-01-01's
+   `HOSTING_BOUNDARY.md` from the working tree, read only.
+7. **Revision file set (WD §6.1 RV-1…RV-5).** The file set and
    canonicalization give a stable value, change with any byte, and refuse a
    symbolic link. The digest `proto-sha256-list-0` is an illustration only;
    the algorithm stays open (U-03).
@@ -42,6 +52,7 @@ capability presence is evaluated (those need EXEC's and LOOP's test doubles).
 | `extract.mjs` | Second, independent extractor (node standard library) |
 | `fixtures/E1.prose.md`, `E1d.prose.md`, `E1e.prose.md` | Front matter and prose of the fixture packages (the declared part is appended by `render`) |
 | `fixtures/E1b.declaration.json`, `E1d.declaration.json`, `E1e.declaration.json` | Declared parts (E1's is `../workflow-declaration.valid.example.json`) |
+| `fixtures/workflow-identity.examples.json` | Valid and invalid instances of `$defs/workflow_identity` (RP-3 repair) |
 
 ## JSON Schema subset validated
 
@@ -63,4 +74,7 @@ Python 3 standard library; `node` is used by check S-9 when present. No
 package is installed and nothing is fetched. The self-test writes only to a
 temporary directory it removes. Set `PYTHONDONTWRITEBYTECODE=1` to avoid a
 `__pycache__` folder. The command, date and output of each recorded run are
-in `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B1.md`.
+in `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B1.md`
+(54 checks) and, after the RP-3 repair (outcome token `applied`, file
+outputs need a path, the identity definition, the group mapping), in
+`WAVE_B/RP-3.md` (62 checks).

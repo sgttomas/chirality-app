@@ -617,6 +617,54 @@ def load(p):
     return json.load(open(p, encoding="utf-8"))
 
 
+def hosting_groups():
+    """HOSTING §8.4 capability account: {group id: set of supplier names}, Parts A and B."""
+    import glob
+    execution = os.path.abspath(os.path.join(DESIGN, "..", "..", "..", ".."))
+    paths = glob.glob(os.path.join(execution, "PKG-01_*", "1_Working", "DEL-01-01_*", "Design", "HOSTING_BOUNDARY.md"))
+    if len(paths) != 1:
+        raise RuntimeError("HOSTING_BOUNDARY.md not found once under %s" % execution)
+    text = open(paths[0], encoding="utf-8").read()
+    sec = text.split("### 8.4 ", 1)[1].split("\n## 9. ", 1)[0]
+    groups = {}
+    for line in sec.splitlines():
+        m = re.match(r"\| \*\*(HCG-[AB]\d\d)\*\*", line)
+        if m:
+            cells = line.strip("|").split("|")[1:]
+            groups[m.group(1)] = set(re.findall(r"`([^`]+)`", "|".join(cells)))
+    return paths[0], groups
+
+
+def check_group_mapping(check):
+    """R14-5: each §4.2.5 name names one Part A group; every supplier name its row cites that HOSTING
+    places in some group is a member of that group (names HOSTING does not list are skipped)."""
+    text = open(os.path.join(DESIGN, "WORKFLOW_DECLARATION.md"), encoding="utf-8").read()
+    sec = text.split("#### 4.2.5 ", 1)[1].split("- **HC-1 ", 1)[0]
+    path, groups = hosting_groups()
+    where = {}
+    for g, names in groups.items():
+        for n in names:
+            where.setdefault(n, set()).add(g)
+    rows = [l for l in sec.splitlines() if l.startswith("| `")]
+    problems, mapped = [], {}
+    for l in rows:
+        cells = [c.strip() for c in l.strip("|").split("|")]
+        name = cells[0].strip("`")
+        gids = re.findall(r"HCG-[AB]\d\d", cells[4])
+        if len(set(gids)) != 1 or not gids[0].startswith("HCG-A"):
+            problems.append((name, "groups", gids))
+            continue
+        g = gids[0]
+        mapped[name] = g
+        for cited in re.findall(r"`([^`]+)`", cells[2] + "|" + cells[4]):
+            if cited in where and g not in where[cited]:
+                problems.append((name, cited, sorted(where[cited])))
+    ok = len(rows) == 10 and not problems and len(groups) == 27
+    check("S-11 §4.2.5 names resolve to HOSTING §8.4 groups (R14-5)", ok,
+          "%d names -> %s; %d groups read from HOSTING%s" % (len(mapped), ", ".join(
+              "%s %s" % (k, v) for k, v in mapped.items()), len(groups), "" if ok else "; problems %s" % problems[:4]))
+
+
 def selftest():
     schema = load(SCHEMA_PATH)
     results = []
@@ -760,7 +808,7 @@ def selftest():
             ("L-WDEX-18d VC-12 unknown name", e1, setp(["checkpoints", 1, "required_act"], "approve-design"), "CP-check", ("not_established", "FB-04")),
             ("L-WDEX-19a VC-29 A5 kind (a)", e1, setp(["checkpoints", 0, "reached_when"], {"kind": "before_dispatch", "tool": "add-support"}), "CP-accept", ("invalid", "FB-16")),
             ("L-WDEX-19b VC-29 A5 kind (b)", e1, setp(["checkpoints", 0, "reached_when"], {"kind": "output_produced", "output": "summary"}), "CP-accept", ("invalid", "FB-16")),
-            ("L-WDEX-19c VC-29 A5 other subject", e1, setp(["checkpoints", 0, "subject"], {"class": "objects_changed_by_named_outcome", "tools": ["add-support"], "outcome": "applied_receipt"}), "CP-accept", ("invalid", "FB-16")),
+            ("L-WDEX-19c VC-29 A5 other subject", e1, setp(["checkpoints", 0, "subject"], {"class": "objects_changed_by_named_outcome", "tools": ["add-support"], "outcome": "applied"}), "CP-accept", ("invalid", "FB-16")),
             ("L-WDEX-19d VC-29 held-call targets with kind (b)", e1, setp(["checkpoints", 1, "subject"], {"class": "targets_of_held_call"}), "CP-check", ("invalid", "FB-16")),
             ("L-WDEX-20 VC-41 A12 without setting", e1d, setp(["checkpoints", 0, "subject"], {"class": "grant_setting"}), "CP-grant", ("invalid", "FB-17")),
             ("L-WDEX-21a VC-45 governed yes", e1d, setp(["checkpoints", 0, "governed"], "yes"), "CP-grant", ("recognized", None, "yes")),
@@ -824,6 +872,14 @@ def selftest():
         nested = "---\nname: nested\ndescription: x\n---\n# Nested\n\n````markdown\n```workflow-declaration\n{}\n```\n````\n"
         check("S-7 L-WDEX-36 a declaration block quoted inside another fence is not read", extract(nested)["status"] == "absent", extract(nested)["status"])
 
+        # L-WDEX-42 (RP-3; V18-2 m-2): a file output without its path is not established, and the
+        # kind (b) checkpoint on it is not established, never recognized
+        R = variant(e1e, lambda d: [o.pop("path") for o in d["returned_outputs"] if o["name"] == "approval-package"])
+        outp = [(e["reading"], e["fb"]) for e in R["elements"]["returned_outputs"] if e["name"] == "approval-package"]
+        ck = [(e["reading"], e["fb"]) for e in cp(R, "CP-approve")]
+        check("S-7 L-WDEX-42 file output without path: output not established (FB-02); CP-approve not established",
+              outp == [("not_established", "FB-02")] and ck == [("not_established", "§3.4")], "%s; CP-approve %s" % (outp, ck))
+
         # S-8 the invalid example read element by element (a reader does not reject the whole document)
         R = read_declaration(json.dumps(inv), schema)
         got = {c: [(e["name"], e["reading"], e["fb"]) for e in R["elements"].get(c, [])] for c in R["elements"]}
@@ -842,6 +898,19 @@ def selftest():
             check("S-9 node extract.mjs gives the same canonical JSON for E1", ok, "node %s" % subprocess.run([node, "--version"], capture_output=True, text=True).stdout.strip())
         else:
             check("S-9 node extract.mjs gives the same canonical JSON for E1", True, "SKIPPED: node not found")
+
+        # S-10 the workflow identity definition (WD §6.1, §3.6; RP-3, V18-2 m-9) and its conformance instances
+        ids = load(os.path.join(FIX, "workflow-identity.examples.json"))
+        idef = schema["$defs"]["workflow_identity"]
+        for v in ids["valid"]:
+            e = validate(idef, v["instance"], schema)
+            check("S-10 identity valid: %s" % v["label"], e == [], "%d errors %s" % (len(e), e[:2]))
+        for v in ids["invalid"]:
+            e = validate(idef, v["instance"], schema)
+            check("S-10 identity invalid: %s" % v["label"], len(e) == 1 and [e[0][0], e[0][1]] == v["error"], str(e))
+
+        # S-11 the name-to-group mapping of WD §4.2.5 against HOSTING §8.4 (R14-5)
+        check_group_mapping(check)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     w = max(len(r[0]) for r in results)

@@ -38,7 +38,9 @@ T = {
     ("requested", "run ends"): "unanswered at end (no grant)",
     # node B5 (LOOP-v0.8 §5.3 DF-6): turn cancel, and the request not granted
     ("requested", "turn cancelled"): "unanswered at end (no grant)",
-    ("requested", "not grantable or prompt not shown"): "not granted (no grant)",
+    # RP-4 (V18-1 m-10; LOOP-v0.8 §3.2): DG-15 starts from no state; it never passes through requested/pending
+    ("—", "agent asks, prompt shown"): "requested",
+    ("—", "not grantable or prompt not shown"): "not granted (no grant)",
     ("pending control confirmation", "control establishes"): "in force",
     ("pending control confirmation", "control refuses"): "refused",
     ("pending control confirmation", "confirmation lost"): "unconfirmed",
@@ -52,7 +54,8 @@ T = {
 }
 FORBIDDEN = [("requested", "timeout"), ("requested", "agent writes entry"), ("consumed", "requesting call contacts (once)"),
              ("ended with run", "new run starts"), ("refused", "control establishes"), ("declined (no grant)", "person grants"),
-             ("unanswered at end (no grant)", "person grants"), ("not granted (no grant)", "person grants")]
+             ("unanswered at end (no grant)", "person grants"), ("not granted (no grant)", "person grants"),
+             ("requested", "not grantable or prompt not shown")]
 walks = [
     (["person grants", "control establishes", "requesting call contacts (once)"], "consumed"),
     (["person grants", "control establishes", "run ends"], "ended with run"),
@@ -64,9 +67,10 @@ walks = [
     (["run ends"], "unanswered at end (no grant)"),
     (["turn cancelled"], "unanswered at end (no grant)"),
     (["not grantable or prompt not shown"], "not granted (no grant)"),
+    (["agent asks, prompt shown", "person grants", "control establishes"], "in force"),
 ]
 for events, end in walks:
-    s = "requested"
+    s = "—" if events[0] in ("not grantable or prompt not shown", "agent asks, prompt shown") else "requested"
     for ev in events:
         s = T.get((s, ev), "REFUSED")
     good = s == end

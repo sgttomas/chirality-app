@@ -56,7 +56,7 @@
       "additionalProperties": false,
       "properties": {
         "kind": {"type": "string", "minLength": 1},
-        "origin": {"type": "string", "minLength": 1},
+        "origin": {"description": "P §3.3; DEL-02-01 WD §6.1: project, user, bundled or host. 'App-origin' is not an origin class (RP-2; V18-2 m-9).", "enum": ["project", "user", "bundled", "host"]},
         "source_root": {"type": "string", "minLength": 1},
         "name": {"type": "string", "minLength": 1},
         "revision": {"type": "string", "minLength": 1},

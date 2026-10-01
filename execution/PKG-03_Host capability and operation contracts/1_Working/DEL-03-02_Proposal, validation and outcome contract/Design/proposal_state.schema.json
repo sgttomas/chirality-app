@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:proposed:proposal-state",
   "title": "Recorded proposal state, as returned to a submission or to an observation by identity (DEL-03-02 P-v0.8 §3.5, §4.6, §9; PROPOSED)",
-  "description": "PROPOSED schema (R12-1, R12-2). What the host reports about one proposal identity: its recorded per-item states (kind 'recorded_state'), that it holds no record of it ('not_known_to_host'), or that a submission reused the identity with different content ('identity_conflict'). Property names are Chirality's semantic labels, not a host wire field.",
+  "description": "PROPOSED schema (R12-1, R12-2). What the host reports about one proposal identity: its recorded per-item states (kind 'recorded_state'), that it holds no record of it ('not_known_to_host'), that a submission reused the identity with different content ('identity_conflict'), or, as a document of its own, one item-left event ('item_left_event', P §4.3; RP-2, R14-8 N-18). Property names are Chirality's semantic labels, not a host wire field.",
   "type": "object",
   "oneOf": [
     {"$ref": "#/$defs/recorded_state"},
     {"$ref": "#/$defs/not_known_to_host"},
-    {"$ref": "#/$defs/identity_conflict"}
+    {"$ref": "#/$defs/identity_conflict"},
+    {"$ref": "#/$defs/item_left_event"}
   ],
   "$defs": {
     "identity": {"type": "string", "minLength": 1},
@@ -37,7 +38,8 @@
         "act_kind": {"enum": ["A5", "A10", "A11"]},
         "actor": {"$ref": "#/$defs/identity"},
         "act_reference": {"$ref": "#/$defs/identity"},
-        "capture_evidence_reference": {"$ref": "#/$defs/identity"}
+        "capture_evidence_reference": {"$ref": "#/$defs/identity"},
+        "captured_at": {"description": "P §9 (RP-2; V18-3 M-1, R14-4): the capture time as the host records it. Absent means the host supplied none; a consumer records 'not supplied by host', never a time of its own.", "$ref": "#/$defs/identity"}
       }
     },
     "refusal": {
@@ -55,7 +57,37 @@
         "governing_treatment": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/governing_treatment"}
       }
     },
+    "left_cause": {
+      "description": "P §4.3: the five causes of an item-left event.",
+      "enum": ["refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "cleared_by_person_no_decision_record"]
+    },
+    "item_left_body": {
+      "description": "P §4.3 item-left event, as carried on the item that left (RP-2; R14-8 N-18): cause, time, and the evaluated basis where the host evaluated one. The proposal and item identities are those of the enclosing recorded state and item.",
+      "type": "object",
+      "required": ["cause", "time"],
+      "additionalProperties": false,
+      "properties": {
+        "cause": {"$ref": "#/$defs/left_cause"},
+        "time": {"$ref": "#/$defs/identity"},
+        "evaluated_basis": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"}
+      }
+    },
+    "item_left_event": {
+      "description": "P §4.3 item-left event as a document of its own: {proposal identity, item identity, cause, time, evaluated basis} (RP-2; R14-8 N-18), for a consumer that receives the event rather than a recorded state (DEL-02-01 WD §4.3.7; DEL-02-03 EXEC §4.11).",
+      "type": "object",
+      "required": ["kind", "proposal_identity", "item_identity", "cause", "time"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "item_left_event"},
+        "proposal_identity": {"$ref": "#/$defs/identity"},
+        "item_identity": {"$ref": "#/$defs/identity"},
+        "cause": {"$ref": "#/$defs/left_cause"},
+        "time": {"$ref": "#/$defs/identity"},
+        "evaluated_basis": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"}
+      }
+    },
     "resulting_object": {
+      "description": "P §9: a resulting object of an applied item. An absent subject content identity (or method) is 'not supplied' by the host (R2-14; R8-4); a consumer records it so and computes none.",
       "type": "object",
       "required": ["object_identity", "relation"],
       "additionalProperties": false,
@@ -96,7 +128,8 @@
         "identity_method": {"$ref": "#/$defs/identity"},
         "decision": {"$ref": "#/$defs/act_ref"},
         "refusal": {"$ref": "#/$defs/refusal"},
-        "left_cause": {"enum": ["cleared_by_person_no_decision_record"]},
+        "left_cause": {"description": "Kept from P-v0.8 node B3 for the §9.1 received case (R8-5); the item-left event itself is 'item_left'.", "enum": ["cleared_by_person_no_decision_record"]},
+        "item_left": {"$ref": "#/$defs/item_left_body"},
         "applied": {"$ref": "#/$defs/applied_association"},
         "error": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/declared_error"},
         "observer": {"enum": ["loop", "app", "host"]},
@@ -108,7 +141,13 @@
         {"if": {"properties": {"state": {"enum": ["accepted", "rejected", "withdrawn"]}}}, "then": {"required": ["decision"]}},
         {"if": {"properties": {"state": {"const": "left_queue"}}}, "then": {"required": ["left_cause"]}},
         {"if": {"properties": {"state": {"const": "application_error"}}}, "then": {"required": ["error"]}},
-        {"if": {"properties": {"state": {"const": "outcome_unknown"}}}, "then": {"required": ["observer", "last_observed_state"]}}
+        {"if": {"properties": {"state": {"const": "outcome_unknown"}}}, "then": {"required": ["observer", "last_observed_state"]}},
+        {"if": {"properties": {"state": {"const": "refused_stale"}}, "not": {"required": ["decision"]}}, "then": {"required": ["item_left"], "properties": {"item_left": {"properties": {"cause": {"const": "refused_stale"}}}}}},
+        {"if": {"properties": {"state": {"const": "refused_invalid"}}, "not": {"required": ["decision"]}}, "then": {"required": ["item_left"], "properties": {"item_left": {"properties": {"cause": {"const": "refused_invalid"}}}}}},
+        {"if": {"properties": {"state": {"const": "refused_not_permitted"}}, "not": {"required": ["decision"]}}, "then": {"required": ["item_left"], "properties": {"item_left": {"properties": {"cause": {"const": "refused_not_permitted"}}}}}},
+        {"if": {"properties": {"state": {"const": "withdrawn"}}}, "then": {"required": ["item_left"], "properties": {"item_left": {"properties": {"cause": {"const": "withdrawn"}}}}}},
+        {"if": {"properties": {"state": {"const": "left_queue"}}}, "then": {"required": ["item_left"], "properties": {"item_left": {"properties": {"cause": {"const": "cleared_by_person_no_decision_record"}}}}}},
+        {"if": {"anyOf": [{"properties": {"state": {"enum": ["drafted", "validated", "queued", "accepted", "applied", "applied_then_reversed", "rejected", "application_error", "outcome_unknown"]}}}, {"properties": {"state": {"enum": ["refused_stale", "refused_invalid", "refused_not_permitted"]}}, "required": ["decision"]}]}, "then": {"not": {"required": ["item_left"]}}}
       ]
     },
     "derived_state": {

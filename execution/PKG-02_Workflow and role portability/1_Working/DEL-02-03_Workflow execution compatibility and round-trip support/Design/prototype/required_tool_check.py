@@ -37,7 +37,7 @@ def evaluate_reference(req, cat, surface, channel_enabled, readiness):
         return "not_established", "exposure unagreed on " + surface, found, "unagreed", None
     if exposure == "not exposed":                                 # EV-8
         return ("not_exposed_on_this_surface", "element 9: not exposed on " + surface,
-                found, "not_exposed", None)
+                found, "not_exposed_on_this_surface", None)
     if not channel_enabled:                                       # EV-9
         return "channel_not_enabled", "surface-level: channel not enabled", found, "exposed", None
     if readiness:                                                 # EV-10

@@ -37,6 +37,8 @@ PROPOSED unless a cited text decides it.
 | **B5** (S1-A AS 7; LOOP-v0.8 §5.3 DF-6) | §3.1 joined to the one destination flow: DG-1 names the request call and the call it carries; DG-13 renamed *unanswered at end* (run ended); new DG-14 (turn cancelled) and DG-15 (not granted: not grantable or prompt not shown); DG-4 names the request state *not granted*. Settings-in request states follow LOOP DF-6 (pending · granted · declined · not granted · unanswered at end), identically in §6 and RS §8; `AS_SETTINGS_IN.schema.json` enum and reason element, and the prototype's walks (ten sequences, eight forbidden transitions) updated. §5 failure rows cite LOOP's DF-F rows | §3.1; §5; §6; schema; `prototype/` |
 | **B5** (R12-10) | §3's *Declines* row and DG-11 keep "recording PROPOSED"; §3.2 states it for declines and refusals | §3; §3.1; §3.2 |
 | **B5** (verification) | F23 and VC-23 (the contacted-destinations display); VC-19 extended | §11; Verification cases |
+| RP-4: V18-1 m-10 | DG-15 starts from no state: a not-grantable or prompt-not-shown request is recorded and closed *not granted* without entering *requested* or *pending*, as LOOP-v0.8 §3.2 and PANEL ND-2 (PS-5) state; the prototype's walk starts it from no state and forbids *requested* → *not granted* for those reasons (eleven walks, nine forbidden transitions; all held) | §3.1; `prototype/validate_settings_in.py` |
+| RP-4: V18-1 m-16 | `AS_SETTINGS_IN.schema.json` refuses an always-off item shown on without its A12 reference (§6 = RS §8: "each off unless an A12 turned it on"); new invalid example INV-AS-4; §6 unchanged (still identical to RS §8) | Schema; `AS_SETTINGS_IN.invalid.examples.json`; VC-22 |
 
 ## Changes from v0.6
 
@@ -318,13 +320,15 @@ grant or the checkpoint indicator.
 | DG-12 | requested | Nobody answers | requested (unchanged) | Still pending; never granted by silence or timeout (S12) | State *pending* |
 | DG-13 | requested | The run ends unanswered | no grant | Gone; the requesting call shown not sent (PANEL FD-4) | Agent request, state *unanswered at end* (cause run ended); RS `destination_request_closed` (PROPOSED) |
 | DG-14 (B5) | requested | The person cancels the turn in which it was asked (LOOP F-11) | no grant | Gone | Agent request, state *unanswered at end* (cause turn cancelled); RS `destination_request_closed` |
-| DG-15 (B5) | requested | The target cannot be granted (a non-stateless MCP server; an always-off item, which only an allow-list edit turns on), or the host's control cannot show the prompt (LOOP DF-3 A-2, A-3; DF-F4) | no grant | "cannot be allowed: ‹reason›" beside the governing list | Agent request, state *not granted* (reason not grantable · prompt not shown); RS `destination_request_closed` |
+| DG-15 (B5; RP-4) | — (no *requested* state is entered: LOOP-v0.8 §3.2) | The agent asks for a target that cannot be granted (a non-stateless MCP server; an always-off item, which only an allow-list edit turns on), or the host's control cannot show the prompt (LOOP DF-3 A-2, A-3; DF-F4) | no grant | "cannot be allowed: ‹reason›" beside the governing list (PANEL PS-5, with no PS-1 before it) | Agent request, state *not granted* (reason not grantable · prompt not shown), never *pending*; RS `destination_requested` and `destination_request_closed` |
 
 Not transitions: an agent-written list entry is never a grant (at most an
 A8, DG-1); an operation-class A12 changes no destination state (ACT ND-A1).
 The walk of these transitions is checked by
 `prototype/validate_settings_in.py` (ten event sequences, eight forbidden
-transitions after node B5; run 2026-09-30, all held).
+transitions after node B5; eleven and nine after RP-4, which starts DG-15
+from no state and forbids *requested* → *not granted* "not grantable or
+prompt not shown"; run 2026-09-30, all held).
 
 ### 3.2 Destinations contacted: the display (v0.8, node B5; S1-A AS 3; PROPOSED display over SETTLED rules)
 
@@ -887,4 +891,4 @@ Earlier: U-03.
 | VC-19 In-work destination-grant transitions (AS 7) | F22 against §3.1 DG-1…DG-15; `prototype/validate_settings_in.py` | Each sequence ends in the state §3.1 gives; forbidden transitions (a grant by timeout or by an agent-written entry; reuse of a consumed or ended grant; a refused grant becoming in force; a declined request becoming a grant) do not exist. **The state walk ran 2026-09-30 on the prototype: held** | VER-001 (AC-001) |
 | VC-20 Receiver conditions (AS 5) | §12.1 against each receiver's own text (LOOP §6.2, PANEL §3.6, P §3.3, ADAPTER §5.5, EXEC §4.10) | Each receiver has elements, a condition of use and behaviour on *unconfirmed* and *missing*; *missing* is never shown as *not set*; no receiver decides treatment | VER-002 (AC-002) |
 | VC-21 Destination exchange (AS 4; RS 6) | F21, F22; RS VC-38 | Settings-in carries the destination settings apart from the operation-class grants; record-out carries R15; comparison covers settings, not contacts; §6 and RS §8 identical | VER-002 (AC-002) |
-| VC-22 Settings-in representation (R12-1) | `AS_SETTINGS_IN.schema.json` with its examples | Valid examples validate; INV-AS-1 (person-set without A12), INV-AS-2 (agent request with an A12 reference) and INV-AS-3 (scope "forever") fail. **Ran 2026-09-30 on the prototype: held** | VER-002 (AC-002) |
+| VC-22 Settings-in representation (R12-1) | `AS_SETTINGS_IN.schema.json` with its examples | Valid examples validate; INV-AS-1 (person-set without A12), INV-AS-2 (agent request with an A12 reference), INV-AS-3 (scope "forever") and INV-AS-4 (an always-off item on without an A12 reference; RP-4) fail. **Ran 2026-09-30 on the prototype: held** | VER-002 (AC-002) |

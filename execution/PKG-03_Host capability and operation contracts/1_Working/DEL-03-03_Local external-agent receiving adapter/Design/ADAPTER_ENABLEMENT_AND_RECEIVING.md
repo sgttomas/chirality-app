@@ -357,14 +357,14 @@ under SCA-V4-001; DEP-03-03-013).
 | Supplier fact | Bearing on this contract |
 |---|---|
 | Stable client methods `config/mcpServer/reload`, `mcpServerStatus/list`, `mcpServer/resource/read`, `mcpServer/tool/call`, `mcpServer/oauth/login`; stable notification `mcpServer/startupStatus/updated` (startup state ∈ `starting`, `ready`, `failed`, `cancelled`; failure reason `reauthenticationRequired`) | N-MCP endpoint observation and reload after a person-directed configuration change |
-| Per-server status: `name`, `tools` (map of tool descriptors: `name`, `description`, `inputSchema`, `outputSchema`, `annotations`, `_meta`), `toolsError` ("Tool discovery failed and no catalog was returned"), `authStatus`, `runtimeStatus` ∈ `notStarted`, `starting`, `connected`, `authenticationRequired`, `failed`, `cancelled`, `disabled`, `httpOrigin` (null for non-HTTP transports), `serverInfo` | `connected` + tools → reachable; `failed`/`authenticationRequired`/`notStarted`/`cancelled` → *endpoint-unavailable* with that reason; `toolsError` → every entry *not established*; `httpOrigin` is the locality evidence for an HTTP server (E-7). The supplier's **`disabled` is an App-side configuration fact, never the host's A13 state** |
-| Typed `Config` has **no** MCP-server element; `Config` admits additional properties; `config/value/write` and `config/batchWrite` write a key path into the user's configuration file by default; `thread/start` carries a free-form `config` object | The App-side configuration locus is open (OC-3). Whether a per-thread `config` override accepts an MCP-server entry is `not-observed`. Writing the user's shared configuration is a change to the person's own Codex configuration (E-4) |
-| Thread item `mcpToolCall` {`server`, `tool`, `arguments`, `status` ∈ `inProgress`/`completed`/`failed`, `result` {`content`, `structuredContent`, `_meta`}, `error` {`message`}, `readOnlyHint`, `durationMs`}; notification `item/mcpToolCall/progress` | What the App can observe of an N-MCP dispatch and its result (§4.4, §5) |
-| **N-CLI (added at v0.6; R12-4).** Thread item `commandExecution` {`id`, `command` ("the command to be executed"), `cwd`, `status` ∈ `inProgress`/`completed`/`failed`/`declined`, `exitCode` (nullable), `aggregatedOutput` ("the command's output, aggregated from stdout and stderr", nullable), `durationMs`, `processId`, `source` ∈ `agent`/`userShell`/`unifiedExecStartup`/`unifiedExecInteraction` (default `agent`), `commandActions` ("a best-effort parsing of the command"), `pluginId`, `scriptPath`}; required: `command`, `commandActions`, `cwd`, `id`, `status`, `type` | What the App can observe of an N-CLI dispatch and its result (§4.6 OM-1…OM-10). The host's result is inside `aggregatedOutput`, which **mixes standard output and standard error**; whether the two interleave, and in what order, is `not-observed` (OBS-1 pending). `declined` is the A14 settlement (M-6). `source` distinguishes a model-run command (`agent`) from the person's own shell (`userShell`), which is never a dispatch by the agent |
-| Notification `item/commandExecution/outputDelta` {`delta`, `itemId`, `threadId`, `turnId`}; notifications `item/started` and `item/completed` | Output arrives incrementally and the item completes separately; the App builds the record from the completed item (§4.6 OM-3). Whether `aggregatedOutput` on the completed item equals the concatenated deltas is `not-observed` (OBS-1 pending) |
+| Per-server status: `name`, `tools` (map of tool descriptors: `name`, `description`, `inputSchema`, `outputSchema`, `annotations`, `_meta`), `toolsError` ("Tool discovery failed and no catalog was returned"), `authStatus`, `runtimeStatus` ∈ `notStarted`, `starting`, `connected`, `authenticationRequired`, `failed`, `cancelled`, `disabled`, `httpOrigin` (null for non-HTTP transports), `serverInfo` | `connected` + tools → reachable; `failed`/`authenticationRequired`/`notStarted`/`cancelled` → *endpoint-unavailable* with that reason; `starting` → *endpoint-unavailable* "starting" until a later status; `runtimeStatus` `null` ("unavailable or the configuration changed") → endpoint *not observed*, never reachable; the status is read **per thread**, since a per-thread server appears only in the thread-scoped list (V18-3 m-18). Observed (OBS-1 A-1): before the thread `runtimeStatus` null, `httpOrigin` null, `authStatus` `unsupported`; on the thread `starting` → `ready` in 18 ms; `toolsError` → every entry *not established*; `httpOrigin` is the locality evidence for an HTTP server (E-7). The supplier's **`disabled` is an App-side configuration fact, never the host's A13 state** |
+| Typed `Config` has **no** MCP-server element; `Config` admits additional properties; `config/value/write` and `config/batchWrite` write a key path into the user's configuration file by default; `thread/start` carries a free-form `config` object | The App-side configuration locus is open (OC-3). **Observed (OBS-1 Part D, R13-6; 0.158.0, no model call):** a dotted `config` key `mcp_servers.‹name›` on `thread/start` adds the server to that thread only; the thread-scoped status list showed it `connected`, the global list showed neither the server nor a runtime status (OC-3 (b)). Writing the user's shared configuration is a change to the person's own Codex configuration (E-4) |
+| Thread item `mcpToolCall` {`server`, `tool`, `arguments`, `status` ∈ `inProgress`/`completed`/`failed`, `result` {`content`, `structuredContent`, `_meta`}, `error` {`message`}, `readOnlyHint`, `durationMs`}; notification `item/mcpToolCall/progress` | What the App can observe of an N-MCP dispatch and its result (§4.4, §5). **Observed limit of one route (OBS-1, R13-6):** at 0.158.0 with a Responses provider on LM Studio 0.4.16 and one local model, Codex offered the MCP test tool as a `namespace` tool, which LM Studio ignored, so no `mcpToolCall` could be made. Design consequence: at this pin an App user on that local route cannot use a host's MCP tools; N-CLI is unaffected (below). A limit of that route, not of MCP generally; not qualification |
+| **N-CLI (added at v0.6; R12-4).** Thread item `commandExecution` {`id`, `command` ("the command to be executed"), `cwd`, `status` ∈ `inProgress`/`completed`/`failed`/`declined`, `exitCode` (nullable), `aggregatedOutput` ("the command's output, aggregated from stdout and stderr", nullable), `durationMs`, `processId`, `source` ∈ `agent`/`userShell`/`unifiedExecStartup`/`unifiedExecInteraction` (default `agent`), `commandActions` ("a best-effort parsing of the command"), `pluginId`, `scriptPath`}; required: `command`, `commandActions`, `cwd`, `id`, `status`, `type` | What the App can observe of an N-CLI dispatch and its result (§4.6 OM-1…OM-10). The host's result is inside `aggregatedOutput`, which **mixes standard output and standard error**; whether the two interleave, and in what order, is `not-observed` (OBS-1b's command wrote no standard error). `declined` is the A14 settlement (M-6). `source` distinguishes a model-run command (`agent`) from the person's own shell (`userShell`), which is never a dispatch by the agent. **Observed (OBS-1b, R13-6; R14-4; one pair, one model, not qualification):** the model-issued command was shell-wrapped (`command` = `/bin/zsh -lc '‹cmd›'`; `commandActions` [{unknown, the bare command}]); `source` was `agent` at `item/started` and **`unifiedExecStartup` at `item/completed`** within the one item; status `inProgress` → `completed`, exit code 0; `aggregatedOutput` was the CLI's JSON line (with a line feed); no `outputDelta` arrived. OM-1 therefore reads the source at `item/started` and removes the one wrapper |
+| Notification `item/commandExecution/outputDelta` {`delta`, `itemId`, `threadId`, `turnId`}; notifications `item/started` and `item/completed` | Output arrives incrementally and the item completes separately; the App builds the record from the completed item (§4.6 OM-3). OBS-1b: no deltas arrived and `aggregatedOutput` held the whole JSON line; whether it equals the concatenated deltas when deltas do arrive is `not-observed` |
 | `ToolExposureSurface` ∈ `direct`, `deferred`, `code_mode` | Codex's model-facing presentation of a tool. **Not** the catalog's exposure element 9 (§4.2) |
 | Server request `mcpServer/elicitation/request` (modes include `form` and `url`); HOSTING R9 classes it person-input, answered only by the person | An elicitation or user-input answer is **not act evidence** and never host act capture (R4-12; EXEC CAP-6); it is conversation input to the agent (§7.6, L-ADAPTER-4) |
-| Server requests `item/commandExecution/requestApproval` etc. (A14); `sandbox_workspace_write.network_access` default false; `NetworkUnixSocketPermission` ∈ `allow`, `deny` | N-CLI dispatch is subject to the user's own tool permission and sandbox (D3). Whether a local-socket CLI can reach the controller from the user's sandbox is `not-observed`; the App never changes those settings (S-X8) |
+| Server requests `item/commandExecution/requestApproval` etc. (A14); `sandbox_workspace_write.network_access` default false; `NetworkUnixSocketPermission` ∈ `allow`, `deny` | N-CLI dispatch is subject to the user's own tool permission and sandbox (D3); the App never changes those settings (S-X8). **Observed (OBS-1b):** under approval policy `untrusted` one approval request was raised after `item/started` (its `startedAtMs` 9 ms earlier than the item's), offering `accept`, `acceptWithExecpolicyAmendment` and `cancel` (no `decline`); after it was accepted, the command's **local-socket connect was denied by the read-only sandbox** (the kernel logged `deny network-outbound`; the listener saw no connection). A local-socket host CLI (SWBPIPE, SQ-15) is therefore not shown reachable from that sandbox (OC-5) |
 | `thread/start.dynamicTools` (DynamicToolSpec: function {name, description, inputSchema, deferLoading} or namespace) **experimental-only**; server request `item/tool/call` answered with {`contentItems`, `success`}; thread item `dynamicToolCall` | I-DT is possible only with the experimental opt-in, which changes the familiar set (HOSTING S-F-05). HOSTING classifies `item/tool/call` *known-app-unsupported* unless the App registers dynamic tools (none in this increment) |
 | Legacy decision form `approved_mcp_policy_amendment` exists | Whether an MCP tool call raises an A14 request at 0.158.0, and by which request kind, is `not-observed` |
 
@@ -472,16 +472,14 @@ entry on its own reading of its class (C §2 inv. 5; R2-4).
   *not supplied* (an evidence limit). Such a read satisfies RD-2 and can be
   cited (R8-12 item 6; F-24). The App never computes them. On main
   SWBPIPE has no workspace identity or generation; DRAFT #885's `inspect`
-  returns a basis identity (SQ-07 (a)). *Note (R10-5; R12-9):* C-v0.8 §5.2
-  rule 1 holds that a read lacking any basis element is *basis incomplete*
-  and cannot be cited. R8-12 item 6 decides only the subject-identity part.
-  Whether a read lacking workspace identity or generation can be cited is
-  returned by node B3 as a ruling proposal with both passages and the
-  options (`WAVE_B/B3.md`, "R12-9"); the integrator rules in R13. Both texts
-  stand until then. Meanwhile a read whose descriptor marks those elements
-  *host declares none* (C-v0.8 §3.5) is recorded with the proposed evidence
-  limit "basis lineage not supplied" (§4.6 OM-9), which records the fact
-  whichever option is ruled.
+  returns a basis identity (SQ-07 (a)). **A read without workspace identity
+  or generation (R13-1, ruled; R10-5; R12-9):** it is citable only when the
+  host declares that it supplies none (in its C basis profile, C-v0.8 §3.5,
+  or a documented host statement); the read then carries the evidence limit
+  "basis lineage not supplied" (RS R11; §4.6 OM-9), and comparisons across
+  lineages read *unknown (incomparable)*. A read that simply omits an
+  element the host does supply stays *basis incomplete* (C §5.2 rule 1).
+  R8-12 item 6's whole-model identity reading sits inside this rule.
 - **RD-3** The App delivers the native result unchanged (HOSTING H6). The App
   display of standing takes standing from the **host result**, never from the
   model's paraphrase of it; a model summary that strengthens standing is shown
@@ -556,37 +554,47 @@ basis differs from a cited one, both are stated (C §5.4).
 What the App observes is a native item. What it records is an **external
 dispatch record** (§5.1; `external_dispatch_record.schema.json`), which
 DEL-04-03 receives as an R7 entry with R9, R11 and R13 references (§11). The
-record is built from the completed item; an item still in progress when the
-App relaunches is PI-6.
+dispatch is **recognized at `item/started`** (the source read there, OM-1),
+and `item/completed` completes the same record with status, result and
+outcome (R14-4); an item still in progress when the App relaunches is PI-6.
+RS-v0.8 §5 states once how this record's tokens become RS values
+("Supplier tokens"; R14-3).
 
-| Record element | N-MCP: from the `mcpToolCall` item | N-CLI: from the `commandExecution` item | Where RS-v0.7 receives it |
+| Record element | N-MCP: from the `mcpToolCall` item | N-CLI: from the `commandExecution` item | Where RS-v0.8 receives it |
 |---|---|---|---|
-| Path | Item type `mcpToolCall` | Item type `commandExecution`, `source` = `agent`, command matching the configured command form (OM-1) | R7 entry, channel *external agent* |
+| Path | Item type `mcpToolCall` | Item type `commandExecution`, `source` = `agent` at `item/started`, command (after the one shell wrapper) matching the configured command form (OM-1); the source at start and at completion is kept (`native_source`) | R7 entry, channel *external channel* (this record's `external_agent`) |
 | Correlation | Thread, turn, item `id` | Thread, turn, item `id` (and `processId` where present) | R7 entry; R4 conversation |
 | Native reference | `server`, `tool` | The matched command form, not the whole command text | R7 entry |
 | Operation identity and version; edition | Through the host-supplied mapping from the tool (§4.1; C-v0.8 §2.1 CI-5) | Through the host-supplied mapping from the command form | R7 operation identity and version |
-| Request kind | From the mapped entry, or the route interface (P-v0.8 §3.5) (OM-2) | Same | R7 (read, examination, host check, submission, observation, change call) |
+| Request kind | From the mapped entry, or the route interface (P-v0.8 §3.5) (OM-2) | Same | R7 request kind (discovery, read, examination, host check, submission, observation, change call, unrecognized; RS-v0.8 §5, R14-3) |
 | Request content | `arguments` | The arguments in the command; the App never re-runs or edits it | R7 relied-on basis, proposal identity, requested mode |
 | Native status | `status` | `status` | Drives OM-5…OM-8 |
 | Transport facts | `error.message`; `durationMs` | `exitCode`; `durationMs` | R7, as transport, never as outcome |
 | Host result | `result.structuredContent`, else one JSON document in the text content (OM-4) | `aggregatedOutput` when it is exactly one host document (OM-4) | R7 outcome, receipts, resulting objects, observed and evaluated basis, standing received |
-| Outcome and reporter | OM-5…OM-8 | OM-5…OM-8 | R7 outcome in C §4.1 / P §9 terms; observer for *outcome unknown* |
+| Outcome and reporter | OM-5…OM-8 | OM-5…OM-8 | R7 outcome in C §4.1 / P §9 terms, every value of this record's outcome list adopted by RS-v0.8 §5 (R14-3); observer for *outcome unknown* |
 | Origin as observed | Author identity *unverified* (§5.4) | Same | R7 request-side origin; R11 "unverified caller identity" |
-| Evidence limits | OM-9 | OM-9 | R11 |
+| Evidence limits | OM-9 | OM-9 | R11, one `evidence_limit` entry per label naming the operation entry (every label of OM-9 is an RS-v0.8 R11 label; R13-1, R13-2, R14-3) |
 | A14 settlement | Where the supplier raises a request for an MCP call (`not-observed`, §3.5) | The `declined` status and the approval request (§3.5) | R13 only (M-6) |
-| Acts in the host result | Item decisions with actor and capture reference in a recorded state (P-v0.8 §3.5 PM-4) | Same | R9 faithful record (§7.6), only with a capture reference |
+| Acts in the host result | Item decisions with actor, act reference, capture time and capture reference in a recorded state (P-v0.8 §3.5 PM-4; §9 act reference) | Same | R9 faithful record (§7.6), only with a capture reference; its RS record identity goes to DEL-02-03 in CO-2 |
 
 Rules:
 
-- **OM-1 Recognising a dispatch on N-CLI.** A `commandExecution` item is a
-  dispatch to the host only when its `source` is `agent` and its command
-  matches the command form the host's mapping declares (§4.1). A command
-  that wraps the host's command in a compound form is recognised with the
-  evidence limit "dispatch recognized from compound command"; a command that
-  does not match is an ordinary command execution and is not recorded as a
-  dispatch. A `userShell` item is the person's own command and never a
-  dispatch by the agent. What Codex reports for a compound command is OBS-1
-  pending.
+- **OM-1 Recognising a dispatch on N-CLI (R14-4; OBS-1b).** A
+  `commandExecution` item is a dispatch to the host only when its `source`
+  **at `item/started`** is `agent` and its command matches the command form
+  the host's mapping declares (§4.1). The start-time source is the one that
+  marks a model-issued call: at 0.158.0 the source changed to
+  `unifiedExecStartup` at completion within the same item (OBS-1b), so the
+  completed item's source is recorded beside it and never decides. Codex
+  wraps the model's command once in the login shell (`/bin/zsh -lc
+  '‹cmd›'`); that one wrapper is removed before the match and carries no
+  limit. A command that, inside the wrapper, combines the host's command
+  with other commands is recognised with the evidence limit "dispatch
+  recognized from compound command"; a command that does not match is an
+  ordinary command execution and is not recorded as a dispatch. An item
+  whose start-time source is `userShell` is the person's own command and
+  never a dispatch by the agent. EXEC-v0.6 §2.5 AW-2 reads the same item
+  the same way.
 - **OM-2 Request kind.** From the mapped entry: effects *none* gives a read,
   an examination (the result declares findings) or a host check (it
   declares host checks only, C-v0.8 §3.4); effects *change* called directly
@@ -621,22 +629,26 @@ Rules:
   share one state is reported as that state (for example *queued*);
   otherwise *recorded state* with its derived summary (P-v0.8 §4.6 DS-1);
   *refused — identity conflict*; *not known to host*.
-- **OM-9 Evidence limits** (RS R11 labels where they exist): every
-  submission, "unverified caller identity"; RD-5, "cited basis not
-  observed"; OM-6, "lost acknowledgement"; a resubmission after *outcome
-  unknown* with no observation between, "resubmission without prior
-  observation" (R10-6; node B4 decides its RS entry). **New, PROPOSED, for
-  RS R11:** "host result not isolated" (OM-4); "dispatch recognized from
-  compound command" (OM-1); "basis lineage not supplied" (a read whose
-  descriptor marks workspace identity or generation *host declares none*;
-  R12-9); and P-v0.8's "de-duplication scope exceeded" (PM-5).
+- **OM-9 Evidence limits** (all RS-v0.8 R11 labels; R13-1, R13-2,
+  R14-3): every submission, "unverified caller identity"; RD-5, "cited basis
+  not observed"; OM-6, "lost acknowledgement"; a resubmission after
+  *outcome unknown* with no observation between, "resubmission without
+  prior observation", on the resubmission's operation entry (R13-2); App
+  relaunch with an item in flight, "App-restart interruption" (PI-6;
+  R13-2); "host result not isolated" (OM-4); "dispatch recognized from
+  compound command" (OM-1); "basis lineage not supplied", for a read whose
+  descriptor marks workspace identity or generation *host declares none*
+  (R13-1; RD-2); and P-v0.8's "de-duplication scope exceeded" (PM-5).
 - **OM-10 The paths agree.** For the same request both paths yield the same
   host document and the same record, except for path, native reference,
   correlation and transport facts. On SH-1 the discovery and T3 documents
   were identical on both paths (C-v0.8 §10.8).
 
 `prototype/observe_map.py` applies OM-1…OM-10 to an SH-1 run and validates
-every record (VC-X-09).
+every record (VC-X-09); it also writes each record as RS-v0.8 entries (an
+operation entry and one evidence-limit entry per label) and validates them
+against `RS_RECORD.schema.json` with DEL-04-03's validator, and checks OM-1 on
+an item shaped as OBS-1b observed it (R14-3, R14-4).
 
 ---
 
@@ -673,7 +685,7 @@ ACT §4.4, WD §4.2.2 and R2-12) says how the element reached the host:
 | **Governing checkpoint constraint** — governance phase (retained; R8-1) | {workflow run, checkpoint name, required act A5, operation} when a declared A5 checkpoint, **governed**, governs this operation's result in this run. In Phase 1 the App carries none, and the agent never adds a field the host schema lacks (R8-10) | R2-12; P §3.3; ACT §4.4; R4-14 | **Host-held only** (R5-2). Model-supplied — including a constraint the host merely received from the model's call — does not satisfy R2-12 |
 | Relied-on basis | Basis descriptor(s) with method designation; per-target subject content identities | C §5.4; P §3.2 | Any, with the RD-5 check |
 | Catalog edition and entry version | As offered or as mapped (§4.1) | C §2; LOOP O-3 | Any |
-| Proposal identity | Minted **before** the first submission; unchanged on every retry. Minted by the proposer (here the model, through its call) or issued by the host at a pre-submission step; host handles are associated, never substituted (P-v0.8 §3.5 PM-1, PM-2) | P §3.1, §3.5; R-7; R2-13 | Model-supplied acceptable for *propose*; App-assured or host-issued for *apply directly* — host-issued only in this increment (§5.6) |
+| Proposal identity | Minted **before** the first submission; unchanged on every retry. Minted by the proposer (here the model, through its call) or issued by the host at a pre-submission step; host handles are associated, never substituted (P-v0.8 §3.5 PM-1, PM-2). The record names who minted it (`proposal_minted_by`: proposer · host · not observed for an observation by identity; V18-3 m-14) | P §3.1, §3.5; R-7; R2-13 | Model-supplied acceptable for *propose*; App-assured or host-issued for *apply directly* — host-issued only in this increment (§5.6) |
 | Reason | The proposer's reason | P §3.3 | Any |
 | Correlation identity | The native item identity (the `mcpToolCall` or `commandExecution` item, §4.6) and the Codex thread/turn identities | HOSTING H6 | Observed by the App in every family |
 
@@ -992,8 +1004,11 @@ facility), the App may record it **faithfully**: decision actor Engineer A;
 recorder the App; recording mode *faithful recording*; bound content identity
 (the change-item content identity for A5/A10, the subject content identity
 for A4/A6/A7) with method designation; and the host's **capture-evidence
-reference**. Without that reference the record is a record shape only and
-satisfies no checkpoint (R-5; R2-20; SQ-01). SWBPIPE exposes no
+reference**, in a record whose recorder role is RS's *App writer* (RS-v0.8
+§13.2; V18-1 m-9). Without that reference **no human-act record is
+written** (RS §6.1, HA-1); the observation carries "not written", the record
+carries the RS R11 limit "act offered without a capture-evidence reference"
+(R14-3), and nothing satisfies a checkpoint (R-5; R2-20; SQ-01). SWBPIPE exposes no
 capture-evidence reference: its Apply receipt names no person and no time,
 and does not survive restart (SQ-01). An MCP elicitation, Codex
 user-input request or CLI prompt answered in the App is **not act evidence**
@@ -1017,13 +1032,17 @@ held" (EXEC PH-6).
 passes them to DEL-02-03 for recording (consumer row DEP-02-03-026; arc
 N-24). Under R9-1 (SETTLED by DECISION-K1 K1-1) the agent carrying out the workflow requests the act, and
 the product records the checkpoint's identity, the request where it can be
-identified, and the act only when the person performs it. How an App run
-observes an arrival and a request on X, and what the record then holds, is
-defined in EXEC in Wave B; no mechanism is added here. The adapter
+identified, and the act only when the person performs it. How an App run observes an arrival and a request on X, and what the record then holds, is
+EXEC-v0.6's (§2.4 recorder, §2.5 AW-1…AW-12, RC-5); the record is RS format
+0.1, whose checkpoint kinds carry EXEC's CE bodies (R14-1). The adapter
+passes observations CO-1…CO-11 and writes no checkpoint entry. The adapter
 supplies no hold-support input, and no
 value is assigned. A run action observed after an arrival and before the
 act that answers it may carry the optional annotation "continued past
-‹checkpoint› before ‹act›" (EXEC PH-7): information, never a defect. The
+‹checkpoint› before ‹act›" (EXEC PH-7): information, never a defect. EXEC's
+recorder is its one writer (CE-12): for a dispatch over X the App writer
+carries EXEC's annotation on the operation entry; the adapter supplies none
+(V18-3 m-7). The
 person's own operations never carry it (read from R5-5). A lapse is still recorded, and
 nothing re-holds (R8-11 item 1). The display never says the run is held.
 
@@ -1053,30 +1072,40 @@ checkpoints (`UNRESOLVED{D6}`; S-X12) the adapter:
 
 **The observations passed to DEL-02-03 (PROPOSED; S1-B ADAPTER 4; arc N-24;
 DEP-02-03-026).** Through ADAPTER-v0.5 this was prose. Each observation
-below is derived from external dispatch records (§4.6) and names the EXEC
-§4.4 event row it feeds; `checkpoint_observation.schema.json` gives the
-PROPOSED form. The adapter evaluates no reached-when, disposition or hold:
-EXEC does.
+below is derived from external dispatch records (§4.6) of the **agent's own
+calls** through the host's tools or command (R14-8; EXEC F-32): the adapter
+issues no host read of its own. An App-origin read, where one exists, is
+named as such; in this increment the only one is the required-tool check's
+catalog read (EXEC §3), which shows no checkpoint outcome. Each observation
+names the EXEC-v0.6 §2.4.2 event (CE-n) it is input to;
+`checkpoint_observation.schema.json` gives the PROPOSED form. The adapter
+evaluates no reached-when, disposition or hold: EXEC does.
 
-| Id | Observation | Read from | Elements | EXEC-v0.5 §4.4 row it feeds |
+| Id | Observation | Read from | Elements | EXEC-v0.6 event it is input to |
 |---|---|---|---|---|
-| CO-1 | Proposal queued | A recorded state in which items are *queued* (P-v0.8 §4.6 PT-3) | Proposal identity; the items newly queued; the host's evidence time; the source record | "Arrival (reached-when observed)", as the input for reached-when kind (c); EXEC decides whether a declared checkpoint is reached |
-| CO-2 | Act observed: A5 on an item; A4, A6 or A7 on host content | An item decision in a recorded state; human-act evidence in a read (C §6.2) | Act kind; decision actor; recorder *App*; recording mode *faithful recording*; bound content identity with method; capture evidence reference, or *not supplied*; capture time where given | "Human act observed (with capture evidence)". Without a capture reference it is a record shape only and satisfies nothing (§7.6) |
-| CO-3 | A10 observed | As CO-2 | As CO-2 | "A10 per item; item-left event; all-items-decided" |
-| CO-4 | Item left | A recorded state showing an item refused, withdrawn or cleared from the queue (P §4.3; §4.6 PT-4…PT-6, PT-11…PT-13) | Proposal; item; cause | Same row |
-| CO-5 | All items decided | The derived state's *all items decided* turning true (P §4.6 DS-4) | Proposal identity | Same row |
-| CO-6 | Applied outcome | An applied association | Proposal; item; receipt; resulting revision; resulting objects, or *not supplied* | "Applied outcome with resulting objects" |
-| CO-7 | Act declined | A host-captured act-declined event, where the host exposes one (R2-5) | As CO-2 | "Act-declined event" |
-| CO-8 | Subject identity changed | Two reads of one subject whose identities, of the same method, differ (C §5.2 rule 6) | Subject; earlier and later identity; comparable or not | "Act-lapsed event", as input; RS L-6 judges the lapse |
-| CO-9 | Observation lost; observation recovered | OM-6 *outcome unknown* on a submission or observation; a later recorded state | What was lost; last observed state | "Observation lost / recovered" |
+| CO-1 | Proposal queued | A recorded state in which items are *queued* (P-v0.8 §4.6 PT-3) | Proposal identity; the items newly queued, each with its change-item content identity and method (P PM-6); the host's evidence time with its source (host outcome time); the source record (V18-3 m-1) | CE-3 (arrival), as the input for reached-when kind (c); EXEC decides whether a declared checkpoint is reached |
+| CO-2 | Act observed: A5 on an item; A4, A6 or A7 on host content; A12 where a host read returns the host's own A12 record | An item decision in a recorded state; human-act evidence in a read (C §6.2) | Act kind; decision actor; recorder *App* (RS *App writer*); recording mode *faithful recording*; bound content identity with method; capture evidence reference, or *not supplied*; the host's **act reference** (P §9 act reference), or *not supplied by host*; the **capture time** as the host records it, or *not supplied by host* (never a time of the App's own); the RS identity of the App's **faithful record**, or *not written* (R14-4; V18-3 M-1; V18-4 m-6) | CE-5/CE-6 for A4, A6, A7, A12; CE-7 for an item decision. Without a capture reference no record is written and nothing is satisfied (§7.6) |
+| CO-3 | A10 observed | As CO-2 | As CO-2 | CE-7 |
+| CO-4 | Item left | A recorded state showing an item refused, withdrawn or cleared from the queue (P §4.3 item-left event; §4.6 PT-4…PT-6, PT-11…PT-13) | Proposal; item; cause; the event's time where the host gives one | CE-7 (EXEC keeps the cause; R14-8 N-21) |
+| CO-5 | All items decided | The derived state's *all items decided* turning true (P §4.6 DS-4) | Proposal identity | CE-7 |
+| CO-6 | Applied outcome | An applied association | Proposal; item; receipt; resulting revision; resulting objects, or *not supplied* | CE-3 (input for kind (c) on *applied*; binding for "objects changed by a named outcome") |
+| CO-7 | Act declined | A host-captured act-declined event, where the host exposes one (R2-5) | As CO-2 | CE-8 |
+| CO-8 | Subject identity changed | Two reads of one subject whose identities, of the same method, differ (C §5.2 rule 6), or a read showing the subject no longer exists | Subject; method; earlier and later identity, or *subject absent*; comparable or not (V18-3 m-2) | CE-10, as input; RS L-6 judges the lapse |
+| CO-9 | Observation lost; observation recovered | OM-6 *outcome unknown* on a submission or observation; a later recorded state | What was lost; last observed state | CE-13 / CE-14. Whether a loss is **deciding** (the named event of a current arrival) is EXEC's to decide (EXEC AE-6; V18-3 m-3) |
+| CO-10 | Decided item not applied (R14-4; V18-4 M-2) | A recorded state in which an item with A5 is then refused stale or fails at application, or its application outcome is unknown (P-v0.8 §4.6 PT-15, PT-16, PT-18) | Proposal; item; the A5's act reference; *refused — stale* with the relied-on and current bases, *application error* with its effect, or *outcome unknown* with its observer | CE-7 (EXEC MX-7, MX-8; WD §4.3.7). PT-15 is not an item-left case, so no CO-4 |
+| CO-11 | Request recorded by the host (R14-4; V18-3 M-2) | A host read over X that returns a request for a person's act the host itself records | The host's request reference; act kind, subject and purpose as the host records them, each otherwise *not named by the request*; time | CE-4 (EXEC RC-5). A request made in the App conversation is EXEC's observation, not the adapter's |
 
-The adapter supplies nothing for the rows "Act superseded (A12)" and "A12
-control relation" (the control surface), "Run-resumed" and "Run-ended" (the
-executor) or "Declaration invalid / not established" (EXEC reading WD). The
-agent's request for the act (R9-1; K1-1) is a message in the App
-conversation, observed by EXEC's mechanism, not by the adapter. On SH-1
-(C-v0.8 §10.8) CO-1…CO-6 and CO-9 were derived and validated (11
-observations); CO-7 and CO-8 were not exercised.
+The adapter supplies nothing for CE-9 (the A12 control relation: in an App
+run on X it comes from the control surface, and no observation on X is
+defined in this increment; V18-3 m-5), CE-11 and CE-17 (the executor), CE-1
+and CE-2 (EXEC reading WD) or CE-12 (EXEC's recorder). The agent's request
+for the act (R9-1; K1-1), where the App can identify it, is a structured
+item EXEC observes (EXEC-v0.6 RC-5; R14-2): a supplier person-input request
+or an MCP elicitation, never message text; only a request the host itself
+records reaches EXEC through the adapter (CO-11). On SH-1 (C-v0.8 §10.8)
+CO-1…CO-6 and CO-9 were derived and validated (11 observations); CO-7, CO-8,
+CO-10 and CO-11 were not exercised on SH-1 (CO-10 and CO-11 were validated as
+shapes by the prototype's self-checks).
 
 ---
 
@@ -1149,7 +1178,7 @@ what happens next:
 | Step | What can fail | Reporter | Record left | Next |
 |---|---|---|---|---|
 | 1 A host read or observation carries a performed act (item decision; human-act evidence) | — | Host | The host document (R7) | Step 2 |
-| 2 The App builds the faithful record: actor, recorder App, mode, bound content identity, capture reference (CO-2) | No capture-evidence reference (SWBPIPE, SQ-01) | App | A record shape only, with the limit | Satisfies no checkpoint |
+| 2 The App builds the faithful record: actor, recorder App writer, mode, bound content identity, capture reference (CO-2) | No capture-evidence reference (SWBPIPE, SQ-01) | App | No human-act record; the R11 limit "act offered without a capture-evidence reference" | Satisfies no checkpoint |
 | 3 R9 references the record; the observation goes to DEL-02-03 (CO-2, CO-3) | — | App | R9 entry; checkpoint observation | EXEC evaluates |
 
 **S-10 Current-phase checkpoint observation on X (§7.7, Phase 1).**
@@ -1159,7 +1188,7 @@ what happens next:
 | 1 A submission is queued (CO-1) | The acknowledgement is lost | App | CO-9 *observation lost* | Observe by identity |
 | 2 EXEC decides whether a declared checkpoint is reached (kind (c)) and the agent asks the person (K1-1) | — | EXEC; the agent | Arrival and request, per EXEC | — |
 | 3 Later host reads show the person's decisions and item-left events (CO-2…CO-5) | No capture reference | Host; App | Observations with *not supplied* | EXEC labels the record (*waiting* means "reached; act not yet recorded") |
-| 4 The applied outcome (CO-6) | Application error, or stale after acceptance (P-v0.8 §4.6 PT-16, PT-15) | Host | The item's state in the source record, which EXEC reads for its annotation (EXEC §4.11); PT-15 is not an item-left case, so no CO-4. No CO of its own is defined for these two (returned as a gap) | Nothing is held; the optional "continued past" annotation per EXEC PH-7 |
+| 4 The applied outcome (CO-6) | Application error, or stale after acceptance (P-v0.8 §4.6 PT-16, PT-15) | Host | CO-10, which EXEC records as the item's *after decision* (EXEC §4.11 MX-7, MX-8; R14-4); PT-15 is not an item-left case, so no CO-4 | Nothing is held; the optional "continued past" annotation per EXEC PH-7 |
 
 ---
 
@@ -1204,9 +1233,9 @@ records (SQ-09).
 |---|---|---|---|---|---|---|
 | OC-1 | Transport family the host offers | (a) MCP server; (b) CLI over the live controller; (c) both | MCP: stable client methods and `mcpToolCall` items (`observed-in-generated-types`). CLI: Codex command execution with A14 approval kinds (`observed-in-generated-types`). PR #885: a CLI instance (evidence only). SQ-12 (answered): SWBPIPE offers the CLI (DRAFT #885), not MCP; an MCP adapter only under the owner's modern-client condition, a SWBPIPE owner decision | §3.5 observation; §4.5 mapping; §5.2 carriage; VER-001/002 | Host owner selects with App owner agreement | SQ-12 (answered) |
 | OC-2 | App realization family | N-MCP; N-CLI; I-DT; I-PX | **Decided for this increment by record (R4-2; R5-2; S-X12): the realization is native; the native form (N-MCP or N-CLI) follows the host's seam (OC-1) and is not selected.** Interposed families are not adopted in this increment (R4-2, D6); they stay registered options (SQ-02 answered: route (iv); D6 closed for Phase 1, R8-2). I-DT needs the experimental opt-in (`dynamicTools` experimental-only; S-F-05). I-PX is an App-side server — tension with SoW OUT-001 "without prescribing … a new server" (F-6) | Carriage assurance (§5.2), GC-3/GC-5 holds, PI-4 | App owner, after XQ-3/XQ-5 answers | SQ-02; SQ-08 |
-| OC-3 | App-side configuration locus | (a) user's Codex configuration file (via `config/value/write` / `config/batchWrite`, or by the person by hand); (b) per-thread `config` on `thread/start`; (c) a Codex plugin; (d) none (N-CLI with the CLI on the person's path) | Typed `Config` has no MCP element; per-thread acceptance `not-observed`; plugin association appears in server status (`pluginId`). Writing the shared file changes the person's own Codex configuration (S-X8) | E-3, E-4, U-X1; reversibility; what "disable" removes | App owner with DEL-01-01 (and DEL-01-05 in the later undertaking) | — |
+| OC-3 | App-side configuration locus | (a) user's Codex configuration file (via `config/value/write` / `config/batchWrite`, or by the person by hand); (b) per-thread `config` on `thread/start`; (c) a Codex plugin; (d) none (N-CLI with the CLI on the person's path) | Typed `Config` has no MCP element; per-thread acceptance **observed** for (b) (OBS-1 Part D: a dotted `mcp_servers.‹name›` key on `thread/start` adds the server to that thread only; R13-6); plugin association appears in server status (`pluginId`). Writing the shared file changes the person's own Codex configuration (S-X8) | E-3, E-4, U-X1; reversibility; what "disable" removes | App owner with DEL-01-01 (and DEL-01-05 in the later undertaking) | — |
 | OC-4 | Enablement loci | (a) host-side only; (b) App-side only; (c) both, host authoritative (INTEGRATION R4-13: App-side configuration never A13 evidence; host refusal is the authoritative off) | App cannot guarantee "off" App-side (S-X8). SQ-13 (answered): a launch environment variable plus a build feature, not a captured act; no *channel not enabled* code; state not readable. SQ-28: no facility | §3.2 states; AC-002 reading (R4-13); A13 capture by the host enablement facility (ACT-POLICY-v0.7 §2.6) | DEL-04-01 with owner and host owner | SQ-28 (facility and capture reference; gates the whole channel); SQ-13 (behavior) |
-| OC-5 | Local transport and endpoint locality | stdio subprocess launched by Codex; loopback HTTP (`httpOrigin`); local socket (PR #885) | `httpOrigin` null for non-HTTP (`observed-in-generated-types`); sandbox effect on a local-socket CLI `not-observed`. SQ-15 (answered): a Unix domain socket and descriptor in a private directory under the system tmp directory (0700/0600); no network listener; sandbox effect not addressed | E-7 locality evidence; VER-002 | Host owner with App owner | SQ-15 |
+| OC-5 | Local transport and endpoint locality | stdio subprocess launched by Codex; loopback HTTP (`httpOrigin`); local socket (PR #885) | `httpOrigin` null for non-HTTP (`observed-in-generated-types`); sandbox effect on a local-socket CLI **observed once** (OBS-1b): under the read-only sandbox an approved command's local-socket connect was denied. SQ-15 (answered): a Unix domain socket and descriptor in a private directory under the system tmp directory (0700/0600); no network listener; sandbox effect not addressed | E-7 locality evidence; VER-002 | Host owner with App owner | SQ-15 |
 | OC-6 | Caller authentication and identity | none (PR #885: identity not verified); local-socket permissions; a token issued at enablement; supplier OAuth (`mcpServer/oauth/login` exists; its fit for a local endpoint `not-observed`) | See left. SQ-14 (answered): a random local capability in a 0600 descriptor; up to 16 concurrent callers; identity not verified | §5.4 author identity; multiple local callers; A13 scope | Host owner with App owner | SQ-14 |
 | OC-7 | Carriage mechanism for origin, constraint, grant and proposal identity | tool arguments (model-supplied); request metadata added by App code; host-held run association registered at run start; host-issued draft identity (preview step) | Whether the App can add metadata to a model-issued MCP call `not-observed`. PR #885 has a preview step and submit keys (evidence only). SQ-08: identity = caller `idempotency_key`; host `preview_ref` precedes submit. SQ-14: caller-supplied origin fields rejected. SQ-02: a constraint field would be refused as unknown | §5.1–§5.6; GC-3; PI-4 | Host owner with App owner and DEL-03-02 | SQ-02; SQ-08; SQ-14 |
 | OC-8 | Native surface derivation | generated from the catalog; checked against it; hand-built | PR #885 operation set looks narrow and specific (Node data; `position.x`). SQ-12 (answered): hand-built and narrow; not generated from or checked against a catalog; no per-operation identity or version | NM-3/NM-4; C §8 X column; `OI-003` evidence | Host owner; disposition `UNRESOLVED{OI-003}` | SQ-12 |
@@ -1358,16 +1387,16 @@ deliverable's register. A row names a contribution, not its delivery.
 |---|---|---|
 | Expect from | DEL-03-01/C-v0.8 (DEP-03-03-006) | Nine entry elements incl. element 9; five class values; C §4.1 results with reporters and the SWBPIPE outcome mapping; read basis, subject content identities and method designation; whole-model identity receiving (R8-4); "no longer holds" rule (per item, or the host's stated scope, R8-3); §8 X column; FX-PIPE-01; at v0.8 the catalog interface (§2.1–§2.3), the read-result model (§6.1), the explicit *not supplied* marker (§3.5) and SH-1 (§10.8) |
 | Expect from | DEL-03-02/P-v0.8 (DEP-03-03-007) | Change-request elements incl. governing checkpoint constraint (governance phase) and relied-on targets; P §9 taxonomy and the §9.1 received SWBPIPE vocabulary; retry precedence; item-left events (incl. "cleared by the person, no decision record"); one route; at v0.8 identity and observation (§3.5), the per-item table (§4.6) and SQ-P6 (§4.7) |
-| Expect from | DEL-04-01/ACT-POLICY-v0.7 (DEP-03-03-008) | A1–A14; P-01…P-06; §5.3 resolution order; §6 outcome map; V-10 external access; A13 subject |
-| Expect from | DEL-04-02/AS-v0.7 (supplier row DEP-04-02-022; no UPSTREAM row in this register) | Grant display states incl. *effective (policy default)*; settings references |
-| Expect from | DEL-01-01/HOSTING-BOUNDARY-v0.7 and the pin record (PIN-SPIKE-v0.1) (DEP-03-03-013) | Supplier surfaces at 0.158.0 (§3.5); A14 origins (R7–R9); native delivery (H6) |
-| Expect from | DEL-02-01 (supplier row DEP-02-01-027; no UPSTREAM row in this register) / DEL-02-03 (DEP-03-03-014) | Checkpoint declarations (WD §4.3, with the `governed` flag, PROPOSED) and derived constraints (WD §4.2.2); Phase 1 guidance and recording (EXEC §2.1, WD §4.3.0); governance phase: hold machine and per-checkpoint hold support (EXEC §2.2, §3.6) computed from §5.3/§7.7 inputs; App holds `UNRESOLVED{D6}`, closed for Phase 1 (R8-2) |
+| Expect from | DEL-04-01/ACT-POLICY-v0.8 (DEP-03-03-008) | A1–A15 (A15 never checkpoint-requirable, R12-5); P-01…P-06; §5.3 resolution order; §6 outcome map; V-10 external access; A13 subject |
+| Expect from | DEL-04-02/AS-v0.8 (supplier row DEP-04-02-022; no UPSTREAM row in this register) | Grant display states incl. *effective (policy default)*; settings references |
+| Expect from | DEL-01-01/HOSTING-BOUNDARY-v0.8, the pin record (PIN-SPIKE-v0.1) and the OBS-1 record `OBS_1_0.158.0.md` with its OBS-1b section (DEP-03-03-013) | Supplier surfaces at 0.158.0 (§3.5); A14 origins (R7–R9); native delivery (H6); the observed facts R13-6 applies (§3.5, OC-3, OC-5, OM-1) |
+| Expect from | DEL-02-01 (supplier row DEP-02-01-027; no UPSTREAM row in this register) / DEL-02-03 (DEP-03-03-014) | Checkpoint declarations (WD §4.3, with the `governed` flag, PROPOSED) and derived constraints (WD §4.2.2); Phase 1 guidance and recording (EXEC-v0.6 §2.1, §2.4, §2.5; WD §4.3.0); governance phase: hold machine and per-checkpoint hold support (EXEC §2.2, §3.6) computed from §5.3/§7.7 inputs; App holds `UNRESOLVED{D6}`, closed for Phase 1 (R8-2) |
 | Cites (a host record; not a contribution) | SWBPIPE's answers to RELAY-v0.3, held in DEL-09-06's folder (`RELAY_ANSWERS_SWBPIPE.md`) | Data about SWBPIPE's current state, cited by this file (SQ-01…SQ-03, SQ-06…SQ-09, SQ-11…SQ-16, SQ-28; this file's host questions are mapped to RELAY-v0.3 in §12). This is a citation of a host record, not a contribution from DEL-09-06: no register row is proposed, and no arc toward DEL-09-06 arises (the DAG-003 guard on reverse arcs into SCC-002 stands; R10-4) |
 | Expect from | External host owner (SWBPIPE) (DEP-03-03-010, DEP-03-03-011) | Endpoint contract; enablement facility and its read; catalog-derived native surface and mapping; exposure on X; outcome statements; capture-evidence references; constraint receipt; identity issuance and durable de-duplication; locality; caller authentication (§12) |
 | Provide to | DEL-09-09 (DEP-03-03-012) | This account; the §10 inventory and, when executed, its candidate-bound test-double results labeled by family; the §9 register; the external requirements still missing (§12); rehearsals for XT XC-05 and XC-06 (XF-40, XF-41); never a joined-witness claim |
 | Provide to | DEL-03-04 (consumer row DEP-03-04-007) | §§1–9 for the guide's "Optional external catalog access" row |
-| Provide to | DEL-04-03 (consumer row DEP-04-03-026) | At v0.6, the mapping from each observed native item to the record on both paths (§4.6 OM-1…OM-10; `external_dispatch_record.schema.json`), naming the R7, R9, R11 and R13 destinations, and three new PROPOSED R11 labels ("host result not isolated", "dispatch recognized from compound command", "basis lineage not supplied"; §4.6 OM-9). External dispatch entries (§5.1) for R7; faithfully recorded acts for R9; evidence limits for R11 (cited basis not observed; omitted constraint; origin mismatch; agent-written configuration; unverified identity; native hint mismatch; resubmission without prior observation; App-restart interruption (these two are not listed in RS R11; both texts stay, and they are decided in Wave B with the record's writer and failure sequences, node B4; R10-6); action during hold (governance phase) or the optional "continued past" annotation (Phase 1), with its turn initiator — person-directed / agent / App rule (R6-5); host reachable without evidenced A13 (R8-6); constraint not carriable on this host (adopted in RS R11, R8-12 item 5)); model destination per turn, run-level set observed (R5-4); A14 observations for R13 |
-| Provide to | DEL-02-03 (consumer row DEP-02-03-026; arc N-24) | External-channel observations of checkpoint arrivals and act records: at v0.6 the element list CO-1…CO-9 (§7.7), each naming the EXEC §4.4 row it feeds, with `checkpoint_observation.schema.json`; governance phase: hold-support inputs and action during hold; required-tool outcomes on X (channel not enabled; not established; in the governance phase only, unsupported — checkpoint hold not enforceable on this surface) |
+| Provide to | DEL-04-03 (consumer row DEP-04-03-026) | At v0.6, the mapping from each observed native item to the record on both paths (§4.6 OM-1…OM-10; `external_dispatch_record.schema.json`), naming the R7, R9, R11 and R13 destinations; RS-v0.8 §5 adopts its outcome values, request kinds and evidence limits with one token table (R14-3), and R11 lists every OM-9 label, including "resubmission without prior observation" and "App-restart interruption" (R13-2) and "basis lineage not supplied" (R13-1). External dispatch entries (§5.1) for R7; faithfully recorded acts for R9, as RS *App writer* records; evidence limits for R11 (cited basis not observed; omitted constraint; origin mismatch; agent-written configuration; unverified identity; native hint mismatch; the OM-9 labels; action during hold (governance phase); host reachable without evidenced A13 (R8-6); constraint not carriable on this host (R8-12 item 5); act offered without a capture-evidence reference (§7.6)); model destination per turn, run-level set observed (R5-4); A14 observations for R13. The optional "continued past" annotation is EXEC's (CE-12), not supplied here |
+| Provide to | DEL-02-03 (consumer row DEP-02-03-026; arc N-24) | External-channel observations of checkpoint arrivals and act records: CO-1…CO-11 (§7.7), each naming the EXEC-v0.6 §2.4.2 event it is input to, with `checkpoint_observation.schema.json`; act observations with act reference, capture time (or *not supplied by host*) and faithful-record identity; the accepted-but-not-applied observation (CO-10) and the host-recorded request (CO-11) (R14-4); the statement that the observations come from the agent's own calls (EXEC F-32; R14-8); governance phase: hold-support inputs and action during hold; required-tool outcomes on X (channel not enabled; not established; in the governance phase only, unsupported — checkpoint hold not enforceable on this surface) |
 | Provide to | DEL-04-01 | Nothing open: U-X1 is closed by ACT-v0.4 §2.6; E-3/E-4 align with it |
 | Provide to | DEL-01-01 (by join; no register row) | Observed MCP/dynamic-tool facts (§3.5) for the classification R4-12 assigns to HOSTING |
 | Provide to | DEL-09-06 (consumer row DEP-09-06-029) | External-receiving meanings for the connected activity: §§3–7 unchanged, and the §12 SQ mapping. Nothing else specific to DEL-09-06 is defined here |
@@ -1682,9 +1711,15 @@ node.
 | — | §5.1 proposal identity and correlation rows cite P-v0.8 §3.5 and §4.6; PI-2 cites P-v0.8 §3.5 PM-4 and §4.7 SQ-P6. Receivers line and §11 rows for DEL-02-03 and DEL-04-03 name what v0.6 supplies | §5.1; §5.6; Header; §11 |
 | — | Header: v0.6; a Wave B consumed-input bullet | Header |
 | **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §3.4: how the host agent's destination flow meets this channel: the destination request entry is exposed on E only; an entry with an external-contact declaration is relayed over X without V-D, request or R15 entry (D5; DECISION-5 governs the host's embedded agent only); a host-returned "destination not allowed" is relayed with the host as reporter | §3.4 |
+| **R14-4** (node RP-1, in place; V18-3 M-1, M-2, M-4; V18-4 M-2) | Act observations carry the host's act reference, the capture time (or *not supplied by host*) and the faithful record's RS identity (or *not written*); CO-10 (decided item not applied: PT-15, PT-16) and CO-11 (request recorded by the host) added; a request in the App conversation is EXEC's (RC-5); OM-1 recognises a dispatch at `item/started` by its start-time source and removes the one shell wrapper (OBS-1b), and completion updates the same record (`native_source` kept). Schemas and mapper follow; examples regenerated | §4.6; §7.7; §8 S-10; §11; both schemas; `prototype/observe_map.py` |
+| **R14-2** | §7.7: the agent's request is a structured item EXEC observes (EXEC RC-5), never message text | §7.7 |
+| **R14-3**; R13-1; R13-2 (R14-7) | RD-2 states R13-1 as ruled (citable only on the host's declaration; limit "basis lineage not supplied"; *unknown (incomparable)* across lineages); OM-9 and §11 say every label is an RS-v0.8 R11 label (R13-2 for the two of R10-6); §4.6 points to RS §5's token table; the mapper writes every SH-1 record as RS entries and validates them against RS's schema | §4.3; §4.6; §11; UNRESOLVED; `observe_map.py` |
+| **R14-7**, R13-6 (OBS-1, OBS-1b) | §3.5 records the observed limit of the local route (MCP tools offered as a `namespace` tool, dropped by LM Studio; an App user on that route cannot use a host's MCP tools), Part D's per-thread MCP configuration (OC-3 (b)), the runtime status before and on the thread, and OBS-1b's command item (source change, shell wrapper, approval options, no output deltas, the sandbox denying the local-socket connect, OC-5); runtime status `null` and `starting` mapped, read per thread (V18-3 m-18) | §3.5; §9 OC-3, OC-5; UNRESOLVED |
+| **R14-8** (N-24) | EXEC and ADAPTER cite each other at EXEC-v0.6 and ADAPTER-v0.6: §7.7 names the CE event each CO feeds; EXEC F-32 answered from this file and C (the observations come from the agent's own calls; the required-tool check's catalog read is the only App-origin read) | §7.7; §11 |
+| V18 minor findings | V18-1 m-9 (channel *external channel*; recorder role *App writer*; §7.6: no record is written without a capture reference), m-8 (§4.6 column RS-v0.8); V18-3 m-2 (CO-8 method and subject absent), m-3 (EXEC decides whether CO-9 is deciding), m-5 (CO-2 includes A12; CE-9 has no observation on X), m-7 (one writer of "continued past": EXEC), m-14 (`proposal_minted_by`), m-19, n-1 (sibling labels v0.8 in §11) | §4.6; §5.1; §7.6; §7.7; §11 |
 
 New identifiers: CT-1…CT-12, OM-1…OM-10, CO-1…CO-9, S-6…S-10, VC-X-09,
-§10.3; three PROPOSED R11 labels (OM-9). No identifier is removed or
+§10.3; three PROPOSED R11 labels (OM-9). The R14 repair adds CO-10 and CO-11. No identifier is removed or
 re-meant. Not done here: S1-B ADAPTER items 1, 2 and 9 (Wave A or other
 nodes) and 7 (the live spike, OBS-1); no transport, command form or wire
 field is selected.
@@ -1700,15 +1735,15 @@ field is selected.
 | `UNRESOLVED{D6}` App-side run holds on X: constraint assurance for A5 checkpoints (GC-3) and holds before dispatch (GC-5); formerly U-X3. **Closed for Phase 1** by DECISION-4 (R8-2); re-opens only when the governance phase is taken up | Owner (DECISION-2 D6; DECISION-4). SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned (planning one is a SWBPIPE owner decision); App-only checkpoints are the same D6 follow-up (R5-10; EXEC U-E23); DEL-02-03 computes hold support | When the governance phase is taken up for a workflow that needs it; before governance-phase hold-machine fixtures on X; before XF-25/XF-26 execution on a host | Phase 1: no hold, no hold-support value, no *unsupported* for hold reasons; optional "continued past" annotation. Governance phase: no App hold claimed; host-operation checkpoints *not enforceable* against SWBPIPE (HS-3 (c)), App-only ones *not enforceable* (HS-5); action during hold recorded (XF-42 DESIGNED) |
 | ~~Host channel restriction by model destination, if any (SQ-16)~~ **Closed** (R8-7): SWBPIPE answered SQ-16, no restriction; the App states nothing | — | — | None on App gating (D5). (U-X2 closed by D5) |
 | U-P10 Host receipt of the governing checkpoint constraint, or host evaluation of its own declaration copy (SQ-02) — governance phase (R8-1) | Host owner with DEL-03-02, DEL-05-01, DEL-03-03 (DEP-001). SWBPIPE answered SQ-02: route (iv), none planned (a SWBPIPE owner decision) | Before the governance-phase V-CP1 / XF-25 execution on a host | Phase 1: none. Governance phase: XF-25 DESIGNED against a test double; host variant not offered (SQ-02); host joins deferred (DECISION-3) |
-| Capture-evidence reference for host-captured acts (R2-20; SQ-01) | SWBPIPE owner decision (PB-TBD-002 acceptance-record storage; DEL-16-03 actor identity; ANS §2) | Before XF-18 positive case and any host-content checkpoint *performed* | Faithful records are record shapes only until then. SQ-01 answered 2026-09-28: none; XF-18 AWAITING INPUT with the STD-2 annotation |
+| Capture-evidence reference for host-captured acts (R2-20; SQ-01) | SWBPIPE owner decision (PB-TBD-002 acceptance-record storage; DEL-16-03 actor identity; ANS §2) | Before XF-18 positive case and any host-content checkpoint *performed* | No faithful record is written until then; the R11 limit "act offered without a capture-evidence reference" is recorded (§7.6). SQ-01 answered 2026-09-28: none; XF-18 AWAITING INPUT with the STD-2 annotation |
 | Proposal identity minting, pre-submission availability, de-duplication order and durability across restart (SQ-08; P U-P1) | SWBPIPE owner decision (durable receipt carrier; ANS §2) with DEL-03-02 | Before direct application over X; before XF-21 | PI-4, PI-5 PROPOSED; XF-21, XF-40 AWAITING INPUT — SQ-08 answered 2026-09-28: caller key and controller ticket, key lookup before the basis check, session-only (durable de-duplication not offered); host joins deferred (DECISION-3) |
 | Caller identity verification (OC-6; SQ-14) | App owner with host owner | Before origin conformance | Author identity *unverified*. SWBPIPE (SQ-14): not verified; a local capability in a 0600 descriptor |
 | Enablement read and disable behavior for queued proposals (SQ-13) | Host owner | Before XF-35 execution | E-8 PROPOSED. SWBPIPE (SQ-13): state not readable; disable behavior for queued proposals not addressed |
 | Native-to-catalog mapping and derivation (OC-8; SQ-12) | Host owner with DEL-03-01 | Before AC-001 claim | NM-2: *not established* without a mapping. SWBPIPE (SQ-12): hand-built; no mapping and no per-operation identity or version (R8-10; C U-C13) |
 | App restart: custody of an in-flight native item across relaunch (PI-6) | DEL-01-02 (later undertaking, D1) | Before XF-41 execution | Interruption recorded as an evidence limit; outcome unknown |
-| Supplier behaviors `not-observed` at 0.158.0: per-thread MCP configuration; App-added call metadata; MCP-call A14 path; supplier behavior on MCP call failure or retry; sandbox effect on MCP stdio servers and local-socket CLIs | DEL-01-01 with App implementation owner | Before implementation; at pin re-examination (D4) | §3.5 facts are generated-type facts only |
-| N-CLI supplier behaviour `not-observed` at 0.158.0 (v0.6): how `aggregatedOutput` orders standard output and standard error; whether it equals the concatenated `outputDelta`s; what Codex reports for a compound command that wraps the host's command; which approval request a host command raises | DEL-01-01 (OBS-1, after round 2) with the App implementation owner | Before OM-1 and OM-4 are relied on | OM-4 treats any mixed output as "host result not isolated"; OM-1's compound rule is PROPOSED. **OBS-1 pending** |
-| A read lacking workspace identity or generation (R10-5; R12-9; C-v0.8 U-C14) | The integrator (R13), on node B3's proposal | Before any SWBPIPE-main read is cited | RD-2's text and C §5.2 rule 1 both stand; OM-9 records "basis lineage not supplied" meanwhile |
+| Supplier behaviors `not-observed` at 0.158.0: App-added call metadata; MCP-call A14 path; supplier behavior on MCP call failure or retry; sandbox effect on MCP stdio servers (per-thread MCP configuration and the local-socket CLI's sandbox effect were observed by OBS-1 Part D and OBS-1b, R13-6; no MCP call could be made on the local route, so the MCP-call items stay unobserved) | DEL-01-01 with App implementation owner | Before implementation; at pin re-examination (D4) | §3.5 facts are generated-type facts only |
+| N-CLI supplier behaviour at 0.158.0. **Observed once by OBS-1b (R13-6):** the shell wrapper, the source change from `agent` to `unifiedExecStartup`, one approval request (`item/commandExecution/requestApproval`, no `decline` offered), no output deltas, `aggregatedOutput` equal to the tool's JSON line, the sandbox denying a local-socket connect. **Still not observed:** how `aggregatedOutput` orders standard output and standard error when both are written; a compound command inside the wrapper | DEL-01-01 with the App implementation owner | Before OM-4's ordering and OM-1's compound rule are relied on | OM-4 treats any mixed output as "host result not isolated"; OM-1 reads the start-time source and removes one wrapper (PROPOSED, on one observation) |
+| ~~A read lacking workspace identity or generation (R10-5; R12-9; C-v0.8 U-C14)~~ **Closed** (R13-1): citable only on the host's declaration, with the limit "basis lineage not supplied" (RD-2) | — | — | — |
 | `UNRESOLVED{OI-003}` (App v4 OI-003; unrelated to SWBPIPE's OI-003) extension promise | Owner with host contract owner | Before claiming extension or fixing AC-007's criterion | NM-4: mapping work is evidence, not disposition |
 | `UNRESOLVED{OI-021}` first connected operation, its autonomy, operation-specific additions | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and live examination | All cases on invented FX-PIPE-01; OP-C11 cases held |
 | `UNRESOLVED{OI-013}` / `UNRESOLVED{OI-014}` placement (including any shared catalog-schema checker, LOOP §10.2 (b)) | Shared contract owner with SWB implementation owner / App-shared contract owners | Before structural/production allocation | No placement implied |

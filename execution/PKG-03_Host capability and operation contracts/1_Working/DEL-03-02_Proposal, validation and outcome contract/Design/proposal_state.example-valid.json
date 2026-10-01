@@ -45,7 +45,8 @@
         "act_kind": "A5",
         "act_reference": "ACT-2",
         "actor": "Engineer A",
-        "capture_evidence_reference": "SH1-CAP-2"
+        "capture_evidence_reference": "SH1-CAP-2",
+        "captured_at": "t0004"
       },
       "identity_method": "m-sh1",
       "item_identity": "1",
@@ -57,7 +58,8 @@
         "act_kind": "A10",
         "act_reference": "ACT-3",
         "actor": "Engineer A",
-        "capture_evidence_reference": "SH1-CAP-3"
+        "capture_evidence_reference": "SH1-CAP-3",
+        "captured_at": "t0005"
       },
       "identity_method": "m-sh1",
       "item_identity": "2",

@@ -28,8 +28,8 @@
     {
       "name": "CP-check",
       "required_act": "A4",
-      "reached_when": {"kind": "host_outcome", "tools": ["label-support"], "outcome": "applied_receipt"},
-      "subject": {"class": "objects_changed_by_named_outcome", "tools": ["label-support"], "outcome": "applied_receipt"},
+      "reached_when": {"kind": "host_outcome", "tools": ["label-support"], "outcome": "applied"},
+      "subject": {"class": "objects_changed_by_named_outcome", "tools": ["label-support"], "outcome": "applied"},
       "position": "Ask for the Checked mark",
       "scope": "The support the label change changed.",
       "purpose": "The engineer records their own checking of the relabelled support.",

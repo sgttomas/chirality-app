@@ -10,6 +10,8 @@
 4. Runs the writer and reader failure cases of RS §14 (write failure, partial
    entry, two recorders, unknown version, correction, sequence gap, semantic
    checks) and reports what each leaves.
+5. Converts EXEC's valid recorder outputs into RS entries through the writer
+   (R14-1; `exec_to_rs.py`): every entry valid, none without a kind.
 
 Exit status 0 only when every expectation holds.
 """
@@ -246,6 +248,17 @@ def main():
     msgs = [m for _, ms in v["nonconformant"] for m in ms]
     check(any(m.startswith("HA-2") for m in msgs) and any("process network not observed" in m for m in msgs),
           f"FC-7b reader flags {msgs}")
+
+    # 5. EXEC -> RS (R14-1)
+    print("\n== EXEC recorder outputs as RS entries (R14-1) ==")
+    import exec_to_rs                                         # noqa: E402
+    rows, problems = exec_to_rs.kind_coverage(reg)
+    check(not problems and len(rows) == 19, f"R14-1 all {len(rows)} CE bodies have an RS kind referencing them: {problems or 'yes'}")
+    r = exec_to_rs.convert(scratch, reg, quiet=True)
+    check(not r["refused"] and r["valid"] == r["converted"] == r["outputs"] and not r["limits"],
+          f"R14-1 EXEC's valid example: {r['valid']} of {r['outputs']} entries valid, refused {len(r['refused'])}")
+    total, valid, kinds, more = exec_to_rs.convert_more(scratch, reg)
+    check(not more and valid == total, f"R14-1 other CH runs and samples: {valid} of {total} entries valid")
 
     print(f"\nscratch: {scratch}")
     print("RESULT:", "all expectations held" if not FAILURES else f"{len(FAILURES)} failed")

@@ -1,0 +1,40 @@
+# Command: python3 run_cases.py   (cwd: DEL-01-01 Design/prototype; rerun by repair node RP-3)
+# Host: Darwin 25.6.0 arm64; Python 3.13.7
+B6 supplier-double run — started 2026-09-30 19:35:36 MDT — python 3.13.7
+SEED-A-bin-freshhome                   pass (model)  4/4 frames byte-identical; exit 0 (recorded 0)
+SEED-A-bin-warmhome                    pass (model)  4/4 frames byte-identical; exit 0 (recorded 0)
+SEED-A-bin.first-attempt               pass (model)  4/4 frames byte-identical; exit 0 (recorded 0)
+SEED-A-vendor-warmhome                 pass (model)  4/4 frames byte-identical; exit 0 (recorded 0)
+SEED-B-bin                             pass (model)  3/3 frames byte-identical; exit 0 (recorded 0)
+SEED-C-bin                             pass (model)  3/3 frames byte-identical; exit 0 (recorded 0)
+SEED-D-bin                             pass (model)  2/2 frames byte-identical; exit 0 (recorded 0)
+SEED-D-vendor                          pass (model)  2/2 frames byte-identical; exit 0 (recorded 0)
+SEED-X                                 pass (model)  8 transcripts equal except emittedAtMs
+VC-16                                  pass (model)  notification received before `initialized` (position 2 of g1) was held and delivered right after ready(g1); not dropped
+VC-08 (part: X-01 side)                pass (model)  delivered frame byte-identical to the recording incl. emittedAtMs; metadata beside; handshake identity ['codexHome', 'platformFamily', 'platformOs', 'userAgent'], userAgent parse consistent
+VC-16 (b: requests while handshaking)  pass (model)  two server requests sent before `initialized`: entries created at receipt (R1; positions 3, 4), the unfamiliar one errored at once (R2), the known one outstanding; all held frames delivered after ready in received order
+VC-21                                  pass (model)  unknown client method -> response-observed(error) -32600 (recorded message, name substituted: mutated), not unknown; connection continued (second request answered)
+VC-03                                  pass (model)  entry created (R1), classified unfamiliar, explicit error written (R2, code -32601 TEST VALUE); no affirmative answer
+VC-20                                  pass (model)  opt-in false: currentTime/read and attestation/generate unfamiliar -> explicit errors; experimentalApi true: currentTime/read familiar, answered by app-rule:clock, attestation/generate still unfamiliar; requestAttestation true: attestation/generate familiar, known-app-unsupported -> explicit error by named rule
+VC-22                                  pass (model)  app-rule content answer to requestUserInput and affirmative to fileChange refused origin-not-permitted (entries stay outstanding); app-rule decline of elicitation recorded declined app-rule:b6-test-rule; currentTime/read answered app-rule; no act record
+VC-23                                  pass (model)  person's 'yes, accepted' settles the elicitation (person-via-interaction) and is written to the supplier as conversation input; the boundary emits no human-act record and no checkpoint satisfaction (record kinds: ['lifecycle-event', 'server-request-entry'])
+VC-14 (part: X-12 with double)         pass (model)  invalid form -> refused(invalid-answer); app-rule affirmative A14 -> refused(origin-not-permitted); person accept -> accepted-for-write; second answer -> refused(already-settled); app-rule decline -> accepted-for-write; resolved before answer -> refused(already-resolved); unknown identity -> refused(no-such-request); write to a closed input -> settle-write-failed (outcome unknown); after exit: answer -> refused(generation-closed); unanswered entry -> ended-unanswered(process-exit)
+VC-04                                  pass (model)  4 malformed frames counted and surfaced with generation and position (not-json, not-an-object, unclassifiable, oversize > 262144 B TEST VALUE); valid frames without the version member accepted; boundary stayed ready
+VC-06                                  pass (model)  handshake failed 3 times (child ended, exit code 0) -> restart-waiting twice, then halted-after-repeated-failure (bound 3 in 60s TEST VALUE); no automatic start; explicit person restart -> ready in g4; each attempt re-verified
+VC-06 (b: unexpected exit)             pass (model)  exit code 0 with no stop record -> exited-unexpectedly (S-F-07); pending client request -> unknown-no-response; outstanding entry -> ended-unanswered(process-exit); automatic restart -> ready in g2
+VC-24                                  pass (model)  status list delivered natively (runtimeStatus 'disabled' passed through as App-side configuration; no act record); agent's mcpToolCall items delivered natively, never answered or altered, no register entry; App-initiated mcpServer/tool/call recorded with initiator receiver:DEL-03-03, not as the agent's call
+VC-25                                  pass (model)  Phase 1: no run holding; no named-rule decline, no run-holding refusal, no turn/interrupt; App-initiated call handled by §6.8 rules; tool-permission entry stays outstanding for the person; auto-reviewed tool delivered natively. Governance phase: decline recorded app-rule:hold-decline; App-initiated call refused run-holding (not sent); person-directed turn carried; no turn/interrupt; no hold claim
+VC-26 (part: constructed re-route)     pass (model)  requested and effective kept apart per turn; re-route recorded on turn-ex-1 (effective example-model-b); turn-ex-2 has no report -> unknown, not filled from turn-ex-1 or the thread-level report; thread-level effective kept at thread scope; carried guidance identity recorded on thread/start; no gate
+VC-10 (constructed identity)           pass (model)  same label, different content identity -> refused mismatch(distribution content identity); no child started
+STOP-close-input                       pass (model)  stop record written first; exit code 0 (recorded behaviour) not used to classify; deliberate from the stop record; descendants checked (0)
+STOP-termination-signal                pass (model)  stop record written first; exit code 0 (recorded behaviour) not used to classify; deliberate from the stop record; descendants checked (0)
+LT-extra                               pass (model)  stop injected while verifying (LT-20), spawning (LT-19, LT-23) and handshaking (LT-18, LT-23) -> stopped; stop from restart-waiting and from halted -> stopped (no child); spawn failure counted toward the bound: LT-07, LT-07, LT-08; three unexpected exits in the window -> halted (LT-14)
+VC-27 (tables in HOSTING)              pass (model)  HOSTING §4.7 (23 rows) and §6.2.1 (13 rows) equal the model's tables
+VC-30 (capability account)             pass (model)  §8.4 places 19 item kinds, 11 server-request kinds, 170 client methods and 85 notifications each in exactly one group; variant and (obs) marks match the bundles, inventory, TS-only list and recorded accepted-method list
+OBS1-test-doubles                      pass (model)  MCP test double: initialize (version echoed), tools/list, tools/call EX-1 (structured result, _meta seen) and EX-ERR (isError), -32601 for other methods, receipt log written; CLI tool: JSON result exit 0, EX-ERR exit 3, local-socket probe connected (outside any sandbox)
+TT-coverage                            pass (model)  lifecycle rows exercised 23/23 (not exercised: none); register rows 13/13
+SCHEMA-records                         pass (model)  258 records emitted by the model validated against the 3 PROPOSED schemas
+SCHEMA-fixtures                        pass (model)  lifecycle-event.valid: valid | lifecycle-event.invalid: invalid ($: missing required exitFacts) | client-request-record.valid: valid | client-request-record.invalid: invalid ($.initiator: missing required name) | server-request-entry.valid: valid | server-request-entry.invalid: invalid ($.settlement.kind: not in enum ['decline', 'error'])
+DOUBLE-conformance                     pass (model)  78 constructed or mutated frames emitted by the double valid against the committed 0.158.0 bundle
+TOTAL 35, pass (model) 35, FAIL 0
+# exit status: 0

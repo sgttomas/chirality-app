@@ -58,6 +58,26 @@ EX_INVALID = DESIGN / "w14-result-record.example.invalid.json"
 TODAY = datetime.date.today().isoformat()
 FAILS = []
 
+# RS R11 evidence-limit labels in RS's own spelling (V18-4 m-2; RP-4). The mapper's
+# tokens (ADAPTER-v0.6 `external_dispatch_record.schema.json`) are mapped once, here,
+# and every label a W14 record carries is checked against RS's list.
+RS_SCHEMA = next(EXEC_ROOT.glob("PKG-04_*/1_Working/DEL-04-03_*/Design/RS_RECORD.schema.json"))
+ADAPTER_TO_RS = {"lost_acknowledgement": "lost acknowledgement",
+                 "unverified_caller_identity": "unverified caller identity",
+                 "resubmission_without_prior_observation": "resubmission without prior observation",
+                 "app_restart_interruption": "App-restart interruption",
+                 "basis_lineage_not_supplied": "basis lineage not supplied",
+                 "dedup_scope_exceeded": "de-duplication scope exceeded",
+                 "host_result_not_isolated": "host result not isolated",
+                 "dispatch_recognized_from_compound_command": "dispatch recognized from compound command"}
+
+
+def rs_r11_labels():
+    defs = json.loads(RS_SCHEMA.read_text())["$defs"]
+    if "evidenceLimitLabel" in defs:
+        return set(defs["evidenceLimitLabel"]["enum"])
+    return set(defs["evidenceLimit"]["properties"]["label"]["enum"])
+
 
 def check(label, cond, detail=""):
     print(("PASS " if cond else "FAIL ") + label + ((" -- " + detail) if detail and not cond else ""))
@@ -124,7 +144,7 @@ def record(case, phase, parts, *, subject, config, limits=(), missing=(), acts=(
            "evidence_label": ("test_double" if ran else "not_observed") if rehearsal
            else ("illustrative" if ran else "not_observed"),
            "subject_of_run": subject, "configuration": config, "date": TODAY, "outcome": outcome,
-           "parts": parts, "evidence_limits": sorted(set(limits)),
+           "parts": parts, "evidence_limits": sorted({ADAPTER_TO_RS.get(x, x) for x in limits}),
            "missing_inputs": [dict(zip(("input", "supplier", "relay_question"), m)) if len(m) == 3 else
                               dict(zip(("input", "supplier"), m)) for m in missing],
            "completion": {"counts_toward_out003": False,
@@ -142,7 +162,7 @@ def record(case, phase, parts, *, subject, config, limits=(), missing=(), acts=(
 
 
 CFG_X = {"acting_surface_variant": "CA/X", "native_path": "both", "host_profile": "SH-1 full",
-         "model_destination": {"not_observed": "the App's Codex is imitated, not run; no supplier turn exists (OBS-1 pending)"}}
+         "model_destination": {"not_observed": "the App's Codex is imitated, not run; no App run exists (OBS-1 observed supplier turns at pin 0.158.0 on one local route, not App runs)"}}
 CFG_APP = {"acting_surface_variant": "app_only", "native_path": "not_applicable"}
 CFG_NONE = {"acting_surface_variant": "not_applicable", "native_path": "not_applicable"}
 
@@ -299,9 +319,9 @@ def recorder_w14_04(sim):
     rec = Recorder("run-w14-04", {"kind": "workflow", "origin": "project", "source_root": "fx-proj",
                                    "name": "supports-label", "revision": "rev-E1c"}, "app_codex_via_X")
     s4 = rf.rows_of(sim.docs["T16read"], "supports")["S-4"]
-    rec.listed("CP-accept", "t-start", act="A5", rw="c", subject_class="change items of a named proposal",
+    rec.listed("CP-accept", "t-start", act="A5", rw="host_outcome", subject_class="change items of a named proposal",
                purpose="engineer accepts or rejects the proposed items", scope="the proposal's items")
-    rec.listed("CP-check", "t-start", act="A4", rw="b", subject_class="objects changed by a named outcome",
+    rec.listed("CP-check", "t-start", act="A4", rw="output_produced", subject_class="objects changed by a named outcome",
                purpose="engineer records their own checking of S-4", scope="S-4")
     rec.content("S-4", s4["subject_content_identity"], "T16")
     rec.arrive("CP-check", {"S-4": s4["subject_content_identity"]}, "T16c", event_ref="item:agentMessage/label-report",
@@ -314,12 +334,13 @@ def recorder_w14_04(sim):
 def w14_04(sim, rows):
     t16 = sim.docs["T16"]["items"][0]
     rec = recorder_w14_04(sim)
-    kinds = [e["kind"] for e in rec.doc["entries"]]
-    arr = [e for e in rec.doc["entries"] if e["kind"] == "arrival"]
-    no_accept = not any(e["arrival"]["checkpoint"] == "CP-accept" for e in arr)
+    # EXEC-v0.6 recorder outputs {kind, observedAt, body} after R14-1 (RP-1): RS entry kinds with CE bodies
+    kinds = [o["kind"] for o in rec.outputs]
+    arr = [o["body"] for o in rec.outputs if o["kind"] == "checkpoint_arrival"]
+    no_accept = not any(b["checkpoint"] == "CP-accept" for b in arr)
     fin = rec.final()
-    entry_errs = ex.validate(rec.doc, ex.ENTRIES_SCHEMA)
-    allowed = {"checkpoint_listed", "arrival", "disposition", "continued_past", "run_ended"}
+    entry_errs = [x for o in rec.outputs for x in ex.validate(o, ex.ENTRIES_SCHEMA)]
+    allowed = {"checkpoint_listed", "checkpoint_arrival", "disposition_change", "continued_past", "run_ended"}
     parts = [
         part("(i′) direct application under ⟨set-2⟩: CP-accept not reached",
              "OP-C9 on S-4 applied directly (receipt, no decision recorded); no proposal queued, so no CP-accept arrival, nothing requested by reason of it, no A5 forced or recorded",
@@ -370,14 +391,15 @@ def w14_05(sim):
     pos_ok = dec["act_kind"] == "A5" and dec["actor"] == "Engineer A" and dec["capture_evidence_reference"].startswith("SH1-CAP-")
     r20, r31, r31b = ex.ch20(), ex.ch31_i(), ex.ch31_ii()
     f20 = r20.final()[("CP-review", 1)]
-    e31 = r31.doc["entries"]
-    first = next(e for e in e31 if e["kind"] == "disposition")
-    ok31i = (any(e["kind"] == "act_not_counted" and e["reason"] == "content_no_longer_current" and e["captured_before_arrival"]
-                 for e in e31) and first["disposition"] == "waiting" and "prior act not counted" in first["annotations"])
+    e31 = r31.outputs
+    first = next(o["body"] for o in e31 if o["kind"] == "disposition_change")
+    ok31i = (any(o["kind"] == "act_not_counted" and o["body"]["reason"] == "content no longer current"
+                 and o["body"]["capturedBeforeArrival"] for o in e31)
+             and first["disposition"] == "waiting" and "prior act not counted" in [x["label"] for x in first["annotations"]])
     fin = r31b.final()
     ok31ii = (fin[("CP-approve", 1)][0] == "performed" and fin[("CP-check", 1)][0] == "waiting"
-              and any(e["kind"] == "act_not_counted" and e["reason"] == "other_kind" for e in r31b.doc["entries"]))
-    entry_errs = sum(len(ex.validate(x.doc, ex.ENTRIES_SCHEMA)) for x in (r20, r31, r31b))
+              and any(o["kind"] == "act_not_counted" and o["body"]["reason"] == "another act kind" for o in r31b.outputs))
+    entry_errs = sum(len(ex.validate(o, ex.ENTRIES_SCHEMA)) for x in (r20, r31, r31b) for o in x.outputs)
     parts = [
         part("negatives: success, queued, receipt, host check and A14 yield no act",
              "T10 queued document carries no decision; T12's receipt, T4a's host check and the declined A14 (XF-34) create no act; no App dispatch record carries a human-act reference",
@@ -390,7 +412,7 @@ def w14_05(sim):
              pos_ok, built_on=["T11", "ADAPTER S-9"],
              obs=[(f"T11 item 1 {dec['act_kind']} {dec['act_reference']} capture {dec['capture_evidence_reference']}", "act_record", f"w14main/T11o/{dec['act_reference']}")]),
         part("earlier act on current content counts (CH-20)", "T2's A4 counts for S-2, cited with its time; A4 on S-3 completes the answer (JA-1)",
-             f20[0] == "performed" and f20[2] == {"S-2": "A4-T2", "S-3": "A4-S3"} and entry_errs == 0, built_on=["CH-20"],
+             f20[0] == "performed" and f20[2] == {"S-2": ex.rid("run-e1b-1", "A4-T2"), "S-3": ex.rid("run-e1b-1", "A4-S3")} and entry_errs == 0, built_on=["CH-20"],
              obs=[("recorder entries CH-20", "exec_entries", "run-e1b-1")]),
         part("earlier act on content no longer current: 'prior act not counted' (CH-31 (i); R11-9)",
              "T2's A4 on ⟨S-2@r12⟩ at a run-14 arrival binding ⟨S-2@r15⟩ is recorded 'prior act not counted' (content no longer current); the arrival waits; a new A4 answers",
@@ -409,34 +431,34 @@ def w14_05(sim):
         {"record_id": dec["act_reference"], "act_kind": "A5", "actor": "Engineer A (fixture person, SH-1 facility)",
          "recorder": "SH-1 facility (the double's own)", "capture_evidence": {"reference": dec["capture_evidence_reference"]},
          "counted_as": "not evaluated"},
-        {"record_id": "A4-T2", "act_kind": "A4", "actor": "Engineer A (scripted)", "recorder": "EXEC recorder double",
+        {"record_id": ex.rid("run-14", "A4-T2"), "act_kind": "A4", "actor": "Engineer A (scripted)", "recorder": "EXEC recorder double",
          "capture_evidence": {"absent": "scripted observation; no capture facility in the recorder double"},
          "counted_as": "prior act not counted", "not_counted_reason": "content no longer current"},
     ]
     return record("W14-05", "current", parts, subject=double(SH1_FILES + MAP_FILES + REC_FILES, "SH-1 + EXEC-v0.6 recorder double"),
                   config=CFG_X, acts=acts,
-                  limits=["unverified_caller_identity", "identity not verified (CAP-8)"],
+                  limits=["unverified_caller_identity"],
                   missing=[("capture-evidence reference for host-captured acts", "SWBPIPE owner", "SQ-01"),
                            ("an actual person performing the act on invented material", "the person (DEP-09-06-024)"),
-                           ("App act control for the AF-1 variant", "DEL-01-04 (later undertaking)"), HOST_JOINS],
+                           ("App act control for the AF-1 variant and for a joined CH-31 (ii)", "DEL-01-04 (later undertaking)"), HOST_JOINS],
                   state="AWAITING INPUT")
 
 
 def w14_06():
     r8, r10 = ex.ch8(), ex.ch10()
     f8 = r8.final()[("CP-check", 1)]
-    k8 = [e["kind"] for e in r8.doc["entries"]]
+    k8 = [o["kind"] for o in r8.outputs]
     after = k8.index("act_lapsed")
-    no_wait = all(e["disposition"] != "waiting" for e in r8.doc["entries"][after:] if e["kind"] == "disposition")
+    no_wait = all(o["body"]["disposition"] != "waiting" for o in r8.outputs[after:] if o["kind"] == "disposition_change")
     f10 = r10.final()[("CP-check", 1)]
-    errs = sum(len(ex.validate(x.doc, ex.ENTRIES_SCHEMA)) for x in (r8, r10))
+    errs = sum(len(ex.validate(o, ex.ENTRIES_SCHEMA)) for x in (r8, r10) for o in x.outputs)
     parts = [
         part("lapse after the resume point: 'act lapsed at ‹t›', nothing says waiting (CH-7)", "act-lapsed recorded; no later disposition says waiting",
              no_wait and errs == 0, built_on=["CH-7"], obs=[("recorder entries CH-7/CH-8", "exec_entries", "run-12a")]),
         part("partial lapse answered by a new act on the changed rows with the earlier act (CH-8; JA-1)", "performed, ordinal 2, answered by two acts",
              f8[0] == "performed" and f8[1] == 2, built_on=["CH-8"]),
         part("lapse after run end: lapsed per referent; post-end act changes nothing (CH-10)", "lapsed; act_after_run_end",
-             f10[0] == "lapsed" and "act_after_run_end" in [e["kind"] for e in r10.doc["entries"]], built_on=["CH-10"],
+             f10[0] == "lapsed" and "act_after_run_end" in [o["kind"] for o in r10.outputs], built_on=["CH-10"],
              obs=[("recorder entries CH-10", "exec_entries", "run-12b")]),
         part("lapse from a content change on the host (SH-1)", "a host edit to a row bound by an A4 lapses it", False,
              built_on=["T14"], not_run_because="SH-1 has no A4 facility; the lapse rule runs on the recorder double over scripted content identities only"),
@@ -513,8 +535,8 @@ def main():
             not_run_case("W14-02", "no host workflows or adaptation exist on SH-1 or SWBPIPE",
                          [("host adaptation with derived-from", "SWBPIPE owner", "SQ-18"), HOST_JOINS], "AWAITING INPUT", ["RT-2", "RT-3"]),
             *w14_03(rows, e1m, e1c), *w14_04(sim, rows), w14_05(sim), w14_06(), w14_07(sim),
-            not_run_case("W14-08", "no supplier turn has been observed (OBS-1 pending) and no host loop or host run record exists",
-                         [("App-side supplied guidance and destination per turn at pin 0.158.0", "DEL-01-01 (OBS-1)"),
+            not_run_case("W14-08", "no App run exists: OBS-1 observed supplier turns at pin 0.158.0 on one local route (no model element on the turn), not an App run's supplied guidance; no host loop or host run record exists",
+                         [("App-side supplied guidance and destination per turn at pin 0.158.0, observed in an App run", "App construction (later undertaking); DEL-01-01"),
                           ("host run records and supplied guidance", "SWBPIPE owner", "SQ-19"), HOST_JOINS], "AWAITING INPUT", ["RT-5", "CR-14"]),
             not_run_case("W14-09", "no host revision to relay, no library double, no DEL-02-02 registration",
                          [("host workflows", "SWBPIPE owner", "SQ-18"), ("registration and drafts", "DEL-02-02 (later undertaking)")],
@@ -536,6 +558,10 @@ def main():
         check(f"{r['case']} ({r['phase_reading']}) no part failed", all(p["outcome"] != "failed" for p in r["parts"]),
               "; ".join(p["part"] for p in r["parts"] if p["outcome"] == "failed"))
         check(f"{r['case']} ({r['phase_reading']}) counts toward OUT-003: no", r["completion"]["counts_toward_out003"] is False)
+    rs_labels = rs_r11_labels()
+    used = sorted({x for r in recs for x in r["evidence_limits"]})
+    check(f"every evidence limit is an RS R11 label in RS's spelling ({len(used)} distinct: {', '.join(used)})",
+          all(x in rs_labels for x in used), str([x for x in used if x not in rs_labels]))
     cited = [ac for r in recs for ac in r.get("act_records_cited", [])]
     check("every cited act names an actor different from its recorder", all(ac["actor"] != ac["recorder"] for ac in cited))
     valid = next(r for r in recs if r["case"] == "W14-05")

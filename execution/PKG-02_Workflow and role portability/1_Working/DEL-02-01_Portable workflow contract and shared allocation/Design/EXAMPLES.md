@@ -30,6 +30,10 @@ unimplemented and not accepted.
 | (E5, E6) | The readings of E5 and E6 in the carriage are stated, each read by the prototype from the real Root bytes, with E5's "declared empty" variant (VC-04) and E6 rendered as a v4 package | E5; E6 |
 | R12-1 (verification) | Verification table: rows for the rendered examples, E1e, E9 and E5/E6 in the carriage, each saying whether the prototype ran its declaration part | Verification cases |
 | (UNRESOLVED) | U-01 and U-02 restated as PROPOSED at WD-v0.8, with consumer confirmation pending; U-08 PROPOSED at the pin; U-32 decided (PROPOSED) | UNRESOLVED |
+| **R14-6** (V18-2 M-2; repair node RP-3, in place, no version bump) | The outcome token in E1's and E1d's declared parts is P's `applied` (was `applied_receipt`), with WD's schema, valid example, E1d fixture and prototype in the same repair; the rendered E1 and E1d still equal the prototype's rendering byte for byte | E1, E1d |
+| V18-2 m-7 (R12-10) | "Prior act not counted" in the one wording of RS L-13 with its reason (governance-phase option: *captured before arrival*) in R-9b, R-12b, R-16 and R-19 (v); the R4-5 history row keeps its wording | E2, E2b |
+| V18-2 m-2 | New variant L-WDEX-42: E1e's file output without `path` | E9 |
+| V18-2 n-2 | E1e cites EXEC CH-32 (`report-signoff`), the other fixture for the same VER-003 separation | E1e |
 
 ## Changes from v0.6
 
@@ -349,7 +353,7 @@ permission, and it is not evidence that anything happened.
       "subject": {
         "class": "objects_changed_by_named_outcome",
         "tools": ["add-support", "set-stiffness"],
-        "outcome": "applied_receipt"
+        "outcome": "applied"
       },
       "position": "Ask for the Checked mark",
       "scope": "The objects the applied items created or changed.",
@@ -376,7 +380,7 @@ permission, and it is not evidence that anything happened.
       "gating_checkpoint": "CP-accept",
       "produced_by": {
         "tools": ["add-support", "set-stiffness"],
-        "outcome": "applied_receipt"
+        "outcome": "applied"
       }
     },
     {
@@ -735,12 +739,12 @@ permission, and it is not evidence that anything happened.
       "reached_when": {
         "kind": "host_outcome",
         "tools": ["label-support"],
-        "outcome": "applied_receipt"
+        "outcome": "applied"
       },
       "subject": {
         "class": "objects_changed_by_named_outcome",
         "tools": ["label-support"],
-        "outcome": "applied_receipt"
+        "outcome": "applied"
       },
       "position": "Ask for the Checked mark",
       "scope": "The support the label change changed.",
@@ -772,7 +776,9 @@ read the supports; write an approval package into the App project for the
 engineer's **engineering approval (A6)**; read the sustained-load results and
 report them for the **accountable professional's reliance (A7)**. The two
 checkpoints are independent (WD I-3): neither act is needed before the other,
-and neither satisfies the other (I-1).
+and neither satisfies the other (I-1). EXEC's case CH-32 (L-EXEC-32,
+workflow `report-signoff`) is a second fixture for the same VER-003
+separation, written in parallel; the two do not conflict (V18-2 n-2).
 
 *Declared part (WD-v0.8 carriage; the content of its `workflow-declaration`
 block):*
@@ -985,16 +991,16 @@ carry "continued past ‹checkpoint› before ‹act›".
 | R-7′ run ends early | L-WDEX-5 (run stops after T7) | Run-ended event before any re-draft | **not reached** | not reached | PR-1 refused — stale | reporting `CP-accept` as satisfied |
 | R-8 wrong subject | L-WDEX-6 (a second proposal outside this run) | After T10, Engineer A accepts an item of the L-WDEX-6 proposal | waiting | not reached | PR-2 *queued* | counting an A5 on other content (SB-2) |
 | R-9 capturing surface | T11 | (i) The agent writes "Engineer A accepted item 1". (ii) Engineer A's A5/A10 captured by the host facility (OP-C7/OP-C8) with a capture-evidence reference; the App faithfully records it, citing that reference. (iii) As (ii), but the host exposes no capture-evidence reference. (iv) The App's Codex asks through an MCP elicitation "accept item 1?" and Engineer A answers yes | (i) waiting; (ii) resolved negatively as R-2; (iii) waiting (U-05b; SQ-01 answered: SWBPIPE exposes no capture-evidence reference); (iv) waiting | — | as R-2 in (ii) | (i) resuming on an agent-authored record; (iii) resuming without capture evidence (I-5); (iv) treating an elicitation answer as A5 (R4-12) |
-| R-9b prior act | T2 with E1b variant L-WDEX-7 (`CP-review` binding S-2) | T2's A4 on S-2 (r12) was captured before `CP-review` arrives at T4 | — | `CP-review` (binding S-2): **performed** by T2's A4, an earlier act on ⟨S-2@r12⟩, which is still current at T4; the record cites T2's A4 and its time (I-8; DECISION-K1 K1-2). Under the governance-phase option (EXEC SP-6F): S-2 "prior act on this subject, not counted"; **waiting** until a new A4 after arrival; if T2's order against the arrival cannot be established, "act order unknown" | — | requiring a repeat of T2's A4 on unchanged content in the current phase; counting it once S-2's content has changed |
+| R-9b prior act | T2 with E1b variant L-WDEX-7 (`CP-review` binding S-2) | T2's A4 on S-2 (r12) was captured before `CP-review` arrives at T4 | — | `CP-review` (binding S-2): **performed** by T2's A4, an earlier act on ⟨S-2@r12⟩, which is still current at T4; the record cites T2's A4 and its time (I-8; DECISION-K1 K1-2). Under the governance-phase option (EXEC SP-6F): S-2 "prior act not counted — captured before arrival (governance-phase option)"; **waiting** until a new A4 after arrival; if T2's order against the arrival cannot be established, "act order unknown" | — | requiring a repeat of T2's A4 on unchanged content in the current phase; counting it once S-2's content has changed |
 | R-10 reserved call | C V-R1 | The agent calls OP-C6 on S-1 | — | — | — | OP-C6 by the agent → **not permitted** (reserved, P-02); an A8 request is *offered*, not recorded unless issued (R2-4); treating the attempt as A4, *not exposed* or *unavailable* |
 | R-11 all rejected | L-WDEX-8 (variant of T11 rejecting both items) | A10 on items 1 and 2 | **resolved negatively**; on-negative path: return to Propose once (a later *queued* is a new arrival) | not reached | items *rejected* | counting A10 as performed |
 | R-12 act declined | after R-2 | Engineer A declines to mark the bound rows checked → act-declined event with capture evidence | as R-2 | **resolved negatively** (not an A4); on-negative path: stop | as R-2 | recording the decline as A4 |
-| R-12b run end and continuation | after R-2; continuation L-WDEX-9 | Engineer A stops the run while `CP-check` waits → run-ended event. Later Engineer A marks S-5 checked. Then Engineer A starts a new run that records *continues ⟨run 12⟩* | as R-2 | run 12: final **waiting** with run-ended event; the later A4 shown **"after run end"**, changing nothing. Continuation: `CP-check` *not reached* until its own arrival; there the earlier A4 counts for S-5 if S-5 is bound and its content is still the one the A4 was made on, cited with its time, and any other bound referent needs a new A4 (I-8; DECISION-K1 K1-2; under the governance-phase option it is "prior act, not counted") | as R-2 | resuming run 12; carrying any arrival or disposition into the continuation |
+| R-12b run end and continuation | after R-2; continuation L-WDEX-9 | Engineer A stops the run while `CP-check` waits → run-ended event. Later Engineer A marks S-5 checked. Then Engineer A starts a new run that records *continues ⟨run 12⟩* | as R-2 | run 12: final **waiting** with run-ended event; the later A4 shown **"after run end"**, changing nothing. Continuation: `CP-check` *not reached* until its own arrival; there the earlier A4 counts for S-5 if S-5 is bound and its content is still the one the A4 was made on, cited with its time, and any other bound referent needs a new A4 (I-8; DECISION-K1 K1-2; under the governance-phase option it is "prior act not counted — captured before arrival (governance-phase option)") | as R-2 | resuming run 12; carrying any arrival or disposition into the continuation |
 | R-13 retry | T13 | Acknowledgment of RC-1 lost; agent resubmits PR-2 (same identity) | unchanged | unchanged | de-duplicated by identity first: the repeat reports RC-1, never refused stale by its own effect; if unobservable, **outcome unknown** by the observer (R2-13) | a second application; a stale refusal caused by RC-1 |
 | R-13b application outcome lost | C V-OU1 | Neither T12 nor T13 report observed | unchanged (decided), item 1 annotated "accepted — application outcome unknown (observer loop)" (MX-8) | not reached for item 1's objects | item 1 **outcome unknown**, last observed *accepted* | re-holding `CP-accept`; inferring application |
 | R-14 accepted, then stale | C V-S1 | After T11, Engineer A edits S-2 before T12 (r14′); item 1 (relies on S-2) refused at application — stale | unchanged (decided; MX-7) | not reached for item 1's objects (no applied outcome) | item 1 "accepted by Engineer A — not applied: refused — stale (relied B2, current ⟨B-r14′⟩)"; A5 not lapsed | calling this a lapse of A5; showing item 1 as applied or merely "accepted". (No SWBPIPE counterpart: its A5 is Apply, one step with application, R8-5) |
 | R-15 tool permission (App) | L-WDEX-10 (App-side run through the external surface) | The user's Codex mode auto-answers a tool permission (A14) for a shell command | unchanged | unchanged | unchanged | treating A14 as any checkpoint act (D3) |
-| R-16 A12 rules | (i) E1d on C's main order T15–T16; (ii)–(v) C **V-GR1** run 13 (R5-7; L-WDEX-11 retired): (ii) GR-1…GR-3, (iii) GR-S, (iv) GR-R, (v) GR-P | (i) **C order:** T15's A12 (⟨set-2⟩) is captured before `CP-grant` arrives when the agent is about to dispatch OP-C9 at T16. (ii) V-GR1: `CP-grant` arrives at r15; T15's A12, with the declared setting content, is captured after the arrival and the control **establishes** it. (iii) V-GR1 sub-variant: a later established A12 narrows the scope. (iv) V-GR1 sub-variant: the A12 is **refused** by the control. (v) V-GR1 sub-variant: the A12 is **pending**, then its confirmation observation is lost. (vi) An A12 on content other than the declared setting content | — | `CP-grant`: (i) **performed** by T15's A12, an earlier act on the declared setting content with ⟨set-2⟩ still in force, cited with its time (I-8; DECISION-K1 K1-2); the OP-C9 call is dispatched unchanged as T16 (Phase 1: the dispatch is recorded). Under the governance-phase option (EXEC SP-6F): **waiting**, "prior act on this subject, not counted", and the held OP-C9 call stays undispatched. (ii) **performed**; the held call is dispatched unchanged (Phase 1: the dispatch is recorded). (iii) stays **performed**, "superseded by ‹act›". (iv) **waiting**, "A12 refused by control: ‹reason›"; the refused A12 is T15's own, so ⟨set-2⟩ never takes effect and **⟨set-1⟩** stays in force (R6-2). (v) **waiting** "awaiting control confirmation", then **unknown**. (vi) **waiting** (SB-2; R5-3) | (i), (ii): RC-2 as T16 | requiring T15's A12 to be repeated while ⟨set-2⟩ is in force (current phase; U-31 closed by DECISION-K1 K1-2); counting or superseding with a refused A12; letting an A8 change the subject |
+| R-16 A12 rules | (i) E1d on C's main order T15–T16; (ii)–(v) C **V-GR1** run 13 (R5-7; L-WDEX-11 retired): (ii) GR-1…GR-3, (iii) GR-S, (iv) GR-R, (v) GR-P | (i) **C order:** T15's A12 (⟨set-2⟩) is captured before `CP-grant` arrives when the agent is about to dispatch OP-C9 at T16. (ii) V-GR1: `CP-grant` arrives at r15; T15's A12, with the declared setting content, is captured after the arrival and the control **establishes** it. (iii) V-GR1 sub-variant: a later established A12 narrows the scope. (iv) V-GR1 sub-variant: the A12 is **refused** by the control. (v) V-GR1 sub-variant: the A12 is **pending**, then its confirmation observation is lost. (vi) An A12 on content other than the declared setting content | — | `CP-grant`: (i) **performed** by T15's A12, an earlier act on the declared setting content with ⟨set-2⟩ still in force, cited with its time (I-8; DECISION-K1 K1-2); the OP-C9 call is dispatched unchanged as T16 (Phase 1: the dispatch is recorded). Under the governance-phase option (EXEC SP-6F): **waiting**, "prior act not counted — captured before arrival (governance-phase option)", and the held OP-C9 call stays undispatched. (ii) **performed**; the held call is dispatched unchanged (Phase 1: the dispatch is recorded). (iii) stays **performed**, "superseded by ‹act›". (iv) **waiting**, "A12 refused by control: ‹reason›"; the refused A12 is T15's own, so ⟨set-2⟩ never takes effect and **⟨set-1⟩** stays in force (R6-2). (v) **waiting** "awaiting control confirmation", then **unknown**. (vi) **waiting** (SB-2; R5-3) | (i), (ii): RC-2 as T16 | requiring T15's A12 to be repeated while ⟨set-2⟩ is in force (current phase; U-31 closed by DECISION-K1 K1-2); counting or superseding with a refused A12; letting an A8 change the subject |
 | R-17 undo | T16–T17 with E1c | T16a: Engineer A marks S-4 checked after RC-2; run ends; T17 undo RC-3 *reverses RC-2* (OP-C10, governed by P-03 per R3-4) | — | **lapsed** (run ended; FXA-2 covers the label) | RC-2 applied, then reversed by RC-3 | treating the undo as leaving the A4 intact (R2-15). (SWBPIPE undo writes no receipt, so "reversed by ⟨receipt⟩" is *not supplied* there; the lapse shows from the identity change, R8-5) |
 | R-E1b independent A4 | E1b, T3–T4 | OP-C1 read (B1); OP-C3 findings name S-2→S-3; `findings` produced; Engineer A marks S-2 and S-3 checked in the host (OP-C6 capture) after the arrival | — | `CP-review` **performed** | — | requiring a prior A5 (I-3) |
 | R-E1b′ binding | E1b, T3–T6 (L-WDEX-12: variant marking only the findings, then T6) | (i) Engineer A marks the `findings` output checked, not the rows. (ii) After R-E1b, T6 edits S-3 before the run resumes | — | (i) `CP-review` **waiting** (wrong referent, SB-2); (ii) act-lapsed event for S-3 → **waiting — lapsed at ‹t›**; S-2 still bound | — | binding to the output's own content; lapsing S-2 on an S-3 edit |
@@ -1017,7 +1023,7 @@ dispositions are record labels (WD §4.3.0) and nothing is held.
 | R-19 (ii) wrong actor | Engineer A, not evidenced as the accountable professional, performs A7 | — | **waiting** (actor requirement; EXEC SP-2) | anyone's A7 counting |
 | R-19 (iii) wrong kind | FX-Professional-P performs A6 on the result rows | — | **waiting** (I-1) | approval standing in for reliance |
 | R-19 (iv) agent claim | The agent's message says "these results are reliable for design" | — | **waiting** | agent text as A7 (S-L; V4-AUT-05) |
-| R-19 (v) earlier act | FX-Professional-P's A7 on the r14 rows was captured before the arrival, and the rows are unchanged | — | **performed** by that earlier act, cited with its time (I-8; DECISION-K1 K1-2). Only if `CP-rely` also declared `governed` and `fresh_act_required`, in the governance phase (EXEC SP-6F): "prior act on this subject, not counted", **waiting** | requiring a repeat on unchanged content in the current phase |
+| R-19 (v) earlier act | FX-Professional-P's A7 on the r14 rows was captured before the arrival, and the rows are unchanged | — | **performed** by that earlier act, cited with its time (I-8; DECISION-K1 K1-2). Only if `CP-rely` also declared `governed` and `fresh_act_required`, in the governance phase (EXEC SP-6F): "prior act not counted — captured before arrival (governance-phase option)", **waiting** | requiring a repeat on unchanged content in the current phase |
 | R-19 (vi) message without its line | The agent reports the loads in a message whose first line is not the designating line | — | **not reached**; `load-findings` "not produced" (WD §4.4 OP-1; §4.6) | inferring production from message content (RW-1) |
 
 No SWBPIPE counterpart exists for either act (L-WDEX-39); host joins are
@@ -1194,7 +1200,7 @@ offers a host-held route. In Phase 1 none of this affects the check.
 
 Each variant changes one thing in E1, E1d or the carriage. The reading is
 WD §3.7's, of the declaration only: no run is implied. `prototype/wdproto.py
-selftest` produced exactly these readings on 2026-09-30 (S-7; WAVE_B/B1.md).
+selftest` produced exactly these readings on 2026-09-30 (S-7; WAVE_B/B1.md; L-WDEX-42 and the rerun after the RP-3 repair: WAVE_B/RP-3.md).
 
 | Label | Change | Reading (WD §3.7) | Case |
 |---|---|---|---|
@@ -1223,6 +1229,7 @@ selftest` produced exactly these readings on 2026-09-30 (S-7; WAVE_B/B1.md).
 | L-WDEX-36 | A `workflow-declaration` block quoted inside a four-backtick fence | not read: no declared part (CR-2) | VC-46 |
 | L-WDEX-37 | E1 `summary` given `examination-report`'s designating line | both outputs **not established** (FB-20, DN-4); `CP-check` **not established** | VC-49 |
 | L-WDEX-38 | E1 `summary` made a workflow-input output and named by `CP-check`'s kind (b) | `CP-check` **invalid** (FB-13) | VC-49 |
+| L-WDEX-42 | E1e `approval-package` (a file output) without `path` (RP-3 repair) | the output **not established** (FB-02); `CP-approve`, whose kind (b) names it, **not established** (§3.4; WD §3.7 VO-5) | VC-48 |
 
 The schema's invalid example instance (`workflow-declaration.invalid.example.json`)
 is read element by element, not rejected whole: `read-supports` and

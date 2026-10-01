@@ -1,6 +1,6 @@
 {
   "observation_kind": "act_observed",
-  "exec_event": "human_act_observed",
+  "exec_event": "CE-7",
   "source_record": "item-main-12",
   "proposal_identity": "PR-2",
   "item_identity": "1",
@@ -11,8 +11,12 @@
     "recording_mode": "faithful_recording",
     "bound_content_identity": "sh1:e67adbf4d0b16611",
     "identity_method": "m-sh1",
-    "capture_evidence": "SH1-CAP-2"
+    "capture_evidence": "SH1-CAP-2",
+    "act_reference": "ACT-2",
+    "capture_time": "t0004",
+    "faithful_record": "rec:app:th-main:ACT-2"
   },
   "evidence_time": "t0007",
+  "evidence_time_source": "host_outcome_time",
   "observed_at": "T11o"
 }

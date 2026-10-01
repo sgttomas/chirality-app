@@ -1448,6 +1448,299 @@
      "case": "MC-13"
     }
    ]
+  },
+  {
+   "id": "OBS1-C1",
+   "maps_to": "\u00a74.1 points 1, 2",
+   "note": "OBS-1 C1: one call, two fragments. Shape as observed by OBS-1 Part C on one local server (LM Studio 0.4.16+2, qwen/qwen3.5-9b, 2026-09-30; DEL-01-01 OBS_1_0.158.0.md \u00a710): reasoning streamed first as delta.reasoning_content, a whitespace delta.content, the id, type and name in one fragment with arguments \"\", the whole arguments in the next fragment, then a final chunk with an empty delta and finish_reason tool_calls. The observed tool names (example_lookup, example_ping) and ids are replaced by FX-PIPE-01 entries and invented numeric-string ids; observation, not qualification (R13-6)",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "reasoning_content": "(invented reasoning text)"
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "content": "\n\n"
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "951856930",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "type": "function",
+          "function": {
+           "arguments": "{\"run\":\"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {},
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
+  },
+  {
+   "id": "OBS1-C2",
+   "maps_to": "\u00a74.1 point 3",
+   "note": "OBS-1 C2: two calls in one response, index 0 complete before index 1 begins, one final finish_reason. Shape as observed by OBS-1 Part C on one local server (LM Studio 0.4.16+2, qwen/qwen3.5-9b, 2026-09-30; DEL-01-01 OBS_1_0.158.0.md \u00a710): reasoning streamed first as delta.reasoning_content, a whitespace delta.content, the id, type and name in one fragment with arguments \"\", the whole arguments in the next fragment, then a final chunk with an empty delta and finish_reason tool_calls. The observed tool names (example_lookup, example_ping) and ids are replaced by FX-PIPE-01 entries and invented numeric-string ids; observation, not qualification (R13-6)",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "reasoning_content": "(invented reasoning text)"
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "780803223",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "type": "function",
+          "function": {
+           "arguments": "{\"run\":\"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "id": "650034572",
+          "type": "function",
+          "function": {
+           "name": "OP-C2",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "type": "function",
+          "function": {
+           "arguments": "{\"load_case\":\"LC-1\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {},
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    },
+    {
+     "position": 1,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
+  },
+  {
+   "id": "OBS1-C3",
+   "maps_to": "\u00a74.1 point 4",
+   "note": "OBS-1 C3: a tool with no parameters; the arguments text sent is \"{}\" (MC-6: complete, then V-3, not run here). Shape as observed by OBS-1 Part C on one local server (LM Studio 0.4.16+2, qwen/qwen3.5-9b, 2026-09-30; DEL-01-01 OBS_1_0.158.0.md \u00a710): reasoning streamed first as delta.reasoning_content, a whitespace delta.content, the id, type and name in one fragment with arguments \"\", the whole arguments in the next fragment, then a final chunk with an empty delta and finish_reason tool_calls. The observed tool names (example_lookup, example_ping) and ids are replaced by FX-PIPE-01 entries and invented numeric-string ids; observation, not qualification (R13-6)",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "reasoning_content": "(invented reasoning text)"
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "402117755",
+          "type": "function",
+          "function": {
+           "name": "OP-C12",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "type": "function",
+          "function": {
+           "arguments": "{}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {},
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
   }
  ]
 }

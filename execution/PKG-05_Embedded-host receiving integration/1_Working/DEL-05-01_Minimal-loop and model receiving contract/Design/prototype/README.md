@@ -13,8 +13,11 @@ on input shaped like **FB-CC-1**, the published Chat Completions reference
 named in LOOP-v0.8 §4.1 as a **fixture basis, not a product selection**.
 Each assembled call is checked against `../LOOP_TOOL_CALL.schema.json`.
 
-It does not show that any model server emits these shapes. That is OBS-1's
-to observe (LOOP-v0.8 §4.1, OBS-1 column).
+It does not show that model servers in general emit these shapes. OBS-1
+observed the four points on one local server (LOOP-v0.8 §4.1, OBS-1 column;
+DEL-01-01 `OBS_1_0.158.0.md` §10); fixtures OBS1-C1…OBS1-C3 reproduce the
+observed shapes (reasoning and whitespace content deltas included; observed
+tool names replaced by FX-PIPE-01 entries) and assemble as observed.
 
 ## Files
 
@@ -22,7 +25,7 @@ to observe (LOOP-v0.8 §4.1, OBS-1 column).
 |---|---|
 | `assemble_tool_calls.py` | Joins streamed fragments by position, applies the termination-reason and per-call rules, emits one record per call, compares with the expected result, validates each record against the schema |
 | `schema_subset.py` | JSON Schema 2020-12 validator for the subset the DEL-05-01 and DEL-05-02 schemas use (type, properties, required, additionalProperties false, enum, const, items, minItems, minLength, minimum, oneOf, anyOf, local `$ref`); any other keyword raises an error |
-| `fixtures/stream_fixtures.json` | 19 streams in FB-CC-1's chunk shape with invented content on FX-PIPE-01 identifiers, each with its expected result. Chunks carry only the members the assembly reads. Written with a throw-away generator in the executor's scratch folder; this JSON is the fixture of record |
+| `fixtures/stream_fixtures.json` | 22 streams (19 written from FB-CC-1 at node B9; OBS1-C1…OBS1-C3 added at RP-4 in the shapes OBS-1 observed) in FB-CC-1's chunk shape with invented content on FX-PIPE-01 identifiers, each with its expected result. Chunks carry only the members the assembly reads. Written with a throw-away generator in the executor's scratch folder; this JSON is the fixture of record |
 
 ## How to run
 
@@ -57,6 +60,16 @@ PASS FX-M11   MC-11          termination=content-filtered       #0 filtered/MC-1
 PASS FX-M12   MC-12          termination=tool-calls             #0 malformed/MC-12
 PASS FX-M13   MC-13          termination=tool-calls             #0 malformed/MC-13; #1 malformed/MC-13
 19/19 cases as expected; every record checked against LOOP_TOOL_CALL.schema.json
+```
+
+Rerun at RP-4 (2026-09-30, Python 3.13.7, macOS), after adding OBS1-C1…OBS1-C3:
+the 19 lines above unchanged, then
+
+```text
+PASS OBS1-C1  §4.1 points 1, 2 termination=tool-calls             #0 complete
+PASS OBS1-C2  §4.1 point 3   termination=tool-calls             #0 complete; #1 complete
+PASS OBS1-C3  §4.1 point 4   termination=tool-calls             #0 complete
+22/22 cases as expected; every record checked against LOOP_TOOL_CALL.schema.json
 ```
 
 Schema examples:

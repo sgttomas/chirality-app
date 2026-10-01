@@ -20,6 +20,10 @@
     "duration_ms": null
   },
   "observed_at": "XF-34",
+  "native_source": {
+    "at_start": "agent",
+    "at_completion": "agent"
+  },
   "outcome": {
     "value": "tool_execution_declined",
     "reporter": "app",

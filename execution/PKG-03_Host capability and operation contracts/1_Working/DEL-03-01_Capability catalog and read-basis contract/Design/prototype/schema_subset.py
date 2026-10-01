@@ -13,6 +13,9 @@ unsupported keyword):
   enum, const
   properties, required, additionalProperties (boolean or schema)
   items (single schema), minItems, maxItems, uniqueItems
+  contains (at least one item must match; minContains/maxContains are not
+      in the subset; added at the RP-2 repair for the destination request
+      entry's carried-call argument, C-v0.8 §3.4)
   minLength, pattern
   minimum
   oneOf, anyOf, allOf, not
@@ -26,7 +29,7 @@ from pathlib import Path
 ANNOTATIONS = {"$schema", "$id", "$comment", "title", "description",
                "examples", "default"}
 ASSERTIONS = {"$defs", "$ref", "type", "enum", "const", "properties",
-              "required", "additionalProperties", "items", "minItems",
+              "required", "additionalProperties", "items", "contains", "minItems",
               "maxItems", "uniqueItems", "minLength", "pattern", "minimum",
               "oneOf", "anyOf", "allOf", "not", "if", "then", "else"}
 SUBSET = ANNOTATIONS | ASSERTIONS
@@ -69,8 +72,8 @@ def check_subset(schema, path="#"):
             if k in ("properties", "$defs"):
                 for name, sub in v.items():
                     bad += check_subset(sub, f"{path}/{k}/{name}")
-            elif k in ("items", "additionalProperties", "not", "if", "then",
-                       "else") and isinstance(v, dict):
+            elif k in ("items", "contains", "additionalProperties", "not", "if",
+                       "then", "else") and isinstance(v, dict):
                 bad += check_subset(v, f"{path}/{k}")
             elif k in ("oneOf", "anyOf", "allOf"):
                 for i, sub in enumerate(v):
@@ -149,6 +152,10 @@ def validate(instance, schema, registry, root=None, path="$"):
         if "items" in schema:
             for i, v in enumerate(instance):
                 errs += validate(v, schema["items"], registry, root, f"{path}[{i}]")
+        if "contains" in schema and not any(
+                not validate(v, schema["contains"], registry, root, f"{path}[{i}]")
+                for i, v in enumerate(instance)):
+            errs.append(f"{path}: no item matches 'contains'")
     for sub in schema.get("allOf", []):
         errs += validate(instance, sub, registry, root, path)
     if "anyOf" in schema:

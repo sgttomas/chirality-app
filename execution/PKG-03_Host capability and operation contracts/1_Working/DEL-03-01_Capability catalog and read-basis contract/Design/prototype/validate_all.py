@@ -7,9 +7,18 @@ subset of schema_subset.py, validates each `<name>.example-valid*.json`
 (must pass) and `<name>.example-invalid*.json` (must fail, and the errors are
 printed), and, with --run DIR, validates every host document SH-1 produced in
 that run against the schema it claims to follow.
+
+Beyond the keyword subset, catalog instances are also checked against the
+conformance rules a JSON Schema cannot state (C-v0.8 §3.5): CX-1, an
+external-contact declaration of form 'from_argument' names an argument of the
+same entry. An invalid example passes this script when the schema or a
+conformance rule rejects it. Since the RP-2 repair the script also applies
+the three mutations of V18-3 R-7 to `catalog.example-valid-2.json`; each must
+be rejected.
 """
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -40,6 +49,50 @@ def doc_schema(doc):
     return None
 
 
+CATALOG_ID = "urn:chirality:app-v4:proposed:catalog"
+
+
+def conformance(inst, sid):
+    """Conformance rules beyond the schema (C §3.5). Returns error strings."""
+    errs = []
+    if sid != CATALOG_ID:
+        return errs
+    for i, e in enumerate(inst.get("entries", [])):
+        xc = e.get("effects", {}).get("external_contact")
+        if xc and xc.get("destination_form") == "from_argument":
+            names = [a.get("argument_name") for a in e.get("input", {}).get("arguments", [])]
+            if xc.get("argument_name") not in names:
+                errs.append(f"$.entries[{i}]: CX-1 from_argument names '{xc.get('argument_name')}', "
+                            f"not an argument of the entry {names}")
+    return errs
+
+
+def mutations(design, schema, reg):
+    """V18-3 R-7: three mutations of catalog.example-valid-2.json, each must be rejected."""
+    base = json.loads((design / "catalog.example-valid-2.json").read_text())
+    dr = next(i for i, e in enumerate(base["entries"]) if e.get("entry_kind") == "destination_request")
+    fa = next(i for i, e in enumerate(base["entries"])
+              if e["effects"].get("external_contact", {}).get("destination_form") == "from_argument")
+    cases = []
+    m = copy.deepcopy(base)
+    m["entries"][dr]["exposure"].update({"H": "exposed", "X": "exposed"})
+    cases.append(("destination request entry exposed on H and X", m))
+    m = copy.deepcopy(base)
+    m["entries"][dr]["input"]["arguments"] = [a for a in m["entries"][dr]["input"]["arguments"]
+                                              if a["value_kind"] != "carried_call"]
+    cases.append(("destination request entry without its carried_call argument", m))
+    m = copy.deepcopy(base)
+    m["entries"][fa]["effects"]["external_contact"]["argument_name"] = "address"
+    cases.append(("from_argument naming an argument the entry lacks", m))
+    bad = 0
+    for name, inst in cases:
+        errs = validate(inst, schema, reg) + conformance(inst, CATALOG_ID)
+        bad += 0 if errs else 1
+        print(f"    {'PASS' if errs else 'FAIL'} mutation (V18-3 R-7) {name}: "
+              + (f"rejected -> {errs[0]}" if errs else "accepted"))
+    return bad
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", help="an SH-1 run directory (run_fixture.py --out)")
@@ -57,12 +110,14 @@ def main():
         stem = f.name[: -len(".schema.json")]
         for ex in sorted(f.parent.glob(f"{stem}.example-*.json")):
             inst = json.loads(ex.read_text())
-            errs = validate(inst, s, reg)
+            errs = validate(inst, s, reg) + conformance(inst, s["$id"])
             want_valid = ".example-valid" in ex.name
             ok = (not errs) if want_valid else bool(errs)
             bad += 0 if ok else 1
             print(f"    {'PASS' if ok else 'FAIL'} {ex.name}: {'valid' if not errs else 'invalid'}"
                   + ("" if not errs else f" -> {errs[0]}" + (f" (+{len(errs) - 1} more)" if len(errs) > 1 else "")))
+        if s["$id"] == CATALOG_ID:
+            bad += mutations(f.parent, s, reg)
     if a.run:
         run = Path(a.run)
         n = 0
@@ -76,7 +131,7 @@ def main():
                 targets = [(doc, doc_schema(doc))]
             for inst, sid in targets:
                 n += 1
-                errs = validate(inst, ids[sid], reg) if sid else ["no schema claimed"]
+                errs = (validate(inst, ids[sid], reg) + conformance(inst, sid)) if sid else ["no schema claimed"]
                 if errs:
                     bad += 1
                     print(f"  FAIL host doc {rec['run']}/{rec['step']}/{rec['path']} vs {sid}: {errs[:3]}")

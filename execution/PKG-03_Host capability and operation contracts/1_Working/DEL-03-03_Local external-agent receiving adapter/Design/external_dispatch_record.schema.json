@@ -49,8 +49,19 @@
     "edition": {"type": "string", "minLength": 1},
     "requested_mode": {"enum": ["propose", "apply_directly"]},
     "proposal_identity": {"type": "string", "minLength": 1},
+    "proposal_minted_by": {"enum": ["proposer", "host", "not_observed"], "description": "P §3.5 PM-1: who minted the proposal identity, as the submission or the host document shows it (V18-3 m-14); 'not_observed' for an observation by identity."},
     "relied_on_basis_check": {"enum": ["observed_in_prior_read", "cited_basis_not_observed", "not_applicable"]},
     "native_status": {"enum": ["in_progress", "completed", "failed", "declined", "interrupted"]},
+    "native_source": {
+      "description": "N-CLI (R14-4; OBS-1b): the item's source at item/started and at item/completed. OM-1 reads the start-time source; at 0.158.0 on the local route it changed from 'agent' to 'unifiedExecStartup' within one item.",
+      "type": "object",
+      "required": ["at_start"],
+      "additionalProperties": false,
+      "properties": {
+        "at_start": {"enum": ["agent", "userShell", "unifiedExecStartup", "unifiedExecInteraction"]},
+        "at_completion": {"enum": ["agent", "userShell", "unifiedExecStartup", "unifiedExecInteraction"]}
+      }
+    },
     "transport": {
       "description": "Transport facts only (M-1): an exit status or a supplier-reported failure never is an outcome.",
       "type": "object",

@@ -97,6 +97,19 @@ def tick(st):
     return f"t{st['clock']:04d}"
 
 
+def now(st):
+    """The double's present time, without advancing the clock (RP-2: event and capture times)."""
+    return f"t{st['clock']:04d}"
+
+
+def item_left(st, cause, evaluated=None):
+    """P-v0.8 §4.3 item-left event, explicit on the item (RP-2; R14-8 N-18)."""
+    ev = {"cause": cause, "time": now(st)}
+    if evaluated is not None:
+        ev["evaluated_basis"] = evaluated
+    return ev
+
+
 # ----------------------------------------------------------------- catalogue
 
 def lineage_value(st, value):
@@ -389,9 +402,7 @@ def derived(items):
     for it in items:
         counts[it["state"]] = counts.get(it["state"], 0) + 1
     summary = next(iter(counts)) if len(counts) == 1 else "mixed"
-    decided = all(("decision" in it) or it["state"] in
-                  {"refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "left_queue"}
-                  for it in items)
+    decided = all(("decision" in it) or ("item_left" in it) for it in items)   # DS-4 (P §4.3)
     return {"summary": summary, "counts": counts,
             "open": any(it["state"] in OPEN for it in items), "all_items_decided": decided}
 
@@ -475,6 +486,8 @@ def submit(st, req):
             applied_any = True
         else:
             rec |= {"state": "queued"}
+        if rec["state"].startswith("refused_"):          # left at first receipt, no decision (PT-4..PT-6)
+            rec["item_left"] = item_left(st, rec["state"], rec["refusal"]["evaluated_basis"])
         items.append(rec)
     p = {"proposal_identity": pid, "lineage": (req.get("lineage") or {}).get("replaces"),
          "content": content, "request": req, "items": items, "submissions": 1,
@@ -660,7 +673,8 @@ def person_main(state_dir, words):
                 kind = "A5" if verb == "accept" else "A10"
                 it["state"] = "accepted" if verb == "accept" else "rejected"
                 it["decision"] = {"act_kind": kind, "actor": PERSON, "act_reference": f"ACT-{st['next_act']}",
-                                  "capture_evidence_reference": f"SH1-CAP-{st['next_act']}"}
+                                  "capture_evidence_reference": f"SH1-CAP-{st['next_act']}",
+                                  "captured_at": now(st)}
                 st["next_act"] += 1
     elif verb == "grant-direct":
         st["settings"]["P-03"] = {"display_state": "effective_person_set", "grant_value": "direct",

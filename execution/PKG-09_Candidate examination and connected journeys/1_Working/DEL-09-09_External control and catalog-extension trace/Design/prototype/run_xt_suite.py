@@ -60,6 +60,26 @@ EXAMPLES = {
 TODAY = datetime.date.today().isoformat()
 FAILS = []
 
+# RS R11 evidence-limit labels in RS's own spelling (V18-4 m-2; RP-4). The mapper's
+# tokens (ADAPTER-v0.6 `external_dispatch_record.schema.json`) are mapped once, here,
+# and every label an XT record carries is checked against RS's list.
+RS_SCHEMA = next(EXEC_ROOT.glob("PKG-04_*/1_Working/DEL-04-03_*/Design/RS_RECORD.schema.json"))
+ADAPTER_TO_RS = {"lost_acknowledgement": "lost acknowledgement",
+                 "unverified_caller_identity": "unverified caller identity",
+                 "resubmission_without_prior_observation": "resubmission without prior observation",
+                 "app_restart_interruption": "App-restart interruption",
+                 "basis_lineage_not_supplied": "basis lineage not supplied",
+                 "dedup_scope_exceeded": "de-duplication scope exceeded",
+                 "host_result_not_isolated": "host result not isolated",
+                 "dispatch_recognized_from_compound_command": "dispatch recognized from compound command"}
+
+
+def rs_r11_labels():
+    defs = json.loads(RS_SCHEMA.read_text())["$defs"]
+    if "evidenceLimitLabel" in defs:
+        return set(defs["evidenceLimitLabel"]["enum"])
+    return set(defs["evidenceLimit"]["properties"]["label"]["enum"])
+
 # XT §3.5 suite plan: (order, case, segment, starts from, reset after). The prose table in §3.5 is the definition;
 # this list is its executable copy and is checked against the order actually run.
 SUITE = [
@@ -104,7 +124,7 @@ DOUBLE = {"double_identity": "SH-1 (with the ADAPTER-v0.6 mapper for App-side re
           "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"}
 CFG = {"realization_family": "both_on_double", "native_path": "both", "endpoint": "SH-1 local process (stdio) and command",
        "host_profile": "SH-1 full",
-       "model_destination": {"not_observed": "the App's Codex is imitated, not run (OBS-1 pending)"}}
+       "model_destination": {"not_observed": "the App's Codex is imitated, not run; no App run exists (OBS-1 observed supplier turns at pin 0.158.0 on one local route, not App runs)"}}
 HOST_JOINS = ("an identified SWBPIPE candidate; host joins and caller naming deferred", "SWBPIPE owner (DECISION-3)", "SQ-27")
 APP_CAND = ("an identified App candidate", "App construction (later undertaking)")
 A13 = ("host A13 enablement facility with capture-evidence reference", "SWBPIPE owner", "SQ-28")
@@ -151,7 +171,7 @@ def record(case, parts, *, order, rehearsal_of=(), limits=(), missing=(), acts=(
            "date": TODAY,
            "suite_position": {"segment": plan[2], "order": plan[0], "starts_from": plan[3], "reset_after": plan[4]} if plan
            else {"segment": "none", "order": 99, "starts_from": "not run", "reset_after": "none"},
-           "outcome": aggregate(parts), "parts": parts, "evidence_limits": sorted(set(limits)),
+           "outcome": aggregate(parts), "parts": parts, "evidence_limits": sorted({ADAPTER_TO_RS.get(x, x) for x in limits}),
            "missing_inputs": [dict(zip(("input", "supplier", "relay_question"), m)) for m in missing],
            "completion": {"counts_toward_witness": False,
                           "reason": "a rehearsal on a test double never completes a joined case (XT §0, §3.3)" if plan
@@ -243,7 +263,7 @@ def run_suite(out):
              cap.get("record") == "in_force" and cap.get("capture_evidence_reference", "").startswith("SH1-CAP-")
              and M.state()["settings"]["P-03"]["grant_value"] == "propose",
              chain=["J-1"], built_on=["XF-01", "XF-03"], obs=[("enablement " + cap.get("capture_evidence_reference", "?"), "act_record", "M/enable")]),
-        part("model destination shown and recorded, never gating", "per turn where reported", False, not_run_because="no supplier turn (OBS-1 pending)"),
+        part("model destination shown and recorded, never gating", "per turn where reported", False, not_run_because="no App run (the App's Codex is imitated; OBS-1's supplier turns were not App runs)"),
     ], order=2, rehearsal_of=["XF-01", "XF-02", "XF-03", "XF-06"], missing=[A13, HOST_JOINS]))
     # 3 XC-11 (reads, check, unavailability; X paths only)
     run_order.append("XC-11")
@@ -350,7 +370,7 @@ def run_suite(out):
              no_act and xf34["outcome"]["value"] == "tool_execution_declined", built_on=["XF-31", "XF-32", "XF-33"],
              obs=[("XF-34 declined", "dispatch_record", "M/XF-34")]),
         part("(−) model text 'the engineer accepted' and a user-input or elicitation answer establish no act", "no act", False,
-             built_on=["L-ADAPTER-4"], not_run_because="no model turn (the App's Codex is imitated; OBS-1 pending)"),
+             built_on=["L-ADAPTER-4"], not_run_because="no model turn in the rehearsal (the App's Codex is imitated; OBS-1's supplier turns were not App runs)"),
         part("(±) T2 A4 on S-2 with no acceptance predecessor; lapsed after T14", "independent A4; lapse visible", False,
              not_run_because="SH-1 has no A4 facility (returned to C; XT F-25)"),
     ], order=6, rehearsal_of=["XF-18", "XF-31", "XF-32", "XF-33"], missing=[("capture-evidence reference", "SWBPIPE owner", "SQ-01"), HOST_JOINS]))
@@ -671,6 +691,10 @@ def main():
         check(f"{tag} no part failed", all(p["outcome"] != "failed" for p in r["parts"]),
               "; ".join(p["part"] for p in r["parts"] if p["outcome"] == "failed"))
     check("no record counts toward a witness", not any(r["completion"]["counts_toward_witness"] for r in recs))
+    rs_labels = rs_r11_labels()
+    used = sorted({x for r in recs for x in r["evidence_limits"]})
+    check(f"every evidence limit is an RS R11 label in RS's spelling ({len(used)} distinct: {', '.join(used)})",
+          all(x in rs_labels for x in used), str([x for x in used if x not in rs_labels]))
     errs = ss.validate(acct, acs, reg)
     check("V-ED1 work account validates", not errs, "; ".join(errs[:4]))
     elems = {(x["surface"], x["element"]) for x in acct["rows"]}

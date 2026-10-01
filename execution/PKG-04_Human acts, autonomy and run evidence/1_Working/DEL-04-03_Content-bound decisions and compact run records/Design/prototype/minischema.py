@@ -11,12 +11,19 @@ Supported keywords (the subset the DEL-04-0x schemas use):
 Any other keyword makes the schema itself fail with "unsupported keyword", so a
 schema cannot silently rely on something this validator ignores.
 
-$ref: "#/..." JSON pointers inside the current schema resource, and absolute
-references "<$id>#/..." resolved through a registry of loaded schemas.
+$ref: "#/..." JSON pointers inside the current schema resource; absolute
+references "<$id>#/..." resolved through a registry of loaded schemas; and
+relative file references "<path>#/..." (percent-encoded, as RS's references to
+EXEC's CE bodies are written, R14-1), resolved against the directory of the
+file the referring schema was loaded from, then loaded and subset-checked once.
+A general validator needs the same mapping: RS's $id is a URN, so a relative
+reference cannot resolve against it.
 """
 
 import json
+import os
 import re
+from urllib.parse import unquote
 
 ANNOTATIONS = {"$schema", "$id", "$defs", "$comment", "title", "description", "examples"}
 ASSERTIONS = {
@@ -33,6 +40,8 @@ class SchemaError(Exception):
 class Registry:
     def __init__(self):
         self.by_id = {}
+        self.dir_of = {}            # id(schema root) -> directory it was loaded from
+        self.by_path = {}           # absolute file path -> schema root
 
     def add(self, schema):
         sid = schema.get("$id")
@@ -42,10 +51,25 @@ class Registry:
         return sid
 
     def load(self, path):
+        path = os.path.abspath(path)
         with open(path, encoding="utf-8") as fh:
             schema = json.load(fh)
         check_supported(schema, path)
+        self.dir_of[id(schema)] = os.path.dirname(path)
+        self.by_path[path] = schema
         return self.add(schema)
+
+    def resolve_file(self, base, root):
+        """A relative file reference, against the directory of the referring root."""
+        d = self.dir_of.get(id(root))
+        if d is None:
+            return None
+        path = os.path.normpath(os.path.join(d, unquote(base)))
+        if path not in self.by_path:
+            if not os.path.exists(path):
+                return None
+            self.load(path)
+        return self.by_path[path]
 
 
 def check_supported(node, where="schema", path="#"):
@@ -105,9 +129,12 @@ def validate(instance, schema, registry, root=None, path="$"):
             target, target_root = _pointer(root, ref), root
         else:
             base, _, frag = ref.partition("#")
-            if base not in registry.by_id:
+            if base in registry.by_id:
+                target_root = registry.by_id[base]
+            elif ":" not in base and (target_root := registry.resolve_file(base, root)) is not None:
+                pass
+            else:
                 return [f"{path}: unresolved $ref {ref}"]
-            target_root = registry.by_id[base]
             target = _pointer(target_root, "#" + frag if frag else "#")
         errors += validate(instance, target, registry, target_root, path)
 

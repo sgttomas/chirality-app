@@ -215,7 +215,12 @@
               "item": {"enum": ["analytics or usage reporting", "a silent switch to another model or provider", "background downloads or updates"]},
               "on": {"type": "boolean"},
               "settingActRef": {"$ref": "#/$defs/actRef"}
-            }
+            },
+            "$comment": "Off unless an A12 turned it on (AS §6 = RS §8): an item shown on must carry the A12 reference (V18-1 m-16; RP-4).",
+            "anyOf": [
+              {"properties": {"on": {"const": false}}},
+              {"required": ["settingActRef"]}
+            ]
           }
         },
         "inWorkGrants": {"type": "array", "items": {"$ref": "#/$defs/inWorkGrant"}},

@@ -14,15 +14,15 @@
     "files": [
       {
         "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/prototype/simhost.py",
-        "sha256": "e2169282c83385acdb289920a662fc4bd67850d318234db4dbe7fea4caa2701e"
+        "sha256": "27693ccf00e0baa9b80475c609342cddb4c026f332d899bfc980e1eb25447434"
       },
       {
         "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/prototype/run_fixture.py",
-        "sha256": "ba2198f30db7cbabf11dc781710b92aae3c6bb315fc09171b9e73416ba443f95"
+        "sha256": "88b8a5300320b793ffd403a76b59e2be0b800fa0851486c8f10478906b22c050"
       },
       {
         "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/prototype/observe_map.py",
-        "sha256": "ebecc03d57b4a11de0f40cd40db3fa926f897ae05456ee058503696e785f6a80"
+        "sha256": "a0b0174799b181f4ca84e71890d119012d43988a5df00310f302059ce4ba801f"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"
@@ -33,7 +33,7 @@
     "endpoint": "SH-1 local process (stdio) and command",
     "host_profile": "SH-1 full",
     "model_destination": {
-      "not_observed": "the App's Codex is imitated, not run (OBS-1 pending)"
+      "not_observed": "the App's Codex is imitated, not run; no App run exists (OBS-1 observed supplier turns at pin 0.158.0 on one local route, not App runs)"
     }
   },
   "date": "2026-09-30",
@@ -144,7 +144,7 @@
     }
   ],
   "evidence_limits": [
-    "unverified_caller_identity"
+    "unverified caller identity"
   ],
   "missing_inputs": [
     {

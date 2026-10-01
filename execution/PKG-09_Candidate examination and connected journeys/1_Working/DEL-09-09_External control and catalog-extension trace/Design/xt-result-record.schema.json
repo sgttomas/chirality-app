@@ -49,7 +49,7 @@
       "items": {"$ref": "#/$defs/comparison"}
     },
     "act_records_cited": {"type": "array", "items": {"$ref": "#/$defs/act_citation"}},
-    "evidence_limits": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "evidence_limits": {"description": "RS R11 evidence-limit labels in RS's own spelling (RS-v0.8 RS_RECORD.schema.json); an act record's own limits go on the act citation (record_limits). The suite prototype maps the ADAPTER mapper's tokens once and checks every label against RS's list (V18-4 m-2; RP-4).", "type": "array", "items": {"type": "string", "minLength": 1}},
     "missing_inputs": {"type": "array", "items": {"$ref": "#/$defs/missing_input"}},
     "blocked_by": {"type": "string", "minLength": 1},
     "completion": {
@@ -174,7 +174,7 @@
         "reference": {
           "type": "object", "required": ["kind", "ref"], "additionalProperties": false,
           "properties": {
-            "kind": {"enum": ["host_document", "host_receipt", "dispatch_record", "channel_status", "act_record", "rs_entry", "change_record", "run_output"]},
+            "kind": {"enum": ["host_document", "host_receipt", "dispatch_record", "channel_status", "act_record", "rs_entry", "change_record", "run_output", "compatibility_report"]},
             "ref": {"type": "string", "minLength": 1}
           }
         },
@@ -200,9 +200,10 @@
       "additionalProperties": false,
       "properties": {
         "record_id": {"type": "string", "minLength": 1},
-        "act_kind": {"enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15"]},
+        "act_kind": {"description": "The human-act kinds of RS-v0.8 §6.1 (V18-4 m-3; RP-4): never A1/A2 (operation entries), A3, A8, A9 or A14.", "enum": ["A4", "A5", "A6", "A7", "A10", "A11", "A12", "A13", "A15"]},
         "actor": {"type": "string", "minLength": 1},
         "recorder": {"type": "string", "minLength": 1},
+        "record_limits": {"description": "Evidence limits of the act record itself (RS-v0.8 §6.1), e.g. 'identity not verified' for an App-captured act (EXEC CAP-8); not RS R11 labels (RP-4).", "type": "array", "items": {"type": "string", "minLength": 1}},
         "capture_evidence": {
           "oneOf": [
             {"type": "object", "required": ["reference"], "additionalProperties": false, "properties": {"reference": {"type": "string", "minLength": 1}}},

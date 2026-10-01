@@ -93,7 +93,7 @@
     },
     "exposure_value": {"enum": ["exposed", "not_exposed_on_this_surface", "unagreed"]},
     "external_contact": {
-      "description": "C-v0.8 §3.4 (node B5; PROPOSED): the external-contact declaration, a sub-element of element 5. An entry that reaches a network destination for a host's agent declares its category and destination form (DEL-05-01/LOOP-v0.8 §5.3 DF-1, DF-2). Semantic labels only.",
+      "description": "C-v0.8 §3.4 (node B5; PROPOSED): the external-contact declaration, a sub-element of element 5. An entry that reaches a network destination for a host's agent declares its category and destination form (DEL-05-01/LOOP-v0.8 §5.3 DF-1, DF-2). Semantic labels only. Beyond this schema, conformance rule CX-1 (C §3.5; checked by prototype/validate_all.py) requires that a 'from_argument' declaration name an argument of the same entry.",
       "type": "object",
       "required": ["category", "destination_form"],
       "additionalProperties": false,
@@ -114,7 +114,15 @@
       "required": ["operation_identity", "operation_version", "purpose", "input", "availability", "effects", "result", "errors", "class", "exposure"],
       "additionalProperties": false,
       "if": {"required": ["entry_kind"], "properties": {"entry_kind": {"const": "destination_request"}}},
-      "then": {"properties": {"effects": {"properties": {"kind": {"const": "none"}}, "not": {"required": ["external_contact"]}}, "class": {"properties": {"class_value": {"const": "none"}}}}},
+      "then": {
+        "description": "C-v0.8 §3.4 and §3.5 (node B5; exposure and carried-call parts added at the RP-2 repair, V18-3 m-15 and R-7): a destination request entry has class none, effects none and no external-contact declaration; it is exposed on E only (H and X never 'exposed'); and its argument list includes the carried call (an argument of value kind 'carried_call', which a call supplies for scope once).",
+        "properties": {
+          "effects": {"properties": {"kind": {"const": "none"}}, "not": {"required": ["external_contact"]}},
+          "class": {"properties": {"class_value": {"const": "none"}}},
+          "exposure": {"properties": {"H": {"not": {"const": "exposed"}}, "E": {"const": "exposed"}, "X": {"not": {"const": "exposed"}}}},
+          "input": {"properties": {"arguments": {"contains": {"properties": {"value_kind": {"const": "carried_call"}}, "required": ["value_kind"]}}}}
+        }
+      },
       "properties": {
         "entry_kind": {"description": "C-v0.8 §3.4 (node B5; PROPOSED). 'destination_request' is the host-supplied entry through which a host's agent asks the person for a network destination (its A8; LOOP-v0.8 §5.3 DF-1). Absent means 'operation'.", "enum": ["operation", "destination_request"]},
         "operation_identity": {"$ref": "#/$defs/identity"},

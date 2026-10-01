@@ -1,28 +1,33 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:proposed:checkpoint-observation",
-  "title": "External-channel observation passed to DEL-02-03 (DEL-03-03 ADAPTER-v0.6 §7.7 CO-1..CO-9; PROPOSED)",
-  "description": "PROPOSED schema (R12-1). One observation the adapter makes on X and passes to DEL-02-03 (arc N-24; DEP-02-03-026). The adapter observes and reports; it evaluates no reached-when, disposition or hold. 'exec_event' names the EXEC §4.4 event row the observation feeds. Property names are Chirality's semantic labels, not a host wire field.",
+  "title": "External-channel observation passed to DEL-02-03 (DEL-03-03 ADAPTER-v0.6 §7.7 CO-1..CO-11; PROPOSED)",
+  "description": "PROPOSED schema (R12-1). One observation the adapter makes on X and passes to DEL-02-03 (arc N-24; DEP-02-03-026). The adapter observes and reports; it evaluates no reached-when, disposition or hold. 'exec_event' names the EXEC-v0.6 §2.4.2 event (CE-n) the observation is an input to; EXEC's recorder decides and writes the RS entry (R14-1). Property names are Chirality's semantic labels, not a host wire field.",
   "type": "object",
   "required": ["observation_kind", "exec_event", "source_record", "observed_at"],
   "additionalProperties": false,
   "properties": {
     "observation_kind": {"enum": [
       "proposal_queued", "applied_outcome", "act_observed", "act_declined_observed", "item_left",
-      "all_items_decided", "subject_identity_changed", "observation_lost", "observation_recovered"
+      "all_items_decided", "subject_identity_changed", "observation_lost", "observation_recovered",
+      "decided_item_not_applied", "request_recorded"
     ]},
-    "exec_event": {"enum": [
-      "arrival_input", "human_act_observed", "a10_item_left_all_items_decided", "act_declined_event",
-      "act_lapsed_input", "applied_outcome_with_resulting_objects", "observation_lost_recovered"
-    ]},
+    "exec_event": {"enum": ["CE-3", "CE-4", "CE-5/CE-6", "CE-7", "CE-8", "CE-10", "CE-13", "CE-14"], "description": "The EXEC-v0.6 §2.4.2 event this observation is input to (R14-8 N-24; V18-3 m-4)."},
     "source_record": {"type": "string", "minLength": 1, "description": "The native item (external dispatch record) this observation was read from."},
     "run": {"type": "string", "minLength": 1},
     "proposal_identity": {"type": "string", "minLength": 1},
     "item_identity": {"type": "string", "minLength": 1},
     "items": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "item_content_identities": {
+      "description": "CO-1 (V18-3 m-1): per queued item its change-item content identity with method, from the same recorded state (P §3.1, PM-6).",
+      "type": "array", "minItems": 1,
+      "items": {"type": "object", "required": ["item_identity", "content_identity", "identity_method"], "additionalProperties": false,
+                "properties": {"item_identity": {"type": "string", "minLength": 1}, "content_identity": {"type": "string", "minLength": 1}, "identity_method": {"type": "string", "minLength": 1}}}
+    },
+    "evidence_time_source": {"enum": ["host_outcome_time", "supplier_item_time"], "description": "Where evidence_time comes from (EXEC AW-8)."},
     "act": {
       "type": "object",
-      "required": ["act_kind", "decision_actor", "recorder", "recording_mode", "bound_content_identity", "capture_evidence"],
+      "required": ["act_kind", "decision_actor", "recorder", "recording_mode", "bound_content_identity", "capture_evidence", "act_reference", "capture_time", "faithful_record"],
       "additionalProperties": false,
       "properties": {
         "act_kind": {"enum": ["A4", "A5", "A6", "A7", "A10", "A12"]},
@@ -37,10 +42,39 @@
             {"const": "not_supplied"}
           ]
         },
-        "capture_time": {"type": "string", "minLength": 1}
+        "act_reference": {"description": "The host's own act reference (P §9 act_ref.act_reference), or not supplied (R14-4).",
+                          "oneOf": [{"type": "string", "minLength": 1, "not": {"const": "not_supplied_by_host"}}, {"const": "not_supplied_by_host"}]},
+        "capture_time": {"description": "The capture time as the host records it (P §9 act_ref.captured_at), else 'not_supplied_by_host'; never a time of the App's own (R14-4; V18-3 M-1).",
+                         "oneOf": [{"type": "string", "minLength": 1, "not": {"const": "not_supplied_by_host"}}, {"const": "not_supplied_by_host"}]},
+        "faithful_record": {"description": "The RS §6 record identity of the App's faithful record of this act ('rec:…', RS §13.2), which EXEC cites (EXEC §2.4.5 actRef); 'not_written' when the host gave no capture-evidence reference (§7.6; RS HA-1; RS R11 'act offered without a capture-evidence reference').",
+                            "oneOf": [{"type": "string", "pattern": "^rec:[A-Za-z0-9._:-]+$"}, {"const": "not_written"}]}
       }
     },
-    "left_cause": {"enum": ["refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "cleared_by_person_no_decision_record"]},
+    "left_cause": {"enum": ["refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "cleared_by_person_no_decision_record"], "description": "P §4.3 cause, passed on and kept by EXEC's item_decision (R14-8 N-21)."},
+    "left_time": {"type": "string", "minLength": 1, "description": "P §4.3 item-left event time (P item_left.time), where the host gives one."},
+    "not_applied": {
+      "description": "CO-10 (R14-4; P PT-15, PT-16): an item with A5 that was then not applied, for EXEC MX-7, MX-8 and WD §4.3.7.",
+      "type": "object", "required": ["accepted_by", "result"], "additionalProperties": false,
+      "properties": {
+        "accepted_by": {"type": "string", "minLength": 1, "description": "The A5's host act reference."},
+        "result": {"enum": ["refused_stale", "application_error", "outcome_unknown"]},
+        "relied_on_basis": {"type": "string", "minLength": 1},
+        "current_basis": {"type": "string", "minLength": 1},
+        "effect": {"enum": ["none", "partial", "unknown"]},
+        "observer": {"enum": ["app", "host"]}
+      }
+    },
+    "request": {
+      "description": "CO-11 (R14-4; EXEC RC-5): a request for a person's act that the host itself records and a host read over X returns. A request in the App conversation is EXEC's observation, not the adapter's.",
+      "type": "object", "required": ["host_request_reference", "act_kind", "subject", "purpose"], "additionalProperties": false,
+      "properties": {
+        "host_request_reference": {"type": "string", "minLength": 1},
+        "act_kind": {"oneOf": [{"enum": ["A4", "A5", "A6", "A7", "A10", "A12", "A13"]}, {"const": "not_named_by_the_request"}]},
+        "subject": {"oneOf": [{"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, {"const": "not_named_by_the_request"}]},
+        "purpose": {"type": "string", "minLength": 1},
+        "requested_at": {"type": "string", "minLength": 1}
+      }
+    },
     "applied": {
       "type": "object",
       "required": ["receipt_reference", "resulting_revision", "resulting_objects"],
@@ -53,12 +87,13 @@
     },
     "identity_change": {
       "type": "object",
-      "required": ["subject_identity", "earlier", "later", "comparable"],
+      "required": ["subject_identity", "identity_method", "earlier", "later", "comparable"],
       "additionalProperties": false,
       "properties": {
         "subject_identity": {"type": "string", "minLength": 1},
+        "identity_method": {"type": "string", "minLength": 1},
         "earlier": {"type": "string", "minLength": 1},
-        "later": {"type": "string", "minLength": 1},
+        "later": {"type": "string", "minLength": 1, "description": "The later identity, or 'subject_absent' where the subject no longer exists (V18-3 m-2; EXEC CH-24)."},
         "comparable": {"type": "boolean"}
       }
     },
@@ -68,13 +103,16 @@
     "observed_at": {"type": "string", "minLength": 1}
   },
   "allOf": [
-    {"if": {"properties": {"observation_kind": {"const": "proposal_queued"}}}, "then": {"required": ["proposal_identity", "items", "evidence_time"], "properties": {"exec_event": {"const": "arrival_input"}}}},
-    {"if": {"properties": {"observation_kind": {"const": "applied_outcome"}}}, "then": {"required": ["proposal_identity", "item_identity", "applied"], "properties": {"exec_event": {"const": "applied_outcome_with_resulting_objects"}}}},
-    {"if": {"properties": {"observation_kind": {"const": "act_observed"}}}, "then": {"required": ["act"], "properties": {"exec_event": {"enum": ["human_act_observed", "a10_item_left_all_items_decided"]}}}},
-    {"if": {"properties": {"observation_kind": {"const": "act_declined_observed"}}}, "then": {"required": ["act"], "properties": {"exec_event": {"const": "act_declined_event"}}}},
-    {"if": {"properties": {"observation_kind": {"const": "item_left"}}}, "then": {"required": ["proposal_identity", "item_identity", "left_cause"], "properties": {"exec_event": {"const": "a10_item_left_all_items_decided"}}}},
-    {"if": {"properties": {"observation_kind": {"const": "all_items_decided"}}}, "then": {"required": ["proposal_identity"], "properties": {"exec_event": {"const": "a10_item_left_all_items_decided"}}}},
-    {"if": {"properties": {"observation_kind": {"const": "subject_identity_changed"}}}, "then": {"required": ["identity_change"], "properties": {"exec_event": {"const": "act_lapsed_input"}}}},
-    {"if": {"properties": {"observation_kind": {"enum": ["observation_lost", "observation_recovered"]}}}, "then": {"required": ["lost_what", "last_observed_state"], "properties": {"exec_event": {"const": "observation_lost_recovered"}}}}
+    {"if": {"properties": {"observation_kind": {"const": "proposal_queued"}}}, "then": {"required": ["proposal_identity", "items", "evidence_time"], "properties": {"exec_event": {"const": "CE-3"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "applied_outcome"}}}, "then": {"required": ["proposal_identity", "item_identity", "applied"], "properties": {"exec_event": {"const": "CE-3"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "act_observed"}}}, "then": {"required": ["act"], "properties": {"exec_event": {"enum": ["CE-5/CE-6", "CE-7"]}}}},
+    {"if": {"properties": {"observation_kind": {"const": "act_declined_observed"}}}, "then": {"required": ["act"], "properties": {"exec_event": {"const": "CE-8"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "item_left"}}}, "then": {"required": ["proposal_identity", "item_identity", "left_cause"], "properties": {"exec_event": {"const": "CE-7"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "all_items_decided"}}}, "then": {"required": ["proposal_identity"], "properties": {"exec_event": {"const": "CE-7"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "subject_identity_changed"}}}, "then": {"required": ["identity_change"], "properties": {"exec_event": {"const": "CE-10"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "observation_lost"}}}, "then": {"required": ["lost_what", "last_observed_state"], "properties": {"exec_event": {"const": "CE-13"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "observation_recovered"}}}, "then": {"required": ["lost_what", "last_observed_state"], "properties": {"exec_event": {"const": "CE-14"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "decided_item_not_applied"}}}, "then": {"required": ["proposal_identity", "item_identity", "not_applied"], "properties": {"exec_event": {"const": "CE-7"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "request_recorded"}}}, "then": {"required": ["request"], "properties": {"exec_event": {"const": "CE-4"}}}}
   ]
 }

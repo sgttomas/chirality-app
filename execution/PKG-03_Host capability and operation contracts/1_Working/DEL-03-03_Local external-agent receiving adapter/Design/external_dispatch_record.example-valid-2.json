@@ -21,6 +21,7 @@
   },
   "observed_at": "T13",
   "proposal_identity": "PR-2",
+  "proposal_minted_by": "proposer",
   "requested_mode": "propose",
   "origin_observed": {
     "author_identity": "unverified",

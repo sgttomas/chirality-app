@@ -8,9 +8,10 @@ writer and reader failure behaviour of RS-v0.8 §14. It selects no placement
 
 | File | What it is |
 |---|---|
-| `minischema.py` | A JSON Schema draft 2020-12 validator for a declared keyword subset: `type`, `enum`, `const`, `required`, `properties`, `additionalProperties`, `items`, `minItems`, `minLength`, `pattern`, `minimum`, `oneOf`, `anyOf`, `allOf`, `not`, `$ref` (local pointers and `$id` URNs through a registry), `$defs`; annotations `$schema`, `$id`, `$comment`, `title`, `description`, `examples`. Any other keyword fails the schema load, so no schema relies on a keyword this validator ignores. |
+| `minischema.py` | A JSON Schema draft 2020-12 validator for a declared keyword subset: `type`, `enum`, `const`, `required`, `properties`, `additionalProperties`, `items`, `minItems`, `minLength`, `pattern`, `minimum`, `oneOf`, `anyOf`, `allOf`, `not`, `$ref` (local pointers, `$id` URNs through a registry, and relative file paths resolved against the referring schema's directory — how RS references EXEC's CE bodies, R14-1), `$defs`; annotations `$schema`, `$id`, `$comment`, `title`, `description`, `examples`. Any other keyword fails the schema load, so no schema relies on a keyword this validator ignores. |
 | `record_store.py` | The prototype writer (W-0 open, W-1 append, W-2 late write after a failure, W-3 correction) and reader (R-1…R-8) of RS §14 |
-| `run_prototype.py` | Loads the three schemas (ACT, AS, RS), validates every valid and invalid example beside them, round-trips each valid RS example log through the writer and reader, and runs the failure cases FC-1…FC-7 |
+| `run_prototype.py` | Loads the three schemas (ACT, AS, RS), validates every valid and invalid example beside them, round-trips each valid RS example log through the writer and reader, and runs the failure cases FC-1…FC-7 ; then runs `exec_to_rs.py`'s checks |
+| `exec_to_rs.py` | R14-1: RS format 0.1 is the one container. Checks that each of EXEC's 19 CE bodies has an RS kind that references it, writes EXEC's valid recorder outputs (DEL-02-03 `checkpoint-record-entries.example.valid.json`) through the writer as RS entries and reads them back, then does the same for EXEC's other CH scripts and one sample of each remaining kind. Every entry must be valid and none without a kind |
 
 The ACT and AS prototype folders hold a small script each that uses
 `minischema.py` from here to validate their own examples.
@@ -49,4 +50,10 @@ files; nothing is written beside the Design files.
   observed".
 
 The exact console output is recorded in the Wave B return file
-`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B4.md`.
+`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B4.md`; the
+R14 repair's rerun (four logs, INV-RS-1…15, and the EXEC → RS conversion:
+12 of 12 and 40 of 40 entries valid) in `WAVE_B/RP-1.md`.
+
+```text
+python3 -B exec_to_rs.py "$TMPDIR/exec-to-rs"
+```

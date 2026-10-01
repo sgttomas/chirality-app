@@ -127,7 +127,7 @@
           {"type": "object", "additionalProperties": false, "required": ["operation_id", "version"],
            "properties": {"operation_id": {"$ref": "#/$defs/nonempty"}, "version": {"$ref": "#/$defs/nonempty"}}}
         ]},
-        "exposure": {"enum": ["exposed", "not_exposed", "unagreed", "not_read"]},
+        "exposure": {"enum": ["exposed", "not_exposed_on_this_surface", "unagreed", "not_read"]},
         "availability": {"oneOf": [
           {"type": "null"},
           {"type": "object", "additionalProperties": false, "required": ["result", "reason", "evaluated_basis"],

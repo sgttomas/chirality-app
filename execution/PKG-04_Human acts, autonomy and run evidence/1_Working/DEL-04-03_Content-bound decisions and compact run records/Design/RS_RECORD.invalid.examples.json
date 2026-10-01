@@ -61,5 +61,29 @@
     "case": "INV-RS-11",
     "why": "A destination request with scope once that carries no call; ACT ND-A2 (once is consumed by the one requesting call) and LOOP-v0.8 §5.3 DF-1 (node B5)",
     "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:e-14:0991", "kind": "destination_requested", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-14", "seq": 1, "writtenAt": "w001", "body": {"requester": "host-agent:E", "target": {"destination": "W-2", "category": "web access"}, "purpose": "read an invented table", "scopeSought": "once", "requestingCall": "call:40", "time": "t4"}}
+  },
+  {
+    "case": "INV-RS-12",
+    "why": "Workflow origin 'host-supplied': the origin value is 'host' (WD §6.1; RS R2; R14-3)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0912", "kind": "run_opened", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
+      "body": {"runId": "run:E-13", "startedBy": {"kind": "person", "identity": "Engineer A"}, "surface": "host-loop run", "workflow": {"kind": "workflow", "origin": "host-supplied", "sourceRoot": "fx-root", "name": "supports-adjust", "revision": "rev-3", "revisionVerification": "verified"}, "conversationRef": "conv:K-13", "declaredCheckpoints": [{"name": "CP-L4", "requiredAct": "A4", "subjectClass": "objects changed by a named outcome"}]}}
+  },
+  {
+    "case": "INV-RS-13",
+    "why": "A request identified from agent message text: an App run records a request only from a structured observation (EXEC RC-5; R14-2)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0913", "kind": "act_request", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/12", "seq": 7, "writtenAt": "w007",
+      "body": {"requester": {"kind": "agent", "identity": "app-agent-seat:1"}, "form": "agent message naming kind, subject and purpose", "actKind": "not named by the request", "subject": "not named by the request", "purpose": "not named by the request", "association": "associated with the current arrival", "arrival": {"checkpoint": "CP-row-check", "arrivalOrdinal": 1}, "evidence": {"kind": "conversation item", "ref": "item:tool/requestUserInput-12", "resolutionAtWrite": "resolved"}, "time": "T4a+1"}}
+  },
+  {
+    "case": "INV-RS-14",
+    "why": "Underscored disposition spelling: dispositions are WD §4.3.4's spaced words (R14-1)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0914", "kind": "disposition_change", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/12", "seq": 6, "writtenAt": "w006",
+      "body": {"arrival": {"checkpoint": "CP-row-check", "arrivalOrdinal": 1}, "disposition": "resolved_negatively", "annotations": [{"label": "by earlier act", "actRef": "rec:app:run-12:0005", "time": "T2", "referents": ["S-2"]}]}}
+  },
+  {
+    "case": "INV-RS-15",
+    "why": "Workflow identity without its source root (WD §6.1; RS R2; R14-3)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0915", "kind": "run_opened", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
+      "body": {"runId": "run:E-13", "startedBy": {"kind": "person", "identity": "Engineer A"}, "surface": "host-loop run", "workflow": {"kind": "workflow", "origin": "host", "name": "supports-adjust", "revision": "rev-3", "revisionVerification": "verified"}, "conversationRef": "conv:K-13", "declaredCheckpoints": [{"name": "CP-L4", "requiredAct": "A4", "subjectClass": "objects changed by a named outcome"}]}}
   }
 ]

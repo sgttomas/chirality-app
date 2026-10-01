@@ -44,3 +44,4 @@ A run takes about 20 seconds.
 - Date: 2026-09-30; host: macOS (Darwin 25.6.0, arm64); Python 3.13.7.
 - Command: `python3 run_cases.py` in this folder.
 - Output: `results/RUN_2026-09-30.txt` (35 results, all as expected).
+- Rerun after the RP-3 repair (HOSTING §8.4 annotations and §10.1; no prototype file changed): `results/RUN_2026-09-30_RP-3.txt` (35 results, all as expected). The name-to-group check of WD §4.2.5 against §8.4 (HOSTING VC-31) runs in DEL-02-01's prototype (`wdproto.py selftest`, S-11).

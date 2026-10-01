@@ -114,6 +114,7 @@ cited text decides it.
 | RS 5 join | AP-5 and AP-12 point to RS R16, the record element for the agent's request | §4.0 |
 | **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §2.7 joined to the one destination flow: the agent's request is a call to the host's destination request entry carrying the call it needs ("the requesting call" of ND-A2, ND-A3), its A8 mapping DERIVED from §2.1 as AP-12; the decline row states the result class and that recording it as a destination entry is PROPOSED (R12-10); the non-stateless row cites DF-3 A-3, DF-6 and the evidence rule DF-7. §4.7's A12 paragraph points to DF-5 and the DF-F rows | §2.7; §4.7 |
 | Verification | New VC-012 (schema and instances); VC-007 traces V-29; VC-009 reconciles FX-01…57 | Verification cases |
+| RP-4: V18-2 m-11 | §4.1's examples of recognized kinds outside the closed list now name A15, as its own bullet already rules (WD-v0.8 FB-03) | §4.1 |
 
 ## Changes from v0.6
 
@@ -756,7 +757,7 @@ A declared checkpoint requires exactly one of **A4, A5, A6, A7 or A12**
 (R-1).
 - A recognized act kind outside this list, or no act kind at all, makes the
   checkpoint **invalid**. Examples: A1, A2, A3, A8, A9, A10, A11, A13, A14,
-  and design-candidate approval (WD FB-03; R2-10).
+  A15 (below), and design-candidate approval (WD FB-03; R2-10).
 - An unrecognized name is preserved and reported **not established**, and is
   never matched to a nearby act kind (WD FB-04).
 - **A15** (register workflow revision) is outside the list in this

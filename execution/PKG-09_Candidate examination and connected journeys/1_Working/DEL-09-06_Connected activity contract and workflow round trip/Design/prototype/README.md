@@ -26,6 +26,14 @@ Exit status 0 only if every check holds. The observed output of the run of
 2026-09-30 is recorded in CA-v0.6 §8.5 and in
 `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B7.md`.
 
+**RP-4 (2026-09-30).** Evidence limits are written in RS R11's own spelling
+(the mapper's tokens are mapped once) and checked against the labels of
+DEL-04-03's `RS_RECORD.schema.json`; the recorder outputs are read in their
+R14-1 form ({kind, observedAt, body}) after DEL-02-03's repair node changed
+`checkpoint_recorder.py`. Rerun output in `WAVE_B/RP-4.md`. The valid
+example records the sha256 of the other prototypes' files, so it is
+regenerated (`--write-examples`) whenever those change.
+
 ## Limits
 
 - Everything is *test-double* evidence (C-v0.8 evidence-label mapping). No
@@ -37,4 +45,5 @@ Exit status 0 only if every check holds. The observed output of the run of
   decisions (CE-7), no interruption and no rebuild. The parts that need these
   are recorded *not run* with the reason.
 - The App's Codex is imitated, not run; the model destination is never
-  observed (OBS-1 pending).
+  observed. OBS-1 observed supplier turns at pin 0.158.0 on one local route
+  (DEL-01-01 `OBS_1_0.158.0.md`); those were not App runs.

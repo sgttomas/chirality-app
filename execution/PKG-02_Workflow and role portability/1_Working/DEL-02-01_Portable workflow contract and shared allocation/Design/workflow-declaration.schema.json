@@ -59,8 +59,23 @@
       "items": {"$ref": "#/$defs/text"}
     },
     "host_outcome": {
-      "description": "A P §9 outcome that can be observed for a named host operation, as a token (queued, accepted, rejected, withdrawn, applied (receipt), refused - invalid, refused - stale, application error). P owns the names (WD §4.3.5 RW-2).",
-      "enum": ["queued", "accepted", "rejected", "withdrawn", "applied_receipt", "refused_invalid", "refused_stale", "application_error"]
+      "description": "A P §9 outcome that can be observed for a named host operation, as a token (queued, accepted, rejected, withdrawn, applied (receipt), refused - invalid, refused - stale, application error). P owns the names and the tokens: each value is a value of P-v0.8 `proposal_state.schema.json` `$defs/item_state`, and WD follows P (WD §3.6; R14-6). `applied` is P's token for applied (receipt).",
+      "enum": ["queued", "accepted", "rejected", "withdrawn", "applied", "refused_invalid", "refused_stale", "application_error"]
+    },
+    "workflow_identity": {
+      "description": "WD §6.1 identity tuple {kind, origin, source root, name, revision} with derived-from (R-9; PROPOSED; V18-2 m-9). Not a member of the declared part: consumer schemas that carry a workflow identity may reference this definition (`workflow-declaration.schema.json#/$defs/workflow_identity`) or state their mapping to it. A tuple without `revision` identifies a library slot, not selected content (WD §6.1); a consumer that records selected content requires it. `derived_from` is the full tuple of the workflow adapted from, never a string. The revision value is a label for a content identity whose algorithm is open (U-03); `revision_method` carries its identity method designation where known.",
+      "type": "object",
+      "required": ["kind", "origin", "source_root", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "workflow"},
+        "origin": {"enum": ["project", "user", "bundled", "host"]},
+        "source_root": {"$ref": "#/$defs/text"},
+        "name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "minLength": 1, "maxLength": 64},
+        "revision": {"$ref": "#/$defs/text"},
+        "revision_method": {"$ref": "#/$defs/text"},
+        "derived_from": {"$ref": "#/$defs/workflow_identity"}
+      }
     },
     "workflow_ref": {
       "description": "Identity of another workflow whose run output is an input (WD §4.1, §6.1). The revision is a label for a content identity whose algorithm is open (U-03).",
@@ -298,7 +313,7 @@
         "gating_checkpoint": {"$ref": "#/$defs/local_name"},
         "produced_by": {"$ref": "#/$defs/production"},
         "path": {
-          "description": "File form: path of the file relative to the project root.",
+          "description": "File form: path of the file relative to the project root; required for a file output (WD §4.4; VO-7; V18-2 m-2).",
           "$ref": "#/$defs/text"
         },
         "designating_line": {
@@ -317,6 +332,7 @@
       },
       "allOf": [
         {"if": {"properties": {"form": {"const": "message"}}, "required": ["form"]}, "then": {"required": ["designating_line"]}},
+        {"if": {"properties": {"form": {"const": "file"}}, "required": ["form"]}, "then": {"required": ["path"]}},
         {"if": {"properties": {"form": {"const": "human_act_standing"}}, "required": ["form"]}, "then": {"required": ["gating_checkpoint"]}}
       ]
     },

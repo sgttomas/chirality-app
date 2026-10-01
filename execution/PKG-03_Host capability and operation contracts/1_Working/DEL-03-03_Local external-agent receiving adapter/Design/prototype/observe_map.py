@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """ADAPTER-v0.6 §4.6 (observation-to-record mapping, both native paths),
-§7.7 (checkpoint observations for DEL-02-03) and §3.6 (channel-state
-transitions), as executable rules over an SH-1 run (C-v0.8 §10.8).
+§7.7 (checkpoint observations for DEL-02-03, CO-1…CO-11) and §3.6
+(channel-state transitions), as executable rules over an SH-1 run
+(C-v0.8 §10.8); each dispatch record is also written as an RS-v0.8 §5
+operation entry with its R11 evidence-limit entries and validated against
+DEL-04-03's `RS_RECORD.schema.json` (R14-3).
 
 Prototype only (R12-3); Python 3 standard library; not product code.
 
@@ -18,6 +21,7 @@ generated types at pin 0.158.0; they are not observations of Codex.
 import argparse
 import copy
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -36,6 +40,18 @@ STATUS = {"inProgress": "in_progress", "completed": "completed", "failed": "fail
 ROUTE = {"read-catalog": "discovery", "catalog": "discovery", "read-edition-events": "discovery", "events": "discovery",
          "submit-proposal": "submission", "submit": "submission", "observe-proposal": "observation", "observe": "observation"}
 UNIFORM = {"queued", "refused_stale", "refused_invalid", "refused_not_permitted", "applied"}
+# OM-1 (R14-4; OBS-1b): Codex wraps a model-issued command once in the login shell; that one wrapper is removed.
+WRAPPER = re.compile(r"^(?:/bin/|/usr/bin/)?(?:zsh|bash|sh) -lc '(.*)'$", re.S)
+COMPOUND = (" && ", " || ", "; ", " | ")
+
+
+def unwrap(command):
+    m = WRAPPER.match(command)
+    return (m.group(1), True) if m else (command, False)
+
+
+def safe(x):
+    return re.sub(r"[^A-Za-z0-9._:-]", "-", str(x))
 
 
 class Mapper:
@@ -54,7 +70,8 @@ class Mapper:
             name = item.get("tool") or "tools/list"
             ref = {"server": item.get("server") or item.get("name"), "tool": name}
         else:
-            words = item["command"].split()
+            cmd, _ = unwrap(item["command"])
+            words = cmd.split()
             name = words[3] if words[2] == "call" else words[2]
             ref = {"command_form": " ".join(words[:4] if words[2] == "call" else words[:3])}
         if item["type"] == "mcpServerStatus":
@@ -99,7 +116,11 @@ class Mapper:
             self.catalog = {e["operation_identity"]: e for e in doc["entries"]}
 
     def map(self, rec):
+        """One external dispatch record, or None when OM-1 says the item is not a dispatch."""
         path, item = rec["path"], rec["item"]
+        start_source = (rec.get("started") or {}).get("source", item.get("source", "agent"))
+        if path == "N-CLI" and start_source != "agent":
+            return None                 # OM-1: read at item/started; the person's own shell is never a dispatch
         if item["type"] == "mcpServerStatus":
             for t in (item.get("tools") or {}).values():
                 m = t.get("_meta", {}).get("sh1/catalog")
@@ -112,12 +133,18 @@ class Mapper:
         limits = []
         if iso:
             limits.append(iso)
+        if path == "N-CLI" and any(op in unwrap(item["command"])[0] for op in COMPOUND):
+            limits.append("dispatch_recognized_from_compound_command")
         r = {"record_kind": "external_dispatch", "path": path,
              "correlation": {"thread": rec["thread"], "turn": rec["turn"], "native_item": item.get("id", f"status-{rec['step']}")},
              "native_reference": ref, "request_kind": kind, "operation": op, "native_status": status,
              "transport": {"exit_status": item.get("exitCode"), "duration_ms": item.get("durationMs")} if path == "N-CLI"
              else {"duration_ms": item.get("durationMs")},
              "observed_at": rec["step"]}
+        if path == "N-CLI":
+            r["native_source"] = {"at_start": start_source}
+            if item.get("source"):
+                r["native_source"]["at_completion"] = item["source"]
         if item.get("error"):
             r["transport"]["supplier_error"] = item["error"]["message"]
         if doc and isinstance(doc, dict) and "edition" in doc:
@@ -132,10 +159,12 @@ class Mapper:
                 pid = (json.loads(w.split("--json ", 1)[1].strip("'"))["proposal_identity"]["value"]
                        if kind == "submission" else w.split()[3])
             r["proposal_identity"] = pid
+            r["proposal_minted_by"] = "not_observed"
             key = (rec["run"], pid)
             if kind == "submission":
                 req = args.get("proposal") if path == "N-MCP" else json.loads(item["command"].split("--json ", 1)[1].strip("'"))
                 r["requested_mode"] = req["requested_mode"]
+                r["proposal_minted_by"] = req["proposal_identity"].get("minted_by", "not_observed")
                 r["origin_observed"] = {"author_identity": "unverified", "channel": "external_agent"}
                 limits.append("unverified_caller_identity")
                 cited = req["relied_on_basis"][0]
@@ -203,7 +232,7 @@ def checkpoint_observations(records):
         run = r["correlation"]["thread"]
         src = r["correlation"]["native_item"]
         if r["outcome"]["value"] == "outcome_unknown":
-            obs.append({"observation_kind": "observation_lost", "exec_event": "observation_lost_recovered",
+            obs.append({"observation_kind": "observation_lost", "exec_event": "CE-13",
                         "source_record": src, "proposal_identity": pid, "lost_what": "result of a submission",
                         "last_observed_state": r["outcome"]["last_observed_state"], "observed_at": r["observed_at"]})
             seen[(run, pid, "lost")] = True
@@ -212,13 +241,17 @@ def checkpoint_observations(records):
         if doc.get("kind") != "recorded_state":
             continue
         if seen.pop((run, pid, "lost"), None):
-            obs.append({"observation_kind": "observation_recovered", "exec_event": "observation_lost_recovered",
+            obs.append({"observation_kind": "observation_recovered", "exec_event": "CE-14",
                         "source_record": src, "proposal_identity": pid, "lost_what": "result of a submission",
                         "last_observed_state": doc["derived_state"]["summary"], "observed_at": r["observed_at"]})
         queued_now = [i["item_identity"] for i in doc["items"] if i["state"] == "queued" and (run, pid, i["item_identity"]) not in seen]
         if queued_now:
-            obs.append({"observation_kind": "proposal_queued", "exec_event": "arrival_input", "source_record": src,
-                        "proposal_identity": pid, "items": queued_now, "evidence_time": doc["observed_at"],
+            ids = [{"item_identity": i["item_identity"], "content_identity": i["change_item_content_identity"],
+                    "identity_method": i.get("identity_method", "unknown")}
+                   for i in doc["items"] if i["item_identity"] in queued_now]
+            obs.append({"observation_kind": "proposal_queued", "exec_event": "CE-3", "source_record": src,
+                        "proposal_identity": pid, "items": queued_now, "item_content_identities": ids,
+                        "evidence_time": doc["observed_at"], "evidence_time_source": "host_outcome_time",
                         "observed_at": r["observed_at"]})
         for it in doc["items"]:
             k = (run, pid, it["item_identity"])
@@ -228,23 +261,43 @@ def checkpoint_observations(records):
             seen[k] = it["state"]
             d = it.get("decision")
             if d and (prev is None or prev == "queued"):
-                obs.append({"observation_kind": "act_observed",
-                            "exec_event": "human_act_observed" if d["act_kind"] == "A5" else "a10_item_left_all_items_decided",
+                cap = d.get("capture_evidence_reference", "not_supplied")
+                ref = d.get("act_reference", "not_supplied_by_host")
+                # §7.6: the App writes a faithful RS §6 record only with a capture-evidence reference
+                faithful = ("not_written" if cap == "not_supplied" else
+                            "rec:app:%s:%s" % (safe(run), safe(ref if ref != "not_supplied_by_host"
+                                                               else f"{pid}-{it['item_identity']}-{d['act_kind']}")))
+                obs.append({"observation_kind": "act_observed", "exec_event": "CE-7",
                             "source_record": src, "proposal_identity": pid, "item_identity": it["item_identity"],
                             "act": {"act_kind": d["act_kind"], "decision_actor": d["actor"], "recorder": "app",
                                     "recording_mode": "faithful_recording",
                                     "bound_content_identity": it["change_item_content_identity"],
                                     "identity_method": it.get("identity_method", "unknown"),
-                                    "capture_evidence": d.get("capture_evidence_reference", "not_supplied")},
-                            "evidence_time": doc["observed_at"], "observed_at": r["observed_at"]})
+                                    "capture_evidence": cap, "act_reference": ref,
+                                    "capture_time": d.get("captured_at", "not_supplied_by_host"),
+                                    "faithful_record": faithful},
+                            "evidence_time": doc["observed_at"], "evidence_time_source": "host_outcome_time",
+                            "observed_at": r["observed_at"]})
+            if d and d["act_kind"] == "A5" and it["state"] in ("refused_stale", "application_error", "outcome_unknown") \
+                    and prev in (None, "queued", "accepted"):
+                na = {"accepted_by": d.get("act_reference", "not_supplied_by_host"), "result": it["state"]}
+                if it["state"] == "outcome_unknown":
+                    na["observer"] = it.get("observer", "host") if it.get("observer") in ("app", "host") else "host"
+                obs.append({"observation_kind": "decided_item_not_applied", "exec_event": "CE-7", "source_record": src,
+                            "proposal_identity": pid, "item_identity": it["item_identity"], "not_applied": na,
+                            "observed_at": r["observed_at"]})
             if it["state"] in ("refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "left_queue") \
                     and prev in (None, "queued") and not d:
-                obs.append({"observation_kind": "item_left", "exec_event": "a10_item_left_all_items_decided",
-                            "source_record": src, "proposal_identity": pid, "item_identity": it["item_identity"],
-                            "left_cause": it.get("left_cause", it["state"]), "observed_at": r["observed_at"]})
+                left = it.get("item_left") or {}
+                o = {"observation_kind": "item_left", "exec_event": "CE-7",
+                     "source_record": src, "proposal_identity": pid, "item_identity": it["item_identity"],
+                     "left_cause": left.get("cause") or it.get("left_cause", it["state"]), "observed_at": r["observed_at"]}
+                if left.get("time"):
+                    o["left_time"] = left["time"]
+                obs.append(o)
             if it["state"] == "applied":
                 a = it["applied"]
-                obs.append({"observation_kind": "applied_outcome", "exec_event": "applied_outcome_with_resulting_objects",
+                obs.append({"observation_kind": "applied_outcome", "exec_event": "CE-3",
                             "source_record": src, "proposal_identity": pid, "item_identity": it["item_identity"],
                             "applied": {"receipt_reference": a["receipt_reference"], "resulting_revision": a["resulting_revision"],
                                         "resulting_objects": [o["object_identity"] for o in a["resulting_objects"]]
@@ -252,7 +305,7 @@ def checkpoint_observations(records):
                             "observed_at": r["observed_at"]})
         if doc["derived_state"]["all_items_decided"] and (run, pid) not in decided:
             decided.add((run, pid))
-            obs.append({"observation_kind": "all_items_decided", "exec_event": "a10_item_left_all_items_decided",
+            obs.append({"observation_kind": "all_items_decided", "exec_event": "CE-7",
                         "source_record": src, "proposal_identity": pid, "observed_at": r["observed_at"]})
     return obs
 
@@ -316,6 +369,95 @@ def channel_statuses(events):
     return out
 
 
+# -- RS-v0.8 §5 receiving (R14-3): ADAPTER tokens -> RS record values, stated once in RS §5
+RS_OUTCOME = {"applied": "applied (receipt)", "refused_invalid": "refused — invalid", "refused_stale": "refused — stale",
+              "refused_not_permitted": "not permitted", "refused_identity_conflict": "refused — identity conflict"}
+RS_LIMIT = {"host_reachable_without_evidenced_A13": "host reachable without evidenced A13",
+            "app_restart_interruption": "App-restart interruption", "dedup_scope_exceeded": "de-duplication scope exceeded"}
+RS_ROUTE = {"submission": "proposal", "observation": "proposal", "examination": "examination", "change_call": "direct"}
+
+
+def rs_entries(r, n):
+    """One RS operation_entry (RS §5) and one evidence_limit entry per limit (RS R11) for a dispatch record."""
+    op = r["operation"]
+    o = r["outcome"]
+    body = {"operation": {"id": op.get("operation_identity", "not established (%s)" % op.get("not_established")),
+                          **({"version": op["operation_version"]} if "operation_version" in op else {})},
+            "authorType": "agent", "authorIdentity": {"value": "app-agent-seat:1", "verified": False},
+            "channel": "external channel", "route": RS_ROUTE.get(r["request_kind"], "read"),
+            "requestKind": r["request_kind"].replace("_", " "),
+            "outcome": RS_OUTCOME.get(o["value"], o["value"].replace("_", " "))}
+    if r.get("proposal_identity"):
+        body["proposalId"] = r["proposal_identity"]
+    if o["value"] == "outcome_unknown":
+        body["observer"] = "App"
+        body["lastObservedState"] = o["last_observed_state"]
+    if o.get("reason"):
+        body["reason"] = o["reason"]
+    rid = "rec:app:sh1:%04d" % n
+    out = [("operation_entry", body, rid)]
+    for i, lim in enumerate(r["evidence_limits"], start=1):
+        out.append(("evidence_limit", {"label": RS_LIMIT.get(lim, lim.replace("_", " ")), "subjectRef": rid}, f"{rid}.{i}"))
+    return out
+
+
+def rs_chain(recs):
+    """Validate every dispatch record as RS entries with DEL-04-03's own validator and schema."""
+    rs_proto = next(WORKING.parents[1].glob("PKG-04_*/1_Working/DEL-04-03_*/Design/prototype"))
+    sys.path.insert(0, str(rs_proto))
+    import minischema                                           # noqa: E402  (DEL-04-03 prototype)
+    import record_store                                          # noqa: E402
+    reg = minischema.Registry()
+    w4 = rs_proto.parents[2]
+    for d, f in (("DEL-04-01_*", "ACT_POLICY_CLASS_RECORD.schema.json"), ("DEL-04-02_*", "AS_SETTINGS_IN.schema.json"),
+                 ("DEL-04-03_*", "RS_RECORD.schema.json")):
+        reg.load(str(next(w4.glob(d)) / "Design" / f))
+    ref = {"$ref": record_store.RS_ID + "#/$defs/entry"}
+    n_ok = n_all = 0
+    errs = []
+    seq = 0
+    for i, r in enumerate(recs, start=1):
+        for kind, body, rid in rs_entries(r, i):
+            seq += 1
+            e = {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": rid, "kind": kind,
+                 "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"},
+                 "runId": "run:sh1", "seq": seq, "writtenAt": f"w{seq:03d}", "observedAt": r["observed_at"], "body": body}
+            v = minischema.validate(e, ref, reg)
+            n_all += 1
+            n_ok += not v
+            if v:
+                errs.append(f"{r['observed_at']} {kind}: {v[:1]}")
+    return n_ok, n_all, errs
+
+
+def self_checks(reg, ids):
+    """OBS-1b's item shape (R14-4) and CO-10/CO-11 shapes (no SH-1 step produces them)."""
+    out = []
+    m = Mapper()
+    m.catalog = {"OP-C1": {"effects": {"kind": "none"}, "result": {"content_kinds": ["row"]}, "operation_version": "v1"}}
+    base = {"run": "obs1b", "step": "OBS-1b", "path": "N-CLI", "thread": "th", "turn": "tu"}
+    item = {"type": "commandExecution", "id": "call_1", "command": "/bin/zsh -lc 'sh1 cli call OP-C1 --json {}'",
+            "source": "unifiedExecStartup", "status": "completed", "exitCode": 0, "aggregatedOutput": "not json\n"}
+    r = m.map(dict(base, item=item, started={"source": "agent"}))
+    out.append(("OBS-1b item: source agent at start, unifiedExecStartup at completion, wrapped once -> a dispatch, "
+                "no compound-command limit",
+                r is not None and r["native_source"] == {"at_start": "agent", "at_completion": "unifiedExecStartup"}
+                and "dispatch_recognized_from_compound_command" not in r["evidence_limits"]
+                and not validate(r, ids[DISPATCH], reg)))
+    r2 = m.map(dict(base, item=dict(item, command="/bin/zsh -lc 'sh1 cli call OP-C1 --json {} ; echo x'"),
+                    started={"source": "agent"}))
+    out.append(("compound command keeps the limit", r2 is not None and "dispatch_recognized_from_compound_command" in r2["evidence_limits"]))
+    out.append(("userShell at start is never a dispatch", m.map(dict(base, item=item, started={"source": "userShell"})) is None))
+    co10 = {"observation_kind": "decided_item_not_applied", "exec_event": "CE-7", "source_record": "x", "proposal_identity": "PR-2",
+            "item_identity": "1", "not_applied": {"accepted_by": "ACT-2", "result": "refused_stale", "relied_on_basis": "B1",
+                                                  "current_basis": "B2"}, "observed_at": "T12x"}
+    co11 = {"observation_kind": "request_recorded", "exec_event": "CE-4", "source_record": "x",
+            "request": {"host_request_reference": "REQ-7", "act_kind": "A5", "subject": ["PR-2/1"], "purpose": "accept"},
+            "observed_at": "T10r"}
+    out.append(("CO-10 and CO-11 shapes validate", not validate(co10, ids[CHECKPOINT], reg) and not validate(co11, ids[CHECKPOINT], reg)))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", required=True)
@@ -325,7 +467,7 @@ def main():
     reg, schemas = load_registry(SCHEMAS)
     ids = {s["$id"]: s for s in schemas.values()}
     m = Mapper()
-    recs = [m.map(json.loads(l)) for l in (run / "native_items.jsonl").read_text().splitlines()]
+    recs = [x for x in (m.map(json.loads(l)) for l in (run / "native_items.jsonl").read_text().splitlines()) if x]
     bad = 0
     print(f"{'step':10} {'path':5} {'kind':12} {'operation':10} {'status':10} {'outcome':26} {'reporter':16} limits")
     for r in recs:
@@ -358,6 +500,13 @@ def main():
         ok = (step, val) in got
         bad += not ok
         print(f"{'PASS' if ok else 'FAIL'} mapping {step} -> {val}")
+    for label, ok in self_checks(reg, ids):
+        bad += not ok
+        print(f"{'PASS' if ok else 'FAIL'} {label}")
+    n_ok, n_all, errs = rs_chain(recs)
+    bad += bool(errs)
+    print(f"{'PASS' if not errs else 'FAIL'} RS-v0.8 receiving (R14-3): {len(recs)} dispatch records -> {n_ok} of {n_all} RS entries "
+          f"(operation entries and R11 evidence limits) valid against RS_RECORD.schema.json" + (f"  {errs[:3]}" if errs else ""))
     if a.write_examples:
         d = HERE.parent
         valid = next(r for r in recs if r["observed_at"] == "T10")
@@ -371,7 +520,7 @@ def main():
         (d / "checkpoint_observation.example-valid.json").write_text(json.dumps(q, indent=2) + "\n")
         (d / "checkpoint_observation.example-valid-2.json").write_text(
             json.dumps(next(o for o in obs if o["observation_kind"] == "act_observed"), indent=2) + "\n")
-        (d / "checkpoint_observation.example-invalid.json").write_text(json.dumps(q | {"exec_event": "act_lapsed_input"}, indent=2) + "\n")
+        (d / "checkpoint_observation.example-invalid.json").write_text(json.dumps(q | {"exec_event": "CE-10"}, indent=2) + "\n")
         en = next(st for _, _, st in chans if st["channel_state"] == "enabled")
         (d / "channel_status.example-valid.json").write_text(json.dumps(en, indent=2) + "\n")
         inv = copy.deepcopy(en)

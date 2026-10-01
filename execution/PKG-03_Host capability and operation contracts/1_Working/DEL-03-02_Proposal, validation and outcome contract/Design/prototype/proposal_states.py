@@ -8,6 +8,10 @@ as executable rules. Prototype only (R12-3); Python 3 standard library.
                                              # reachable in the table, and every
                                              # reported derived state equals DS-1..DS-4
 
+Since the RP-2 repair (R14-8 N-18), --check also verifies that every item
+that left the queue carries its explicit item-left event (P §4.3) with the
+matching cause and a time, and that no other item carries one.
+
 Nothing here is host behaviour. The table is PROPOSED; the host decides what
 it does, and the App receives it (P §4.6).
 """
@@ -43,6 +47,24 @@ TERMINAL = {"applied_then_reversed", "rejected", "withdrawn", "left_queue", "ref
             "refused_not_permitted", "refused_stale", "application_error"}
 OPEN = {"drafted", "validated", "queued", "accepted"}
 LEFT = {"refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "left_queue"}
+LEFT_CAUSE = {"refused_stale": "refused_stale", "refused_invalid": "refused_invalid",
+              "refused_not_permitted": "refused_not_permitted", "withdrawn": "withdrawn",
+              "left_queue": "cleared_by_person_no_decision_record"}
+
+
+def has_left(it):
+    """P §4.3: the item left the queue without a person's A5 (an item refused after A5, PT-15, has not)."""
+    if it["state"] in ("withdrawn", "left_queue"):
+        return True
+    return it["state"] in LEFT and "decision" not in it
+
+
+def item_left_ok(it):
+    """RP-2 (R14-8 N-18): the item-left event is explicit, with the matching cause and a time."""
+    ev = it.get("item_left")
+    if has_left(it):
+        return bool(ev) and ev.get("cause") == LEFT_CAUSE[it["state"]] and bool(ev.get("time"))
+    return ev is None
 
 
 def step(state, event):
@@ -76,7 +98,7 @@ def derive(items):
     for it in items:
         counts[it["state"]] = counts.get(it["state"], 0) + 1
     summary = next(iter(counts)) if len(counts) == 1 else "mixed"            # DS-1
-    decided = all("decision" in it or it["state"] in LEFT for it in items)    # DS-4 (P §4.3)
+    decided = all("decision" in it or "item_left" in it for it in items)     # DS-4 (P §4.3): A5, A10 or an item-left event
     return {"summary": summary, "counts": counts,                             # DS-2
             "open": any(it["state"] in OPEN for it in items),                 # DS-3
             "all_items_decided": decided}
@@ -125,6 +147,20 @@ def selftest():
             print(f"FAIL illegal {name}: accepted")
         except ValueError as e:
             print(f"PASS illegal {name}: {e}")
+    for name, it, want in (
+            ("T7 item refused stale at first receipt carries its event",
+             {"state": "refused_stale", "item_left": {"cause": "refused_stale", "time": "t0003"}}, True),
+            ("T7 item refused stale without an event", {"state": "refused_stale"}, False),
+            ("V-S1 accepted then refused stale: not an item-left case",
+             {"state": "refused_stale", "decision": {"act_kind": "A5"}}, True),
+            ("V-S1 item wrongly carrying an item-left event",
+             {"state": "refused_stale", "decision": {"act_kind": "A5"},
+              "item_left": {"cause": "refused_stale", "time": "t1"}}, False),
+            ("R8-5 cleared queue with cause 'cleared by the person'",
+             {"state": "left_queue", "item_left": {"cause": "cleared_by_person_no_decision_record", "time": "t1"}}, True)):
+        good = item_left_ok(it) == want
+        ok &= good
+        print(f"{'PASS' if good else 'FAIL'} IL  {name}: {'conforms' if item_left_ok(it) else 'does not conform'}")
     items = [{"state": "applied", "decision": {}}, {"state": "rejected", "decision": {}}]
     d = derive(items)
     good = d["summary"] == "mixed" and not d["open"] and d["all_items_decided"]
@@ -141,6 +177,7 @@ def check_run(run):
     ok = True
     last = {}
     n = 0
+    nl = 0
     for line in (Path(run) / "host_docs.jsonl").read_text().splitlines():
         rec = json.loads(line)
         doc = rec["doc"]
@@ -152,13 +189,18 @@ def check_run(run):
             ok = False
             print(f"FAIL derived state {key} at {rec['step']}")
         for it in doc["items"]:
+            if not item_left_ok(it):
+                ok = False
+                print(f"FAIL {key} item {it['item_identity']} ({it['state']}): item-left event missing, misplaced or wrong cause")
+            nl += 1 if "item_left" in it else 0
             prev = last.get(key + (it["item_identity"],), "drafted")
             if not reachable(prev, it["state"]):
                 ok = False
                 print(f"FAIL {key} item {it['item_identity']}: {prev} -> {it['state']} not reachable")
             last[key + (it["item_identity"],)] = it["state"]
     print(f"{'PASS' if ok else 'FAIL'} {n} recorded-state documents: every item-state change reachable in the table; "
-          f"every derived state equals DS-1..DS-4")
+          f"every derived state equals DS-1..DS-4; every item that left carries its item-left event "
+          f"({nl} item-left events, each with cause and time) and no other item carries one")
     for k, v in sorted(last.items()):
         print(f"      final {k[0]}/{k[1]} item {k[2]}: {v}")
     return ok

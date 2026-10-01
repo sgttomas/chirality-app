@@ -11,7 +11,7 @@
   "$defs": {
     "identity": {"type": "string", "minLength": 1},
     "not_supplied": {
-      "description": "An element the read does not carry. 'host_declares_none': the host's basis profile (C §2.1) declares that it has no such element. 'omitted': the host declares the element but this read lacks it. Which of the two may be cited is the open R12-9 question (C §5.2 rule 1; ADAPTER RD-2).",
+      "description": "An element the read does not carry. 'host_declares_none': the host's basis profile (C §2.1) declares that it has no such element. 'omitted': the host declares the element but this read lacks it. Citation follows R13-1 (C §5.2 rule 1): a read whose only missing elements are workspace identity and/or generation, each marked 'host_declares_none' and declared not supplied in the host's basis profile (or in a documented host statement), may be cited, and the consumer records the evidence limit 'basis lineage not supplied'; comparisons across lineages then read unknown (incomparable). Any 'omitted' element, or any other element missing, leaves the read basis incomplete and not citable.",
       "type": "object",
       "required": ["not_supplied"],
       "additionalProperties": false,

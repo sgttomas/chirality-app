@@ -3,7 +3,7 @@
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R8-1; R9-1): in the current phase (Phase 1), this increment, declared workflow checkpoints are **plan guidance** (EXEC-v0.5 §2.1; WD-v0.7 §4.3.0). The governing checkpoint constraint, its carriage assurance (R2-12) and hold support are the **governance-phase definition (retained)**, stated beside a Phase-1 statement. V4-WF-05 and V4-HI-42 are cited as amended by SCA-V4-001 (accepted 2026-09-29): in force in every phase, the required human act is requested, it is recorded as done only when the person performs it, and the reserved acts bind; holding the run until the act is **phased to the governance layer, not withdrawn** (§0). SWBPIPE's answers are recorded as answers about its current state, not commitments; host joins are deferred (DECISION-3)
 - Serves: OUT-001 (proposal, relied-on basis, origin, governing checkpoint constraint, change-item content identity and outcome schema meaning; at v0.8 also two PROPOSED JSON Schemas beside this file, R12-1), OUT-002 (lifecycle, one route, actor parity, host ownership and receiving interfaces), OUT-003 (designed contract fixtures); REQ-001–REQ-013; AC-001–AC-014; VER-001–VER-014
-- Wave B (run APP-V4-DESIGN-PASS-2-20260930, node B3; v0.8): design development under R12 (R12_RESOLUTIONS.md sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1: R12-1…R12-4), for S1-B items P 4, 5 and 7 (SURVEY/S1-B.md sha256 eae76ecf9e941bb841fbc3a655a8e887c7684b8d47ef7728f4809992b0b6587d §2.5, §2.8), under BRIEFS.md sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B", row B3) and OWNER_DECISIONS.md sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1 K1-6). SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` SQ-07…SQ-09 re-read at sha256 afb6e063… (data, not commitments). C-v0.8 and ADAPTER-v0.6 were developed in the same node; other siblings are cited at their Wave A labels. New files beside this one: `proposal.schema.json`, `proposal_state.schema.json`, their example instances, and `prototype/` (the §4.6 table and derived-state rule as executable checks; not product code). The simulated host is DEL-03-01's SH-1 (C-v0.8 §10.8), cited, not redefined
+- Wave B (run APP-V4-DESIGN-PASS-2-20260930, node B3; v0.8): design development under R12 (R12_RESOLUTIONS.md sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1: R12-1…R12-4), for S1-B items P 4, 5 and 7 (SURVEY/S1-B.md sha256 eae76ecf9e941bb841fbc3a655a8e887c7684b8d47ef7728f4809992b0b6587d §2.5, §2.8), under BRIEFS.md sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B", row B3) and OWNER_DECISIONS.md sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1 K1-6). SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` SQ-07…SQ-09 re-read at sha256 afb6e063… (data, not commitments). C-v0.8 and ADAPTER-v0.6 were developed in the same node; other siblings are cited at their Wave A labels. New files beside this one: `proposal.schema.json`, `proposal_state.schema.json`, their example instances, and `prototype/` (the §4.6 table and derived-state rule as executable checks; not product code). The simulated host is DEL-03-01's SH-1 (C-v0.8 §10.8), cited, not redefined. **Repair RP-2 (same run, in place, no version step):** R14_RESOLUTIONS.md sha256 c6a603303693f50e24ea27fcbc9f381a297434e4182f023fbcee941073623576 (R14-6, R14-8; binding), with R12_RESOLUTIONS.md R12-7 and the four receiver comparisons `comparisons/V18-1.md`…`V18-4.md` (sha256 prefixes fb07e07c66c1, 0b00e79b161b, 68a067e26af7, 078113d7055b), under BRIEFS.md sha256 e3f98d1c8449292965dd244a0f2821b221bcd0f3b0294e592f73b8eaaaaf6321 ("RP", row RP-2); siblings are named at their Wave B labels where a repair row says so
 - Basis (re-pinned in Wave A, R9-5; each sha256 below recomputed with `shasum -a 256` on 2026-09-30, working tree at `3dd7c22c73`): the accepted basis as amended by SCA-V4-001 (accepted 2026-09-29) and SCA-V4-002 (in these four files, HOST_INTEGRATION line layout only) — `P/docs/HOST_INTEGRATION.md` (sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f) §1, §§3–5 (V4-HI-11, V4-HI-20–25, V4-HI-30–33), §6 V4-HI-40–42 (V4-HI-42 amended), §7 V4-HI-50–52, §9 V4-HI-70–71 (V4-HI-70 amended), §10, §11; `P/docs/PRD.md` (sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd) V4-WF-05 (amended; cited in §0), V4-PAR-04, V4-AUT-01–05, V4-REC-01, V4-CST-05/06, §9 OQ-02/OQ-11; `P/docs/ARCHITECTURE.md` (sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c) V4-ARC-20; `P/docs/EXAMINATION.md` (sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0) V4-EXM-20/22/25 (V4-EXM-22 amended); ScopeOfWork.md sha256 3560915142ebfbf3fa7197008ea3b0660584665c9d86260b22b550c5c2354d0f (revised under SCA-V4-001, its AX-004: OUT-001, CLM-003, REQ-004, REQ-008, REQ-012, AC-009, AC-013 and TBD-001); DECISION_BRIEF #d2/#d3/#d4/#d5; the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29); SCC-CASE-002 Case_Datasheet rows M1-P, M3-CP (sha256 a12abfaf82c34ae1e7c10d8b553d3e1a0da4772b160e02257c0bf70edce04d5c; additions only since the state pinned below); owner decisions `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D2/D3 and DECISION-2 D5/D6 (OWNER_DECISIONS.md sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c, the state that carries both; the DECISION-1 text is unchanged). At v0.6 this line pinned repo 6e18505e3, ScopeOfWork.md 42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a, HOST_INTEGRATION.md 08c8fc7d…60da and Case_Datasheet 6acdc6c4…a71a6, each true at `6e18505e3`, and OWNER_DECISIONS.md f3f8e5f3…81f2e, true at `be8bb46dd3` (history). Rulings, by file: R1_RESOLUTIONS.md (sha256 2f9c7e72…7ec4) R-1–R-9; R2_RESOLUTIONS.md (sha256 77cfb845…d088) R2-1–R2-21; R3_RESOLUTIONS.md (sha256 202d52c7…afbf) R3-3, R3-4; R4_RESOLUTIONS.md at `f05c7e4cd` (sha256 50a009b2…2a24) R4-3–R4-7, R4-12–R4-15, R4-19; R5_RESOLUTIONS.md at `8fb51f07f` (sha256 254d0b93…d6f1) R5-1, R5-2, R5-5, R5-6, R5-9; R6_RESOLUTIONS.md (sha256 8703e85aa7324e233fab285321e277d720923d3e36e342c865917b55083cb841) R6-1, R6-5; R7_RESOLUTIONS.md (sha256 1f6ab3b2355e164f803657ceae08841af92d21a821feede3800a6df861b2a1ea; it rules nothing in this file); R8_RESOLUTIONS.md (APP-V4-SWBPIPE-INTAKE-20260928; sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b) R8-1…R8-12; R9_RESOLUTIONS.md (APP-V4-DESIGN-PASS-2-20260930; sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8) R9-1…R9-11, with that run's R10_RESOLUTIONS.md (sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796) R10-1…R10-11, R11_RESOLUTIONS.md (sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615) R11-1…R11-9 and OWNER_DECISIONS.md (sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5) DECISION-K1 (these four recomputed with `shasum -a 256` at node A4, R11-3, at their final bytes; the R9_RESOLUTIONS.md pin in the node A1 input line below records the bytes A1 read) (R1…R5 pins recomputed: current); reviews V3-A (sha256 f25f5af1…1d87) and V3-B (sha256 5662fbd0…54a3) items addressed to P; OWNER_DECISIONS DECISION-2 D5/D6 (via R4-1/R4-2); review V2 (sha256 75ba1dff…e6ef) m-3, m-9, m-11; comparisons V1-A (01811533…4c09), V1-B (09eebfe0…1cae), V1-C (8d46258a…94a6); reviews IR1-A (31b3c7f8…8284), IR1-B (70e4a4f6…2846), IR1-C (295e96b3…26b9)
 - Consumed inputs: **Wave A inputs (run APP-V4-DESIGN-PASS-2-20260930, node A1-B; v0.7).** R9_RESOLUTIONS.md sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c (R9-1…R9-11; binding); that run's BRIEFS.md sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules", "A1 — alignment wave"); SURVEY/S1-B.md sha256 eae76ecf9e941bb841fbc3a655a8e887c7684b8d47ef7728f4809992b0b6587d (advice; each item was checked against the current source before it was applied); the amended basis documents and the revised ScopeOfWork.md as pinned in Basis; R8_RESOLUTIONS.md at its current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13, added after the state pinned below, rules nothing in this file) and the intake OWNER_DECISIONS.md at its current sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (DECISION-3, DECISION-4 and its clarification unchanged; DECISION-5 appended); SCA-V4-001 AMENDMENT_PACKET/OWNER_ITEMS.md sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef items O-4 and O-25, accepted "as recommended" (APP-V4-BASIS-ALIGN-20260928 OWNER_DECISIONS.md sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b, DECISION-7); this deliverable's `Dependencies.csv` and the consumers' registers (ACTIVE rows, read 2026-09-30, for the Receivers line and §13; R9-6); `_DAG/DAG-003/HANDOFF_STATE.md`. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` is cited at sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 (current; three lines differ from the 6f01add3…61c7 state read for v0.6, below) and `FACTS_SQ01_SQ32.md` at sha256 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e; both are data about SWBPIPE's current state, not commitments (DECISION-3). Sibling Design files are cited by version label and section only (R9-5), at their Wave A versions (R9-11): DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7; DEL-02-01/WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-02/AS-v0.7; DEL-04-03/RS-v0.7; DEL-05-01/LOOP-v0.7; DEL-05-02/PANEL-v0.7; DEL-01-01/HOSTING-BOUNDARY-v0.7; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.5; DEL-09-09/XT-v0.5; DEL-09-06/RELAY-v0.3. C and ADAPTER were aligned in the same node. The other siblings were edited in parallel by other Wave A nodes, so their Wave A bytes were not read here; the sections this pass compared were read at the preceding versions (RS-v0.6 §4 R11, §7 and §10; AS-v0.6 §3). Sibling byte pins live in GUIDE's input table alone. **Earlier passes (history; true as recorded at each pass, not re-pinned in Wave A).** **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12: item 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-01-01/HOSTING-BOUNDARY-v0.6; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3). **v0.6 inputs (R8 pass, node A3, at `94aa9181b`).** R8_RESOLUTIONS.md sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02 (R8-1…R8-11; binding); INTAKE_MAP.md (I2) sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33: rows 01.6, 02.7, 03.3, 05.4, 07.2, 07.6, 08.1, 09.2, 09.3, 10.1, 14.1, 14.2, 22.2, 31.2; Part 2.2 P rows; Part 3 items 1, 2, 5, 10, 11, 12; Part 4.9, 4.11; Part 5 R8-Q12 (R8 overrides I2 where they differ); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"); owner decisions DECISION-3 and DECISION-4 with its clarification (OWNER_DECISIONS.md sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776); SWBPIPE's delivered answers `RELAY_ANSWERS_SWBPIPE.md` (DEL-09-06 `Design/`, #1047) sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7: SQ-01…SQ-10, SQ-13, SQ-14, SQ-20, SQ-23, SQ-28, SQ-31, ANS §2–§3 — data about SWBPIPE's current state, not commitments (DECISION-3). **Owner files read first (at `94aa9181b`):** DEL-02-03 EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4 (§2.1 PH-1…PH-10; §2.2 GV-1…GV-5; §2.3; §3.6; §3.7 CC-2; §4.5 SP-4; §4.11 receiving notes; CH-17, CH-27); DEL-02-01 WD-v0.6 `WORKFLOW_DECLARATION.md` sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28 (§4.3.0 CG-1…CG-7; §4.3.1 `governed`, PROPOSED; §4.3.7); WD-EX-v0.6 `EXAMPLES.md` sha256 950b70b2e3f7fdda9a98b13a63746b76936be490dd96cb6e47bbe6dc9c3eba3d (R-5a/R-5b). DEL-03-01/C-v0.6 is co-revised in the same pass (node A3). Earlier: DEL-03-01/C-v0.5 (co-revised in the R5 pass: FXA-5 hold support and host-held note, V-GR1); the EXEC-v0.2, ADAPTER-v0.2 and XT-v0.2 texts were **not** read for this pass — R5 fixes their meanings used here (V3-B Y-7 note). Earlier: Wave-2 sibling texts read from commit `f05c7e4cd` — DEL-03-03/ADAPTER-v0.1 (sha256 58b2409c…a074: F-1, F-3, F-8), DEL-02-03/EXEC-v0.1 (sha256 e0ede76e…18e8: §4.7 resume/re-hold, MX-3/MX-6/MX-8 confirmation, CAP-1…9), DEL-09-09/XT-v0.1 (sha256 8f098c79…f1df: L-XT-1); DEL-03-01/C-v0.5 (co-revised in this sweep: §4.1 channel reporters and model-destination note, §10 FXA-n, K-7, V-ED1); earlier: DEL-03-01/C-v0.3 (co-revised: §3 elements incl. exposure, §3.1 five class values, §4.1 results with reporters, §4.4 precondition vs validation error, §5 basis, subject content identities and per-item "no longer holds" rule, §10 FX-PIPE-01 incl. OP-C10–C12 and variants); sibling v0.2 texts read from commit `28bd00499` where an R2 ruling touches a join — DEL-04-01/ACT-POLICY-v0.2 (sha256 e50f1fe2…93a9: §2.1–§2.5, §5.1–§5.5, §6, §8.3), DEL-04-03/RS-v0.2 (sha256 56a3f839…1c69: §5 outcome entries, OE-6, §7), DEL-05-01/LOOP-v0.2 (sha256 1151d432…62c9: §6.2 dispatch record incl. checkpoint constraint, §6.3 retry, MC-8), DEL-02-01/WD-v0.2 (sha256 c25bccc5…a55c: §4.3.7 item-level rule, §4.4 promised standing); DEL-04-02 grant display states by R-8/R2-6 meaning; host facilities (route, views, receipts, act capture, constraint receipt): not supplied (DEP-03-02-023)
 - Receivers (rebuilt at v0.7 from the ACTIVE rows of this register and of the consumers' registers, as read 2026-09-30; R9-6. A row names a required contribution, not its delivery. The bracketed OUT/REQ/VER tags are carried from v0.6 unchanged): DEL-04-02 [OUT-001, OUT-002; REQ-003–005; VER-003–005] — standing and direct-autonomy origin semantics (DEP-03-02-018; consumer row DEP-04-02-015); DEL-04-03 [OUT-001, OUT-002, OUT-004; REQ-002, REQ-003, REQ-005; VER-001, VER-004, VER-006] — operation outcomes, change-item content identities and host receipt links (DEP-03-02-019; consumer row DEP-04-03-024); DEL-03-03 [OUT-001, OUT-003; REQ-001, REQ-004; VER-001, VER-004] — this same operation contract for the external channel (DEP-03-02-020; consumer row DEP-03-03-007); DEL-03-04 — the responsibility map (DEP-03-02-021; consumer row DEP-03-04-006); DEL-09-09 [OUT-001; REQ-001, REQ-004; VER-001, VER-004] — contract fixtures and outcome expectations (DEP-03-02-022; consumer row DEP-09-09-008); DEL-03-01 [OUT-001, OUT-003; REQ-001, REQ-004; VER-004] — the M3-CP return (consumer row DEP-03-01-026; no mirror in this register); DEL-05-01 [OUT-001, OUT-003; REQ-003, REQ-007; VER-008] — proposal, validation and outcome meaning at the loop boundary (consumer row DEP-05-01-015); DEL-05-02 [OUT-001, OUT-003; REQ-001–003; VER-001–003] — proposal, validation and outcome meaning for the panel (consumer row DEP-05-02-007); DEL-02-01 — change-item content identities, per-item dispositions, the all-items-decided indication, item-left events and applied-outcome object identities (consumer row DEP-02-01-029; arc N-18); DEL-02-03 — the same, plus applied outcomes with their resulting objects (consumer row DEP-02-03-025; arc N-21); DEL-09-06 — proposal and outcome meanings for the connected activity (consumer row DEP-09-06-028); outside the 14 first-increment deliverables, DEL-10-03 — proposal, validation and outcome obligations for the shared responsibility account (consumer row DEP-10-03-012); the external host's proposal-view receiving (DEP-03-02-024). The governing checkpoint constraint semantics that v0.6 listed for DEL-02-01 / DEL-02-03 are governance-phase content (§3.3, §4.4) and no consumer row names them. Arcs N-24 and X-1 do not touch this deliverable
@@ -33,7 +33,7 @@ SH-1, specified in C-v0.8 §10.8 and cited here (R12-4).
 
 §9 is the **canonical outcome taxonomy** for proposals and operations
 (R-7). DEL-04-03, DEL-05-01 and DEL-05-02 adopt it and C §4.1 (as of
-C-v0.5; carried in C-v0.7) unchanged. Fixtures use the shared catalogue FX-PIPE-01 (C-v0.7 §10); step
+C-v0.5; carried in C-v0.7, with C-v0.8's two destination rows) unchanged. Fixtures use the shared catalogue FX-PIPE-01 (C-v0.8 §10); step
 labels T… and variants V-… refer to it.
 
 **Phase (V4-WF-05 and V4-HI-42 as amended by SCA-V4-001, SETTLED; DECISION-4
@@ -56,8 +56,8 @@ observes: the checkpoint's identity, the request where it can be
 identified, and the act only when the person performs it. Neither the App
 nor a host's embedded loop issues the request in the agent's place, pauses
 the run, or otherwise reacts to the arrival. How an App run observes an
-arrival and a request, and what the record then holds, is defined in EXEC
-in Wave B; this file states the ruling and adds no mechanism.
+arrival and a request, and what the record then holds, is defined in
+EXEC-v0.6 §2.4–§2.5; this file states the ruling and adds no mechanism.
 
 The governing checkpoint constraint (§3.3),
 its carriage assurance and the treatment it forces (§4.4), and hold support
@@ -133,7 +133,7 @@ is never a person's rejection (§4.1).
   outcome and the same error meaning (identity and text).
 - **Permitted difference is authority only** (grant, reserved acts, class,
   checkpoint constraint). It is reported as *not permitted* naming the
-  governing treatment — policy-class record (C-v0.7 §3.1) or governing
+  governing treatment — policy-class record (C-v0.8 §3.1) or governing
   checkpoint constraint — never as a different validation error. Per the R-3
   map and R2:
   - a request to apply directly without an *effective direct* treatment →
@@ -148,7 +148,7 @@ is never a person's rejection (§4.1).
   - a request to perform a reserved act (S-P14) as the person → *not
     permitted*, with an A8 request *offered*; an A8 exists only if the agent
     actually issues it, with the requester identified (IR1A-10);
-  - a *no policy basis* class (C-v0.7 §3.1) → direct *not permitted*; a
+  - a *no policy basis* class (C-v0.8 §3.1) → direct *not permitted*; a
     proposal is available but confers no permission — any effect requires the
     person's A5 and host application (R2-1, R2-9, INTEGRATION).
 - A denial by the App user's Codex tool permission (A14) happens App-side
@@ -174,7 +174,7 @@ is never a person's rejection (§4.1).
 | Proposal identity | Stable identity of *this* proposal from drafting onward; the unit for one-effect (§7). A **retry** (resubmission after a lost acknowledgment or *outcome unknown*) keeps the same identity and unchanged content (R-7; V1-C AB-05). A **re-draft** receives a new identity (§5). Who mints it, how host handles relate to it, and how it is observed: §3.5 |
 | Lineage | For a re-draft: the identity of the proposal it replaces and why (e.g. stale) |
 | Change items | One or more items, each with its own item identity within the proposal |
-| **Change-item content identity** | An identity of the item's content: operation identity and version, bound targets, old values, new values and the relied-on basis (with relied-on target identities). Method unselected; carries a method designation (C-v0.7 §5.1) (SoW OUT-001 as revised under SCA-V4-001; R-6) |
+| **Change-item content identity** | An identity of the item's content: operation identity and version, bound targets, old values, new values and the relied-on basis (with relied-on target identities). Method unselected; carries a method designation (C-v0.8 §5.1) (SoW OUT-001 as revised under SCA-V4-001; R-6) |
 
 Rules (R-6):
 
@@ -193,10 +193,14 @@ Rules (R-6):
    Several tool calls in one model response each form their own proposal.
    The loop never merges sibling calls into one proposal; items come only from
    one call's arguments. A call that explicitly names an existing proposal it
-   extends is the drafter's choice, not a loop merge. Grouping mechanics:
-   U-P9 (= LOOP T-OPEN-1).
+   extends is the drafter's choice, not a loop merge. A response in which
+   one of several tool calls is malformed: the valid calls are handled on
+   their own and the malformed one receives its own refusal result; LOOP
+   adopts this rule (R12-7, INTEGRATION; LOOP-v0.8 §7 MC-8), PROPOSED until
+   the loop's fixture basis is observed. Remaining grouping mechanics:
+   U-P9.
 
-### 3.2 Consumed catalog meaning (from DEL-03-01/C-v0.7)
+### 3.2 Consumed catalog meaning (from DEL-03-01/C-v0.8)
 
 | Element | From C | Rule here |
 |---|---|---|
@@ -433,8 +437,20 @@ remain App receiving cases.
   evaluated basis}. An item refused after an A5 (V-S1) is **not**
   an item-left case — it had a decision — but its per-item annotation shows
   "accepted — not applied: refused — stale".
+  **The event is explicit in the schema (RP-2; R14-8 N-18; V18-4 m-7):**
+  `proposal_state.schema.json` carries it on the item that left as
+  `item_left` {cause, time, evaluated basis where the host evaluated one},
+  required exactly when the item left (refused before any A5, withdrawn, or
+  cleared with no decision record) and refused on any other item, with the
+  cause matching the item's state; and as a document of its own,
+  `item_left_event` {proposal identity, item identity, cause, time,
+  evaluated basis}, for a consumer that receives the event rather than a
+  recorded state. The five causes are the schema's `left_cause` values
+  `refused_stale`, `refused_invalid`, `refused_not_permitted`, `withdrawn`,
+  `cleared_by_person_no_decision_record`. A consumer no longer derives the
+  event from the item's state.
 - **All items decided** indication: true when every bound item has A5, A10 or
-  an item-left event.
+  an item-left event (`derived_state.all_items_decided`; DS-4).
 - For a checkpoint requiring A5 on a proposal, the mapping of these data to
   checkpoint dispositions (in Phase 1, labels on the record, EXEC PH-6) is
   **WD §4.3.7**, confirmed by DEL-02-03 (R4-7;
@@ -537,7 +553,7 @@ overlay: unobservable ─► outcome unknown (observer-attributed)
 ### 4.5 Undo (R2-15)
 
 - An undo is a **change through the one route** (§2) via the catalog's undo
-  operation (C-v0.7 OP-C10): its own origin, its own relied-on basis and
+  operation (C-v0.8 OP-C10): its own origin, its own relied-on basis and
   basis check, its own treatment — governed by the policy record of the
   operation whose receipt it reverses (R3-4, INTEGRATION) — its own outcome and its own receipt.
 - Its applied outcome carries the relation **reverses ⟨receipt⟩**, naming the
@@ -569,7 +585,8 @@ overlay: unobservable ─► outcome unknown (observer-attributed)
 ### 4.6 Per-item transitions and the derived proposal state (PROPOSED; S1-B P 5; R12-1)
 
 States and dispositions are per item (§4.1). One row per transition; "item
-left" marks the §4.3 item-left event. `prototype/proposal_states.py` beside
+left" marks the §4.3 item-left event, which the recorded state carries on
+the item as `item_left` (RP-2). `prototype/proposal_states.py` beside
 this file holds the same table as executable rules.
 
 | Id | From | Event | Actor | To | Record |
@@ -609,7 +626,7 @@ is a new proposal, §5). *Applied* is final except for PT-17.
 - **DS-3** The proposal is *open* while any item is drafted, validated,
   queued or accepted.
 - **DS-4** *All items decided* holds when every item has an A5 or an A10 or
-  has left (§4.3).
+  carries an item-left event (§4.3).
 - **DS-5** No report names a state for the whole proposal that some item
   does not have: never "accepted" or "applied" while any item is otherwise.
 
@@ -800,7 +817,7 @@ witness is host-owned evidence.
 
 Every non-success outcome carries the **evaluated basis** where the host
 evaluated one. Outcomes apply per change item where items exist. Reporter
-rules for non-success results follow C-v0.7 §4.1.
+rules for non-success results follow C-v0.8 §4.1.
 
 | Outcome | Meaning | Carries | Establishes | Does **not** establish |
 |---|---|---|---|---|
@@ -811,10 +828,10 @@ rules for non-success results follow C-v0.7 §4.1.
 | refused — invalid | Host validation refused with a catalog error | Error identity, evaluated basis | Nothing applied | — |
 | refused — stale | A relied-on target no longer holds | Reason, failing targets, relied-on basis, current (evaluated) basis | Nothing applied | — |
 | queued | Host holds the item for the person's decision | Host acknowledgment | Submission received | Acceptance, application |
-| accepted | Host captured the person's A5 on the item | Actor, act reference, item content identity | That act by that person on that item content | Application, checking, approval, reliance |
-| rejected | Host captured the person's A10 | Actor, act reference | That rejection | — |
+| accepted | Host captured the person's A5 on the item | Actor, act reference, item content identity; capture time as the host records it, else *not supplied by host* (RP-2; `act_ref.captured_at`) | That act by that person on that item content | Application, checking, approval, reliance |
+| rejected | Host captured the person's A10 | Actor, act reference; capture time as for *accepted* | That rejection | — |
 | withdrawn | Proposer withdrew (A11) | Actor | That withdrawal | — |
-| applied (receipt) | Host applied the item. **Applied-outcome association**: proposal/item identity, relied-on basis, receipt reference, resulting revision, **resulting objects** (created and changed object identities with their post-application subject content identities and method designation, or "not supplied" as an evidence limit, R2-14; SWBPIPE supplies `target_ref`, per-field diffs and the new whole-model hash, with created objects only as the target ids of `create_*` operations and no post-application per-object identity, SQ-03 (d), R8-4); branch *after acceptance* or *direct under grant* (with settings references); relation *reverses ⟨receipt⟩* for an undo | Association | Execution, resulting revision and the reported resulting objects | Acceptance (direct branch), checking, approval, reliance |
+| applied (receipt) | Host applied the item. **Applied-outcome association**: proposal/item identity, relied-on basis, receipt reference, resulting revision, **resulting objects** (created and changed object identities with their post-application subject content identities and method designation, or "not supplied" as an evidence limit, R2-14; SWBPIPE supplies `target_ref`, per-field diffs and the new whole-model hash, with created objects only as the target ids of `create_*` operations and no post-application per-object identity, SQ-03 (d), R8-4); a resulting object without its subject content identity or method has them *not supplied* (the consumer records that and computes none, R14-8 N-21); branch *after acceptance* or *direct under grant* (with settings references); relation *reverses ⟨receipt⟩* for an undo | Association | Execution, resulting revision and the reported resulting objects | Acceptance (direct branch), checking, approval, reliance |
 | applied, then reversed by ⟨receipt⟩ | Standing of an applied item whose change was later reversed (§4.5) | Both receipts | Both executions | That any act on it lapsed or survived — evaluated per act (§4.5) |
 | application error | Declared error during application | Error identity; effect *none* / *partial* (receipt references) / *unknown* | What the effect statement states | Any unstated effect |
 | outcome unknown | Result unobservable | Observer, last observed state | Only the last observed state | Applied, failed, accepted or rejected |
@@ -836,9 +853,22 @@ point is an **application error** with its effect statement (LOOP §5.3
 DF-4 (c)). The waiting of a destination request's carried call is not a
 proposal state and changes no item disposition.
 
-Item-left events (§4.3) accompany the refusal/withdrawal outcomes of queued
-items. Whether the host receipt *itself* carries the relied-on basis or the
-resulting objects is a host observation recorded at comparison (C-v0.7
+Item-left events (§4.3) accompany the refusal/withdrawal outcomes of items
+that leave without an A5; the schema carries them explicitly (§4.3).
+
+**Tokens (RP-2; R14-6; V18-2 M-2).** In the schemas the per-item outcomes
+of this table are the `item_state` values of `proposal_state.schema.json`,
+and consumers use them unchanged: queued `queued`; accepted `accepted`;
+applied (receipt) **`applied`**; applied, then reversed
+`applied_then_reversed`; rejected `rejected`; withdrawn `withdrawn`;
+refused — stale `refused_stale`; refused — invalid `refused_invalid`;
+not permitted (a proposal item) `refused_not_permitted`; application error
+`application_error`; outcome unknown `outcome_unknown`; the queue cleared
+with no decision record `left_queue` (§9.1); and before submission
+`drafted`, `validated`. *Refused — identity conflict* and *not known to
+host* are document kinds (`identity_conflict`, `not_known_to_host`), not
+item states. No other token (for example `applied_receipt`) is P's. Whether the host receipt *itself* carries the relied-on basis or the
+resulting objects is a host observation recorded at comparison (C-v0.8
 VC-C-04), not assumed.
 
 ### 9.1 Received host vocabulary: SWBPIPE (R8-5; evidence only)
@@ -888,6 +918,7 @@ Canonical act names (R-1; DEL-04-01 §2.1).
 | Act-declined event (A4, A6, A7, A12) | The person | Capture evidence of the decision not to act | — it is not the act and not A10 (R2-5) |
 | Run-ended event | The person stopping the run, or an observed end; **reporter**: the loop (V2 m-11) | Run record | — the checkpoint stays *waiting* (R2-5). An ended run is never resumed; acts after the end are shown "after run end" and change nothing; continuation is a new run with **continues ⟨run⟩**, inheriting nothing (R4-4, PROPOSED). An interruption is not a run end |
 | A14 answer tool permission | Person or the user's own Codex mode | App-side R13 record only (R2-8) | — never a professional act, A5 or a grant |
+| A15 register workflow revision (R12-5) | The person | Its own human-act record (ACT-POLICY-v0.8 §2.1; RS) | — not a change through this route and never required by a checkpoint in this increment |
 
 Rules: one act never establishes another; no synthetic prerequisite between
 acts is introduced; checkpoint satisfaction requires attributable evidence
@@ -912,7 +943,7 @@ controls) produces the human-act record, and its R7 entry references it
 This is the distinct return retained from SCC-CASE-004 (CASE-002 M3-CP;
 DEP-03-01-026). It supplies DEL-03-01 with designed refusal/application
 behavior and a comparison plan; DEL-03-01 compares basis elements only.
-Steps are the FX-PIPE-01 timeline (C-v0.7 §10.3).
+Steps are the FX-PIPE-01 timeline (C-v0.8 §10.3).
 
 | Step | Action | Basis observed | Proposal reference | Expected P behavior |
 |---|---|---|---|---|
@@ -937,7 +968,7 @@ is recorded as a host observation. T7's per-item refusal is the fixture's; on
 a host with a whole-model scope, such as SWBPIPE, the refusal names the host
 scope and no failing target (§5; R8-3).
 
-**Evidence labels:** per the C-v0.7 mapping — *illustrative* (this table),
+**Evidence labels:** per the C-v0.8 mapping — *illustrative* (this table),
 *test-double*, *actual host* (candidate-bound SWBPIPE observation, DEL-09-09).
 The first executable return is a candidate-bound test-double observation; it
 is not host evidence (V1-B X-08).
@@ -986,17 +1017,17 @@ deliverable's register. A row names a contribution, not its delivery.
 
 | Direction | Counterpart | Content |
 |---|---|---|
-| Expect from | DEL-03-01/C-v0.7 (DEP-03-02-016) | §3.2 elements; §3.1 five class values; §4.1 results and reporters; §4.4; content identities and method designation; "no longer holds" rule (per item, or the host's stated scope, R8-3); whole-model identity receiving (R8-4); exposure; FX-PIPE-01 incl. OP-C10 undo |
-| Expect from | DEL-04-01 (DEP-03-02-017) | A1–A14 names; class records P-01…P-06 with revision identity; treatment → outcome map; act-declined event; residual `UNRESOLVED{OI-021}` additions |
+| Expect from | DEL-03-01/C-v0.8 (DEP-03-02-016) | §3.2 elements; §3.1 five class values; §4.1 results and reporters; §4.4; content identities and method designation; "no longer holds" rule (per item, or the host's stated scope, R8-3); whole-model identity receiving (R8-4); exposure; FX-PIPE-01 incl. OP-C10 undo |
+| Expect from | DEL-04-01 (DEP-03-02-017) | A1–A15 names (A15, R12-5, not checkpoint-requirable); class records P-01…P-06 with revision identity; treatment → outcome map; act-declined event; residual `UNRESOLVED{OI-021}` additions |
 | Expect from | DEL-04-02 (supplier row DEP-04-02-021; no UPSTREAM row in this register) | Grant display states incl. *effective (policy default)*; grant value and scope per class; settings version identities |
 | Expect from | DEL-02-01 (DEP-03-02-027) | Workflow identity; checkpoint declarations (required act, subject class, reached-when); §4.3.7 item rule |
 | Expect from | Host owner (DEP-03-02-023) | Route, de-duplication, treatment resolution, constraint receipt (U-P10), validation outcomes, receipts, resulting objects, origin marks, undo route, views, captured acts with capture-evidence references, settings version at application, stale rule confirmation (U-C3), generation meaning (U-C2), one-effect evidence |
 | Provide to | DEL-04-02 (DEP-03-02-018) | Direct-branch entry condition and origin semantics (§4.4); standing per outcome (§9) incl. "applied, then reversed" and accepted-then-stale display |
-| Provide to | DEL-04-03 (DEP-03-02-019) | Canonical §9 taxonomy; per-submission recording and precedence (§5, §7); applied association with resulting objects; change-item content identity for A5/A10 lapse (L-1); origin and constraint (§3.3); act/evidence table (§10); undo relation *reverses ⟨receipt⟩* (§4.5); item-left events (§4.3). At v0.8: two §9 rows (*refused — identity conflict*; *not known to host*), the minting party and host handles (§3.5 PM-1, PM-2), the host-assigned change-item content identity (PM-6), the evidence limit "de-duplication scope exceeded" (PM-5) |
+| Provide to | DEL-04-03 (DEP-03-02-019) | Canonical §9 taxonomy; per-submission recording and precedence (§5, §7); applied association with resulting objects; change-item content identity for A5/A10 lapse (L-1); origin and constraint (§3.3); act/evidence table (§10); undo relation *reverses ⟨receipt⟩* (§4.5); item-left events (§4.3). At v0.8: two §9 rows (*refused — identity conflict*; *not known to host*), the minting party and host handles (§3.5 PM-1, PM-2), the host-assigned change-item content identity (PM-6), the evidence limit "de-duplication scope exceeded" (PM-5). At the RP-2 repair: the item-left event as an explicit schema element (§4.3) and the host's capture time on A5/A10 (§9) |
 | Provide to | DEL-03-03 (DEP-03-02-020) | This contract unchanged for the external channel; constraint carriage assurance (§3.3, governance phase; only host-held satisfies R2-12; App-assured not available in this increment); *unverified* author identity; *channel not enabled* (App or host reporter), relayed *not exposed*, *not permitted*; the received SWBPIPE vocabulary (§9.1). At v0.8: identity minting and host handles (§3.5 PM-1, PM-2), observation by identity and *not known to host* (PM-4), the de-duplication scope (PM-5), *refused — identity conflict* (PM-3), the per-item table (§4.6) and SQ-P6; the two schemas |
 | Provide to | DEL-05-01 (consumer row DEP-05-01-015) | §9 unchanged except the two v0.8 rows; observer-attributed *outcome unknown*; retry keeps identity and precedence; origin, seat role, grant in force and constraint on every dispatch; sibling-draft rule (§3.1 rule 5). At v0.8: the mechanism-free meaning LOOP R-d waits on — observation by identity (§3.5 PM-4) and the order of SQ-P6 — and *refused — identity conflict* |
-| Provide to | DEL-05-02 (consumer row DEP-05-02-007) | Per-item dispositions with actors and annotations, lineage, stale indication, item-left events, "accept" wording (§8) |
-| Provide to | DEL-02-01 (consumer row DEP-02-01-029; arc N-18) / DEL-02-03 (consumer row DEP-02-03-025; arc N-21) | Change-item content identities (§3.1); per-item dispositions, item-left events and all-items-decided indication (§4.3); applied outcomes with their resulting objects, for subject binding and checkpoint recording (§9). Governance phase only, and named by no register row: governing constraint semantics and the *not permitted* outcome (§4.4) |
+| Provide to | DEL-05-02 (consumer row DEP-05-02-007) | Per-item dispositions with actors and annotations, lineage, stale indication, item-left events, "accept" wording (§8). At v0.8 (named at the RP-2 repair; V18-3 m-12): the two §9 rows *refused — identity conflict* and *not known to host*; the derived proposal state DS-1…DS-5, in particular *mixed* given with the item list (DS-1) and never a state some item lacks (DS-5); the meanings of proposal identity, handles and observation (§3.5 PM-1…PM-4), whose mechanics stay TBD-002 |
+| Provide to | DEL-02-01 (consumer row DEP-02-01-029; arc N-18) / DEL-02-03 (consumer row DEP-02-03-025; arc N-21) | The five contributions the rows name, each in text and schema (`proposal_state.schema.json`; confirmed at the RP-2 repair, R14-8): (1) change-item content identities — §3.1, §3.4, host-assigned at first receipt (§3.5 PM-6); `item.change_item_content_identity` with `identity_method`; (2) per-item dispositions — §4.1, §4.6 PT-1…PT-19; `item.state` (the §9 tokens) and `item.decision` {A5, A10, A11} with its capture time where the host records one; (3) the all-items-decided indication — §4.3, DS-4; `derived_state.all_items_decided`; (4) item-left events — §4.3; `item.item_left` and the standalone `item_left_event` {proposal, item, cause, time, evaluated basis}; (5) applied outcomes with their resulting objects — §9; `item.applied.resulting_objects`, each object's subject content identity and method, or *not supplied* (absent on the object, or `not_supplied` for the list). Tokens per §9 "Tokens" (`applied`, R14-6). For interrupted or replayed history (DEL-02-03): PT-18/PT-19, PM-4, PM-5 and SQ-P6. Governance phase only, and named by no register row: governing constraint semantics and the *not permitted* outcome (§4.4) |
 | Provide to | DEL-03-04 (DEP-03-02-021) | §1 authority map and this table |
 | Provide to | DEL-09-09 (DEP-03-02-022) | §11 scenario, §12 risks, VC-P cases and expected outcomes |
 | Provide to | DEL-03-01 (consumer row DEP-03-01-026) | M3-CP return (§11) |
@@ -1006,7 +1037,7 @@ deliverable's register. A row names a contribution, not its delivery.
 
 ## 14. Examples (FX-PIPE-01 fixture subjects)
 
-All material is **invented** and taken from the shared catalogue (C-v0.7
+All material is **invented** and taken from the shared catalogue (C-v0.8
 §10), except the rows marked SWBPIPE, which use SWBPIPE's answered terms. Labels are fixture labels, not identities, wire names or SWBPIPE
 commitments.
 
@@ -1055,10 +1086,21 @@ Every new structure is PROPOSED (R12-1).
 | — | §13: DEL-03-03, DEL-05-01 and DEL-04-03 rows name what v0.8 adds | §13 |
 | — | Header: v0.8; a Wave B line; the Serves line names the schemas | Header |
 | **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §9 note: the two "destination not allowed" results are C-v0.8 §4.1 rows, not proposal outcomes; a submission refused at V-D is never queued; a refusal at contact during application is an *application error*; a carried call's wait is no proposal state. No §9 row and no identifier changes | §9 |
+| **R14-8 N-18** (RP-2, in place; V18-4 m-7 (a)) | Item-left events made explicit in `proposal_state.schema.json`: `item_left` {cause, time, evaluated basis} on the item that left, required exactly when it left and with the cause matching its state, refused on any other item; a standalone `item_left_event` document kind; `left_cause` enumerates all five causes. SH-1 emits them; `proposal_states.py --check` verifies them; new examples `proposal_state.example-valid-3.json` and `-invalid-2.json`. §13 states the five contributions DEL-02-01 and DEL-02-03 receive, each with its text and schema locus | §4.3; §4.6; §13; schema, examples, prototype |
+| **R14-6**, V18-2 M-2, V18-4 m-8 (RP-2) | §9 "Tokens": the §9 outcomes as the schema's `item_state` tokens, `applied` for *applied (receipt)*; identity conflict and not known to host as document kinds; `applied_receipt` is not P's | §9 |
+| V18-3 M-1; R14-4 (RP-2; supplier side) | `act_ref.captured_at`: the capture time as the host records it, absent meaning *not supplied by host*; §9 *accepted* and *rejected* carry it; the valid example and SH-1 carry it | §9; schema; example |
+| R14-8 N-21; V18-4 m-7 (c) (RP-2) | §9: a resulting object without its subject content identity or method has them *not supplied*; the schema description says so | §9; schema |
+| V18-3 m-13 (RP-2) | §3.1 rule 5 and U-P9: the malformed-sibling part is ruled by R12-7 (LOOP adopts the rule; PROPOSED until observed); U-P9 narrowed | §3.1; UNRESOLVED U-P9 |
+| V18-3 m-12 (RP-2) | §13 "Provide to DEL-05-02" names the two v0.8 §9 rows, DS-1…DS-5 (*mixed* with the item list) and §3.5 PM-1…PM-4 | §13 |
+| V18-1 m-5 (RP-2) | A15 added to §10's act table (not a change through this route; never checkpoint-required) and to "Expect from DEL-04-01" (A1–A15) | §10; §13 |
+| V18-2 m-9 (RP-2) | `proposal.schema.json` workflow identity `origin` limited to WD §6.1's project, user, bundled, host | schema |
+| V18-3 n-1 (RP-2) | Body citations of C re-pointed to C-v0.8 (§0, §2, §3.1, §3.2 heading, §4.5, §9, §11, §13, §14, verification cases); §0 cites EXEC-v0.6 §2.4–§2.5 for the App-run mechanism | Body |
+| — (RP-2) | Header: the repair's inputs pinned on the Wave B line; VC-P-15 and VC-P-16 record the rerun | Header; Verification cases |
 
 New identifiers: PM-1…PM-7, PT-1…PT-19, DS-1…DS-5, VP-1…VP-3, SQ-P1…SQ-P6,
 VC-P-15, VC-P-16, and the §9 rows *refused — identity conflict* and *not
-known to host*. No existing identifier is removed or re-meant, and the rest of
+known to host*; at the RP-2 repair the schema elements `item_left`,
+`item_left_event` and `act_ref.captured_at` (no new identifier in the text). No existing identifier is removed or re-meant, and the rest of
 §9 is unchanged. Not done here: S1-B P items 1–3 and 6 (Wave A or other
 nodes); no identity representation, encoding or de-duplication mechanism is
 chosen (TBD-002).
@@ -1196,7 +1238,7 @@ v0.2 = P-v0.2 (sha256 942c1a3a…8c89, 575 lines, committed at `c387730fb`).
 | U-P6 Operation-specific withdraw/reject rules beyond R-1 | Host owner (V4-HI-30); OI-021 for the connected operation | Before withdrawal implementation | A11 proposer-only; A10 reserved wherever A5 is. SWBPIPE: no withdraw or reject operation; #885 `withdrawn` is the person clearing the queue, received as item left (R8-5); SWBPIPE autonomy is owner decision OI-016 |
 | U-P7 Item application grouping | Host owner | Before application-path implementation | Item-level dispositions defined. SWBPIPE: one batch is one application and one undo checkpoint; atomic (SQ-09 (b), (f)) |
 | U-P8 Undo mechanism and availability (OP-C10). Treatment is settled: governed by the policy record of the operation whose receipt it reverses (R3-4, INTEGRATION) | Host owner | Before undo implementation | §4.5 semantics; treatment per R3-4. SWBPIPE: session snapshot undo, not through the route, no receipt, not policy-governed; "reverses ⟨receipt⟩" *not supplied*; acts bound to content it changes still lapse, observed from the model identity (SQ-10; R8-5) |
-| U-P9 Sibling-draft grouping mechanics (= LOOP T-OPEN-1) | DEL-05-01 with DEL-03-02 and host owner | Before FX-M8 / loop fixtures | §3.1 rule 5 PROPOSED |
+| U-P9 Sibling-draft grouping mechanics (= LOOP T-OPEN-1). **Narrowed at RP-2:** the malformed-sibling part is ruled by R12-7 (LOOP adopts §3.1 rule 5: valid calls handled on their own, the malformed one refused on its own) | DEL-05-01 with DEL-03-02 and host owner | Before the loop's fixture basis is observed (LOOP MC-8) | §3.1 rule 5 PROPOSED; the R12-7 part INTEGRATION, PROPOSED until observed |
 | U-P10 Host receipt of the governing checkpoint constraint, or host evaluation of its own declaration copy (relay, R2-12; SWBPIPE SQ-02); which carriage assurances a host can distinguish (R4-14); only host-held satisfies R2-12 (R5-2) — governance phase (R8-1) | Host owner with DEL-03-02, DEL-05-01, DEL-03-03 (DEP-001). SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned; planning one is a SWBPIPE owner decision (ANS §2). D6 is closed for Phase 1 and re-opens with the governance phase (R8-2) | Before the governance-phase V-CP1 / LOOP FX-C9 / PANEL PC-24 / WD VC-11 execution | Phase 1: none; the App carries no constraint (R8-10). Governance phase: those fixtures AWAITING INPUT — SQ-02 answered: no receipt, no host copy (not offered); host joins deferred (DECISION-3); omitted constraint indistinguishable from none |
 | ~~Mixed item decisions → checkpoint disposition~~ **Closed**: WD §4.3.7 confirmed by DEL-02-03 (R4-7; R5-9) | — | — | P supplies item data and item-left events |
 | U-C2 / U-C3 / U-C4 / U-C12 (shared with DEL-03-01) generation; host confirmation of the per-item stale rule and subject-identity scope; multi-read reliance; per-subject identity not met by SWBPIPE | Host owner with DEL-03-01/DEL-03-02; U-C12 SWBPIPE owner (PB-TBD-002 / DEL-16-03) | Before stale implementation | Contract rule fixed as INTEGRATION (R2-13 as amended by R8-3: the host's stated scope where no subject identities are supplied). SWBPIPE: whole-model identity and staleness only (SQ-03, SQ-07 (d)); new generation per published-project change (SQ-07 (b)); no multi-read reliance concept (SQ-07 (g)) |
@@ -1207,14 +1249,14 @@ v0.2 = P-v0.2 (sha256 942c1a3a…8c89, 575 lines, committed at `c387730fb`).
 
 Designed. **Run at v0.8, on SH-1 only (C-v0.8 §10.8; label *test-double*):**
 VC-P-15, VC-P-16, and the parts of VC-P-07, VC-P-09 and VC-P-12 that §11's
-run covers; the rest are not run. Evidence labels per the C-v0.7 mapping
+run covers; the rest are not run. Evidence labels per the C-v0.8 mapping
 (*illustrative* / *test-double* / *actual host*, with LOOP and PANEL
-equivalents; unchanged in C-v0.8). Steps and variants refer to FX-PIPE-01
-(C-v0.7 §10.3–§10.4).
+equivalents; unchanged since C-v0.7). Steps and variants refer to FX-PIPE-01
+(C-v0.8 §10.3–§10.4).
 
 | Case | Design | Expected result | Serves |
 |---|---|---|---|
-| VC-P-01 Coverage | Map §§1–13 to the twelve scope rows (SOW-070, 090, 091, 170–178), V4-HI-20–25, C-v0.7 elements, R-1–R-9 and R2-1–R2-21 | Every scope row covered; every representation choice named as open with owner; DERIVED/INTEGRATION/PROPOSED markings match R1/R2 | VER-001 |
+| VC-P-01 Coverage | Map §§1–13 to the twelve scope rows (SOW-070, 090, 091, 170–178), V4-HI-20–25, C-v0.8 elements, R-1–R-9 and R2-1–R2-21 | Every scope row covered; every representation choice named as open with owner; DERIVED/INTEGRATION/PROPOSED markings match R1/R2 | VER-001 |
 | VC-P-02 Channel parity | Same OP-C4 proposal, arguments, basis, authority via person, embedded, external; plus invalid (E-location-occupied), stale, direct-without-grant and V-CP1 variants | One route identity; identical outcome/error meanings; direct-without-grant → *not permitted* on every channel naming the governing treatment, never converted; V-CP1 in the governance phase → *not permitted* naming the constraint, and in Phase 1 → the host's own treatment, reported as observed (R8-1) | VER-002 |
 | VC-P-03 Host authority / no upgraded result | T10 with no A5 captured | Reported *queued*; never *accepted*; domain truth only in host | VER-003 |
 | VC-P-04 Origin, constraint and basis preservation | Trace PR-2 from T9 to T12; V-CP1 dispatch | Author type, seat role, channel, conversation, full workflow identity and run, standing at drafting, both settings references, relied basis B2 and target identities identical at every step; governance phase: V-CP1 on E has host-held carriage (host loop evaluation), and a model-supplied-only V-CP1 variant via X is not relied on for treatment and is recorded as such; Phase 1: no constraint is carried by the App and no field the host schema lacks is added; no case is labeled App-assured; an external caller the host cannot verify shows author identity *unverified* | VER-004 |
@@ -1227,6 +1269,6 @@ equivalents; unchanged in C-v0.8). Steps and variants refer to FX-PIPE-01
 | VC-P-11 Execution vs acts | T12 success; T16 direct; T17 undo with T16a; separately evidenced A4, A6, A7 cases; an act-declined event | Success asserts execution only; T17 lapses T16a's A4 but not T11's A5; declined event never recorded as the act; A9 records cite capturing-surface evidence; none inferred from another | VER-011 |
 | VC-P-12 Queued/accepted/applied/unknown reporting | T10; after T11; T12; T13; V-S1 | queued; "accepted, not yet applied" with actor; applied with association; T13 recorded state; V-S1 "accepted — not applied: refused — stale" — compared against host records | VER-012 |
 | VC-P-13 Policy interface | Review §§2, 3.3, 4.4, 9, 10 against CLM-004, #d3, D2/D3, R-2/R-3/R-5, R2-1–R2-12; V-NP1 | Routine tool permission (A14), direct application, A5 and other acts distinct; reserved acts per D2; constraint → not permitted; no policy basis → proposal confers nothing, A12 widening refused, dependent production *held*; no blanket approval policy | VER-013 |
-| VC-P-15 Schemas (v0.8) | DEL-03-01's `prototype/validate_all.py`: `proposal.schema.json` and `proposal_state.schema.json` within the keyword subset; their valid instances pass and invalid ones fail; every change request and recorded state of an SH-1 run validates | **Run 2026-09-30: passed** (2 schemas, 5 instances; 6 change requests and all recorded states of the run) | VER-001 |
-| VC-P-16 Transition table and derived state (v0.8) | `prototype/proposal_states.py --check ‹SH-1 run›`: ten legal sequences end in the expected state; five illegal ones are refused; every item-state change SH-1 reported is reachable in §4.6; every derived state it reported equals DS-1…DS-4 | **Run 2026-09-30: passed** (10 legal, 5 illegal, 8 recorded-state documents) | VER-005, VER-012 |
+| VC-P-15 Schemas (v0.8) | DEL-03-01's `prototype/validate_all.py`: `proposal.schema.json` and `proposal_state.schema.json` within the keyword subset; their valid instances pass and invalid ones fail; every change request and recorded state of an SH-1 run validates | **Run 2026-09-30: passed** (2 schemas, 5 instances; 6 change requests and all recorded states of the run). **Rerun at RP-2, 2026-09-30: passed** (2 schemas, 7 instances, including `proposal_state.example-valid-3.json`, a standalone item-left event, and `-invalid-2.json`, an item refused at first receipt without its event; 6 change requests and all recorded states) | VER-001 |
+| VC-P-16 Transition table and derived state (v0.8) | `prototype/proposal_states.py --check ‹SH-1 run›`: ten legal sequences end in the expected state; five illegal ones are refused; every item-state change SH-1 reported is reachable in §4.6; every derived state it reported equals DS-1…DS-4; since RP-2, every item that left carries its explicit item-left event (§4.3) with the matching cause, and no other item does | **Run 2026-09-30: passed** (10 legal, 5 illegal, 8 recorded-state documents). **Rerun at RP-2, 2026-09-30: passed** (10 legal, 5 illegal, 5 item-left conformance cases; 8 recorded-state documents, 2 item-left events, each with cause and time, none misplaced) | VER-005, VER-012 |
 | VC-P-14 Boundary audit | Check REQ-013 exclusions one-for-one against §1 and §13; run the registered boundary-owner checker (`tools/scope_of_work/check_boundary_owner_resolution.py`) and manually resolve any NOT_CHECKABLE or NO_CITED_CLAIM result (SoW VER-014). The checker exists, so the "when available" of P-v0.6 is dropped. One tool observation is recorded (Wave A, 2026-09-30, on ScopeOfWork.md `35609151…4d0f`): 1 boundary requirement checked, 0 unresolved owners, 0 NOT_CHECKABLE, 0 NO_CITED_CLAIM, exit 0. The one-for-one review against §1 and §13 is not run | Each excluded act resolves to its owner; twelve scope rows retained; no sibling/external completion or SWBPIPE adoption claimed | VER-014 |

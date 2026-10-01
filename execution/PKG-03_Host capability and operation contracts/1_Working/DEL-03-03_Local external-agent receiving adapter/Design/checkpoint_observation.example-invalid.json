@@ -1,12 +1,25 @@
 {
   "observation_kind": "proposal_queued",
-  "exec_event": "act_lapsed_input",
+  "exec_event": "CE-10",
   "source_record": "item-main-11",
   "proposal_identity": "PR-2",
   "items": [
     "1",
     "2"
   ],
+  "item_content_identities": [
+    {
+      "item_identity": "1",
+      "content_identity": "sh1:e67adbf4d0b16611",
+      "identity_method": "m-sh1"
+    },
+    {
+      "item_identity": "2",
+      "content_identity": "sh1:b118b14d880f03c4",
+      "identity_method": "m-sh1"
+    }
+  ],
   "evidence_time": "t0004",
+  "evidence_time_source": "host_outcome_time",
   "observed_at": "T10"
 }

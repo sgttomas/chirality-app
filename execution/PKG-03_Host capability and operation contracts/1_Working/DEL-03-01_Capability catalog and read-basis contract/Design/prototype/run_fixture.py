@@ -328,23 +328,21 @@ def lineage_variant(out, checks):
     rd = r.cli("R12-9-b", ["call", "OP-C1"], json.dumps({"run": "R-100"}))
     b = rd["basis"]
     absent = sorted(k for k, v in b.items() if isinstance(v, dict))
-    checks.append(("R12-9 demo: basis profile declares no workspace identity or generation; the read marks both host_declares_none",
+    checks.append(("R13-1 case: basis profile declares no workspace identity or generation; the read marks both host_declares_none",
                    cat["basis_profile"]["workspace_identity"] == "not_supplied"
                    and absent == ["generation", "workspace_identity"]))
     return r, absent
 
 
-def classify(basis, profile, option):
-    """R12-9 options as executable rules (for illustration; the integrator rules)."""
+def classify(basis, profile):
+    """R13-1 (B3's option B, ruled; C §5.2 rule 1) as an executable rule."""
     missing = {k: v["not_supplied"] for k, v in basis.items() if isinstance(v, dict)}
     if not missing:
         return "citable"
-    if option == "A":
-        return "basis incomplete: not citable"
     declared_none = all(v == "host_declares_none" and profile.get(k) == "not_supplied" for k, v in missing.items())
     lineage_only = set(missing) <= {"workspace_identity", "generation"}
-    if option == "B" and declared_none and lineage_only:
-        return "citable with limit 'basis lineage not supplied'; comparisons across a lineage event are unknown (incomparable)"
+    if declared_none and lineage_only:
+        return "citable with limit 'basis lineage not supplied'; comparisons across lineages are unknown (incomparable)"
     return "basis incomplete: not citable"
 
 
@@ -396,15 +394,24 @@ def main():
                 f.write(json.dumps(c) + "\n")
     nlb = next(d["doc"]["basis"] for d in nl.docs if d["step"] == "R12-9-b")
     prof = next(d["doc"]["basis_profile"] for d in nl.docs if d["step"] == "R12-9-a")
-    r129 = {opt: classify(nlb, prof, opt) for opt in ("A", "B")}
+    full_prof = {"workspace_identity": "supplied", "generation": "supplied"}
+    omitted = dict(nlb, workspace_identity={"not_supplied": "omitted"}, generation=B1["generation"])
+    r131 = {"no-lineage read on a host declaring none": classify(nlb, prof),
+            "read omitting workspace identity on a host that supplies it": classify(omitted, full_prof),
+            "T3 read on the full profile": classify(B1, full_prof)}
+    checks.append(("R13-1 rule: a no-lineage read is citable with 'basis lineage not supplied'; an omitted "
+                   "element stays basis incomplete; a full read is citable",
+                   r131["no-lineage read on a host declaring none"].startswith("citable with limit")
+                   and r131["read omitting workspace identity on a host that supplies it"].startswith("basis incomplete")
+                   and r131["T3 read on the full profile"] == "citable"))
     print("SH-1 run directory:", out)
     print("\nM3-CP basis comparison (revision shown; the full five-element descriptors were compared):")
     print(f"{'step':32} {'read':6} {'proposal ref':13} {'refusal':24} applied")
     for row in rows:
         print(f"{row[0]:32} {row[1]:6} {row[2]:13} {row[3]:24} {row[4]}")
-    print("\nR12-9 illustration, a no-lineage read (workspace identity and generation host_declares_none):")
-    for k, val in r129.items():
-        print(f"  option {k}: {val}")
+    print("\nR13-1 (ruled; C §5.2 rule 1), reads classified for citation:")
+    for k, val in r131.items():
+        print(f"  {k}: {val}")
     print("\nChecks:")
     failed = 0
     for name, ok in checks:
@@ -412,7 +419,7 @@ def main():
         failed += 0 if ok else 1
     print(f"\n{len(checks) - failed} of {len(checks)} checks passed; items recorded: "
           f"{sum(len(x.items) for x in runs)}; host documents: {sum(len(x.docs) for x in runs)}")
-    (out / "summary.json").write_text(json.dumps({"checks": [[n, ok] for n, ok in checks], "r12_9": r129,
+    (out / "summary.json").write_text(json.dumps({"checks": [[n, ok] for n, ok in checks], "r13_1": r131,
                                                    "m3cp": rows}, indent=1))
     return 1 if failed else 0
 

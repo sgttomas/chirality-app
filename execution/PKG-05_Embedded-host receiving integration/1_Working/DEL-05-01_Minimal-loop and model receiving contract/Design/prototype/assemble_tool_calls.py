@@ -8,7 +8,9 @@ retrieved 2026-09-30; LOOP-v0.8 §4.1). FB-CC-1 is a fixture basis, not a
 product selection (DEL-05-01 REQ-002). The output records use Chirality's
 own names and are checked against ../LOOP_TOOL_CALL.schema.json.
 
-Rules applied (LOOP-v0.8 §4.1 and §7; all PROPOSED until OBS-1):
+Rules applied (LOOP-v0.8 §4.1 and §7; all PROPOSED. OBS-1 observed the four
+§4.1 points on one local server, changing no rule; fixtures OBS1-C1...C3
+reproduce the observed shapes):
   * fragments of one call are joined by their position ("index", the only
     member FB-CC-1 requires in a streamed tool-call chunk); argument text is
     appended in arrival order and never repaired (MC-9);

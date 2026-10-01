@@ -27,6 +27,12 @@ Exit status 0 only if every check holds. The observed output of the run of
 2026-09-30 is recorded in XT-v0.6 §3.6 and in
 `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B7.md`.
 
+**RP-4 (2026-09-30).** Evidence limits are written in RS R11's own spelling
+(the mapper's tokens are mapped once) and checked against the labels of
+DEL-04-03's `RS_RECORD.schema.json`. Rerun output in `WAVE_B/RP-4.md`. The
+result-record examples record the sha256 of the other prototypes' files, so
+they are regenerated (`--write-examples`) whenever those change.
+
 ## Limits
 
 - Everything is *test-double* evidence. XF rehearsals never complete an XC
