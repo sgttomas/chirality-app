@@ -38,6 +38,20 @@
       "type": "object", "additionalProperties": false, "required": ["run"],
       "properties": {"run": {"type": "string", "minLength": 1}}
     },
+    "workflow_tuple": {
+      "description": "WD-v0.8 §6.1 identity tuple (`workflow-declaration.schema.json#/$defs/workflow_identity`), used for derived-from (RX).",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "origin", "source_root", "name"],
+      "properties": {
+        "kind": {"const": "workflow"},
+        "origin": {"enum": ["project", "user", "bundled", "host"]},
+        "source_root": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "revision_method": {"type": "string", "minLength": 1},
+        "derived_from": {"$ref": "#/$defs/workflow_tuple"}
+      }
+    },
     "workflow_selection": {
       "type": "object", "additionalProperties": false, "required": ["workflow_identity", "holding_library", "continues_run"],
       "properties": {
@@ -50,7 +64,7 @@
             "source_root": {"type": "string", "minLength": 1},
             "name": {"type": "string", "minLength": 1},
             "revision": {"type": "string", "minLength": 1},
-            "derived_from": {"type": ["string", "null"]}
+            "derived_from": {"description": "null for a workflow not adapted; otherwise the full identity tuple of the workflow adapted from, never a string (WD-v0.8 §6.1, `workflow-declaration.schema.json#/$defs/workflow_identity`; V18-2 m-9; RX).", "anyOf": [{"type": "null"}, {"$ref": "#/$defs/workflow_tuple"}]}
           }
         },
         "holding_library": {"type": ["string", "null"], "description": "Shown beside the origin; never part of identity equality (WD §6.4)."},

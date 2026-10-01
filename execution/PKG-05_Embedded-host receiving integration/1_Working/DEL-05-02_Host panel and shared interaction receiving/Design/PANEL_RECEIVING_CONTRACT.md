@@ -124,6 +124,7 @@ are node B5's, round 2, and were not started; §3.8 is unchanged.
 | RP-4: V18-1 n-4 | ND-4 names the model-service class, "stateless revision declared, not verified" and "destinations not observed", as AS §3.2 has them | §3.8 ND-4 |
 | RP-4: V18-2 m-8 | WD-v0.8 taken up in §3.2: tool local names; *declared part not established* among the workflow-level states; `on subject absent` and `fresh act required` with the checkpoint; FB-20…FB-22 among the declaration findings | §3.2 |
 | RP-4: V18-3 m-12; n-6 | P-v0.8 taken up in §3.3: *refused — identity conflict*; *not known to host* as an observation result; DS-1's *mixed* summary with the item list; identity meanings PM-1…PM-7, mechanics TBD-002. P §13's "Provide to DEL-05-02" row does not list these yet (P's side) | §3.3 |
+| RX (residual sweep; RP-4 return §3; V18-2 m-9) | `PANEL_RETURN_INPUT.schema.json`: a workflow selection's `derived_from` is null or the full identity tuple of WD-v0.8 §6.1 (new `$defs/workflow_tuple`), never a string; the valid example (null) is unchanged | schema |
 
 ## Changes from v0.6
 

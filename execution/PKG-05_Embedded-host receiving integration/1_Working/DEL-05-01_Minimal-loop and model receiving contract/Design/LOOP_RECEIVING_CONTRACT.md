@@ -189,6 +189,8 @@ carry the ID "B5" (no further version step).
 | RP-4: V18-3 m-10 | The operation reference is stated as a C operation identity of the offered edition, one element with the destination request's `operationReference` | §2.2; §7.2 |
 | RP-4: V18-3 m-11 | P-v0.8 taken up: *refused — identity conflict* and *not known to host* in TL-2; minting party and handles on the dispatch record; R-d follows PM-4 and SQ-P6; MC-8 cites P-v0.8 | §2.2 TL-2; §6.2; §6.3; §7 MC-8; UNRESOLVED |
 | RP-4: V18-3 m-16 | The catalog edition is held as C-v0.8 §2.2 states, with CI-4; the pre-screen compares with the edition held current | §2.2; §2.3 |
+| RX (residual sweep; RP-1 return §4) | E-4 and E-8 cite RS-v0.8 §13.3.1, which maps this section's events to RS kinds; E-8's interruption row names `observation_lost` / `observation_recovered` | §2.3 E-4, E-8 |
+| RX (RP-4 return §3; V18-1 m-11) | F-2: RS now carries the reason *no credential*; the unconfigured case ("no model chosen") has no RS reason and no destination, and is returned | §3.1 F-2 |
 
 ## Changes from v0.6
 
@@ -597,8 +599,9 @@ Loop obligations:
     §5.3 DF-8; the recording of declines and refusals PROPOSED, R12-10);
   - continues ⟨run⟩.
 
-  The field mapping is DEL-04-03's (RS-v0.8 §13.3; R14-1). E-8 lists the
-  checkpoint events with their counterparts.
+  The field mapping is DEL-04-03's (RS-v0.8 §13.3; §13.3.1 maps this
+  section's events to RS kinds; R14-1). E-8 lists the checkpoint events
+  with their counterparts.
 - E-5. Findings reach the panel in one of two ways:
   - (a) as agent message content with references;
   - (b) as a host outcome, if the host holds findings (`UNRESOLVED{C U-C5}`).
@@ -626,7 +629,8 @@ Loop obligations:
   RS entry kind that carries each** (the mapping is RS's; R14-1). A host
   loop records the same checkpoint facts as an App run, so each checkpoint
   event the loop emits names its CE counterpart below, and its RS entry
-  kind is the one RS §13.3 gives that CE kind. The loop defines no
+  kind is the one RS §13.3 gives that CE kind (RS §13.3.1 states the same
+  mapping from this section's events). The loop defines no
   checkpoint entry kind of its own, and the spellings are RS's (disposition
   words spaced as WD §4.3.4; performance ordinal from 1; annotations as
   RS's structured objects; R14-1).
@@ -645,7 +649,7 @@ Loop obligations:
   | Act lapsed | CE-10 | Before resume · after resume · after run end |
   | Run-resumed event | CE-11 | |
   | Continued past ‹checkpoint› before ‹act› | CE-12 | Optional; the loop is its one writer in a host loop |
-  | Run interrupted; observation recovered | CE-13; CE-14 | |
+  | Run interrupted; observation recovered | CE-13; CE-14 | Recorded as `observation_lost` / `observation_recovered` (RS §13.3.1) |
   | Checkpoint disposition changed to "replaced by arrival n+1" | CE-15 | |
   | Human act observed, "after run end" | CE-16 | |
   | Run ended | CE-17 | `by`: the person for cause "person stopped"; otherwise the loop as observer, with the cause (model ended · declared negative path · failure · interruption not recovered) |
@@ -1129,7 +1133,7 @@ these rules is a checkpoint hold: in Phase 1 nothing holds for a checkpoint
 | # | Step | What fails | Who reports | Record left | What happens next |
 |---|---|---|---|---|---|
 | F-1 | Person input reaches the loop | The return input is not delivered | Panel (PANEL-v0.8 §3.9, outcome *not delivered*) | None: no turn started | The person resubmits. The panel never shows an undelivered message as sent |
-| F-2 | Model setting check | Unconfigured, or cloud chosen with no credential | Native layer | "Model request refused at boundary" (no credential content), recorded as `boundary_refusal` at stage *model request*; RS-v0.8's reason values have none for "no model chosen" or "no credential" (returned to RS; v0.8, RP-4, V18-1 m-11); turn failed | No request is made and nothing falls back (NW-5; MS-02, MS-04). Only the person chooses or signs in (NW-4) |
+| F-2 | Model setting check | Unconfigured, or cloud chosen with no credential | Native layer | "Model request refused at boundary" (no credential content), recorded as `boundary_refusal` at stage *model request*; for cloud chosen with no credential, reason *no credential* (RS-v0.8 §4 R15, §13.3.1; V18-1 m-11). RS has no reason value for "no model chosen", and `boundary_refusal` requires a destination, which an unconfigured setting does not have; how the unconfigured case is recorded is returned (RX; MS-02 gives "observed absence"); turn failed | No request is made and nothing falls back (NW-5; MS-02, MS-04). Only the person chooses or signs in (NW-4) |
 | F-3 | Native-layer destination check on the model request | The request names a destination other than the selected model service (MS-05) | Native layer | Refusal event; turn failed | Setting unchanged; no fallback (NW-5) |
 | F-4 | Native layer records the contact | The destination record cannot be written | Native layer | The refusal, when it can be written (recording PROPOSED, R12-10) | The request is **not sent** (fail closed), because every destination contacted is recorded (V4-ARC-12 as amended). For the model request: turn failed. For a tool call's contact: the host outcome as reported. Joined to §5.1.1 at v0.8: §5.3 DF-4 (c), DF-F2 |
 | F-5 | Model server and transport | Unreachable server, rejected or expired credential, service error before any stream | Model server or transport / loop | Model interface failure (termination reason "error"; §4.1 point 2); turn failed | No switch between local and cloud (MS-08, MS-09) |

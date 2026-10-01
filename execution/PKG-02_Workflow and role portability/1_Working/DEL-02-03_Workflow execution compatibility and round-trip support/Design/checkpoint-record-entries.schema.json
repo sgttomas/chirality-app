@@ -639,6 +639,10 @@
             "cleared by the person, no decision record"
           ]
         },
+        "leftTime": {
+          "description": "P §4.3 item_left time, where the host gives one; absent otherwise, never a time of the App's own (RX; ADAPTER CO-4 left_time).",
+          "$ref": "#/$defs/nonempty"
+        },
         "afterDecision": {
           "description": "MX-7, MX-8: an item with A5 later not applied (P PT-15, PT-16; ADAPTER CO-10).",
           "enum": [

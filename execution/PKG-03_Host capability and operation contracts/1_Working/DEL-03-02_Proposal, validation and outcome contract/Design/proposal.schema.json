@@ -60,7 +60,7 @@
         "source_root": {"type": "string", "minLength": 1},
         "name": {"type": "string", "minLength": 1},
         "revision": {"type": "string", "minLength": 1},
-        "derived_from": {"type": "string", "minLength": 1}
+        "derived_from": {"description": "The full identity tuple of the workflow adapted from, never a string (WD-v0.8 §6.1, `workflow-declaration.schema.json#/$defs/workflow_identity`; V18-2 m-9; RX).", "$ref": "#/$defs/workflow_identity"}
       }
     },
     "origin": {

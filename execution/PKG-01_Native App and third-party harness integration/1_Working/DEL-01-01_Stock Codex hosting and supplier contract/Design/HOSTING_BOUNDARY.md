@@ -62,6 +62,7 @@ answer.
 | V18-3 m-20 (inference) | HCG-A05's availability signals add `namespaceTools` (provider capabilities), with the observed route limit | §8.4 |
 | V18-3 m-17 | Lifecycle receivers: DEL-02-03 (EXEC AE-6, AW-12) and DEL-03-03 (ADAPTER CT-9, CT-10, S-7, S-8) are told of an unexpected exit and a stop, beside DEL-01-02 and DEL-04-03 | §4.3 step 4; §4.6; §4.7 LT-12, LT-23 |
 | (verification) | Prototype rerun after the repair: `python3 run_cases.py`, 35 results, all as expected (`prototype/results/RUN_2026-09-30_RP-3.txt`) | `prototype/results/` |
+| RX (residual sweep; RP-1 return §4) | §6.8 names the required-tool check's catalog read as an App-origin read (ADAPTER-v0.6 §7.7; EXEC-v0.6 §3), recorded with initiator App; its carrying surface is left open, and a use of `mcpServer/tool/call` for it stays under U-24 | §6.8 |
 
 ## Changes from v0.6
 
@@ -840,6 +841,17 @@ exercised live. "Caller" is who initiates the MCP-side effect.
 | `mcpServer/elicitation/request` | Server request (stable) | MCP server / agent → person | R9 person-input kind | Not act evidence; never host act capture (R4-12) |
 | `mcpServer/event/stream/start`, `…/stop`; `mcpServer/event/stream/notification` | Start/stop experimental-only; notification in the stable set | App | Not used; unfamiliar/unused unless the experimental opt-in is declared and DEL-03-03 defines a use | — |
 | `item/tool/call` (dynamic tools, experimental-only registration) | Server request | Agent → App | known-app-unsupported (§6.1); choosing dynamic tools changes the familiar set for the whole App (ADAPTER F-9; S-F-05) | DEL-03-03 OC-2 |
+
+**The required-tool check's catalog read (RX; ADAPTER-v0.6 §7.7; EXEC-v0.6
+§3).** The App's required-tool compatibility check reads a host's catalog
+edition, and that read is **App-origin**: it is the only App-origin host read
+in this increment (ADAPTER §7.7), it is recorded with initiator App (§5), it
+is never presented as the agent's call, and it shows no checkpoint outcome.
+Which supplier surface carries it (the tool descriptors of
+`mcpServerStatus/list`, an App-origin `mcpServer/tool/call` of the host's
+catalog read, or on the command-line path the host's catalog command run by
+the App) is not chosen here; a use of `mcpServer/tool/call` for it needs
+DEL-03-03's definition (U-24).
 
 ## 7. Supplier version identity and verification
 

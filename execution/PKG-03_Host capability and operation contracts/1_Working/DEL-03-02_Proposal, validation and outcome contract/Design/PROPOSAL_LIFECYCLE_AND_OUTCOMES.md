@@ -1096,6 +1096,7 @@ Every new structure is PROPOSED (R12-1).
 | V18-2 m-9 (RP-2) | `proposal.schema.json` workflow identity `origin` limited to WD §6.1's project, user, bundled, host | schema |
 | V18-3 n-1 (RP-2) | Body citations of C re-pointed to C-v0.8 (§0, §2, §3.1, §3.2 heading, §4.5, §9, §11, §13, §14, verification cases); §0 cites EXEC-v0.6 §2.4–§2.5 for the App-run mechanism | Body |
 | — (RP-2) | Header: the repair's inputs pinned on the Wave B line; VC-P-15 and VC-P-16 record the rerun | Header; Verification cases |
+| V18-2 m-9 (RX, residual sweep) | `proposal.schema.json`: the workflow identity's `derived_from` is the full identity tuple (`$ref` to this schema's `workflow_identity`), as WD-v0.8 §6.1 and its `workflow_identity` state, never a string. No example carries it; nothing else changes | schema |
 
 New identifiers: PM-1…PM-7, PT-1…PT-19, DS-1…DS-5, VP-1…VP-3, SQ-P1…SQ-P6,
 VC-P-15, VC-P-16, and the §9 rows *refused — identity conflict* and *not

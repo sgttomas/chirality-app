@@ -772,7 +772,8 @@
               "type": "string"
             },
             "derivedFrom": {
-              "type": "string"
+              "description": "WD-v0.8 §6.1: the full identity tuple of the workflow adapted from, never a string (V18-2 m-9; RX). RS spells the tuple's elements in camelCase.",
+              "$ref": "#/$defs/workflowTuple"
             },
             "revisionVerification": {
               "enum": [
@@ -2031,6 +2032,49 @@
         "de-duplication scope exceeded",
         "act offered without a capture-evidence reference"
       ]
+    },
+    "workflowTuple": {
+      "description": "WD-v0.8 §6.1 identity tuple in RS's spelling (`workflow-declaration.schema.json#/$defs/workflow_identity`: source_root → sourceRoot, derived_from → derivedFrom, revision_method → revisionMethod). A derived-from tuple names the workflow adapted from (RX).",
+      "type": "object",
+      "required": [
+        "kind",
+        "origin",
+        "sourceRoot",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "workflow"
+        },
+        "origin": {
+          "enum": [
+            "project",
+            "user",
+            "bundled",
+            "host"
+          ]
+        },
+        "sourceRoot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revisionMethod": {
+          "type": "string",
+          "minLength": 1
+        },
+        "derivedFrom": {
+          "$ref": "#/$defs/workflowTuple"
+        }
+      }
     }
   }
 }

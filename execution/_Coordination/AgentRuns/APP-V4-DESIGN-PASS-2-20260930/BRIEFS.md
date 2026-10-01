@@ -578,3 +578,18 @@ RELAY or SWBPIPE's files); return file `WAVE_B/RX.md`. No version bump; rows
 **Return:** a table of every residual item (source return, target file, said
 already / fixed here / returned), the prototype reruns (every folder), and
 sha256 per changed file.
+
+## B8 — GUIDE for Wave B, final re-pin, and R15-1 (one Type 2)
+
+**Write fence:** `HOST_INTEGRATION_GUIDE.md` (GUIDE v0.4 → v0.5); for R15-1
+only, LOOP F-2 and MS-02 and RS's run-start or run-end cause element (text,
+schema, one example); return file `WAVE_B/B8.md`.
+
+**Do:** S1-E D.8 items 5–6 (refresh the receiving matrix for the Wave B
+changes in the other 16 files, naming where N-18, N-21, N-24 and X-1 now
+stand; a short "order of use" in §3 and what a reviewer does with *answered
+without evidence*); cite the record arrangement of R14-1 (RS the container,
+EXEC's entry bodies) wherever GUIDE describes the run record (R15-2); carry
+R13 and R14 where GUIDE restates them; re-pin the 18-row input table **last**,
+by script, after R15-1's edits, and show 18/18. Rerun LOOP's and RS's
+prototypes after R15-1. No other file.
