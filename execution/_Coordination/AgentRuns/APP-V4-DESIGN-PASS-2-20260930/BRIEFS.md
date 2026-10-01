@@ -751,3 +751,34 @@ only, §0–§3 unchanged) and CA. Write fence: LOOP, PANEL, HOSTING, GUIDE,
 RELAY metadata, CA, and RS only if the event mapping needs a row;
 `closeout/H.md`. Rows "H" in change tables. Rerun LOOP, PANEL, RS and CA
 prototypes; GUIDE's input table re-pinned last, 18/18.
+
+## V20 — final review of the closeout candidate (two Type 2 reviewers)
+
+**Candidate:** the commit named in your launch message. Base: `d01ad98a`
+(the merge of PR-2). Read-only; write only `reviews/V20-A.md` or
+`reviews/V20-B.md`. You did not write any of this.
+
+- **V20-A — the LOOP/PANEL pair check (R16-3)** and the Design edits since
+  the base (C0, G, H). Read LOOP and PANEL whole, side by side: every event,
+  element, state and case one names for the other exists there and means the
+  same; the panel-needs list (PANEL §3.11, LOOP §10.5) is complete and
+  consistent; the destination flow (LOOP §5.3) and the panel's prompt agree;
+  R15-1 and R16-1 read the same in both. Then check the other Design edits
+  since the base (R16 in RS, AS, ACT, GUIDE; EXEC EV-3a; the OBS redaction;
+  CA, RELAY metadata) for truth and cross-file consistency, and rerun every
+  prototype in the folders they touch. GUIDE's table 18/18.
+- **V20-B — the closeout and the run records.**
+  - `closeout/CLOSEOUT_ACCOUNT.md` and `C1-A/B/C` are faithful to
+    `bounded-reconciliation`.
+  - No proposal was applied to a bound file. Recheck DAG-003's manifests and
+    the registered analyzer (command in `closeout/D0.md`).
+  - The account's counts match the C1 files.
+  - The RECEIPT is true and claims no more than the records: owner words
+    exact, PRs and merge SHAs, checks, limits. Each of the 14 MEMORY rows is
+    true for its deliverable.
+  - The work graph, DISPATCH and OWNER_DECISIONS are true against git.
+  - The HANDOFF note is true and relays nothing.
+
+Verdict **MERGE** or **HOLD**; findings classed BLOCKING (false,
+inconsistent, or claims more than decided), MAJOR, MINOR, NOTE, with
+passages quoted and a proposed fix.
