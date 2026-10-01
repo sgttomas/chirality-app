@@ -593,3 +593,50 @@ EXEC's entry bodies) wherever GUIDE describes the run record (R15-2); carry
 R13 and R14 where GUIDE restates them; re-pin the 18-row input table **last**,
 by script, after R15-1's edits, and show 18/18. Rerun LOOP's and RS's
 prototypes after R15-1. No other file.
+
+## V19 — independent review of the Wave B candidate (two Type 2 reviewers)
+
+**Candidate:** the commit named in your launch message. Base: `292e123d`
+(the merge of PR-1, Wave A). Read-only on project state; each reviewer writes
+one file, `reviews/V19-A.md` or `reviews/V19-B.md`. You did not write any of
+this; review it as a stranger to it.
+
+| Reviewer | Files |
+|---|---|
+| V19-A | PKG-04 (ACT, AS, RS), PKG-03 (C, P, ADAPTER), GUIDE; with their schemas, examples and prototypes |
+| V19-B | PKG-02 (WD, WD-EX, EXEC), PKG-05 (LOOP, PANEL), DEL-01-01 (HOSTING, OBS_1 and its harness), PKG-09 (CA, XT; RELAY untouched); with their schemas, examples and prototypes; and the run records (graph, OWNER_DECISIONS, DISPATCH, R12–R15, BRIEFS) |
+
+**Check, and do not take on trust:**
+
+1. **Fidelity to decisions.** Nothing claims more than the owner decided or
+   an accepted text says. Check DECISION-K1, the host-loop interface
+   direction, the download and OBS decisions, and R12–R15 against what the
+   files now state. Every new structure that no ruling or accepted text
+   decides is labelled PROPOSED.
+2. **The 60% content** (R12-1): for the items each file's change table
+   claims, the data (schemas with examples), states, sequences with failure
+   behaviour and verification are actually there and coherent.
+3. **Cross-file consistency** on the joins V18 found and R14 ruled: one
+   record container (R14-1); request identification (R14-2); vocabularies
+   (R14-3); observations (R14-4); capability groups (R14-5); `applied`
+   (R14-6); R13 applied (R14-7); the four arcs (R14-8); the destination flow
+   (LOOP §5.3) cited the same way everywhere.
+4. **Prototypes:** rerun every prototype in your folders (READMEs give the
+   commands; the SH-1 chain and `exec_to_rs.py` cross folders), and check
+   that each schema accepts its valid example and rejects its invalid one.
+   Report any whose claimed result you cannot reproduce.
+5. **Observations** (V19-B): OBS_1_0.158.0.md states only what was observed,
+   with versions and redaction (no host name, installation identifier, home
+   path or user name); the files that cite it treat it as a dated
+   observation, not qualification.
+6. **Untouched:** RELAY §0–§3 byte-identical to `74b3c73134`; PIN_SPIKE,
+   SWBPIPE's two files, every ScopeOfWork, register, status, basis,
+   decomposition, scope-change and DAG file byte-identical to `292e123d`;
+   DAG-003's two manifests pass.
+7. **Records** (V19-B): the graph, DISPATCH and OWNER_DECISIONS are true
+   against git and the owner's recorded words.
+
+**Return file:** verdict **MERGE AS DRAFTS** or **HOLD**; findings classed
+BLOCKING (false, inconsistent across files, or claims more than decided),
+MAJOR, MINOR, NOTE, with passages quoted and a proposed fix; what you checked,
+how, and what you did not check.
