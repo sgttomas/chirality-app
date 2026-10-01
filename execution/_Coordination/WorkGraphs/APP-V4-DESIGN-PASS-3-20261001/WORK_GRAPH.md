@@ -35,7 +35,10 @@ under [`loop/LOOP_INIT.md`](../../../../loop/LOOP_INIT.md).
 |---|---|---|---|---|
 | S0 Graph, direction, survey briefs | Run folder; this graph | Owner direction | Committed | COMPLETE |
 | S1 Scoping survey (S1-A, S1-B, S1-C) | `SURVEY/S1-*.md` | S0 | Obligations, joins, collected proposals, owner choices, what exists, design scope | COMPLETE (this commit) — 161 obligations across six deliverables; owner choices merged into K |
-| K Decision sitting: the choices that shape this pass, with recommendations | `DECISIONS_PENDING.md`; review page; `OWNER_DECISIONS.md` | S1 | Decided, or left open at a stated point of need | DECIDED — DECISION-K3: nine as recommended; K-7, K-10, K-12 the owner's alternatives. HELP_HUMAN's reservations on those three put to the owner; D starts on the owner's reply |
-| D… Design nodes per deliverable | Set after K | K | Per LOOP_INIT's 60% description | PLANNED |
+| K Decision sitting: the choices that shape this pass, with recommendations | `DECISIONS_PENDING.md`; review page; `OWNER_DECISIONS.md` | S1 | Decided, or left open at a stated point of need | COMPLETE — DECISION-K3 as revised: eleven as recommended, K-7 the owner's alternative |
+| R17 Rulings for the D nodes | `R17_RESOLUTIONS.md` | K | Every K answer and Part 2 matter placed | COMPLETE |
+| D1…D6 Design per deliverable (round 1) | Each deliverable's new `Design/` folder; `D/<ID>.md` | R17 | R17-1; return file with join list | ACTIVE |
+| OBS-2 Local observations at 0.158.0 (K-11) | Scratch; `DEL-01-01/Design/OBS_2_0.158.0.md`, `prototype/obs2/`; `D/OBS-2.md` | R17 | R17-16 items recorded | ACTIVE |
+| F First-increment edits from the join lists (R17-14), then D round 2 (OBS-2 cells) | First-increment Design files named in the join lists | D1…D6, OBS-2 | One version step per file | PLANNED |
 | A SCA-V4-003: apply the contract proposals of passes 2 and 3 | `scope-change` route | Placement decided after K | Owner checkpoints; DAG currency | PLANNED |
 | V… Comparisons, reviews, closeout, receipt, final PR | Per LOOP_INIT §§3–6 | D… | — | PLANNED |
