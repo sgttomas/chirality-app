@@ -3,7 +3,7 @@
 Integrator: HELP_HUMAN. Inputs: `closeout/C1-A.md`, `C1-B.md`, `C1-C.md`.
 R1–R15 stand except R12-10's first bullet, corrected by R16-1.
 
-## R16-1 Recording a declined destination request is required — DERIVED (correcting R12-10)
+## R16-1 Recording a declined destination request is required — SETTLED by DEL-04-03 CLM-004 (correcting R12-10)
 
 R12-10 said that no accepted text requires recording a declined or refused
 destination request, and Wave B labelled that recording PROPOSED everywhere.

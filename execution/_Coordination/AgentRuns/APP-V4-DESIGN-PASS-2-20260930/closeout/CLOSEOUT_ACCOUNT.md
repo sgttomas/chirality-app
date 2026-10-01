@@ -13,8 +13,9 @@ executor (Claude Opus 5.5, high effort), read-only on the Design files:
 | [C1-C.md](C1-C.md) | DEL-05-01, 05-02, 09-06, 09-09 | `a9046631c0` (C0's LOOP edit adds no commitment) |
 
 Also in this folder: [C0.md](C0.md) (the four V19b MINORs), [D0.md](D0.md)
-(DAG-003 currency) and [G.md](G.md) (the items returned to the graph, under
-[R16](../R16_RESOLUTIONS.md)).
+(DAG-003 currency), [G.md](G.md) (the items returned to the graph, under
+[R16](../R16_RESOLUTIONS.md)), [H.md](H.md) (LOOP's four panel-needs gaps and
+current pins) and [RV20.md](RV20.md) (V20-A's Design findings).
 
 ## Boundary of this closeout
 
@@ -44,7 +45,7 @@ analyzer reports NO_DEPARTURE_FOUND.
 | DEL-03-04 | OUT 2 / 1 | Rows 8 and 10 rest on deliverables outside the increment; host column "answered" only |
 | DEL-01-01 | OUT 2 / 2 | OI-008, U-15, OI-009; no receiver comparison of seams S-1…S-4; U-18, U-19 |
 | DEL-05-01 | OUT 3 / 1 | Product model-interface basis (fixtures run on the published fixture basis); host-loop evidence; OI-013/014 |
-| DEL-05-02 | OUT 2 / 1 / 1 named | Per-interaction sequences and a panel lifecycle; the panel-needs list (written by G) |
+| DEL-05-02 | OUT 2 / 1 / 1 named | Per-interaction sequences and a panel lifecycle |
 | DEL-09-06 | OUT 1 / 3 | OI-021; the option sheet shows 0 of 10 steps examinable against SWBPIPE now, so OUT-003 needs SWBPIPE owner decisions whatever OI-021 selects |
 | DEL-09-09 | OUT 0 / 3 | Live cases gated by A13 (SQ-28) and DECISION-3; per-batch Apply reading (F-18); identifier mapping |
 
@@ -56,8 +57,8 @@ no lifecycle change is made or warranted.
 
 | Kind | C1-A | C1-B | C1-C | Total |
 |---|---:|---:|---:|---:|
-| ScopeOfWork items | 17 | 18 | 8 | 43 |
-| Register items | 33 | 18 | 14 | 65 |
+| ScopeOfWork items | 17 | 18 | 8 | 43 listed, **42 distinct** (C1-B X-1 duplicates C1-A SC2-01-04-1; the fuller C1-A wording is kept) |
+| Register items | 33 rows | 18 items (about 46 rows) | 14 rows | not summed: C1-A and C1-C count rows, C1-B counts items |
 | Basis items | 0 | 3 (no text) | 2 (optional) | 5 |
 | New arcs | 1 (DEL-04-03 → DEL-02-01, held, SCC-neutral) | 0 | 0 | 1 |
 
@@ -90,7 +91,29 @@ Under R16 (node G): recording a declined destination request is SETTLED by
 DEL-04-03 CLM-004 (correcting R12-10); the panel-needs list; IN-30 on the
 next-relay list; GUIDE's review status; the OBS record's time-zone redaction;
 EXEC EV-3 against HOSTING §8.4; bookkeeping. The LOOP/PANEL pair check is done
-in the final review (V20).
+assigned to the final review (V20-A); its result is below.
+
+## After C0, G and H (rechecked at the final candidate)
+
+The C1 records compared `a9046631c0`. Nodes C0, G, H and RV20 then changed 15
+Design documents in 11 deliverables. Rechecked against the final candidate:
+
+- **Superseded C1 statements.** C1-C §1.1 (REQ-001) and §1.2 on declines:
+  recording a person's decline is now SETTLED by DEL-04-03 CLM-004 (R16-1).
+  Basis item B-2 narrows to refusals the loop makes without asking the
+  person; it stays a basis question.
+- **Returned items.** C1-A G-1…G-3, C1-B's two graph items and C1-C
+  GW-1…GW-3 are done in G. The DEL-05-01/05-02 panel-needs list was written
+  in G, and H made it 17 of 17 supplied. GW-4, the LOOP/PANEL pair check, is
+  V20-A's: it passed apart from one blocking label inconsistency (a person's
+  decline still marked PROPOSED in LOOP VC-01 and C §4.1) and four minor
+  wording points, all repaired in RV20.
+- **DEL-02-03 EV-3.** The presence rule is active for the seven capability
+  names whose group availability signal HOSTING §8.4 states, and inactive,
+  with that reason, for three.
+- **Coverage figures.** None moves to a different class: the edits closed
+  named gaps inside items already counted developed or partial. DEL-02-03's
+  partial items stay partial until the three inactive names have signals.
 
 ## Other documents this closeout changed
 

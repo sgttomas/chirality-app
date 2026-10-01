@@ -89,16 +89,18 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | RX Residual cross-file sweep | 16 Design files | RP | Every "other files must now say" item checked | COMPLETE `a05b46741` — 47 items: 30 said, 15 fixed, 2 → R15 |
 | B8 GUIDE for Wave B, R15-1, final re-pin | GUIDE; LOOP F-2, MS-02; RS cause | RX; R15 | 18/18 | COMPLETE `2caccef12` — GUIDE v0.5 18/18 |
 | V19 Independent review of the Wave B candidate (V19-A, V19-B) | `reviews/V19-*.md` | B8 | Verdict | COMPLETE at `2caccef12` — V19-A MERGE AS DRAFTS (0/1/7/6); V19-B HOLD (1 BLOCKING: PANEL against R15-1; 1 MAJOR: this graph stale) |
-| RQ Repairs from V19; final GUIDE re-pin | Design files; GUIDE | V19 | Findings closed; 18/18 | COMPLETE (this commit) — all BLOCKING, MAJOR and MINOR findings fixed; 18/18 |
+| RQ Repairs from V19; final GUIDE re-pin | Design files; GUIDE | V19 | Findings closed; 18/18 | COMPLETE `fffae1291` — all BLOCKING, MAJOR and MINOR findings fixed; 18/18 |
 | V19b Recheck of the repairs | `reviews/V19b.md` | RQ | Verdict | COMPLETE — **MERGE AS DRAFTS** at `fffae1291` (0 BLOCKING, 0 MAJOR, 4 MINOR, 7 NOTE). The four MINORs (LOOP §3.2 run opening against a no-credential refusal; GUIDE pin provenance text; GUIDE F-17 wording; HOSTING §6.8 "not exercised live") are carried to the closeout node C1, which fixes them in the final PR |
 | P2 PR-2: Wave B | — | V19b, CI | Merged under the standing direction | COMPLETE — [#1067](https://github.com/sgttomas/chirality/pull/1067) merged `d01ad98a` (CI green; auto-merge after V19b) |
 | **Closeout** | | | | |
-| C0 The four V19b MINORs; last GUIDE re-pin | LOOP, GUIDE, HOSTING; `closeout/C0.md` | P2 | Fixed; 18/18 | COMPLETE (this commit) — prototypes pass; GUIDE 18/18 |
+| C0 The four V19b MINORs; last GUIDE re-pin | LOOP, GUIDE, HOSTING; `closeout/C0.md` | P2 | Fixed; 18/18 | COMPLETE `41899194c` — prototypes pass; GUIDE 18/18 |
 | D0 DAG-003 currency recheck | Read-only; `closeout/D0.md` | P2 | Both manifests pass; no bound file changed | COMPLETE — 37/37, 130/130; analyzer NO_DEPARTURE_FOUND |
-| C1 Bounded closeout (`bounded-reconciliation`; C1-A, C1-B, C1-C): commitment ↔ result per deliverable; proposed SoW, register and basis items for a later amendment | `closeout/` | P2 | Account written; proposals not applied | COMPLETE — [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/closeout/CLOSEOUT_ACCOUNT.md): 43 SoW, 65 register, 5 basis proposals, 1 new held arc; none applied |
+| C1 Bounded closeout (`bounded-reconciliation`; C1-A, C1-B, C1-C): commitment ↔ result per deliverable; proposed SoW, register and basis items for a later amendment | `closeout/` | P2 | Account written; proposals not applied | COMPLETE — [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/closeout/CLOSEOUT_ACCOUNT.md): 42 distinct SoW items, register items (C1-A 33 rows, C1-B 18 items, C1-C 14 rows), 5 basis items, 1 new held arc; none applied |
 | G Items returned by the closeout (R16) | Design files; RELAY metadata; OBS redaction; HANDOFF IN-30; `closeout/G.md` | C1 | R16 applied | COMPLETE `153a7c533` |
-| H LOOP panel-needs gaps; current pins | LOOP, PANEL, HOSTING, GUIDE, RELAY metadata, CA, RS mapping; `closeout/H.md` | G | 17/17 supplied; GUIDE 18/18 | COMPLETE (this commit) |
-| V20 Final review (V20-A pair check and Design edits; V20-B closeout and records) | `reviews/V20-*.md` | H | Verdict covering the candidate | ACTIVE |
+| H LOOP panel-needs gaps; current pins | LOOP, PANEL, HOSTING, GUIDE, RELAY metadata, CA, RS mapping; `closeout/H.md` | G | 17/17 supplied; GUIDE 18/18 | COMPLETE `891242377` |
+| V20 Final review (V20-A pair check and Design edits; V20-B closeout and records) | `reviews/V20-*.md` | H | Verdict covering the candidate | COMPLETE at `94fa78d87` — V20-A HOLD (1 BLOCKING: a decline still PROPOSED in two places); V20-B MERGE (1 MAJOR: the account not rechecked after C0/G/H) |
+| RV20 Repairs from V20 (Design by an executor; records by the integrator) | LOOP, C, PANEL, GUIDE; the account, receipt, graph, R16 heading, D0 note | V20 | Findings closed; GUIDE 18/18 | COMPLETE (commit after `94fa78d87`; see V20b) — V20-A B-1 and four MINORs fixed; V20-B M-1 and MINORs fixed in the records; prototypes pass; GUIDE 18/18 |
+| V20b Recheck of the V20 repairs | `reviews/V20b.md` | RV20 | Verdict | ACTIVE |
 | F Receipt, MEMORY rows, final PR and its review | `RECEIPT.md`; 14 `MEMORY.md` | C1 | Final PR merged | ACTIVE — receipt and 14 MEMORY rows written; final PR after V20 |
 
 ## Holds and owner-held choices

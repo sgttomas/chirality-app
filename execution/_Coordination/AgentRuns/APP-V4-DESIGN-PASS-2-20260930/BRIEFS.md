@@ -782,3 +782,14 @@ prototypes; GUIDE's input table re-pinned last, 18/18.
 Verdict **MERGE** or **HOLD**; findings classed BLOCKING (false,
 inconsistent, or claims more than decided), MAJOR, MINOR, NOTE, with
 passages quoted and a proposed fix.
+
+## V20b — recheck of the V20 repairs (one Type 2 reviewer)
+
+**Candidate:** the commit named at launch; the repairs are its diff from
+`94fa78d87c`. Read-only; write only `reviews/V20b.md`. Check that every V20-A
+and V20-B finding is closed as `closeout/RV20.md` (Design) and the
+integrator's record edits say, quoting each fixed passage; that the diff adds
+nothing false or inconsistent; rerun the LOOP, PANEL and SH-1 prototypes;
+GUIDE 18/18; RELAY §0–§3 against `74b3c73134`; no bound file changed against
+`74b3c73134`; DAG-003's manifests pass; the graph, DISPATCH and RECEIPT true
+against git. Verdict **MERGE** or **HOLD**; findings classed as in V20.

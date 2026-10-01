@@ -13,9 +13,10 @@ All are recorded with the owner's exact text in
 - **DECISION-K1:** "accept all six as recommended". This covers six points:
   - the agent asks for a checkpoint's act, and the product records what it
     observes;
-  - in the current phase, an earlier act counts when its content is still
-    current;
-  - after a partial lapse, a new act on the changed items is enough;
+  - in the current phase, an earlier act of the required kind counts when
+    its content is still current;
+  - after a partial lapse, a new act on the changed items, with the earlier
+    act for the unchanged ones, answers the checkpoint;
   - the App act control is proposed for DEL-01-04's contract, and the person
     is recorded with an "identity not verified" mark;
   - a named allow-list entry stands on its own;
@@ -72,10 +73,12 @@ All are recorded with the owner's exact text in
 - **Rulings R12 to R16.** R16-1 corrects R12-10: recording a declined
   destination request is required by DEL-04-03 CLM-004.
 - **Closeout:**
-  - [CLOSEOUT_ACCOUNT](closeout/CLOSEOUT_ACCOUNT.md) collects 43 ScopeOfWork,
-    65 register and 5 basis proposals, and one new held arc. None is applied.
-  - The items returned to the graph were done in node G (R16), and LOOP's
-    four panel-needs gaps in node H.
+  - [CLOSEOUT_ACCOUNT](closeout/CLOSEOUT_ACCOUNT.md) collects 42 distinct ScopeOfWork items, register
+    items (counted by rows in C1-A and C1-C and by items in C1-B), 5 basis items
+    and one new held arc. None is applied.
+  - The items returned to the graph were done in node G (R16), except the
+    LOOP/PANEL pair check, which was V20-A's; LOOP's four panel-needs gaps
+    were closed in node H; V20-A's findings were repaired in RV20.
   - D0: DAG-003 is current.
   - 14 MEMORY rows.
 
@@ -88,13 +91,16 @@ All are recorded with the owner's exact text in
   - V17-A and V17-B both returned HOLD; V17b then returned MERGE AS DRAFTS.
   - V19-A returned MERGE AS DRAFTS and V19-B returned HOLD; V19b then
     returned MERGE AS DRAFTS.
-  - V20 reviews the final candidate.
+  - V20-A returned HOLD (one label inconsistency) and V20-B MERGE; both
+    were repaired in RV20 and rechecked in V20b.
 - **Prototypes:** rerun by the integrator after each round and by every
   reviewer. The reviewers' independent `jsonschema` checks agreed.
 - **GUIDE input pins:** 18/18.
 - **DAG-003:** manifests 37/37 and 130/130; the analyzer reports
   NO_DEPARTURE_FOUND.
-- **Write fences:** verified by `git status` after every executor.
+- **Write fences:** verified by `git status` after each writing executor, as
+  DISPATCH records; reviewers' and comparators' own reports state their
+  fences.
 - **Executors:** after the owner's direction they ran on Claude Opus 5.5 at
   high effort. Earlier nodes ran on Claude Fable 5.1, as recorded in
   [DISPATCH.md](DISPATCH.md).

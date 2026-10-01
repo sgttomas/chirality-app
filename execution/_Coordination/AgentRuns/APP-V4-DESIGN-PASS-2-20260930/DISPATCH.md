@@ -74,3 +74,6 @@ not on the executor's report. A user-level agent definition
 | H | One executor (type2-opus-high): LOOP's four gaps and the stale pins |
 | H return | PG-1…PG-4 closed in LOOP (PROPOSED; R15-1 decides PG-2's outcome); LOOP §10.5 17/17 supplied; 5 header pins current; prototypes pass; RELAY span unchanged; GUIDE 18/18. Returned: whether RS records a first turn refused 'selection not established' (DEL-04-03) and how long events are held for replay (OI-013) — both left open in the files with their owners, for the phase review |
 | V20 | Two reviewers (type2-opus-high) launched on the candidate named at launch |
+| V20 return | V20-A HOLD (B-1: a person's decline still PROPOSED in LOOP VC-01 and C §4.1; 4 MINOR); V20-B MERGE (M-1: account not rechecked after C0/G/H; 6 MINOR; 7 NOTE). Every prototype reproduced; GUIDE 18/18 |
+| RV20 | Design findings by one executor (type2-opus-high): B-1 and four MINORs fixed in LOOP, C, PANEL, GUIDE; prototypes pass; GUIDE 18/18; fence verified. Record findings by the integrator: account section 'After C0, G and H', 42 distinct SoW items, register units, receipt K1 wording and fence claim, graph SHAs, R16-1 heading, D0 note |
+| V20b | One recheck reviewer (type2-opus-high) |
