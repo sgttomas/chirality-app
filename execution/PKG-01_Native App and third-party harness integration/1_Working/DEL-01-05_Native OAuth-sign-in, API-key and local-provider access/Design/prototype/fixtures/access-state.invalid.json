@@ -1,0 +1,25 @@
+{
+  "description": "Invalid for one reason: the api-key entry carries an 'apiKey' element. Closed objects make any credential element invalid. The value is an invented marker, not a key.",
+  "instance": {
+    "schema": "chirality.access-state/v0.1",
+    "observedAt": "2026-10-01T12:00:00Z",
+    "homes": [
+      {
+        "role": "account",
+        "configLink": "linked",
+        "childState": "ready",
+        "generation": 1
+      }
+    ],
+    "entries": [
+      {
+        "entryId": "api-key",
+        "kind": "api-key",
+        "state": "present",
+        "home": "api-key",
+        "destinationClass": "user-chosen cloud",
+        "apiKey": "INVENTED-MARKER-NOT-A-KEY"
+      }
+    ]
+  }
+}

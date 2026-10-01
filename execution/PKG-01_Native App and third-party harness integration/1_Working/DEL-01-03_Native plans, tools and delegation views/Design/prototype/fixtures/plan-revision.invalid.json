@@ -1,0 +1,28 @@
+{
+  "description": "Invalid: a checklist revision claims to be recovered from the supplier (Codex keeps no checklist updates in history; R17-4) and carries an itemId.",
+  "instance": {
+    "revisionId": "cl:thr-fixture-parent:turn-fixture-1:g1:p14",
+    "kind": "checklist",
+    "threadId": "thr-fixture-parent",
+    "turnId": "turn-fixture-1",
+    "itemId": "item-fixture-x",
+    "generation": 1,
+    "receiptPosition": 14,
+    "ordinal": 1,
+    "content": {
+      "explanation": null,
+      "steps": [
+        {
+          "step": "Read the datasheet",
+          "status": "inProgress"
+        }
+      ]
+    },
+    "contentIdentity": {
+      "method": "sha256/canonical-json/npt-v0 (TEST VALUE; HOSTING U-08)",
+      "value": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "standing": "recovered-from-supplier",
+    "typesPin": "0.158.0"
+  }
+}

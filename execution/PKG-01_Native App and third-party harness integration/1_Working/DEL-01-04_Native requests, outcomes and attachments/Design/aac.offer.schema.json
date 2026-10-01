@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-01-04:aac:offer:0.1",
+  "title": "App act control offer (PROPOSED, DEL-01-04/AAC-v0.1 §5.1)",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.1 (R17-1, R17-6); the act control itself is PROPOSED until SCA-V4-003 carries SC2-01-04-1. One offer presents one act kind (EXEC CAP-2) on one subject whose content identity is fixed when the offer is composed; the person's operation is accepted only while the subject still has that identity (K-8: the exact reviewed bytes). The offer is composed on the capture side (R17-5, PROPOSED) from authoritative sources, never from text an agent supplied; for A15 that source is DEL-02-02's A15 descriptor (WR-v0.1 RB-4, `a15_descriptor`), whose identity the offer carries. Wording follows ACT §9 and CAP-2. 'answers' names the arrival it answers, or says it is a standing act (RC-6; DECISION-K1 K1-1, K1-2). Decline is offered only where ACT §2.3 defines an act-declined event. Per R17-11 an A15 names its subject by the reviewed draft ('reviewedDraft': draft and content identity) and, for a new revision (K-6), the prior revision ('priorRevision'); 'derived-from' stays WD's parent-workflow relation and is not carried here.",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "offerId",
+    "actKind",
+    "wording",
+    "subject",
+    "scope",
+    "purpose",
+    "actorRequirement",
+    "declineAvailable",
+    "answers",
+    "composedAt",
+    "offerDigest"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "contentIdentity": {
+      "type": "object",
+      "required": [
+        "method",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "properties": {
+    "format": {
+      "const": "chirality.aac.offer"
+    },
+    "formatVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "offerId": {
+      "type": "string",
+      "pattern": "^offer:"
+    },
+    "actKind": {
+      "description": "Kinds the control serves in this increment (AAC §1.2).",
+      "enum": [
+        "A4",
+        "A6",
+        "A7",
+        "A15"
+      ]
+    },
+    "wording": {
+      "enum": [
+        "mark checked",
+        "approve (engineering approval)",
+        "rely (professional reliance)",
+        "register workflow revision"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "class",
+        "ref",
+        "contentIdentity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "enum": [
+            "App file",
+            "workflow revision (reviewed draft content)"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentIdentity": {
+          "$ref": "#/$defs/contentIdentity"
+        }
+      }
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actorRequirement": {
+      "type": "string",
+      "minLength": 1
+    },
+    "declineAvailable": {
+      "type": "boolean"
+    },
+    "answers": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "arrival",
+            "runId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "arrival": {
+              "type": "object",
+              "required": [
+                "checkpoint",
+                "arrivalOrdinal"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "checkpoint": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arrivalOrdinal": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "runId": {
+              "type": "string",
+              "pattern": "^run:"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "standing"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "standing": {
+              "const": "no arrival: a standing act (RC-6)"
+            }
+          }
+        }
+      ]
+    },
+    "requestRef": {
+      "type": "string",
+      "pattern": "^rec:",
+      "description": "The RS act_request (R16) the person is answering, where one was recorded."
+    },
+    "composedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "offerDigest": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "descriptorId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "DEL-02-02's a15_descriptor identity (A15 only); the capture is reported back with it."
+    },
+    "reviewedDraft": {
+      "type": "object",
+      "required": [
+        "draft",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "$ref": "#/$defs/contentIdentity"
+        }
+      }
+    },
+    "priorRevision": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The revision this one follows (K-6), or null for a first revision."
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "actKind": {
+              "not": {
+                "const": "A4"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "wording": {
+              "const": "mark checked"
+            },
+            "declineAvailable": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "actKind": {
+              "not": {
+                "const": "A6"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "wording": {
+              "const": "approve (engineering approval)"
+            },
+            "declineAvailable": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "actKind": {
+              "not": {
+                "const": "A7"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "wording": {
+              "const": "rely (professional reliance)"
+            },
+            "declineAvailable": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "actKind": {
+              "not": {
+                "const": "A15"
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "descriptorId",
+            "reviewedDraft",
+            "priorRevision"
+          ],
+          "properties": {
+            "wording": {
+              "const": "register workflow revision"
+            },
+            "declineAvailable": {
+              "const": false
+            },
+            "subject": {
+              "properties": {
+                "class": {
+                  "const": "workflow revision (reviewed draft content)"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4:DEL-01-05:access.capability-handoff:v0.1",
+  "title": "Local-server capability requirements and limits for DEL-05-01 (PROPOSED, DEL-01-05/ACCESS-v0.1 §11, §15)",
+  "description": "REQ-008 handoff. Keeps the App's Codex-provider interface apart from the host loop interface and claims no host conformance.",
+  "type": "object",
+  "required": ["schema", "from", "to", "pin", "items", "noHostConformanceClaimed"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "chirality.access-capability-handoff/v0.1"},
+    "from": {"const": "DEL-01-05/ACCESS-v0.1"},
+    "to": {"const": "DEL-05-01"},
+    "pin": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "noHostConformanceClaimed": {"const": true},
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "interface", "statement", "standing", "source", "hostMeaning"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^CH-[0-9]+$"},
+          "interface": {"enum": ["app-codex-provider", "host-loop", "both"]},
+          "statement": {"type": "string", "minLength": 1},
+          "standing": {"enum": ["SETTLED", "observed-at-one-pair", "observed-in-generated-types", "strings-in-binary", "inference", "not-observed"]},
+          "source": {"type": "string", "minLength": 1},
+          "hostMeaning": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

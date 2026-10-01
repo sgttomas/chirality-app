@@ -1,0 +1,32 @@
+{
+  "description": "Valid (invented): a file mentioned in a turn, identical at selection and submission, later found changed; what Codex read stays not observed.",
+  "instance": {
+    "format": "chirality.nir.attachment-supply",
+    "formatVersion": "0.1",
+    "attachmentId": "att-ex-1",
+    "displayName": "load-table.csv",
+    "suppliedAs": "mention",
+    "localPath": "/ex/project/data/load-table.csv",
+    "identityAtSelection": {
+      "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+      "value": "5f2b...e1"
+    },
+    "identityAtSubmission": {
+      "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+      "value": "5f2b...e1"
+    },
+    "byteLength": 2048,
+    "turnRef": "turn:thr-ex-1/turn-ex-3",
+    "recordedAt": "2026-10-01T10:02:00Z",
+    "supplierRead": "not observed: Codex reads the path itself",
+    "providerAdoption": "not observed",
+    "laterCheck": {
+      "identity": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "77aa...09"
+      },
+      "at": "2026-10-01T10:05:00Z",
+      "result": "changed after it was supplied; what Codex read is not observed"
+    }
+  }
+}

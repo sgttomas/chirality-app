@@ -1,0 +1,26 @@
+{
+  "description": "Valid (invented): DEL-02-02's 'registered' transition for a draft made from rev-4 (K-6: a new revision), with the two elements DEL-01-04 asks for (J-W1): the A15 record the App act control wrote and the revision.",
+  "instance": {
+    "record_kind": "draft_transition",
+    "event": "registered",
+    "draft": {
+      "draft_location": "project",
+      "draft_root": ".chirality/workflow-drafts",
+      "name": "supports-adjust"
+    },
+    "content": {
+      "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+      "value": "d13c...4a"
+    },
+    "from": "under review",
+    "to": "registered, unchanged since",
+    "disposition": "new revision",
+    "cause": "registration committed after the person's A15",
+    "time": "2026-10-01T11:00:00Z",
+    "attribution": {
+      "kind": "app action"
+    },
+    "a15_record": "rec:app-interface:0007",
+    "revision": "project:.chirality/workflows:supports-adjust@rev-5"
+  }
+}

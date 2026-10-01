@@ -1,0 +1,60 @@
+{
+  "description": "Valid: account home linked and signed in; no key home yet; one local provider in use; one other provider not offered. Invented values.",
+  "instance": {
+    "schema": "chirality.access-state/v0.1",
+    "observedAt": "2026-10-01T12:00:00Z",
+    "homes": [
+      {
+        "role": "account",
+        "configLink": "linked",
+        "childState": "ready",
+        "generation": 1,
+        "credentialStoreMode": "auto"
+      },
+      {
+        "role": "probe",
+        "configLink": "not-applicable",
+        "childState": "absent"
+      }
+    ],
+    "entries": [
+      {
+        "entryId": "chatgpt-account",
+        "kind": "chatgpt-account",
+        "state": "signed-in",
+        "home": "account",
+        "providerId": "openai",
+        "destinationClass": "user-chosen cloud",
+        "accountView": {
+          "kind": "chatgpt",
+          "email": null,
+          "planType": "plus"
+        }
+      },
+      {
+        "entryId": "api-key",
+        "kind": "api-key",
+        "state": "absent",
+        "home": "api-key",
+        "destinationClass": "user-chosen cloud"
+      },
+      {
+        "entryId": "local-provider:example_lmstudio",
+        "kind": "local-provider",
+        "state": "in-use",
+        "home": "account",
+        "providerId": "example_lmstudio",
+        "baseUrl": "http://127.0.0.1:1234/v1",
+        "destinationClass": "local model server"
+      },
+      {
+        "entryId": "other-provider:example_gateway",
+        "kind": "other-provider",
+        "state": "not-offered",
+        "providerId": "example_gateway",
+        "destinationClass": "not-applicable",
+        "notOfferedReason": "definition carries a credential element (gateway_oauth); not offered by the App at this version"
+      }
+    ]
+  }
+}

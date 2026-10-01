@@ -1,0 +1,260 @@
+[
+  {
+    "case": "INV-1 draft reference: a draft in state 'draft' whose name breaks WD's name rule (HY-2; only a 'not valid' draft may carry such a name)",
+    "kind": "draft_reference",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "draft_reference",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "Supports_Adjust"
+      },
+      "state": "draft",
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "d-02"
+      },
+      "base": null,
+      "base_recorded_by": "none",
+      "findings": [],
+      "observed_at": "t01"
+    }
+  },
+  {
+    "case": "INV-2 draft reference: a base claimed without the App recording it (SP-3)",
+    "kind": "draft_reference",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "draft_reference",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust"
+      },
+      "state": "draft",
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "d-03"
+      },
+      "base": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust",
+        "revision": "rev-A2",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "base_recorded_by": "none",
+      "findings": [],
+      "observed_at": "t01"
+    }
+  },
+  {
+    "case": "INV-3 draft transition: an event the workspace never emits (registration only through A15)",
+    "kind": "draft_transition",
+    "expect": "not in enum",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "auto-registered",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust"
+      },
+      "from": "draft",
+      "to": "registered, unchanged since",
+      "cause": "agent reported it ready",
+      "time": "t02",
+      "attribution": {
+        "kind": "not observed"
+      }
+    }
+  },
+  {
+    "case": "INV-4 registration disposition: a new revision without its prior revision (DS-2)",
+    "kind": "registration_disposition",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "registration_disposition",
+      "occasion": "registration review",
+      "review_ref": "rv-1",
+      "target_slot": {
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust"
+      },
+      "reviewed": {
+        "draft": {
+          "draft_location": "project",
+          "draft_root": "fx-proj (LIB-A1)",
+          "name": "supports-adjust"
+        },
+        "content": {
+          "method": "proto-sha256-list-0",
+          "value": "rev-A3"
+        }
+      },
+      "disposition": "new revision",
+      "prior_revision": null,
+      "base": null,
+      "same_name_elsewhere": [],
+      "message": "x"
+    }
+  },
+  {
+    "case": "INV-5 A15 descriptor: another act kind presented as registration (ACT section 2.1 alias exclusions)",
+    "kind": "a15_descriptor",
+    "expect": "expected const 'A15'",
+    "instance": {
+      "record_kind": "a15_descriptor",
+      "descriptor_id": "a15d-1",
+      "act_kind": "A5",
+      "wording": "register workflow revision",
+      "subject": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust",
+        "revision": "rev-A2",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "bound_content": {
+        "method": "proto-sha256-list-0",
+        "value": "rev-A2"
+      },
+      "relations": {
+        "reviewed_draft": {
+          "draft": {
+            "draft_location": "project",
+            "draft_root": "fx-proj (LIB-A1)",
+            "name": "supports-adjust"
+          },
+          "content": {
+            "method": "proto-sha256-list-0",
+            "value": "rev-A2"
+          }
+        },
+        "prior_revision": null,
+        "derived_from": null
+      },
+      "scope": "project library fx-proj (LIB-A1)",
+      "purpose": "make it available in the project library",
+      "review_ref": "rv-1",
+      "freshness": {
+        "draft_content": {
+          "method": "proto-sha256-list-0",
+          "value": "rev-A2"
+        },
+        "slot_latest": null
+      }
+    }
+  },
+  {
+    "case": "INV-6 library entry: a registration with no A15 cited (ACT section 2.6: a file an agent wrote into a catalog is not evidence)",
+    "kind": "library_entry",
+    "expect": "missing required 'act'",
+    "instance": {
+      "record_kind": "library_entry",
+      "ledger_seq": 1,
+      "outcome": "registered",
+      "identity": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust",
+        "revision": "rev-A2",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "sequence": 1,
+      "disposition": "new workflow",
+      "prior_revision": null,
+      "reviewed_draft": {
+        "draft": {
+          "draft_location": "project",
+          "draft_root": "fx-proj (LIB-A1)",
+          "name": "supports-adjust"
+        },
+        "content": {
+          "method": "proto-sha256-list-0",
+          "value": "rev-A2"
+        }
+      },
+      "store_path": "workflow-revisions/supports-adjust/rev-A2/supports-adjust",
+      "written_at": "t03",
+      "evidence_limits": []
+    }
+  },
+  {
+    "case": "INV-7 selection record: a slot without revision (WD section 6.1: a slot is not selected content)",
+    "kind": "selection_record",
+    "expect": "missing required 'revision'",
+    "instance": {
+      "record_kind": "selection_record",
+      "selection_id": "sel-1",
+      "identity": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust"
+      },
+      "holding_library": "fx-proj (LIB-A1)",
+      "standing": "registered",
+      "selected_by": "the person (App interface)",
+      "how": "explicit",
+      "conversation": "thr-1",
+      "selected_at": "t04"
+    }
+  },
+  {
+    "case": "INV-8 selection record: origin 'host-supplied' is not a value (WD S-D; SoW OUT-002 wording)",
+    "kind": "selection_record",
+    "expect": "not in enum",
+    "instance": {
+      "record_kind": "selection_record",
+      "selection_id": "sel-2",
+      "identity": {
+        "kind": "workflow",
+        "origin": "host-supplied",
+        "source_root": "fx-root",
+        "name": "supports-adjust",
+        "revision": "rev-3",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "holding_library": "LIB-A2 (fx-app-import)",
+      "standing": "host-listed",
+      "selected_by": "the person (App interface)",
+      "how": "explicit",
+      "conversation": "thr-1",
+      "selected_at": "t04"
+    }
+  },
+  {
+    "case": "INV-9 trial pointer: a trial that names a workflow identity (K-7: a trial is not a run of any workflow identity)",
+    "kind": "trial_pointer",
+    "expect": "additional property 'identity' not allowed",
+    "instance": {
+      "record_kind": "trial_pointer",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "spacing-review"
+      },
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "d-01"
+      },
+      "identity": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "spacing-review",
+        "revision": "d-01",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "conversation": "thr-2",
+      "time": "t02",
+      "standing": "draft tried in conversation; not a run of any workflow identity"
+    }
+  }
+]

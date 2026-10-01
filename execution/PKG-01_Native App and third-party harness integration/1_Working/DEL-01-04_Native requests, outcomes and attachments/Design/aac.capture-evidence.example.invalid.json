@@ -1,0 +1,391 @@
+[
+  {
+    "case": "INV-CE-1",
+    "reason": "Produced from a source other than the native confirmation (CAP-4).",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "person@example.invalid",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "App interface",
+      "inputSource": "mcp-tool",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "reviewedDraft": {
+        "draft": "project:.chirality/workflow-drafts/supports-adjust",
+        "content": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      },
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "case": "INV-CE-2",
+    "reason": "Actor marked verified (K1-4: identity not verified).",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "person@example.invalid",
+        "identityVerified": true
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "reviewedDraft": {
+        "draft": "project:.chirality/workflow-drafts/supports-adjust",
+        "content": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      },
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "case": "INV-CE-3",
+    "reason": "A15 without the reviewed draft (R17-11).",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "person@example.invalid",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "case": "INV-CE-4",
+    "reason": "A decline of A15, which ACT §2.3 does not define.",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "decline",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "person@example.invalid",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "reviewedDraft": {
+        "draft": "project:.chirality/workflow-drafts/supports-adjust",
+        "content": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      },
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "case": "INV-CE-5",
+    "reason": "Capturing surface other than the App interface (CAP-3).",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "person@example.invalid",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "agent",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "reviewedDraft": {
+        "draft": "project:.chirality/workflow-drafts/supports-adjust",
+        "content": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      },
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "case": "INV-CE-6",
+    "reason": "An actor with no observed source at all.",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "reviewedDraft": {
+        "draft": "project:.chirality/workflow-drafts/supports-adjust",
+        "content": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      },
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "case": "INV-CE-7",
+    "reason": "The A15 pair under WD's relation name 'derivedFrom' (R17-11).",
+    "instance": {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.1",
+      "captureId": "cap:0007",
+      "offerId": "offer:0006",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "6a6a...01"
+      },
+      "choice": "act",
+      "actKind": "A15",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "person@example.invalid",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "project:.chirality/workflows:supports-adjust@rev-5"
+      ],
+      "boundContent": [
+        {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "capturedAt": "2026-10-01T10:59:58Z",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "descriptorId": "a15d:supports-adjust:0003",
+      "reviewedDraft": {
+        "draft": "project:.chirality/workflow-drafts/supports-adjust",
+        "content": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        }
+      },
+      "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
+      "recordId": "rec:app-interface:0007",
+      "outcome": {
+        "registration": "completed",
+        "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+      },
+      "evidenceLimits": [
+        "identity not verified"
+      ],
+      "derivedFrom": {
+        "reviewedDraftContent": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "d13c...4a"
+        },
+        "priorRevision": null
+      }
+    }
+  }
+]

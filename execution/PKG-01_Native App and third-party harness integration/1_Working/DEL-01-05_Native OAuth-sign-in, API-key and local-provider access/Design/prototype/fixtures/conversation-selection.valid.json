@@ -1,0 +1,20 @@
+{
+  "description": "Valid: K-3 offer shown, not applied; nothing selected; the person's message was refused with the R15-1 wording.",
+  "instance": {
+    "schema": "chirality.access-selection/v0.1",
+    "conversation": "conv-0001",
+    "project": "example-project",
+    "state": "offer-shown",
+    "selection": null,
+    "offer": {
+      "entryId": "local-provider:example_lmstudio",
+      "model": "example-model",
+      "label": "your last choice for this project",
+      "applied": false
+    },
+    "refusal": {
+      "reason": "no-model-selected",
+      "text": "run not started — no model selected"
+    }
+  }
+}

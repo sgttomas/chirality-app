@@ -1,0 +1,159 @@
+[
+  {
+    "case": "INV-AS-1",
+    "reason": "An App rule's origin: this format is the person's path only (HOSTING R7, R9).",
+    "instance": {
+      "format": "chirality.nir.answer-submission",
+      "formatVersion": "0.1",
+      "requestIdentity": "srv-ex-1",
+      "generation": 1,
+      "method": "item/commandExecution/requestApproval",
+      "nativeAnswer": {
+        "decision": "cancel"
+      },
+      "submittedAs": "decline",
+      "origin": {
+        "class": "app-rule",
+        "actorRef": "rule:auto"
+      },
+      "formsOffered": [
+        "accept",
+        "acceptWithExecpolicyAmendment",
+        "cancel"
+      ],
+      "submittedAt": "2026-10-01T10:00:05Z",
+      "secretValuesPresent": false
+    }
+  },
+  {
+    "case": "INV-AS-2",
+    "reason": "Actor not marked identity not verified (DECISION-K1 K1-4).",
+    "instance": {
+      "format": "chirality.nir.answer-submission",
+      "formatVersion": "0.1",
+      "requestIdentity": "srv-ex-1",
+      "generation": 1,
+      "method": "item/commandExecution/requestApproval",
+      "nativeAnswer": {
+        "decision": "cancel"
+      },
+      "submittedAs": "decline",
+      "origin": {
+        "class": "person-via-interaction",
+        "actorRef": "person:Engineer A"
+      },
+      "formsOffered": [
+        "accept",
+        "acceptWithExecpolicyAmendment",
+        "cancel"
+      ],
+      "submittedAt": "2026-10-01T10:00:05Z",
+      "secretValuesPresent": false
+    }
+  },
+  {
+    "case": "INV-AS-3",
+    "reason": "A translated Chirality verdict in place of the native decision (REQ-001; V4-APP-04).",
+    "instance": {
+      "format": "chirality.nir.answer-submission",
+      "formatVersion": "0.1",
+      "requestIdentity": "srv-ex-1",
+      "generation": 1,
+      "method": "item/commandExecution/requestApproval",
+      "nativeAnswer": {
+        "kind": "approval",
+        "verdict": "allow"
+      },
+      "submittedAs": "decline",
+      "origin": {
+        "class": "person-via-interaction",
+        "actorRef": "person:Engineer A/enga (identity not verified)"
+      },
+      "formsOffered": [
+        "accept",
+        "acceptWithExecpolicyAmendment",
+        "cancel"
+      ],
+      "submittedAt": "2026-10-01T10:00:05Z",
+      "secretValuesPresent": false
+    }
+  },
+  {
+    "case": "INV-AS-4",
+    "reason": "The legacy timed_out form is never a person's answer (R3; R17-9).",
+    "instance": {
+      "format": "chirality.nir.answer-submission",
+      "formatVersion": "0.1",
+      "requestIdentity": "srv-ex-1",
+      "generation": 1,
+      "method": "execCommandApproval",
+      "nativeAnswer": {
+        "decision": "timed_out"
+      },
+      "submittedAs": "decline",
+      "origin": {
+        "class": "person-via-interaction",
+        "actorRef": "person:Engineer A/enga (identity not verified)"
+      },
+      "formsOffered": [
+        "accept",
+        "acceptWithExecpolicyAmendment",
+        "cancel"
+      ],
+      "submittedAt": "2026-10-01T10:00:05Z",
+      "secretValuesPresent": false
+    }
+  },
+  {
+    "case": "INV-AS-5",
+    "reason": "A question answered without the answers map.",
+    "instance": {
+      "format": "chirality.nir.answer-submission",
+      "formatVersion": "0.1",
+      "requestIdentity": "srv-ex-1",
+      "generation": 1,
+      "method": "item/tool/requestUserInput",
+      "nativeAnswer": {
+        "text": "yes"
+      },
+      "submittedAs": "decline",
+      "origin": {
+        "class": "person-via-interaction",
+        "actorRef": "person:Engineer A/enga (identity not verified)"
+      },
+      "formsOffered": [
+        "accept",
+        "acceptWithExecpolicyAmendment",
+        "cancel"
+      ],
+      "submittedAt": "2026-10-01T10:00:05Z",
+      "secretValuesPresent": false
+    }
+  },
+  {
+    "case": "INV-AS-6",
+    "reason": "A kind no person answers through a card (HOSTING R9 named service).",
+    "instance": {
+      "format": "chirality.nir.answer-submission",
+      "formatVersion": "0.1",
+      "requestIdentity": "srv-ex-1",
+      "generation": 1,
+      "method": "currentTime/read",
+      "nativeAnswer": {
+        "decision": "cancel"
+      },
+      "submittedAs": "decline",
+      "origin": {
+        "class": "person-via-interaction",
+        "actorRef": "person:Engineer A/enga (identity not verified)"
+      },
+      "formsOffered": [
+        "accept",
+        "acceptWithExecpolicyAmendment",
+        "cancel"
+      ],
+      "submittedAt": "2026-10-01T10:00:05Z",
+      "secretValuesPresent": false
+    }
+  }
+]

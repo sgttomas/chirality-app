@@ -1,0 +1,12 @@
+{
+  "kind": "register_entry_summary",
+  "session": "sess-1",
+  "at": "2026-10-01T09:12:03.200Z",
+  "generation": "sess-1/g1",
+  "requestIdentity": "sr-ex-4",
+  "method": "item/commandExecution/requestApproval",
+  "subject": {"threadId": "thr-ex-1", "turnId": "turn-ex-5", "itemId": "item-ex-15"},
+  "state": "listed",
+  "transition": "RQ-01",
+  "nativeParameters": {"command": "/bin/zsh -lc 'invented-example-command'"}
+}

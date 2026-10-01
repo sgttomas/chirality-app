@@ -1,0 +1,22 @@
+{
+  "description": "Valid: a plan-item revision recovered from Codex history after a relaunch (invented material; the content identity value is a placeholder, not computed).",
+  "instance": {
+    "revisionId": "pi:thr-fixture-parent:turn-fixture-2:item-fixture-plan-2",
+    "kind": "plan-item",
+    "threadId": "thr-fixture-parent",
+    "turnId": "turn-fixture-2",
+    "itemId": "item-fixture-plan-2",
+    "ordinal": 2,
+    "content": {
+      "text": "1. Read the invented pump datasheet.\n2. Draft the sizing note.\n3. Ask the person to check the head figure."
+    },
+    "contentIdentity": {
+      "method": "sha256/canonical-json/npt-v0 (TEST VALUE; HOSTING U-08)",
+      "value": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "standing": "recovered-from-supplier",
+    "producedInMode": "plan",
+    "typesPin": "0.158.0",
+    "observedVersionLabel": "codex-cli 0.158.0"
+  }
+}

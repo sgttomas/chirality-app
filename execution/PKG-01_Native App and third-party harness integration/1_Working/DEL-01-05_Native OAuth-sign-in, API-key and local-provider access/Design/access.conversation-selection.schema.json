@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4:DEL-01-05:access.conversation-selection:v0.1",
+  "title": "Conversation access selection (PROPOSED, DEL-01-05/ACCESS-v0.1 §5.4, §15)",
+  "description": "One App conversation's selection state (K-3). An offer of the last explicit choice is never a selection. Handed to DEL-01-04 (start display), DEL-01-01 S-4 (thread/start carriage) and, through HOSTING §8.3, DEL-04-03 R5.",
+  "type": "object",
+  "required": ["schema", "conversation", "project", "state", "selection"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "chirality.access-selection/v0.1"},
+    "conversation": {"type": "string", "minLength": 1, "description": "App-local conversation identity"},
+    "project": {"type": "string", "minLength": 1},
+    "state": {"enum": ["no-selection", "offer-shown", "selected", "starting", "started", "start-failed", "entry-unavailable"]},
+    "selection": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/selection"}
+      ]
+    },
+    "offer": {"$ref": "#/$defs/offer"},
+    "thread": {"$ref": "#/$defs/thread"},
+    "refusal": {"$ref": "#/$defs/refusal"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"state": {"enum": ["no-selection", "offer-shown"]}}},
+      "then": {"properties": {"selection": {"type": "null"}}, "not": {"required": ["thread"]}},
+      "else": {"properties": {"selection": {"$ref": "#/$defs/selection"}}}
+    },
+    {
+      "if": {"properties": {"state": {"const": "offer-shown"}}},
+      "then": {"required": ["offer"]}
+    },
+    {
+      "if": {"properties": {"state": {"const": "started"}}},
+      "then": {"required": ["thread"]}
+    }
+  ],
+  "$defs": {
+    "selection": {
+      "type": "object",
+      "required": ["entryId", "providerId", "model", "source", "chosenAt"],
+      "additionalProperties": false,
+      "properties": {
+        "entryId": {"type": "string", "minLength": 1},
+        "providerId": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "source": {"enum": ["person", "offered-last-choice-accepted"]},
+        "chosenAt": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T"}
+      }
+    },
+    "offer": {
+      "type": "object",
+      "required": ["entryId", "model", "label", "applied"],
+      "additionalProperties": false,
+      "properties": {
+        "entryId": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "label": {"const": "your last choice for this project"},
+        "applied": {"const": false}
+      }
+    },
+    "thread": {
+      "type": "object",
+      "required": ["threadId", "home", "requested", "reported"],
+      "additionalProperties": false,
+      "properties": {
+        "threadId": {"type": "string", "minLength": 1},
+        "home": {"enum": ["account", "api-key"]},
+        "requested": {"$ref": "#/$defs/providerModel"},
+        "reported": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/providerModel"}
+          ]
+        }
+      }
+    },
+    "providerModel": {
+      "type": "object",
+      "required": ["provider", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1}
+      }
+    },
+    "refusal": {
+      "type": "object",
+      "required": ["reason", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "reason": {"enum": ["no-model-selected", "entry-unavailable", "entry-change-not-offered", "start-failed"]},
+        "text": {"type": "string", "minLength": 1}
+      },
+      "if": {"properties": {"reason": {"const": "no-model-selected"}}},
+      "then": {"properties": {"text": {"const": "run not started — no model selected"}}}
+    }
+  }
+}

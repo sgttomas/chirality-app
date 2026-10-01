@@ -1,0 +1,35 @@
+ROLE-v0.1 prototype run 2026-10-01; python 3.13.7; scratch under $TMPDIR (chirality-d6-role-ef3p66hw)
+PASS RC-01 four roles; preselection from role-set data is shown and clearable — default=HELP_HUMAN; after clear role=none
+PASS RC-02 seed copies five files once, never overwrites — first=5 second=0
+PASS RC-03 each role composed as product guidance + role, parts recomputable, no baseInstructions, record valid — HELP_HUMAN:394B HELPS_HUMANS:396B WORKING_ITEMS:409B TASK:455B
+PASS RC-04 untyped conversation: product guidance only, record valid
+PASS RC-05 workflow entrypoint composed third, revision verified, record valid — parts=['product-guidance', 'role-guidance', 'workflow']
+PASS RC-06 workflow bytes changed after selection: refused 'revision-not-verified', nothing sent
+PASS RC-07 a draft is never supplied as a workflow (K-7): 'workflow-not-registered'
+PASS RC-08 missing role file refuses supply (no silent fallback); restore default, then supplied
+PASS RC-09 guidance that is not UTF-8 text is refused 'guidance-not-utf8'
+PASS RC-10 edited TASK guidance: supplied as 'modified'; L-TASK-1 standing 'unknown'; both valid
+PASS RC-11 role supply never sets baseInstructions, personality, approval, sandbox, features.*, agents.max_depth or config instructions — 6 of 6 refused
+PASS RC-12 child roles: offered set only; user-defined TASK kept (not supplied); config unread -> none supplied; content-named files reused; altered file refused; no features/max_depth keys — keys=4
+PASS RC-13 default limit account: TASK 'Stated, not enforced'; valid
+PASS RC-14 a task agent's spawnAgent is recorded once (started+completed), a manager's is not; nothing prevented; valid — observations=1
+PASS RC-15 role change waits as 'change-pending' (nothing sent), applies by thread/resume before the next turn; record valid — trace=draft > draft > starting > supplied > change-pending > re-supplying > supplied
+PASS RC-16 if O-5 shows resume overrides are not taken up, the change is shown 'not applied' with explicit choices — offered=['new-conversation', 'revert', 'select', 'send-anyway']
+PASS RC-17 no response to thread/start: outcome 'unknown-no-response', state 'start-unknown'; valid
+PASS RC-18 new release: unmodified TASK copy takes the new default; the person's edited AGENTS.md is kept and flagged — {"AGENTS.md": "kept-modified; new-default-available", "agents/AGENT_HELPS_HUMANS.md": "unchanged-default", "agents/AGENT_HELP_HUMAN.md": "unchanged-default", "agents/AGENT_TASK.md": "release-default-applied", "agents/AGENT_WORKING_ITEMS.md": "unchanged-default"}
+PASS RC-19 no second turn while a re-supply is in flight (illegal transition refused)
+PASS RC-20 role-supply-record.valid.example.json valid
+PASS RC-20 IS-1 baseInstructions carried rejected — $.carried.baseInstructions: 'replacement base text' is not const 'not-set'
+PASS RC-20 IS-2 refused supply that claims carried content rejected — $: matches a 'not' schema
+PASS RC-20 IS-3 untyped conversation with a role part rejected — $.carried.developerInstructions.parts[1]: matches a 'not' schema
+PASS RC-20 IS-4 adoption claimed rejected — $.adoption: 'adopted' is not const 'unknown'
+PASS RC-20 IS-5 idle change sent as thread/start without previous supply rejected — $: required previousSupply missing
+PASS RC-20 IS-6 child-role entry that sets a features key rejected — $.carried.nativeChildRoles[4].configKeys[0]: 'features.multi_agent' does not match ^agents\.(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\.(description|config_file)$
+PASS RC-20 IS-7 a fifth role rejected — $.selection.role: 'SWB_PIPING_DESIGNER' not in enum
+PASS RC-20 role-limit-account.valid.example.json valid
+PASS RC-20 IL-1 TASK limit claimed enforced without a mechanism rejected — $.roles[3].limits[0]: required mechanism missing
+PASS RC-20 IL-2 modified guidance still presented as stating the limit rejected — $.roles[3].limits[0].standing: matches a 'not' schema
+PASS RC-20 IL-3 observation attributed to a role that may delegate rejected — $.observations[0].roleInForce: 'WORKING_ITEMS' is not const 'TASK'
+PASS RC-20 IL-4 TASK marked as may-delegate rejected — $.roles[3].delegation: 'may-delegate' is not const 'does-not-delegate'
+PASS RC-20 IL-5 three roles only rejected — $.roles: fewer than 4 items
+TOTAL pass=33 fail=0

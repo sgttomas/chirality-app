@@ -1,0 +1,147 @@
+{
+  "format": "chirality.role.limits",
+  "formatVersion": "0.1",
+  "accountId": "lim:app-fixture-1",
+  "appRelease": "app-fixture-1",
+  "supplierPin": "0.158.0",
+  "roles": [
+    {
+      "role": "HELP_HUMAN",
+      "meaning": "Alignment with the human",
+      "delegation": "may-delegate",
+      "guidanceState": "default",
+      "guidanceContent": {
+        "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+        "value": "ef8f8dd810309fc947a9ca2d1ea1533983abc936988f287b2c7b0bcb16d296e5"
+      },
+      "limits": [
+        {
+          "limitId": "L-ALL-1",
+          "statement": "Work within the brief's write targets",
+          "standing": "stated-not-enforced",
+          "presentedAs": "Stated, not enforced",
+          "basis": "A brief is text; Codex sandbox and approval are the person's own settings (D3), not role enforcement",
+          "notEnforcement": [
+            "brief-text",
+            "worktree",
+            "sandbox",
+            "approval-policy"
+          ]
+        }
+      ]
+    },
+    {
+      "role": "HELPS_HUMANS",
+      "meaning": "Design",
+      "delegation": "may-delegate",
+      "guidanceState": "default",
+      "guidanceContent": {
+        "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+        "value": "76684ffe70c9d477d2d5df516c070cb4b561d1bdbbc907fec95433439e918ea3"
+      },
+      "limits": [
+        {
+          "limitId": "L-ALL-1",
+          "statement": "Work within the brief's write targets",
+          "standing": "stated-not-enforced",
+          "presentedAs": "Stated, not enforced",
+          "basis": "A brief is text; Codex sandbox and approval are the person's own settings (D3), not role enforcement",
+          "notEnforcement": [
+            "brief-text",
+            "worktree",
+            "sandbox",
+            "approval-policy"
+          ]
+        }
+      ]
+    },
+    {
+      "role": "WORKING_ITEMS",
+      "meaning": "Managed execution",
+      "delegation": "may-delegate",
+      "guidanceState": "default",
+      "guidanceContent": {
+        "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+        "value": "b4f2e2dd72009a68a85bd11696de287e474d5043806df8088a543f30188ccb11"
+      },
+      "limits": [
+        {
+          "limitId": "L-ALL-1",
+          "statement": "Work within the brief's write targets",
+          "standing": "stated-not-enforced",
+          "presentedAs": "Stated, not enforced",
+          "basis": "A brief is text; Codex sandbox and approval are the person's own settings (D3), not role enforcement",
+          "notEnforcement": [
+            "brief-text",
+            "worktree",
+            "sandbox",
+            "approval-policy"
+          ]
+        }
+      ]
+    },
+    {
+      "role": "TASK",
+      "meaning": "Bounded execution; does not delegate",
+      "delegation": "does-not-delegate",
+      "guidanceState": "default",
+      "guidanceContent": {
+        "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+        "value": "b985bfa22afc0fa38d0e2bf303a20c79bf9e722e3506f5fef59296f3307b71be"
+      },
+      "limits": [
+        {
+          "limitId": "L-TASK-1",
+          "statement": "A task agent does not delegate",
+          "standing": "stated-not-enforced",
+          "presentedAs": "Stated, not enforced",
+          "basis": "DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control at 0.158.0 (multiAgentMode '@deprecated Ignored', observed-in-generated-types)",
+          "notEnforcement": [
+            "approval-policy",
+            "sandbox",
+            "user-configuration"
+          ]
+        },
+        {
+          "limitId": "L-ALL-1",
+          "statement": "Work within the brief's write targets",
+          "standing": "stated-not-enforced",
+          "presentedAs": "Stated, not enforced",
+          "basis": "A brief is text; Codex sandbox and approval are the person's own settings (D3), not role enforcement",
+          "notEnforcement": [
+            "brief-text",
+            "worktree",
+            "sandbox",
+            "approval-policy"
+          ]
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "observationId": "obs:call-1",
+      "limitId": "L-TASK-1",
+      "thread": "thr-task-1",
+      "roleInForce": "TASK",
+      "roleBasis": "supplied-to-thread",
+      "item": {
+        "type": "collabAgentToolCall",
+        "id": "call-1",
+        "tool": "spawnAgent",
+        "senderThreadId": "thr-task-1",
+        "receiverThreadIds": [
+          "thr-child-9"
+        ],
+        "status": "inProgress"
+      },
+      "finding": "delegation by a task agent (stated limit, not enforced)",
+      "shownIn": [
+        "conversation",
+        "delegation-view",
+        "run-record"
+      ],
+      "supplyRef": "sup:0006"
+    }
+  ]
+}

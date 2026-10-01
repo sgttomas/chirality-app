@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4:DEL-01-03:npt.plan-revision:v0.1",
+  "title": "Plan revision reference (PROPOSED, NPTD-v0.1 §5.6)",
+  "description": "A native plan revision as DEL-01-03 offers it to receivers (DEL-02-02 plan-to-draft seam; DEL-01-04 and DEL-04-03 as a subject anchor). Names are Chirality's own; Codex identities and plan content are carried as data. App-observed, never authority for what Codex holds (R17-4). No wire field or placement is selected (R12-2).",
+  "type": "object",
+  "required": ["revisionId", "kind", "threadId", "turnId", "ordinal", "content", "contentIdentity", "standing", "typesPin"],
+  "additionalProperties": false,
+  "properties": {
+    "revisionId": {"type": "string", "pattern": "^(pi|cl):[^:]+:[^:]+:[^:]+(:p[0-9]+)?$",
+      "description": "pi:<thread>:<turn>:<item> for a plan item; cl:<thread>:<turn>:g<generation>:p<position> for a checklist update"},
+    "kind": {"enum": ["plan-item", "checklist"]},
+    "threadId": {"type": "string", "minLength": 1},
+    "turnId": {"type": "string", "minLength": 1},
+    "itemId": {"type": "string", "minLength": 1},
+    "generation": {"type": "integer", "minimum": 1},
+    "receiptPosition": {"type": "integer", "minimum": 0},
+    "ordinal": {"type": "integer", "minimum": 1,
+      "description": "Plan item: position among the thread's plan items in history order. Checklist: position among the turn's updates in receipt order"},
+    "content": {
+      "oneOf": [
+        {"type": "object", "required": ["text"], "additionalProperties": false,
+         "properties": {"text": {"type": "string"}}},
+        {"type": "object", "required": ["explanation", "steps"], "additionalProperties": false,
+         "properties": {
+           "explanation": {"type": ["string", "null"]},
+           "steps": {"type": "array", "items": {
+             "type": "object", "required": ["step", "status"], "additionalProperties": false,
+             "properties": {"step": {"type": "string"},
+                            "status": {"enum": ["pending", "inProgress", "completed"]}}}}}}
+      ]
+    },
+    "contentIdentity": {
+      "type": "object", "required": ["method", "value"], "additionalProperties": false,
+      "properties": {"method": {"type": "string", "minLength": 1},
+                     "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+    },
+    "standing": {"enum": ["live-observed", "recovered-from-supplier"]},
+    "unchangedFromPrevious": {"type": "boolean"},
+    "afterTurnEnd": {"type": "boolean"},
+    "producedInMode": {"enum": ["plan", "default", "not-known"]},
+    "typesPin": {"type": "string", "minLength": 1},
+    "observedVersionLabel": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {"if": {"properties": {"kind": {"const": "plan-item"}}, "required": ["kind"]},
+     "then": {"required": ["itemId"],
+              "properties": {"revisionId": {"pattern": "^pi:"},
+                             "content": {"required": ["text"]}},
+              "not": {"anyOf": [{"required": ["generation"]}, {"required": ["receiptPosition"]}]}}},
+    {"if": {"properties": {"kind": {"const": "checklist"}}, "required": ["kind"]},
+     "then": {"required": ["generation", "receiptPosition"],
+              "properties": {"revisionId": {"pattern": "^cl:"},
+                             "content": {"required": ["steps"]},
+                             "standing": {"const": "live-observed"}},
+              "not": {"required": ["itemId"]}}}
+  ]
+}

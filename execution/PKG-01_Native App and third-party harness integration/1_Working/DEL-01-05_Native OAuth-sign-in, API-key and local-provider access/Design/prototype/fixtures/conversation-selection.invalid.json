@@ -1,0 +1,22 @@
+{
+  "description": "Invalid for one reason: state 'offer-shown' with a non-null selection, i.e. the offer was applied silently (K-3).",
+  "instance": {
+    "schema": "chirality.access-selection/v0.1",
+    "conversation": "conv-0002",
+    "project": "example-project",
+    "state": "offer-shown",
+    "selection": {
+      "entryId": "local-provider:example_lmstudio",
+      "providerId": "example_lmstudio",
+      "model": "example-model",
+      "source": "offered-last-choice-accepted",
+      "chosenAt": "2026-10-01T12:00:00Z"
+    },
+    "offer": {
+      "entryId": "local-provider:example_lmstudio",
+      "model": "example-model",
+      "label": "your last choice for this project",
+      "applied": false
+    }
+  }
+}

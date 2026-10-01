@@ -1,0 +1,25 @@
+{
+  "description": "Valid (invented): the person declines a command tool-permission request whose availableDecisions offered only accept, acceptWithExecpolicyAmendment and cancel (the OBS-1b shape, HOSTING §10.1 OB-5); the decline form is the native `cancel`, which also interrupts the turn.",
+  "instance": {
+    "format": "chirality.nir.answer-submission",
+    "formatVersion": "0.1",
+    "requestIdentity": "srv-ex-1",
+    "generation": 1,
+    "method": "item/commandExecution/requestApproval",
+    "nativeAnswer": {
+      "decision": "cancel"
+    },
+    "submittedAs": "decline",
+    "origin": {
+      "class": "person-via-interaction",
+      "actorRef": "person:Engineer A/enga (identity not verified)"
+    },
+    "formsOffered": [
+      "accept",
+      "acceptWithExecpolicyAmendment",
+      "cancel"
+    ],
+    "submittedAt": "2026-10-01T10:00:05Z",
+    "secretValuesPresent": false
+  }
+}

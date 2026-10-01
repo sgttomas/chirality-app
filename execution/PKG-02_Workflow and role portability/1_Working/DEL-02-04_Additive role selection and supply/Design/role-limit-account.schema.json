@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-02-04:role-limit-account:0.1",
+  "title": "Role limit account and limit observations (PROPOSED, ROLE-v0.1 §6.2, §6.3)",
+  "description": "The per-release account of each role's stated limits with their enforcement standing (SoW OUT-002, REQ-003, AC-003, AC-004; DECISION-K3 K-10), and the observations of a limit not kept (a task agent delegating). Handed to DEL-04-03 (RS R3 'limits'), DEL-11-02 and DEL-01-03 (runtime label). PROPOSED; not accepted.",
+  "type": "object",
+  "required": ["format", "formatVersion", "accountId", "appRelease", "supplierPin", "roles"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "chirality.role.limits"},
+    "formatVersion": {"const": "0.1"},
+    "accountId": {"type": "string", "pattern": "^lim:"},
+    "appRelease": {"type": "string", "minLength": 1},
+    "supplierPin": {"type": "string", "minLength": 1, "description": "Codex version the standings were read at (definition pin 0.158.0; nothing qualified)"},
+    "roles": {
+      "type": "array", "minItems": 4,
+      "items": {"$ref": "#/$defs/roleEntry"}
+    },
+    "observations": {"type": "array", "items": {"$ref": "#/$defs/limitObservation"}}
+  },
+  "$defs": {
+    "contentIdentity": {
+      "oneOf": [
+        {"type": "object", "required": ["method", "value"], "additionalProperties": false,
+         "properties": {"method": {"type": "string", "minLength": 1}, "value": {"type": "string", "minLength": 1}}},
+        {"type": "object", "required": ["notObtainable", "reason"], "additionalProperties": false,
+         "properties": {"notObtainable": {"const": true}, "reason": {"type": "string", "minLength": 1}}}
+      ]
+    },
+    "roleName": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"]},
+    "roleEntry": {
+      "type": "object",
+      "required": ["role", "meaning", "delegation", "guidanceState", "guidanceContent", "limits"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {"$ref": "#/$defs/roleName"},
+        "meaning": {"type": "string", "minLength": 1},
+        "delegation": {"enum": ["may-delegate", "does-not-delegate"]},
+        "guidanceState": {"enum": ["default", "modified"], "description": "Seeded copy equals the shipped default, or not"},
+        "guidanceContent": {"$ref": "#/$defs/contentIdentity"},
+        "limits": {"type": "array", "items": {"$ref": "#/$defs/limit"}}
+      },
+      "allOf": [
+        {"if": {"properties": {"role": {"const": "TASK"}}, "required": ["role"]},
+         "then": {"properties": {"delegation": {"const": "does-not-delegate"}, "limits": {"minItems": 1}}}},
+        {"if": {"properties": {"guidanceState": {"const": "modified"}}, "required": ["guidanceState"]},
+         "then": {"properties": {"limits": {"items": {"properties": {"standing": {"not": {"const": "stated-not-enforced"}}}}}}}}
+      ]
+    },
+    "limit": {
+      "type": "object",
+      "required": ["limitId", "statement", "standing", "presentedAs", "basis"],
+      "additionalProperties": false,
+      "properties": {
+        "limitId": {"type": "string", "pattern": "^L-[A-Z_]+-[0-9]+$"},
+        "statement": {"type": "string", "minLength": 1},
+        "standing": {"enum": ["stated-not-enforced", "enforced-by-supplier", "unknown"]},
+        "presentedAs": {"enum": ["Stated, not enforced", "Enforced by Codex", "Not known whether the supplied guidance states this"]},
+        "basis": {"type": "string", "minLength": 1, "description": "Why this standing: decision, supplier fact with its label, or the guidance state"},
+        "mechanism": {"type": "string", "minLength": 1, "description": "Required for enforced-by-supplier: the supplier control and its evidence"},
+        "notEnforcement": {
+          "type": "array",
+          "items": {"enum": ["approval-policy", "sandbox", "brief-text", "worktree", "user-configuration"]},
+          "description": "Things that may restrict the agent but are not reported as enforcement of this limit (AC-004)"
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"standing": {"const": "enforced-by-supplier"}}, "required": ["standing"]},
+         "then": {"required": ["mechanism"], "properties": {"presentedAs": {"const": "Enforced by Codex"}}}},
+        {"if": {"properties": {"standing": {"const": "stated-not-enforced"}}, "required": ["standing"]},
+         "then": {"properties": {"presentedAs": {"const": "Stated, not enforced"}}, "not": {"required": ["mechanism"]}}},
+        {"if": {"properties": {"standing": {"const": "unknown"}}, "required": ["standing"]},
+         "then": {"properties": {"presentedAs": {"const": "Not known whether the supplied guidance states this"}}, "not": {"required": ["mechanism"]}}}
+      ]
+    },
+    "limitObservation": {
+      "type": "object",
+      "description": "A limit not kept, observed from the supplier's items. Recorded and shown; never prevented (K-10).",
+      "required": ["observationId", "limitId", "thread", "roleInForce", "roleBasis", "item", "finding"],
+      "additionalProperties": false,
+      "properties": {
+        "observationId": {"type": "string", "pattern": "^obs:"},
+        "limitId": {"type": "string", "pattern": "^L-[A-Z_]+-[0-9]+$"},
+        "thread": {"type": "string", "minLength": 1},
+        "roleInForce": {"$ref": "#/$defs/roleName"},
+        "roleBasis": {"enum": ["supplied-to-thread", "native-child-role-reported", "inherited-from-parent (inference)"]},
+        "supplyRef": {"type": "string", "pattern": "^sup:"},
+        "item": {
+          "type": "object",
+          "required": ["type", "id", "tool", "senderThreadId", "receiverThreadIds", "status"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {"const": "collabAgentToolCall"},
+            "id": {"type": "string", "minLength": 1},
+            "tool": {"enum": ["spawnAgent", "sendInput", "resumeAgent", "wait", "closeAgent", "sendMessage", "followupTask", "interruptAgent", "listAgents"]},
+            "senderThreadId": {"type": "string", "minLength": 1},
+            "receiverThreadIds": {"type": "array", "items": {"type": "string"}},
+            "status": {"enum": ["inProgress", "completed", "failed", "interrupted"]}
+          }
+        },
+        "finding": {"const": "delegation by a task agent (stated limit, not enforced)"},
+        "shownIn": {"type": "array", "items": {"enum": ["conversation", "delegation-view", "run-record"]}}
+      },
+      "allOf": [
+        {"properties": {"roleInForce": {"const": "TASK"}, "item": {"properties": {"tool": {"const": "spawnAgent"}}}}}
+      ]
+    }
+  }
+}

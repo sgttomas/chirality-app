@@ -1,0 +1,68 @@
+{
+  "description": "Valid: the v0.1 content of ACCESS §11 CH-1…CH-7.",
+  "instance": {
+    "schema": "chirality.access-capability-handoff/v0.1",
+    "from": "DEL-01-05/ACCESS-v0.1",
+    "to": "DEL-05-01",
+    "pin": "0.158.0",
+    "noHostConformanceClaimed": true,
+    "items": [
+      {
+        "id": "CH-1",
+        "interface": "app-codex-provider",
+        "statement": "The App reaches a local model through Codex's provider interface, Responses (wire_api = responses); providers with wire_api = chat are refused by 0.158.0",
+        "standing": "observed-at-one-pair",
+        "source": "HOSTING §10.1 OB-8 (Responses); F-28 strings (chat refused)",
+        "hostMeaning": "None directly: the host loop uses Chat Completions (V4-ARC-10); a server serving both does not join them"
+      },
+      {
+        "id": "CH-2",
+        "interface": "app-codex-provider",
+        "statement": "LM Studio 0.4.16 dropped namespace tools on Responses; MCP tools did not reach the model",
+        "standing": "observed-at-one-pair",
+        "source": "HOSTING §10.1 OB-1; F-31",
+        "hostMeaning": "Not a Chat Completions finding; LOOP FB-CC-1 stands"
+      },
+      {
+        "id": "CH-3",
+        "interface": "app-codex-provider",
+        "statement": "A flat function tool was called through Responses at that pair",
+        "standing": "observed-at-one-pair",
+        "source": "HOSTING §10.1 OB-2",
+        "hostMeaning": "None"
+      },
+      {
+        "id": "CH-4",
+        "interface": "app-codex-provider",
+        "statement": "The server ignored prompt_cache_key and include and turned the developer role into system",
+        "standing": "observed-at-one-pair",
+        "source": "HOSTING §10.1 OB-8",
+        "hostMeaning": "The same server may behave so on a host route; to be checked on Chat Completions"
+      },
+      {
+        "id": "CH-5",
+        "interface": "app-codex-provider",
+        "statement": "Codex put the host's IANA time zone into the model context",
+        "standing": "observed-at-one-pair",
+        "source": "HOSTING §10.1 OB-11",
+        "hostMeaning": "Not a host matter; recorded"
+      },
+      {
+        "id": "CH-6",
+        "interface": "both",
+        "statement": "App provider credentials are Codex's; host credentials and endpoints are the host native layer's",
+        "standing": "SETTLED",
+        "source": "V4-ARC-04; V4-ARC-12; LOOP §5.1 NW-3, NW-6",
+        "hostMeaning": "No App credential or provider configuration is shared with a host"
+      },
+      {
+        "id": "CH-7",
+        "interface": "both",
+        "statement": "No host conformance is claimed from App observations",
+        "standing": "SETTLED",
+        "source": "DEL-01-05 SoW AC-009; AX-003",
+        "hostMeaning": "Host qualification is separate"
+      }
+    ]
+  }
+}

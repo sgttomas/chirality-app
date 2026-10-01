@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4:DEL-01-05:access.state:v0.1",
+  "title": "Access state snapshot (PROPOSED, DEL-01-05/ACCESS-v0.1 §15)",
+  "description": "Homes and access entries as the App observes them. Handed to DEL-01-04 for the conversation start display (I-5). Every object is closed: no credential element can appear.",
+  "type": "object",
+  "required": ["schema", "observedAt", "homes", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "chirality.access-state/v0.1"},
+    "observedAt": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T"},
+    "homes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/home"}
+    },
+    "entries": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "home": {
+      "type": "object",
+      "required": ["role", "configLink", "childState"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {"enum": ["account", "api-key", "probe"]},
+        "configLink": {"enum": ["not-set-up", "linked", "target-missing", "link-broken", "own-config", "not-applicable"]},
+        "childState": {"type": "string", "minLength": 1, "description": "HOSTING §4.1 state of this home's child, as delivered"},
+        "generation": {"type": "integer", "minimum": 1},
+        "credentialStoreMode": {"enum": ["file", "keyring", "auto", "ephemeral", "unknown"]}
+      }
+    },
+    "accountView": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "chatgpt"},
+        "email": {"type": ["string", "null"]},
+        "planType": {"type": ["string", "null"]}
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": ["entryId", "kind", "state", "destinationClass"],
+      "additionalProperties": false,
+      "properties": {
+        "entryId": {"type": "string", "pattern": "^(chatgpt-account|api-key|local-provider:[A-Za-z0-9_.-]+|other-provider:[A-Za-z0-9_.-]+)$"},
+        "kind": {"enum": ["chatgpt-account", "api-key", "local-provider", "other-provider"]},
+        "state": {"type": "string", "minLength": 1},
+        "home": {"enum": ["account", "api-key"]},
+        "providerId": {"type": "string", "minLength": 1},
+        "baseUrl": {"type": "string", "minLength": 1, "description": "Local providers only; shown so the person sees the address"},
+        "destinationClass": {"enum": ["local model server", "user-chosen cloud", "not-applicable"]},
+        "accountView": {"$ref": "#/$defs/accountView"},
+        "notOfferedReason": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "chatgpt-account"}}},
+          "then": {"properties": {"state": {"enum": ["unknown", "signed-out", "signing-in", "signed-in", "needs-reauth", "signing-out", "not-permitted"]}, "home": {"const": "account"}, "destinationClass": {"const": "user-chosen cloud"}}},
+          "else": {"not": {"required": ["accountView"]}}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "api-key"}}},
+          "then": {"properties": {"state": {"enum": ["unknown", "absent", "entering", "present", "failing", "removing", "not-permitted"]}, "home": {"const": "api-key"}, "destinationClass": {"const": "user-chosen cloud"}}}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "local-provider"}}},
+          "then": {"required": ["providerId"], "properties": {"state": {"enum": ["listed", "in-use", "failing", "not-configured"]}, "home": {"const": "account"}, "destinationClass": {"const": "local model server"}}}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "other-provider"}}},
+          "then": {"required": ["providerId", "notOfferedReason"], "properties": {"state": {"const": "not-offered"}, "destinationClass": {"const": "not-applicable"}}}
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "observation_lost",
+  "eventId": "cev:sess-1:13",
+  "appSession": "sess-1",
+  "at": "2026-10-01T09:32:02.000Z",
+  "standing": "App-observed",
+  "generation": "sess-1/g1",
+  "cause": "window-closed",
+  "conversations": ["thr-ex-1"],
+  "liveTurns": [{"threadId": "thr-ex-1", "turnId": "turn-ex-5"}],
+  "inFlightItems": [],
+  "outstandingEntries": []
+}

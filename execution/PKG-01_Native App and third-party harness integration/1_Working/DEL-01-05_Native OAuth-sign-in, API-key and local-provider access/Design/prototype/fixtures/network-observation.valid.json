@@ -1,0 +1,68 @@
+{
+  "description": "Valid: shaped like OBS-1/1b start-up rows (redacted); addresses are documentation addresses, not observed ones.",
+  "instance": {
+    "schema": "chirality.access-network/v0.1",
+    "pin": "0.158.0",
+    "home": "account",
+    "generation": 1,
+    "remoteControlStatus": "connecting",
+    "limits": "lower bound: connections shorter than the sampling interval may be missing; host names only where the expected list or a lookup supplies them",
+    "rows": [
+      {
+        "destination": {
+          "host": "chatgpt.com",
+          "hostSource": "expected-list",
+          "address": "2001:db8::1",
+          "port": 443
+        },
+        "process": "codex",
+        "phase": "start-up",
+        "purpose": "remote-control",
+        "sources": [
+          "app-observed",
+          "expected-at-pin"
+        ],
+        "appSetting": {
+          "name": "features.remote_control",
+          "state": "pending-observation"
+        }
+      },
+      {
+        "destination": {
+          "host": "github.com",
+          "hostSource": "expected-list",
+          "address": "2001:db8::2",
+          "port": 443
+        },
+        "process": "git",
+        "phase": "start-up",
+        "purpose": "plugin-sync",
+        "sources": [
+          "app-observed",
+          "expected-at-pin"
+        ],
+        "appSetting": {
+          "name": "features.plugins",
+          "state": "pending-observation"
+        }
+      },
+      {
+        "destination": {
+          "host": null,
+          "hostSource": "none",
+          "address": "192.0.2.10",
+          "port": 443
+        },
+        "process": "codex",
+        "phase": "idle",
+        "purpose": "unlisted",
+        "sources": [
+          "app-observed"
+        ],
+        "appSetting": {
+          "state": "no-setting-known"
+        }
+      }
+    ]
+  }
+}

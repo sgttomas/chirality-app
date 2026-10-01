@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-01-04:nir:attachment-supply-record:0.1",
+  "title": "Attachment supply record (PROPOSED, DEL-01-04/NIR-v0.1 §6)",
+  "description": "PROPOSED by DEL-01-04/NIR-v0.1 (R17-1; REQ-003). The identity of the content the App actually supplied at the local interface, taken when the turn input is written (AT-1...AT-6). It is App-observed: Codex reads a supplied path itself, so what Codex read and whether the provider adopted it are not observed at the 0.158.0 pin (labels fixed below). 'method' names a content-identity designation only; no algorithm is chosen (RS U-04; HOSTING U-08). Handed to the conversation view, to DEL-02-02 for draft attachments, and cited by DEL-04-03 records as an evidence reference of kind 'content identity'. No storage location is chosen (TBD-003; OI-014).",
+  "type": "object",
+  "required": ["format", "formatVersion", "attachmentId", "displayName", "suppliedAs", "identityAtSelection", "identityAtSubmission", "turnRef", "recordedAt", "supplierRead", "providerAdoption"],
+  "additionalProperties": false,
+  "$defs": {
+    "contentIdentity": {
+      "oneOf": [
+        {"type": "object", "required": ["method", "value"], "additionalProperties": false, "properties": {"method": {"type": "string", "minLength": 1}, "value": {"type": "string", "minLength": 1}}},
+        {"type": "object", "required": ["notObtainable", "reason"], "additionalProperties": false, "properties": {"notObtainable": {"const": true}, "reason": {"type": "string", "minLength": 1}}}
+      ]
+    }
+  },
+  "properties": {
+    "format": {"const": "chirality.nir.attachment-supply"},
+    "formatVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "attachmentId": {"type": "string", "minLength": 1},
+    "displayName": {"type": "string", "minLength": 1},
+    "suppliedAs": {
+      "description": "The supplier input form used (UserInput at 0.158.0), or a thread attachment, or a draft package handed to DEL-02-02.",
+      "enum": ["localImage", "localAudio", "mention", "skill", "image-url", "image-fileId", "audio-url", "thread-attachment", "draft-package"]
+    },
+    "localPath": {"type": "string", "minLength": 1},
+    "remoteRef": {"type": "string", "minLength": 1, "description": "A URL or supplier file identity, recorded as given; the App does not fetch it."},
+    "identityAtSelection": {"$ref": "#/$defs/contentIdentity"},
+    "identityAtSubmission": {"$ref": "#/$defs/contentIdentity"},
+    "byteLength": {"type": "integer", "minimum": 0},
+    "turnRef": {"type": "string", "minLength": 1},
+    "recordedAt": {"type": "string", "minLength": 1},
+    "supplierRead": {"enum": ["not observed: Codex reads the path itself", "not applicable: content passed by reference"]},
+    "providerAdoption": {"const": "not observed"},
+    "laterCheck": {
+      "type": "object",
+      "required": ["identity", "at", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {"$ref": "#/$defs/contentIdentity"},
+        "at": {"type": "string", "minLength": 1},
+        "result": {"enum": ["unchanged since supplied", "changed after it was supplied; what Codex read is not observed", "missing"]}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "Path forms carry the local path.",
+      "anyOf": [
+        {"properties": {"suppliedAs": {"not": {"enum": ["localImage", "localAudio", "mention", "skill", "draft-package"]}}}},
+        {"required": ["localPath"]}
+      ]
+    },
+    {
+      "description": "Reference forms carry the reference and say the App read no bytes.",
+      "anyOf": [
+        {"properties": {"suppliedAs": {"not": {"enum": ["image-url", "image-fileId", "audio-url"]}}}},
+        {"required": ["remoteRef"], "properties": {"supplierRead": {"const": "not applicable: content passed by reference"}, "identityAtSubmission": {"required": ["notObtainable"]}}}
+      ]
+    }
+  ]
+}

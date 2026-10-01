@@ -1,0 +1,50 @@
+{
+  "description": "Valid: one child last observed running when observation ended, spawned by a task-role conversation (K-10: stated, not enforced). Invented identities.",
+  "instance": {
+    "exportId": "exp-fixture-1",
+    "producedAt": 1790000060000,
+    "producer": {
+      "deliverable": "DEL-01-03",
+      "typesPin": "0.158.0",
+      "observedVersionLabel": "codex-cli 0.158.0"
+    },
+    "rootThreadId": "thr-fixture-parent",
+    "nodes": [
+      {
+        "threadId": "thr-fixture-child-1",
+        "parentThreadId": "thr-fixture-parent",
+        "parentSource": "collabAgentToolCall",
+        "sessionId": null,
+        "agentPath": "/root/reviewer",
+        "agentNickname": null,
+        "agentRole": null,
+        "depth": null,
+        "spawnedBy": {
+          "threadId": "thr-fixture-parent",
+          "turnId": "turn-fixture-1",
+          "itemId": "item-fixture-spawn-1"
+        },
+        "requested": {
+          "model": null,
+          "reasoningEffort": null
+        },
+        "lastObserved": {
+          "status": "running",
+          "source": "collabAgentToolCall.agentsStates",
+          "at": 1790000030000
+        },
+        "observationEnded": true,
+        "delegatingRole": {
+          "role": "TASK",
+          "statement": "stated-not-enforced"
+        }
+      }
+    ],
+    "limits": [
+      "Child completion, return, review and integration are not inferred from any observation here.",
+      "A parent turn's completion says nothing about its children.",
+      "Status values are the last observed value from the named source at the named time.",
+      "Identities are Codex's; this export is App-observed, not authority for what Codex holds."
+    ]
+  }
+}

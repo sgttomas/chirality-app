@@ -1,0 +1,29 @@
+{
+  "description": "Invalid for one reason: an 'unlisted' row claims the source 'expected-at-pin'; an unlisted connection can only be app-observed.",
+  "instance": {
+    "schema": "chirality.access-network/v0.1",
+    "pin": "0.158.0",
+    "home": "account",
+    "generation": 1,
+    "limits": "lower bound: connections shorter than the sampling interval may be missing; host names only where the expected list or a lookup supplies them",
+    "rows": [
+      {
+        "destination": {
+          "host": null,
+          "hostSource": "none",
+          "address": "192.0.2.10",
+          "port": 443
+        },
+        "process": "codex",
+        "phase": "idle",
+        "purpose": "unlisted",
+        "sources": [
+          "expected-at-pin"
+        ],
+        "appSetting": {
+          "state": "no-setting-known"
+        }
+      }
+    ]
+  }
+}

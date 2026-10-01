@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-01-04:nir:draft-transition:0.1",
+  "title": "Draft transition, as DEL-01-04 receives it (PROPOSED receiving requirement, DEL-01-04/NIR-v0.1 §7)",
+  "description": "PROPOSED by DEL-01-04/NIR-v0.1 (R17-1; OUT-004, REQ-004). DEL-02-02 owns the transition and its format: WR-v0.1 §5.1 and `workspace-registration.schema.json` $defs/draft_transition (node D5). This schema restates that shape with D5's own element names and values (record_kind, event, draft {draft_location, draft_root, name}, content, from, to, disposition, cause, time, attribution), so the two can be compared line by line, and adds the two elements DEL-01-04 needs that D5's shape does not carry: for the events 'registered' and 'registration not completed', the A15 human-act record ('a15_record', which the App act control wrote at capture, K-8) and, for 'registered', the revision ('revision'). Those two are a request to DEL-02-02 (join J-W1); until it carries them, DEL-01-04 reads them from D5's library_entry. Per R17-11 an A15's relations are the reviewed draft and the prior revision; WD's derived-from (the parent workflow identity) is not carried here.",
+  "type": "object",
+  "required": ["record_kind", "event", "draft", "from", "to", "cause", "time", "attribution"],
+  "additionalProperties": false,
+  "$defs": {
+    "text": {"type": "string", "minLength": 1},
+    "content_identity": {"type": "object", "required": ["method", "value"], "additionalProperties": false, "properties": {"method": {"$ref": "#/$defs/text"}, "value": {"$ref": "#/$defs/text"}}},
+    "draft_state": {"enum": ["absent", "draft", "not valid", "under review", "changed since review", "registered, unchanged since", "removed"]}
+  },
+  "properties": {
+    "record_kind": {"const": "draft_transition"},
+    "event": {"enum": ["written", "changed", "review shown", "review stale", "registration refused", "registered", "registration not completed", "removed"]},
+    "draft": {
+      "type": "object",
+      "required": ["draft_location", "draft_root", "name"],
+      "additionalProperties": false,
+      "properties": {"draft_location": {"enum": ["project", "user"]}, "draft_root": {"$ref": "#/$defs/text"}, "name": {"$ref": "#/$defs/text"}}
+    },
+    "content": {"$ref": "#/$defs/content_identity"},
+    "from": {"$ref": "#/$defs/draft_state"},
+    "to": {"$ref": "#/$defs/draft_state"},
+    "disposition": {"enum": ["new workflow", "new revision", "in place", "refused: name taken", "refused: identical content", "refused: draft not valid", "refused: changed since review", "refused: slot moved on"]},
+    "cause": {"$ref": "#/$defs/text"},
+    "time": {"$ref": "#/$defs/text"},
+    "attribution": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {"kind": {"enum": ["file change item", "app action", "not observed"]}, "thread": {"$ref": "#/$defs/text"}, "item": {"$ref": "#/$defs/text"}}
+    },
+    "a15_record": {"type": "string", "pattern": "^rec:", "description": "Requested addition (J-W1): the RS human_act A15 record the App act control wrote."},
+    "revision": {"$ref": "#/$defs/text", "description": "Requested addition (J-W1): the registered revision identity."}
+  },
+  "allOf": [
+    {"description": "Content is carried where the draft's content is what changed or was reviewed.", "anyOf": [{"properties": {"event": {"not": {"enum": ["written", "changed", "review shown", "registered"]}}}}, {"required": ["content"]}]},
+    {"description": "DEL-01-04 shows a draft as registered only with the A15 record and the revision (REQ-004: no invented registration).", "anyOf": [{"properties": {"event": {"not": {"const": "registered"}}}}, {"required": ["a15_record", "revision", "disposition"], "properties": {"to": {"const": "registered, unchanged since"}, "disposition": {"enum": ["new workflow", "new revision", "in place"]}}}]},
+    {"description": "A registration that did not complete still cites the recorded act.", "anyOf": [{"properties": {"event": {"not": {"const": "registration not completed"}}}}, {"required": ["a15_record"]}]},
+    {"description": "A refusal carries its disposition (K-6: 'refused: name taken' asks for a new name).", "anyOf": [{"properties": {"event": {"not": {"const": "registration refused"}}}}, {"required": ["disposition"], "properties": {"disposition": {"enum": ["refused: name taken", "refused: identical content", "refused: draft not valid", "refused: changed since review", "refused: slot moved on"]}}}]}
+  ]
+}

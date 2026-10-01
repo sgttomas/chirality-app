@@ -1,0 +1,219 @@
+[
+  {
+    "case": "INV-OF-1",
+    "reason": "'accept' wording on A4: 'accept' belongs to A5 alone (ACT §9).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.1",
+      "offerId": "offer:0003",
+      "actKind": "A4",
+      "wording": "accept",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-2",
+    "reason": "An A15 offer with a decline (ACT §2.3 defines none) and without the reviewed draft, prior revision and descriptor (R17-11; WR RB-4).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.1",
+      "offerId": "offer:0003",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "subject": {
+        "class": "workflow revision (reviewed draft content)",
+        "ref": "project:.chirality/workflows:x@rev-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "aa"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-3",
+    "reason": "Two act kinds at once (CAP-2: one at a time).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.1",
+      "offerId": "offer:0003",
+      "actKind": [
+        "A4",
+        "A6"
+      ],
+      "wording": "mark checked",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-4",
+    "reason": "A subject without its content identity (K-8 binds the exact bytes shown).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.1",
+      "offerId": "offer:0003",
+      "actKind": "A4",
+      "wording": "mark checked",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1"
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-5",
+    "reason": "A12 is not served by the App act control in this increment (AAC §1.2).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.1",
+      "offerId": "offer:0003",
+      "actKind": "A12",
+      "wording": "set grant",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-6",
+    "reason": "The A15 pair under WD's relation name 'derivedFrom' (R17-11 keeps derived-from for the parent workflow identity).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.1",
+      "offerId": "offer:0003",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "subject": {
+        "class": "workflow revision (reviewed draft content)",
+        "ref": "project:.chirality/workflows:x@rev-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "aa"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      },
+      "derivedFrom": {
+        "reviewedDraftContent": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "aa"
+        },
+        "priorRevision": null
+      }
+    }
+  }
+]

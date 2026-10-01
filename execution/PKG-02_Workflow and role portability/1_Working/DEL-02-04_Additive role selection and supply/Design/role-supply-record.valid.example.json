@@ -1,0 +1,124 @@
+{
+  "format": "chirality.role.supply",
+  "formatVersion": "0.1",
+  "supplyId": "sup:0006",
+  "thread": "thr-6",
+  "trigger": "thread-start",
+  "request": {
+    "method": "thread/start",
+    "requestRef": "req:6",
+    "generation": 1
+  },
+  "selection": {
+    "role": "TASK",
+    "preselected": false,
+    "roleSet": {
+      "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+      "value": "d5d54e2e1bbc179b7a1c8711b6cbda803425a4e48e6d0dc891f97ffd61fddcba"
+    }
+  },
+  "adoption": "unknown",
+  "carried": {
+    "compositionFormat": "chirality.role.compose/0.1",
+    "developerInstructions": {
+      "content": {
+        "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+        "value": "3fcd933337d45e792d9cd66a9c00de207ad4a77b4c0e0fd629b1e289d2fd3dc2"
+      },
+      "byteLength": 730,
+      "parts": [
+        {
+          "kind": "product-guidance",
+          "source": {
+            "store": "seeded-copy",
+            "path": "AGENTS.md",
+            "release": "app-fixture-1",
+            "state": "default",
+            "defaultContent": {
+              "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+              "value": "4ee926dcc1216a856350c0a713c21f040950d0e920b6d84065431a0d949dfc90"
+            }
+          },
+          "content": {
+            "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+            "value": "4ee926dcc1216a856350c0a713c21f040950d0e920b6d84065431a0d949dfc90"
+          },
+          "offset": 0,
+          "length": 266
+        },
+        {
+          "kind": "role-guidance",
+          "role": "TASK",
+          "source": {
+            "store": "seeded-copy",
+            "path": "agents/AGENT_TASK.md",
+            "release": "app-fixture-1",
+            "state": "default",
+            "defaultContent": {
+              "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+              "value": "b985bfa22afc0fa38d0e2bf303a20c79bf9e722e3506f5fef59296f3307b71be"
+            }
+          },
+          "content": {
+            "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+            "value": "b985bfa22afc0fa38d0e2bf303a20c79bf9e722e3506f5fef59296f3307b71be"
+          },
+          "offset": 289,
+          "length": 166
+        },
+        {
+          "kind": "workflow",
+          "source": {
+            "workflow": {
+              "kind": "workflow",
+              "origin": "project",
+              "sourceRoot": "project:fixture",
+              "name": "demo-check",
+              "revision": {
+                "method": "proto-sha256-list-0 (illustration; WD U-03 open)",
+                "value": "8ba834c4adb41e70b711d7a9a1162e98026fd78ac22d0e7c81a446be415cc15d"
+              }
+            },
+            "file": "WORKFLOW.md",
+            "revisionVerified": true,
+            "runRef": "run:fixture-1"
+          },
+          "content": {
+            "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+            "value": "2b7c4ce0c0f0244c758bcf5935cba3fc5113cef3273f015a05b841cf9bf475c0"
+          },
+          "offset": 523,
+          "length": 207
+        }
+      ]
+    },
+    "baseInstructions": "not-set",
+    "nativeChildRoles": [
+      {
+        "role": "HELP_HUMAN",
+        "status": "not-supplied",
+        "reason": "not-offered-by-role"
+      },
+      {
+        "role": "HELPS_HUMANS",
+        "status": "not-supplied",
+        "reason": "not-offered-by-role"
+      },
+      {
+        "role": "WORKING_ITEMS",
+        "status": "not-supplied",
+        "reason": "not-offered-by-role"
+      },
+      {
+        "role": "TASK",
+        "status": "not-supplied",
+        "reason": "not-offered-by-role"
+      }
+    ]
+  },
+  "outcome": "supplied",
+  "supplierReported": {
+    "instructionSources": [],
+    "agentRole": null
+  }
+}

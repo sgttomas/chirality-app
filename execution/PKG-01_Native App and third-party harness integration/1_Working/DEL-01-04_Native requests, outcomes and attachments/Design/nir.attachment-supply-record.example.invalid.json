@@ -1,0 +1,132 @@
+[
+  {
+    "case": "INV-AT-1",
+    "reason": "Claims provider adoption, which nothing observes at 0.158.0 (REQ-003).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.1",
+      "attachmentId": "att-ex-1",
+      "displayName": "load-table.csv",
+      "suppliedAs": "mention",
+      "localPath": "/ex/project/data/load-table.csv",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: Codex reads the path itself",
+      "providerAdoption": "adopted",
+      "laterCheck": {
+        "identity": {
+          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+          "value": "77aa...09"
+        },
+        "at": "2026-10-01T10:05:00Z",
+        "result": "changed after it was supplied; what Codex read is not observed"
+      }
+    }
+  },
+  {
+    "case": "INV-AT-2",
+    "reason": "A path form without its local path.",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.1",
+      "attachmentId": "att-ex-1",
+      "displayName": "load-table.csv",
+      "suppliedAs": "mention",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: Codex reads the path itself",
+      "providerAdoption": "not observed",
+      "laterCheck": {
+        "identity": {
+          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+          "value": "77aa...09"
+        },
+        "at": "2026-10-01T10:05:00Z",
+        "result": "changed after it was supplied; what Codex read is not observed"
+      }
+    }
+  },
+  {
+    "case": "INV-AT-3",
+    "reason": "A URL image with an App-computed identity: the App does not fetch it.",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.1",
+      "attachmentId": "att-ex-1",
+      "displayName": "load-table.csv",
+      "suppliedAs": "image-url",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not applicable: content passed by reference",
+      "providerAdoption": "not observed",
+      "laterCheck": {
+        "identity": {
+          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+          "value": "77aa...09"
+        },
+        "at": "2026-10-01T10:05:00Z",
+        "result": "changed after it was supplied; what Codex read is not observed"
+      },
+      "remoteRef": "https://example.invalid/a.png"
+    }
+  },
+  {
+    "case": "INV-AT-4",
+    "reason": "Content identity without a method designation (RS L-2).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.1",
+      "attachmentId": "att-ex-1",
+      "displayName": "load-table.csv",
+      "suppliedAs": "mention",
+      "localPath": "/ex/project/data/load-table.csv",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "identityAtSubmission": {
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: Codex reads the path itself",
+      "providerAdoption": "not observed",
+      "laterCheck": {
+        "identity": {
+          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+          "value": "77aa...09"
+        },
+        "at": "2026-10-01T10:05:00Z",
+        "result": "changed after it was supplied; what Codex read is not observed"
+      }
+    }
+  }
+]
