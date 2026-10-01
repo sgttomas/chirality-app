@@ -59,3 +59,5 @@ not on the executor's report. A user-level agent definition
 | R15 | Two rulings on RX's returns |
 | B8 return | GUIDE v0.5, 18/18 pins; R15-1 in LOOP and RS; all prototypes pass; 1,019/1,020 GUIDE citations resolve (the miss is a placeholder). Two small residuals returned (LOOP §3.2 turn-table row against split F-2, recorded as GUIDE F-18; RS §15 and its prototype README miscount the example logs): left for the V19 repair, then a final GUIDE re-pin |
 | V19 | Two reviewers (type2-opus-high) launched on the candidate named at launch |
+| V19 return | V19-A MERGE AS DRAFTS (0 BLOCKING, 1 MAJOR, 7 MINOR, 6 NOTE); V19-B HOLD (1 BLOCKING: PANEL against R15-1; 1 MAJOR: the work graph was stale — corrected by the integrator in this commit; 5 MINOR; 7 NOTE). Every prototype reproduced; an independent jsonschema check agreed. V19-B's note that OBS-1_BRIEF.md carries the scratchpad path with the user name is recorded: it is a run brief, not the redacted observation record, and is left as written |
+| RQ | One repair executor (type2-opus-high) on every V19 file finding, with the final GUIDE re-pin |

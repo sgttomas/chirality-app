@@ -640,3 +640,33 @@ this; review it as a stranger to it.
 BLOCKING (false, inconsistent across files, or claims more than decided),
 MAJOR, MINOR, NOTE, with passages quoted and a proposed fix; what you checked,
 how, and what you did not check.
+
+## RQ — repairs from V19 and final GUIDE re-pin (one Type 2)
+
+**Inputs:** `reviews/V19-A.md` and `reviews/V19-B.md`: every finding in the
+Design files, all classes (NOTEs optional). The graph finding (V19-B M-1) is
+the integrator's and is done. Rulings for the findings:
+
+- **V19-B B-1 and GUIDE F-18:** R15-1 applies to PANEL as to LOOP: PC-42,
+  RI-1 and RT-d, and LOOP's §3.2 turn-table row, read "run not started — no
+  model selected" for an unconfigured model; "boundary refusal" stays only for
+  a cloud model with no credential.
+- **V19-A M-1:** the ADAPTER-to-RS label map gets an entry for every token
+  that the underscore rule does not produce (at least
+  `agent_written_configuration` → "agent-written configuration"), and a
+  prototype check runs every ADAPTER evidence-limit and outcome value through
+  the chain.
+- **V19-A, `namespace`:** where ADAPTER and GUIDE state the mechanism as
+  observed, say what was observed (LM Studio logged the `namespace` tool type
+  as unsupported; the model never saw the tool) and label the mechanism an
+  inference, as the OBS record does.
+- **V19-A, RS `$ref` resolution:** state accurately how a standard validator
+  resolves RS's references (give the schemas `$id`s that make relative
+  references resolve, or say that a loader must map them), and check it with
+  the already-installed `jsonschema` package if present (no install).
+
+**Write fence:** the 16 Design files and their schemas, examples and
+`prototype/` folders (not PIN_SPIKE, OBS_1, `prototype/obs1/`, RELAY or
+SWBPIPE's files); `WAVE_B/RQ.md`. Rows "RQ" in each file's Wave B change
+table; no version bump. **GUIDE's 18-row input table is re-pinned last**, by
+script, after every other edit, showing 18/18. Rerun every prototype.
