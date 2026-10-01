@@ -559,3 +559,22 @@ your folders and any cross-file prototype chain you touch (for RP-1, the
 EXEC-to-RS conversion of R14-1 must show every entry valid). Return file
 `WAVE_B/RP-<n>.md`: finding → fix → location; prototype output; anything
 returned; new sha256 per file.
+
+## RX — residual sweep after the repairs (one Type 2)
+
+**Purpose.** Each of `WAVE_B/RP-1.md`…`RP-4.md` ends with what *other* files
+must now say. The four ran in parallel, so some of those items were done by
+another node and some were not. For every such item: check whether the named
+file now says it; if not, make the smallest edit that does, under R14. Also
+regenerate CA's `w14-result-record.example.valid.json` so that CA's check
+"validates and equals the regenerated W14-05 record" passes after RP-1's
+recorder change.
+
+**Write fence:** the 16 Design files and their schemas, examples and
+`prototype/` folders (not PIN_SPIKE, not OBS_1, not `prototype/obs1/`, not
+RELAY or SWBPIPE's files); return file `WAVE_B/RX.md`. No version bump; rows
+"RX" in each file's Wave B change table.
+
+**Return:** a table of every residual item (source return, target file, said
+already / fixed here / returned), the prototype reruns (every folder), and
+sha256 per changed file.
