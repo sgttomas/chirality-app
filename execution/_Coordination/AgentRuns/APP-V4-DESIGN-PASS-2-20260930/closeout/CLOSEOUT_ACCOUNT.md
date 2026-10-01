@@ -90,8 +90,8 @@ TBD-005"; DEL-02-03 REQ-007 and VER-006 "TBD-001 through TBD-006").
 Under R16 (node G): recording a declined destination request is SETTLED by
 DEL-04-03 CLM-004 (correcting R12-10); the panel-needs list; IN-30 on the
 next-relay list; GUIDE's review status; the OBS record's time-zone redaction;
-EXEC EV-3 against HOSTING §8.4; bookkeeping. The LOOP/PANEL pair check is done
-assigned to the final review (V20-A); its result is below.
+EXEC EV-3 against HOSTING §8.4; bookkeeping. The LOOP/PANEL pair check was assigned to the final review (V20-A); its
+result is below.
 
 ## After C0, G and H (rechecked at the final candidate)
 
@@ -104,10 +104,11 @@ Design documents in 11 deliverables. Rechecked against the final candidate:
   person; it stays a basis question.
 - **Returned items.** C1-A G-1…G-3, C1-B's two graph items and C1-C
   GW-1…GW-3 are done in G. The DEL-05-01/05-02 panel-needs list was written
-  in G, and H made it 17 of 17 supplied. GW-4, the LOOP/PANEL pair check, is
-  V20-A's: it passed apart from one blocking label inconsistency (a person's
-  decline still marked PROPOSED in LOOP VC-01 and C §4.1) and four minor
-  wording points, all repaired in RV20.
+  in G, and H made it 17 of 17 supplied. GW-4, the LOOP/PANEL pair check, was
+  V20-A's, and the pair check itself passed. V20-A's review of the other
+  Design edits found one blocking label inconsistency (a person's decline
+  still marked PROPOSED in LOOP VC-01 and C §4.1) and four minor wording
+  points, all repaired in RV20 and rechecked by V20b (MERGE).
 - **DEL-02-03 EV-3.** The presence rule is active for the seven capability
   names whose group availability signal HOSTING §8.4 states, and inactive,
   with that reason, for three.

@@ -99,9 +99,9 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | G Items returned by the closeout (R16) | Design files; RELAY metadata; OBS redaction; HANDOFF IN-30; `closeout/G.md` | C1 | R16 applied | COMPLETE `153a7c533` |
 | H LOOP panel-needs gaps; current pins | LOOP, PANEL, HOSTING, GUIDE, RELAY metadata, CA, RS mapping; `closeout/H.md` | G | 17/17 supplied; GUIDE 18/18 | COMPLETE `891242377` |
 | V20 Final review (V20-A pair check and Design edits; V20-B closeout and records) | `reviews/V20-*.md` | H | Verdict covering the candidate | COMPLETE at `94fa78d87` — V20-A HOLD (1 BLOCKING: a decline still PROPOSED in two places); V20-B MERGE (1 MAJOR: the account not rechecked after C0/G/H) |
-| RV20 Repairs from V20 (Design by an executor; records by the integrator) | LOOP, C, PANEL, GUIDE; the account, receipt, graph, R16 heading, D0 note | V20 | Findings closed; GUIDE 18/18 | COMPLETE (commit after `94fa78d87`; see V20b) — V20-A B-1 and four MINORs fixed; V20-B M-1 and MINORs fixed in the records; prototypes pass; GUIDE 18/18 |
-| V20b Recheck of the V20 repairs | `reviews/V20b.md` | RV20 | Verdict | ACTIVE |
-| F Receipt, MEMORY rows, final PR and its review | `RECEIPT.md`; 14 `MEMORY.md` | C1 | Final PR merged | ACTIVE — receipt and 14 MEMORY rows written; final PR after V20 |
+| RV20 Repairs from V20 (Design by an executor; records by the integrator) | LOOP, C, PANEL, GUIDE; the account, receipt, graph, R16 heading, D0 note | V20 | Findings closed; GUIDE 18/18 | COMPLETE `b6db949c8` — V20-A B-1 and four MINORs fixed; V20-B M-1 and MINORs fixed in the records; prototypes pass; GUIDE 18/18 |
+| V20b Recheck of the V20 repairs | `reviews/V20b.md` | RV20 | Verdict | COMPLETE — **MERGE** at `b6db949c8` (0 BLOCKING, 0 MAJOR, 3 MINOR record-wording points fixed in the next commit) |
+| F Receipt, MEMORY rows, final PR and its review | `RECEIPT.md`; 14 `MEMORY.md` | C1 | Final PR merged | ACTIVE — receipt and 14 MEMORY rows written; final review V20/V20b MERGE; final PR open with the CI monitor and auto-merge on. The undertaking ends when it merges, as Git and GitHub record |
 
 ## Holds and owner-held choices
 
@@ -113,6 +113,6 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Next safe action
 
-When V20 returns: repair any blocking finding and recheck it; then open the
-final PR with the CI monitor and auto-merge on. The undertaking ends when it
-merges.
+The final PR is open with the CI monitor and auto-merge on. If CI fails,
+fix it and push. When it merges, the undertaking is complete; starting
+another needs the owner's steering.

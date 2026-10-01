@@ -92,7 +92,7 @@ All are recorded with the owner's exact text in
   - V19-A returned MERGE AS DRAFTS and V19-B returned HOLD; V19b then
     returned MERGE AS DRAFTS.
   - V20-A returned HOLD (one label inconsistency) and V20-B MERGE; both
-    were repaired in RV20 and rechecked in V20b.
+    were repaired in RV20; the recheck V20b returned MERGE.
 - **Prototypes:** rerun by the integrator after each round and by every
   reviewer. The reviewers' independent `jsonschema` checks agreed.
 - **GUIDE input pins:** 18/18.
