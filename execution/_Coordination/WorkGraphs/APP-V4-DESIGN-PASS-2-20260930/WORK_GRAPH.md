@@ -90,8 +90,8 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | B8 GUIDE for Wave B, R15-1, final re-pin | GUIDE; LOOP F-2, MS-02; RS cause | RX; R15 | 18/18 | COMPLETE `2caccef12` — GUIDE v0.5 18/18 |
 | V19 Independent review of the Wave B candidate (V19-A, V19-B) | `reviews/V19-*.md` | B8 | Verdict | COMPLETE at `2caccef12` — V19-A MERGE AS DRAFTS (0/1/7/6); V19-B HOLD (1 BLOCKING: PANEL against R15-1; 1 MAJOR: this graph stale) |
 | RQ Repairs from V19; final GUIDE re-pin | Design files; GUIDE | V19 | Findings closed; 18/18 | COMPLETE (this commit) — all BLOCKING, MAJOR and MINOR findings fixed; 18/18 |
-| V19b Recheck of the repairs | `reviews/V19b.md` | RQ | Verdict | ACTIVE |
-| P2 PR-2: Wave B | — | V19b, CI | Merged under the standing direction | PLANNED |
+| V19b Recheck of the repairs | `reviews/V19b.md` | RQ | Verdict | COMPLETE — **MERGE AS DRAFTS** at `fffae1291` (0 BLOCKING, 0 MAJOR, 4 MINOR, 7 NOTE). The four MINORs (LOOP §3.2 run opening against a no-credential refusal; GUIDE pin provenance text; GUIDE F-17 wording; HOSTING §6.8 "not exercised live") are carried to the closeout node C1, which fixes them in the final PR |
+| P2 PR-2: Wave B | — | V19b, CI | Merged under the standing direction | ACTIVE |
 | **Closeout** | | | | |
 | D0 DAG-003 currency recheck | Read-only | P2 | Both manifests pass; no bound file changed | PLANNED |
 | C1 Bounded closeout (`bounded-reconciliation`): commitment ↔ result per deliverable; proposed SoW, register and basis items for a later amendment | `closeout/` | P2 | Account written; proposals not applied | PLANNED |
@@ -107,6 +107,5 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Next safe action
 
-When V19b returns: repair any blocking finding and recheck it; then open
-PR-2 with the CI monitor and auto-merge on once nothing
-blocking remains. After PR-2: the closeout (D0, C1, F).
+PR-2 is open with the CI monitor and auto-merge on. After it merges: the
+closeout (D0, C1 including the four V19b MINORs, F).

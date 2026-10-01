@@ -63,3 +63,4 @@ not on the executor's report. A user-level agent definition
 | RQ | One repair executor (type2-opus-high) on every V19 file finding, with the final GUIDE re-pin |
 | RQ return | V19-B B-1 fixed (PANEL RI-1, RT-d, PC-42 and schema; LOOP §3.2 split); V19-A M-1 fixed (label map plus a check over every ADAPTER value: 48/48); 12 MINOR and 9 NOTE fixed. Every prototype reran; jsonschema 4.26 resolves RS's references with a file-relative retrieval rule (56/56 valid, 15/15 invalid rejected). GUIDE re-pinned last: 18/18. Fence verified |
 | V19b | One recheck reviewer (type2-opus-high) |
+| V19b return | MERGE AS DRAFTS (0/0/4/7). The four MINORs are carried to C1 (the closeout), not fixed in the reviewed candidate, so PR-2 merges the candidate V19b reviewed plus records only |
