@@ -74,7 +74,8 @@ All are recorded with the owner's exact text in
 - **Closeout:**
   - [CLOSEOUT_ACCOUNT](closeout/CLOSEOUT_ACCOUNT.md) collects 43 ScopeOfWork,
     65 register and 5 basis proposals, and one new held arc. None is applied.
-  - The items returned to the graph were done in node G.
+  - The items returned to the graph were done in node G (R16), and LOOP's
+    four panel-needs gaps in node H.
   - D0: DAG-003 is current.
   - 14 MEMORY rows.
 
@@ -113,5 +114,7 @@ All are recorded with the owner's exact text in
   - the A12 mapping of a destination grant;
   - DEL-05-02's destination surfaces;
   - the supplier's start-up traffic;
+  - whether RS records a first turn refused "selection not established";
+  - how long a host loop holds events for replay (OI-013);
   - OI-021 and the next relay, when UI-SUCCESSOR resumes.
 - This undertaking does not pass the 60% gate.
