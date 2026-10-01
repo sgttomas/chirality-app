@@ -57,3 +57,5 @@ not on the executor's report. A user-level agent definition
 | RP return | RP-1…RP-4 returned after one resume each (connection error); RP-2's partial edits checked and kept. Integrator reran every prototype on the combined candidate: all pass except CA's check that its valid example equals the regenerated W14-05 record (the example must be regenerated after RP-1's recorder change; known, assigned to RX). EXEC→RS conversion 40/40 valid. Residual "other files must now say" items from the four returns go to RX |
 | RX return | 47 residual items: 30 said already, 15 fixed, 2 returned (→ R15). Every prototype rerun passes, including CA's regenerated-example check. Fence verified |
 | R15 | Two rulings on RX's returns |
+| B8 return | GUIDE v0.5, 18/18 pins; R15-1 in LOOP and RS; all prototypes pass; 1,019/1,020 GUIDE citations resolve (the miss is a placeholder). Two small residuals returned (LOOP §3.2 turn-table row against split F-2, recorded as GUIDE F-18; RS §15 and its prototype README miscount the example logs): left for the V19 repair, then a final GUIDE re-pin |
+| V19 | Two reviewers (type2-opus-high) launched on the candidate named at launch |

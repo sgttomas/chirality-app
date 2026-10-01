@@ -697,7 +697,7 @@
       ]
     },
     "runOpened": {
-      "description": "R1, R2, R4, R5a and the declared checkpoints listed as guidance (Phase 1).",
+      "description": "R1, R2, R4, R5a and the declared checkpoints listed as guidance (Phase 1). notStarted: R1 'run not started — no model selected' (R15-1), host-loop runs only.",
       "type": "object",
       "required": [
         "runId",
@@ -823,8 +823,43 @@
               }
             }
           }
+        },
+        "notStarted": {
+          "description": "R15-1 (DERIVED from V4-HOST-01; representation PROPOSED): a host-loop run that never reaches its first turn because no model is selected. No destination entry accompanies it (LOOP-v0.8 §3.1 F-2 (a); §5.2 MS-02).",
+          "type": "object",
+          "required": [
+            "cause",
+            "evidence"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "cause": {
+              "enum": [
+                "no model selected"
+              ]
+            },
+            "evidence": {
+              "const": "loop configuration state at start"
+            }
+          }
         }
-      }
+      },
+      "anyOf": [
+        {
+          "not": {
+            "required": [
+              "notStarted"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "surface": {
+              "const": "host-loop run"
+            }
+          }
+        }
+      ]
     },
     "subjectClass": {
       "enum": [

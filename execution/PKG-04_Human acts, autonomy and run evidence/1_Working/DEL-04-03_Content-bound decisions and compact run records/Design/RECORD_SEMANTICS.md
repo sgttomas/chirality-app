@@ -42,6 +42,7 @@ PROPOSED unless a cited text decides it (R12-1).
 | V18 minor findings | V18-1 m-8 (§5: C §4.1's two destination results are recorded under R15), m-11 (boundary refusal reason "no credential"), m-12 (LOOP's E-6 event ordinal is not a record element; §13.3.1), m-13 (R5 adopts HOSTING U-27: a thread-only model report is recorded with scope *thread*); V18-4 m-6 (capture time "not supplied by host"). V18-1 m-16 is carried by AS's schema (node RP-4), §8 being identical to AS §6 | §4 R5, R15; §5; §6.1; §13.3.1; schema |
 | RX (residual sweep; RP-4 return §3; V18-1 m-10) | R15 *destination requested*: one entry per request raised; an already-allowed target raises none and is not recorded as requested | §4 R15 |
 | RX (RP-3 and RP-4 returns; V18-2 m-9) | The workflow identity's `derivedFrom` (R2, `run_opened`) is the full identity tuple of WD-v0.8 §6.1, never a string: new `$defs/workflowTuple` in RS spelling (`workflow_identity` of WD's schema). A15's `relations.derivedFrom` names a draft, not a workflow identity, and stays a reference | schema |
+| R15-1 (node B8; RX #41; in place under R13-4) | "No model chosen" is not a destination refusal: a host-loop run with no model selected is recorded as **run not started — no model selected** on the run-start element, with the loop's configuration state at start as evidence and no destination entry. Schema: optional `notStarted` {cause, evidence} on `runOpened`, allowed only for a host-loop run; `boundaryRefusal` unchanged (its *no credential* reason stays for a cloud model with no credential). New example log with that one entry | §4 R1; §13 files table; §13.3; §13.3.1; schema `runOpened`; `RS_RECORD.valid.run-not-started.example.jsonl` |
 
 ## Changes from v0.6
 
@@ -266,7 +267,7 @@ V4-HI-70 as amended), so they are not marked (R9-4).
 
 | # | Element (semantic) | Meaning | Supplier | Absent / unknown handling |
 |---|---|---|---|---|
-| R1 | Run identity | Stable identity of this run, distinct from conversation, proposal and operation identities; **who started it** (EXEC RE-5); **continues ⟨run⟩** where this run continues an ended one — **addition** (R4-4) | Record writer | Required; *continues* absent unless recorded |
+| R1 | Run identity | Stable identity of this run, distinct from conversation, proposal and operation identities; **who started it** (EXEC RE-5); **continues ⟨run⟩** where this run continues an ended one — **addition** (R4-4); **run not started — no model selected** (host-loop runs only): V4-HOST-01 gives the person options with no default, so a host loop with no model selected cannot start a turn; the run is recorded as not started with that cause, and its evidence is the loop's own configuration state at start (LOOP-v0.8 §3.1 F-2 (a); §5.2 MS-02, "observed absence"). No destination exists to refuse, so no R15 entry (no `boundary_refusal`) is written for it — **addition** (R15-1, DERIVED; its representation, §13.3, PROPOSED) | Record writer | Required; *continues* and *not started* absent unless recorded |
 | R2 | Workflow identity as observed | {kind, origin (*project* · *user* · *bundled* · *host*), source root (required), name, revision} + derived-from (DEL-02-01/WD-v0.8 §6.1; R14-3); promised vs observed separate. Trace links as separate facts (EXEC §6.1): *listed*, *selected*, *resolved* with **revision verification** outcome (recomputed content identity equals the revision, or "revision not verified"); holding library at listed/selected/resolved, never in identity equality (EXEC §6.2, confirmed). **Transfer links** — exported, relayed, received, adapted — with transfer identity and **carriage-manifest reference**, each marked original or revised identity — **addition** (R4-11) | DEL-02-01 §6.1; DEL-02-03 §6 | "revision not verified", "relay not evidenced", "receipt not observed" stay explicit; a revised identity never inherits a link of the original |
 | R3 | Supplied guidance identity and limits — **addition** (R-10; R2-20) | Per thread and turn, source identity and content identity (with method) of each guidance input supplied; "supplied ≠ adopted" | DEL-01-01 (App); host loop (relay) | *unknown* where not recordable |
 | R4 | Conversation reference | Reference to the harness conversation/session | Harness | Reference only — operational, not authority |
@@ -890,6 +891,7 @@ field of a host or supplier is selected.
 | `RS_RECORD.valid.app-run.example.jsonl` | 20 entries: an App run over X (E10 (i)–(iv) in the current phase: an earlier act counted for S-2, the request (a supplier person-input request naming no kind, subject or purpose; R14-2), a faithful record of the A4 on S-3, the joint answer, resume, lapse "act lapsed at T6", a correction; R3, R10, R13, R14 entries) |
 | `RS_RECORD.valid.act-log.example.jsonl` | 3 entries outside any run: an A15 registration, an App-file A4 on AF-1 and its lapse |
 | `RS_RECORD.valid.host-destinations.example.jsonl` (node B5) | 12 entries of host-loop run E-14, written by DEL-05-01's `prototype/destination_flow.py` (LOOP-v0.8 §5.3): a model-service contact with class *cloud*; a V-D refusal; a request carrying its call, granted once, and the contact; an MCP server with stateless evidence and both limits; a legacy-answering server refused; a request ended *unanswered at end* by a turn cancel |
+| `RS_RECORD.valid.run-not-started.example.jsonl` (node B8; R15-1) | 1 entry: host-loop run E-15 opened with `notStarted` {cause *no model selected*; evidence *loop configuration state at start*} and nothing after it — no turn, no destination entry, no `run_ended` |
 | `RS_RECORD.invalid.examples.json` | 15 entries that must fail, each with its reason (INV-RS-10, INV-RS-11 added by node B5; INV-RS-12…15 by the R14 repair: origin *host-supplied*, a request identified from agent message text, an underscored disposition, a workflow identity without source root) |
 
 ### 13.1 Unit of storage
@@ -928,7 +930,7 @@ write to their own logs; the reader joins them (§14.2 R-8).
 
 | Inventory element | Entry kind(s) |
 |---|---|
-| R1, R2, R4, R5a; declared checkpoints listed as guidance | `run_opened` |
+| R1, R2, R4, R5a; declared checkpoints listed as guidance | `run_opened`; for a host-loop run that never reaches its first turn, with `notStarted` {cause *no model selected*; evidence *loop configuration state at start*} (R15-1; PROPOSED representation) |
 | R3 | `supplied_guidance` |
 | R5 | `model_turn` (per turn: requested, effective, re-route, destination class) |
 | R6 | `settings_version` (body: DEL-04-02's settings-in, §8) |
@@ -1000,6 +1002,7 @@ DEL-04-03's"):
 | Run ended | `run_ended` |
 | Tool call rejected (unparseable, truncated, schema); tool call not dispatched: turn cancelled; tool call rejected: not offered | `operation_entry`, outcome *rejected before host validation* with the reason, *not dispatched: turn cancelled*, or *not offered* (§5) |
 | Model request refused at boundary | `boundary_refusal` (stage *model request*; reason, including *no credential*) |
+| Run not started — no model selected (LOOP F-2 (a); R15-1) | `run_opened` with `notStarted`. No `boundary_refusal` or other R15 entry (no destination exists to refuse), no `model_turn` and no `run_ended`, because the run never started; the person's later start, after choosing a model, is a new run (PROPOSED) |
 | Destination events | the R15 kinds (§4 R15) |
 
 LOOP's E-6 **event ordinal** orders delivery to the panel and is not a
