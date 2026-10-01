@@ -35,7 +35,7 @@ under [`loop/LOOP_INIT.md`](../../../../loop/LOOP_INIT.md).
 |---|---|---|---|---|
 | S0 Graph, direction, survey briefs | Run folder; this graph | Owner direction | Committed | COMPLETE |
 | S1 Scoping survey (S1-A, S1-B, S1-C) | `SURVEY/S1-*.md` | S0 | Obligations, joins, collected proposals, owner choices, what exists, design scope | COMPLETE (this commit) — 161 obligations across six deliverables; owner choices merged into K |
-| K Decision sitting: the choices that shape this pass, with recommendations | `DECISIONS_PENDING.md`; review page; `OWNER_DECISIONS.md` | S1 | Decided, or left open at a stated point of need | ACTIVE — 12 questions put to the owner |
+| K Decision sitting: the choices that shape this pass, with recommendations | `DECISIONS_PENDING.md`; review page; `OWNER_DECISIONS.md` | S1 | Decided, or left open at a stated point of need | DECIDED — DECISION-K3: nine as recommended; K-7, K-10, K-12 the owner's alternatives. HELP_HUMAN's reservations on those three put to the owner; D starts on the owner's reply |
 | D… Design nodes per deliverable | Set after K | K | Per LOOP_INIT's 60% description | PLANNED |
 | A SCA-V4-003: apply the contract proposals of passes 2 and 3 | `scope-change` route | Placement decided after K | Owner checkpoints; DAG currency | PLANNED |
 | V… Comparisons, reviews, closeout, receipt, final PR | Per LOOP_INIT §§3–6 | D… | — | PLANNED |
