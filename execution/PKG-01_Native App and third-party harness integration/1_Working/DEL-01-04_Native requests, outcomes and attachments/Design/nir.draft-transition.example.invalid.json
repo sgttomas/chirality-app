@@ -1,7 +1,7 @@
 [
   {
     "case": "INV-DT-1",
-    "reason": "Registered without the A15 record: no invented registration (REQ-004).",
+    "reason": "An A15 record reference that is not an RS record identity.",
     "instance": {
       "record_kind": "draft_transition",
       "event": "registered",
@@ -22,6 +22,7 @@
       "attribution": {
         "kind": "app action"
       },
+      "a15_record": "cap:0007",
       "revision": "project:.chirality/workflows:supports-adjust@rev-5"
     }
   },
@@ -107,10 +108,10 @@
   },
   {
     "case": "INV-DT-5",
-    "reason": "A registration that did not complete without the recorded act it follows.",
+    "reason": "An empty revision identity.",
     "instance": {
       "record_kind": "draft_transition",
-      "event": "registration not completed",
+      "event": "registered",
       "draft": {
         "draft_location": "project",
         "draft_root": ".chirality/workflow-drafts",
@@ -121,14 +122,15 @@
         "value": "d13c...4a"
       },
       "from": "under review",
-      "to": "draft",
+      "to": "registered, unchanged since",
       "disposition": "new revision",
       "cause": "registration committed after the person's A15",
       "time": "2026-10-01T11:00:00Z",
       "attribution": {
         "kind": "app action"
       },
-      "revision": "project:.chirality/workflows:supports-adjust@rev-5"
+      "a15_record": "rec:app-interface:0007",
+      "revision": ""
     }
   }
 ]

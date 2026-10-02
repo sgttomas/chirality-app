@@ -1,4 +1,4 @@
-"""Executable model of DEL-01-04/AAC-v0.1 (APP_ACT_CONTROL.md), the App act control.
+"""Executable model of DEL-01-04/AAC-v0.2 (APP_ACT_CONTROL.md), the App act control.
 
 Design prototype only (R17-1; R12-3). PROPOSED until SCA-V4-003 carries
 SC2-01-04-1 (R17-6). Not product code and not the OI-008 placement: "host"
@@ -49,7 +49,8 @@ SURFACE = "App interface"
 
 
 class ActControl:
-    def __init__(self, identity, read_content, registrar, writers, clock, descriptor_current=lambda d: True):
+    def __init__(self, identity, read_content, registrar, writers, clock, descriptor_current=lambda d: True,
+                 rs_a15_form="relations"):
         self.identity = identity            # () -> person dict (K1-4 sources)
         self.read_content = read_content    # (subject ref) -> bytes or None
         self.registrar = registrar          # (capture) -> (ok, revision or reason)
@@ -57,6 +58,8 @@ class ActControl:
         self.clock = clock
         self.descriptor_current = descriptor_current   # DEL-02-02 RB-3: is the A15 descriptor still current?
         self.offers, self.captures, self.states = {}, {}, {}
+        self.rs_a15_form = rs_a15_form                 # "relations" (RS after FR-06) or "derivedFrom" (RS-v0.8)
+        self.locations = {}                            # prototype only: where each A15 entry's live bytes are read
         self.n = 0
 
     def _id(self, prefix):
@@ -69,42 +72,45 @@ class ActControl:
 
     # AC-1 compose ----------------------------------------------------------
     def compose(self, kind, subject_ref, scope, purpose, arrival=None, run_id=None, request_ref=None,
-                descriptor=None):
-        """For A15, subject_ref is ignored: the offer is composed from DEL-02-02's a15_descriptor (WR RB-4)."""
+                descriptors=None):
+        """For A15, subject_ref is ignored: the offer is composed from one or more of DEL-02-02's
+        a15_descriptors (WR RB-4), one entry each (L-4: several entries in one act)."""
         k = KIND_TABLE.get(kind)
         if k is None or not k["served"]:
             return None, f"not offered: {kind} — " + (k["why"] if k else "unknown act kind")
+        offer = {"format": "chirality.aac.offer", "formatVersion": "0.2", "offerId": self._id("offer"),
+                 "actKind": kind, "wording": k["wording"],
+                 "scope": scope, "purpose": purpose, "actorRequirement": k["actorRequirement"],
+                 "declineAvailable": k["decline"], "composedAt": self.clock()}
         if kind == "A15":
-            if not descriptor:
+            if not descriptors:
                 return None, "not offered: no A15 descriptor from the workspace (WR RB-4)"
-            subject_ref, draft_ref = descriptor["subject"], descriptor["reviewedDraft"]["draft"]
-            data = self.read_content(draft_ref)
-            if data is None or self._identity(data)["value"] != descriptor["reviewedDraft"]["content"]["value"] \
-                    or not self.descriptor_current(descriptor["descriptorId"]):
-                return None, "not offered: the descriptor is not current (changed since review, WR RB-3)"
-            identity = descriptor["reviewedDraft"]["content"]
+            entries, locations = [], []
+            for d in descriptors:
+                data = self.read_content(d["location"])
+                if data is None or self._identity(data)["value"] != d["reviewedDraft"]["content"]["value"] \
+                        or not self.descriptor_current(d["descriptorId"]):
+                    return None, f"not offered: entry {d['subject']} is not current (changed since review, WR RB-3)"
+                entries.append({"descriptorId": d["descriptorId"],
+                                "subject": {"ref": d["subject"], "contentIdentity": d["reviewedDraft"]["content"]},
+                                "reviewedDraft": d["reviewedDraft"], "priorRevision": d["priorRevision"]})
+                locations.append(d["location"])
+            offer["entries"] = entries
         else:
             data = self.read_content(subject_ref)
             if data is None:
                 return None, "not offered: the subject's content identity is not obtainable"
-            identity = self._identity(data)
-        offer = {"format": "chirality.aac.offer", "formatVersion": "0.1", "offerId": self._id("offer"),
-                 "actKind": kind, "wording": k["wording"],
-                 "subject": {"class": k["subjectClass"], "ref": subject_ref, "contentIdentity": identity},
-                 "scope": scope, "purpose": purpose, "actorRequirement": k["actorRequirement"],
-                 "declineAvailable": k["decline"], "composedAt": self.clock()}
+            offer["subject"] = {"class": k["subjectClass"], "ref": subject_ref, "contentIdentity": self._identity(data)}
         if arrival:
             offer["answers"] = {"arrival": arrival, "runId": run_id}
         else:
             offer["answers"] = {"standing": "no arrival: a standing act (RC-6)"}
         if request_ref:
             offer["requestRef"] = request_ref
-        if kind == "A15":
-            offer["descriptorId"] = descriptor["descriptorId"]
-            offer["reviewedDraft"] = descriptor["reviewedDraft"]
-            offer["priorRevision"] = descriptor["priorRevision"]
         offer["offerDigest"] = {"method": "illustration: sha-256 over the canonical offer",
                                 "value": hashlib.sha256(canonical(offer)).hexdigest()}
+        if kind == "A15":
+            self.locations[offer["offerId"]] = locations
         self.offers[offer["offerId"]] = offer
         self.states[offer["offerId"]] = "AC-1 composed"
         return offer, None
@@ -129,40 +135,56 @@ class ActControl:
             return "AC-5 dismissed", "nothing recorded"
         if choice == "decline" and not offer["declineAvailable"]:
             return "AC-R refused", f"no decline for {offer['actKind']} (ACT §2.3); close the control instead"
-        live_ref = offer["reviewedDraft"]["draft"] if offer["actKind"] == "A15" else offer["subject"]["ref"]
-        data = self.read_content(live_ref)
-        now_id = self._identity(data) if data is not None else None
-        fresh = offer["actKind"] != "A15" or self.descriptor_current(offer["descriptorId"])
-        if not fresh:
-            self.states[offer_id] = "AC-6 stale"
-            return "AC-6 stale", "the workspace withdrew the A15 descriptor (WR RB-3): nothing captured; review it again"
-        if now_id is None or now_id["value"] != offer["subject"]["contentIdentity"]["value"]:
-            self.states[offer_id] = "AC-6 stale"
-            return "AC-6 stale", "content changed since it was shown: nothing captured; review it again"
+        if offer["actKind"] == "A15":
+            # every entry's bytes are bound: one changed or withdrawn entry makes the whole offer stale
+            for e, loc in zip(offer["entries"], self.locations[offer_id]):
+                if not self.descriptor_current(e["descriptorId"]):
+                    self.states[offer_id] = "AC-6 stale"
+                    return "AC-6 stale", (f"the workspace withdrew the descriptor of {e['subject']['ref']} "
+                                          "(WR RB-3): nothing captured; review it again")
+                data = self.read_content(loc)
+                if data is None or self._identity(data)["value"] != e["subject"]["contentIdentity"]["value"]:
+                    self.states[offer_id] = "AC-6 stale"
+                    return "AC-6 stale", (f"{e['subject']['ref']} changed since it was shown: nothing captured; "
+                                          "review it again")
+            subjects = [e["subject"]["ref"] for e in offer["entries"]]
+            contents = [e["subject"]["contentIdentity"] for e in offer["entries"]]
+        else:
+            data = self.read_content(offer["subject"]["ref"])
+            now_id = self._identity(data) if data is not None else None
+            if now_id is None or now_id["value"] != offer["subject"]["contentIdentity"]["value"]:
+                self.states[offer_id] = "AC-6 stale"
+                return "AC-6 stale", "content changed since it was shown: nothing captured; review it again"
+            subjects, contents = [offer["subject"]["ref"]], [offer["subject"]["contentIdentity"]]
         person = self.identity()
-        cap = {"format": "chirality.aac.capture-evidence", "formatVersion": "0.1", "captureId": self._id("cap"),
+        cap = {"format": "chirality.aac.capture-evidence", "formatVersion": "0.2", "captureId": self._id("cap"),
                "offerId": offer_id, "offerDigest": offer["offerDigest"], "choice": choice,
-               "actKind": offer["actKind"], "actor": person, "boundSubject": [offer["subject"]["ref"]],
-               "boundContent": [offer["subject"]["contentIdentity"]], "scope": offer["scope"],
+               "actKind": offer["actKind"], "actor": person, "boundSubject": subjects,
+               "boundContent": contents, "scope": offer["scope"],
                "purpose": offer["purpose"], "capturedAt": self.clock(), "surface": SURFACE,
                "inputSource": NATIVE_SOURCE, "answers": offer["answers"],
                "evidenceLimits": ["identity not verified"]}
         if "requestRef" in offer:
             cap["requestRef"] = offer["requestRef"]
         if offer["actKind"] == "A15":
-            for key in ("descriptorId", "reviewedDraft", "priorRevision"):
-                cap[key] = offer[key]
+            cap["entries"] = [{"descriptorId": e["descriptorId"], "revision": e["subject"]["ref"],
+                               "reviewedDraft": e["reviewedDraft"], "priorRevision": e["priorRevision"]}
+                              for e in offer["entries"]]
         self.captures[cap["captureId"]] = cap
         self.states[offer_id] = "AC-3 captured" if choice == "act" else "AC-4 declined"
         result = self._record(cap)
         if offer["actKind"] == "A15":
-            # the capture is reported to the workspace, which registers exactly the reviewed bytes
-            ok, res = self.registrar(cap)
-            if not ok:
-                cap["outcome"] = {"registration": "not completed", "reason": res}
+            # the capture is reported to the workspace, which registers exactly the reviewed bytes, per entry
+            failed = []
+            for e in cap["entries"]:
+                ok, res = self.registrar(cap, e)
+                e["outcome"] = ({"registration": "completed", "revisionIdentity": res} if ok
+                                else {"registration": "not completed", "reason": res})
+                if not ok:
+                    failed.append((e["revision"], res))
+            if failed:
                 self.states[offer_id] = "AC-9 recorded; registration not completed"
-                return "AC-9 recorded; registration not completed", res
-            cap["outcome"] = {"registration": "completed", "revisionIdentity": res}
+                return "AC-9 recorded; registration not completed", "; ".join(f"{r}: {why}" for r, why in failed)
         return result
 
     def _entry(self, cap):
@@ -187,10 +209,23 @@ class ActControl:
         if "requestRef" in cap:
             rel["requestRef"] = cap["requestRef"]
         if cap["actKind"] == "A15":
-            # RS format 0.1 requires one string named derivedFrom for A15; R17-11 asks RS for
-            # reviewedDraft and priorRevision instead (join J-R2). Until node F, the string carries both.
-            rel["derivedFrom"] = (f"reviewed draft {cap['reviewedDraft']['draft']}@{cap['reviewedDraft']['content']['value'][:16]}"
-                                  f"; prior revision {cap['priorRevision']}")
+            if self.rs_a15_form == "relations":
+                # RS after node F (FR-06; C-01; L-4): reviewedDraft and priorRevision for one entry,
+                # registeredEntries {subject, reviewedDraft, priorRevision} for several
+                if len(cap["entries"]) == 1:
+                    e = cap["entries"][0]
+                    rel["reviewedDraft"], rel["priorRevision"] = e["reviewedDraft"], e["priorRevision"]
+                else:
+                    rel["registeredEntries"] = [{"subject": e["revision"], "reviewedDraft": e["reviewedDraft"],
+                                                 "priorRevision": e["priorRevision"]} for e in cap["entries"]]
+            else:
+                # RS-v0.8 (before node F) requires one string named derivedFrom for A15; it carries
+                # each entry's reviewed draft (WR ID-3 string) and prior revision (join J-R2, J-R2b).
+                rel["derivedFrom"] = " | ".join(
+                    f"{e['revision']}: reviewed draft {e['reviewedDraft']['draft']}; prior revision "
+                    + (f"{e['priorRevision']['origin']}:{e['priorRevision']['name']}@{e['priorRevision'].get('revision')}"
+                       if e["priorRevision"] else "none")
+                    for e in cap["entries"])
         if rel:
             body["relations"] = rel
         return run_id, "human_act", body

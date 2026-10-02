@@ -1,9 +1,10 @@
 # App act control
 
-- Contribution: DEL-01-04/AAC-v0.1 (first version). Companion:
-  [NATIVE_INTERACTION_RECEIVING.md](NATIVE_INTERACTION_RECEIVING.md)
-  (DEL-01-04/NIR-v0.1), whose header records the basis, the inputs and their
-  sha256; they are not repeated here.
+- Contribution: DEL-01-04/AAC-v0.2 (supersedes AAC-v0.1, committed at
+  `63a6e0fa47`, sha256 7e98118c774fcd9c3e60f04e7def51b3a11325995ae343426fba892ea439e181).
+  Companion: [NATIVE_INTERACTION_RECEIVING.md](NATIVE_INTERACTION_RECEIVING.md)
+  (DEL-01-04/NIR-v0.2), whose header records the basis, the inputs (round 1
+  and round 2) and their sha256; they are not repeated here.
 - **Standing: PROPOSED until SCA-V4-003 carries SC2-01-04-1** (R17-6). The
   obligation is not in DEL-01-04's ScopeOfWork (sha256 0cdb44e2…, NIR L-1);
   DECISION-K1 K1-4 directed that it be proposed for the next amendment, and
@@ -19,6 +20,18 @@
   EXEC RC-6 and §2.5.2 AE-2; ACT-POLICY-v0.8 §2.6 and §4.7 RC-3, RC-4; RS-v0.8
   §6.1 "App interface per EXEC CAP-1…CAP-9" and HA-10; DAG-003 arc X-1
   (DEP-02-03-027); DEL-01-04 REQ-005 and VER-005's positive case.
+
+## Changes from v0.1
+
+| Item | Ruling / source | Where | Change |
+|---|---|---|---|
+| L-4 | DECISION-L L-4 (clarified); R19-4 | §1.2, §2 AI-2, §3, §4.2, §5 | One A15 act may register several entries; each entry is composed from its own A15 descriptor and binds its own bytes; one changed or withdrawn entry makes the whole offer stale; each entry's registration outcome is reported beside the act. Shipped workflows are registered by the release and byte-equal entries are recognized by DEL-02-02; neither needs this act |
+| C-01 | R18-1 | §4.2, §5, schemas 0.2 | `reviewedDraft.draft` is WR ID-3's string `draft:<location>:<name>@<content identity>`; `priorRevision` is an RS `workflowTuple` or null (RS defines the persisted form) |
+| L-5 | DECISION-L L-5 | §6.2; U-AAC-2 | No OS password or biometric check per act: P-3 not adopted; U-AAC-2 closed |
+| R18-5 | R18-5 (U-NIR-5) | AK-a | Opening the control from an arrival row by the person's click is the person's act, not a reaction: DERIVED |
+| C-10 | R18-1 | §7 | The Codex account is the reported email or "ChatGPT account (no email reported)"; no plan type is recorded |
+| O-6 | OBS-2 O-6 | §7 | Filled in part: each Codex home reports its own account (a second home sharing the first's configuration reported `null`); a signed-in account stays not observed (DECISION-L L-6) |
+| C-22 | R18-1 | U-AAC-4 | Closed: the A15 order and names agree with WR |
 
 **Binding inputs.** DECISION-K1 K1-1 (the agent asks; the product offers the
 means and records what it observes), K1-2 (an earlier act on current content
@@ -63,7 +76,7 @@ Rules this file adds (PROPOSED unless labelled):
 
 | # | Rule | Source |
 |---|---|---|
-| AK-a | **Standing facility.** The control is reachable at all times from the act log, from any App file or output view, from a draft under review, from a question card (NIR LB-4) and from an arrival row's "where the act is performed" entry (SD-3). Nothing opens it except the person | RC-6; K1-1 (SETTLED); R17-6 |
+| AK-a | **Standing facility.** The control is reachable at all times from the act log, from any App file or output view, from a draft under review, from a question card (NIR LB-4) and from an arrival row's "where the act is performed" entry (SD-3). Nothing opens it except the person; when the person's click on an arrival row opens it, the person opened it and the product did not react to the arrival (R18-5, DERIVED) | RC-6; K1-1 (SETTLED); R17-6; R18-5 |
 | AK-b | **No arrival raises it.** An arrival, a request, a supplier event or a rule never opens, focuses, highlights or notifies the control | SD-4; RC-4 (SETTLED by K1-1) |
 | AK-c | **Bound to the bytes shown.** The offer fixes the subject's content identity when it is composed; the person's confirmation is accepted only if the subject still has that identity; otherwise nothing is captured and the person is asked to review again | K-8 (SETTLED for A15); PROPOSED for every kind |
 | AK-d | **One kind, one subject, one confirmation.** Several subjects need several offers; a joint answer is several acts, each citing its referents (K1-3) | CAP-2; K1-3 |
@@ -77,7 +90,7 @@ Rules this file adds (PROPOSED unless labelled):
 | A4 | "mark checked" | **Yes**, on App files and App-side outputs | Yes (act-declined event) | The person | File content identity (RS L-1) |
 | A6 | "approve (engineering approval)" | **Yes**, on App files | Yes | The accountable person | As A4 |
 | A7 | "rely (professional reliance)" | **Yes**, on App files | Yes | The accountable professional; recorded as the person's own statement, with an evidence limit (CAP-8) | As A4 |
-| A15 | "register workflow revision" | **Yes** (K-8) | **No**: ACT §2.3 defines no act-declined event for A15; the person closes the control | The person | The revision DEL-02-02's A15 descriptor names (WR RB-4), bound by the reviewed draft's content identity; relations: the **reviewed draft** and, for a new revision, the **prior revision** (R17-11). WD's *derived-from* (the parent workflow identity) is not this act's relation |
+| A15 | "register workflow revision" | **Yes** (K-8); **one or several entries in one act** (L-4) | **No**: ACT §2.3 defines no act-declined event for A15; the person closes the control | The person | Per entry: the revision DEL-02-02's A15 descriptor names (WR RB-4), bound by that entry's reviewed draft content identity; relations per entry: the **reviewed draft** (WR ID-3 string and content) and, for a new revision, the **prior revision** (RS `workflowTuple`) (R17-11; C-01). WD's *derived-from* is not this act's relation. Shipped workflows are registered by the release and entries byte-equal to a shipped revision are recognized by DEL-02-02 (L-4); neither is offered here |
 | A12 | "set grant" | Not offered: no setting the App itself establishes exists in this increment (CAP-1; ACT §2.6). The App's Codex settings are the user's own (D3) and model choice is not A12 (ACT §2.7) | (Yes, when one exists) | The person | Setting content |
 | A5, A10 | "accept" / "rejected the item" | Not offered: no App-content proposal exists in this increment; host proposals use the host's act facility | — | — | — |
 | A11 | — | Not offered: the proposer's act on a host proposal | — | — | — |
@@ -95,7 +108,7 @@ row, not a restructure.
 | # | Exchange | Supplier → receiver | Condition | Failure behaviour |
 |---|---|---|---|---|
 | AI-1 | Subject content identity: App files and outputs (file content identity, RS L-1, method designation carried) | DEL-04-03's identity method (method unselected, RS U-04) → the control | At compose (AC-1) and at confirmation (AK-c) | Not obtainable → not offered ("the subject's content identity is not obtainable") |
-| AI-2 | The A15 descriptor (WR-v0.1 RB-4, `a15_descriptor`): descriptor identity; subject (the target revision); bound content (the reviewed draft's content identity, equal to the revision's, WR ID-2); reviewed draft {draft, content}; prior revision or none; scope and purpose per library; and its **withdrawal** when the live draft or the slot changes (RB-3) | DEL-02-02 → the control (DEP-01-04-009, held) | A15 offers are composed only from a current descriptor | No descriptor → not offered; descriptor withdrawn or draft changed → AC-6 stale, nothing captured |
+| AI-2 | One or more A15 descriptors (WR-v0.1 RB-4, `a15_descriptor`; L-4: one per entry), each with: descriptor identity; subject (the target revision); bound content (the reviewed draft's content identity, equal to the revision's, WR ID-2); reviewed draft {draft, content}; prior revision or none; scope and purpose per library; and its **withdrawal** when the live draft or the slot changes (RB-3) | DEL-02-02 → the control (DEP-01-04-009, held) | A15 offers are composed only from a current descriptor | No descriptor → not offered; descriptor withdrawn or draft changed → AC-6 stale, nothing captured |
 | AI-3 | Arrival and request references: the arrival {checkpoint, arrival ordinal} and run, the RS `act_request` record | DEL-02-03 (recorder) / DEL-04-03 (record-out) → the control (NR-2 proposed) | Only when the person opens the control from an arrival row or a request | Absent → the offer is a standing act; nothing is inferred |
 | AI-4 | Act wording, record kinds, act class | DEL-04-01 → the control (DEP-01-04-011, admitted) | Every offer | — |
 | AI-5 | Identity sources: the name set in the App (this control's setting, §7), the operating-system account, the Codex account as reported | The App; DEL-01-05 (NR-3 proposed) | Each capture | A source not available is absent; at least the operating-system account is always present |
@@ -114,12 +127,12 @@ row, not a restructure.
 | AX-03 | AC-1 | present | The host shows the offer in its native confirmation (§6.2) | **AC-2 presented** | — |
 | AX-04 | AC-2 | operate(source ≠ native confirmation) | — | AC-2 (unchanged) | Nothing; "not operable from ‹source›" returned to the caller (CAP-4) |
 | AX-05 | AC-2 | dismiss | — | **AC-5 dismissed** | Nothing |
-| AX-06 | AC-2 | act / decline | Subject identity now ≠ the offer's, or (A15) the descriptor withdrawn (RB-3) | **AC-6 stale** | Nothing; "content changed since it was shown" / "the workspace withdrew the A15 descriptor": review it again |
+| AX-06 | AC-2 | act / decline | Subject identity now ≠ the offer's, or (A15) **any** entry's bytes changed or its descriptor withdrawn (RB-3; L-4) | **AC-6 stale** | Nothing; "content changed since it was shown" / "the workspace withdrew the A15 descriptor": review it again |
 | AX-07 | AC-2 | decline | Kind has no decline (A15) | AC-2 (unchanged) | Nothing; "no decline for A15; close the control instead" |
 | AX-08 | AC-2 | act | Identity equal; kind ≠ A15 | **AC-3 captured** | Capture evidence |
 | AX-09 | AC-2 | decline | Identity equal; kind has a decline | **AC-4 declined** | Capture evidence (choice *decline*) |
 | AX-10 | AC-2 | act | Identity equal; A15; descriptor current | **AC-3 captured**, then recorded (AX-12), then reported to DEL-02-02 (§4.2) | Capture evidence |
-| AX-11 | AC-7 (A15) | registration not completed | DEL-02-02 reports failure | **AC-9 recorded; registration not completed** | The A15 record stands; the capture carries outcome "not completed: ‹reason›"; DEL-02-02's ledger says it had no effect |
+| AX-11 | AC-7 (A15) | registration not completed | DEL-02-02 reports failure for one or more entries | **AC-9 recorded; registration not completed** | The A15 record stands; each failed entry carries outcome "not completed: ‹reason›", each completed entry its revision; DEL-02-02's ledger says which had no effect |
 | AX-12 | AC-3, AC-4 | record written | W-1 succeeded | **AC-7 recorded** | `human_act` or `act_declined` citing the capture |
 | AX-13 | AC-3, AC-4 | record write failed | W-1 failed | **AC-8 record pending** | Capture evidence; the writer holds the entry |
 | AX-14 | AC-8 | late write | W-2 succeeded | AC-7 | The entry, in order, then "record write failed" (RS FC-1) |
@@ -154,13 +167,13 @@ Aligned with DEL-02-02's WR-v0.1 §4.3 (RB-1…RB-5), §5.2 and SQ-G (node D5).
 | Step | Action | By | Record | Failure: what fails · who reports · record · next |
 |---|---|---|---|---|
 | 1 | The person reviews the draft; DEL-02-02 shows the review package and, for a registrable disposition, hands the control an `a15_descriptor` (RB-2, RB-4); the draft is *under review* (NIR §7) | Person; DEL-02-02 | WR's `registration_disposition`, `a15_descriptor` | A refusing disposition (for example *refused: name taken*, K-6) · DEL-02-02 · *registration refused* · no descriptor, so no offer |
-| 2 | The person opens the control on the draft ("Register…"); the offer is composed from the current descriptor: subject the target revision, bound content the reviewed draft's content identity, reviewed draft, prior revision (or none), scope and purpose per library ("make it available in the project library" / "… in the user library") | Person; host | — | No descriptor, or the live draft's identity ≠ the reviewed content · the control · nothing · not offered |
+| 2 | The person opens the control on the draft, or on several reviewed drafts at once (L-4) ("Register…"); the offer holds one entry per current descriptor, each with: subject the target revision, bound content the reviewed draft's content identity, reviewed draft, prior revision (or none), scope and purpose per library ("make it available in the project library" / "… in the user library") | Person; host | — | No descriptor, or the live draft's identity ≠ the reviewed content · the control · nothing · not offered |
 | 3 | Present in the native confirmation; the person confirms | Person | — | Dismissed · nothing · AC-5 (WR: the attempt is *withdrawn*, nothing inferred) |
 | 4 | Re-read the live draft's identity and ask whether the descriptor is still current (RB-3) | Host | — | Changed or withdrawn · AC-6 · "review again" (K-8); DEL-02-02 reports *review stale* and the view shows "changed since review" |
-| 5 | Capture evidence with `reviewedDraft`, `priorRevision`, `descriptorId` (R17-11) | Host | Capture evidence | As §4.1 step 6 |
-| 6 | Write the A15 `human_act`: bound subject the revision; bound content the reviewed content identity with method; relations the reviewed draft and the prior revision (RS format 0.1 still has one required string named *derivedFrom* here: join J-R2, with D5's J-21); purpose; capture evidence | Host → DEL-04-03 | RS `human_act` A15 | Write fails · as §4.1 step 7 (late write; the capture is kept). The App ends before the write · on relaunch the capture is recorded late (AX-15) |
+| 5 | Capture evidence listing every entry with `descriptorId`, `revision`, `reviewedDraft` (WR ID-3 string, content) and `priorRevision` (RS `workflowTuple` or null) (R17-11; C-01) | Host | Capture evidence | As §4.1 step 6. One entry changed or withdrawn at step 4 · nothing captured for any entry (AX-06); the person reviews again and may leave that entry out |
+| 6 | Write **one** A15 `human_act` for the act: bound subject every entry's revision; bound content every entry's reviewed content identity with method; relations `reviewedDraft` and `priorRevision` for one entry, or `registeredEntries` [{subject, reviewedDraft, priorRevision}] for several, as node F's RS change (FR-06, RS-v0.9, in progress at this node) defines them; purpose; capture evidence | Host → DEL-04-03 | RS `human_act` A15 | Write fails · as §4.1 step 7 (late write; the capture is kept). The App ends before the write · on relaunch the capture is recorded late (AX-15) |
 | 7 | Report the capture to DEL-02-02 {record identity, capture-evidence reference, descriptor identity, bound content} | Host → DEL-02-02 | — | The workspace is not reachable · the control · the report is repeated when it is (WR SQ-X reconciles at App start) |
-| 8 | DEL-02-02 registers exactly those bytes (WR SQ-G G-0…G-6) and reports *registered* with the A15 record and the revision, or *registration not completed* with its cause | DEL-02-02 | WR `library_entry` | Not completed · DEL-02-02 · `library_entry` *not completed* citing the A15 · the act record stands, the capture carries the outcome, the view shows "registration not completed: ‹cause›; the act is recorded and had no effect"; registering again needs a new review and a new act |
+| 8 | DEL-02-02 registers exactly those bytes, entry by entry (WR SQ-G G-0…G-6), and reports per entry *registered* with the A15 record and the revision, or *registration not completed* with its cause | DEL-02-02 | WR `library_entry` | Not completed · DEL-02-02 · `library_entry` *not completed* citing the A15 · the act record stands, the capture carries the outcome, the view shows "registration not completed: ‹cause›; the act is recorded and had no effect"; registering again needs a new review and a new act |
 
 **Why record at capture (PROPOSED; agrees with WR-v0.1).** The act is the
 person's decision on the reviewed bytes; it is true when the person makes it
@@ -191,30 +204,34 @@ complete. A capture is never re-made and never back-dated.
 
 ### 5.1 The offer — [`aac.offer.schema.json`](aac.offer.schema.json)
 
-{offer identity; act kind (A4, A6, A7, A15); the wording; subject {class,
-reference, content identity}; scope; purpose; actor requirement; whether a
-decline is offered; what it answers (an arrival and run, or "no arrival: a
-standing act"); the act request it answers, where one was recorded; for A15 the
-descriptor identity, `reviewedDraft` {draft, content} and `priorRevision`
-(R17-11), taken from DEL-02-02's `a15_descriptor`; composed at; offer
-digest}. Examples: `aac.offer.example.valid.json` (1),
-`aac.offer.example.invalid.json` (6 cases: "accept" wording on A4; an A15 with
-a decline and without reviewed draft, prior revision and descriptor; two kinds
-at once; a subject without content identity; A12; the A15 pair under WD's
-relation name *derivedFrom*).
+Schema 0.2 (`urn:chirality:app-v4:del-01-04:aac:offer:0.2`): {offer
+identity; act kind (A4, A6, A7, A15); the wording; for A4, A6, A7 one subject
+{class, reference, content identity}; for A15 `entries` (one or more, L-4),
+each {descriptor identity, subject {target revision, content identity},
+`reviewedDraft` {WR ID-3 string, content}, `priorRevision` (RS
+`workflowTuple` or null)} (R17-11; C-01); scope; purpose; actor requirement;
+whether a decline is offered; what it answers (an arrival and run, or "no
+arrival: a standing act"); the act request it answers, where one was
+recorded; composed at; offer digest}. Examples:
+`aac.offer.example.valid.json` (2: an A4 at an arrival; one A15 over two
+entries), `aac.offer.example.invalid.json` (9 cases, among them a prior
+revision as a free string, a reviewed draft not in ID-3 form and an A15 with
+no entries).
 
 ### 5.2 Capture evidence — [`aac.capture-evidence.schema.json`](aac.capture-evidence.schema.json)
 
 {capture identity `cap:…`; offer identity and digest; choice (*act*,
 *decline*); act kind; actor {name set in the App, operating-system account,
-Codex account; `identityVerified` false}; bound subject; bound content; scope;
-purpose; captured at; surface "App interface"; input source
-"host-native-confirmation"; what it answers; request reference; for A15
-the descriptor identity, `reviewedDraft`, `priorRevision` and, once DEL-02-02
-reports it, the registration outcome (beside the act, AK-f); the RS record
-identity once written; evidence limits; optional *seal* (§6.3)}. Examples:
-`aac.capture-evidence.example.valid.json` (1),
-`aac.capture-evidence.example.invalid.json` (7 cases). Where captures are
+Codex account; `identityVerified` false; no plan type, C-10}; bound subject;
+bound content; scope; purpose; captured at; surface "App interface"; input
+source "host-native-confirmation"; what it answers; request reference; for
+A15 `entries`, each {descriptor identity, revision, `reviewedDraft`,
+`priorRevision` and, once DEL-02-02 reports it, that entry's registration
+outcome (beside the act, AK-f)}; the RS record identity once written;
+evidence limits; optional *seal* (§6.3)}. Schema 0.2. Examples:
+`aac.capture-evidence.example.valid.json` (1: one A15 over two entries, one
+registered and one not completed), `aac.capture-evidence.example.invalid.json`
+(8 cases). Where captures are
 stored is not chosen (OI-014; RS U-05); a reader resolves `cap:` references
 through the store (RS §9 resolution status).
 
@@ -230,7 +247,7 @@ through the store (RS §9 resolution status).
 | Capture evidence references | [{kind "capture evidence", ref `cap:…`, resolution at write "resolved"}] |
 | Capture time | Capture |
 | Evidence limits | "identity not verified"; for A7, the professional standing is the person's own statement |
-| Relations | Arrival answered; act request; for A15 the reviewed draft and the prior revision (R17-11). RS format 0.1 has one required string named *derivedFrom* for A15; the prototype writes both elements into it until node F renames it (J-R2; D5's J-21) |
+| Relations | Arrival answered; act request; for A15 `reviewedDraft` and `priorRevision` (one entry) or `registeredEntries` (several) (R17-11; C-01; L-4), in RS's form after FR-06. The prototype reads the RS schema it finds and writes that form; under RS-v0.8 it wrote the single `derivedFrom` string (both runs passed; §8) |
 
 The prototype wrote 7 such entries through DEL-04-03's own writer, which
 validates every entry against `RS_RECORD.schema.json` before writing; all 7
@@ -262,8 +279,9 @@ native interface event. Three ways to obtain the person's confirmation:
 | **P-2 (PROPOSED)** | A native confirmation the host owns and fills from the offer (for example a native dialog the host opens; whether Tauri 2's dialog facility is used is an implementation choice, not verified here): the act wording, subject and its identity, scope, purpose, the arrival or "standing act", and the buttons | **Holds**: the webview can ask the host to present an offer but cannot press the native buttons or change their text | A process of the same user that is granted macOS Accessibility control could press them (platform behaviour, inference) | Small |
 | P-3 | P-2 plus an operating-system presence check (password or biometric) for each act | Holds | Holds against automation without the person's presence | One more step per act |
 
-P-2 is PROPOSED for every kind. P-3 is offered as an option for A6 and A7 or
-for all kinds, for the owner or the App implementation owner (U-AAC-2). The
+P-2 is PROPOSED for every kind. **P-3 is not adopted (DECISION-L L-5: no OS
+password or Touch ID check per act now);** it stays recorded as an option a
+later decision may take up. The
 interface may show the offer in the webview too, for reading; only the native
 confirmation captures.
 
@@ -299,7 +317,7 @@ governance-phase matter. The capture-evidence schema carries the optional
 |---|---|---|
 | The name set in the App | A setting of this control ("Your name on acts you record"), stored in the App's own data; shown on every offer. **Assigned here** (S1-B O-04-4 left the home open; INTEGRATION, open to the integrator) | Absent from the record; the person is asked to set it on first use but may decline |
 | The operating-system account | The account name of the user running the App, read by the host at capture | Always present |
-| The Codex account, when Codex reports one | Read through DEL-01-05's account state (NR-3), originally Codex `account/read`: for a ChatGPT sign-in the reported email when present; for an API-key account nothing identifies a person; not signed in, nothing | Absent; never guessed. Which Codex home the App's Codex uses (K-1: shared settings, separate sign-in) decides whose account this is: **OBS-2 pending** (O-6) |
+| The Codex account, when Codex reports one | Read through DEL-01-05's account state (NR-3), originally Codex `account/read`: for a ChatGPT sign-in the reported email, or "ChatGPT account (no email reported)" when none is reported; no plan type (R18-1 C-10); for an API-key account nothing identifies a person; not signed in, nothing | Absent; never guessed. The account is that of the App-owned home running the conversation (K-1; L-1). **OBS-2 O-6 (filled in part):** each home reports its own account; a second home sharing the first's configuration reported `null`. A signed-in account is not observed (DECISION-L L-6) |
 
 Every record carries `identityVerified` false and the evidence limit
 "identity not verified". The answer submission of a request card uses the
@@ -311,7 +329,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 ## 8. Verification
 
 "Needs" as NIR §13.1. The prototype checks are in
-`prototype/run_cases.py` group K and ran on 2026-10-01 (all pass, model).
+`prototype/run_cases.py` group K and ran on 2026-10-01 and again on 2026-10-02 for v0.2 (all pass, model).
 
 | Case | Expected | Needs | Prototype |
 |---|---|---|---|
@@ -327,7 +345,8 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 | VC-AAC-10 Write failure | Capture kept; late write in order; "record write failed" | model (RS writer) | K-13, K-14 pass |
 | VC-AAC-11 Relaunch recovery | A capture whose record was never written is recorded late | model | K-15 pass |
 | VC-AAC-11a Dismiss; second capture | Dismissing records nothing; a second confirmation of a recorded offer is refused | model | K-5a, K-5b pass |
-| VC-AAC-12 All entries conform | Every RS entry the control wrote is valid | model | K-16 pass (7 entries) |
+| VC-AAC-09b Several entries (L-4) | One changed entry makes the whole offer stale; two current entries: one capture, one RS record naming both, each entry's outcome beside it | model | K-12b, K-12c pass |
+| VC-AAC-12 All entries conform | Every RS entry the control wrote is valid | model | K-16 pass (9 entries at v0.2) |
 | VC-AAC-13 Native confirmation | A script in the webview cannot complete a capture; the native confirmation shows the offer's own text | candidate | Not run |
 | VC-AAC-14 Provenance | An entry written by another process without a valid seal is reported "capture not verifiable" | candidate; DEL-04-03 reader rule | Not run (SEAL-2 not implemented) |
 
@@ -336,13 +355,14 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 | Item | Owner | Point of need | Effect |
 |---|---|---|---|
 | U-AAC-1 OI-008: placement of capture (P-2 under O-1) | App implementation owner (phase review) | Before architecture production contracts | §6.2 PROPOSED |
-| U-AAC-2 P-3 presence check for some or all kinds | Owner or App implementation owner | Before act-control implementation | Not adopted |
+| U-AAC-2 *Closed (DECISION-L L-5):* no per-act OS check now | — | — | P-3 not adopted |
 | U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | PROPOSED; J-R4 |
-| U-AAC-4 Order of capture, record and registration for A15 | DEL-02-02 with DEL-01-04 | Comparison after round 1 (to confirm) | Aligned with WR-v0.1 in round 1: record at capture, registration after, outcome beside the act (§4.2) |
+| U-AAC-4 *Closed (R18-1 C-22):* record at capture, registration after, outcome beside the act, as WR | — | — | §4.2 |
 | U-AAC-5 Home of "the name set in the App" | Integrator | Node F | Assigned here |
-| U-AAC-6 Codex account source under K-1 | OBS-2 (O-6), then DEL-01-05 | Round 2 | §7 OBS-2 pending |
+| U-AAC-6 Codex account of a signed-in home | DEL-01-05; observation only with a new owner answer (L-6) | Before act-control implementation | §7: O-6 filled in part |
 | U-AAC-7 Contract standing | Owner, through SCA-V4-003 | The amendment node | PROPOSED until SC2-01-04-1 (as amended, SC3-01-04-1) is carried |
 
 ## Changes
 
-- v0.1 (this node): first version.
+- v0.2 (D round 2, 2026-10-02): see "Changes from v0.1".
+- v0.1 (D round 1): first version.

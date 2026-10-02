@@ -1,4 +1,4 @@
-"""Run the DEL-01-04 design cases that a local prototype can run (NIR §13, AAC §8).
+"""Run the DEL-01-04 design cases that a local prototype can run (NIR-v0.2 §13, AAC-v0.2 §8).
 
     python3 run_cases.py            # one line per check; exit status 0 when all are as expected
 
@@ -15,6 +15,7 @@ no App candidate exists.
 
 import copy
 import glob
+import hashlib
 import json
 import os
 import sys
@@ -76,9 +77,10 @@ def main():
     rs_entry = {"$ref": ids["RS"] + "#/$defs/entry"}
     for name in SCHEMAS:
         schema = reg.by_id[ids[name]]
-        v = load(os.path.join(DESIGN, name + ".example.valid.json"))["instance"]
-        errs = validate(v, schema, reg)
-        check(not errs, f"S-2 {name} valid example is valid {errs[:1] if errs else ''}")
+        vf = load(os.path.join(DESIGN, name + ".example.valid.json"))
+        for v in vf.get("instances") or [vf["instance"]]:
+            errs = validate(v, schema, reg)
+            check(not errs, f"S-2 {name} valid example is valid {errs[:1] if errs else ''}")
         for c in load(os.path.join(DESIGN, name + ".example.invalid.json")):
             errs = validate(c["instance"], schema, reg)
             check(bool(errs), f"S-3 {name} {c['case']} invalid as expected -> {errs[0][:100] if errs else 'NOT REJECTED'}")
@@ -90,7 +92,8 @@ def main():
             schema = load(os.path.join(DESIGN, name + ".schema.json"))
             jsonschema.Draft202012Validator.check_schema(schema)
             val = jsonschema.Draft202012Validator(schema)
-            ok &= val.is_valid(load(os.path.join(DESIGN, name + ".example.valid.json"))["instance"])
+            vf = load(os.path.join(DESIGN, name + ".example.valid.json"))
+            ok &= all(val.is_valid(v) for v in (vf.get("instances") or [vf["instance"]]))
             ok &= all(not val.is_valid(c["instance"]) for c in load(os.path.join(DESIGN, name + ".example.invalid.json")))
         check(ok, f"S-4 cross-check with the installed jsonschema {_version("jsonschema")}: same verdicts on all examples")
     except ImportError:
@@ -248,8 +251,71 @@ def main():
           "O-3 an interruption is never called 'stopped' (R17-3); its cause is shown only when observed")
     v0 = nm.start_view(None, {"model": "qwen/qwen3.5-9b", "provider": "lmstudio", "chosenAt": "2026-09-30"})
     check(v0["model"] is None and not v0["sendable"] and v0["offer"]["applied"] is False
-          and v0["sendResult"].startswith("not started: no model selected"),
+          and v0["sendResult"].startswith("not started — no model selected"),
           "O-4 K-3: a new conversation starts with no model; the last choice is offered, never applied; sending keeps the message")
+    vr = nm.start_view(None, None, workflow_run=True)
+    check(vr["sendResult"].startswith("run not started — no model selected"),
+          "O-5 R18-2 (C-09): a workflow run reads 'run not started — no model selected'; a conversation 'not started — …'")
+    v5 = nm.start_view({"model": "m", "provider": "p"}, None, roles=["HELP_HUMAN", "WORKING_ITEMS", "HELPS_HUMANS", "TASK"],
+                       default_role="HELP_HUMAN")
+    okc, _ = nm.choose_role(v5, "no role")
+    check(v5["role"]["preselected"] == "HELP_HUMAN" and v5["role"]["clearable"] and okc and v5["role"]["chosen"] == "no role",
+          "O-6 ST-5 (C-15): role preselected from default_for_new_chat, clearable; 'no role' allowed")
+    st_items = nm.settle_items_at_turn_end({"msg-1": "completed", "rsn-1": "in progress"}, "interrupted")
+    check(st_items["rsn-1"] == "not completed (turn ended interrupted)" and st_items["msg-1"] == "completed",
+          "O-7 G-4: an item still open at turn end settles 'not completed (turn ended …)'")
+    # C-06 turn composition
+    conv = {"threadId": "thr-ex-9", "model": {"model": "qwen/qwen3.5-9b", "provider": "lmstudio"}}
+    plan_el = {"collaborationMode": {"mode": "plan", "settings": {"model": "qwen/qwen3.5-9b", "reasoning_effort": None,
+                                                                  "developer_instructions": None}}}
+    t0, _ = nm.compose_turn(conv, "hello")
+    t1, _ = nm.compose_turn(conv, "plan this", plan_chosen=True, plan_element=plan_el)
+    t2, _ = nm.compose_turn(conv, "carry out this plan")
+    tr, _ = nm.compose_turn(conv, "go", run_start_text="[run start text composed by DEL-02-02]")
+    tn, whyn = nm.compose_turn({"threadId": "t", "model": None}, "hi")
+    check("collaborationMode" not in t0 and t1["collaborationMode"]["mode"] == "plan"
+          and t2["collaborationMode"]["mode"] == "default" and tr["collaborationMode"]["mode"] == "default"
+          and tr["input"][0]["text"].startswith("[run start") and tn is None,
+          "O-8 C-06: plan mode from NPTD's element; every later turn sends mode 'default' explicitly (O-8); run-start text first")
+    try:
+        import jsonschema
+        bundle = load(os.path.join(HOSTING_DESIGN, "generated", "0.158.0", "json-schema", "experimental",
+                                   "codex_app_server_protocol.v2.schemas.json"))
+        tsp = dict(bundle["definitions"]["TurnStartParams"])
+        tsp["definitions"] = bundle["definitions"]
+        val = jsonschema.Draft7Validator(tsp)
+        check(all(val.is_valid(x) for x in (t0, t1, t2, tr)),
+              "O-9 composed turn/start parameters are valid against the committed 0.158.0 TurnStartParams (installed jsonschema)")
+    except ImportError:
+        print("SKIP O-9 jsonschema not importable")
+    # C-24 indicator
+    regA = nm.RegisterDouble(declared=off); regA.receive("a1", "item/tool/requestUserInput", q, 1)
+    regB = nm.RegisterDouble(declared=off); regB.receive("b1", "item/fileChange/requestApproval", {"threadId": "t"}, 1)
+    regB.receive("b2", "item/fileChange/requestApproval", {"threadId": "t"}, 1)
+    ind = nm.waiting_indicator({"conv-A": regA, "conv-B": regB}, {"conv-B": 2})
+    regB.answer("b1", {"decision": "accept"}, {"class": "person-via-interaction", "actorRef": pid})
+    okw, whyw = regB.answer("b1", {"decision": "decline"}, {"class": "person-via-interaction", "actorRef": pid})
+    ind2 = nm.waiting_indicator({"conv-A": regA, "conv-B": regB}, {"conv-B": 2})
+    check(ind["total"] == 3 and {r["conversation"] for r in ind["conversations"]} == {"conv-A", "conv-B"}
+          and ind2["total"] == 2 and not okw and whyw == "already-settled",
+          "O-10 C-24: an App-level count of waiting requests, with or without a window; a second window's answer is refused")
+    # R19-2 (b) start offer
+    registered = [{"origin": "project", "name": "load-check", "revision": "rev-1"},
+                  {"origin": "project", "name": "supports-adjust", "revision": "rev-5"}]
+    of1 = nm.start_offer("Done.\nNext workflow: project:load-check", registered, None)
+    of2 = nm.start_offer("Next workflow: project:load-check", registered, "supports-adjust#1")
+    of3 = nm.start_offer("You might want to run load-check next.", registered, None)
+    of4 = nm.start_offer("Next workflow: project:unknown", registered, None)
+    sel = nm.confirm_start(of1)
+    check(of1["enabled"] and of1["startsNothingByItself"] and not of2["enabled"] and "end run" in of2["label"]
+          and of3 is None and of4["offer"] is None and sel["selectedBy"] == "the person",
+          "O-11 R19-2 (b): 'Start ‹workflow›' only from an exact proposal line naming one registered workflow; the person confirms")
+    # R19-3/R19-8 continue as role
+    ca = nm.continue_as({"threadId": "thr-ex-9", "role": "HELP_HUMAN"}, "WORKING_ITEMS",
+                        ["the person's last request: …", "last run: supports-adjust rev-5, ended"])
+    check(ca["newConversation"] and not ca["fork"] and ca["composer"]["editable"] and not ca["composer"]["sent"]
+          and ca["model"] is None,
+          "O-12 R19-3/R19-8: 'Continue as ‹role›' opens a new conversation with an editable handoff summary; nothing sent")
 
     # ------------------------------------------------------------------ A attachments
     print("\n== A attachments (NIR §6; VER-003) ==")
@@ -311,6 +377,15 @@ def main():
     ok5, st5 = dv4.receive(tnc)
     check(ok5 and st5 == "draft" and not validate(tnc, dt_schema, reg),
           "D-6 a registration that did not complete returns the draft to 'draft' and cites the recorded act")
+    dv5 = nm.DraftView()
+    for t in seq[:4]:
+        dv5.receive(t)
+    bare = T("registered", "under review", "registered, unchanged since", content=H2, disposition="new workflow")
+    okb, _ = dv5.receive(bare)
+    okl, stl = dv5.receive(bare, library_entry={"a15_record": "rec:app-interface:0001",
+                                                "revision": "project:.chirality/workflows:w@rev-1"})
+    check(not okb and okl and stl == "registered, unchanged since" and not validate(bare, dt_schema, reg),
+          "D-7 C-02 read side: without the A15 record nothing is shown registered; from WR's library_entry it is")
 
     # ------------------------------------------------------------------ K act control
     print("\n== K App act control (AAC; VER-005 positive case by model only) ==")
@@ -334,15 +409,26 @@ def main():
         return False
     reg_state = {"ok": True}
 
-    def registrar(cap):
-        return (True, cap["boundSubject"][0]) if reg_state["ok"] else (False, "library write failed (invented)")
+    def registrar(cap, entry):
+        return (True, entry["revision"]) if reg_state["ok"] else (False, "library write failed (invented)")
     current = {"ok": True}
-    ac = ActControl(lambda: dict(person, codexAccount="person@example.invalid"), lambda ref: files.get(ref), registrar,
-                    writer_for, lambda: next(clock), descriptor_current=lambda d: current["ok"])
+    rs_rel = reg.by_id[ids["RS"]]["$defs"]["humanAct"]["properties"]["relations"]["properties"]
+    rs_form = "relations" if "reviewedDraft" in rs_rel else "derivedFrom"
+    print(f"     RS_RECORD.schema.json as found: A15 relations form '{rs_form}' "
+          f"(sha256 {hashlib.sha256(open(os.path.join(RS_DESIGN, 'RS_RECORD.schema.json'), 'rb').read()).hexdigest()[:16]})")
+    ac = ActControl(lambda: dict(person, codexAccount="ChatGPT account (no email reported)"), lambda ref: files.get(ref),
+                    registrar, writer_for, lambda: next(clock), descriptor_current=lambda d: current["ok"],
+                    rs_a15_form=rs_form)
 
-    def descriptor(n, draft, prior):
-        return {"descriptorId": f"a15d:w:{n}", "subject": f"project:.chirality/workflows:w@rev-{n}",
-                "reviewedDraft": {"draft": draft, "content": ac._identity(files[draft])}, "priorRevision": prior}
+    def tup(name, rev):
+        return {"kind": "workflow", "origin": "project", "sourceRoot": ".chirality/workflows", "name": name,
+                "revision": rev, "revisionMethod": "illustration"}
+
+    def descriptor(n, location, prior, name="w"):
+        ident = ac._identity(files[location])
+        return {"descriptorId": f"a15d:{name}:{n}", "subject": f"project:.chirality/workflows:{name}@rev-{n}",
+                "reviewedDraft": {"draft": f"draft:project:{name}@{ident['value'][:16]}", "content": ident},
+                "priorRevision": prior, "location": location}
     offer_schema = reg.by_id[ids["aac.offer"]]
     cap_schema = reg.by_id[ids["aac.capture-evidence"]]
     refused = {k: ac.compose(k, "AF-1", "AF-1", "p")[1] for k in ("A12", "A5", "A13")}
@@ -387,12 +473,13 @@ def main():
     check(st == "AC-6 stale", f"K-8 content changed after it was shown: '{why}'")
     # A15 success, failure, decline
     o4, _ = ac.compose("A15", None, "project library .chirality/workflows", "make it available in the project library",
-                       descriptor=descriptor(2, "draft:w@d-2", "project:.chirality/workflows:w@rev-1"))
+                       descriptors=[descriptor(2, "draft:w@d-2", tup("w", "rev-1"))])
     _, why0 = ac.compose("A15", "draft:w@d-2", "project library", "make it available in the project library")
     check(why0 and "no A15 descriptor" in why0, f"K-8a an A15 is offered only from the workspace's descriptor: '{why0}'")
-    check(not validate(o4, offer_schema, reg) and o4["declineAvailable"] is False and "derivedFrom" not in o4
-          and o4["reviewedDraft"]["draft"] == "draft:w@d-2",
-          "K-9 an A15 offer from the descriptor: no decline; reviewedDraft and priorRevision named (R17-11)")
+    check(not validate(o4, offer_schema, reg) and o4["declineAvailable"] is False and "derivedFrom" not in str(o4)
+          and o4["entries"][0]["reviewedDraft"]["draft"].startswith("draft:project:w@")
+          and o4["entries"][0]["priorRevision"]["kind"] == "workflow",
+          "K-9 an A15 offer from the descriptor: no decline; reviewedDraft (WR ID-3) and priorRevision (RS tuple) (C-01)")
     ac.present(o4["offerId"])
     st, why = ac.operate(o4["offerId"], NATIVE_SOURCE, "decline")
     check(st == "AC-R refused", f"K-10 A15 has no decline: '{why}'")
@@ -400,13 +487,14 @@ def main():
     capA15 = [c for c in ac.captures.values() if c["actKind"] == "A15"][-1]
     eA15 = Reader(reg).read_log(writers["acts"].path)["entries"][-1]
     check(st == "AC-7 recorded" and eA15["body"]["actKind"] == "A15" and not validate(eA15, rs_entry, reg)
-          and not validate(capA15, cap_schema, reg) and capA15["priorRevision"] == "project:.chirality/workflows:w@rev-1"
-          and capA15["outcome"] == {"registration": "completed", "revisionIdentity": "project:.chirality/workflows:w@rev-2"},
+          and not validate(capA15, cap_schema, reg) and capA15["entries"][0]["priorRevision"]["revision"] == "rev-1"
+          and capA15["entries"][0]["outcome"] == {"registration": "completed",
+                                                   "revisionIdentity": "project:.chirality/workflows:w@rev-2"},
           "K-11 A15: captured and recorded, then registered by the workspace; RS entry and capture evidence valid")
     reg_state["ok"] = False
     files["draft:w@d-3"] = b"workflow package bytes v3\n"
     o5, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptor=descriptor(3, "draft:w@d-3", None))
+                       descriptors=[descriptor(3, "draft:w@d-3", None)])
     ac.present(o5["offerId"])
     n_before = len(Reader(reg).read_log(writers["acts"].path)["entries"])
     st, why = ac.operate(o5["offerId"], NATIVE_SOURCE, "act")
@@ -414,15 +502,38 @@ def main():
     check(st == "AC-9 recorded; registration not completed"
           and len(Reader(reg).read_log(writers["acts"].path)["entries"]) == n_before + 1
           and not validate(capF, cap_schema, reg),
-          f"K-12 the act is recorded; the registration's failure is reported beside it: '{capF['outcome']['reason']}'")
+          f"K-12 the act is recorded; the registration's failure is reported beside it: '{capF['entries'][0]['outcome']['reason']}'")
     files["draft:w@d-5"] = b"workflow package bytes v5\n"
     o9, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptor=descriptor(5, "draft:w@d-5", "project:.chirality/workflows:w@rev-2"))
+                       descriptors=[descriptor(5, "draft:w@d-5", tup("w", "rev-2"))])
     ac.present(o9["offerId"])
     current["ok"] = False                                # WR RB-3: the slot's latest revision moved on
     st9, why9 = ac.operate(o9["offerId"], NATIVE_SOURCE, "act")
     current["ok"] = True
     check(st9 == "AC-6 stale", f"K-12a the workspace withdrew the descriptor (RB-3): nothing captured: '{why9}'")
+    # L-4: several entries in one act, each entry's bytes bound
+    reg_state["ok"] = True
+    files["draft:a@d-1"] = b"workflow a v1\n"
+    files["draft:b@d-1"] = b"workflow b v1\n"
+    om, _ = ac.compose("A15", None, "project library", "make it available in the project library",
+                       descriptors=[descriptor(1, "draft:a@d-1", None, name="a"),
+                                    descriptor(1, "draft:b@d-1", None, name="b")])
+    ac.present(om["offerId"])
+    files["draft:b@d-1"] = b"workflow b v1 edited\n"
+    stm, whym = ac.operate(om["offerId"], NATIVE_SOURCE, "act")
+    check(stm == "AC-6 stale" and "load" not in whym and "b@rev-1" in whym,
+          f"K-12b a several-entry A15 is refused whole when one entry changed: '{whym}'")
+    om2, _ = ac.compose("A15", None, "project library", "make it available in the project library",
+                        descriptors=[descriptor(2, "draft:a@d-1", None, name="a"),
+                                     descriptor(2, "draft:b@d-1", None, name="b")])
+    ac.present(om2["offerId"])
+    stm2, recm = ac.operate(om2["offerId"], NATIVE_SOURCE, "act")
+    capM = [c for c in ac.captures.values() if c["offerId"] == om2["offerId"]][0]
+    eM = Reader(reg).read_log(writers["acts"].path)["entries"][-1]
+    check(stm2 == "AC-7 recorded" and len(capM["entries"]) == 2 and len(eM["body"]["boundSubject"]) == 2
+          and not validate(capM, cap_schema, reg) and not validate(eM, rs_entry, reg)
+          and not validate(om2, offer_schema, reg),
+          "K-12c L-4: one A15 act over two entries: one capture, one RS record naming both, each entry's outcome beside it")
     # write failure and late write
     reg_state["ok"] = True
     files["AF-2"] = b"another output\n"
@@ -443,7 +554,7 @@ def main():
     # recovery after a crash between registration and record
     files["draft:w@d-4"] = b"workflow package bytes v4\n"
     o8, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptor=descriptor(4, "draft:w@d-4", "project:.chirality/workflows:w@rev-2"))
+                       descriptors=[descriptor(4, "draft:w@d-4", tup("w", "rev-2"))])
     ac.present(o8["offerId"])
     real_record = ac._record
     ac._record = lambda cap: ("crashed", None)          # the App ends after the capture, before the record is written

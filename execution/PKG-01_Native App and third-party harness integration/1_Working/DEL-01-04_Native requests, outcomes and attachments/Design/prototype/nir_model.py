@@ -1,4 +1,4 @@
-"""Executable model of DEL-01-04/NIR-v0.1 (NATIVE_INTERACTION_RECEIVING.md).
+"""Executable model of DEL-01-04/NIR-v0.2 (NATIVE_INTERACTION_RECEIVING.md).
 
 Design prototype only (R17-1; R12-3). Not product code, not an App candidate,
 not the OI-008 placement. Python 3 standard library only; no network; the
@@ -13,7 +13,12 @@ What it models:
   * the card display state for every register state (NIR §4.4);
   * turn/outcome labels (NIR §5), the conversation start display (NIR §5.4);
   * attachment supply records and substitution checks (NIR §6);
-  * the draft receiving machine (NIR §7).
+  * the draft receiving machine (NIR §7);
+  round 2 (NIR-v0.2): turn composition with collaborationMode (C-06), the
+  start display's wording and role preselection (C-09, C-15), the App-level
+  indicator of waiting requests (C-24), the "Start <workflow>" offer after an
+  agent proposal (R19-2 (b)), "Continue as <role>" (R19-3, R19-8), and items
+  never completed by turn end (G-4).
 """
 
 import copy
@@ -456,17 +461,141 @@ def turn_label(observed_status, observation, cause=None, descendants=None):
     return base
 
 
-def start_view(selection, last_choice):
-    """K-3: no model chosen until the person chooses; the last explicit choice is offered, never applied."""
+def start_view(selection, last_choice, workflow_run=False, roles=None, default_role=None):
+    """K-3 and R18-2 (C-09): no model until the person chooses; the last choice is offered, never applied.
+    ST-5 (C-15): the role preselected from the registry's default_for_new_chat, clearable; "no role" allowed."""
+    view = {}
     if selection is None:
+        refusal = "run not started — no model selected" if workflow_run else "not started — no model selected"
         view = {"model": None, "label": "No model selected", "sendable": False,
-                "sendResult": "not started: no model selected (your message is kept)"}
+                "sendResult": refusal + " (your message is kept)"}
         if last_choice:
             view["offer"] = {"label": f"Use {last_choice['model']} via {last_choice['provider']} "
                                       f"(your last choice for this project, {last_choice['chosenAt']})",
                              "applied": False}
-        return view
-    return {"model": selection, "label": f"{selection['model']} via {selection['provider']}", "sendable": True}
+    else:
+        view = {"model": selection, "label": f"{selection['model']} via {selection['provider']}", "sendable": True}
+    if roles is not None:
+        options = list(roles) + ["no role"]
+        pre = default_role if default_role in roles else None
+        view["role"] = {"options": options, "preselected": pre or "no role", "clearable": True,
+                        "label": (f"Role: {pre} (preselected; you can change or clear it)" if pre else "Role: no role"),
+                        "fixedForConversation": True}
+    return view
+
+
+def choose_role(view, choice):
+    """The person may change or clear the preselection before the first send; afterwards it is fixed (L-2)."""
+    if choice not in view["role"]["options"]:
+        return False, f"{choice!r} is not a role in the registry"
+    view["role"]["chosen"] = choice
+    return True, choice
+
+
+# ---------------------------------------------------------------------------
+# NIR §5.6  Turn composition (C-06): DEL-01-04 composes turn/start
+# ---------------------------------------------------------------------------
+
+def compose_turn(conv, text, attachments=(), plan_chosen=False, plan_element=None, run_start_text=None):
+    """Returns (params, why). conv: {threadId, model, usedPlanMode}. plan_element: NPTD §5.4's value."""
+    if conv.get("model") is None:
+        return None, "not started — no model selected"
+    inputs = []
+    if run_start_text is not None:      # R19-7: DEL-02-02's run-start text, its own element, first
+        inputs.append({"type": "text", "text": run_start_text, "text_elements": []})
+    if text:
+        inputs.append({"type": "text", "text": text, "text_elements": []})
+    for a in attachments:
+        inputs.append(a)
+    params = {"threadId": conv["threadId"], "input": inputs}
+    if plan_chosen:
+        if plan_element is None or "notOffered" in plan_element:
+            return None, "plan mode not offered" + (f" ({plan_element['notOffered']})" if plan_element else "")
+        params["collaborationMode"] = plan_element["collaborationMode"]
+        conv["usedPlanMode"] = True
+    elif conv.get("usedPlanMode"):
+        # O-8: plan mode persists until the default mode is sent; send it explicitly on every later turn
+        params["collaborationMode"] = {"mode": "default",
+                                       "settings": {"model": conv["model"]["model"], "reasoning_effort": None,
+                                                    "developer_instructions": None}}
+    return params, None
+
+
+# ---------------------------------------------------------------------------
+# NIR §4.8  App-level indicator of waiting requests (C-24)
+# ---------------------------------------------------------------------------
+
+def waiting_indicator(registers, open_windows):
+    """Counts supplier requests waiting for the person, per conversation, whether or not a window shows them.
+    Arrivals never count (NR-7). open_windows: conversation -> number of windows showing it."""
+    rows = []
+    for conv, reg in registers.items():
+        n = len(reg.list_outstanding())
+        if n:
+            rows.append({"conversation": conv, "waiting": n, "windowsOpen": open_windows.get(conv, 0)})
+    total = sum(r["waiting"] for r in rows)
+    return {"total": total, "label": (f"{total} request(s) waiting for your answer" if total else None),
+            "conversations": rows}
+
+
+# ---------------------------------------------------------------------------
+# NIR §5.7  Runs in a conversation: the "Start <workflow>" offer (R19-2 (b))
+# ---------------------------------------------------------------------------
+
+PROPOSAL_PREFIX = "Next workflow: "
+
+
+def start_offer(final_message_text, registered, run_in_progress):
+    """An offer only from a completed agentMessage line 'Next workflow: <origin>:<name>' that names exactly one
+    registered workflow. The offer starts nothing; the person's confirmation is ordinary input (R17-9)."""
+    lines = [l.strip() for l in (final_message_text or "").splitlines() if l.strip().startswith(PROPOSAL_PREFIX)]
+    if len(lines) != 1:
+        return None
+    named = lines[0][len(PROPOSAL_PREFIX):].strip()
+    matches = [r for r in registered if f"{r['origin']}:{r['name']}" == named]
+    if len(matches) != 1:
+        return {"offer": None, "note": f"the agent proposed {named!r}, which names no single registered workflow"}
+    r = matches[0]
+    offer = {"label": f"Start {r['name']} (proposed by the agent)", "workflow": r, "startsNothingByItself": True,
+             "recordsNothing": True}
+    if run_in_progress:
+        offer["enabled"] = False
+        offer["label"] += f" — end run {run_in_progress} first"
+    else:
+        offer["enabled"] = True
+    return offer
+
+
+def confirm_start(offer):
+    """The person's click hands a selection to DEL-02-02 / DEL-02-03; the agent's line never does."""
+    if not offer or not offer.get("enabled"):
+        return None
+    return {"selectedBy": "the person", "workflow": offer["workflow"], "source": "confirmed agent proposal"}
+
+
+# ---------------------------------------------------------------------------
+# NIR §5.8  "Continue as <role>" (R19-3, R19-8)
+# ---------------------------------------------------------------------------
+
+def continue_as(source, role, parts):
+    """A new conversation with the role's guidance; the composer holds an editable handoff summary; nothing is sent."""
+    summary = "\n".join([f"Handoff from conversation {source['threadId']} ({source.get('role') or 'no role'}).",
+                          *[f"- {p}" for p in parts]])
+    return {"newConversation": True, "role": role, "fork": False, "model": None,
+            "composer": {"text": summary, "editable": True, "sent": False},
+            "note": "a fork keeps the source's role at 0.158.0 (OBS-3 W-6); this is a new conversation"}
+
+
+# ---------------------------------------------------------------------------
+# NIR §5.1 TO-9  Items opened and never completed (G-4)
+# ---------------------------------------------------------------------------
+
+def settle_items_at_turn_end(items, turn_status):
+    """Message and reasoning items still open when the turn ends settle 'not completed (turn ended)'."""
+    out = {}
+    for item_id, state in items.items():
+        out[item_id] = state if state == "completed" else f"not completed (turn ended {turn_status})"
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -545,7 +674,13 @@ class DraftView:
         self.revision = None
         self.log = []
 
-    def receive(self, t):
+    def receive(self, t, library_entry=None):
+        """C-02 read side: the A15 record and revision come from the transition when present, else from
+        WR's library_entry for the same draft; without either, 'registered' is not shown."""
+        if library_entry:
+            t = dict(t)
+            t.setdefault("a15_record", library_entry.get("a15_record"))
+            t.setdefault("revision", library_entry.get("revision"))
         if t["from"] != self.state:
             return False, f"'from' {t['from']!r} is not the view's state {self.state!r}: re-read the draft reference"
         allowed = DRAFT_ALLOWED.get((self.state, t["event"])) or DRAFT_ALLOWED.get(("any", t["event"]))

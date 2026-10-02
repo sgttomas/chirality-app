@@ -1,12 +1,13 @@
 # Native requests, outcomes and attachments — receiving and interaction design
 
-- Contribution: DEL-01-04/NIR-v0.1 (first version). Companion:
-  [APP_ACT_CONTROL.md](APP_ACT_CONTROL.md) (DEL-01-04/AAC-v0.1), which designs
-  the App act control.
+- Contribution: DEL-01-04/NIR-v0.2 (supersedes NIR-v0.1, committed at
+  `63a6e0fa47`, sha256 96765105cec82d16ed3fb53c87daaf5a0ebeef30ae5600772822a850bae0db3c).
+  Companion: [APP_ACT_CONTROL.md](APP_ACT_CONTROL.md) (DEL-01-04/AAC-v0.2),
+  which designs the App act control.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: three PROPOSED schemas with a valid and an invalid
   example each (§14), and a design prototype in [`prototype/`](prototype/)
-  that ran on 2026-10-01 (§13.2). No product code.
+  that ran on 2026-10-02 (§13.2). No product code.
 - Run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D3 (Type 2 TASK, Claude
   Opus 5.5, high effort; does not delegate), dispatched by HELP_HUMAN.
 - Serves: OUT-004 (the receiving contract), the behaviour of OUT-001 and
@@ -14,6 +15,38 @@
   the model); REQ-001…REQ-007; VER-001…VER-007 as designed cases.
 - Paths are relative to `projects/chirality-app-v4/execution` unless they
   start with `docs/` (`projects/chirality-app-v4/docs/`).
+- **v0.2 inputs (D round 2, 2026-10-02; sha256 recomputed, first 16 hex):**
+  run `BRIEFS.md` 316ea29325a0d450 ("D round 2"); `R18_RESOLUTIONS.md`
+  abf5eee6324647ff; `R19_RESOLUTIONS.md` 16930ecdcead7511;
+  `OWNER_DECISIONS.md` ea96c55710af41c9 (DECISION-L); `F/F0_JOINS.md`
+  e93608be1c6e3eb0 (§2, §6, §7.3); `DEL-01-01/Design/OBS_2_0.158.0.md`
+  61cc34ffb811eb27 and `OBS_3_0.158.0.md` 554ac4451d112824 (read only;
+  O-1…O-8, W-1…W-6; O-4 only through an adapter, R18-9); DEL-01-03/NPTD-v0.1
+  `NATIVE_PLANS_TOOLS_DELEGATION.md` a3b36a454d497e28 (§5.3 PS-1…PS-6, §5.4,
+  §6.2 TR-6, §9 TA-4) and `npt.item-anchor.schema.json` d3bc6b117af902e4;
+  Root `agents/registry.json` 767fdfe25f3722b8 (`default_for_new_chat`, as
+  data). Round-1 inputs stand as listed below.
+
+## Changes from v0.1
+
+| Item | Ruling / source | Where | Change |
+|---|---|---|---|
+| C-02 read side | R18-1 | §7; `nir.draft-transition.schema.json` 0.2 | `a15_record`, `revision` are optional elements D5 adds; the view takes them from the transition, else from WR's `library_entry`; "registered" is shown only when the A15 record is known |
+| C-06 | R18-1 (D2's row DEL-01-04 → DEL-01-03 adopted) | §2 IF-13; §4.7; §5.6; §8 AP-10 | DEL-01-04 composes `turn/start`, including `collaborationMode` from NPTD's plan-mode element, and sends the default mode explicitly on every turn after plan mode was used (OBS-2 O-8); request cards cite NPTD's item anchors; act display on NPTD anchors placed here |
+| C-09 | R18-2 | §5.4 ST-3 | A workflow run reads "run not started — no model selected"; an ordinary conversation "not started — no model selected" |
+| C-12 | R18-1; R19-4 L-1 | §5.2 | "Stop Codex" and "Restart Codex", each asking first with live work, per App-owned Codex process |
+| C-14 | R18-1 | §6 AT-8 | A draft reaches a trial only as a message or attachment the person sends; DEL-02-04 carries no draft |
+| C-15 | R18-1; R17-9; L-2 | §5.4 ST-5, ST-6 | Role preselection from `default_for_new_chat`, clearable, "no role" allowed; the role is fixed for the conversation; "guidance changed since this conversation started" |
+| C-24 | R18-1 | §4.8 | App-level indicator of waiting requests, also with no window; several windows on one conversation |
+| R18-5 (U-NIR-5) | R18-5 | §9 PD-5 | The person's click opening the act control from an arrival row is the person's act, not a reaction: DERIVED; U-NIR-5 closed |
+| R19-2 (b) | R19-2; DECISION-L L-2 | §5.7 | "Start ‹workflow›" offered after an agent's proposal line; nothing starts until the person confirms; ordinary input; run start and end marked in the conversation |
+| R19-3, R19-8 | R19-3, R19-8; OBS-3 W-6 | §5.8 | "Continue as ‹role›" opens a new conversation with that role's guidance and an editable handoff summary; "Fork" stays a same-role copy |
+| R19-7 | R19-7; OBS-3 | §5.6 TC-3; IF-14 | The run-start text element DEL-02-02 composes is placed first in the turn that starts a run |
+| O-2 | OBS-2 O-2; F0 §7.3 | §4.4 | The "asked again after restart" note is removed: requests are not raised again; the card ends CS-7 |
+| O-1, O-3, O-4, O-6 cells | OBS-2; R18-9 | §4.4, §5.1, §5.5; AAC §7 | Filled (O-1, O-3 confirm; O-4 confirms through an adapter only); O-6 stays open for a signed-in account (AAC) |
+| G-4 | R18-7 | §5.1 TO-9 | Items opened and never completed settle "not completed (turn ended)" |
+| G-5 | R18-7 | §5.3 V-e | Codex's graceful-stop history marker is shown as Codex's, not the person's |
+| C-10 | R18-1 | §4.5 | The actor reference derives from the same three values as RS's person; no plan type |
 
 **Basis and inputs (sha256 recomputed with `shasum -a 256` at this node;
 repository HEAD `dc031b5bec`).** The accepted basis as amended by SCA-V4-001
@@ -67,13 +100,14 @@ return file `D/D3.md` (SC3-01-04-1…8).
 
 | # | ScopeOfWork text | Reading used here | Source |
 |---|---|---|---|
-| L-1 | Names no act control or person identity (`grep` returns 0) | The App act control is designed in AAC-v0.1, labelled PROPOSED until SCA-V4-003 carries SC2-01-04-1, which this pass amends to include A15 and DEL-02-02 | R17-6; K-8; K1-4 |
+| L-1 | Names no act control or person identity (`grep` returns 0) | The App act control is designed in AAC-v0.2, labelled PROPOSED until SCA-V4-003 carries SC2-01-04-1, which this pass amends to include A15 and DEL-02-02 | R17-6; K-8; K1-4 |
 | L-2 | REQ-004/CLM-004/REQ-006: "reviewed registration … belong[s] to App DEL-02-02" | DEL-02-02 performs the registration (writes the revision to the library); the person's A15 is captured by the App act control (K-8). DEL-01-04 performs no registration | K-8; R17-2 |
 | L-3 | REQ-001 "explicit decline" without saying which form | The decline is the request's own negative form where it has one; two kinds have none, and a PROPOSED form is used (§4.3) | REQ-001; HOSTING U-20 |
 | L-4 | REQ-001 is silent on automatic answers after time | No automatic decline, ever; a supplier's own resolution is shown as such | R17-9 |
 | L-5 | REQ-005 predates K1-1…K1-4 | The agent asks; earlier acts on current content count, cited with their time; a joint answer after partial lapse; the person is recorded "identity not verified" | DECISION-K1 |
 | L-6 | Names neither the App checkpoint display nor DEL-04-02's components | DEL-04-02 defines the components and their meaning; this file places them in the App and owns their behaviour there (§9) | R17-7 |
 | L-7 | Names no conversation start display | A new conversation shows "no model selected" until the person chooses (§5.4) | K-3 |
+| L-9 | Names no role element, chaining offer or role change | ST-5 (C-15), §5.7 (R19-2 (b)), §5.8 (R19-3, R19-8) | R18-1; R19; DECISION-L |
 | L-8 | REQ-002 uses "interrupted" and "stop" without the three operations | Interrupt a turn, end a run and stop the Codex process are presented as three things, as DEL-01-02 defines them (§5.2) | R17-3 |
 
 **Reading note.** Element names defined here (*card*, *card state*, *supply
@@ -82,7 +116,8 @@ storage choices. Supplier method, field and value names are facts of the
 generated types at the 0.158.0 definition pin, quoted as supplier names; they
 select nothing. Standing labels for supplier facts are R17-13's: `observed`
 (OBS-1/OBS-1b, through HOSTING §10.1), `observed-in-generated-types`,
-`inference`. Cells that OBS-2 will settle are marked **OBS-2 pending**.
+`inference`. At v0.1 cells that OBS-2 would settle were marked **OBS-2
+pending**; at v0.2 each is filled or says why it stays open.
 Design labels are R9's: SETTLED, DERIVED, INTEGRATION, PROPOSED; anything new
 here and unlabelled is PROPOSED (D3).
 
@@ -110,7 +145,7 @@ Codex App Server produces and the person meets in a conversation:
    native **draft view** that receives the workflow workspace's transitions (§7).
 
 It also places the human-act presentation (§8) and the checkpoint and standing
-display (§9) in the App, and it owns the **App act control** (AAC-v0.1).
+display (§9) in the App, and it owns the **App act control** (AAC-v0.2).
 
 It does not own: the register, its custody, recovery or persistence (DEL-01-01,
 DEL-01-02); the definitions of stopping (DEL-01-02, R17-3); plan, tool and
@@ -155,6 +190,9 @@ input.
 | IF-9 | Display meanings SD-1…SD-5, CE labels and arrival references | DEL-02-03 → DEL-01-04 | Run panel (§9); the act control's "arrival it answers" (AAC §2) | As IF-8 | **None. New row proposed (NR-2)**, held, SCC-002, SCC-neutral (reverse of X-1) |
 | IF-10 | Model selection state for the start display (none chosen / chosen / last explicit choice for the project); the Codex account as reported, for the person's identity (K1-4) | DEL-01-05 → DEL-01-04 | Conversation start (§5.4); each act capture (AAC §7) | No selection state → "No model selected"; no account reported → the account element is absent, never guessed | **None. New row proposed (NR-3)**, admitted, SCC-neutral (DEL-01-05 reaches no SCC-002 member) |
 | IF-11 | The App act control (capture evidence, RS entries) | DEL-01-04 → DEL-02-03 (App-side positive capture fixtures), DEL-04-03, DEL-04-01 | AAC | AAC §3, §4 | DEP-02-03-027 (X-1, held); mirror R2-01-04-a proposed in pass 2 |
+| IF-13 | Plan-mode element (NPTD §5.4: the `collaborationMode` value, "not offered (‹reason›)" or "run not started — no model selected") and item anchors (`npt.item-anchor`, TR-6) | DEL-01-03 → DEL-01-04 | Turn composition (§5.6); request cards and act display (§4.7, AP-10) | Element absent → no Plan control; anchor absent → the card shows its supplier item identity only | **D2's row DEL-01-04 → DEL-01-03 adopted (R18-1 C-06)**: admitted, SCC-free |
+| IF-14 | Run-start text element (R19-7: the registered revision's bytes framed by DEL-02-02's lines) and the person's selection handed back on "Start ‹workflow›" | DEL-02-02 → DEL-01-04 (text); DEL-01-04 → DEL-02-02 / DEL-02-03 (the person's confirmed selection, a runtime value) | The turn that starts a run (§5.6, §5.7) | No text → no run starts; the turn is not sent as a run start | DEP-01-04-009 (held; statement update proposed) |
+| IF-15 | Role list with `default_for_new_chat` (registry data) and "guidance changed since this conversation started" | DEL-02-04 → DEL-01-04 | Start display (ST-5, ST-6); "Continue as ‹role›" (§5.8) | No list → "no role" only | **New row proposed (NR-4)**: held inside SCC-002, SCC-neutral |
 | IF-12 | Native interaction view and scoped request/outcome checks | DEL-01-04 → DEL-09-02 | Before the joined request witness | Nothing is claimed beyond the cases run (§13) | DEP-09-02-012 (admitted) |
 
 The SCC effect of NR-1…NR-3 was computed from DAG-003's two edge files (202
@@ -285,12 +323,34 @@ own `approvalsReviewer` setting) creates no card; its notifications are shown
 in the conversation as "decided inside Codex by your Codex setting", origin
 `supplier-internal`, never as the person's answer.
 
-**Re-raised after a restart (OBS-2 pending, O-2).** Whether the supplier raises
-a pending request again after a restart and resume is not observed. If it
-does, the new request is a new entry of the new generation and a new card;
-the old card stays CS-7. The card may say "asked again after restart" only
-when the thread, turn and item references are equal (an observed equality,
-never a guess).
+**After a restart (OBS-2 O-2, observed at 0.158.0).** A pending request is
+not raised again after a restart and resume; its card ends CS-7 "Ended
+unanswered" for good.
+
+**After a supplier resolution (OBS-2 O-3, observed).** A request pending in an
+interrupted turn was resolved by Codex (`serverRequest/resolved` after
+`turn/completed`), and a later client answer was silently ignored. The card
+therefore withdraws its answer controls on CS-6, and the register refuses any
+answer `already-resolved` (HOSTING R4).
+
+### 4.7 Item anchors on cards (C-06)
+
+Each card for a request with an item (`threadId`, `turnId`, `itemId`) cites
+NPTD's item anchor for that item (`npt.item-anchor`, anchor kind *item*;
+NPTD §6.2 TR-6). The card shows "about: ‹item, as DEL-01-03 shows it›" and
+links to the item row; the item row links back. The row never offers an
+answer control (A14 is this file's, HOSTING §11). An anchor DEL-01-03 does not
+supply leaves the card with the supplier's item identity only.
+
+### 4.8 The App-level indicator of waiting requests (C-24)
+
+| # | Rule |
+|---|---|
+| WI-1 | The App shows, outside any conversation window, how many supplier requests wait for the person's answer and in which conversations, whether or not a window shows them (HOSTING R6; DEL-01-02's *list outstanding*) |
+| WI-2 | It counts supplier requests only. A checkpoint arrival never counts, never raises it and never changes it (NR-7; SD-4) |
+| WI-3 | It opens the conversation on the person's click; it answers nothing and never declines (NR-2, NR-3) |
+| WI-4 | Several windows on one conversation show the same cards from the same register; the first answer written settles the request, and an answer from another window is refused `already-settled` and that window's card updates (R-4) |
+
 
 ### 4.5 The answer submission (data) and secret values (SE)
 
@@ -300,7 +360,9 @@ object: request identity, generation, method, the native answer unchanged,
 `submittedAs` (*answer* or *decline*), origin `person-via-interaction` with the
 actor reference (AAC §7: "person:‹name›/‹OS account›/‹Codex account›
 (identity not verified)"), the names of the forms the card showed, the time,
-and `secretValuesPresent`.
+and `secretValuesPresent`. The actor reference is derived from the same three
+values RS records as the person: the Codex account is the reported email, or
+"ChatGPT account (no email reported)"; no plan type (R18-1 C-10).
 
 | # | Rule |
 |---|---|
@@ -349,10 +411,13 @@ not observed)*), the view shows that label and, after a relaunch, Codex's own
 reported status beside it. TO-0…TO-7 constrain the wording: never "stopped"
 for an interruption, unknown stays unknown, no cause the record does not show.
 
-What OBS-2 settles here: the turn status and items after `turn/interrupt`, and
-what happens to a pending request then (O-1) — **OBS-2 pending**; until then
-TO-4 "interrupted by you" rests on DEL-01-02's record of the person's act and
-on `observed-in-generated-types` only.
+| TO-9 | "‹item› not completed (turn ended)" | A message or reasoning item opened (`item/started`) and never completed by the time the turn ends; such items are also absent from history (OBS-2 O-1, O-3) | Completed; silently dropped (G-4, R18-7) |
+
+**Filled from OBS-2 (2026-10-01, Codex 0.158.0, LM Studio, one local model):**
+O-1 observed `turn/interrupt` → `{}`, then `thread/status/changed` idle and
+`turn/completed` with status `interrupted`; two deltas arrived after the
+request. TO-4 holds; "interrupted by you" comes from the App's record of the
+person's act, since Codex's status does not say who interrupted.
 
 ### 5.2 The three stop operations, as presented (R17-3)
 
@@ -362,7 +427,13 @@ DEL-01-02 owns the definitions; this file presents them and keeps them apart.
 |---|---|---|
 | Interrupt a turn | The turn's "Interrupt" control (DEL-01-02's operation, `turn/interrupt`) | TO-4 "interrupted by you"; the conversation and any workflow run continue; never "run ended" |
 | End a run | The run panel's "End run" control (DEL-01-02 / EXEC run end) | The run-ended event from the record (§9); turns keep their own outcomes |
-| Stop the Codex process | Quit, or the App's "Stop Codex". With live work the App asks first (K-4): the question lists the live turns, the waiting requests and active delegated agents as DEL-01-02 supplies them, and has no timeout | Live turns "interrupted by quit" (K-4); waiting cards CS-7, or CS-4r if DEL-01-02 chose an App decline at stop (its node-D1 draft proposes none, HOSTING U-10) |
+| Stop the Codex process | Quit, or the App's **"Stop Codex"**. With live work the App asks first (K-4; DEF-5a): the question lists the live turns, the waiting requests and active delegated agents as DEL-01-02 supplies them, and has no timeout | Live turns "interrupted by quit" / "interrupted (Codex stopped)" (K-4); waiting cards CS-7 (no App decline at stop, DEL-01-02 U-10) |
+| Restart the Codex process | **"Restart Codex"** (C-12). With live work the App asks first, as for Stop; then DEL-01-02 stops and starts the process | As Stop, then the conversations re-attach (§5.3) |
+
+Under DECISION-L L-1 the App runs one Codex process per App-owned home
+(ChatGPT account; API key). "Stop Codex" and "Restart Codex" are offered for
+each, named by the conversations it serves; quitting the App stops all of
+them (R19-4).
 
 Observer loss (window close, reload) and connection loss are not stops and
 show nothing of the kind.
@@ -375,6 +446,7 @@ show nothing of the kind.
 | V-b | Turns are drawn with their recovered status and cause; each recovered item is marked "recovered at ‹t›" where DEL-01-02 marks it | A status DEL-01-02 cannot settle · TO-6 |
 | V-c | Cards are rebuilt from the register's outstanding list and its settled entries for the conversation | Entries of a closed generation · CS-7 |
 | V-d | App-kept items Codex does not keep in history (for example plan checklist revisions, R17-4) are shown by their owners as "not recoverable after relaunch"; this file shows nothing in their place | — |
+| V-e | After a graceful stop, Codex's history holds a line it wrote itself ("The user interrupted the previous turn on purpose", OBS-2 O-2). The view shows it as "written by Codex when the App stopped it", never as the person's words (G-5) | — |
 
 ### 5.4 Conversation start display (K-3)
 
@@ -382,8 +454,10 @@ show nothing of the kind.
 |---|---|
 | ST-1 | A new App conversation shows **"No model selected"** until the person chooses one; no model is applied from Codex's own configured default or from any earlier conversation (K-3, owner's answer) |
 | ST-2 | Where DEL-01-05 reports a last explicit choice for this project, the start display offers it as a button reading "Use ‹model› via ‹provider› (your last choice for this project, ‹date›)". It is applied only when the person presses it |
-| ST-3 | Sending a message with no model chosen sends nothing to Codex; the message stays in the composer and the display reads "not started — no model selected" (R15-1's wording, reused per R17-2) |
+| ST-3 | Sending with no model chosen sends nothing to Codex; the message stays in the composer. **An ordinary conversation** reads "not started — no model selected"; **a workflow run** that cannot start reads "run not started — no model selected" (R15-1's wording) (R18-2, C-09) |
 | ST-4 | The chosen model, provider and access mode are shown in the conversation header as DEL-01-05 reports them; the observed destination per turn is DEL-01-01's (HOSTING §8.3) and DEL-04-03's to record |
+| ST-5 | **Role (C-15).** The start display offers the roles DEL-02-04 lists, plus **"no role"** (R17-9: untyped conversations are allowed). The role whose registry entry has `default_for_new_chat` true (HELP_HUMAN in Root's `agents/registry.json` today) is shown **preselected**, labelled as a preselection, and the person can change it or clear it to "no role" before the first send |
+| ST-6 | The role is **fixed for the conversation's life** (DECISION-L L-2). The header shows it; where DEL-02-04 reports that the role's guidance was edited after this conversation started, the header says "guidance changed since this conversation started" (R19-3), and offers "Continue as ‹role›" (§5.8) |
 
 The selection states and the last-choice store are DEL-01-05's (IF-10; NR-3
 new row). This file only places them.
@@ -398,9 +472,51 @@ Primary-turn completion never implies that delegated agents finished
 turn line adds "‹n› delegated agent(s) last reported running" or "…with no
 reported state", and links to DEL-01-03's delegation view, which owns
 everything else about them (K-5, K-10). The facts reach this view through
-DEL-01-02's recovered state and the native delivery (IF-2, IF-3); no row to
-DEL-01-03 is needed (R17-10). What a child produces and whether its thread is
-readable is **OBS-2 pending** (O-4).
+DEL-01-02's recovered state and the native delivery (IF-2, IF-3).
+
+**Filled from OBS-2 O-4 — observed through an adapter (OBS-2), not stock
+behaviour (R18-9).** `collabAgentToolCall` items (`spawnAgent`, `sendInput`,
+`wait`) carried `receiverThreadIds` and `agentsStates`; a child thread is
+readable by `thread/read` and has no `thread/started`. With stock LM Studio
+0.4.16 the delegation tools never reach the model (they travel inside a
+`namespace` tool), so a local-model conversation shows no delegation line at
+all. "Primary completed, child still running" was not observed (NPTD NV-04).
+
+### 5.6 Turn composition (C-06; R19-7)
+
+DEL-01-04 composes and sends every `turn/start` (through DEL-01-02's send
+path). Prototype O-8, O-9: the composed parameters were valid against the
+committed 0.158.0 `TurnStartParams`.
+
+| # | Rule |
+|---|---|
+| TC-1 | No model chosen → nothing is sent (ST-3) |
+| TC-2 | The `input` list holds, in order: the run-start text element when the turn starts a run (TC-3), the person's text, then the supplied attachments (§6) |
+| TC-3 | **Run start (R19-7).** The run-start text is DEL-02-02's composition (the registered revision's exact bytes between App-written lines naming the workflow and revision and, when chaining, saying the previous run ended). This file places it as its own text element and changes nothing in it; DEL-02-02 records the bytes and DEL-02-03 starts the run |
+| TC-4 | **Plan mode (NPTD §5.4).** When the person chooses Plan (labelled "experimental", C-05), the turn carries NPTD's plan-mode element as `collaborationMode`; when NPTD says "not offered (‹reason›)", the Plan control is absent |
+| TC-5 | **Leaving plan mode.** Once a conversation has used plan mode, every later turn carries `collaborationMode` with mode `default` (model the conversation's, `developer_instructions` null) explicitly, because plan mode persists until the default mode is sent (OBS-2 O-8) |
+| TC-6 | Role and workflow guidance never go into `collaborationMode.settings.developer_instructions` (NPTD §5.3 F-3; R19-7: `thread/settings/update` is not used for workflows) |
+
+### 5.7 Runs in a conversation and the "Start ‹workflow›" offer (R19-2)
+
+| # | Rule |
+|---|---|
+| RN-1 | The conversation view marks each run's start ("‹workflow› ‹revision› started", the supplied bytes folded and openable) and end ("run ended: ‹how›") from the run records DEL-02-03 writes; one run at a time (R19-2) |
+| RN-2 | **Sequential (a).** After a run ends or completes, the workflow selector (DEL-02-02's selection) is available again in the same conversation; starting B is TC-3 |
+| RN-3 | **Agent-proposed (b).** When a completed `agentMessage` carries exactly one line `Next workflow: ‹origin›:‹name›` that resolves to exactly one registered workflow, the App shows a button **"Start ‹workflow› (proposed by the agent)"** beneath it. Nothing starts until the person presses it; the press is ordinary input (R17-9), handed to DEL-02-02 as the person's selection and to DEL-02-03 to start the run |
+| RN-4 | While a run is in progress the button reads "Start ‹workflow› — end run ‹A› first" and is disabled beside the End run control (one run at a time) |
+| RN-5 | A proposal naming no registered workflow, or several, shows no button; prose suggestions are not read (the App never classifies message text as a request: EXEC RC-5). The offer records nothing and is never a selection by the agent |
+| RN-6 | The proposal line form is PROPOSED here; the role guidance that tells the agent to use it is DEL-02-04's, the run-end line the model reads is DEL-02-02's (U-NIR-8) |
+
+### 5.8 "Continue as ‹role›" and "Fork" (R19-3, R19-8)
+
+| # | Rule |
+|---|---|
+| CA-1 | "Continue as ‹role›" opens a **new conversation** with that role (fixed for its life, L-2) and the role's guidance composed by DEL-02-04 at start. It does not fork: at 0.158.0 `thread/fork` ignores new instructions, so a fork keeps the source's role (OBS-3 W-6; R19-8) |
+| CA-2 | The new conversation's composer holds a **handoff summary** the person sees and can edit before sending: a reference to the source conversation, its role, the person's last request, the last workflow run and how it ended, and the attachments supplied there (by name and content identity). Nothing is sent until the person sends it. The person may instead ask the source conversation's agent to write a summary, as an ordinary message there |
+| CA-3 | The new conversation starts with no model chosen (ST-1); the source's model may be offered as the last explicit choice (ST-2) |
+| CA-4 | "Fork" stays available as a same-role copy of a conversation (`thread/fork`), labelled "same role" |
+
 
 ---
 
@@ -427,7 +543,7 @@ App can only state what it read and when.
 | AT-5 | A URL or supplier `fileId` is recorded as given, with identity "not obtainable (the App does not fetch it)" |
 | AT-6 | A later check (the person opens the item, or the view re-checks on display) records "unchanged since supplied" or "changed after it was supplied; what Codex read is not observed"; it never rewrites the supply record's earlier identities |
 | AT-7 | `thread/attachment/*` is not used by this design: its semantics are not observed and no requirement needs it (UNRESOLVED U-NIR-4) |
-| AT-8 | A draft handed to an ordinary conversation for trying out (K-7) is shown as "draft ‹name› at content ‹id› — not a registered workflow; this conversation is not a workflow run", with a supply record of form `draft-package`. How the draft reaches the conversation is DEL-02-02's (with DEL-02-04 for guidance carriage) |
+| AT-8 | A draft reaches a trial conversation (K-7) only as a message or attachment the person sends; the App may pre-fill the composer, never sends it (C-14; WR TT-2, TT-3). It is shown as "draft ‹name› at content ‹id› — not a registered workflow; this conversation is not a workflow run", with a supply record of form `draft-package`. No guidance carries a draft |
 
 **Two ways to narrow the gap between the App's read and Codex's read (options;
 not chosen: TBD-003 keeps attachment storage open, REQ-003 forbids choosing
@@ -455,8 +571,8 @@ DEL-02-02's `draft_transition` and `draft_reference` (WR-v0.1 §5.1, §8;
 `workspace-registration.schema.json`, node D5). DEL-02-02 owns them.
 [`nir.draft-transition.schema.json`](nir.draft-transition.schema.json)
 restates `draft_transition` **with D5's own element names and values**, so
-the two compare line by line, and adds the two elements this view needs that
-D5's shape does not yet carry (a request to DEL-02-02, join J-W1):
+the two compare line by line, plus the two optional elements R18-1 (C-02)
+has D5 add on *registered* and *registration not completed*:
 
 | Element (D5's name) | Meaning for the view |
 |---|---|
@@ -466,8 +582,13 @@ D5's shape does not yet carry (a request to DEL-02-02, join J-W1):
 | `content` | The draft's content identity with method (WD §6.1 RV-1…RV-5; algorithm open, WD U-03) |
 | `disposition` | WR's codes: *new workflow*, *new revision*, *in place*, or *refused: …* (K-6: *refused: name taken* asks for a new name) |
 | `cause`, `time`, `attribution` | As WR §8 states them (*file change item* with thread and item, *app action*, *not observed*) |
-| **`a15_record`** (requested) | For *registered* and *registration not completed*: the RS A15 record the App act control wrote at capture (K-8) |
-| **`revision`** (requested) | For *registered*: the revision identity. Until DEL-02-02 carries these two, the view reads them from WR's `library_entry` |
+| **`a15_record`** (optional, C-02) | For *registered* and *registration not completed*: the RS A15 record the App act control wrote at capture (K-8) |
+| **`revision`** (optional, C-02) | For *registered*: the revision identity |
+
+**Read side (C-02).** The view takes `a15_record` and `revision` from the
+transition when present, otherwise from WR's `library_entry` for the same
+draft. It shows *registered* only when the A15 record is known from one of the
+two (prototype D-7).
 
 Per R17-11 an A15 names its subject by the **reviewed draft** and, for a new
 revision (K-6), the **prior revision**; *derived-from* stays WD's relation
@@ -489,7 +610,8 @@ for the parent workflow identity and the view never uses it for an A15.
 **Accepted transitions** are WR §5.1's (prototype `DRAFT_ALLOWED`); the view
 checks that `from` equals the state it shows and re-reads WR's
 `draft_reference` when it does not. **Refused by the view** (never shown as
-transitions): *registered* without the A15 record and the revision;
+transitions): *registered* when neither the transition nor `library_entry`
+gives the A15 record and the revision;
 *registered* for content other than the reviewed content; *registration not
 completed* without the recorded act; any local UI action that would make a
 draft reviewed or registered (REQ-004: no local transition invents review or
@@ -518,6 +640,7 @@ DEL-04-01's words (IF-6) and DEL-04-02's display rules (IF-8):
 | AP-7 | No act is shown as a prerequisite of another; an independently evidenced act without an acceptance is shown as it is | AS DS-4; ACT §2 |
 | AP-8 | Agent text that claims a check, approval or certification is conversation, never an act or a standing | V-08 |
 | AP-9 | An act captured after its run ended is marked "after run end" | RS §3 |
+| AP-10 | Where an act record's subject is one of DEL-01-03's anchors (a plan revision, an item), the act is shown on that anchor as NPTD TA-4 states it ("‹act kind› by ‹person› (identity not verified) · recorded by ‹recorder›"); this file places the display (R17-7, C-06) | NPTD §9 TA-4 |
 
 The positive faithful-recording case of VER-005 needs an actual act by a
 person (DEP-01-04-019); the App act control (AAC) is the construction that
@@ -540,7 +663,7 @@ code lives stays OI-014's.
 | PD-2 | **Act log** for acts outside any run (for example A15, App-file acts) with the K-6 human-act facet (AS §8) |
 | PD-3 | **Standing facets** (K-6) beside results and outputs shown in the run panel |
 | PD-4 | The panel and log change only when the record changes. Nothing is modal; nothing is notified, focused or opened because of an arrival (SD-4, NR-7) |
-| PD-5 | SD-3's "App act control" entry on an arrival row opens the control only when the person clicks it; the offer may carry the arrival's declared act kind, subject, scope and purpose, because the person chose to act on that arrival. **INTEGRATION reading, open to the integrator:** opening the control from the person's own click is not a reaction to the arrival under EXEC RC-4, since the arrival changes neither the facility nor what anyone is sent |
+| PD-5 | SD-3's "App act control" entry on an arrival row opens the control only when the person clicks it; the offer may carry the arrival's declared act kind, subject, scope and purpose, because the person chose to act on that arrival. **DERIVED (R18-5; K1-1, EXEC RC-4):** the person opened it; the product did not react to the arrival. The App never opens, focuses or notifies because of an arrival |
 | PD-6 | Never shown: "held", "blocked", "paused", "waiting for the person" as a run state; a hold-support value; *unsupported* for a hold reason (SD-4, OV-3). The grant display and the checkpoint indicator never merge |
 | PD-7 | The display compares itself with the record-out (AS §6 K-3): *missing in record* and *missing in display* are shown, never hidden |
 
@@ -602,7 +725,7 @@ constructed exchange; *double* = HOSTING's supplier double; *person* = an
 actual act; *candidate* = an App build. No case can pass a VER criterion
 until a candidate exists.
 
-| Case | Setup | Action | Expected | Needs | Prototype (2026-10-01) | Serves |
+| Case | Setup | Action | Expected | Needs | Prototype (2026-10-01; rerun 2026-10-02) | Serves |
 |---|---|---|---|---|---|---|
 | VC-NIR-01 Card per kind | 11 kinds, capabilities off/on | Build cards | 7 cards, 4 information lines; classes as §4.1 | model; candidate for rendering | C-1, C-2 pass (model) | VER-001 |
 | VC-NIR-02 Forms offered | OB-5-shaped request; one without `availableDecisions` | Build card | Exactly the listed forms; generated forms with amendments only when proposed | model, fixture (OBS-1b transcript) | C-3, C-5 pass (model) | VER-001 |
@@ -614,7 +737,7 @@ until a candidate exists.
 | VC-NIR-08 Refusals | Second answer, closed generation, unknown identity, resolved, invalid form, App-rule affirmative | Answer | U-26 reasons shown; card waits | model | R-1, R-4, R-10, R-12, R-13, R-14 pass (model) | VER-001 |
 | VC-NIR-09 Register coverage | All RT rows | Walk | 13/13 rows; entries valid against HOSTING's schema | model | R-15, R-16 pass (model) | VER-001 |
 | VC-NIR-10 Outcomes | Status set; observation lost; causes; running descendant | Label | TO-1…TO-6; never "stopped"; descendants not implied | model; OBS-2 (O-1, O-4); candidate | O-1…O-3 pass (model) | VER-002 |
-| VC-NIR-11 Reload and relaunch | Live turn with a waiting card | Reload; relaunch after quit | Recovered state drawn; cards rebuilt; "interrupted by quit" with resume offer | candidate; DEL-01-02 interface; OBS-2 (O-2) | Not run | VER-002 |
+| VC-NIR-11 Reload and relaunch | Live turn with a waiting card | Reload; relaunch after quit | Recovered state drawn; cards rebuilt; "interrupted by quit" with resume offer | candidate; DEL-01-02 interface (O-2 settled: no re-raise) | Not run | VER-002 |
 | VC-NIR-12 Start display | No selection; last choice exists | Open; send | "No model selected"; offer not applied; message kept | model; candidate | O-4 pass (model) | VER-002 (K-3) |
 | VC-NIR-13 Attachment identity | Same file; changed file; same name different content; missing file | Select and submit | Sent; held; two items; held. Records valid | model; candidate | A-1…A-5 pass (model) | VER-003 |
 | VC-NIR-14 Draft transitions | WR §5.1 walk: written, review shown, review stale, review shown, registered; name taken; registration not completed | Receive | WR states shown; stale review; refusals of invented registration | model; DEL-02-02's interface (D5) | D-1…D-6 pass (model) | VER-004 |
@@ -622,15 +745,29 @@ until a candidate exists.
 | VC-NIR-16 Positive act case | A person, an App file, the act control | Act; then change the file | Direct-capture record, actor ≠ recorder; then lapse | **person** (DEP-01-04-019), candidate | Model only: AAC K-4, K-6 | VER-005 |
 | VC-NIR-17 Receiving review | This file | Trace REQ-006 exclusions; open pairs | §11, §12 complete | review | — | VER-006 |
 | VC-NIR-18 Fixture suite | All of the above on a candidate | Run | Simulated vs observed reported | candidate | — | VER-007 |
+| VC-NIR-20 Turn composition | Plan chosen; later turns; run start | Compose | Plan element; explicit default after plan; run-start text first; valid against `TurnStartParams` | model; bundle | O-8, O-9 pass | VER-002 (C-06) |
+| VC-NIR-21 Start display wording and role | Run vs conversation; registry default | Open; clear role | R18-2 wording; preselected, clearable, "no role" | model; candidate | O-5, O-6 pass | VER-002 |
+| VC-NIR-22 Waiting indicator | Requests in two conversations; two windows | Count; answer twice | Count with no window; second answer refused | model; candidate | O-10 pass | VER-001 (C-24) |
+| VC-NIR-23 Start offer | Proposal lines exact, absent, unknown; run in progress | Offer; confirm | Offer only for one registered workflow; disabled during a run; person confirms | model; candidate | O-11 pass | VER-004 (R19-2) |
+| VC-NIR-24 Continue as role | A conversation | Continue as another role | New conversation, editable summary, nothing sent, no model | model; candidate | O-12 pass | VER-002 (R19-3) |
+| VC-NIR-25 Items never completed | Open reasoning item at turn end | Settle | "not completed (turn ended)" | model; fixture (OBS-2 O-1) | O-7 pass | VER-002 (G-4) |
 | VC-NIR-19 Formats | Three schemas and examples | Validate | Valid valid; invalid invalid | model | S-1…S-4 pass | OUT-003 |
 
 ### 13.2 Local prototype (R17-1; R12-3)
 
 `prototype/` (Python 3 standard library; read-only imports of DEL-04-03's
 `minischema.py` and `record_store.py` and DEL-01-01's `jsonschema_subset.py`).
-Command: `python3 run_cases.py` in `prototype/`. Run on 2026-10-01, macOS
-Darwin 25.6.0 arm64, Python 3.13.7: **103 checks, 0 failed**, exit status 0;
-output in [`prototype/results/RUN_2026-10-01.txt`](prototype/results/RUN_2026-10-01.txt).
+Command: `python3 run_cases.py` in `prototype/`. Round 2 run on 2026-10-02,
+macOS Darwin 25.6.0 arm64, Python 3.13.7: **119 checks, 0 failed**, exit
+status 0; output in [`prototype/results/RUN_2026-10-02.txt`](prototype/results/RUN_2026-10-02.txt)
+(round 1: 103 checks, `RUN_2026-10-01.txt`, kept). New at v0.2: O-5…O-12,
+D-7, K-12b, K-12c; O-9 checks composed turns against the committed bundle
+with the installed `jsonschema`. Node F was changing RS's schema while this
+ran: the act control's A15 entries are written in whichever form the RS
+schema in the working tree has (RS-v0.8's `derivedFrom` string, or FR-06's
+`reviewedDraft`/`priorRevision`/`registeredEntries`); the recorded run used
+the FR-06 form (RS schema sha256 prefix `ab824dc5974ad128`), and an earlier
+round-2 run against RS-v0.8 also passed 119 of 119.
 The installed `jsonschema` 4.26.0 (already present; nothing installed) gave
 the same verdicts on all schema examples (S-4). A pass is evidence that the
 rules run as written, not a VER pass.
@@ -641,7 +778,7 @@ rules run as written, not a VER pass.
 |---|---|---|
 | [`nir.answer-submission.schema.json`](nir.answer-submission.schema.json) | DEL-01-04 card → register *answer* (DEL-01-01 / DEL-01-02) | `.example.valid.json` (1), `.example.invalid.json` (6 cases) |
 | [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) | DEL-01-04 → conversation view, DEL-02-02 (draft attachments), DEL-04-03 (cited as evidence) | 1 valid, 4 invalid |
-| [`nir.draft-transition.schema.json`](nir.draft-transition.schema.json) | DEL-02-02 → DEL-01-04 (D5's `draft_transition` with D5's names, plus two requested elements) | 1 valid, 5 invalid |
+| [`nir.draft-transition.schema.json`](nir.draft-transition.schema.json) (0.2) | DEL-02-02 → DEL-01-04 (D5's `draft_transition` with D5's names, plus the two optional elements of C-02) | 1 valid, 5 invalid |
 
 The act control's two formats are AAC §5. All five use the keyword subset
 DEL-04-03's prototype validator accepts, so one validator checks them with
@@ -658,6 +795,9 @@ RS's own schema.
 | F-NIR-5 | The App's checkpoint display (EXEC §2.4.4) and DEL-04-02's K-5/K-6 overlapped | Resolved by R17-7: §9; J-E2, J-S1 |
 | F-NIR-6 | This deliverable needs three inputs no register row names (DEL-04-02, DEL-02-03, DEL-01-05) | NR-1…NR-3 proposed, all SCC-neutral |
 | F-NIR-7 | App v3 called an interrupted turn "Stopped" | §10; TO-4 |
+| F-NIR-8 (v0.2) | Nobody sent `collaborationMode`; plan mode persists until the default mode is sent (OBS-2 O-8) | §5.6 TC-4, TC-5 (C-06) |
+| F-NIR-9 (v0.2) | Codex writes its own "user interrupted … on purpose" line into history on a graceful stop (OBS-2 O-2) | §5.3 V-e (G-5) |
+| F-NIR-10 (v0.2) | An agent proposal can only be recognized from message text; reading prose is excluded (EXEC RC-5), so an exact proposal line is designed | §5.7 RN-3, RN-5; U-NIR-8 |
 
 ## UNRESOLVED
 
@@ -665,12 +805,15 @@ RS's own schema.
 |---|---|---|---|
 | U-NIR-1 Effect of DM-4/DM-5 | App implementation owner with DEL-01-01 | Before card implementation | PROPOSED forms; effect not observed |
 | U-NIR-2 AO-1 or AO-2 (TBD-003) | App implementation owner | Before attachment implementation | AO-1 assumed |
-| U-NIR-3 Re-raised requests after restart (O-2) | OBS-2, then DEL-01-02 | Round 2 | §4.4 note |
+| U-NIR-3 *Closed (OBS-2 O-2):* requests are not raised again after a restart | — | — | Note removed |
 | U-NIR-4 Use of `thread/attachment/*` | App implementation owner | If a requirement needs per-thread attachment persistence | Not used |
-| U-NIR-5 PD-5 reading of RC-4 | Integrator | Before node F | INTEGRATION reading |
-| U-NIR-6 The two requested elements `a15_record`, `revision` on D5's `draft_transition` (J-W1) | DEL-02-02 with DEL-01-04 | Node F / comparison | Until carried, read from WR's `library_entry` |
-| U-NIR-7 Interrupt effects (O-1), supplier resolution (O-3), delegation items (O-4) | OBS-2 | Round 2 | TO-4, CS-6, §5.5 cells OBS-2 pending |
+| U-NIR-5 *Closed by R18-5* | — | — | PD-5 DERIVED; EXEC RC-4 gains the sentence (FE-13) |
+| U-NIR-6 *Ruled (C-02):* D5 adds `a15_record`, `revision` as optional; the view also reads `library_entry` | — | — | §7 |
+| U-NIR-7 *Filled:* O-1 and O-3 confirm TO-4 and CS-6; O-4 confirms the descendant line through an adapter only (R18-9). "Primary completed, child running" stays not observed | DEL-01-03 | When observed | §5.5 |
+| U-NIR-8 The proposal line form `Next workflow: ‹origin›:‹name›` and the guidance that asks for it | DEL-01-04 with DEL-02-04 (guidance) and DEL-02-02 (selection) | Before node F / comparison | RN-3…RN-6 PROPOSED |
+| U-NIR-9 Contents of the handoff summary | DEL-01-04 with DEL-02-04 | Before implementation | CA-2 PROPOSED |
 
 ## Changes
 
-- v0.1 (this node): first version.
+- v0.2 (D round 2, 2026-10-02): see "Changes from v0.1" at the top.
+- v0.1 (D round 1): first version.

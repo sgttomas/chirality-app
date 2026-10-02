@@ -37,37 +37,69 @@
   },
   {
     "case": "INV-OF-2",
-    "reason": "An A15 offer with a decline (ACT §2.3 defines none) and without the reviewed draft, prior revision and descriptor (R17-11; WR RB-4).",
+    "reason": "An A15 offer with a decline (ACT §2.3 defines none).",
     "instance": {
       "format": "chirality.aac.offer",
-      "formatVersion": "0.1",
-      "offerId": "offer:0003",
+      "formatVersion": "0.2",
+      "offerId": "offer:0009",
       "actKind": "A15",
       "wording": "register workflow revision",
-      "subject": {
-        "class": "workflow revision (reviewed draft content)",
-        "ref": "project:.chirality/workflows:x@rev-1",
-        "contentIdentity": {
-          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
-          "value": "aa"
+      "entries": [
+        {
+          "descriptorId": "a15d:supports-adjust:0004",
+          "subject": {
+            "ref": "project:.chirality/workflows:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        },
+        {
+          "descriptorId": "a15d:load-check:0001",
+          "subject": {
+            "ref": "project:.chirality/workflows:load-check@rev-1",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:load-check@77be...02",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "priorRevision": null
         }
-      },
-      "scope": "AF-1",
-      "purpose": "App output checked",
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
       "actorRequirement": "the person",
       "declineAvailable": true,
       "answers": {
-        "arrival": {
-          "checkpoint": "CP-output-check",
-          "arrivalOrdinal": 1
-        },
-        "runId": "run:R-200/3"
+        "standing": "no arrival: a standing act (RC-6)"
       },
-      "requestRef": "rec:app:run-3:0004",
-      "composedAt": "2026-10-01T10:10:00Z",
+      "composedAt": "2026-10-02T10:00:00Z",
       "offerDigest": {
         "method": "illustration: sha-256 over the canonical offer",
-        "value": "0ffe...77"
+        "value": "9a9a...10"
       }
     }
   },
@@ -180,39 +212,228 @@
   },
   {
     "case": "INV-OF-6",
-    "reason": "The A15 pair under WD's relation name 'derivedFrom' (R17-11 keeps derived-from for the parent workflow identity).",
+    "reason": "An A15 entry with the pair under WD's relation name 'derivedFrom' (R17-11).",
     "instance": {
       "format": "chirality.aac.offer",
-      "formatVersion": "0.1",
-      "offerId": "offer:0003",
+      "formatVersion": "0.2",
+      "offerId": "offer:0009",
       "actKind": "A15",
       "wording": "register workflow revision",
-      "subject": {
-        "class": "workflow revision (reviewed draft content)",
-        "ref": "project:.chirality/workflows:x@rev-1",
-        "contentIdentity": {
-          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
-          "value": "aa"
+      "entries": [
+        {
+          "descriptorId": "a15d:supports-adjust:0004",
+          "subject": {
+            "ref": "project:.chirality/workflows:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          },
+          "derivedFrom": {
+            "reviewedDraftContent": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          }
+        },
+        {
+          "descriptorId": "a15d:load-check:0001",
+          "subject": {
+            "ref": "project:.chirality/workflows:load-check@rev-1",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:load-check@77be...02",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "priorRevision": null
         }
-      },
-      "scope": "AF-1",
-      "purpose": "App output checked",
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
       "actorRequirement": "the person",
       "declineAvailable": false,
       "answers": {
         "standing": "no arrival: a standing act (RC-6)"
       },
-      "composedAt": "2026-10-01T10:10:00Z",
+      "composedAt": "2026-10-02T10:00:00Z",
       "offerDigest": {
         "method": "illustration: sha-256 over the canonical offer",
-        "value": "0ffe...77"
-      },
-      "derivedFrom": {
-        "reviewedDraftContent": {
-          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
-          "value": "aa"
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-7",
+    "reason": "Prior revision as a free string instead of an RS workflowTuple or null (C-01).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.2",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "entries": [
+        {
+          "descriptorId": "a15d:supports-adjust:0004",
+          "subject": {
+            "ref": "project:.chirality/workflows:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": "project:supports-adjust@rev-4"
         },
-        "priorRevision": null
+        {
+          "descriptorId": "a15d:load-check:0001",
+          "subject": {
+            "ref": "project:.chirality/workflows:load-check@rev-1",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:load-check@77be...02",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-8",
+    "reason": "Reviewed draft not in WR ID-3 form draft:<location>:<name>@<content identity> (C-01).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.2",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "entries": [
+        {
+          "descriptorId": "a15d:supports-adjust:0004",
+          "subject": {
+            "ref": "project:.chirality/workflows:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "supports-adjust",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        },
+        {
+          "descriptorId": "a15d:load-check:0001",
+          "subject": {
+            "ref": "project:.chirality/workflows:load-check@rev-1",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:load-check@77be...02",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "77be...02"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-9",
+    "reason": "An A15 offer with no entries (L-4: one or more).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.2",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "entries": [],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
       }
     }
   }

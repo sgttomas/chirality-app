@@ -1,5 +1,5 @@
 {
-  "description": "Valid (invented): DEL-02-02's 'registered' transition for a draft made from rev-4 (K-6: a new revision), with the two elements DEL-01-04 asks for (J-W1): the A15 record the App act control wrote and the revision.",
+  "description": "Valid (invented): DEL-02-02's 'registered' transition for a draft made from rev-4 (K-6: a new revision), with the two optional elements R18-1 C-02 has D5 add: the A15 record the App act control wrote and the revision.",
   "instance": {
     "record_kind": "draft_transition",
     "event": "registered",

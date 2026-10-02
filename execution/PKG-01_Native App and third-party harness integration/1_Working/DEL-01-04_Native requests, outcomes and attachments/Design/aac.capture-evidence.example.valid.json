@@ -1,53 +1,86 @@
 {
-  "description": "Valid (invented): the person's A15 on a reviewed draft, captured from the native confirmation of an offer composed from DEL-02-02's A15 descriptor; the act was recorded at capture, then the workspace reported the registration completed.",
+  "description": "Valid (invented): one A15 act over two entries (L-4), captured from the native confirmation; recorded at capture; the workspace then registered the first entry and reported the second not completed, each beside the act.",
   "instance": {
     "format": "chirality.aac.capture-evidence",
-    "formatVersion": "0.1",
-    "captureId": "cap:0007",
-    "offerId": "offer:0006",
+    "formatVersion": "0.2",
+    "captureId": "cap:0010",
+    "offerId": "offer:0009",
     "offerDigest": {
       "method": "illustration: sha-256 over the canonical offer",
-      "value": "6a6a...01"
+      "value": "9a9a...10"
     },
     "choice": "act",
     "actKind": "A15",
     "actor": {
       "displayName": "Engineer A",
       "osAccount": "enga",
-      "codexAccount": "person@example.invalid",
+      "codexAccount": "ChatGPT account (no email reported)",
       "identityVerified": false
     },
     "boundSubject": [
-      "project:.chirality/workflows:supports-adjust@rev-5"
+      "project:.chirality/workflows:supports-adjust@rev-5",
+      "project:.chirality/workflows:load-check@rev-1"
     ],
     "boundContent": [
       {
         "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
         "value": "d13c...4a"
+      },
+      {
+        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+        "value": "77be...02"
       }
     ],
     "scope": "project library .chirality/workflows",
     "purpose": "make it available in the project library",
-    "capturedAt": "2026-10-01T10:59:58Z",
+    "capturedAt": "2026-10-02T10:00:20Z",
     "surface": "App interface",
     "inputSource": "host-native-confirmation",
     "answers": {
       "standing": "no arrival: a standing act (RC-6)"
     },
-    "descriptorId": "a15d:supports-adjust:0003",
-    "reviewedDraft": {
-      "draft": "project:.chirality/workflow-drafts/supports-adjust",
-      "content": {
-        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
-        "value": "d13c...4a"
+    "entries": [
+      {
+        "descriptorId": "a15d:supports-adjust:0004",
+        "revision": "project:.chirality/workflows:supports-adjust@rev-5",
+        "reviewedDraft": {
+          "draft": "draft:project:supports-adjust@d13c...4a",
+          "content": {
+            "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+            "value": "d13c...4a"
+          }
+        },
+        "priorRevision": {
+          "kind": "workflow",
+          "origin": "project",
+          "sourceRoot": ".chirality/workflows",
+          "name": "supports-adjust",
+          "revision": "rev-4",
+          "revisionMethod": "proto-sha256-list-0 (illustration)"
+        },
+        "outcome": {
+          "registration": "completed",
+          "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
+        }
+      },
+      {
+        "descriptorId": "a15d:load-check:0001",
+        "revision": "project:.chirality/workflows:load-check@rev-1",
+        "reviewedDraft": {
+          "draft": "draft:project:load-check@77be...02",
+          "content": {
+            "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+            "value": "77be...02"
+          }
+        },
+        "priorRevision": null,
+        "outcome": {
+          "registration": "not completed",
+          "reason": "the slot moved on (invented)"
+        }
       }
-    },
-    "priorRevision": "project:.chirality/workflows:supports-adjust@rev-4",
-    "recordId": "rec:app-interface:0007",
-    "outcome": {
-      "registration": "completed",
-      "revisionIdentity": "project:.chirality/workflows:supports-adjust@rev-5"
-    },
+    ],
+    "recordId": "rec:app-interface:0010",
     "evidenceLimits": [
       "identity not verified"
     ]

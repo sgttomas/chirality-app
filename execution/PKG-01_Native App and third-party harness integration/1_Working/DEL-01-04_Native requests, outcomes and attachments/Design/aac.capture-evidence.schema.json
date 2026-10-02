@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.1",
-  "title": "App act control capture evidence (PROPOSED, DEL-01-04/AAC-v0.1 §5.2)",
-  "description": "PROPOSED by DEL-01-04/AAC-v0.1 (R17-1, R17-6). The capture-evidence object EXEC CAP-3 names: {act identity, actor, act kind, bound content identity with method designation, scope, purpose, time, capturing surface 'App interface', arrival reference}. It is produced on the capture side only from the person's native confirmation of a presented offer (CAP-4; R17-5 PROPOSED), and DEL-04-03's human_act or act_declined record cites it by 'captureId' (RS §6.1 'Capture evidence references'; RS §9). The actor is named from what the App observes, never verified (DECISION-K1 K1-4; EXEC CAP-8). For A15 the subject is named by the reviewed draft ('reviewedDraft') and, for a new revision, the prior revision ('priorRevision') (R17-11; 'derived-from' stays WD's parent-workflow relation); the capture carries DEL-02-02's descriptor identity, and the registration's outcome, which DEL-02-02 reports after the act is recorded, is carried beside it, never as part of the act (AAC §4.2; AK-f). 'seal' is the PROPOSED provenance element of AAC §6.3 (SEAL-2); it is optional at 0.1.",
+  "$id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.2",
+  "title": "App act control capture evidence (PROPOSED, DEL-01-04/AAC-v0.2 §5.2)",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6). The capture-evidence object EXEC CAP-3 names: {act identity, actor, act kind, bound content identity with method designation, scope, purpose, time, capturing surface 'App interface', arrival reference}. Produced on the capture side only from the person's native confirmation of a presented offer (CAP-4; R17-5 PROPOSED); DEL-04-03's human_act or act_declined record cites it by 'captureId' (RS §6.1; RS §9). The actor is named from what the App observes, never verified (DECISION-K1 K1-4; EXEC CAP-8); 'codexAccount' is the reported email or 'ChatGPT account (no email reported)', and no plan type is recorded (R18-1 C-10). An A15 capture lists its entries (DECISION-L L-4), each with the workspace's descriptor, the revision, the reviewed draft (WR ID-3 string and content) and the prior revision (RS workflowTuple or null) (R17-11; R18-1 C-01), and, once DEL-02-02 reports it, that entry's registration outcome beside the act, never part of it (AAC AK-f). 'seal' is SEAL-2's optional provenance element (AAC §6.3).",
   "type": "object",
   "required": [
     "format",
@@ -42,6 +42,78 @@
           "minLength": 1
         }
       }
+    },
+    "workflowTuple": {
+      "description": "RS $defs/workflowTuple (RS-v0.8; WD §6.1 identity tuple in RS's spelling), copied here so the schema stands alone; C-01 makes RS's the persisted form.",
+      "type": "object",
+      "required": [
+        "kind",
+        "origin",
+        "sourceRoot",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "workflow"
+        },
+        "origin": {
+          "enum": [
+            "project",
+            "user",
+            "bundled",
+            "host"
+          ]
+        },
+        "sourceRoot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revisionMethod": {
+          "type": "string",
+          "minLength": 1
+        },
+        "derivedFrom": {
+          "$ref": "#/$defs/workflowTuple"
+        }
+      }
+    },
+    "reviewedDraft": {
+      "type": "object",
+      "required": [
+        "draft",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "type": "string",
+          "pattern": "^draft:(project|user):[^@]+@.+$",
+          "description": "WR ID-3 string draft:<location>:<name>@<content identity> (C-01)."
+        },
+        "content": {
+          "$ref": "#/$defs/contentIdentity"
+        }
+      }
+    },
+    "priorRevision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/workflowTuple"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The revision this one follows (K-6) as an RS workflowTuple, or null for a first revision (C-01)."
     }
   },
   "properties": {
@@ -203,48 +275,77 @@
       "type": "string",
       "pattern": "^rec:"
     },
-    "outcome": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "registration",
-            "revisionIdentity"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "registration": {
-              "const": "completed"
-            },
-            "revisionIdentity": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "registration",
-            "reason"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "registration": {
-              "const": "not completed"
-            },
-            "reason": {
-              "type": "string",
-              "minLength": 1
-            }
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "descriptorId",
+          "revision",
+          "reviewedDraft",
+          "priorRevision"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "descriptorId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewedDraft": {
+            "$ref": "#/$defs/reviewedDraft"
+          },
+          "priorRevision": {
+            "$ref": "#/$defs/priorRevision"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "registration",
+                  "revisionIdentity"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "registration": {
+                    "const": "completed"
+                  },
+                  "revisionIdentity": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "registration",
+                  "reason"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "registration": {
+                    "const": "not completed"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ]
           }
         }
-      ]
+      }
     },
     "recordId": {
       "type": "string",
-      "pattern": "^rec:",
-      "description": "The RS record that cites this capture, once written."
+      "pattern": "^rec:"
     },
     "evidenceLimits": {
       "type": "array",
@@ -255,38 +356,11 @@
     },
     "seal": {
       "$ref": "#/$defs/contentIdentity"
-    },
-    "descriptorId": {
-      "type": "string",
-      "minLength": 1
-    },
-    "reviewedDraft": {
-      "type": "object",
-      "required": [
-        "draft",
-        "content"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "draft": {
-          "type": "string",
-          "minLength": 1
-        },
-        "content": {
-          "$ref": "#/$defs/contentIdentity"
-        }
-      }
-    },
-    "priorRevision": {
-      "type": [
-        "string",
-        "null"
-      ]
     }
   },
   "allOf": [
     {
-      "description": "A decline exists only where ACT §2.3 defines an act-declined event (A4, A6, A7, A12; A12 is not served in this increment).",
+      "description": "A decline exists only where ACT §2.3 defines an act-declined event.",
       "anyOf": [
         {
           "properties": {
@@ -309,7 +383,7 @@
       ]
     },
     {
-      "description": "A15 names its subject by the reviewed draft and the prior revision (R17-11) and cites the workspace's descriptor.",
+      "description": "A15 lists its entries (L-4; R17-11; C-01).",
       "anyOf": [
         {
           "properties": {
@@ -322,10 +396,27 @@
         },
         {
           "required": [
-            "descriptorId",
-            "reviewedDraft",
-            "priorRevision"
+            "entries"
           ]
+        }
+      ]
+    },
+    {
+      "description": "Entries belong to A15 only.",
+      "anyOf": [
+        {
+          "properties": {
+            "actKind": {
+              "const": "A15"
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "entries"
+            ]
+          }
         }
       ]
     }
