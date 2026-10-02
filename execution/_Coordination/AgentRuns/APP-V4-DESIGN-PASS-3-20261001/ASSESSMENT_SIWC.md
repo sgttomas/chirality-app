@@ -144,3 +144,15 @@ currency check, like the other proposals.
 default: one pinned supplier, no restart coupling, no doctrine change. Design
 the SIWC grant as a PROPOSED optional mode behind eligibility and one
 observation, and record its external dependency with that status.
+
+## Correction — what the pin buys (owner remark, 2026-10-01)
+
+> btw Codex frequently updates its version in significant ways.  Pinning can only last so long.
+
+The rows "Pinning and qualification: covered by the Codex pin" overstate it.
+The 0.158.0 pin is a fixed reference for design and tests, not lasting
+stability: npm lists 0.154.0 (2026-09-09), 0.158.0 (2026-09-28) and, as of
+this note, 0.160.0 (2026-10-01T20:26Z), five releases after 0.158.0 in three
+days. Both routes face supplier churn; the SIWC route touches fewer Codex
+internals (a provider entry instead of Codex's account methods) but is itself
+a preview. The conclusion (no pressing need) is unchanged.
