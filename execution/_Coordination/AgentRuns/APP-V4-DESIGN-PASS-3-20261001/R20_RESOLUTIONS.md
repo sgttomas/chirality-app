@@ -113,3 +113,8 @@ SCC-002, no SCC change. Collected with the other proposed rows.
   descriptor through AAC's offer and capture into RS.
 - **R21-4 Supply check read (V21-B m-4).** WR uses the history read HOSTING
   §4.4 recommends, not `thread/read {includeTurns: true}`.
+- **R21-5 Trying a draft (V21b-A N-2; K-7, C-14).** "Try in a conversation"
+  pre-fills the person's unsent message with the draft's `WORKFLOW.md`
+  attached as a text element (NIR §6, AT-8). When the person sends it, it is
+  the person's own attachment: no run, no workflow supply, no run-start text.
+  WR TT-3 follows NIR.
