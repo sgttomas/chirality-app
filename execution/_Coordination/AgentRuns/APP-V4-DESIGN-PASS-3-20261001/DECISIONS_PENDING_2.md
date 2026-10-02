@@ -42,13 +42,19 @@ stops both start-up connections (chatgpt.com and github.com) is
 - B. Always off in the App: no start-up traffic, no plugins in the App.
 - C. Always on: shown and recorded.
 
-**L-4 Workflows already in a library without a registration record (D5
-U-WR-4; K-7, K-8).** Every workflow in an existing project or user library
-predates registration.
-- **A. Register in place (recommended):** each runs after one review and
-  registration act; the App lists them for review. Consistent with "only
-  registered revisions run".
-- B. Let them run, shown as "not registered".
+**L-4 Workflows already in a project or user library without a registration
+record (D5 U-WR-4; K-7, K-8).** *Clarified 2026-10-02 at the owner's
+question.* The workflows the App ships are **not** affected: the release
+registers them, and they run without any review (WR LS-5, origin
+*bundled*). L-4 concerns only workflows that already sit in a project's or
+the user's own library from before v4 (for example a project's
+`.chirality/workflows/`, or App v3 libraries).
+- **A. Register in place, with two shortcuts (recommended).** A library entry
+  whose bytes equal a shipped revision is recognized as that revision and
+  runs at once. The rest are listed, and you can review and register several
+  in one act that binds each one's exact bytes.
+- B. Register in place one at a time (one review and act each).
+- C. Let them run, shown as "not registered".
 
 **L-5 An OS password or Touch ID check per act (D3 U-AAC-2).** The person is
 recorded "identity not verified" (K1-4).

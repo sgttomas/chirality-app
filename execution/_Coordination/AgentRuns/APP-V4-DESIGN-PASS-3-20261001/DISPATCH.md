@@ -27,3 +27,4 @@ HELP_HUMAN session, under D-GOV-35, using the agent type `type2-opus-high`
 | R18 | Integrator rulings on C-01…C-25 and G-1…G-5 ([R18_RESOLUTIONS.md](R18_RESOLUTIONS.md)); C-11, C-17 and the plugins trade-off held for the owner |
 | L | Second owner package: [DECISIONS_PENDING_2.md](DECISIONS_PENDING_2.md), seven questions L-1…L-7, and review page https://claude.ai/artifact/N44DW6RVzVjvrLGxpL2ris (Version 1). F and D round 2 start on the owner's answers |
 | SIWC | Owner asked for an assessment of "Sign in with ChatGPT" before answering L. HELP_HUMAN read the public OpenAI pages and wrote [ASSESSMENT_SIWC.md](ASSESSMENT_SIWC.md); L-1 and L-6 recommended held |
+| L-4 clarified | At the owner's question, L-4 clarified: shipped (bundled) workflows are registered by the release (WR LS-5) and unaffected; option A now recognizes entries byte-equal to a shipped revision and allows registering several in one act. Review page Version 2 |
