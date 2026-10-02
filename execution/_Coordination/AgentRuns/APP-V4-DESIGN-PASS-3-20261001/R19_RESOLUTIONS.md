@@ -85,3 +85,34 @@ is proposed as a later node; its scheduling is open.
 
 Same limits as OBS-2 (R17-16), and S-9 means stop and report. Items in
 BRIEFS "OBS-3".
+
+## R19-7 The workflow supply route — INTEGRATION (after OBS-3)
+
+OBS-3 (`DEL-01-01/Design/OBS_3_0.158.0.md`) found: a `skill` input is
+honoured only for a `SKILL.md` in a discovered skill root at the exact
+canonical path, and is otherwise accepted and silently ignored; `mention`
+supplies nothing; plain text reaches the model and `thread/read` returns its
+bytes; the experimental settings update persists for the conversation and
+piles up. Ruling:
+
+- The App supplies a workflow as **a text element of the turn that starts
+  the run**, carrying the registered revision's exact bytes, framed by
+  App-written lines that name the workflow and revision and, when chaining,
+  say the previous run ended. The framing wording is PROPOSED in DEL-02-02
+  and fixed in its schema.
+- The App records the bytes and their content identity per run, and checks
+  them against `thread/read` (the supply evidence; R3 in RS).
+- The `skill` route is a recorded alternative, with OBS-3's five mitigations,
+  not used now. `thread/settings/update` is not used for workflows.
+- Workflows are not placed in any discovered skill root by the App, so the
+  model is not shown other registered workflows (R19-2 (b)).
+- Owner of composition: DEL-02-02 composes the run-start text (it holds the
+  registered revision); DEL-02-03 starts the run. DEL-02-04 composes role
+  guidance only. The proposed row DEL-02-04 → DEL-02-02 is dropped.
+
+## R19-8 Forks — DERIVED (OBS-3 W-6)
+
+At 0.158.0 `thread/fork` ignores new instructions; a fork keeps the source's
+role. "Continue as ‹role›" therefore opens a new conversation with that
+role's guidance and a handoff summary the person sees and can edit before it
+is sent. Forking stays available as a same-role copy of a conversation.

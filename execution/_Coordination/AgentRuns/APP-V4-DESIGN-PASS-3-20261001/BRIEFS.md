@@ -163,3 +163,31 @@ model (tap), the reply's compliance with the checkable instruction, and what
 under `DEL-01-01/Design/prototype/obs3/`; the return file `D/OBS-3.md`. Stop
 everything you start (Codex processes, taps, the LM Studio server if you
 started it, the loaded model) before returning.
+
+## D round 2 (the six D executors, resumed; same fences as round 1)
+
+Binding additions: [R18](R18_RESOLUTIONS.md), [R19](R19_RESOLUTIONS.md)
+(R19-1…R19-8), DECISION-L, OBS-2 and OBS-3 records
+(`DEL-01-01/Design/OBS_2_0.158.0.md`, `OBS_3_0.158.0.md`), and
+[F/F0_JOINS.md](F/F0_JOINS.md) §2 (conflicts as ruled in R18), §6 ("Not
+F's") and §7 (OBS-2 consequences). Step each Design file to v0.2 with a
+"Changes from v0.1" table carrying the ruling and item IDs; fill every
+"OBS-2 pending" cell or say why it stays open; rerun the prototype and record
+the output. Append a "Round 2" section to `D/<ID>.md` (what changed, new
+sha256, join items for F that changed or were added). Same limits as round 1.
+
+## F — first-increment edits (four Type 2 in parallel, then F-E)
+
+Rows: [F/F0_JOINS.md](F/F0_JOINS.md) §1 (FH-…, FE-…, FR-…, FA-…, FS-…,
+FW-…, FX-…, FC-…, FD-…, FT-…, FL-…, FP-…, FG-…) and §1.14 (stale pointers),
+as ruled by R18 and R19 (where a row conflicts with R19, R19 wins; say so).
+Fences and version steps as F0 §6: F-A HOSTING (→ v0.9), F-B EXEC (→ v0.7),
+F-C RS, ACT, AS (→ v0.9 each), F-D WD, WD-EX (→ v0.9), CA (→ v0.7); F-E
+afterwards (ADAPTER, XT, LOOP, PANEL, GUIDE, with GUIDE re-pinned last).
+Read each file whole before editing; add a "Changes from ‹previous›" table
+with row IDs; cite the new Design files by label and section (they are
+being stepped to v0.2 in parallel: cite v0.2 labels; section numbers are
+checked by F-E). Rerun each touched deliverable's prototype. Return file
+`F/<ID>.md`: rows applied, rows not applied with reason, new sha256, rerun
+output. Never edit `OBS_*`, `PIN_SPIKE_*`, `generated/`, SWBPIPE data files,
+ScopeOfWork, registers or `_STATUS.md`.
