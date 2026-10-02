@@ -26,3 +26,4 @@ HELP_HUMAN session, under D-GOV-35, using the agent type `type2-opus-high`
 | F0 return | `F/F0_JOINS.md`: 112 consolidated join rows from 116 D items, 42 unclaimed stale pointers, conflicts C-01…C-25, gaps G-1…G-5, 10 new rows (no SCC change, alone or in any pair), 51 SCA-V4-003 items, owner items, suggested F split. Fence verified (only `F/` new) |
 | R18 | Integrator rulings on C-01…C-25 and G-1…G-5 ([R18_RESOLUTIONS.md](R18_RESOLUTIONS.md)); C-11, C-17 and the plugins trade-off held for the owner |
 | L | Second owner package: [DECISIONS_PENDING_2.md](DECISIONS_PENDING_2.md), seven questions L-1…L-7, and review page https://claude.ai/artifact/N44DW6RVzVjvrLGxpL2ris (Version 1). F and D round 2 start on the owner's answers |
+| SIWC | Owner asked for an assessment of "Sign in with ChatGPT" before answering L. HELP_HUMAN read the public OpenAI pages and wrote [ASSESSMENT_SIWC.md](ASSESSMENT_SIWC.md); L-1 and L-6 recommended held |
