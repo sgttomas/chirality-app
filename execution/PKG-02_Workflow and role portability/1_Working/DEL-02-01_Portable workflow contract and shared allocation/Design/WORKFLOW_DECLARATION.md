@@ -66,6 +66,7 @@ unimplemented and not accepted.
 | **R20-4** | §4.7: a run whose conversation has no role, for a workflow declaring compatible roles, is *unsupported*: shown, recorded, and the person may proceed; §4.2.4's *unsupported* row names it | §4.7; §4.2.4 |
 | (verification) | VC-19 inventory names WD-v0.9 and WD-EX-v0.9; VC-53 names AAC-v0.2; prototype rerun on 2026-10-02 (§13.1) | §13; §13.1 |
 | RX2 (residual sweep 2 of run `APP-V4-DESIGN-PASS-3-20261001`; in place, no version step; R20-9, R20-11) | Citations of WR-v0.2's section "run-start supply" now give its number: §16 (framing §16.2, supply check §16.6, agent proposals §16.5, run-end line §16.2 TX-5). §3.9 (a): the finished report is the exact line `Workflow finished: ‹origin›:‹name›`, placed last or just before the proposal line (R20-9, R20-11 (2)); (b): the proposal line is the last line, and during a run it is offered only as "End ‹A› and start ‹B›" (R20-11 (1)). No declared-part meaning changed | Header inputs line; this table (D round 2 row); §3.9 OS-7, (a), (b), one run at a time; §13.1 |
+| RV21 (repairs from review V21 of run `APP-V4-DESIGN-PASS-3-20261001`; in place, no version step; R21-1; V21-B M-1, m-1, m-10) | **M-1:** §4.2.5 `agent-delegation` availability is read in R21-1's order (`multiAgentVersion` `disabled` → missing; effective `features.multi_agent = false` → missing; `namespaceTools` false → missing; any of the three not read, or the version null → not established; otherwise present), as NPTD-v0.2 §7.1 (the reference) and EXEC EV-3a; v0.9 read `namespaceTools` false as not established. Standing column only: the group column and S-11 are unchanged. **m-1:** §13.1 records that the 61-of-62 S-11 result was overtaken by R20-8 (HOSTING has no HCG-A18) and the rerun at 62/62. **m-10:** §3.9 (a) and (b) place the two agent lines as R20-11 (2) does ("last non-empty line"; "the one immediately before its proposal line"), and (b) offers "Start ‹workflow› (proposed by the agent)" with no run in force, as EXEC RE-7 and NIR-v0.2 §5.7 RN-3. No declared-part meaning changed; the declared-part value stays `WD-v0.8` (§3.3; R20-7) | §4.2.5; §13.1; §3.9 (a), (b) |
 
 ## Changes from v0.7
 
@@ -559,8 +560,8 @@ conversation: OS-3…OS-9 repeat for each run, and runs follow one another.
 - **(a) Sequential.** Run A ends only by the person's end (DEL-01-02
   DEF-4) or its run owner's end; when the agent reports the workflow
   finished, with the exact line `Workflow finished: ‹origin›:‹name›` naming
-  the run in force, as the message's last line or just before its proposal
-  line, at most once (R20-9, R20-11 (2); WR-v0.2 §16.5 FN-1), the App
+  the run in force, as the message's last non-empty line or the one
+  immediately before its proposal line, at most once (R20-9, R20-11 (2); WR-v0.2 §16.5 FN-1), the App
   offers "End run" (and, under (b), "End ‹A› and start ‹B›"), and the
   person's choice ends it with cause `completed`. Nothing
   ends a run from the agent's words alone (R20-1). The person then selects
@@ -568,11 +569,12 @@ conversation: OS-3…OS-9 repeat for each run, and runs follow one another.
   as context: a relation, never part of B's identity or of B's reading.
 - **(b) Agent-proposed.** The agent may propose the next workflow in its
   message, with one exact line `Next workflow: ‹origin›:‹name›` naming one
-  registered workflow, as the message's last line, at most once (R20-11
-  (2)); during a run it is offered only as "End ‹A› and start ‹B›", which
+  registered workflow, as the message's last non-empty line, at most once
+  (R20-11 (2)); during a run it is offered only as "End ‹A› and start ‹B›", which
   ends A with cause "ended to start ‹B›" (R20-11 (1), (4)); the App reads only that line form, never prose (EXEC
-  RC-5), and offers "Start ‹workflow› (proposed by the agent)" for the
-  person to confirm (R20-5). A
+  RC-5), and, with no run in force, offers "Start ‹workflow› (proposed by
+  the agent)" for the person to confirm (R20-5; EXEC RE-7, NIR-v0.2 §5.7
+  RN-3). A
   proposal is never a selection, and nothing starts until the person
   confirms; the confirmation is ordinary input, not a reserved act (R17-9;
   WR-v0.2 §16.5, agent proposals). The App places no workflow in a discovered skill root, so the model is not
@@ -719,7 +721,7 @@ group the name does not itself rely on; HOSTING owns the grouping (HC-7).
 | `shell-command` | Run a command in a shell in the workspace | Item kind `commandExecution`; server requests `item/commandExecution/requestApproval` and the legacy `execCommandApproval` | Stable | **HCG-A02**. Also in the group, not relied on by the name: the client method `thread/shellCommand`, which the App calls (its items carry source `userShell`, and the generated description says it runs unsandboxed), the experimental `thread/backgroundTerminals/list`, `thread/backgroundTerminals/clean`, `thread/backgroundTerminals/terminate`, and the notifications `item/commandExecution/outputDelta`, `item/commandExecution/terminalInteraction` |
 | `file-change` | Create, edit, move or delete files in the workspace | Item kind `fileChange`; server requests `item/fileChange/requestApproval` and the legacy `applyPatchApproval` | Stable | **HCG-A03**. Also in the group: the notifications `turn/diff/updated`, `item/fileChange/outputDelta`, `item/fileChange/patchUpdated` |
 | `web-search` | Search the web or open a web page | Item kind `webSearch` (actions search, open page, find in page) | Stable | **HCG-A10**. The generated `WebSearchAction` also has `other`, beside the three actions named |
-| `agent-delegation` | Start, instruct, wait for and close subordinate agents | Item kinds `collabAgentToolCall` (tools `spawnAgent`, `sendInput`, `resumeAgent`, `wait`, `closeAgent`, `sendMessage`, `followupTask`, `interruptAgent`, `listAgents`) and `subAgentActivity` | Item kinds stable; feature `multi_agent` stable and on by default (OBS-2 §6). A stable surface, not labelled experimental (C-05 by R18-1). `multiAgentMode` on thread and turn start is experimental-only (PIN-SPIKE §4) and "@deprecated Ignored" in the generated types, so it is not a signal. Availability (C-04 by R18-1; HOSTING HCG-A08; NPTD-v0.2 §7.1), read at run time (R19-5): present when the model's `multiAgentVersion` is not `disabled` and the provider accepts `namespace` tools (`namespaceTools` of the provider capabilities); an effective `features.multi_agent = false` reads missing; otherwise not established. Observed: on the stock LM Studio 0.4.16 pairing the delegation tools travel only inside a `namespace` tool, which the provider drops, so delegation never reaches the model (OBS-2 O-4); the items were observed only through an adapter, not stock behaviour (R18-9) | **HCG-A08**. The nine tool values named equal the generated `CollabAgentTool` enum |
+| `agent-delegation` | Start, instruct, wait for and close subordinate agents | Item kinds `collabAgentToolCall` (tools `spawnAgent`, `sendInput`, `resumeAgent`, `wait`, `closeAgent`, `sendMessage`, `followupTask`, `interruptAgent`, `listAgents`) and `subAgentActivity` | Item kinds stable; feature `multi_agent` stable and on by default (OBS-2 §6). A stable surface, not labelled experimental (C-05 by R18-1). `multiAgentMode` on thread and turn start is experimental-only (PIN-SPIKE §4) and "@deprecated Ignored" in the generated types, so it is not a signal. Availability (C-04 by R18-1, reading order by R21-1; HOSTING HCG-A08; NPTD-v0.2 §7.1, the reference; EXEC EV-3a), read at run time (R19-5), in this order: the model's `multiAgentVersion` reads `disabled` → missing; an effective `features.multi_agent = false` → missing; the provider capabilities' `namespaceTools` reads false → missing; any of the three not read, or the version null → not established; otherwise (`v1` or `v2`, no `multi_agent = false`, `namespaceTools` true) present. Observed: on the stock LM Studio 0.4.16 pairing the delegation tools travel only inside a `namespace` tool, which the provider drops, so delegation never reaches the model (OBS-2 O-4); the items were observed only through an adapter, not stock behaviour (R18-9) | **HCG-A08**. The nine tool values named equal the generated `CollabAgentTool` enum |
 | `mcp-tool-call` | Call a tool of an MCP server configured in the harness | Item kind `mcpToolCall` | Stable | **HCG-A05**. Also in the group, not relied on by the name: MCP resources (`mcpServer/resource/read`) and the client methods the App calls (`mcpServer/tool/call`, `mcpServer/oauth/login`, `config/mcpServer/reload`, `mcpServerStatus/list`, the experimental event stream). **Observed at the pin (R13-6; HOSTING §10.1):** on the local route of OBS-1 (a Responses provider, LM Studio 0.4.16) LM Studio logged the `namespace` tool type as unsupported and no MCP tool reached the model (that Codex offered the MCP tools as that one `namespace` tool is the OBS record's inference). On that route at this pin the name is not served; this is a limit of that route, not of MCP generally |
 | `dynamic-tool-call` | Call a tool the client supplies to the thread | Item kind `dynamicToolCall`; server request `item/tool/call` | Item kind stable; supplying tools (`dynamicTools` on thread start) is experimental-only (PIN-SPIKE §4) | **HCG-A06**, including the item kind `functionCallOutput` (the output item of such a call; not named on its own, HC-6) |
 | `person-input-request` | Ask the person a structured question during a turn | Server request `item/tool/requestUserInput` | Stable. An answer is never act evidence (I-5; EXEC CAP-6) | **HCG-A07**, including the server request `mcpServer/elicitation/request` (an MCP server's elicitation relayed to the person; its prompt is authored by an MCP server or the agent, HOSTING §6.1) and the experimental `thread/increment_elicitation`, `thread/decrement_elicitation`. No answer in the group is act evidence (I-5) |
@@ -1814,7 +1816,14 @@ run at 18:58 UTC gave 61 of 62: S-11 failed only on its fixed group count,
 because HOSTING-BOUNDARY-v0.9 had by then added a 28th group (HCG-A18
 Goals, G-3); the ten names still resolve to the same groups and no member
 problem was found. The count is a constant in `wdproto.py`, outside this
-node's fence: returned for repair (`F/F-D.md`). No prototype file, fixture
+node's fence: returned for repair (`F/F-D.md`). **Resolved (RV21; V21-B
+m-1):** the 28th group was withdrawn before the candidate: under R20-8
+Codex goals stay a note in HOSTING §8.4 beside HCG-B04, and
+HOSTING-BOUNDARY-v0.9 has no HCG-A18, so the failure does not recur and no
+repair of `wdproto.py` is needed. Rerun at the RV21 working state on
+2026-10-02, same command, Python 3.13.7 and node v24.5.0, after this
+repair's text edits to WD and HOSTING: 62 checks, 62 passed, 0 failed
+(S-11: 27 groups read from HOSTING). No prototype file, fixture
 or schema changed. The prototype reads
 declarations only; it runs no check, arrival or act.
 

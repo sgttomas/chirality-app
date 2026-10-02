@@ -26,6 +26,7 @@ fixtures' declared parts keep the contract version value `WD-v0.8` (WD-v0.9
 | **§1.14 sweep** (L10, L948, L1259 of v0.8) | Receivers line (L10); E1e's "which DEL-01-04 builds later" (L948) → designed in AAC-v0.2, not built; U-25's "construction DEL-01-04 (later)" (L1259) → designed, not built. E1's introduction names ⟨rev-A2⟩ as revision 1 of its slot, registered by A15 at the act control (K-6, K-8). No meaning changes | Header; E1; E1e; UNRESOLVED |
 | (L-WDEX-33a) | The row notes that its reading is unchanged at WD-v0.9: `WD-v0.9` is the document label, not a declared-part value | E9 |
 | (verification) | "Inputs for WD-v0.9 §13"; inventory WD-EX-v0.9; UNRESOLVED points to WD-v0.9 §12 | Verification cases; UNRESOLVED |
+| RV21 (repairs from review V21; in place, no version step; V21-B m-1) | The verification paragraph records that the later S-11 failure was overtaken by R20-8 (no HCG-A18 in HOSTING-BOUNDARY-v0.9) and the rerun at 62 of 62. No example, value or label changes | Verification cases |
 
 ## Changes from v0.7
 
@@ -1290,7 +1291,10 @@ These examples are inputs for WD-v0.9 §13. None has been run against a consumer
 or a host. Rows marked *(prototype)* had their declaration part read by
 `prototype/wdproto.py` on 2026-09-30 (WD §13.1; WAVE_B/B1.md), and again at
 WD-EX-v0.9 on 2026-10-02 (62 checks, 62 passed; a later run failed only
-S-11's group count after HOSTING added a group; WD §13.1).
+S-11's group count after HOSTING added a group; WD §13.1). That group was
+withdrawn under R20-8 (HOSTING-BOUNDARY-v0.9 has no HCG-A18); rerun at the
+RV21 working state on 2026-10-02: 62 checks, 62 passed (WD §13.1; V21-B
+m-1).
 
 | Example | Used by | Expected result summary | VER |
 |---|---|---|---|
