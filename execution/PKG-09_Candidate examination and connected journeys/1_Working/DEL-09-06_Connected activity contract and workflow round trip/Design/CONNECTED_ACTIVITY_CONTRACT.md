@@ -564,7 +564,7 @@ to host evidence; it adds no link.
 | exported / relayed / received | App → host; manifest (TR-4) | — | — | DEL-02-03; the person; host | SQ-17 |
 | adapted | — | new identity, derived-from ⟨rev-A2⟩; checkpoint comparison (AD-2) | — | host | SQ-18 |
 | opened / drafted / registered | — | host tuple opened read-only | draft base ⟨rev-3⟩ → registered as revision 2 of LIB-A1's `supports-adjust` (K-6; WR-v0.2 SP-3, DS-2), derived-from ⟨rev-3⟩; its A15 names the reviewed draft and the prior revision ⟨rev-A2⟩ (R17-11) | DEL-02-02 (WR-v0.2 SQ-H; designed, not built); A15 at DEL-01-04's act control (AAC-v0.2 §4.2) | — |
-| supplied | App: the revision's bytes as a text element of the run-start turn, composed by DEL-02-02 and recorded per run, checked against `thread/read` (R19-7; WR-v0.2 "run-start supply"; WD-v0.9 OS-7); role guidance separately (ROLE-v0.2; HOSTING §8.2); with the run's model destination recorded (S-12) | host loop per turn | App: as for ⟨rev-A2⟩, with model destination | DEL-02-02, DEL-02-03, DEL-01-01; host | SQ-19 |
+| supplied | App: the revision's bytes as a text element of the run-start turn, composed by DEL-02-02 and recorded per run, checked against `thread/read` (R19-7; WR-v0.2 §16, composition §16.2 and supply check §16.6; WD-v0.9 OS-7); role guidance separately (ROLE-v0.2; HOSTING §8.2); with the run's model destination recorded (S-12) | host loop per turn | App: as for ⟨rev-A2⟩, with model destination | DEL-02-02, DEL-02-03, DEL-01-01; host | SQ-19 |
 | provider-adopted | unknown | unknown | unknown | — | — |
 | observed behavior | App run records (RS) | host run records | App run records | DEL-04-03; host | SQ-19, SQ-27 |
 
@@ -849,7 +849,18 @@ changed in parallel (R20-2); outcomes and the twelve records are unchanged.
 Regenerating the examples (`--write-examples`) is outside this node's
 fence and is returned. This version changed no rule, case or prototype
 input (Changes from v0.6); output in `F/F-D.md` of run
-APP-V4-DESIGN-PASS-3-20261001.
+APP-V4-DESIGN-PASS-3-20261001. **Regenerated at RX** (same run, node RX,
+2026-10-02, 19:36 UTC; Python 3.13.7): `python3 -B
+prototype/run_w14_rehearsals.py --out "$TMPDIR/…" --write-examples`, then
+the same command without `--write-examples`; both exit status 0, the same
+twelve records and outcomes, 44 checks passed, "ALL CHECKS HOLD: 0
+failure(s)". The valid example changed only in `record_id`, `date` and the
+pin of DEL-02-03's `prototype/run_all.py` (`42c0b496…` → `b770bb42…`); the
+invalid example is derived from it. The failure node F-C reported "in the
+`w14-result-record` example (`counts_toward_out003`,
+`not_counted_reason`)" was this same pin mismatch: the indented lines
+printed under the next check are the **expected** errors of the invalid
+example, not the failing check. Output in `F/RX.md` of that run.
 
 ---
 
@@ -1101,6 +1112,7 @@ v0.6 = CA-v0.6 (sha256 58167f7accaf356e1e9b0d8f14c004bcc89918b06be56b15d47e52f43
 | FC-01, L1210, L1217 | UNRESOLVED: DEL-02-02 registration designed, not built (with the act control); OUT-003 cannot complete until it is built (F-1 narrowed); workflow authoring row cites WR-v0.2 | UNRESOLVED |
 | §1.14 sweep, same meaning (lines not in F0's list) | §5 rows "Review, registration, drafts" and "App act control" (v0.6 L608, L609) and §11.1's DEL-02-02 row (L917, "no Design file") follow FC-01; §11.1's WD row notes WD-v0.9 and WD-EX-v0.9 | §5; §11.1 |
 | (verification) | Prototype rerun on 2026-10-02, command and outcome below; nothing in the record or examples changed | §8.5 note |
+| RX (design pass 3 residual sweep; in place, no version step) | Examples regenerated with `--write-examples` against DEL-02-03's final prototype (only `record_id`, `date` and the `run_all.py` pin changed); F-C's reported failure explained as that pin; §4 *supplied* row cites WR-v0.2 §16 (§16.2, §16.6) for the run-start text instead of the section name "run-start supply". No rule, case, outcome or identifier changed | §4; §8.5 note; `w14-result-record.example.valid.json`, `.invalid.json` |
 
 Identifiers kept. Added: §12.12. No identifier retired.
 

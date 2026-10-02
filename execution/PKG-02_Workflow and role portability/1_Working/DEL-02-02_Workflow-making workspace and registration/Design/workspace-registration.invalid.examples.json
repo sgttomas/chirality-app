@@ -370,7 +370,7 @@
       "selection": "sel-6",
       "lines": {
         "start_line": "[Chirality] Workflow run start: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
-        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm.",
+        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line of its own \"Workflow finished: project:review-pack\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host. The person decides; nothing ends or starts until they confirm.",
         "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
         "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
         "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
@@ -432,7 +432,7 @@
       "lines": {
         "chain_line": "[Chirality] Previous workflow run ended: supports-adjust revision rev-A3 (run run:thr-40/1, ended by the person). Its instructions no longer apply.",
         "start_line": "[Chirality] Workflow begins: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
-        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm.",
+        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line of its own \"Workflow finished: project:review-pack\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host. The person decides; nothing ends or starts until they confirm.",
         "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
         "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
         "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
@@ -492,6 +492,108 @@
       "standing": "registered",
       "selected_by": "the person (App interface)",
       "how": "agent proposal confirmed by the person",
+      "prior_run": {
+        "run": "run:thr-40/2",
+        "workflow": {
+          "kind": "workflow",
+          "origin": "project",
+          "source_root": "fx-proj (LIB-A1)",
+          "name": "review-pack",
+          "revision": "rev-P1",
+          "revision_method": "proto-sha256-list-0"
+        },
+        "ended": "completed"
+      },
+      "conversation": "thr-40",
+      "selected_at": "t16"
+    }
+  },
+  {
+    "case": "INV-16 run text: a proposal line in the form without origins (R20-9: both agent lines name origin and name)",
+    "kind": "run_text",
+    "expect": "does not match pattern",
+    "instance": {
+      "record_kind": "run_text",
+      "purpose": "run start",
+      "framing": "WR-FRAME-1",
+      "run": "run:thr-40/2",
+      "conversation": "thr-40",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "review-pack",
+        "revision": "rev-P1",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "holding_library": "fx-proj (LIB-A1)",
+      "workflow_file": {
+        "path": "WORKFLOW.md",
+        "content": {
+          "method": "sha256 over UTF-8 text",
+          "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+        },
+        "bytes": 84
+      },
+      "other_files": [
+        {
+          "path": "resources/checklist.md",
+          "sha256": "d192375885ec7d50df1287cb5e19b55d4a79f1cdd1597b9cc52fd59e05da6730"
+        }
+      ],
+      "chain": {
+        "prior_run": "run:thr-40/1",
+        "prior_workflow": {
+          "kind": "workflow",
+          "origin": "project",
+          "source_root": "fx-proj (LIB-A1)",
+          "name": "supports-adjust",
+          "revision": "rev-A3",
+          "revision_method": "proto-sha256-list-0"
+        },
+        "ended": "ended by the person"
+      },
+      "origin_of_start": "selected by the person",
+      "selection": "sel-6",
+      "lines": {
+        "chain_line": "[Chirality] Previous workflow run ended: supports-adjust revision rev-A3 (run run:thr-40/1, ended by the person). Its instructions no longer apply.",
+        "start_line": "[Chirality] Workflow run start: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
+        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm.",
+        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
+        "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
+        "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
+      },
+      "text_identity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+      },
+      "text_bytes": 812
+    }
+  },
+  {
+    "case": "INV-17 selection: a confirmed proposal whose proposed name has no origin (R20-5, R20-9)",
+    "kind": "selection_record",
+    "expect": "does not match pattern",
+    "instance": {
+      "record_kind": "selection_record",
+      "selection_id": "sel-7",
+      "identity": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust",
+        "revision": "rev-A3",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "holding_library": "fx-proj (LIB-A1)",
+      "standing": "registered",
+      "selected_by": "the person (App interface)",
+      "how": "agent proposal confirmed by the person",
+      "proposal": {
+        "conversation": "thr-40",
+        "item": "item-a-turn-N1",
+        "proposed_name": "supports-adjust"
+      },
       "prior_run": {
         "run": "run:thr-40/2",
         "workflow": {

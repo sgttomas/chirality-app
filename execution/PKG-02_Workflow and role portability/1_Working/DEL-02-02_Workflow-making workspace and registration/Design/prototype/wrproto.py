@@ -60,11 +60,20 @@ GEN = os.path.join(E, "PKG-01_Native App and third-party harness integration", "
                    "DEL-01-01_Stock Codex hosting and supplier contract", "Design", "generated", "0.158.0",
                    "json-schema", "experimental", "codex_app_server_protocol.v2.schemas.json")
 FRAME = "WR-FRAME-1"
-PROPOSAL_LINE = ('[Chirality] When you judge this workflow finished, say so in a line "Workflow finished: <name>". '
-                 'To propose that another registered workflow runs next, end the message with the line '
-                 '"Next workflow: <name>". The person decides; nothing ends or starts until they confirm.')
-PROPOSAL_RE = re.compile(r"^Next workflow: (\S+)\s*$")
-FINISHED_RE = re.compile(r"^Workflow finished: (\S+)\s*$")
+ORIGINS = ("project", "user", "bundled", "host")
+
+
+def proposal_line(t):
+    """WR 16.2 line 3 (R20-1; RX with R20-9): both agent lines name origin and name; the finished line is the run's own."""
+    return ('[Chirality] When you judge this workflow finished, say so in a line of its own "Workflow finished: %s:%s". '
+            'To propose that another registered workflow runs next, end the message with a line of its own '
+            '"Next workflow: <origin>:<name>", where <origin> is project, user, bundled or host. '
+            'The person decides; nothing ends or starts until they confirm.' % (t["origin"], t["name"]))
+
+
+# R20-9: the App reads only these exact forms, each alone on its own line (trailing white space tolerated, as before)
+PROPOSAL_RE = re.compile(r"^Next workflow: (project|user|bundled|host):([a-z0-9]+(?:-[a-z0-9]+)*)\s*$")
+FINISHED_RE = re.compile(r"^Workflow finished: (project|user|bundled|host):([a-z0-9]+(?:-[a-z0-9]+)*)\s*$")
 
 
 def rs_tuple(t):
@@ -873,7 +882,7 @@ class RunDesk:
                                'Follow the workflow between the two markers below for this run, until the person '
                                'ends the run.' % (t["name"], t["origin"],
                                                                   t["source_root"].replace('"', "'"), rev12(t), run))
-        lines["proposal_line"] = PROPOSAL_LINE
+        lines["proposal_line"] = proposal_line(t)
         others = []
         for dp, _, fns in os.walk(pkg):
             for fn in fns:
@@ -982,19 +991,25 @@ class RunDesk:
 
     # ---- agent proposals (PR-1..PR-5)
     def proposal_in(self, agent_text):
+        """PR-1 (R20-5, R20-9): the last non-empty line, exactly 'Next workflow: <origin>:<name>'. Returns (origin, name)."""
         lines = [l for l in agent_text.split("\n") if l.strip()]
         m = PROPOSAL_RE.match(lines[-1]) if lines else None
-        return m.group(1) if m else None
+        return (m.group(1), m.group(2)) if m else None
 
     def finished_in(self, c, agent_text):
-        """FN-1 (R20-1): a 'Workflow finished: <name>' line among the last two non-empty lines, naming the run in force."""
+        """FN-1 (R20-1, R20-9): a 'Workflow finished: <origin>:<name>' line among the last two non-empty lines,
+        naming the run in force by its tuple's origin and name."""
         cur = self.state(c)["current"]
         lines = [l for l in agent_text.split("\n") if l.strip()][-2:]
         for l in lines:
             m = FINISHED_RE.match(l)
-            if m and cur and m.group(1) == cur["workflow"]["name"]:
-                return m.group(1)
+            if m and cur and (m.group(1), m.group(2)) == (cur["workflow"]["origin"], cur["workflow"]["name"]):
+                return m.group(1), m.group(2)
         return None
+
+    def resolve_pair(self, origin, name):
+        """PR-2 (RX): SL-3's candidates restricted to the named origin."""
+        return [t for t in self.ws.unqualified(name) if t["origin"] == origin]
 
     def offers(self, c, agent_text):
         """FN-2: what the App offers after an agent message; nothing is ended or started by the words alone."""
@@ -1004,18 +1019,21 @@ class RunDesk:
         nxt = self.proposal_in(agent_text)
         if cur and fin:
             out.append("End run")
-        if nxt and self.ws.unqualified(nxt):
-            out.append(("End %s and start %s" % (cur["workflow"]["name"], nxt)) if cur else ("Start %s" % nxt))
+        if nxt and len(self.resolve_pair(*nxt)) == 1:
+            out.append(("End %s and start %s" % (cur["workflow"]["name"], nxt[1])) if cur else ("Start %s" % nxt[1]))
         return out
 
-    def offer(self, name):
-        cands = self.ws.unqualified(name)
-        if cands:
+    def offer(self, pair):
+        origin, name = pair
+        cands = self.resolve_pair(origin, name)
+        if len(cands) == 1:
             return {"offer": "Start %s" % name, "candidates": cands}
+        if len(cands) > 1:
+            return {"offer": None, "notice": "proposed workflow %s:%s names more than one registered workflow" % pair}
         for lib in self.ws.libs.values():
-            if os.path.isdir(os.path.join(lib.drafts, name)):
-                return {"offer": None, "notice": "proposed workflow %s is a draft only - not a workflow identity" % name}
-        return {"offer": None, "notice": "proposed workflow %s is not registered" % name}
+            if lib.origin == origin and os.path.isdir(os.path.join(lib.drafts, name)):
+                return {"offer": None, "notice": "proposed workflow %s:%s is a draft only - not a workflow identity" % pair}
+        return {"offer": None, "notice": "proposed workflow %s:%s is not registered" % pair}
 
 
 # ------------------------------------------------------------------ fixtures
@@ -1464,7 +1482,7 @@ def main():
               and textA.split("\n")[0].startswith("[Chirality] Workflow run start: supports-adjust"), recA["lines"]["start_line"])
         other_names = ("notes-a", "review-pack", "legacy-flow", "review-notes")
         check("P-49", "A's run text names no other registered workflow (R19-7: the model is not shown other workflows)",
-              not any(n in textA.replace(PROPOSAL_LINE, "") for n in other_names), [n for n in other_names if n in textA])
+              not any(n in textA for n in other_names), [n for n in other_names if n in textA])
         tA = turn_of("turn-A1", pA)
         e1_ = minischema.validate(pA, {"$ref": CODEX_ID + "#/definitions/TurnStartParams"}, reg)
         e2_ = minischema.validate(tA, {"$ref": CODEX_ID + "#/definitions/Turn"}, reg)
@@ -1511,12 +1529,14 @@ def main():
         check("P-55", "after B completes with no successor: the next turn carries the end notice first, once; it is verified",
               n1 and p1["input"][0]["text"].startswith("[Chirality] Workflow run ended: review-pack") and len(p1["input"]) == 2
               and n2 is None and len(p2["input"]) == 1 and ckN["state"] == "verified", (p1["input"][0]["text"][:60], n2))
-        agent = "The pack is checked.\n\nNext workflow: supports-adjust\n"
-        name = desk.proposal_in(agent)
+        agent = "The pack is checked.\n\nNext workflow: project:supports-adjust\n"
+        pair = desk.proposal_in(agent)
+        name = "%s:%s" % pair
         before = len(ws.selections)
-        off = desk.offer(name)
-        check("P-56", "(b) an agent proposal line yields an offer with candidates and no selection",
-              name == "supports-adjust" and off["offer"] == "Start supports-adjust" and len(ws.selections) == before, off)
+        off = desk.offer(pair)
+        check("P-56", "(b) an agent proposal line 'Next workflow: <origin>:<name>' yields an offer naming one workflow and no selection",
+              pair == ("project", "supports-adjust") and off["offer"] == "Start supports-adjust"
+              and len(off["candidates"]) == 1 and len(ws.selections) == before, off)
         latest = P.latest("supports-adjust")["identity"]
         selC, _ = ws.select(latest, P.source_root, c, how="agent proposal confirmed by the person",
                             candidates=off["candidates"],
@@ -1528,12 +1548,18 @@ def main():
               selC["how"] == "agent proposal confirmed by the person" and recC["origin_of_start"] == "agent proposal confirmed by the person"
               and recC["chain"]["prior_run"] == recB["run"] and "(run %s, completed)" % recB["run"] in recC["lines"]["chain_line"],
               recC["lines"].get("chain_line"))
-        q = desk.proposal_in("You could try:\nNext workflow: review-pack\nbut I am not sure.")
-        dr = desk.offer("bad-pkg")
-        un = desk.offer("no-such-flow")
-        check("P-58", "a proposal not on the last line is not one; a draft name or an unknown name gives a notice and no Start offer",
-              q is None and dr["offer"] is None and "draft only" in dr["notice"] and un["offer"] is None
-              and "not registered" in un["notice"], (q, dr, un))
+        q = desk.proposal_in("You could try:\nNext workflow: project:review-pack\nbut I am not sure.")
+        q2 = desk.proposal_in("The pack is checked.\nNext workflow: review-pack\n")
+        q3 = desk.proposal_in("The pack is checked.\nNext workflow: shared:review-pack\n")
+        dr = desk.offer(("project", "bad-pkg"))
+        un = desk.offer(("project", "no-such-flow"))
+        wo = desk.offer(("host", "review-pack"))
+        wu = desk.offer(("user", "supports-adjust"))
+        check("P-58", "a proposal not on the last line, or naming no origin or an unknown origin, is not one; a draft, an unknown pair or a name registered only in another origin gives a notice and no Start offer; the origin selects among same-name workflows",
+              q is None and q2 is None and q3 is None and dr["offer"] is None and "draft only" in dr["notice"]
+              and un["offer"] is None and "not registered" in un["notice"] and wo["offer"] is None
+              and "not registered" in wo["notice"] and wu["offer"] == "Start supports-adjust"
+              and [t["origin"] for t in wu["candidates"]] == ["user"], (q, q2, q3, dr, un, wo, wu))
         desk.end(c, "ended by the person")
         c2 = "thr-41"
         ship_ok = os.path.join(P.slots, "review-notes")
@@ -1551,12 +1577,14 @@ def main():
         selF, _ = ws.select(rev3, P.source_root, c3)
         pkgF, _ = ws.resolve(selF)
         pF, recF = desk.start(c3, selF, pkgF, "", folder_label=label(pkgF))
-        msg = "All supports are checked.\nWorkflow finished: supports-adjust\nNext workflow: review-pack\n"
+        msg = "All supports are checked.\nWorkflow finished: project:supports-adjust\nNext workflow: project:review-pack\n"
         offs = desk.offers(c3, msg)
         still = desk.state(c3)["current"] is not None
-        check("P-60", "the agent reports the workflow finished and proposes B: the App offers 'End run' and 'End supports-adjust and start review-pack'; the run is still in force",
+        check("P-60", "the agent reports the workflow finished and proposes B (both lines by origin and name): the App offers 'End run' and 'End supports-adjust and start review-pack'; the run is still in force",
               offs == ["End run", "End supports-adjust and start review-pack"] and still
-              and desk.offers(c3, "Workflow finished: other-flow") == [], offs)
+              and desk.offers(c3, "Workflow finished: project:other-flow") == []
+              and desk.offers(c3, "Workflow finished: supports-adjust") == []
+              and desk.offers(c3, "Workflow finished: user:supports-adjust") == [], offs)
         desk.end(c3, "completed")          # the person chose 'End run' after the report (R20-1: cause completed)
         pn, nn = desk.next_plain_turn(c3, "Summarize, please.")
         check("P-61", "no run starts with the next turn: it is prefixed by one App-written line naming the workflow and revision (R20-3)",
@@ -1564,6 +1592,14 @@ def main():
               and "\n" not in nn["lines"]["end_line"]
               and nn["lines"]["end_line"] == "[Chirality] Workflow run ended: supports-adjust revision %s (run %s, completed). No workflow is in force." % (rev12(rev3), recF["run"]),
               pn["input"][0]["text"])
+
+        print("\n== R20-9 the two agent lines in the run text (RX) ==")
+        pl = recF["lines"]["proposal_line"]
+        plS = recS["lines"]["proposal_line"]
+        check("P-62", "the run text's proposal line names the run's own origin and name in its finished line and the 'Next workflow: <origin>:<name>' form; a shipped revision held in a library reads 'bundled'",
+              '"Workflow finished: project:supports-adjust"' in pl and '"Next workflow: <origin>:<name>"' in pl
+              and '"Workflow finished: bundled:review-notes"' in plS and pl == proposal_line(recF["workflow"]),
+              (pl, plS))
 
         print("\n== every record the prototype produced ==")
         bad = [(r["record_kind"], conforms(r)[:2]) for r in ws.records if conforms(r)]

@@ -1,7 +1,7 @@
 {
   "record_kind": "w14_result",
   "format": "proposed-0.1",
-  "record_id": "W14-05/current/2026-09-30",
+  "record_id": "W14-05/current/2026-10-02",
   "case": "W14-05",
   "phase_reading": "current",
   "run_kind": "rehearsal",
@@ -28,7 +28,7 @@
       },
       {
         "path": "PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/prototype/run_all.py",
-        "sha256": "42c0b49606790d847b9f9d1d981446f53fbd7c1827422040a00939d98edeb5fc"
+        "sha256": "b770bb42d409fbf5fcd01ebde86d532cf8125b4aa6cb0c0b4b0c184f1381adc3"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"
@@ -41,7 +41,7 @@
       "not_observed": "the App's Codex is imitated, not run; no App run exists (OBS-1 observed supplier turns at pin 0.158.0 on one local route, not App runs)"
     }
   },
-  "date": "2026-09-30",
+  "date": "2026-10-02",
   "outcome": "inconclusive",
   "parts": [
     {

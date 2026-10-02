@@ -47,6 +47,7 @@
 | G-4 | R18-7 | §5.1 TO-9 | Items opened and never completed settle "not completed (turn ended)" |
 | G-5 | R18-7 | §5.3 V-e | Codex's graceful-stop history marker is shown as Codex's, not the person's |
 | C-10 | R18-1 | §4.5 | The actor reference derives from the same three values as RS's person; no plan type |
+| RX (residual sweep; in place, no version step) | R20-9, R20-1, R20-5 | §5.7 RN-4, RN-6, new RN-7; UNRESOLVED U-NIR-8 | "End run" (and "End ‹A› and start ‹B›" with a proposal) offered on the exact line `Workflow finished: ‹origin›:‹name›` naming the run in force; the press is the person's end with cause `completed`; both line forms recorded as ruled; U-NIR-8 ruled. Not prototyped (`prototype/` unchanged) |
 
 **Basis and inputs (sha256 recomputed with `shasum -a 256` at this node;
 repository HEAD `dc031b5bec`).** The accepted basis as amended by SCA-V4-001
@@ -504,9 +505,10 @@ committed 0.158.0 `TurnStartParams`.
 | RN-1 | The conversation view marks each run's start ("‹workflow› ‹revision› started", the supplied bytes folded and openable) and end ("run ended: ‹how›") from the run records DEL-02-03 writes; one run at a time (R19-2) |
 | RN-2 | **Sequential (a).** After a run ends or completes, the workflow selector (DEL-02-02's selection) is available again in the same conversation; starting B is TC-3 |
 | RN-3 | **Agent-proposed (b).** When a completed `agentMessage` carries exactly one line `Next workflow: ‹origin›:‹name›` that resolves to exactly one registered workflow, the App shows a button **"Start ‹workflow› (proposed by the agent)"** beneath it. Nothing starts until the person presses it; the press is ordinary input (R17-9), handed to DEL-02-02 as the person's selection and to DEL-02-03 to start the run |
-| RN-4 | While a run is in progress the button reads "Start ‹workflow› — end run ‹A› first" and is disabled beside the End run control (one run at a time) |
+| RN-4 | While a run is in progress the button reads "Start ‹workflow› — end run ‹A› first" and is disabled beside the End run control (one run at a time), except on a finished report (RN-7) |
 | RN-5 | A proposal naming no registered workflow, or several, shows no button; prose suggestions are not read (the App never classifies message text as a request: EXEC RC-5). The offer records nothing and is never a selection by the agent |
-| RN-6 | The proposal line form is PROPOSED here; the role guidance that tells the agent to use it is DEL-02-04's, the run-end line the model reads is DEL-02-02's (U-NIR-8) |
+| RN-6 | The two line forms are ruled (R20-5, R20-9): `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`, each alone on its own line; the App reads only these exact forms. The shipped product guidance that tells the agent both is DEL-02-04's (ROLE-v0.2 §4.2 GS-7); the run-start text that repeats them for the run in force, and the run-end line the model reads, are DEL-02-02's (WR-v0.2 §16.2, TX-5) (U-NIR-8) |
+| RN-7 | **Finished report (R20-1, R20-9; RX).** When a completed `agentMessage` carries the line `Workflow finished: ‹origin›:‹name›`, alone on its line and naming the workflow of the run in force, the App shows an **"End run"** button beneath it; when the same message also carries a proposal that RN-3 accepts, it shows **"End ‹A› and start ‹B›"** beside it. Pressing either is the person's end of the run (DEL-01-02 DEF-4), with cause `completed`, handed to DEL-02-03 (and, for the second, the person's selection of B to DEL-02-02, then B's start by TC-3). The line itself ends nothing: the run stays in force until the person presses, and the App never ends, opens or focuses anything because of it (R18-5's rule for arrivals applies alike). A finished line naming another workflow, or arriving with no run in force, shows nothing. The button records nothing until pressed |
 
 ### 5.8 "Continue as ‹role›" and "Fork" (R19-3, R19-8)
 
@@ -810,10 +812,11 @@ RS's own schema.
 | U-NIR-5 *Closed by R18-5* | — | — | PD-5 DERIVED; EXEC RC-4 gains the sentence (FE-13) |
 | U-NIR-6 *Ruled (C-02):* D5 adds `a15_record`, `revision` as optional; the view also reads `library_entry` | — | — | §7 |
 | U-NIR-7 *Filled:* O-1 and O-3 confirm TO-4 and CS-6; O-4 confirms the descendant line through an adapter only (R18-9). "Primary completed, child running" stays not observed | DEL-01-03 | When observed | §5.5 |
-| U-NIR-8 The proposal line form `Next workflow: ‹origin›:‹name›` and the guidance that asks for it | DEL-01-04 with DEL-02-04 (guidance) and DEL-02-02 (selection) | Before node F / comparison | RN-3…RN-6 PROPOSED |
+| U-NIR-8 *Ruled (R20-5, R20-9; recorded at RX):* the line forms `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`; the shipped product guidance states both (ROLE-v0.2 GS-7) | — | — | RN-3…RN-7; the buttons' wording and placement stay PROPOSED |
 | U-NIR-9 Contents of the handoff summary | DEL-01-04 with DEL-02-04 | Before implementation | CA-2 PROPOSED |
 
 ## Changes
 
+- RX (design pass 3 residual sweep, 2026-10-02; in place, no version step): R20-9 "End run" offer, row "RX" in "Changes from v0.1" at the top.
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1" at the top.
 - v0.1 (D round 1): first version.

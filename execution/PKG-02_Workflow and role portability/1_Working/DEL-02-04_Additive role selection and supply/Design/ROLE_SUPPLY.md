@@ -3,7 +3,7 @@
 - Contribution: DEL-02-04/ROLE-v0.2 (supersedes DEL-02-04/ROLE-v0.1, committed at `63a6e0fa47`, file sha256 `692873d1d025b4ab0bc3d741a19bf1facad5d39b875e58ac1f0127042059b644`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D6, round 2 (BRIEFS.md "D round 2"). Executor: Type 2 TASK (Claude Opus 5.5, high effort), no delegation. Date 2026-10-02; repository HEAD `e4e14d6ae6`.
-- Binding direction: DECISION-K3 as revised (K-9, K-10, K-7, K-3); **DECISION-L L-2** (a conversation's role is fixed for its life; a different role is a new conversation; edited guidance applies to new conversations; workflows are not bound to the conversation); rulings R17 (R17-1, R17-5, R17-9 as amended, R17-10, R17-13…R17-15), **R18-4, R18-6, R18-9, R18-1 (C-04, C-05, C-07, C-08, C-15, C-19)**, **R19-1, R19-3, R19-5, R19-7, R19-8**; **R20-5, R20-6** (`R20_RESOLUTIONS.md` `516d0fe0d3cddb1e`; added in place, no version step); R1–R16 stand.
+- Binding direction: DECISION-K3 as revised (K-9, K-10, K-7, K-3); **DECISION-L L-2** (a conversation's role is fixed for its life; a different role is a new conversation; edited guidance applies to new conversations; workflows are not bound to the conversation); rulings R17 (R17-1, R17-5, R17-9 as amended, R17-10, R17-13…R17-15), **R18-4, R18-6, R18-9, R18-1 (C-04, C-05, C-07, C-08, C-15, C-19)**, **R19-1, R19-3, R19-5, R19-7, R19-8**; **R20-5, R20-6** (`R20_RESOLUTIONS.md` `516d0fe0d3cddb1e`; added in place, no version step); **R20-9** (`R20_RESOLUTIONS.md` `5e68574054a3353e`; added in place at node RX, no version step); R1–R16 stand.
 - Serves (ScopeOfWork): OUT-001 (design of the code), OUT-002 (identity and limit account, §6), OUT-003 (fixture design and a design prototype, §10, not product code); REQ-001…REQ-006; AC-001…AC-006 by designed verification (§11); VER-001…VER-006 (designed; offline prototype cases run; nothing qualified).
 - Standing labels (R17-13; R18-9): `observed` (seen live, cited); **`observed through an adapter (OBS-2), not stock behaviour`** for OBS-2's O-4, O-4a and O-4b, which ran through a loopback adapter that flattened Codex's `namespace` tools for LM Studio; `observed-in-generated-types` (the 0.158.0 generated protocol output); `inference`; **PROPOSED**. Every supplier fact names its version, 0.158.0 (R19-5); where Codex reports a capability at run time, the App reads it rather than infer it from the version. v3 code is historical evidence only.
 
@@ -32,6 +32,7 @@
 | Prototype | Rewritten to v0.2: 36 pass, 0 fail | §10 |
 | R20-5 (U-NIR-8; in place) | The shipped product guidance tells the agent to propose a next workflow with one exact line `Next workflow: ‹origin›:‹name›`, naming one registered workflow; the App reads only that form (never prose; EXEC RC-5) and DEL-01-04 (NIR §5.7) offers "Start ‹workflow› (proposed by the agent)" | §4.2 GS-7 |
 | R20-6 (U-NIR-9; closes U-R12; in place) | "Continue as ‹role›": the App asks the source conversation's agent, in a visible turn of that conversation, to draft the handoff summary; the person edits it in the new conversation; the App adds a header naming the source; the summary carries no instructions beyond the person's own text; nothing is sent until the person sends it | §3.3 CA-2; §14 U-R12 |
+| RX (residual sweep; R20-9; in place, no version step) | GS-7 gains the finished line `Workflow finished: ‹origin›:‹name›` beside the proposal line; both alone on their own lines, read only in these exact forms; NIR §5.7 offers "End run" on it; the run-start text (WR-v0.2 §16.2) repeats both for the run in force | §4.2 GS-7 |
 
 **Consumed inputs added at v0.2** (sha256, first 16 hex): run `BRIEFS.md` `316ea29325a0d450` ("D round 2"); `R18_RESOLUTIONS.md` `abf5eee6324647ff`; `R19_RESOLUTIONS.md` `16930ecdcead7511`; `OWNER_DECISIONS.md` `ea96c55710af41c9` (DECISION-L); `DECISIONS_PENDING_2.md` `0ecbf87aae8d4350` (L-2 only); `F/F0_JOINS.md` `e93608be1c6e3eb0` (§1 rows citing D6, §2 C-03…C-19, §6, §7.6); DEL-01-01 `OBS_2_0.158.0.md` `61cc34ffb811eb27` (§6, §7, §9, item table) and `OBS_3_0.158.0.md` `554ac4451d112824` (§8 W-6, §8.1, §9, UNRESOLVED). v0.1's input table stands for the rest (HOSTING-v0.8, WD-v0.8, EXEC-v0.6, RS-v0.8, GUIDE-v0.5, the generated types, Root and v3 evidence), at the hashes v0.1 recorded.
 
@@ -182,15 +183,23 @@ non-UTF-8 file refuses the start, never falling back silently.
   new default; a modified copy is kept and flagged. The change reaches **new
   conversations only** (L-2). PROPOSED; U-R9.
 
-- **GS-7 Proposal line (R20-5).** The shipped product guidance tells the
-  agent that, when it proposes a next workflow, it writes one exact line
-  `Next workflow: ‹origin›:‹name›` naming one registered workflow. The App
-  reads only that line form, never prose (EXEC RC-5); DEL-01-04 (NIR §5.7)
-  offers "Start ‹workflow› (proposed by the agent)", and nothing starts until
-  the person confirms (R19-2 (b)). The sentence is content of the shipped
-  `AGENTS.md`; if the person edits the copy (GS-2) and removes it, proposals
-  may no longer arrive in that form, which the App does not check (the line
-  is guidance, not enforcement).
+- **GS-7 Proposal and finished lines (R20-5; R20-9, added at RX).** The
+  shipped product guidance tells the agent two exact lines, each alone on
+  its own line and naming the workflow by origin and name: when it proposes
+  a next workflow, `Next workflow: ‹origin›:‹name›` naming one registered
+  workflow; when it judges the workflow of the run in force finished,
+  `Workflow finished: ‹origin›:‹name›` naming that workflow (R20-1). The
+  App reads only these exact forms, never prose (EXEC RC-5). DEL-01-04
+  (NIR §5.7) offers "Start ‹workflow› (proposed by the agent)" on the first
+  and "End run" on the second (with "End ‹A› and start ‹B›" when both come
+  in one message); nothing starts or ends until the person confirms
+  (R19-2 (b), R20-1), and the person's choice on a finished report ends the
+  run with cause `completed`. The run-start text repeats both lines for the
+  run in force (WR-v0.2 §16.2, framing WR-FRAME-1); in a conversation with
+  no run in force the finished line has no use. The sentences are content
+  of the shipped `AGENTS.md`; if the person edits the copy (GS-2) and
+  removes them, the lines may no longer arrive in these forms, which the
+  App does not check (the lines are guidance, not enforcement).
 
 T-1 (file states) is unchanged from v0.1 except its last two rows' effect:
 "reaches new conversations; open ones are flagged (§4.4)".

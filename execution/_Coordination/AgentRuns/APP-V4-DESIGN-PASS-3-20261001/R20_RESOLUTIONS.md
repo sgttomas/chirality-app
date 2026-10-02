@@ -72,3 +72,20 @@ the run in force. NIR §5.7 offers "End run" on the finished line.
 
 DEL-04-03 → DEL-02-02 (WR's run-text and supply-check records), inside
 SCC-002, no SCC change. Collected with the other proposed rows.
+
+## R20-11 RX's four conflicts — INTEGRATION
+
+1. **A proposal during a run.** While a run is in force, a proposal is
+   offered only as "End ‹A› and start ‹B›" (one step, the person's choice);
+   a plain "Start ‹B›" is offered only when no run is in force. WR PR-4 and
+   NIR RN-4 both say this.
+2. **Where the lines sit.** The proposal line is the message's last
+   non-empty line; the finished line is the last non-empty line or the one
+   immediately before the proposal line. Each appears at most once. NIR
+   follows WR.
+3. **An unreadable supply check.** The run's supply state is "supplied — not
+   verified" (the App observed its own send; Codex's copy could not be read).
+   EXEC §6.1 and RS R3 use WR's value.
+4. **The cause for "End ‹A› and start ‹B›".** The person ends A (DEF-4); the
+   recorded cause is "ended to start ‹B›" (EXEC's wording); WR records the
+   same.

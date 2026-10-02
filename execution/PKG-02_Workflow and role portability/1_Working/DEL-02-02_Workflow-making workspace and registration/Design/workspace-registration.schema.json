@@ -981,7 +981,9 @@
               "$ref": "#/$defs/text"
             },
             "proposed_name": {
-              "$ref": "#/$defs/text"
+              "description": "RX (R20-5, R20-9): the proposal line's '<origin>:<name>', exactly as the agent wrote it.",
+              "type": "string",
+              "pattern": "^(project|user|bundled|host):(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           }
         }
@@ -1184,7 +1186,9 @@
           "pattern": "^\\[Chirality\\] Workflow run start: \\S+ from the (project|user|bundled|host) library \"[^\"\\n]+\", revision \\S+, run \\S+\\. Follow the workflow between the two markers below for this run, until the person ends the run\\.$"
         },
         "proposal_line": {
-          "const": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm."
+          "description": "WR section 16.2 line 3 (R20-1; RX with R20-9): tells the model the two agent lines; its finished line names the run's own origin and name (a reader check: it equals the run_text's workflow origin and name).",
+          "type": "string",
+          "pattern": "^\\[Chirality\\] When you judge this workflow finished, say so in a line of its own \"Workflow finished: (project|user|bundled|host):(?=[a-z0-9-]{1,64}\")[a-z0-9]+(?:-[a-z0-9]+)*\"\\. To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host\\. The person decides; nothing ends or starts until they confirm\\.$"
         },
         "files_line": {
           "type": "string",
