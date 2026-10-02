@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """DEL-01-03 view model: native plans, tool activity and delegation.
 
-Prototype only (DEL-01-03 Design, NPTD-v0.1; run APP-V4-DESIGN-PASS-3-20261001,
-node D2). Not product code, not an App candidate. Python 3 standard library.
+Prototype only (DEL-01-03 Design, NPTD-v0.2; run APP-V4-DESIGN-PASS-3-20261001,
+node D2, rounds 1 and 2). Not product code, not an App candidate. Python 3 standard library.
 
 It executes the rules of NATIVE_PLANS_TOOLS_DELEGATION.md over a stream of
 native frames as the host would deliver them (HOSTING S-2: the frame
@@ -38,6 +38,7 @@ CL_TABLE = {
     "CL-04": ("ended", "plan-updated", "ended"),
     "CL-05": ("live", "generation-closed", "ended"),
     "CL-06": ("none", "history-read", "not-recoverable"),
+    "CL-07": ("ended", "view-rebuilt", "not-recoverable"),
 }
 TI_TABLE = {
     "TI-01": ("absent", "item-started", "in-progress"),
@@ -46,13 +47,15 @@ TI_TABLE = {
     "TI-04": ("in-progress", "item-completed", "final"),
     "TI-05": ("waiting-on-request", "item-completed", "final"),
     "TI-06": ("absent", "item-completed", "final"),
-    "TI-07": ("in-progress", "turn-ended", "unknown"),
-    "TI-08": ("waiting-on-request", "turn-ended", "unknown"),
+    "TI-07": ("in-progress", "turn-ended", "not-completed"),
+    "TI-08": ("waiting-on-request", "turn-ended", "not-completed"),
     "TI-09": ("in-progress", "generation-closed", "unknown"),
     "TI-10": ("waiting-on-request", "generation-closed", "unknown"),
     "TI-11": ("absent", "history-read", "final"),
     "TI-12": ("unknown", "history-read", "final"),
     "TI-13": ("absent", "history-read-in-progress", "unknown"),
+    "TI-14": ("unknown", "history-turn-ended", "not-completed"),
+    "TI-15": ("not-completed", "history-read", "final"),
 }
 DS_TABLE = {
     "DS-01": ("absent", "collab-call", "observed"),
@@ -92,16 +95,20 @@ RESULT_ELEMENTS = {
     "mcpToolCall": ["result", "error"],
     "dynamicToolCall": ["contentItems", "success"],
 }
-# Experimental-only protocol elements by variant diff at 0.158.0 that the views use.
+# Experimental-only protocol elements by variant diff at 0.158.0 that the views use (EX-1).
+# Only plan mode is labelled "experimental" (R18-1 C-05); delegation is a stable surface.
 EXPERIMENTAL_ELEMENTS = {"turn/start.collaborationMode", "collaborationMode/list"}
-# Codex feature names that gate a view's surface: unknown at 0.158.0 (OBS-2 pending);
-# tests pass a constructed name. TEST VALUE.
-FEATURE_NAMES_FOR_SURFACE = {"delegation": set(), "plan-mode": set()}
+LIMIT_SHOWN = {  # K-10 standing as handed by DEL-02-04 (R18-1 C-08), shown in these words
+    "stated-not-enforced": "the task role states that a task agent does not delegate (stated, not enforced)",
+    "enforced-by-supplier": "enforced by Codex (mechanism named by DEL-02-04)",
+    "unknown": "not known whether the supplied guidance states this",
+}
+GOAL_NOTE = "Codex's goal status; not a workflow run, checkpoint or acceptance"
 
 CONTENT_METHOD = "sha256/canonical-json/npt-v0 (TEST VALUE; HOSTING U-08)"
 TYPES_PIN = "0.158.0"
 TYPES_MANIFEST = "42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e"
-NO_MODEL = "run not started — no model selected"
+NO_MODEL = "no model selected"  # the composer (DEL-01-04) words it per R18-2
 EXPORT_LIMITS = [
     "Child completion, return, review and integration are not inferred from any observation here.",
     "A parent turn's completion says nothing about its children.",
@@ -130,7 +137,9 @@ class Model:
         self.turn_order = {}               # thread -> [turn ids as first seen]
         self.tools = {}                    # (thread, item) -> dict
         self.nodes = {}                    # child thread -> node
-        self.roles = {}                    # thread -> role (runtime value, DEL-02-04)
+        self.limits = {}                   # thread -> K-10 label {role, limitId, standing} (runtime value, DEL-02-04 ROLE O-6)
+        self.goals = {}                    # thread -> {goal, source, at, turnId}
+        self.run_markers = {}              # thread -> [(turnId, kind, label)] (runtime value; R19-2)
         self.model_selection = {}          # thread -> model or None (runtime value, DEL-01-05)
         self.mode_list = None              # last collaborationMode/list result
         self.features = None               # last experimentalFeature/list result
@@ -160,6 +169,7 @@ class Model:
         if kind == "ready":
             self.g = ev["g"]
             self.ready[ev["g"]] = ev["record"]
+            self._rebuild_after_close()
         elif kind == "closed":
             self._generation_closed(ev["g"])
         elif kind == "frame":
@@ -174,6 +184,14 @@ class Model:
             self.features = ev["result"]
         else:
             raise ValueError("unknown input " + kind)
+
+    def _rebuild_after_close(self):
+        """C-03 (R18-1): after a generation closed, views rebuild from Codex history; checklist
+        revisions of the closed generation are not recoverable, as after a relaunch."""
+        for cl in self.checklists.values():
+            if cl["state"] == "ended" and any(r["generation"] in self.closed for r in cl["revisions"]):
+                _, cl["state"] = self._step("CL", "ended", "view-rebuilt")
+                cl["revisions"] = []
 
     def _note_turn(self, thread, turn):
         order = self.turn_order.setdefault(thread, [])
@@ -207,6 +225,11 @@ class Model:
                 self._delegation_item(p, frame.get("emittedAtMs"))
         elif m == "turn/completed":
             self._turn_ended(thread, p["turn"]["id"], p["turn"]["status"])
+        elif m == "thread/goal/updated":
+            self.goals[thread] = {"goal": p["goal"], "source": m, "turnId": p.get("turnId"),
+                                  "at": frame.get("emittedAtMs")}
+        elif m == "thread/goal/cleared":
+            self.goals[thread] = {"goal": None, "source": m, "turnId": None, "at": frame.get("emittedAtMs")}
 
     # ---------- plans ----------
     def _checklist_update(self, g, pos, p):
@@ -310,7 +333,9 @@ class Model:
             "displayState": row["state"],
             "native": item,                      # carried unchanged (no translation)
         }
-        if row["state"] in ("completed", "failed", "declined", "interrupted"):
+        if row["state"] == "not-completed":
+            out["result"] = "not completed (turn ended)"
+        elif row["state"] in ("completed", "failed", "declined", "interrupted"):
             missing = [e for e in RESULT_ELEMENTS.get(row["kind"], []) if item.get(e) is None]
             elems = RESULT_ELEMENTS.get(row["kind"], [])
             out["result"] = ("not supplied by Codex" if elems and len(missing) == len(elems)
@@ -371,8 +396,17 @@ class Model:
                 cl = self.checklists.setdefault(key, {"state": "none", "revisions": []})
                 if cl["state"] == "none":
                     _, cl["state"] = self._step("CL", "none", "history-read")
+                if turn["status"] != "inProgress":
+                    for (th, iid), row in self.tools.items():
+                        if th == thread and row["turnId"] == turn["id"] and row["state"] == "unknown":
+                            _, row["state"] = self._step("TI", "unknown", "history-turn-ended")
+                            row["standing"] = "recovered-from-supplier"
+                            row["note"] = "turn %s in Codex history; item not completed" % turn["status"]
         elif m == "thread/read":
             self._thread_read(ev["result"]["thread"], ev["at"])
+        elif m == "thread/goal/get":
+            self.goals[ev["params"]["threadId"]] = {"goal": ev["result"].get("goal"), "source": m,
+                                                    "turnId": None, "at": ev["at"]}
         else:
             raise ValueError("unsupported read " + m)
 
@@ -401,7 +435,7 @@ class Model:
                     _, row["state"] = self._step("TI", "absent", "history-read-in-progress")
                     row["unknownReason"] = ("turn ended without a completion" if ended
                                             else "in progress at the read")
-            elif row["state"] in ("absent", "unknown"):
+            elif row["state"] in ("absent", "unknown", "not-completed"):
                 _, _ = self._step("TI", row["state"], "history-read")
                 row["state"] = self._final(item)
             else:
@@ -454,9 +488,10 @@ class Model:
                                          "itemId": item["id"]}
                     node["requested"] = {"model": item.get("model"),
                                          "reasoningEffort": item.get("reasoningEffort")}
-                    role = self.roles.get(item["senderThreadId"])
-                    if role == "TASK":
-                        node["delegatingRole"] = {"role": "TASK", "statement": "stated-not-enforced"}
+                    lim = self.limits.get(item["senderThreadId"])
+                    if lim and lim["role"] == "TASK":
+                        node["delegatingRole"] = {"role": "TASK", "limitId": lim["limitId"],
+                                                  "standing": lim["standing"]}
                 self._observe(node, state["status"] if state else None,
                               "collabAgentToolCall.agentsStates" + source_suffix, at, "collab-call")
         else:  # subAgentActivity
@@ -534,16 +569,18 @@ class Model:
             if n["observationEnded"]:
                 s += "; observation ended"
             if n["delegatingRole"]:
-                s += ("; delegated by a task agent: the task role states that a task agent does "
-                      "not delegate (stated, not enforced)")
+                s += "; delegated by a task agent: " + LIMIT_SHOWN[n["delegatingRole"]["standing"]]
             lines.append(s)
         return lines
 
     # ---------- runtime values handed in ----------
     def _runtime(self, ev):
         k = ev["kind"]
-        if k == "role":
-            self.roles[ev["threadId"]] = ev["role"]
+        if k == "limit-label":
+            self.limits[ev["threadId"]] = {"role": ev["role"], "limitId": ev["limitId"],
+                                           "standing": ev["standing"]}
+        elif k == "run-marker":
+            self.run_markers.setdefault(ev["threadId"], []).append((ev["turnId"], ev["boundary"], ev["label"]))
         elif k == "model-selection":
             self.model_selection[ev["threadId"]] = ev["model"]
         elif k == "register":
@@ -586,14 +623,51 @@ class Model:
             "declared" if exp else "not declared", self.g)
         return [sup, types, opt]
 
-    def experimental_label(self, surface, element=None):
-        if element in EXPERIMENTAL_ELEMENTS:
-            return True
-        names = FEATURE_NAMES_FOR_SURFACE.get(surface, set())
-        for f in (self.features or {}).get("data", []):
-            if f["name"] in names and f["enabled"] and f["stage"] in ("beta", "underDevelopment"):
-                return True
-        return False
+    def experimental_label(self, element):
+        """EX-1: only protocol elements experimental-only by the pin's variant diff (plan mode)."""
+        return element in EXPERIMENTAL_ELEMENTS
+
+    def delegation_availability(self, model_entry, capabilities, effective_features):
+        """C-04 (R18-1): available when Model.multiAgentVersion != disabled and the provider
+        accepts namespace tools; an effective features.multi_agent = false reads missing.
+        Inputs are run-time reads (R19-5): model/list entry, modelProvider/capabilities/read,
+        the effective configuration's features (absent unless set, OBS-2 O-8)."""
+        if (effective_features or {}).get("multi_agent") is False:
+            return ("missing", "delegation is turned off in the Codex configuration (features.multi_agent)")
+        version = (model_entry or {}).get("multiAgentVersion")
+        if version == "disabled":
+            return ("missing", "this model declares no multi-agent runtime")
+        if capabilities is not None and capabilities.get("namespaceTools") is False:
+            return ("missing", "this provider does not accept the namespace tools delegation travels in")
+        if version in ("v1", "v2") and capabilities is not None and capabilities.get("namespaceTools"):
+            return ("present", None)
+        return ("not-established", "model or provider capability not read")
+
+    def goal_line(self, thread):
+        g = self.goals.get(thread)
+        if g is None:
+            return None
+        if g["goal"] is None:
+            return "No Codex goal (%s)" % g["source"]
+        goal = g["goal"]
+        return "Codex goal: %s — %s (%s; from %s)" % (goal["objective"], goal["status"], GOAL_NOTE, g["source"])
+
+    def run_in_force(self, thread, turn):
+        """R19-2: the run marked in force at a turn, from run markers handed in (display only)."""
+        order = self.turn_order.get(thread, [])
+        if turn not in order:
+            return None
+        idx = order.index(turn)
+        current = None
+        for i, tid in enumerate(order[:idx + 1]):
+            for (mt, kind, label) in self.run_markers.get(thread, []):
+                if mt != tid:
+                    continue
+                if kind == "start":
+                    current = label
+                elif i < idx:      # a run that ended at an earlier turn's end
+                    current = None
+        return current
 
     def plan_mode_control(self):
         rec = self.ready.get(self.g) or {}

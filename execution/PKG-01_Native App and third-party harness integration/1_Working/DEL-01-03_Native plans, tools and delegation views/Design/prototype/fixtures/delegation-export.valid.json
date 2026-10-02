@@ -36,7 +36,8 @@
         "observationEnded": true,
         "delegatingRole": {
           "role": "TASK",
-          "statement": "stated-not-enforced"
+          "limitId": "L-TASK-1",
+          "standing": "stated-not-enforced"
         }
       }
     ],

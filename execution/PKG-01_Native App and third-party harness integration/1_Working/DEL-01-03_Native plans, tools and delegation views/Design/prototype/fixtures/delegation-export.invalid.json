@@ -1,5 +1,5 @@
 {
-  "description": "Invalid: a node claims the child returned and was integrated (no such element exists: REQ-003), and the delegating-role statement claims enforcement (K-10: stated, not enforced).",
+  "description": "Invalid: a node claims the child returned and was integrated (no such element exists: REQ-003), and the delegating-role standing is a value DEL-02-04 does not hand ('enforced'; C-08 allows stated-not-enforced, enforced-by-supplier, unknown).",
   "instance": {
     "exportId": "exp-fixture-2",
     "producedAt": 1790000060000,
@@ -23,7 +23,8 @@
         "returnedAndIntegrated": true,
         "delegatingRole": {
           "role": "TASK",
-          "statement": "enforced"
+          "limitId": "L-TASK-1",
+          "standing": "enforced"
         }
       }
     ],

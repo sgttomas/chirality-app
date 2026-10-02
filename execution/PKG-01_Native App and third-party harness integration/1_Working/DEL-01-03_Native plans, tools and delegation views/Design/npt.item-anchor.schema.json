@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "chirality:app-v4:DEL-01-03:npt.item-anchor:v0.1",
-  "title": "Native item anchor (PROPOSED, NPTD-v0.1 §10.2)",
+  "title": "Native item anchor (PROPOSED, NPTD-v0.2 §10.2)",
   "description": "A stable pointer to a native thread, turn, item or plan revision, with this deliverable's display state, offered so that DEL-01-04 (a request card pointing at its item) and DEL-04-03 (a subject reference) can cite what DEL-01-03 shows. An offered interface: DEL-01-03 consumes nothing from those receivers (R17-10). Names are Chirality's own; Codex identities are carried as data.",
   "type": "object",
   "required": ["anchorKind", "threadId", "standing"],
@@ -15,7 +15,8 @@
     "nativeKind": {"type": "string", "minLength": 1,
       "description": "The supplier's item type value, unchanged (for example commandExecution)"},
     "displayState": {"enum": ["in-progress", "waiting-on-request", "completed", "failed", "declined",
-                              "interrupted", "unknown", "streaming", "incomplete"]},
+                              "interrupted", "not-completed", "unknown", "streaming", "incomplete"],
+      "description": "not-completed: opened and never completed by its turn's end (G-4); unknown: no end observed"},
     "standing": {"enum": ["live-observed", "recovered-from-supplier", "not-recoverable"]}
   },
   "allOf": [

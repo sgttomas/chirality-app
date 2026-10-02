@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "chirality:app-v4:DEL-01-03:npt.plan-revision:v0.1",
-  "title": "Plan revision reference (PROPOSED, NPTD-v0.1 §5.6)",
+  "title": "Plan revision reference (PROPOSED, NPTD-v0.2 §5.6)",
   "description": "A native plan revision as DEL-01-03 offers it to receivers (DEL-02-02 plan-to-draft seam; DEL-01-04 and DEL-04-03 as a subject anchor). Names are Chirality's own; Codex identities and plan content are carried as data. App-observed, never authority for what Codex holds (R17-4). No wire field or placement is selected (R12-2).",
   "type": "object",
   "required": ["revisionId", "kind", "threadId", "turnId", "ordinal", "content", "contentIdentity", "standing", "typesPin"],

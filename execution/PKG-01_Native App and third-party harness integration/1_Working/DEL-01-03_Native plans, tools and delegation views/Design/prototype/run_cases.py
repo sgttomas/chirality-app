@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the DEL-01-03 prototype cases (NPTD-v0.1 §15.3). Python 3 standard library only.
+"""Run the DEL-01-03 prototype cases (NPTD-v0.2 §15.3). Python 3 standard library only.
 
 Usage (from this folder):  python3 run_cases.py
 Reads (never writes) the committed 0.158.0 JSON Schema bundle of DEL-01-01. Writes the
@@ -28,6 +28,11 @@ ROOT = json.load(open(BUNDLE, encoding="utf-8"))
 SCHEMAS = {n: json.load(open(os.path.join(DESIGN, "npt.%s.schema.json" % n), encoding="utf-8"))
            for n in ("plan-revision", "item-anchor", "delegation-export")}
 RESULTS = []
+MODEL_V1 = {"id": "fixture-local-model", "model": "fixture-local-model", "displayName": "Fixture model",
+            "description": "invented", "hidden": False, "isDefault": False,
+            "defaultReasoningEffort": "medium",
+            "supportedReasoningEfforts": [{"reasoningEffort": "medium", "description": "invented"}],
+            "multiAgentVersion": "v1"}
 
 
 def result(case, ok, detail):
@@ -51,7 +56,8 @@ def pc01_bundle_conformance():
     n, bad = 0, []
     reads = {"thread/items/list": "#/definitions/ThreadItemsListResponse",
              "thread/turns/list": "#/definitions/ThreadTurnsListResponse",
-             "thread/read": "#/definitions/ThreadReadResponse"}
+             "thread/read": "#/definitions/ThreadReadResponse",
+             "thread/goal/get": "#/definitions/ThreadGoalGetResponse"}
     os.makedirs(os.path.join(HERE, "fixtures", "native"), exist_ok=True)
     for name, fn in S.SCENARIOS.items():
         evs = fn()
@@ -75,7 +81,10 @@ def pc01_bundle_conformance():
               "#/definitions/CollaborationModeListResponse"),
              ({"data": [{"name": "constructed_delegation_feature", "stage": "beta", "displayName": None,
                          "description": None, "announcement": None, "enabled": True, "defaultEnabled": False}],
-               "nextCursor": None}, "#/definitions/ExperimentalFeatureListResponse")]
+               "nextCursor": None}, "#/definitions/ExperimentalFeatureListResponse"),
+             ({"data": [MODEL_V1]}, "#/definitions/ModelListResponse"),
+             ({"namespaceTools": True, "imageGeneration": False, "webSearch": False},
+              "#/definitions/ModelProviderCapabilitiesReadResponse")]
     for inst, ref in extra:
         n += 1
         errs = V.validate_against(inst, ROOT, ref)
@@ -104,7 +113,7 @@ def pc02_checklist():
 def pc03_plan_items():
     m = run(S.sc_plans())
     revs = m.plan_revisions(S.P)
-    pi1 = m.plan_items[(S.P, "item-fixture-plan-1")]
+    pi1 = m.plan_items[(S.P, "turn-fixture-1-plan")]
     ok = (len(revs) == 2 and revs[0]["content"]["text"].startswith("1. Read the invented")
           and pi1["deltasDiffered"] and revs[0]["contentIdentity"] != revs[1]["contentIdentity"]
           and revs[1]["ordinal"] == 2 and all(not vschema("plan-revision", r) for r in revs)
@@ -117,7 +126,7 @@ def pc03_plan_items():
 
 def pc04_incomplete():
     m = run(S.sc_plan_incomplete())
-    pi = m.plan_items[(S.P, "item-fixture-plan-5")]
+    pi = m.plan_items[(S.P, "turn-fixture-5-plan")]
     ok = (pi["state"] == "incomplete" and m.plan_revisions(S.P) == []
           and m.checklist_state(S.P, "turn-fixture-5") == "ended"
           and m.checklists[(S.P, "turn-fixture-5")].get("observationEnded"))
@@ -129,14 +138,21 @@ def pc04_incomplete():
         late = "refused"
     ok = ok and late == "refused"
     m = run(S.sc_recovery_reads(), m)
-    pi = m.plan_items[(S.P, "item-fixture-plan-5")]
+    pi = m.plan_items[(S.P, "turn-fixture-5-plan")]
     row = m.tool_row(S.P, "item-fixture-cmd-5")
+    row6 = m.tool_row(S.P, "item-fixture-cmd-6")
     ok = ok and pi["state"] == "completed" and pi["standing"] == "recovered-from-supplier" \
-        and row["displayState"] == "declined" and row["anchor"]["standing"] == "recovered-from-supplier"
-    result("PC-04 incomplete and recovered", ok,
-           "plan item started by a delta only, generation closed: incomplete, no revision; checklist "
-           "ended with observation ended; a frame of the closed generation %s; later history read in the "
-           "same session: plan item completed (recovered from supplier), unknown command item declined" % late)
+        and row["displayState"] == "declined" and row["anchor"]["standing"] == "recovered-from-supplier" \
+        and m.checklist_state(S.P, "turn-fixture-5") == "not-recoverable" \
+        and m.checklist_revisions(S.P, "turn-fixture-5") == [] \
+        and row6["displayState"] == "not-completed" and row6["result"] == "not completed (turn ended)" \
+        and not vschema("item-anchor", row6["anchor"])
+    result("PC-04 incomplete and recovered (C-03, G-4)", ok,
+           "plan item started by a delta only, generation closed: incomplete, no revision; a frame of the "
+           "closed generation %s; after the restart the view rebuilt: the closed generation's checklist "
+           "not recoverable (C-03); history reads in the same session: plan item completed (recovered from "
+           "supplier), an unknown command item declined (TI-12), another whose turn reads back interrupted "
+           "and which is absent from history settles 'not completed (turn ended)' (TI-14, G-4)" % late)
 
 
 def pc05_reload_and_relaunch():
@@ -173,15 +189,18 @@ def pc06_tools():
           and rows["item-fixture-mcp-1"]["displayState"] == "failed"
           and rows["item-fixture-mcp-1"]["native"]["error"]["message"].startswith("invented")
           and rows["item-fixture-dyn-1"]["result"] == "not supplied by Codex"
-          and rows["item-fixture-cmd-2"]["displayState"] == "unknown"
-          and rows["item-fixture-cmd-3"]["displayState"] == "unknown"
+          and rows["item-fixture-cmd-2"]["displayState"] == "not-completed"
+          and rows["item-fixture-cmd-2"]["result"] == "not completed (turn ended)"
+          and rows["item-fixture-cmd-3"]["displayState"] == "completed"
+          and rows["item-fixture-cmd-3"]["anchor"]["standing"] == "recovered-from-supplier"
           and all(not vschema("item-anchor", r["anchor"]) for r in rows.values()))
     result("PC-06 tool activity", ok,
            "command: waiting on its request, then completed, source shown at start (agent) and completion "
            "(unifiedExecStartup), settlement origin as the register supplied it; file change declined "
            "while its request was outstanding (no origin invented); MCP failed with the native error; "
-           "dynamic tool completed with no result element (unavailable); two items unknown at an "
-           "interrupted turn; anchors valid against npt.item-anchor")
+           "dynamic tool completed with no result element (unavailable); two items open at an interrupted "
+           "turn settle 'not completed (turn ended)' (G-4), one of them later found completed in history "
+           "(TI-15, constructed); anchors valid against npt.item-anchor")
 
 
 def pc07_no_translation():
@@ -248,13 +267,20 @@ def pc10_task_role():
     m = run(S.sc_delegation(task_role=True))
     exp = m.delegation_export(S.P, S.T0 + 50, "exp-pc10")
     lines = m.delegation_lines(S.P)
-    ok = (exp["nodes"][0]["delegatingRole"] == {"role": "TASK", "statement": "stated-not-enforced"}
+    ok = (exp["nodes"][0]["delegatingRole"] == {"role": "TASK", "limitId": "L-TASK-1",
+                                                "standing": "stated-not-enforced"}
           and any("stated, not enforced" in x for x in lines) and not vschema("delegation-export", exp))
+    mu = run(S.sc_delegation(task_role="unknown"))
+    expu = mu.delegation_export(S.P, 0, "x")
+    ok = ok and expu["nodes"][0]["delegatingRole"]["standing"] == "unknown" \
+        and any("not known whether the supplied guidance states this" in x for x in mu.delegation_lines(S.P)) \
+        and not vschema("delegation-export", expu)
     m0 = run(S.sc_delegation())
     ok = ok and m0.delegation_export(S.P, 0, "x")["nodes"][0]["delegatingRole"] is None
-    result("PC-10 task-agent delegation (K-10)", ok,
-           "a spawn by a conversation whose role (a runtime value from DEL-02-04) is TASK is shown and "
-           "exported as 'stated, not enforced'; nothing blocks it; without the role value nothing is marked")
+    result("PC-10 task-agent delegation (K-10, C-08)", ok,
+           "a spawn by a conversation whose K-10 label (a runtime value from DEL-02-04) is TASK is shown and "
+           "exported with the standing as handed: 'stated, not enforced', or 'unknown' for a modified guidance "
+           "copy; nothing blocks it; without the label nothing is marked")
 
 
 def pc11_version():
@@ -291,14 +317,7 @@ def pc12_experimental_and_plan_mode():
     e1 = V.validate_against(p["params"], ROOT, "#/definitions/TurnStartParams")
     e2 = V.validate_against(carry["params"], ROOT, "#/definitions/TurnStartParams")
     stable_still = run([S.ready(1, experimental=False)] + S.sc_plans()[1:])
-    M.FEATURE_NAMES_FOR_SURFACE["delegation"] = {"constructed_delegation_feature"}
-    on.apply({"ev": "feature-list", "result": {"data": [{"name": "constructed_delegation_feature", "stage": "beta",
-                                                         "displayName": None, "description": None,
-                                                         "announcement": None, "enabled": True,
-                                                         "defaultEnabled": False}], "nextCursor": None}})
-    lab_deleg = on.experimental_label("delegation")
-    M.FEATURE_NAMES_FOR_SURFACE["delegation"] = set()
-    lab_deleg_none = on.experimental_label("delegation")
+    lab_deleg = (on.experimental_label("collabAgentToolCall") or on.experimental_label("subAgentActivity"))
     ok = (not off_c["offered"] and on_c == {"offered": True, "label": "experimental"}
           and p["params"]["collaborationMode"]["mode"] == "plan"
           and p["params"]["collaborationMode"]["settings"]["developer_instructions"] is None
@@ -306,14 +325,13 @@ def pc12_experimental_and_plan_mode():
           and carry["params"]["collaborationMode"]["mode"] == "default"
           and refused == {"refused": M.NO_MODEL}
           and len(stable_still.checklist_revisions(S.P, "turn-fixture-3")) == 3
-          and on.experimental_label("plan-mode", "turn/start.collaborationMode")
-          and lab_deleg and not lab_deleg_none)
+          and on.experimental_label("turn/start.collaborationMode")
+          and not lab_deleg)
     result("PC-12 experimental surfaces and plan mode (K-5, K-3, R17-9)", ok,
            "opt-in not declared: control absent (%s) while stable plan items still render; declared with a "
            "plan preset: offered, labelled experimental; plan turn/start and 'carry out this plan' "
            "(collaborationMode default, no act recorded) valid against TurnStartParams; no model selected: "
-           "'%s'; delegation labelled experimental only when a mapped Codex feature is beta "
-           "(constructed name; real name OBS-2 pending)" % (off_c["reason"], M.NO_MODEL))
+           "'%s' (the composer words it per R18-2); delegation surfaces never labelled experimental (C-05)" % (off_c["reason"], M.NO_MODEL))
 
 
 def pc13_acts():
@@ -381,11 +399,65 @@ def pc15_tables():
                                                            missing or "none", len(md), diff[:4] or "none"))
 
 
+def pc16_delegation_availability():
+    m = M.Model()
+    caps_yes = {"namespaceTools": True, "imageGeneration": False, "webSearch": False}
+    caps_no = dict(caps_yes, namespaceTools=False)
+    cases = [
+        ((MODEL_V1, caps_yes, None), "present"),
+        ((dict(MODEL_V1, multiAgentVersion="disabled"), caps_yes, None), "missing"),
+        ((MODEL_V1, caps_no, None), "missing"),
+        ((MODEL_V1, caps_yes, {"multi_agent": False}), "missing"),
+        ((dict(MODEL_V1, multiAgentVersion=None), caps_yes, None), "not-established"),
+        ((MODEL_V1, None, None), "not-established"),
+    ]
+    got = [m.delegation_availability(*a)[0] for a, _ in cases]
+    errs = V.validate_against(dict(MODEL_V1, multiAgentVersion="disabled"), ROOT, "#/definitions/Model")
+    ok = got == [e for _, e in cases] and not errs
+    result("PC-16 delegation availability (C-04)", ok,
+           "readings %s for: v1 + namespace tools; disabled; provider without namespace tools; "
+           "features.multi_agent false; version null; capabilities not read. Inputs valid against the bundle's "
+           "Model and ModelProviderCapabilitiesReadResponse (PC-01)" % got)
+
+
+def pc17_goals():
+    m = run(S.sc_goals()[:3])
+    l1 = m.goal_line(S.P)
+    m = run(S.sc_goals()[:4])
+    l2 = m.goal_line(S.P)
+    m = run(S.sc_goals())
+    l3 = m.goal_line(S.P)
+    ok = ("— complete (Codex's goal status; not a workflow run, checkpoint or acceptance" in l1
+          and l2 == "No Codex goal (thread/goal/cleared)" and "— paused" in l3
+          and m.inferred_acts() == [] and not m.tools)
+    result("PC-17 goals group (G-3)", ok,
+           "goal shown with Codex's objective and status unchanged: %r; cleared: %r; read: %r; a 'complete' "
+           "goal yields no act, no run end and no tool row" % (l1, l2, l3))
+
+
+def pc18_run_markers():
+    m = run(S.sc_plans())
+    for turn, boundary, label in (("turn-fixture-2", "start", "run of WF-A rev r1"),
+                                  ("turn-fixture-2", "end", "run of WF-A rev r1"),
+                                  ("turn-fixture-3", "start", "run of WF-B rev r1")):
+        m.apply({"ev": "runtime", "kind": "run-marker", "threadId": S.P, "turnId": turn,
+                 "boundary": boundary, "label": label})
+    got = [m.run_in_force(S.P, t) for t in ("turn-fixture-1", "turn-fixture-2", "turn-fixture-3")]
+    revs = m.plan_revisions(S.P)
+    ok = (got == [None, "run of WF-A rev r1", "run of WF-B rev r1"] and len(revs) == 2
+          and all("WF-" not in json.dumps(r) for r in revs))
+    result("PC-18 run boundaries (R19-2)", ok,
+           "runs in force by turn %s (from run markers handed in; display only); plan revisions keep their "
+           "thread-scoped identities across the run boundary, and no run element enters the plan-revision "
+           "record" % got)
+
+
 def main():
     for f in (pc01_bundle_conformance, pc02_checklist, pc03_plan_items, pc04_incomplete,
               pc05_reload_and_relaunch, pc06_tools, pc07_no_translation, pc08_delegation,
               pc09_observation_end_and_reads, pc10_task_role, pc11_version,
-              pc12_experimental_and_plan_mode, pc13_acts, pc14_schema_fixtures, pc15_tables):
+              pc12_experimental_and_plan_mode, pc13_acts, pc14_schema_fixtures, pc16_delegation_availability,
+              pc17_goals, pc18_run_markers, pc15_tables):
         try:
             f()
         except Exception as e:  # a crash is a failed case, reported
