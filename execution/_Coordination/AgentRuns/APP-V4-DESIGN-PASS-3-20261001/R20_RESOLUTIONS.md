@@ -118,3 +118,8 @@ SCC-002, no SCC change. Collected with the other proposed rows.
   attached as a text element (NIR §6, AT-8). When the person sends it, it is
   the person's own attachment: no run, no workflow supply, no run-start text.
   WR TT-3 follows NIR.
+- **R21-6 Reading "against `thread/read`" (V21b-B n-1).** Where a
+  first-increment text says the run-start supply is checked "against
+  `thread/read`", read it as "against Codex's history", made as WR §16.6 and
+  R21-4 say (`thread/items/list`). The wording is aligned at each file's next
+  touch (closeout C0).

@@ -42,6 +42,6 @@ under [`loop/LOOP_INIT.md`](../../../../loop/LOOP_INIT.md).
 | F0 Join consolidation | `F/F0_JOINS.md` | D1…D6, OBS-2 | Per-file join table, conflicts, rows | COMPLETE |
 | R18 + L Rulings on the conflicts; second owner package (L-1…L-7) | `R18_RESOLUTIONS.md`; `DECISIONS_PENDING_2.md`; review page | F0 | Decided, or left open at a stated point | COMPLETE — DECISION-L; R19 |
 | OBS-3 Per-turn workflow supply, chaining, fork (R19-6) | Scratch; `DEL-01-01/Design/OBS_3_0.158.0.md`, `prototype/obs3/`; `D/OBS-3.md` | R19 | W-1…W-6 recorded; supply route recommended | COMPLETE — R19-7 (turn text), R19-8 (forks) |
-| F First-increment edits from the join lists (R17-14), then D round 2 (OBS-2 cells) | First-increment Design files named in the join lists | D1…D6, OBS-2 | One version step per file | ACTIVE — F-A…F-D and D round 2 in parallel; F-E after |
+| F First-increment edits from the join lists (R17-14), then D round 2 (OBS-2 cells) | First-increment Design files named in the join lists | D1…D6, OBS-2 | One version step per file | COMPLETE — F-A…F-E2, RX, RX2, RP-final; reviews V21-A/B and rechecks V21b-A/B: MERGE AS DRAFTS |
 | A SCA-V4-003: apply the contract proposals of passes 2 and 3 | `scope-change` route | Placement decided after K | Owner checkpoints; DAG currency | PLANNED |
 | V… Comparisons, reviews, closeout, receipt, final PR | Per LOOP_INIT §§3–6 | D… | — | PLANNED |
