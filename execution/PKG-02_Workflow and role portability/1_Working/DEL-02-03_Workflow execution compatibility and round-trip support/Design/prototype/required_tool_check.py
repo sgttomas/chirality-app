@@ -17,7 +17,7 @@ OUTCOME_BLOCKS = {"missing", "not_exposed_on_this_surface", "version_mismatch",
                   "channel_not_enabled"}
 
 
-# EV-3 presence rule and EV-3a readings at pin 0.158.0 (EXEC-v0.6 §3.4; PROPOSED;
+# EV-3 presence rule and EV-3a readings at pin 0.158.0 (EXEC-v0.7 §3.4; PROPOSED;
 # active per group from node G, R16-3). The signals are HOSTING-BOUNDARY-v0.8
 # §8.4's; `signals` is the App's reading for the thread, or None (not read).
 APP_CODEX_PIN = "App Codex 0.158.0"
@@ -38,8 +38,22 @@ def _web(s):
 
 
 def _delegation(s):
-    ts = s.get("thread_start")
-    return None if ts is None or "multiAgentMode" not in ts else True
+    # EXEC-v0.7 EV-3a (R18-1 C-04, C-05; R20-2): `Model.multiAgentVersion` from
+    # model/list, `namespaceTools` from modelProvider/capabilities/read, and the
+    # stable feature `multi_agent` in the effective configuration. The v0.6
+    # signal `multiAgentMode` is "@deprecated Ignored" at 0.158.0 and is not read.
+    ver = s.get("model_multi_agent_version")
+    if ver is None:
+        return None                                   # null or not read
+    features = (s.get("effective_config") or {}).get("features") or {}
+    if ver == "disabled" or features.get("multi_agent") is False:
+        return False
+    caps = s.get("provider_capabilities")
+    if caps is None or "namespaceTools" not in caps:
+        return None
+    if caps["namespaceTools"] is False:
+        return "limit"
+    return True
 
 
 def _mcp(s):
@@ -95,6 +109,8 @@ def harness_presence(name, harness, signals):
     if value is None:
         return "not_established", "availability signal of %s not read" % group
     if value == "limit":
+        if name == "agent-delegation":
+            return "not_established", "provider may not receive delegation tools (namespaceTools false; OBS-2 O-4, through an adapter)"
         return "not_established", "provider may not receive MCP tools (namespaceTools false; OBS-1 inference)"
     if value:
         return "present", ""
