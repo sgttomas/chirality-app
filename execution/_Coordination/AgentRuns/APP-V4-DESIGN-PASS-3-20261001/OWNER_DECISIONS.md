@@ -129,10 +129,14 @@ instance."; then "Well, there's no pressing need to go ahead with this
 alternative sign-in or do you see any?"; then "btw Codex frequently updates
 its version in significant ways.  Pinning can only last so long."
 
-HELP_HUMAN's answers are in [ASSESSMENT_SIWC.md](ASSESSMENT_SIWC.md). The
-recommendation the owner then accepted with L-1 and L-6 (below) is: no
-pressing need; DEL-01-05 records the plan grant as an alternative considered,
-with its triggers; the host-billing point goes on the next-relay list.
+HELP_HUMAN's answers are in [ASSESSMENT_SIWC.md](ASSESSMENT_SIWC.md).
+**Reading (HELP_HUMAN, not owner text; corrected after review V21-B m-3):**
+the owner accepted HELP_HUMAN's recommendations for L-1 and L-6 as framed
+after that exchange ("I will go with your recommendations for the other six").
+The rest of the arrangement (no pressing need; DEL-01-05 records the plan
+grant as an alternative considered, with its four triggers; the host-billing
+point on the next-relay list) is HELP_HUMAN's recommendation, which the owner
+did not separately answer and did not object to.
 
 ## DECISION-L (owner, exact, 2026-10-02)
 

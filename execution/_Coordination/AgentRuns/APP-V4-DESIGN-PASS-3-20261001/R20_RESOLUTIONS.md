@@ -89,3 +89,27 @@ SCC-002, no SCC change. Collected with the other proposed rows.
 4. **The cause for "End ‹A› and start ‹B›".** The person ends A (DEF-4); the
    recorded cause is "ended to start ‹B›" (EXEC's wording); WR records the
    same.
+
+## R21 — rulings on V21 (recorded here with R20)
+
+- **R21-1 Delegation availability (V21-B M-1).** Read in this order:
+  `Model.multiAgentVersion` = `disabled` → missing; effective
+  `features.multi_agent = false` → missing; provider capabilities report
+  `namespaceTools` false → missing; any of the three not read → not
+  established; otherwise present. NPTD-v0.2 §7.1 is the reference; EXEC
+  EV-3a, its `_delegation`, and WD §4.2.5 follow.
+- **R21-2 Attachments (V21-A M-2).** OBS-3 W-3: `mention` delivers nothing;
+  `skill` only a discovered `SKILL.md`. The App carries an attachment as a
+  text element of the turn (text files, with the file named), as an `image`
+  or `localImage` input (images), or, for other files, by naming the path for
+  the agent to read with its tools; only the first two are "supplied", the
+  third is "named; read only if a tool item shows it". `mention` and `skill`
+  are not used for attachments. NIR §6, its schema label and example follow;
+  the K-7 trial path (AT-8) the same.
+- **R21-3 L-4 through the act control (V21-A M-1, V21-B M-3).** AAC adopts
+  WR's `a15_multi_descriptor` (one descriptor for the act, entries inside),
+  accepts `entry:` as well as `draft:` reviewed content, and adds the plural
+  wording "register workflow revisions"; a cross-check case runs WR's
+  descriptor through AAC's offer and capture into RS.
+- **R21-4 Supply check read (V21-B m-4).** WR uses the history read HOSTING
+  §4.4 recommends, not `thread/read {includeTurns: true}`.

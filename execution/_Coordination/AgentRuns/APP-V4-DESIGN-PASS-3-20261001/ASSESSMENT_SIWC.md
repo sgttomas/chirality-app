@@ -72,6 +72,10 @@ unverified alternative to the restart route.
 
 ## Recommendations
 
+*Superseded in part (2026-10-02):* recommendations 1–3 were scaled back after
+the owner asked whether there was any pressing need; see "Addendum" and
+"The four triggers" below. L-1 and L-6 were answered as originally framed.
+
 1. **Answer L-2, L-3, L-4 and L-7 as you would have; hold L-1 and L-6.** L-5
    stands, with the note above.
 2. **Add the plan connection to the design as a PROPOSED fourth access mode**
