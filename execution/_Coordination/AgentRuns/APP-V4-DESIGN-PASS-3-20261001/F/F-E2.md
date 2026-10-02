@@ -251,3 +251,108 @@ GUIDE's last edit).
    `cite2.py` `47cf4f7c…` (B8's), `paths.py` `741f7058…`, `runcite.py`
    `340e1170…`, `runcite2.py` `d5e5d9b6…`, `meaning.py` `e55ee916…`, the
    GUIDE edit `g6.py` `7d2b55d4…`.
+
+---
+
+## RP-final — after repairs RV21-A and RV21-B
+
+Node **RP-final** (HELP_HUMAN's message to F-E2, 2026-10-02), at HEAD
+`31d65b0be3` (RV21-A on RV21-B on `6185de63da`). Read first: `F/RV21-A.md`
+and `F/RV21-B.md`. Fence: GUIDE (pins and labels), DEL-09-06 CA (examples,
+change row, l.717), DEL-04-03 RS act-log example record 4. Read-only git; no
+network; no Codex or model run. Scratch: `…/scratchpad/fe2/rp/`.
+
+### What changed
+
+| Item | File | Change | Check |
+|---|---|---|---|
+| CA examples | `w14-result-record.example.valid.json`, `.invalid.json` (DEL-09-06) | Regenerated with `PYTHONDONTWRITEBYTECODE=1 python3 -B prototype/run_w14_rehearsals.py --out ‹scratch› --write-examples` at 21:49 UTC. Before: exit 1, 43 passed, 1 failed ("valid example … equals the regenerated W14-05 record"), as RV21-B §3 item 1 said. A field-by-field comparison of the valid example before and after shows one difference: `/subject_of_run/files/4/sha256` `b770bb42…` → `3fc0d650…` (DEL-02-03 `prototype/run_all.py`, changed by RV21-B for R21-1); the invalid example is derived from it | `--write-examples` run: exit 0, "ALL CHECKS HOLD"; rerun without it (also after the CA text edits): exit 0, 44 passed, "ALL CHECKS HOLD: 0 failure(s)" |
+| CA l.717 (F-E2 §4.3 row 11, left with DEL-09-06) | `CONNECTED_ACTIVITY_CONTRACT.md` §8.2 W14-05 | "(RS-v0.8 L-13): EXEC-v0.6 **CH-31**" → "(RS-v0.9 L-13): EXEC-v0.7 **CH-31**"; "(EXEC-v0.6 CH-32)" → "(EXEC-v0.7 CH-32)". Kept as provenance: "CH-32 (v0.6)" and "from EXEC-v0.6, CH-31 here" | RS-v0.9 L-13 and EXEC-v0.7 CH-31, CH-32 present with the cited meanings (L-13 "Earlier acts"; CH-31 "Earlier act not counted"; CH-32 "Checking, approval and reliance kept apart") |
+| CA §8.5 note and change table | same | "**Regenerated at RP-final** …" paragraph after RX's; "RP-final" row after the RX row of "Changes from v0.6". No rule, case, outcome or identifier changed | — |
+| RS act-log record 4 | `RS_RECORD.valid.act-log.example.jsonl` (DEL-04-03) | Record 4 (`rec:app:acts:0004`) is the L-4 multi-entry act (`relations.registeredEntries`, two entries, `entry:` strings, `cap:reg-in-place-2`): purpose "make it available in the project library" → "make them available in the project library", as WR ME-3, RS §6.2 (l.573) and AAC's multi-entry examples say. Records 1–3 unchanged. RECORD_SEMANTICS.md is not edited (it already states the plural form), so no RS change-table row | `run_prototype.py ‹scratch›`: exit 0, 63 PASS, 0 FAIL, "RESULT: all expectations held". Consumer check: DEL-01-04 `run_cases.py` (K-17b reads record 4): exit 0, 151 checks, 0 failed |
+| GUIDE labels | `HOST_INTEGRATION_GUIDE.md` | No sibling version label changed in RV21 (in place, no steps); GUIDE's strict citation check still shows only the 4 history labels. RELAY's row: "unchanged in design pass 3" was no longer true (RV21-B added next-relay item (6)); the version cell now says so | B8 `cite.py`: 1,176 citations, 1,173 resolved; the 3 misses are the v0.5 placeholders |
+| GUIDE pins | same | Consumed-input line (re-pinned last at RP-final; F-E2 kept as the earlier re-pin), column heading "sha256 at node RP-final", "RP-final re-pin" paragraph, §4.5 sentence, "RP-final" row in "Changes from v0.5", and an "At RP-final" sentence in F-19 | below |
+
+### Pin check (B8's `pins.py`, sha256 `b943319d…5423`, unchanged)
+
+- Before the write: **11/25** (unchanged: C, P, ADAPTER, AS, LOOP, PANEL,
+  SPIKE, XT, ANS, FACTS, ROLE). The 14 that differed: ACT, RS, WD, WD-EX,
+  EXEC, HOSTING, RELAY (RV21-B); RECOVERY, NPTD, NIR, AAC, ACCESS, WR (RV21-A);
+  CA (RP-final).
+- `--write`, then check after GUIDE's last edit: **25/25**.
+
+| Short | New pin (sha256) |
+|---|---|
+| ACT | `4ef8c0428d42fbe37be634d79296d7ec80860308345bf4826650fef1739b2229` |
+| RS | `d3db9b97ab1d90bf222bda5bdfc16fb2e2f0514c89891dcedfa52d0bd8a62a98` |
+| WD | `1abe72e3f546676cd73308f9d349ad164462a3bd9bf6114ed0a8874be0664e18` |
+| WD-EX | `85fa5a3f9200cef893789165515eafe8aff653f6357135cf7575c6eacd83a361` |
+| EXEC | `fa8226c60417fb8c011a67111f1e0fb13338230ac384805addefcfcf6e9033b5` |
+| HOSTING | `bcad280f204172385367f21f5cbf7c978da1a1984ccce28f5b8240174c2d8301` |
+| CA | `7ff38bf0d08c23f52822bdd154b08b1a7eb8fa6893ac0837917808eaceef99c5` |
+| RELAY | `6e726be9ae39e8a8b5ec39b38984081339bac5bee52ce88fc8739a298801ae92` |
+| RECOVERY | `678042beae0327e6fcbabb99eaea746d46c843198238ac4dfc67690ea26149c1` |
+| NPTD | `6eed39dcee4acf4b8b986cdd9e09c460a8fa53571973cb5c826acce37d644a72` |
+| NIR | `7144aebd4a72522d156ea6bae21db78da9343565d68f3f5688a46b35a2f50576` |
+| AAC | `062ce28c8a4ec0bc79fc6b6c421245057a59815df14b88fa779b61eeb98be7d7` |
+| ACCESS | `929bd07b32f40fc6f65b6df6ce5b7aebe6cd91a89866525a981e5cbe11c4ffa0` |
+| WR | `5b522ce626dcaadd73e5abb46b9db1303d45a9cf2307feface5920d831d056dd` |
+
+Every new pin except CA equals the "after" value RV21-A §4 or RV21-B §4
+reports (and the committed bytes at `31d65b0be3`); CA's is RP-final's.
+
+### Citation check on the repaired lines
+
+Same scripts as §4 (base made a parameter, `CITE_BASE`), over every `+` line
+of `git diff -U0 ‹base›` in the 15 Design files changed since `6185de63da`
+(HOSTING, RECOVERY, NPTD, AAC, NIR, ACCESS, WD-EX, WD, WR, EXEC, GUIDE, ACT,
+RS, CA, RELAY), working tree after RP-final:
+
+| Base | Strict items | Missing | Label lags |
+|---|---|---|---|
+| `6185de63da` (RV21-B + RV21-A + RP-final) | 207 | 0 | 2 |
+| `dc61150559` (RV21-A + RP-final) | 73 | 0 | 0 |
+
+- The two lags are provenance, not errors: HOSTING l.111 (the RV21 row
+  quoting "the group set WD-v0.8 §4.2.5", kept deliberately) and RELAY
+  l.1141 (item (5), "XT-v0.6 IN-30, F-26; added at node G", unchanged text on
+  the line RV21-B extended; IN-30 and F-26 are present in XT-v0.7).
+- Broad pass: 282 items, 19 flags, all read: each is an identifier of the
+  citing file after a cross-file citation (HOSTING's own §6.1, §6.2.1, §6.5,
+  §6.7, §8.2, §8.4; NIR's own TC-2, RN-2, VC-NIR-23, AT-9, AT-10; WR's RB-4a;
+  AAC's §1.2 in ACT). None missing.
+- Meaning: the 129 distinct cross-file targets were printed beside their
+  citing lines (`rp/meaning.txt`) and read. All agree, including the RV21
+  re-pointings (RECOVERY-v0.2 §1 "reconciliation with §6.5" and §4.2;
+  "this file's §6.2.1 RT-08"; NPTD-v0.2 §6.4 and §9 TA-5; ACCESS-v0.2 CS-18
+  and Q-11 with RECOVERY §4.1 and ROLE §5.5; WR §4.7 ME-3 with AAC §1.2,
+  §4.2; LOOP-v0.9 §13 NR-L1 and ACCESS §11 CH-8 in RELAY item (6)).
+- Remaining label lags since the run base (a38617d08b), all with the cited
+  section present: AAC l.85 (WR-v0.1), NIR l.131 (ACT-POLICY-v0.8), l.188,
+  l.600 (WR-v0.1), ROLE l.64 (WD-v0.8), ACCESS l.898 (HOSTING-v0.8); the
+  rest are header "read at" lines or history. Left with their owners, as
+  GUIDE F-19 now records. Closed since F-E2: WR schema description (RV21-A),
+  HOSTING S-1 and §6.2.1 wordings, ACT's SC naming, EXEC/RS/HOSTING label
+  lags (RV21-B), CA l.717 (here).
+
+### DAG-003 currency (rerun after RP-final's edits)
+
+| Check | Result |
+|---|---|
+| `shasum -a 256 -c MANIFEST.sha256` (in `_DAG/DAG-003/`) | exit 0; 37/37 OK |
+| `shasum -a 256 -c _DAG/DAG-003/SOURCE_MANIFEST.sha256` (execution root) | exit 0; 130/130 OK |
+| `analyze_dep_closure.py` (the brief's arguments, from the repository root) | exit 0; `run_status` COMPLETE; **`accepted_dag.result` NO_DEPARTURE_FOUND** (DAG-003; `dag_pending_count` 0); 41 nodes, 202 edges, 6 SCCs; issues none; output sha256 `c6121d5a…` (identical to F-E2's run) |
+
+### New sha256 (RP-final)
+
+| File | Before (HEAD `31d65b0be3`) | After |
+|---|---|---|
+| DEL-03-04 `HOST_INTEGRATION_GUIDE.md` (GUIDE-v0.6) | `017849e4790b5ed9…` | `4ab688f95e5bf9dd41fe2538e7d450f4ecc50bdecfe0e3deb8562d6f1e70a0e2` |
+| DEL-09-06 `CONNECTED_ACTIVITY_CONTRACT.md` (CA-v0.7) | `148687e71fd8a464…` | `7ff38bf0d08c23f52822bdd154b08b1a7eb8fa6893ac0837917808eaceef99c5` |
+| DEL-09-06 `w14-result-record.example.valid.json` | `1997107397a444b4…` | `a14c5934cd47d74e6665857d66f4e485b29ca8ba7b7c37be54579971cbfb432b` |
+| DEL-09-06 `w14-result-record.example.invalid.json` | `0c28e970792b7a45…` | `1a1eacac7b8177691c127d3a6abf7a8056195b4e437d86b7b7ac806d2a675fb0` |
+| DEL-04-03 `RS_RECORD.valid.act-log.example.jsonl` | `b202e850d7a966a8…` | `5b34591e25051486102681083fbe1e1e59d890dcbcc28f0ccccad585651a4e51` |
+| `RUN/F/F-E2.md` (this file) | — | reported in the hand-back |
+
+`git status --untracked-files=all` after RP-final: only these five files and
+this one modified; prototype runs wrote to scratch only.

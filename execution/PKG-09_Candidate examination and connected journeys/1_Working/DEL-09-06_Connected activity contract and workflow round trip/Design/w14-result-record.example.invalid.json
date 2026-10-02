@@ -28,7 +28,7 @@
       },
       {
         "path": "PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/prototype/run_all.py",
-        "sha256": "b770bb42d409fbf5fcd01ebde86d532cf8125b4aa6cb0c0b4b0c184f1381adc3"
+        "sha256": "3fc0d650f5cdb3c5d6adf350664164a1eb5c3e2cacf69e1d2a7ffc005dbff4ae"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"
