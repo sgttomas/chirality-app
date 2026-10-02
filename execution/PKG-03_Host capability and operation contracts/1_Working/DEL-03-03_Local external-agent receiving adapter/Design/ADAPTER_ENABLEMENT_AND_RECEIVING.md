@@ -1796,11 +1796,13 @@ prototype changes.
 | **FD-01** (F0 §1.14 sweep: L101) | §1 owner/act map: the hosting row names DEL-01-01 (HOSTING-BOUNDARY-v0.9), DEL-01-04 (NIR-v0.2 §4), DEL-01-05 (ACCESS-v0.2 §1, §3) and DEL-01-02 (RECOVERY-v0.2 §2, §8.2), replacing "with DEL-01-04/01-05 in a later undertaking, D1" | §1 |
 | **FD-01** (F0 §1.14 sweep: L1238) | OC-3's owner cell names DEL-01-05 with ACCESS-v0.2 §1 I-2 (person-directed `config/batchWrite` with `filePath` and `expectedVersion`) and §3 (the App homes link the person's `config.toml`, so option (a) writes the person's own file), replacing "and DEL-01-05 in the later undertaking" | §9 OC-3 |
 | FD-01 (D1 §4 NR-D1-2; F0 §3 NR-02) | §11 gains "Expect from DEL-01-02/RECOVERY-v0.2" (by join; register row proposed for SCA-V4-003, not written here); the Receivers line names the join | Header (Receivers); §11 |
+| F-E2 (in place, no version step; the design-pass-3 citation check, BRIEFS "RX … then F-E2") | Verification cases: the contract versions "current at this revision" now read C-v0.8, P-v0.8, EXEC-v0.7, WD-v0.9 and ACT-POLICY-v0.9 (were C-v0.8, P-v0.8, EXEC-v0.6, WD-v0.8 and "ACT-POLICY as then current"; C and P did not change in design pass 3). No case, result, rule or identifier changes | Verification cases |
 
 Not changed: L1589 (the R4-20 row of "Changes from v0.1") is change history
 and keeps "DEL-01-02, later". The Verification cases' list of contract
 versions "current at this revision" (C-v0.8, P-v0.8, EXEC-v0.6, WD-v0.8) is
-not an FD-01 locus and is left for the guide's citation check (F-E2).
+not an FD-01 locus and is left for the guide's citation check (F-E2); F-E2
+corrected it in place (row F-E2 above).
 Identifiers: all v0.6 identifiers kept; none added, none retired.
 
 ---
@@ -1840,9 +1842,9 @@ VC-X-04 that §10.3 lists; the rest are not run. Evidence labels per the
 C-v0.7 mapping (unchanged in C-v0.8). Every executed
 result names the App candidate, the realization family, the endpoint
 (*simulated* or an identified host candidate), the contract versions
-actually used — current at this revision C-v0.8, P-v0.8, EXEC-v0.6 and
-WD-v0.8, with ACT-POLICY as then current — and the policy records used
-(R5-9).
+actually used — current at this revision (ADAPTER-v0.7, corrected in place
+at F-E2): C-v0.8, P-v0.8, EXEC-v0.7, WD-v0.9 and ACT-POLICY-v0.9 — and the
+policy records used (R5-9).
 
 | Case | Design | Expected result | Serves |
 |---|---|---|---|
