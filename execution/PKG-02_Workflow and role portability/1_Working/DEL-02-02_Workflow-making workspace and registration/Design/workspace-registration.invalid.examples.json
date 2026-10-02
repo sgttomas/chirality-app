@@ -256,5 +256,256 @@
       "time": "t02",
       "standing": "draft tried in conversation; not a run of any workflow identity"
     }
+  },
+  {
+    "case": "INV-10 draft transition: a revision on a 'written' event (C-02: only on 'registered')",
+    "kind": "draft_transition",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "written",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust"
+      },
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "rev-A3"
+      },
+      "from": "absent",
+      "to": "draft",
+      "disposition": "new revision",
+      "cause": "registered as revision 2",
+      "time": "t09",
+      "attribution": {
+        "kind": "app action"
+      },
+      "a15_record": "rec:app:acts:0007",
+      "revision": "rev-A3"
+    }
+  },
+  {
+    "case": "INV-11 multi-entry A15 descriptor with one entry (L-4: several entries; one entry is an ordinary descriptor)",
+    "kind": "a15_multi_descriptor",
+    "expect": "fewer than 2 items",
+    "instance": {
+      "record_kind": "a15_multi_descriptor",
+      "descriptor_id": "a15m-rv-9",
+      "act_kind": "A15",
+      "wording": "register workflow revisions",
+      "disposition": "in place",
+      "library": {
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)"
+      },
+      "entries": [
+        {
+          "subject": {
+            "kind": "workflow",
+            "origin": "project",
+            "source_root": "fx-proj (LIB-A1)",
+            "name": "notes-a",
+            "revision": "rev-NA",
+            "revision_method": "proto-sha256-list-0"
+          },
+          "bound_content": {
+            "method": "proto-sha256-list-0",
+            "value": "rev-NA"
+          },
+          "reviewed_entry": "entry:project:notes-a@rev-NA"
+        }
+      ],
+      "scope": "project library fx-proj (LIB-A1)",
+      "purpose": "make them available in the project library",
+      "review_ref": "rv-9"
+    }
+  },
+  {
+    "case": "INV-12 run text: a chain recorded but no chain line (R19-7: the model is told the previous run ended)",
+    "kind": "run_text",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "run_text",
+      "purpose": "run start",
+      "framing": "WR-FRAME-1",
+      "run": "run:thr-40/2",
+      "conversation": "thr-40",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "review-pack",
+        "revision": "rev-P1",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "holding_library": "fx-proj (LIB-A1)",
+      "workflow_file": {
+        "path": "WORKFLOW.md",
+        "content": {
+          "method": "sha256 over UTF-8 text",
+          "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+        },
+        "bytes": 84
+      },
+      "other_files": [
+        {
+          "path": "resources/checklist.md",
+          "sha256": "d192375885ec7d50df1287cb5e19b55d4a79f1cdd1597b9cc52fd59e05da6730"
+        }
+      ],
+      "chain": {
+        "prior_run": "run:thr-40/1",
+        "prior_workflow": {
+          "kind": "workflow",
+          "origin": "project",
+          "source_root": "fx-proj (LIB-A1)",
+          "name": "supports-adjust",
+          "revision": "rev-A3",
+          "revision_method": "proto-sha256-list-0"
+        },
+        "ended": "ended by the person"
+      },
+      "origin_of_start": "selected by the person",
+      "selection": "sel-6",
+      "lines": {
+        "start_line": "[Chirality] Workflow run start: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
+        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm.",
+        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
+        "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
+        "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
+      },
+      "text_identity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+      },
+      "text_bytes": 812
+    }
+  },
+  {
+    "case": "INV-13 run text: a start line not in WR-FRAME-1's wording",
+    "kind": "run_text",
+    "expect": "does not match pattern",
+    "instance": {
+      "record_kind": "run_text",
+      "purpose": "run start",
+      "framing": "WR-FRAME-1",
+      "run": "run:thr-40/2",
+      "conversation": "thr-40",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "review-pack",
+        "revision": "rev-P1",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "holding_library": "fx-proj (LIB-A1)",
+      "workflow_file": {
+        "path": "WORKFLOW.md",
+        "content": {
+          "method": "sha256 over UTF-8 text",
+          "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+        },
+        "bytes": 84
+      },
+      "other_files": [
+        {
+          "path": "resources/checklist.md",
+          "sha256": "d192375885ec7d50df1287cb5e19b55d4a79f1cdd1597b9cc52fd59e05da6730"
+        }
+      ],
+      "chain": {
+        "prior_run": "run:thr-40/1",
+        "prior_workflow": {
+          "kind": "workflow",
+          "origin": "project",
+          "source_root": "fx-proj (LIB-A1)",
+          "name": "supports-adjust",
+          "revision": "rev-A3",
+          "revision_method": "proto-sha256-list-0"
+        },
+        "ended": "ended by the person"
+      },
+      "origin_of_start": "selected by the person",
+      "selection": "sel-6",
+      "lines": {
+        "chain_line": "[Chirality] Previous workflow run ended: supports-adjust revision rev-A3 (run run:thr-40/1, ended by the person). Its instructions no longer apply.",
+        "start_line": "[Chirality] Workflow begins: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
+        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm.",
+        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
+        "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
+        "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
+      },
+      "text_identity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+      },
+      "text_bytes": 812
+    }
+  },
+  {
+    "case": "INV-14 supply check: 'verified' without the observed text identity",
+    "kind": "supply_check",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "supply_check",
+      "check": "chk-1",
+      "run": "run:thr-40/2",
+      "conversation": "thr-40",
+      "turn": "turn-B1",
+      "client_user_message_id": "cum:run:thr-40/2",
+      "purpose": "run start",
+      "expected_text": {
+        "method": "sha256 over UTF-8 text",
+        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+      },
+      "expected_workflow": {
+        "method": "sha256 over UTF-8 text",
+        "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+      },
+      "state": "verified",
+      "item": "item-u-turn-B1",
+      "located_by": "client id",
+      "read_at": "t14",
+      "evidence_limits": [
+        "supplied is not adopted: whether the model followed it is not shown"
+      ]
+    }
+  },
+  {
+    "case": "INV-15 selection: 'agent proposal confirmed by the person' without the proposal it confirms (R19-2 (b))",
+    "kind": "selection_record",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "selection_record",
+      "selection_id": "sel-7",
+      "identity": {
+        "kind": "workflow",
+        "origin": "project",
+        "source_root": "fx-proj (LIB-A1)",
+        "name": "supports-adjust",
+        "revision": "rev-A3",
+        "revision_method": "proto-sha256-list-0"
+      },
+      "holding_library": "fx-proj (LIB-A1)",
+      "standing": "registered",
+      "selected_by": "the person (App interface)",
+      "how": "agent proposal confirmed by the person",
+      "prior_run": {
+        "run": "run:thr-40/2",
+        "workflow": {
+          "kind": "workflow",
+          "origin": "project",
+          "source_root": "fx-proj (LIB-A1)",
+          "name": "review-pack",
+          "revision": "rev-P1",
+          "revision_method": "proto-sha256-list-0"
+        },
+        "ended": "completed"
+      },
+      "conversation": "thr-40",
+      "selected_at": "t16"
+    }
   }
 ]

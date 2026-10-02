@@ -52,8 +52,36 @@ OS_FILES = {".DS_Store", "Thumbs.db", "desktop.ini", "Icon\r", ".localized"}
 OS_DIRS = {".Spotlight-V100", ".Trashes", ".fseventsd", "__MACOSX"}
 SIZE_LIMIT = 16 * 1024 * 1024
 FILE_LIMIT = 1000
-WR_ID = "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.1"
+WR_ID = "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2"
 RS_ID = "urn:chirality:app-v4:del-04-03:rs-record:0.1"
+RS_PROJ_ID = "urn:local:wrproto:rs-record-projected-C-01"
+CODEX_ID = "urn:local:wrproto:codex-0.158.0-v2"
+GEN = os.path.join(E, "PKG-01_Native App and third-party harness integration", "1_Working",
+                   "DEL-01-01_Stock Codex hosting and supplier contract", "Design", "generated", "0.158.0",
+                   "json-schema", "experimental", "codex_app_server_protocol.v2.schemas.json")
+FRAME = "WR-FRAME-1"
+PROPOSAL_LINE = ('[Chirality] When you judge this workflow finished, say so in a line "Workflow finished: <name>". '
+                 'To propose that another registered workflow runs next, end the message with the line '
+                 '"Next workflow: <name>". The person decides; nothing ends or starts until they confirm.')
+PROPOSAL_RE = re.compile(r"^Next workflow: (\S+)\s*$")
+FINISHED_RE = re.compile(r"^Workflow finished: (\S+)\s*$")
+
+
+def rs_tuple(t):
+    """WD tuple (snake_case) -> RS workflowTuple (camelCase), the one-to-one mapping of WD 3.6."""
+    if t is None:
+        return None
+    m = {"kind": "kind", "origin": "origin", "source_root": "sourceRoot", "name": "name", "revision": "revision",
+         "revision_method": "revisionMethod"}
+    out = {m[k]: v for k, v in t.items() if k in m}
+    if t.get("derived_from"):
+        out["derivedFrom"] = rs_tuple(t["derived_from"])
+    return out
+
+
+def id3(kind, location, name, value):
+    """WR ID-3: draft:<location>:<name>@<content identity>; L-4 adds entry:… for a library entry."""
+    return "%s:%s:%s@%s" % (kind, location, name, value)
 
 
 class Crash(Exception):
@@ -223,7 +251,7 @@ class ActControlDouble:
             return {"captured": False, "shown": "changed since review - review again"}
         lib = self.ws.lib_of(d["subject"])
         self.n += 1
-        rid = "rec:app:acts:%04d" % (len(lib.act_records()) + 1)
+        rd = d["relations"]["reviewed_draft"]
         cap = "cap:%s" % descriptor_id
         t = self.ws.tick()
         body = {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"},
@@ -235,10 +263,15 @@ class ActControlDouble:
                 "scope": d["scope"], "purpose": d["purpose"],
                 "captureEvidence": [{"kind": "capture evidence", "ref": cap, "resolutionAtWrite": "resolved"}],
                 "captureTime": t, "evidenceLimits": ["identity not verified"],
-                # RS-v0.8 shape: derivedFrom names the draft (R12-5). R17-11 renames it; see check P-24.
-                "relations": {"derivedFrom": "draft:%s:%s@%s" % (d["relations"]["reviewed_draft"]["draft"]["draft_location"],
-                                                                 d["relations"]["reviewed_draft"]["draft"]["name"],
-                                                                 short(d["relations"]["reviewed_draft"]["content"]["value"]))}}
+                # C-01 (R18-1): the persisted A15 form RS defines (FR-06), written through the RS writer.
+                "relations": {"reviewedDraft": {"draft": id3("draft", rd["draft"]["draft_location"], rd["draft"]["name"],
+                                                             rd["content"]["value"]),
+                                                "content": {"method": METHOD, "value": rd["content"]["value"]}},
+                              "priorRevision": rs_tuple(d["relations"]["prior_revision"])}}
+        return self._write(lib, body, t, cap, descriptor_id, d["bound_content"])
+
+    def _write(self, lib, body, t, cap, descriptor_id, bound):
+        rid = "rec:app:acts:%04d" % (len(lib.act_records()) + 1)
         rec = {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": rid, "kind": "human_act",
                "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"},
                "context": {"surface": "App"}, "seq": len(lib.act_records()) + 1, "writtenAt": "w-" + t, "body": body}
@@ -247,7 +280,36 @@ class ActControlDouble:
         self.ws.rs_records.append(rec)
         self.withdraw(descriptor_id)
         return {"captured": True, "record_id": rid, "capture_evidence": cap, "descriptor_id": descriptor_id,
-                "bound_content": d["bound_content"], "time": t}
+                "bound_content": bound, "time": t}
+
+    def person_operates_multi(self, descriptor_id):
+        """L-4: one A15 binding several library entries in place; refused if any entry changed since review."""
+        d = self.shown.get(descriptor_id)
+        if d is None:
+            return {"captured": False, "shown": "nothing to register: review not current"}
+        if not self.ws.fresh_multi(d["review_ref"]):
+            self.withdraw(descriptor_id)
+            return {"captured": False, "shown": "an entry changed since review - review again"}
+        lib = self.ws.reviews[d["review_ref"]]["lib"]
+        t = self.ws.tick()
+        cap = "cap:%s" % descriptor_id
+        body = {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"},
+                "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": False},
+                "recordingMode": "direct capture",
+                "boundSubject": ["workflow revision %s:%s@%s" % (e["subject"]["origin"], e["subject"]["name"],
+                                                                   short(e["subject"]["revision"])) for e in d["entries"]],
+                "boundContent": [{"method": METHOD, "value": e["bound_content"]["value"]} for e in d["entries"]],
+                "scope": d["scope"], "purpose": d["purpose"],
+                "captureEvidence": [{"kind": "capture evidence", "ref": cap, "resolutionAtWrite": "resolved"}],
+                "captureTime": t, "evidenceLimits": ["identity not verified"],
+                # RS-v0.9's shape for several entries (F-C, in progress): relations.registeredEntries
+                "relations": {"registeredEntries": [
+                    {"subject": "workflow revision %s:%s@%s" % (e["subject"]["origin"], e["subject"]["name"],
+                                                                 short(e["subject"]["revision"])),
+                     "reviewedDraft": {"draft": e["reviewed_entry"],
+                                       "content": {"method": METHOD, "value": e["bound_content"]["value"]}},
+                     "priorRevision": None} for e in d["entries"]]}}
+        return self._write(lib, body, t, cap, descriptor_id, [e["bound_content"] for e in d["entries"]])
 
 
 # ------------------------------------------------------------------ the workspace
@@ -256,6 +318,7 @@ class Workspace:
         self.root, self.wd_schema, self.clock = root, wd_schema, 0
         self.libs = {}
         self.bundled = {}      # name -> (dir, tuple)
+        self.shipped = {}      # name -> [tuple, ...]  every revision a release shipped (L-4 manifest, PROPOSED)
         self.host = {}         # name -> (dir, tuple, holding library)
         self.bases = {}        # (draft_root, name) -> tuple   App-kept (R17-4)
         self.reviews = {}
@@ -287,9 +350,10 @@ class Workspace:
         return {"draft_location": lib.origin, "draft_root": lib.source_root, "name": name}
 
     # -------------------------------------------------------------- drafts
-    def transition(self, lib, name, event, frm, to, cause, attribution, content=None, disposition=None):
+    def transition(self, lib, name, event, frm, to, cause, attribution, content=None, disposition=None, extra=None):
         r = {"record_kind": "draft_transition", "event": event, "draft": self.key(lib, name), "from": frm, "to": to,
              "cause": cause, "time": self.tick(), "attribution": attribution}
+        r.update(extra or {})
         if content:
             r["content"] = content
         if disposition:
@@ -475,7 +539,7 @@ class Workspace:
              "reason": reason, "written_at": self.tick(), "evidence_limits": ["identity not verified"]}
         self._ledger_append(lib, e)
         self.transition(lib, r["name"], "registration not completed", "under review", "draft", reason,
-                        {"kind": "app action"}, r["content"])
+                        {"kind": "app action"}, r["content"], extra={"a15_record": cap["record_id"]})   # C-02
         return {"registered": False, "reason": reason}
 
     def register(self, rid, cap, crash_after=None):
@@ -532,7 +596,8 @@ class Workspace:
         self.attempts.pop(rid)
         self.bases[(lib.source_root, name)] = desc["subject"]   # the unchanged draft is now this revision's
         self.transition(lib, name, "registered", "under review", "registered, unchanged since",
-                        "registered as revision %d" % seq, {"kind": "app action"}, r["content"], desc["disposition"])
+                        "registered as revision %d" % seq, {"kind": "app action"}, r["content"], desc["disposition"],
+                        extra={"a15_record": cap["record_id"], "revision": r["content"]["value"]})   # C-02
         return {"registered": True, "sequence": seq, "entry": e}
 
     def _publish_slot(self, lib, name, pkg, r):
@@ -579,38 +644,53 @@ class Workspace:
             a = acts.get(e["act"]["record_id"])
             pkg = os.path.join(lib.base, e["store_path"])
             ci, _ = content_identity(pkg) if os.path.isdir(pkg) else (None, None)
-            ok = a is not None and a["body"]["boundContent"][0]["value"] == e["identity"]["revision"] \
+            ok = a is not None and any(b["value"] == e["identity"]["revision"] for b in a["body"]["boundContent"]) \
                 and ci is not None and ci["value"] == e["identity"]["revision"]
             res.append((e["identity"]["revision"], "registered" if ok else "registration record incomplete"))
         slot = self.slot_content(lib, name)
         regs = {v for v, s in res}
         if slot is not None and slot["value"] not in regs:
-            res.append((slot["value"], "library copy changed outside registration" if regs
-                        else "present without registration record"))
+            if not regs and any(s.get("revision") == slot["value"] for s in self.shipped.get(name, [])):
+                res.append((slot["value"], "shipped revision held in this library"))     # L-4 (LS-8)
+            else:
+                res.append((slot["value"], "library copy changed outside registration" if regs
+                            else "present without registration record"))
         return res
 
     def runnable(self, t):
         if t["origin"] == "bundled":
-            return t["name"] in self.bundled and self.bundled[t["name"]][1].get("revision") == t.get("revision")
+            return any(s.get("revision") == t.get("revision") and s["source_root"] == t["source_root"]
+                       for s in self.shipped.get(t["name"], []))
         if t["origin"] == "host":
             return t["name"] in self.host
         lib = self.lib_of(t)
         return (t.get("revision"), "registered") in self.standing(lib, t["name"])
 
-    def select(self, t, holding, conversation, how="explicit", candidates=None, replaces=None):
+    def select(self, t, holding, conversation, how="explicit", candidates=None, replaces=None, prior_run=None,
+               proposal=None):
         if "revision" not in t:
             return None, "a slot is not selected content: choose a revision"
         if not self.runnable(t):
             return None, "not a registered revision: review to register"
+        if t["origin"] == "bundled" and holding != "App bundle":
+            lib = [x for x in self.libs.values() if x.source_root == holding][0]
+            if (t["revision"], "shipped revision held in this library") not in self.standing(lib, t["name"]):
+                return None, "this library's copy is not the shipped revision: review to register"
+        standing = {"bundled": "bundled", "host": "host-listed"}.get(t["origin"], "registered")
+        if t["origin"] == "bundled" and holding != "App bundle":
+            standing = "shipped revision held in this library"
         rec = {"record_kind": "selection_record", "selection_id": "sel-%d" % (len(self.selections) + 1), "identity": t,
-               "holding_library": holding,
-               "standing": {"bundled": "bundled", "host": "host-listed"}.get(t["origin"], "registered"),
+               "holding_library": holding, "standing": standing,
                "selected_by": "the person (App interface)", "how": how, "conversation": conversation,
                "selected_at": self.tick()}
         if candidates:
             rec["candidates"] = candidates
         if replaces:
             rec["replaces"] = replaces
+        if prior_run:
+            rec["prior_run"] = prior_run
+        if proposal:
+            rec["proposal"] = proposal
         self.selections.append(rec)
         return self.emit(rec), None
 
@@ -620,6 +700,14 @@ class Workspace:
     def resolve(self, sel):
         """The resolver double (EXEC 6.1 resolved): bytes of the selected revision from the store, verified."""
         t = sel["identity"]
+        if t["origin"] == "bundled":
+            if sel["holding_library"] == "App bundle":
+                pkg = self.bundled[t["name"]][0]
+            else:   # L-4: the copy held in a library, recognized as the shipped revision
+                lib = [x for x in self.libs.values() if x.source_root == sel["holding_library"]][0]
+                pkg = os.path.join(lib.slots, t["name"])
+            ci, _ = content_identity(pkg)
+            return (pkg, "verified") if ci and ci["value"] == t["revision"] else (None, "revision not verified")
         lib = self.lib_of(t)
         e = [x for x in lib.registered(t["name"]) if x["identity"]["revision"] == t["revision"]]
         if not e:
@@ -676,6 +764,259 @@ class Workspace:
                           "conversation": conversation, "time": self.tick(),
                           "standing": "draft tried in conversation; not a run of any workflow identity"})
 
+    # -------------------------------------------------------------- L-4: several entries in place, one act (WR 4.7)
+    def review_entries(self, lib, names):
+        rid = "rv-%d" % (len(self.reviews) + 1)
+        entries, snaps = [], {}
+        for n in names:
+            st = self.standing(lib, n)
+            if st != [(self.slot_content(lib, n)["value"], "present without registration record")]:
+                return None, "%s is not library content without a registration record" % n
+            if [x for x in hygiene(os.path.join(lib.slots, n), n) if x["code"] in REFUSING]:
+                return None, "%s is not valid (hygiene)" % n
+            snap = os.path.join(lib.staging, rid, n)
+            copy_regular(os.path.join(lib.slots, n), snap)
+            ci, _ = content_identity(snap)
+            snaps[n] = (snap, ci)
+            entries.append({"subject": tuple_(lib.origin, lib.source_root, n, ci["value"]), "bound_content": ci,
+                            "reviewed_entry": id3("entry", lib.origin, n, ci["value"])})
+        desc = {"record_kind": "a15_multi_descriptor", "descriptor_id": "a15m-%s" % rid, "act_kind": "A15",
+                "wording": "register workflow revisions", "disposition": "in place",
+                "library": {"origin": lib.origin, "source_root": lib.source_root}, "entries": entries,
+                "scope": "%s library %s" % (lib.origin, lib.source_root),
+                "purpose": "make them available in the %s library" % ("project" if lib.origin == "project" else "user"),
+                "review_ref": rid}
+        self.emit(desc)
+        self.acts.present(desc)
+        self.reviews[rid] = {"lib": lib, "multi": snaps, "descriptor": desc}
+        return rid, desc
+
+    def fresh_multi(self, rid):
+        r = self.reviews[rid]
+        return all(self.slot_content(r["lib"], n) == ci and not r["lib"].registered(n) for n, (_, ci) in r["multi"].items())
+
+    def register_multi(self, rid, cap):
+        """Per entry: G-1 (slot still the bound bytes, still unregistered), G-2/G-3 store, G-4 ledger citing the one A15."""
+        r = self.reviews[rid]
+        lib, desc = r["lib"], r["descriptor"]
+        if not cap.get("captured") or cap["descriptor_id"] != desc["descriptor_id"]:
+            return {"registered": [], "not_completed": list(r["multi"])}
+        done, failed = [], []
+        for e in desc["entries"]:
+            n = e["subject"]["name"]
+            snap, ci = r["multi"][n]
+            base = {"record_kind": "library_entry", "ledger_seq": 0, "identity": e["subject"], "prior_revision": None,
+                    "reviewed_entry": {"entry": e["reviewed_entry"], "content": ci},
+                    "act": {"record_id": cap["record_id"], "capture_evidence": cap["capture_evidence"]},
+                    "evidence_limits": ["identity not verified"]}
+            if self.slot_content(lib, n) != ci or lib.registered(n):
+                self._ledger_append(lib, dict(base, outcome="not completed", written_at=self.tick(),
+                                              reason="entry changed after the act; review it again"))
+                failed.append(n)
+                continue
+            key = os.path.join(lib.store, n, short(ci["value"]))
+            os.makedirs(key)
+            copy_regular(snap, os.path.join(key, n))
+            self._ledger_append(lib, dict(base, outcome="registered", sequence=1, disposition="in place",
+                                          store_path=os.path.relpath(os.path.join(key, n), lib.base),
+                                          written_at=self.tick()))
+            done.append(n)
+        return {"registered": done, "not_completed": failed}
+
+
+# ------------------------------------------------------------------ run text (R19-2, R19-7; WR section 16)
+def tsha(text):
+    return {"method": "sha256 over UTF-8 text", "value": hashlib.sha256(text.encode("utf-8")).hexdigest()}
+
+
+def rev12(t):
+    return t["revision"][:12]
+
+
+def markers(t):
+    return ("<<<chirality-workflow %s@%s begin>>>" % (t["name"], rev12(t)),
+            "<<<chirality-workflow %s@%s end>>>" % (t["name"], rev12(t)))
+
+
+def extract_body(text, t):
+    """TX-3: the bytes between the begin-marker line and the last end-marker line."""
+    b, e = markers(t)
+    i = text.find(b + "\n")
+    j = text.rfind("\n" + e)
+    if i < 0 or j < 0 or j < i:
+        return None
+    return text[i + len(b) + 1:j]
+
+
+class RunDesk:
+    """Per conversation: one run at a time (R19-2), run text composition (TX-1..TX-6), supply check (SC-1..SC-6),
+    agent proposals (PR-1..PR-5). DEL-02-03 starts and ends runs; this double stands in for it where needed."""
+
+    def __init__(self, ws):
+        self.ws, self.conv, self.n = ws, {}, 0
+
+    def state(self, c):
+        return self.conv.setdefault(c, {"current": None, "history": [], "notice_pending": None})
+
+    def compose_start(self, sel, pkg, run, c, chain, origin, folder_label):
+        t = sel["identity"]
+        raw = open(os.path.join(pkg, "WORKFLOW.md"), "rb").read()
+        body = raw.decode("utf-8")     # HY-7: UTF-8 is a registration condition
+        b, e = markers(t)
+        lines = {}
+        if chain:
+            lines["chain_line"] = ("[Chirality] Previous workflow run ended: %s revision %s (run %s, %s). "
+                                   "Its instructions no longer apply." % (chain["prior_workflow"]["name"],
+                                                                         rev12(chain["prior_workflow"]),
+                                                                         chain["prior_run"], chain["ended"]))
+        lines["start_line"] = ('[Chirality] Workflow run start: %s from the %s library "%s", revision %s, run %s. '
+                               'Follow the workflow between the two markers below for this run, until the person '
+                               'ends the run.' % (t["name"], t["origin"],
+                                                                  t["source_root"].replace('"', "'"), rev12(t), run))
+        lines["proposal_line"] = PROPOSAL_LINE
+        others = []
+        for dp, _, fns in os.walk(pkg):
+            for fn in fns:
+                rel = os.path.relpath(os.path.join(dp, fn), pkg).replace(os.sep, "/")
+                if rel != "WORKFLOW.md":
+                    others.append({"path": rel, "sha256": sha(os.path.join(dp, fn))})
+        others.sort(key=lambda x: x["path"].encode("utf-8"))
+        if others:
+            lines["files_line"] = ('[Chirality] Other files of this revision, in the folder "%s": ' % folder_label
+                                   + "; ".join("%s (sha256 %s)" % (o["path"], o["sha256"][:12]) for o in others))
+        lines["begin_marker"], lines["end_marker"] = b, e
+        head = [lines[k] for k in ("chain_line", "start_line", "proposal_line", "files_line", "begin_marker") if k in lines]
+        text = "\n".join(head) + "\n" + body + "\n" + e
+        rec = {"record_kind": "run_text", "purpose": "run start", "framing": FRAME, "run": run, "conversation": c,
+               "workflow": t, "holding_library": sel["holding_library"],
+               "workflow_file": {"path": "WORKFLOW.md", "content": {"method": "sha256 over UTF-8 text",
+                                                                    "value": hashlib.sha256(raw).hexdigest()},
+                                 "bytes": len(raw)},
+               "chain": chain, "origin_of_start": origin, "selection": sel["selection_id"], "lines": lines,
+               "text_identity": tsha(text), "text_bytes": len(text.encode("utf-8"))}
+        if others:
+            rec["other_files"] = others
+        return text, rec
+
+    def compose_end(self, prior, c):
+        line = ("[Chirality] Workflow run ended: %s revision %s (run %s, %s). No workflow is in force."
+                % (prior["workflow"]["name"], rev12(prior["workflow"]), prior["run"], prior["ended"]))
+        rec = {"record_kind": "run_text", "purpose": "run end notice", "framing": FRAME, "run": prior["run"],
+               "conversation": c, "lines": {"end_line": line}, "text_identity": tsha(line),
+               "text_bytes": len(line.encode("utf-8"))}
+        return line, rec
+
+    def start(self, c, sel, pkg, person_text, origin="selected by the person", folder_label=""):
+        """Returns (turn/start params, run_text record) or (None, refusal)."""
+        s = self.state(c)
+        if s["current"]:
+            return None, "one run at a time: run %s (%s) is in force; end it first" % (
+                s["current"]["run"], s["current"]["workflow"]["name"])
+        self.n += 1
+        run = "run:%s/%d" % (c, self.n)
+        prior = s["history"][-1] if s["history"] else None
+        chain = {"prior_run": prior["run"], "prior_workflow": prior["workflow"], "ended": prior["ended"]} if prior else None
+        text, rec = self.compose_start(sel, pkg, run, c, chain, origin, folder_label)
+        s["current"] = {"run": run, "workflow": sel["identity"], "text": text, "rec": rec}
+        s["notice_pending"] = None    # TX-5: a chain line supersedes a pending end notice
+        cuid = "cum:" + run
+        params = {"threadId": c, "clientUserMessageId": cuid,
+                  "input": [{"type": "text", "text": text, "text_elements": []}]
+                  + ([{"type": "text", "text": person_text, "text_elements": []}] if person_text else [])}
+        self.ws.emit(rec)
+        return params, rec
+
+    def end(self, c, how):
+        s = self.state(c)
+        cur = s["current"]
+        s["history"].append({"run": cur["run"], "workflow": cur["workflow"], "ended": how})
+        s["current"] = None
+        s["notice_pending"] = s["history"][-1]
+
+    def next_plain_turn(self, c, person_text):
+        """A turn with no run start: carries the end notice first if one is pending (R19-2)."""
+        s = self.state(c)
+        inputs = []
+        rec = None
+        if s["notice_pending"]:
+            line, rec = self.compose_end(s["notice_pending"], c)
+            self.ws.emit(rec)
+            inputs.append({"type": "text", "text": line, "text_elements": []})
+            s["notice_pending"] = None
+        inputs.append({"type": "text", "text": person_text, "text_elements": []})
+        return {"threadId": c, "input": inputs}, rec
+
+    # ---- supply check against thread/read (SC-1..SC-6)
+    def check(self, read, rec, expected_text, turn_id, cuid, now):
+        out = {"record_kind": "supply_check", "check": "chk-%s-%s" % (rec["run"], now), "run": rec["run"],
+               "conversation": rec["conversation"], "purpose": rec["purpose"], "expected_text": rec["text_identity"],
+               "read_at": now, "evidence_limits": ["supplied is not adopted: whether the model followed it is not shown"]}
+        if rec["purpose"] == "run start":
+            out["expected_workflow"] = rec["workflow_file"]["content"]
+        if cuid:
+            out["client_user_message_id"] = cuid
+        if read is None:
+            out["state"] = "unreadable"
+            return self.ws.emit(out)
+        turns = [x for x in read["thread"].get("turns", []) if x["id"] == turn_id]
+        if not turns or turns[0].get("itemsView", "full") != "full":
+            out["state"] = "not found" if not turns else "unreadable"
+            return self.ws.emit(out)
+        ums = [i for i in turns[0]["items"] if i["type"] == "userMessage"]
+        um = [i for i in ums if cuid and i.get("clientId") == cuid]
+        located = "client id" if um else "first user message of the turn"
+        um = um or ums[:1]
+        texts = [x for x in (um[0]["content"] if um else []) if x.get("type") == "text"]
+        if not texts:
+            out["state"] = "not found"
+            return self.ws.emit(out)
+        got = texts[0]["text"]
+        out.update({"turn": turn_id, "item": um[0]["id"], "located_by": located, "observed_text": tsha(got)})
+        if tsha(got) == rec["text_identity"]:
+            out["state"] = "verified"
+        else:
+            body = extract_body(got, rec["workflow"]) if rec["purpose"] == "run start" else None
+            same = body is not None and hashlib.sha256(body.encode("utf-8")).hexdigest() == rec["workflow_file"]["content"]["value"]
+            out["state"] = "text differs, workflow bytes equal" if same else "text differs, workflow bytes differ"
+        return self.ws.emit(out)
+
+    # ---- agent proposals (PR-1..PR-5)
+    def proposal_in(self, agent_text):
+        lines = [l for l in agent_text.split("\n") if l.strip()]
+        m = PROPOSAL_RE.match(lines[-1]) if lines else None
+        return m.group(1) if m else None
+
+    def finished_in(self, c, agent_text):
+        """FN-1 (R20-1): a 'Workflow finished: <name>' line among the last two non-empty lines, naming the run in force."""
+        cur = self.state(c)["current"]
+        lines = [l for l in agent_text.split("\n") if l.strip()][-2:]
+        for l in lines:
+            m = FINISHED_RE.match(l)
+            if m and cur and m.group(1) == cur["workflow"]["name"]:
+                return m.group(1)
+        return None
+
+    def offers(self, c, agent_text):
+        """FN-2: what the App offers after an agent message; nothing is ended or started by the words alone."""
+        out = []
+        cur = self.state(c)["current"]
+        fin = self.finished_in(c, agent_text)
+        nxt = self.proposal_in(agent_text)
+        if cur and fin:
+            out.append("End run")
+        if nxt and self.ws.unqualified(nxt):
+            out.append(("End %s and start %s" % (cur["workflow"]["name"], nxt)) if cur else ("Start %s" % nxt))
+        return out
+
+    def offer(self, name):
+        cands = self.ws.unqualified(name)
+        if cands:
+            return {"offer": "Start %s" % name, "candidates": cands}
+        for lib in self.ws.libs.values():
+            if os.path.isdir(os.path.join(lib.drafts, name)):
+                return {"offer": None, "notice": "proposed workflow %s is a draft only - not a workflow identity" % name}
+        return {"offer": None, "notice": "proposed workflow %s is not registered" % name}
+
 
 # ------------------------------------------------------------------ fixtures
 def e1_package_text():
@@ -711,6 +1052,37 @@ def main():
     wr = reg.by_id[WR_ID]
     rs = reg.by_id[RS_ID]
     wd_ident = wd_schema["$defs"]["workflow_identity"]
+    # C-01 (R18-1; FR-06): RS's schema projected with the persisted A15 form, built in memory from the on-disk
+    # RS schema (F-C edits RS in parallel; the on-disk outcome is printed, not judged).
+    rsp = copy.deepcopy(rs)
+    rsp["$id"] = RS_PROJ_ID
+    ha = rsp["$defs"]["humanAct"]
+    rel = ha["properties"]["relations"]["properties"]
+    rel.pop("derivedFrom", None)
+    one = {"type": "object", "required": ["draft", "content"], "additionalProperties": False,
+           "properties": {"draft": {"type": "string", "pattern": "^(draft|entry):(project|user):[^@]+@.+$"},
+                          "content": {"$ref": "#/$defs/contentIdentity"}}}
+    prior = {"anyOf": [{"$ref": "#/$defs/workflowTuple"}, {"type": "null"}]}
+    rel["reviewedDraft"] = one
+    rel["priorRevision"] = prior
+    rel["registeredEntries"] = {"type": "array", "minItems": 2, "items": {
+        "type": "object", "required": ["subject", "reviewedDraft", "priorRevision"], "additionalProperties": False,
+        "properties": {"subject": {"type": "string", "minLength": 1}, "reviewedDraft": one, "priorRevision": prior}}}
+    a15_rule = [i for i, x in enumerate(ha.get("allOf", [])) if "A15 (" in json.dumps(x) or "R12-5" in json.dumps(x)][:1]
+    new_rule = {"anyOf": [{"properties": {"actKind": {"not": {"const": "A15"}}}},
+                          {"required": ["relations"], "properties": {"relations": {"anyOf": [
+                              {"required": ["reviewedDraft", "priorRevision"], "not": {"required": ["registeredEntries"]}},
+                              {"required": ["registeredEntries"],
+                               "not": {"anyOf": [{"required": ["reviewedDraft"]}, {"required": ["priorRevision"]}]}}]}}}]}
+    if a15_rule:
+        ha["allOf"][a15_rule[0]] = new_rule
+    else:
+        ha.setdefault("allOf", []).append(new_rule)
+    reg.add(rsp)
+    reg.dir_of[id(rsp)] = RS_DIR
+    gen = json.load(open(GEN, encoding="utf-8"))
+    gen["$id"] = CODEX_ID
+    reg.add(gen)
 
     def tuples_in(x):
         if isinstance(x, dict):
@@ -734,11 +1106,11 @@ def main():
     for i, inst in enumerate(valid, 1):
         kinds.add(inst["record_kind"])
         check("S-1.%d" % i, "valid example %s conforms" % inst["record_kind"], not conforms(inst), conforms(inst))
-    check("S-2", "valid examples cover all 7 record kinds", len(kinds) == 7, sorted(kinds))
+    check("S-2", "valid examples cover all 10 record kinds", len(kinds) == 10, sorted(kinds))
     for c in json.load(open(INVALID, encoding="utf-8")):
         top = minischema.validate(c["instance"], wr, reg)
         sub = minischema.validate(c["instance"], {"$ref": WR_ID + "#/$defs/" + c["kind"]}, reg)
-        check(c["case"][:5], "%s: rejected (%s)" % (c["case"][6:70], c["expect"]),
+        check(c["case"].split(" ")[0], "%s: rejected (%s)" % (c["case"].split(" ", 1)[1][:64], c["expect"]),
               top and any(c["expect"] in e for e in sub), sub[:2])
 
     root = tempfile.mkdtemp(prefix="wrproto-")
@@ -798,8 +1170,10 @@ def main():
               out1["registered"] and out1["sequence"] == 1 and ws.slot_content(P, "supports-adjust")["value"] == rev1["revision"],
               out1)
         a15 = ws.rs_records[-1]
-        errs = minischema.validate(a15, rs, reg)
-        check("P-11", "the A15 record conforms to RS-v0.8 RS_RECORD.schema.json (direct capture, identity not verified)",
+        errs = minischema.validate(a15, rsp, reg)
+        print("     on-disk RS_RECORD.schema.json $defs/humanAct, for the C-01 form (information; F-C edits RS in parallel): %s"
+              % (minischema.validate(a15["body"], {"$ref": RS_ID + "#/$defs/humanAct"}, reg)[:3] or "conforms"))
+        check("P-11", "the A15 record, in C-01's persisted form, conforms to RS's schema projected with FR-06 (direct capture, identity not verified)",
               not errs, errs[:2])
         st = ws.standing(P, "supports-adjust")
         check("P-12", "standing LS-1 registered: ledger, A15 record and store bytes agree", st == [(rev1["revision"], "registered")], st)
@@ -970,7 +1344,7 @@ def main():
               and any(e["standing"] == "bundled" for e in repb["same_name_elsewhere"])
               and db["purpose"] == "make it available in the user library", repb["disposition"])
 
-        print("\n== forged ledger line; R17-11 relation names against RS-v0.8 ==")
+        print("\n== forged ledger line; C-01 persisted form ==")
         forged = dict(P.registered("legacy-flow")[0])
         forged.update({"ledger_seq": len(P.entries()) + 1, "sequence": 2,
                        "act": {"record_id": "rec:app:acts:9999", "capture_evidence": "cap:none"}})
@@ -979,14 +1353,217 @@ def main():
         st = ws.standing(P, "legacy-flow")
         check("P-35", "a ledger line without a matching A15 record: 'registration record incomplete', not runnable (LS-4)",
               st[-1][1] == "registration record incomplete", st)
-        proposed = copy.deepcopy(a15)
-        proposed["body"]["relations"] = {"reviewedDraft": proposed["body"]["relations"]["derivedFrom"],
-                                         "priorRevision": "workflow revision project:supports-adjust@" + short(rev1["revision"])}
-        perr = minischema.validate(proposed, rs, reg)
-        derr = minischema.validate(proposed["body"], {"$ref": RS_ID + "#/$defs/humanAct"}, reg)
-        print("     RS humanAct reports: %s" % derr)
-        check("P-36", "the R17-11 relation names (reviewedDraft, priorRevision) are refused by RS-v0.8's schema: a join for node F",
-              bool(perr) and any("reviewedDraft" in e for e in derr), derr[:3])
+        old = copy.deepcopy(a15)
+        old["body"]["relations"] = {"derivedFrom": old["body"]["relations"]["reviewedDraft"]["draft"]}
+        free = copy.deepcopy(a15)
+        free["body"]["relations"]["priorRevision"] = "workflow revision project:supports-adjust@" + short(rev1["revision"])
+        e_old = minischema.validate(old["body"], {"$ref": RS_PROJ_ID + "#/$defs/humanAct"}, reg)
+        e_free = minischema.validate(free["body"], {"$ref": RS_PROJ_ID + "#/$defs/humanAct"}, reg)
+        check("P-36", "the FR-06 projection refuses RS-v0.8's 'derivedFrom' form and a prior revision written as a free string (C-01)",
+              bool(e_old) and bool(e_free), (e_old[:1], e_free[:1]))
+
+        print("\n== C-02 (R18-1): draft transitions carry the A15 record and the revision ==")
+        regd = [r for r in ws.records if r["record_kind"] == "draft_transition" and r["event"] == "registered"]
+        ncs = [r for r in ws.records if r["record_kind"] == "draft_transition" and r["event"] == "registration not completed"]
+        check("P-40", "every 'registered' transition carries a15_record and revision; every 'not completed' one a15_record only",
+              regd and ncs and all(r.get("a15_record", "").startswith("rec:") and r.get("revision") == r["content"]["value"]
+                                   for r in regd) and all("a15_record" in r and "revision" not in r for r in ncs),
+              (len(regd), len(ncs)))
+        bad_t = dict(regd[0], event="written", **{"from": "absent", "to": "draft"})
+        e = minischema.validate(bad_t, {"$ref": WR_ID + "#/$defs/draft_transition"}, reg)
+        check("P-41", "the schema refuses a15_record and revision on a 'written' transition", bool(e), e[:1])
+
+        print("\n== L-4 as clarified: shipped revisions recognized; several entries in one act (WR 4.6 LS-8, 4.7) ==")
+        sdir = os.path.join(root, "bundle", "review-notes")
+        os.makedirs(sdir)
+        open(os.path.join(sdir, "WORKFLOW.md"), "w").write(simple_pkg("review-notes", "shipped in fx-release")["WORKFLOW.md"])
+        sci, _ = content_identity(sdir)
+        ship_t = tuple_("bundled", "App bundle fx-release", "review-notes", sci["value"])
+        old_text = simple_pkg("review-notes", "shipped in fx-release-0")["WORKFLOW.md"]
+        odir = os.path.join(root, "bundle-0", "review-notes")
+        os.makedirs(odir)
+        open(os.path.join(odir, "WORKFLOW.md"), "w").write(old_text)
+        oci, _ = content_identity(odir)
+        old_t = tuple_("bundled", "App bundle fx-release-0", "review-notes", oci["value"])
+        ws.bundled["review-notes"] = (sdir, ship_t)
+        ws.shipped["review-notes"] = [ship_t, old_t]          # the release's manifest lists earlier shipped revisions
+        copy_regular(sdir, os.path.join(P.slots, "review-notes"))
+        st = ws.standing(P, "review-notes")
+        sel_s, why = ws.select(ship_t, P.source_root, "thr-30")
+        check("P-42", "a library entry byte-equal to a shipped revision: 'shipped revision held in this library'; runs as the bundled tuple, held here",
+              st == [(sci["value"], "shipped revision held in this library")] and sel_s
+              and sel_s["standing"] == "shipped revision held in this library" and ws.resolve(sel_s)[1] == "verified", (st, why))
+        copy_regular(odir, os.path.join(U.slots, "review-notes"))
+        st_u = ws.standing(U, "review-notes")
+        check("P-43", "a copy equal to an earlier release's shipped revision is recognized as that revision (manifest)",
+              st_u == [(oci["value"], "shipped revision held in this library")] and ws.select(old_t, U.source_root, "thr-31")[0],
+              st_u)
+        open(os.path.join(P.slots, "review-notes", "WORKFLOW.md"), "a").write("\nlocal edit\n")
+        st = ws.standing(P, "review-notes")
+        check("P-44", "an edited copy is no longer recognized: present without registration record; not selectable",
+              st[0][1] == "present without registration record" and ws.select(ship_t, P.source_root, "thr-30")[0] is None
+              or (st[0][1] == "present without registration record" and ws.resolve(sel_s)[1] == "revision not verified"), st)
+        for n in ("notes-a", "notes-b", "notes-c"):
+            os.makedirs(os.path.join(P.slots, n))
+            open(os.path.join(P.slots, n, "WORKFLOW.md"), "w").write(simple_pkg(n, "pre-v4 library content")["WORKFLOW.md"])
+        ridm, dm = ws.review_entries(P, ["notes-a", "notes-b", "notes-c"])
+        open(os.path.join(P.slots, "notes-c", "WORKFLOW.md"), "a").write("\nchanged before the act\n")
+        capm = ws.acts.person_operates_multi(dm["descriptor_id"])
+        check("P-45", "an entry changed after review: the control refuses the whole capture; review again", not capm["captured"], capm)
+        ridm, dm = ws.review_entries(P, ["notes-a", "notes-b", "notes-c"])
+        capm = ws.acts.person_operates_multi(dm["descriptor_id"])
+        open(os.path.join(P.slots, "notes-b", "WORKFLOW.md"), "a").write("\nchanged after the act\n")
+        outm = ws.register_multi(ridm, capm)
+        act = ws.rs_records[-1]
+        lines = [x for x in P.entries() if x["act"]["record_id"] == capm["record_id"]]
+        check("P-46", "one A15 binds three entries; per entry: two registered in place, the one changed after the act not completed; all lines cite the act",
+              outm == {"registered": ["notes-a", "notes-c"], "not_completed": ["notes-b"]} and len(act["body"]["boundContent"]) == 3
+              and len(lines) == 3 and [s for _, s in ws.standing(P, "notes-a")] == ["registered"]
+              and [s for _, s in ws.standing(P, "notes-c")] == ["registered"], (outm, len(lines)))
+        print("     on-disk RS_RECORD.schema.json $defs/humanAct, for the multi-entry form (information): %s"
+              % (minischema.validate(act["body"], {"$ref": RS_ID + "#/$defs/humanAct"}, reg)[:3] or "conforms"))
+        check("P-47", "the multi-entry A15 (relations.registeredEntries, as RS-v0.9 in progress names it; entry: ID-3 strings) conforms to the projection",
+              not minischema.validate(act, rsp, reg), minischema.validate(act, rsp, reg)[:2])
+
+        print("\n== run text, supply check and chaining (R19-2, R19-7; WR section 16) ==")
+        desk = RunDesk(ws)
+        proj_root = os.path.dirname(P.base)
+
+        def label(pkg):
+            return os.path.relpath(pkg, proj_root).replace(os.sep, "/")
+
+        def turn_of(turn_id, params, agent_text="ok", view=None):
+            items = [{"type": "userMessage", "id": "item-u-" + turn_id, "clientId": params.get("clientUserMessageId"),
+                      "content": params["input"]},
+                     {"type": "agentMessage", "id": "item-a-" + turn_id, "text": agent_text, "phase": None,
+                      "memoryCitation": None, "delivery": None, "questions": None}]
+            tr = {"id": turn_id, "items": items, "status": "completed"}
+            if view:
+                tr["itemsView"] = view
+            return tr
+
+        def read_of(c, turns):
+            return {"thread": {"id": c, "turns": turns}}
+
+        # a registered multi-file workflow B
+        ws.agent_writes_draft(P, "review-pack", {"WORKFLOW.md": simple_pkg("review-pack", "check the pack")["WORKFLOW.md"],
+                                                 "resources/checklist.md": "- item one\n- item two\n"})
+        ridB, repB, dB = ws.review(P, "review-pack")
+        ws.register(ridB, ws.acts.person_operates(dB["descriptor_id"]))
+        revB = dB["subject"]
+        c = "thr-40"
+        selA, _ = ws.select(rev3, P.source_root, c)
+        pkgA, _ = ws.resolve(selA)
+        pA, recA = desk.start(c, selA, pkgA, "Inputs: run R-12, supports S-1…S-4.", folder_label=label(pkgA))
+        textA = pA["input"][0]["text"]
+        rawA = open(os.path.join(pkgA, "WORKFLOW.md"), "rb").read()
+        _, again = desk.compose_start(selA, pkgA, recA["run"], c, None, "selected by the person", label(pkgA))
+        check("P-48", "run start for A: the text carries WORKFLOW.md's exact bytes between the markers; identity recorded; composition deterministic",
+              extract_body(textA, rev3).encode("utf-8") == rawA and recA["text_identity"] == tsha(textA)
+              and again["text_identity"] == recA["text_identity"] and recA["chain"] is None
+              and textA.split("\n")[0].startswith("[Chirality] Workflow run start: supports-adjust"), recA["lines"]["start_line"])
+        other_names = ("notes-a", "review-pack", "legacy-flow", "review-notes")
+        check("P-49", "A's run text names no other registered workflow (R19-7: the model is not shown other workflows)",
+              not any(n in textA.replace(PROPOSAL_LINE, "") for n in other_names), [n for n in other_names if n in textA])
+        tA = turn_of("turn-A1", pA)
+        e1_ = minischema.validate(pA, {"$ref": CODEX_ID + "#/definitions/TurnStartParams"}, reg)
+        e2_ = minischema.validate(tA, {"$ref": CODEX_ID + "#/definitions/Turn"}, reg)
+        check("P-50", "the constructed turn/start params and thread/read turn conform to Codex 0.158.0's generated types (TurnStartParams, Turn)",
+              not e1_ and not e2_, (e1_[:2], e2_[:2]))
+        ck = desk.check(read_of(c, [tA]), recA, textA, "turn-A1", pA["clientUserMessageId"], ws.tick())
+        tA2 = dict(tA, items=[dict(tA["items"][0], clientId=None), tA["items"][1]])
+        ck2 = desk.check(read_of(c, [tA2]), recA, textA, "turn-A1", pA["clientUserMessageId"], ws.tick())
+        check("P-51", "supply check against thread/read: verified, located by client id, or by the first user message when no client id is echoed",
+              ck["state"] == "verified" and ck["located_by"] == "client id" and ck2["state"] == "verified"
+              and ck2["located_by"] == "first user message of the turn", (ck["state"], ck2.get("located_by")))
+        crlf = copy.deepcopy(pA)
+        crlf["input"][0]["text"] = textA.replace("\n", "\r\n")
+        fr = copy.deepcopy(pA)
+        fr["input"][0]["text"] = textA.replace("[Chirality] Workflow run start:", "[Chirality] Workflow run begins:")
+        s1 = desk.check(read_of(c, [turn_of("turn-A1", crlf)]), recA, textA, "turn-A1", None, ws.tick())["state"]
+        s2 = desk.check(read_of(c, [turn_of("turn-A1", fr)]), recA, textA, "turn-A1", None, ws.tick())["state"]
+        s3 = desk.check(read_of(c, [tA]), recA, textA, "turn-XX", None, ws.tick())["state"]
+        s4 = desk.check(read_of(c, [turn_of("turn-A1", pA, view="summary")]), recA, textA, "turn-A1", None, ws.tick())["state"]
+        s5 = desk.check(None, recA, textA, "turn-A1", None, ws.tick())["state"]
+        check("P-52", "mismatch states: line endings changed; framing changed with bytes intact; turn absent; items not loaded; read failed",
+              (s1, s2, s3, s4, s5) == ("text differs, workflow bytes differ", "text differs, workflow bytes equal",
+                                       "not found", "unreadable", "unreadable"), (s1, s2, s3, s4, s5))
+        selB, _ = ws.select(revB, P.source_root, c)
+        pkgB, _ = ws.resolve(selB)
+        refused, why = desk.start(c, selB, pkgB, "", folder_label=label(pkgB))
+        check("P-53", "one run at a time: starting B while A is in force is refused", refused is None and "one run at a time" in why, why)
+        desk.end(c, "ended by the person")
+        selB2, _ = ws.select(revB, P.source_root, c, prior_run={"run": recA["run"], "workflow": rev3, "ended": "ended by the person"},
+                             replaces=selB["selection_id"])
+        pB, recB = desk.start(c, selB2, pkgB, "Now the pack.", folder_label=label(pkgB))
+        textB = pB["input"][0]["text"]
+        ckB = desk.check(read_of(c, [tA, turn_of("turn-B1", pB)]), recB, textB, "turn-B1", pB["clientUserMessageId"], ws.tick())
+        check("P-54", "(a) sequential: B's run text opens with the line saying run A ended; B's record and selection cite run A; other files listed; verified",
+              textB.startswith("[Chirality] Previous workflow run ended: supports-adjust revision %s (run %s, ended by the person)."
+                               % (rev12(rev3), recA["run"]))
+              and recB["chain"]["prior_run"] == recA["run"] and selB2["prior_run"]["run"] == recA["run"]
+              and "resources/checklist.md (sha256 " in recB["lines"]["files_line"] and ckB["state"] == "verified",
+              textB.split("\n")[0])
+        desk.end(c, "completed")
+        p1, n1 = desk.next_plain_turn(c, "Thanks. Anything else?")
+        p2, n2 = desk.next_plain_turn(c, "And now?")
+        ckN = desk.check(read_of(c, [turn_of("turn-N1", p1)]), n1, p1["input"][0]["text"], "turn-N1", None, ws.tick())
+        check("P-55", "after B completes with no successor: the next turn carries the end notice first, once; it is verified",
+              n1 and p1["input"][0]["text"].startswith("[Chirality] Workflow run ended: review-pack") and len(p1["input"]) == 2
+              and n2 is None and len(p2["input"]) == 1 and ckN["state"] == "verified", (p1["input"][0]["text"][:60], n2))
+        agent = "The pack is checked.\n\nNext workflow: supports-adjust\n"
+        name = desk.proposal_in(agent)
+        before = len(ws.selections)
+        off = desk.offer(name)
+        check("P-56", "(b) an agent proposal line yields an offer with candidates and no selection",
+              name == "supports-adjust" and off["offer"] == "Start supports-adjust" and len(ws.selections) == before, off)
+        latest = P.latest("supports-adjust")["identity"]
+        selC, _ = ws.select(latest, P.source_root, c, how="agent proposal confirmed by the person",
+                            candidates=off["candidates"],
+                            proposal={"conversation": c, "item": "item-a-turn-N1", "proposed_name": name},
+                            prior_run={"run": recB["run"], "workflow": revB, "ended": "completed"})
+        pkgC, _ = ws.resolve(selC)
+        pC, recC = desk.start(c, selC, pkgC, "", origin="agent proposal confirmed by the person", folder_label=label(pkgC))
+        check("P-57", "the person confirms: selection 'agent proposal confirmed by the person'; run start chained after B",
+              selC["how"] == "agent proposal confirmed by the person" and recC["origin_of_start"] == "agent proposal confirmed by the person"
+              and recC["chain"]["prior_run"] == recB["run"] and "(run %s, completed)" % recB["run"] in recC["lines"]["chain_line"],
+              recC["lines"].get("chain_line"))
+        q = desk.proposal_in("You could try:\nNext workflow: review-pack\nbut I am not sure.")
+        dr = desk.offer("bad-pkg")
+        un = desk.offer("no-such-flow")
+        check("P-58", "a proposal not on the last line is not one; a draft name or an unknown name gives a notice and no Start offer",
+              q is None and dr["offer"] is None and "draft only" in dr["notice"] and un["offer"] is None
+              and "not registered" in un["notice"], (q, dr, un))
+        desk.end(c, "ended by the person")
+        c2 = "thr-41"
+        ship_ok = os.path.join(P.slots, "review-notes")
+        shutil.rmtree(ship_ok)
+        copy_regular(sdir, ship_ok)
+        selS, _ = ws.select(ship_t, P.source_root, c2)
+        pkgS, _ = ws.resolve(selS)
+        pS, recS = desk.start(c2, selS, pkgS, "", folder_label=label(pkgS))
+        check("P-59", "a run of a shipped revision held in the project names the bundled tuple and the holding library",
+              recS["workflow"]["origin"] == "bundled" and recS["holding_library"] == P.source_root
+              and 'from the bundled library "App bundle fx-release"' in recS["lines"]["start_line"], recS["lines"]["start_line"])
+
+        print("\n== R20-1 run end only by the person; R20-3 the run-end line ==")
+        c3 = "thr-42"
+        selF, _ = ws.select(rev3, P.source_root, c3)
+        pkgF, _ = ws.resolve(selF)
+        pF, recF = desk.start(c3, selF, pkgF, "", folder_label=label(pkgF))
+        msg = "All supports are checked.\nWorkflow finished: supports-adjust\nNext workflow: review-pack\n"
+        offs = desk.offers(c3, msg)
+        still = desk.state(c3)["current"] is not None
+        check("P-60", "the agent reports the workflow finished and proposes B: the App offers 'End run' and 'End supports-adjust and start review-pack'; the run is still in force",
+              offs == ["End run", "End supports-adjust and start review-pack"] and still
+              and desk.offers(c3, "Workflow finished: other-flow") == [], offs)
+        desk.end(c3, "completed")          # the person chose 'End run' after the report (R20-1: cause completed)
+        pn, nn = desk.next_plain_turn(c3, "Summarize, please.")
+        check("P-61", "no run starts with the next turn: it is prefixed by one App-written line naming the workflow and revision (R20-3)",
+              len(pn["input"]) == 2 and pn["input"][0]["text"] == nn["lines"]["end_line"]
+              and "\n" not in nn["lines"]["end_line"]
+              and nn["lines"]["end_line"] == "[Chirality] Workflow run ended: supports-adjust revision %s (run %s, completed). No workflow is in force." % (rev12(rev3), recF["run"]),
+              pn["input"][0]["text"])
 
         print("\n== every record the prototype produced ==")
         bad = [(r["record_kind"], conforms(r)[:2]) for r in ws.records if conforms(r)]
@@ -994,9 +1571,9 @@ def main():
         for r in ws.records:
             counts[r["record_kind"]] = counts.get(r["record_kind"], 0) + 1
         check("P-37", "all %d WR records conform to workspace-registration.schema.json %s" % (len(ws.records), counts),
-              not bad and len(counts) == 7, bad[:3])
-        rbad = [minischema.validate(r, rs, reg)[:1] for r in ws.rs_records if minischema.validate(r, rs, reg)]
-        check("P-38", "all %d A15 records conform to RS_RECORD.schema.json" % len(ws.rs_records), not rbad, rbad[:2])
+              not bad and len(counts) == 10, bad[:3])
+        rbad = [minischema.validate(r, rsp, reg)[:1] for r in ws.rs_records if minischema.validate(r, rsp, reg)]
+        check("P-38", "all %d A15 records conform to RS_RECORD.schema.json as projected with FR-06" % len(ws.rs_records), not rbad, rbad[:2])
         wrong = [d for d in ws.records if d["record_kind"] == "a15_descriptor" and d["subject"]["revision"] != d["bound_content"]["value"]]
         check("P-39", "reader check: every A15 descriptor's subject revision equals its bound content", not wrong, wrong[:1])
     finally:

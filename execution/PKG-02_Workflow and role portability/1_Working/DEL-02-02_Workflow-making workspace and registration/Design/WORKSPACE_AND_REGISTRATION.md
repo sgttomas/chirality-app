@@ -1,8 +1,26 @@
 # Workflow-making workspace and registration
 
-- **Contribution:** DEL-02-02/WR-v0.1 (first Design file of this deliverable).
+- **Contribution:** DEL-02-02/WR-v0.2 (supersedes DEL-02-02/WR-v0.1, committed at `63a6e0fa47`, file sha256 `0b51ee6c7ea9c57120b5a7654d2888266bf409b8914f02cb32c2a1dcd25dfb27`).
 - **Status:** DRAFT DEFINITION — proposed, not implemented, not accepted. Nothing here is built, qualified or owner-reviewed.
-- **Run / node:** `APP-V4-DESIGN-PASS-3-20261001`, node D5 (BRIEFS.md "D — design nodes, round 1", row D5). Type 2 TASK executor, harness-native descendant of the HELP_HUMAN session; no delegation. Written 2026-10-01 in the working tree at HEAD `dc031b5bec` (branch `claude/chirality-app-v4-60-percent-a41fd5`).
+- **Run / node:** `APP-V4-DESIGN-PASS-3-20261001`, node D5. v0.1: round 1 (BRIEFS.md "D — design nodes, round 1", row D5), 2026-10-01 at HEAD `dc031b5bec`. **v0.2: "D round 2"**, 2026-10-02 at HEAD `037063ce09` (branch `claude/chirality-app-v4-60-percent-a41fd5`). Type 2 TASK executor, harness-native descendant of the HELP_HUMAN session; no delegation.
+- **v0.2 inputs (binding additions; sha256 by `shasum -a 256` at `037063ce09`):** `R18_RESOLUTIONS.md` `abf5eee6324647ff…` (R18-1: C-01, C-02, C-14, C-21, C-22); `R19_RESOLUTIONS.md` `16930ecdcead7511…` (R19-1, R19-2, R19-4 L-4, R19-5, R19-7); `OWNER_DECISIONS.md` `ea96c55710af41c9…` (DECISION-L: L-2 as the owner chose it, L-4 A as clarified); `DECISIONS_PENDING_2.md` `0ecbf87aae8d4350…` (L-4 text as clarified); `BRIEFS.md` `316ea29325a0d450…` ("D round 2"); `R20_RESOLUTIONS.md` `9ab9af81d37f0711…` (R20-1 run end only by the person or the run owner; R20-3 the run-end line; sent by HELP_HUMAN during round 2); `F/F0_JOINS.md` `e93608be1c6e3eb0…` (§2 C-01, C-02, C-14, C-21, C-22; §6 "Not F's"; §7.5); `DEL-01-01/Design/OBS_3_0.158.0.md` `554ac4451d112824…` (W-1…W-6, §11) and `OBS_2_0.158.0.md` `61cc34ffb811eb27…` (no WR cell depended on it; F0 §7.5); the generated 0.158.0 bundle `generated/0.158.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json` `34f28a486d00fbd2…` (`TurnStartParams`, `Turn`, `ThreadItem`, `UserInput`) and the session's stable TypeScript output (`v2/TurnStartParams.ts`, `v2/ThreadItem.ts`), read only.
+
+## Changes from v0.1
+
+| Ruling / item | Change | Where |
+|---|---|---|
+| R19-7, R19-1, R19-2 (DECISION-L L-2) | **New owner of run-start supply.** DEL-02-02 composes the text element that starts a workflow run: the registered revision's exact `WORKFLOW.md` bytes framed by App-written lines (framing WR-FRAME-1, PROPOSED) naming workflow and revision and, when chaining, saying the previous run ended; an end notice when a run ends without a successor; its content identity; the check against `thread/read`. Chaining (a) sequential and (b) agent-proposed with the person confirming; one run at a time per conversation | new §16; §1; §3; §7; §8 (`run_text`, `supply_check`); §12 WR-VC-12…15 |
+| R19-7 | The proposed row DEL-02-04 → DEL-02-02 (R17-8; v0.1 NR-2) is dropped: DEL-02-04 composes role guidance only. DEL-02-03 starts the run; DEL-02-02 supplies the run text to it | §7 DEL-02-04 and DEL-02-03 rows; SQ-S S-4 |
+| C-01 (R18-1) | The persisted A15 form is RS's (FR-06): `relations.reviewedDraft {draft: ID-3 string, content}` and `priorRevision` = RS `workflowTuple` or null. WR keeps its internal `a15_descriptor` object and writes through the RS writer | §2.2 ID-3; §4.3 RB-4; §8 |
+| C-02 (R18-1) | `draft_transition` gains optional `a15_record` and `revision`, on *registered* (both) and *registration not completed* (`a15_record` only) | §5.1; §8; schema |
+| C-14 (R18-1) | Confirmed: a draft reaches a trial only as a message or attachment the person sends; no guidance carriage | §4.2 TT-3 |
+| L-4 A as clarified (R19-4) | Library entries byte-equal to a shipped revision are recognized as that revision and run at once (new LS-8); the rest are registered in place, several per act (new §4.7, `a15_multi_descriptor`). U-WR-4 closed | §4.6; §4.7; §15 |
+| C-21, C-22 (R18-1) | Notes only: the act record carries reviewed draft and prior revision; WD's derived-from stays in the tuple. D5.md §2.1's mapping table is superseded (D3 adopted WR's names) | — |
+| R20-1, R20-3 | A run ends only by the person (DEL-01-02 DEF-4) or the run owner; when the agent reports the workflow finished the App offers "End run" and, with a proposal, "End ‹A› and start ‹B›" (cause *completed*); the agent's words alone end nothing. When a run ends and no run starts with the next turn, that turn is prefixed by one App-written line naming workflow and revision (worded here, same schema). The framing's third line now also tells the model how to report a finished workflow | §16.2 line 3; §16.3 CH-2; §16.5 FN-1…FN-3; TX-5; schema `proposal_line`; U-WR-17 closed |
+| R19-5 | Every supplier fact in §16 names its version (Codex 0.158.0); OBS-3's results are dated observations at that version | §16 |
+| OBS-2 | No WR cell was marked "OBS-2 pending" (F0 §7.5: no change) | — |
+| Prototype | Extended: C-01 form against RS's schema projected with FR-06; C-02; L-4 recognition and multi-entry act; run text composition, chaining A→B→C, end notice, agent proposal, supply check against constructed `thread/read` turns validated against the generated 0.158.0 types; R20-1 finished report and R20-3 run-end line. 92 checks (was 58) | §13 |
+| Section numbering | §1–§15 keep their numbers; §16 is new and placed after §15 so that join rows citing §1–§15 stay valid | — |
 - **Serves:** OUT-001, OUT-002 (design of the CODE), OUT-003 (fixture design and a design prototype), OUT-004 (receiving and reuse account, §7, §10); REQ-001…REQ-008; AC-001…AC-008 by designed verification (§12); VER-001…VER-006 (cases designed; library-side parts run on the prototype only).
 - **Labels** (as R9 and R17): **SETTLED** (an accepted text or owner decision says it), **DERIVED** (follows from those), **INTEGRATION** (an integrator ruling, open to the owner), **PROPOSED** (a design structure of this file, decided by no one). Supplier facts carry `observed`, `observed-in-generated-types` or `inference` (R17-13).
 - **Basis (binding):** the accepted basis as amended by SCA-V4-001 and SCA-V4-002; DAG-003 (`_DAG/DAG-003/HANDOFF_STATE.md` sha256 `56d849b6d078d8d5…`; held arcs non-gating); DECISION-K3 as revised (`OWNER_DECISIONS.md` sha256 `9d18c40dd7d894dc…`): K-6, K-7 (owner's alternative), K-8 bind this file; DECISION-K1 K1-1…K1-4; R1–R16; R17-1…R17-16 (`R17_RESOLUTIONS.md` sha256 `b0af81bcbad9bc52…`); DECISION-3 (host joins deferred).
@@ -41,6 +59,10 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 | WD §6.1 RV-1…RV-5; §6.3 C-1…C-6; §7 | Revision file set and canonicalization; collisions exposed, never rebound; Root package and name conventions kept | PROPOSED in WD; consumed unchanged |
 | D3 (DECISION-1) | Tool permission and sandbox modes stay the user's own Codex setting, so the App cannot stop an agent writing into a library folder; it can only make the standing of such content truthful (§4.6) | SETTLED |
 | DECISION-3 | Host joins deferred: host listing, relay and precedence are designed only as far as App-side behaviour needs | SETTLED |
+| DECISION-L L-2; R19-1, R19-2 | A conversation's role is fixed for its life; **workflows are not bound to a conversation**: runs follow one another in one conversation, (a) sequentially and (b) on the agent's proposal with the person confirming; one run at a time; (c) declared chaining is DEL-02-01's later work | SETTLED scope, INTEGRATION design |
+| R19-7 | A workflow is supplied as a text element of the turn that starts its run, carrying the registered revision's exact bytes framed by App-written lines; DEL-02-02 composes it; DEL-02-03 starts the run; the bytes and their identity are recorded per run and checked against `thread/read`; no workflow is placed in a discovered skill root; `thread/settings/update` is not used | INTEGRATION (after OBS-3) |
+| DECISION-L L-4 A (clarified); R19-4 | Shipped workflows are registered by the release; entries byte-equal to a shipped revision are recognized; the rest are registered in place, several per act, each entry's bytes bound | SETTLED |
+| R18-1 C-01, C-02 | The persisted A15 form is RS's; `draft_transition` carries the A15 record and revision | INTEGRATION |
 
 ## 2. Objects and identities
 
@@ -66,7 +88,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 
 - **ID-1 (DERIVED, K-6 with WD §6.1).** A registered revision's tuple is {workflow, origin of the library, source root of the library, name, revision} with `revision_method`, plus **derived-from = the draft base** when the draft had one (SP-6). The tuple is WD's `$defs/workflow_identity`, referenced by its `$id` from this file's schema; RS spells it `workflowTuple`.
 - **ID-2 (DERIVED).** Because the revision value is a content identity over the package's files (RV-1…RV-5), and a draft's content identity is computed over the draft folder by the same rules, **the revision registered from a draft equals the reviewed draft content identity**. This is what makes K-8's "bound to the exact reviewed bytes" checkable: the A15 binds one value that is both.
-- **ID-3 (PROPOSED).** A draft is referred to as `draft:<location>:<name>@<content identity>` wherever a string is needed (RS's present `relations.derivedFrom` uses this shape, §8). A draft reference without a content identity names a folder, not content.
+- **ID-3 (PROPOSED; used by C-01).** A draft is referred to as `draft:<location>:<name>@<content identity>` wherever a string is needed. A library entry reviewed in place without a draft (§4.7) is `entry:<location>:<name>@<content identity>`. This string is `relations.reviewedDraft.draft` in the persisted A15 form RS defines (R18-1 C-01; F row FR-06). A reference without a content identity names a folder, not content.
 - **ID-4 (DERIVED, EXEC §6.6).** Lineage is followed through derived-from links; a link that cannot be resolved is shown as "lineage incomplete at ‹tuple›", never guessed.
 
 ## 3. Layout and data placement (PROPOSED; OI-008 and RS U-05 stay open)
@@ -84,6 +106,8 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 | Selection records | Handed to DEL-02-03 and DEL-04-03 at run start (RS R2 *selected*); the App keeps the current selection per conversation as a pointer | The App | RS's record once written |
 | Trial pointers | App data folder | The App | App-observed pointer; not a run record (TT-4) |
 | Bundled workflows | Inside the App bundle, per release, read-only | The release | Origin *bundled*; runnable without A15 (LS-5) |
+| Shipped-revision manifest (v0.2, L-4) | Inside the App bundle | The release | Name and revision of every workflow revision any v4 release shipped; used only to recognize library copies (LS-8) |
+| Run texts and supply checks (v0.2, R19-7) | `run_text` and `supply_check` records handed to DEL-02-03 and DEL-04-03 (RS R3); the composed text itself is not stored twice: it is recomputable from the record's lines and the revision's bytes in the store, and Codex keeps it in its history (`thread/read`) | The App | App records (R17-4); the text in Codex's history is Codex's |
 | Host workflows held in the App | An import holding library (CA's LIB-A2 ⟨fx-app-import⟩), `<project>/.chirality/workflow-imports/<host source root>/<name>/` | The person's relay (DEP-001) | Origin *host*; listing and relay deferred (DECISION-3) |
 
 Project-library records travel with the project folder, as RS OF-9 asks of App run records. The App cannot stop an agent writing into these folders (D3). It therefore never treats the presence of files as registration, and it computes standing from the ledger, the act record and the bytes together (§4.6).
@@ -116,7 +140,7 @@ Project-library records travel with the project folder, as RS OF-9 asks of App r
 
 - **TT-1 (SETTLED).** Only registered revisions (and bundled or host-listed workflows, LS-5, LS-6) are selectable for a run. Selecting a draft is refused with EXEC T-1's words, "draft only — not a workflow identity", and the offer to review it.
 - **TT-2 (DERIVED).** A draft is tried in an **ordinary conversation**: no workflow is selected, no run is opened (no RS `run_opened`), DEL-02-04 composes no workflow into the conversation's instructions (R17-8), and EXEC's recorder records no checkpoint arrival, because there is no run. The agent works with real native tools, which is V4-EXM-10's "trial"; its reading of the draft file is a tool item.
-- **TT-3 (PROPOSED).** The workspace offers **Try in a conversation** on a draft. It opens a new conversation with no workflow selected; the role and model are chosen as for any conversation (DEL-02-04; K-3: no model until the person chooses). The App pre-fills, and does not send, a message naming the draft's path and content identity; the person edits and sends it. Pre-filled text is the person's input once sent.
+- **TT-3 (PROPOSED; confirmed by R18-1 C-14).** The workspace offers **Try in a conversation** on a draft. It opens a new conversation with no workflow selected; the role and model are chosen as for any conversation (DEL-02-04; K-3: no model until the person chooses; the conversation reads "not started — no model selected" until then, R18-2). The App pre-fills, and does not send, a message naming the draft's path and content identity; the person edits and sends it. Pre-filled text is the person's input once sent. A draft reaches a trial only as a message or attachment the person sends; it is never composed into guidance and never framed as a run text (§16 applies to registered revisions only).
 - **TT-4 (PROPOSED).** The workspace keeps a **trial pointer** {draft key, draft content identity at the time, conversation, time}, labelled "draft tried in conversation; not a run of any workflow identity". It is not a run record, not compatibility evidence and not A15 evidence (ACT §2.6 lists "a successful trial run" among non-evidence; under K-7 there is no trial run at all).
 - **TT-5 (DERIVED).** A human act performed during a trial conversation (for example A4 on an App file through the act control) is recorded outside any run, in the act log, as for any conversation.
 - **TT-6 (DERIVED).** Checkpoints declared in a draft are not evaluated in a trial. The review shows the declared part's reading (WD VO-1…VO-10); a run of the registered revision is where checkpoints are recorded (EXEC §2.4).
@@ -128,19 +152,21 @@ Project-library records travel with the project folder, as RS OF-9 asks of App r
 - **RB-2 Review package** (what the review view shows; DEL-01-04 presents it, §7): the target slot and disposition (SP-4) with its message; the reviewed content identity and method; the file list with per-file sizes and digests; `WORKFLOW.md`; the declared part's reading with its FB findings (WD §3.7), shown as information; hygiene findings; the difference against the prior revision and, when it differs, against the draft base; lineage; the same name elsewhere (SP-5); and the sentence "Registering makes this revision available in ‹library›. It is not a check that the workflow can run here." A compatibility report (EXEC CK-1) may be shown beside it, labelled as a check of this environment (REQ-005).
 - **RB-3 Freshness.** The review stays current while (a) the live draft's content identity equals the snapshot's and (b) the slot's latest revision is still the prior revision bound (or the slot is still empty). The workspace watches both. When either fails it withdraws the A15 descriptor, the act control stops offering it, and the draft shows "changed since review — review again" (K-8).
 - **RB-4 A15 descriptor** (`a15_descriptor`), handed to the act control for a registrable disposition (DS-1, DS-2, DS-7): act kind A15; wording "register workflow revision"; subject = the target tuple with the revision (ID-1); bound content = the snapshot's content identity (equal to the subject's revision, ID-2; a reader check); relations {reviewed draft (draft key and content identity), prior revision (tuple or none), derived-from (tuple or none)}; disposition; scope = the library; purpose "make it available in the project library" or "make it available in the user library" (ACT's single "in the project" wording does not fit the user library; join J-15); review reference; freshness values; and the agent's A8 request record, where one was recorded (RS R16).
+- **RB-4a Persisted form (R18-1 C-01).** The A15 record itself is RS's: `relations.reviewedDraft` = {`draft`: the ID-3 string, `content`: the reviewed content identity} and `relations.priorRevision` = the prior revision as RS's `workflowTuple` (camelCase), or null for a new workflow or an in-place registration. WR's descriptor keeps its snake_case object; the act control's writer maps it (WD §3.6's one-to-one spelling). WD's derived-from stays in the subject tuple and is not an act relation (C-21). For a multi-entry act (§4.7) RS-v0.9 (F-C, in progress when read) carries `relations.registeredEntries`, one {subject, reviewedDraft, priorRevision} per entry in the order of `boundSubject`; WR writes it so. Its `reviewedDraft.draft` pattern (`^draft:.+@.+$`) does not yet admit WR's `entry:` form for an entry reviewed in place (prototype prints the refusal): a join for F-C.
 - **RB-5 Capture (DEL-01-04).** The act control captures A15 only from the person's native interface event (R17-5; CAP-4). The agent may ask the person to register (A8; K1-1); an answer to a supplier user-input or elicitation request is never A15 (CAP-6); a chat statement is not either (CAP-7). The control records the person as the App observes them, "identity not verified" (K1-4).
 - **RB-6 Publication uses the snapshot.** The registration writer publishes the snapshot's bytes, never the live draft's, after re-checking the slot (G-1). The bytes registered are therefore the bytes reviewed, whatever happens to the draft afterwards.
 - **RB-7 Review is not an act.** Showing a review is an App presentation, recorded as a `review shown` transition. It is never recorded as a human act (ACT §2.1: "a draft's review is not A15"). REQ-002's "the person reviews the identified content" is evidenced by the A15's binding to the content the review showed (S1-C §A.4 item 5, option (a); INTEGRATION), not by a separate act kind.
-- **RB-8 One act, one revision (PROPOSED).** An A15 completes at most one registration: the one for its descriptor. An act whose registration did not complete is recorded as not effective and is never reused for other content or a later attempt (FX-56 (c); VER-002). The only continuation is §6 SQ-X, which finishes the same attempt after an interruption when nothing has changed.
+- **RB-8 One act, the revisions it names (PROPOSED; v0.2 widened for L-4).** An A15 completes at most the registrations its descriptor names: one for an `a15_descriptor`, one per entry for an `a15_multi_descriptor` (§4.7). An act whose registration did not complete is recorded as not effective and is never reused for other content or a later attempt (FX-56 (c); VER-002). The only continuation is §6 SQ-X, which finishes the same attempt after an interruption when nothing has changed.
 
 ### 4.4 Selection (WD C-1…C-6; U-10)
 
 - **SL-1 (DERIVED, C-2, C-3).** A selection is the person's explicit interface choice of a full tuple **with revision**, with its holding library. It is an ordinary interface choice, not a reserved act. An agent's mention or suggestion of a workflow is not a selection.
 - **SL-2 Pinned (PROPOSED; answers WD C-4 for the App).** A selection stays on its revision. When a newer revision is registered in the slot, the selection shows "newer revision ‹n› available"; following it is a new selection event citing the one it replaces (C-3). The chain therefore always shows which revision was resolved and supplied (C-4), and every run cites its revision (K-6).
 - **SL-3 Unqualified names (PROPOSED; answers WD C-5 / U-10 for the App).** A name typed without origin gives a candidate list ordered project → user → bundled → host (host last). When more than one origin holds the name the person picks; nothing is resolved silently. Host listing waits with the host joins (DECISION-3).
-- **SL-4 (DERIVED, C-2; EXEC RF-2, FB-08).** Discovery changes after selection (new same-name entries, a new revision, an edited or removed published copy) never change the selection. A selection is resolved from the **revision store**, never from the published copy; if its bytes cannot be found or do not recompute, the result is "selected revision not resolvable" or "revision not verified", never a substitute.
+- **SL-4 (DERIVED, C-2; EXEC RF-2, FB-08).** Discovery changes after selection (new same-name entries, a new revision, an edited or removed published copy) never change the selection. A selection is resolved from the **revision store**, never from the published copy (v0.2 exception: an LS-8 copy recognized as a shipped revision is resolved from its holding library and verified against that revision, as any holding library is); if its bytes cannot be found or do not recompute, the result is "selected revision not resolvable" or "revision not verified", never a substitute.
 - **SL-5 (SETTLED, K-7).** Content without registered standing (a draft; LS-2, LS-3, LS-4) is refused for selection with its standing and the offer **Review to register**.
 - **SL-6 (DERIVED).** Reuse on new inputs is a run of a selected revision, started through DEL-02-03 (EXEC SQ-A A-1, A-2); the inputs are conversation inputs.
+- **SL-7 Selection for a chained run (v0.2; R19-2).** Selecting the next workflow in a conversation whose earlier run has ended records `prior_run` {run, workflow, how it ended} as a relation; it is not part of the selected identity. A selection made by confirming an agent's proposal records `how` = "agent proposal confirmed by the person" and the `proposal` (conversation, agent message item, proposed name); the proposal alone is never a selection (§16.5).
 
 ### 4.5 Package hygiene at review (WD RV-2 and "Whether registration refuses them is DEL-02-02's")
 
@@ -165,8 +191,18 @@ Project-library records travel with the project folder, as RS OF-9 asks of App r
 | **LS-5** | bundled | Shipped in the App release | Yes | Select; Refine into the user or a project library (a new workflow with derived-from the bundled tuple) |
 | **LS-6** | host-listed | Listed from a host library or held in the import holding library | Per host rules (deferred) | Open read-only; Refine (EXEC HR-1…HR-4) |
 | **LS-7** | not established | A non-regular entry in the store or published copy (RV-2) | No | — |
+| **LS-8** (v0.2; L-4 A) | shipped revision held in this library | Content in a slot with no registered revision whose content identity equals a revision of the **same name** that an App release shipped (the release's shipped-revision manifest, which lists the revisions every v4 release shipped; PROPOSED) | Yes, at once: selected as the **bundled tuple** of that revision (origin *bundled*, source root the shipping release), with this library as the holding library (WD C-6: the same content located twice). No A15: the release registered it | Select. Editing the copy makes it LS-2 |
 
-LS-2's "not runnable" follows K-7's "only registered revisions run". It affects every existing project library written before v4 (Root's panel, App v3), each of whose workflows needs one in-place review and A15 before it runs. That consequence is **flagged for the owner** (U-WR-4); the alternative is to run such content with its standing shown.
+LS-2's "not runnable" follows K-7's "only registered revisions run". **Settled by DECISION-L L-4 A as clarified:** shipped workflows are registered by the release and are not affected (LS-5); entries byte-equal to a shipped revision are recognized (LS-8); the rest are registered in place, several per act allowed (§4.7). U-WR-4 is closed.
+
+### 4.7 Registering several library entries in one act (v0.2; L-4 A; PROPOSED)
+
+- **ME-1.** **Review library entries** lists the LS-2 entries of one library. The person picks two or more; each must pass HY-1…HY-5, HY-7 (refusing findings exclude the entry, named). An entry that is LS-8 is not offered (it already runs).
+- **ME-2.** One review shows every picked entry with its own review package (RB-2, without a draft or base: the reviewed content is the entry's own bytes, ID-3 `entry:` form). Snapshots are taken per entry (RB-1).
+- **ME-3.** One `a15_multi_descriptor` goes to DEL-01-04's act control, wording "register workflow revisions", listing each entry with its subject tuple and bound content; purpose "make them available in the project library" (or user library). The control presents the list and captures one A15 whose `boundSubject` and `boundContent` hold one item per entry, in order (RS §6.1 already allows lists), with `relations.registeredEntries` (RB-4a).
+- **ME-4 Freshness.** While the descriptor is offered, any entry whose bytes change, or which gains a registration, makes the whole descriptor stale: the control refuses capture and asks for a new review (K-8).
+- **ME-5 Per-entry publication.** After capture, each entry goes through G-1 (still the bound bytes and still unregistered), G-2/G-3 from its snapshot, and G-4: a `library_entry` *registered* (disposition *in place*, sequence 1, `reviewed_entry`) or *not completed* with its reason, every line citing the one A15. An entry changed between capture and publication is *not completed* and needs its own review; the others register. The published copy is left as it is (it equals the registered bytes).
+- **ME-6.** The A15 is never extended to entries it did not list, and an entry's not-completed line is never completed later by the same act (RB-8).
 
 ## 5. States (one table per stateful thing this file owns)
 
@@ -181,8 +217,8 @@ LS-2's "not runnable" follows K-7's "only registered revisions run". It affects 
 | *under review* | Live content changes, or the slot's latest revision changes (RB-3) | *changed since review* | *review stale*; descriptor withdrawn |
 | *changed since review* | Review opened again | *under review* or refused, as above | as above |
 | *under review* | Review closed without an act | *draft* | none (no act, nothing inferred) |
-| *under review* | A15 captured and registration committed | *registered, unchanged since*; the App records the new revision as the draft's base | *registered*; `library_entry` *registered* |
-| *under review* | A15 captured; registration not completed | *draft* | *registration not completed*; `library_entry` *not completed* |
+| *under review* | A15 captured and registration committed | *registered, unchanged since*; the App records the new revision as the draft's base | *registered* with `a15_record` and `revision` (C-02); `library_entry` *registered* |
+| *under review* | A15 captured; registration not completed | *draft* | *registration not completed* with `a15_record` (C-02); `library_entry` *not completed* |
 | *registered, unchanged since* | Files change | *draft* (a refinement of that revision) | *changed* |
 | any | Folder removed | *removed* | *removed*; the App's base pointer is dropped |
 
@@ -222,6 +258,7 @@ LS-2's "not runnable" follows K-7's "only registered revisions run". It affects 
 | none | The person tries to select a draft or LS-2/LS-3/LS-4 content | none; refusal with standing and "Review to register" |
 | *selected* | A newer revision is registered in the slot | *selected*, "newer revision available" shown |
 | *selected* | The person selects another tuple | *selected* (a new event that cites the one it replaces) |
+| *selected* (its run ended) | The person selects the next workflow, or confirms an agent's proposal (R19-2) | *selected* for the next run, with `prior_run` (SL-7); the run starts by §16 |
 | *selected* | Same-name discovery changes | *selected* unchanged; collision notice (C-1) |
 | *selected* | Resolution finds the bytes missing or not recomputing | *selected*, "selected revision not resolvable" / "revision not verified"; nothing substituted |
 
@@ -281,7 +318,7 @@ The A15 record itself is written by the act control's writer at capture (ACT LC-
 | S-1 | Listing with standings (§4.6) and collisions (C-1) | Library unreadable · listed as *not established* |
 | S-2 | The person selects (SL-1…SL-3); `selection_record` | Draft or no registered standing → refused (SL-5) |
 | S-3 | Hand-off to DEL-02-03 (EXEC A-1 CK-1 check; A-2 run start) with the selection record; the resolver reads the store (EXEC §6.1 *resolved*) | Not resolvable or not verified → EXEC's wording; the person may choose again |
-| S-4 | DEL-02-04 composes the resolved bytes with role and product guidance (R17-8) | Supply not observed → *supplied* unknown (HOSTING §8.2) |
+| S-4 | (v0.2, R19-7) DEL-02-02 composes the run-start text from the resolved bytes (§16.2); DEL-02-03 starts the run with it as the first text element of the run's first turn; DEL-02-04 composes role guidance only (at conversation start) | Text not composed (bytes not UTF-8, not resolvable) → the run does not start; supply check not *verified* → *supplied* not verified (§16.6) |
 
 **SQ-H — host-origin workflow opened and refined in the App** (EXEC HR-1…HR-7, consumed unchanged; App-side steps only, DECISION-3).
 
@@ -309,22 +346,22 @@ Arc layer per DAG-003 (`admitted` / `held` in SCC-002). Direction is consumer �
 | Other side | Row · arc · layer | What flows | Condition of use | When the exchange fails |
 |---|---|---|---|---|
 | DEL-01-03 native plans, tools, delegation | DEP-02-02-012 · admitted | Plan items and revisions, tool items, delegation items shown in journey conversations (J-1, J-2) | Plan and delegation views exist only with Codex's experimental opt-in (K-5); plan revision identity is DEL-01-03's | Views absent: the journey works in prose; nothing in the workspace depends on a plan item. Plan acceptance is ordinary input (R17-9) |
-| DEL-01-04 native requests, outcomes, attachments, draft view | DEP-02-02-013 (receive) and DEP-01-04-009 (offer) · held, SCC-002 | **Offered:** `draft_reference`, `draft_transition`, `registration_disposition` (collision and refusal standing), the review package (RB-2). **Received:** the native draft view and review presentation (DEL-01-04 OUT-002, OUT-004, REQ-004); attachments into conversations | DEL-01-04 shows a draft as a draft until a *registered* transition arrives (its REQ-004) | Draft view not built: the workspace list is the only view; no transition is invented by the receiver |
+| DEL-01-04 native requests, outcomes, attachments, draft view | DEP-02-02-013 (receive) and DEP-01-04-009 (offer) · held, SCC-002 | **Offered:** `draft_reference`, `draft_transition` (with `a15_record` and `revision`, C-02), `registration_disposition` (collision and refusal standing), the review package (RB-2); v0.2: the run-start and end-notice text elements for the turn it composes (R18-1 C-06: DEL-01-04 composes `turn/start`), the agent-proposal offer "Start ‹workflow›" with its candidates (§16.5), and the run start and end marks the conversation view shows (R19-2). **Received:** the native draft view and review presentation (DEL-01-04 OUT-002, OUT-004, REQ-004); attachments into conversations | DEL-01-04 shows a draft as a draft until a *registered* transition arrives (its REQ-004) | Draft view not built: the workspace list is the only view; no transition is invented by the receiver |
 | DEL-01-04 App act control (K-8; SC2-01-04-1, PROPOSED until SCA-V4-003) | DEP-02-02-013 (statement to be revised, return file) · held | **Offered:** `a15_descriptor` (RB-4) and its withdrawal (RB-3). **Received:** the capture {A15 record identity, capture-evidence reference, bound content, descriptor identity} | Capture only from a native event (CAP-4; R17-5); the control refuses capture while the descriptor is stale | Control not built: nothing is registered; the review says so (R-4). Capture refused as stale: review again |
 | DEL-02-01 portable contract | DEP-02-02-014 · held | Identity tuple (`$defs/workflow_identity`), RV-1…RV-5, name rule, the declared-part reader (VO-1…VO-10) for the review, collision and rebinding rules (C-1…C-6) | Consumed unchanged | Reader finding: shown, never refusing (HY-6). Algorithm open (U-03): the prototype's illustrative digest stands in |
-| DEL-02-03 execution, compatibility, round trip | DEP-02-02-015 (receive) and DEP-02-03-010 (offer) · held | **Offered:** `selection_record`; resolution from the store (the resolver reads the revision store; EXEC §6.1 *resolved*); the drafted / registered link (EXEC §6.1 *opened / drafted / registered*); the HR-1…HR-4 App steps (SQ-H). **Received:** the compatibility report (shown beside a review or a selection, labelled), T-1's refusal wording, run start | EXEC's run start is the only place a workflow runs (TT-1) | Report not established: shown so (EXEC CR-3); nothing is gated by it (CC-3) |
-| DEL-02-04 role and workflow supply | Proposed row (R17-8; D6 proposes it) · would be inside SCC-002 | **Offered:** the selection record and the resolved revision's store path and content identity, from which DEL-02-04 composes the workflow into `developerInstructions` | Supply only for a selected registered revision; never for a draft (TT-2) | Supply not observed: *supplied* unknown (HOSTING §8.2). If the agent reads the workflow file itself, it reads the pinned revision's store path, not the published copy |
+| DEL-02-03 execution, compatibility, round trip | DEP-02-02-015 (receive) and DEP-02-03-010 (offer) · held | **Offered:** `selection_record` (with `prior_run`, `proposal`); v0.2: the composed run text and its `run_text` record for the run DEL-02-03 opens, the `supply_check` after the turn (§16; R19-7: "DEL-02-02 composes …; DEL-02-03 starts the run"); resolution from the store (the resolver reads the revision store; EXEC §6.1 *resolved*); the drafted / registered link (EXEC §6.1 *opened / drafted / registered*); the HR-1…HR-4 App steps (SQ-H). **Received:** the compatibility report (shown beside a review or a selection, labelled), T-1's refusal wording, run start | EXEC's run start is the only place a workflow runs (TT-1) | Report not established: shown so (EXEC CR-3); nothing is gated by it (CC-3) |
+| DEL-02-04 role guidance | none (v0.2: the R17-8 row is **dropped** by R19-7) | Nothing flows for workflows: DEL-02-04 composes product guidance and the conversation's role only. Runtime value only: the conversation's role is fixed for its life (L-2); a run text never changes it | — | — |
 | DEL-04-01 operation policy and human acts | DEP-02-02-016 · admitted | A15's act table entry, binding (not lapse-evaluated), capturing surface, non-evidence list, request → capture → record sequence (ACT §2.1, §2.5, §2.6, §4.7), FX-56 | Consumed with the edits K-8 and R17-11 require (join list) | — |
-| DEL-04-03 records | DEP-02-02-017 · held | The A15 human-act record (RS §6.1, HA-10), the act log outside a run, R2 trace links (*listed*, *selected* with holding library), R16 act requests | The A15 record is written by the act control's writer; the ledger cites it by record identity | Record write fails: ACT LC-2 (late write, "record write failed"); registration waits for G-0 until the capture is reported |
+| DEL-04-03 records | DEP-02-02-017 · held | The A15 human-act record (RS §6.1, HA-10) in the persisted form of C-01 (single and multi-entry), the act log outside a run, R2 trace links (*listed*, *selected* with holding library), R16 act requests; v0.2: per-run supplied-workflow evidence (RS R3) from `run_text` and `supply_check`, and the relation "follows ‹run› in this conversation" (R19-2) | The A15 record is written by the act control's writer; the ledger cites it by record identity | Record write fails: ACT LC-2 (late write, "record write failed"); registration waits for G-0 until the capture is reported |
 | DEL-09-02 standalone qualification | DEP-09-02-016 / DEP-02-02-018 · admitted | Candidate-bound fixture results and remaining limits (OUT-003), the §12 case inventory | Supplied after a candidate exists | Nothing is claimed before then |
 | DEL-09-06 connected activity | DEP-09-06-026 (N-C1) · admitted | Registration for the round trip (CA §4 *opened / drafted / registered*; ST-5; W14-01, W14-09, W14-10) and the workflow-maker party's App steps | Host side waits for SQ-17/SQ-18 and the host joins (DECISION-3) | W14-01/W14-09 stay AWAITING INPUT on the host side |
 | DEL-01-02 execution and recovery | Proposed row NR-1 (return file) · would be admitted, no SCC | The stop definitions (R17-3) and the App-start event at which SQ-X runs; interrupted trial conversations are shown by DEL-01-02 / DEL-01-04 | — | Without it, SQ-X runs at App start on its own; no recovery of conversations is claimed here |
 | DEL-01-05 account and model access | none (runtime value only) | A trial conversation starts with no model chosen until the person chooses (K-3) | — | — |
-| DEL-01-01 supplier boundary | none direct | The `fileChange` item used for draft attribution (D-3), via DEL-01-03/01-04's item delivery; S-6 carriage is DEL-02-04's | `observed-in-generated-types` only | Attribution "not observed" |
+| DEL-01-01 supplier boundary | none direct | The `fileChange` item used for draft attribution (D-3), via DEL-01-03/01-04's item delivery. v0.2: the supplier facts §16 rests on at Codex 0.158.0 (OBS-3 W-1…W-6; the generated `TurnStartParams`, `Turn`, `ThreadItem`, `UserInput`); S-6 carries role guidance only (R19-7) | `observed` (OBS-3, dated, one local model) and `observed-in-generated-types` | Attribution "not observed"; for §16, a fact that changes at a later Codex version reopens the cell (R19-5) |
 
 ## 8. Data formats (PROPOSED; R17-1)
 
-One schema, [workspace-registration.schema.json](workspace-registration.schema.json) (`$id` `urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.1`, JSON Schema 2020-12), with seven record kinds told apart by `record_kind`. Names are Chirality's, snake_case as WD's schema. Workflow tuples reference WD's `$defs/workflow_identity` by WD's `$id`; RS spells the same tuple in camelCase (`workflowTuple`), a one-to-one mapping (WD §3.6 spelling table).
+One schema, [workspace-registration.schema.json](workspace-registration.schema.json) (`$id` `urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2`, JSON Schema 2020-12), with ten record kinds (seven at v0.1) told apart by `record_kind`. Names are Chirality's, snake_case as WD's schema. Workflow tuples reference WD's `$defs/workflow_identity` by WD's `$id`; RS spells the same tuple in camelCase (`workflowTuple`), a one-to-one mapping (WD §3.6 spelling table).
 
 | Kind | Receiver(s) | Content | Reader checks beyond the schema |
 |---|---|---|---|
@@ -335,8 +372,11 @@ One schema, [workspace-registration.schema.json](workspace-registration.schema.j
 | `library_entry` | DEL-02-03 resolver; DEL-02-04; DEL-09-02 evidence | Ledger line: outcome (*registered* · *not completed*), tuple, sequence, disposition, prior revision, reviewed draft, A15 record and capture-evidence references, store path, reason, evidence limits | LS-1 needs the A15 record and recomputing bytes as well |
 | `selection_record` | DEL-02-03 (CK-1, A-1), DEL-04-03 (R2 *selected*), DEL-02-04 | Tuple with revision, holding library, standing, "the person (App interface)", how (*explicit* · *from unqualified name* with candidates), replaces, conversation, time | The tuple's standing is runnable (TT-1) |
 | `trial_pointer` | App-kept only | Draft key, content identity, conversation, time, the fixed standing sentence | Carries no workflow identity (schema: `additionalProperties` false) |
+| `a15_multi_descriptor` (v0.2) | DEL-01-04 act control | §4.7: library, entries (subject tuple, bound content, `entry:` ID-3 string), scope, purpose, review | Each entry's subject revision equals its bound content |
+| `run_text` (v0.2) | DEL-02-03 (run start); DEL-01-04 (turn composition); DEL-04-03 (RS R3) | §16.2: purpose (*run start* · *run end notice*), framing `WR-FRAME-1`, run, conversation, workflow tuple and holding library, `WORKFLOW.md` identity and size, other files, chain, origin of start, selection, the framing lines (each fixed by a pattern), text identity and size | The text recomputes from the lines and the revision's bytes (TX-6; prototype P-48) |
+| `supply_check` (v0.2) | DEL-04-03 (RS R3); DEL-02-03 | §16.6: expected text and workflow identities, state, observed text identity, turn, item, how located, time, evidence limits | Never relabelled; a later read is a new check |
 
-Conformance instances: eight valid instances covering all seven kinds (`.valid.examples.jsonl`) and nine invalid instances, one named error each (`.invalid.examples.json`): a valid-state draft with a bad name; a base not recorded by the App; an invented *auto-registered* event; a new revision without its prior revision; another act kind presented as registration; a registration line citing no A15; a selection of a slot without revision; origin `host-supplied`; a trial pointer naming a workflow identity.
+Conformance instances (v0.2): fourteen valid instances covering all ten kinds and fifteen invalid instances. v0.2 adds: a *registered* transition with `a15_record` and `revision`; a two-entry multi descriptor; a chained run start; an end notice; a verified supply check; a selection confirming an agent proposal; and the invalid INV-10…INV-15 (a revision on a *written* event; a multi descriptor with one entry; a chain without a chain line; a start line outside WR-FRAME-1; *verified* without the observed identity; a confirmed proposal without the proposal). At v0.1: eight valid instances covering seven kinds and nine invalid instances, one named error each (`.invalid.examples.json`): a valid-state draft with a bad name; a base not recorded by the App; an invented *auto-registered* event; a new revision without its prior revision; another act kind presented as registration; a registration line citing no A15; a selection of a slot without revision; origin `host-supplied`; a trial pointer naming a workflow identity.
 
 **The A15 record (RS's format, consumed).** The act control's writer produces an RS `human_act` with act kind A15 exactly as RS-v0.8 states it (prototype P-11, P-38): bound subject the revision, bound content its identity, purpose per library, `relations.derivedFrom` the draft string (ID-3). R17-11 asks RS to replace that relation by **reviewed draft** and **prior revision**; RS-v0.8's schema refuses those names today (P-36), so the change is a node-F join (J-21), not something this file does.
 
@@ -387,13 +427,17 @@ Placement under R17-5's O-1: the Rust host owns the library writer (store, ledge
 | WR-VC-08 Hygiene | REQ-003, REQ-004 | HY-1…HY-7: refusals, and HY-6 not refusing | Library double | HY-2, HY-3, HY-4 and the refused review **ran** (P-02…P-04); HY-6 runs in every review (the declared-part note); HY-1, HY-5, HY-7 DESIGNED |
 | WR-VC-09 Drafts never run | K-7 | Draft selection refused; a trial leaves only a pointer; changed library copy not selectable | Library double | **Ran** (P-05, P-06, P-29) |
 | WR-VC-10 Round trip, App side | REQ-004 (CA W14-09, EXEC RT-6) | A host tuple whose lineage reaches LIB-A1 registers as LIB-A1's next revision with derived-from = host tuple; one whose lineage does not is refused | Host-listing double | **Ran** (P-32, P-33); host side AWAITING INPUT (SQ-17, SQ-18) |
-| WR-VC-11 Formats | R17-1 | Every record produced conforms; static instances; reader checks | Schema, validators | **Ran** (S-1, S-2, INV-1…INV-9, P-37…P-39) |
+| WR-VC-11 Formats | R17-1 | Every record produced conforms; static instances; reader checks | Schema, validators | **Ran** (S-1, S-2, INV-1…INV-15, P-37…P-39) |
+| WR-VC-12 Persisted A15 form and transitions (v0.2) | VER-005 (AC-006) | C-01: single and multi-entry A15 against RS's schema projected with FR-06; the old `derivedFrom` form and a free-string prior revision refused; C-02 elements | RS writer double; F-C's RS v0.9 for the real schema | **Ran** on the projection (P-11, P-36, P-38, P-40, P-41, P-47); against RS v0.9 when F-C lands |
+| WR-VC-13 Shipped and multi-entry (v0.2) | VER-002, VER-003 (L-4) | LS-8 recognition (current and earlier release), edited copy not recognized; one act over three entries with a stale entry before and after capture | Library and act-control doubles; on a candidate, the person | **Ran** on doubles (P-42…P-47) |
+| WR-VC-14 Run text and supply check (v0.2) | VER-001, VER-004 (AC-001, AC-005) | Composition exact and deterministic; no other workflow named; turn/start and turn shapes against the 0.158.0 types; verified, and each mismatch state | Constructed `thread/read` turns; on a candidate, Codex 0.158.0 or the qualified pin and a model | **Ran** on constructed frames (P-48…P-52); live check AWAITING a candidate (OBS-3 W-4 observed the text route at 0.158.0 with one local model) |
+| WR-VC-15 Chaining (v0.2) | VER-001 (AC-001; R19-2) | One run at a time; (a) A→B with the chain line; end notice once; (b) proposal → offer → confirmation → chained start; proposals not on the last line, of drafts or unknown names give no Start | RunDesk double (stands in for DEL-02-03's run start and end) | **Ran** (P-53…P-61; P-60, P-61 for R20-1 and R20-3) |
 
 ## 13. Prototype
 
 [`prototype/wrproto.py`](prototype/wrproto.py) (R12-3; not product code) models §3–§6 over invented packages in a temporary folder, with a double for DEL-01-04's act control whose only capture path is a modelled native event. It imports two sibling prototypes read-only: DEL-02-01's `wdproto.py` (revision file set and the illustrative digest `proto-sha256-list-0`, the declared-part reader, the name rule) and DEL-04-03's `minischema.py` (a JSON Schema subset validator whose registry resolves WD's and RS's `$id`). Workflow tuples are also checked with WD's own validator, because `minischema` does not check `maxLength`.
 
-**Run:** `PYTHONDONTWRITEBYTECODE=1 python3 wrproto.py`, in `Design/prototype/`, on 2026-10-01 (20:06 UTC), Python 3.13.7: **58 checks, 58 passed, 0 failed**, exit status 0. The full output, with the sha256 of every input it read, is in the return file `D/D5.md`. It writes nothing outside its temporary folder and leaves no `__pycache__` (checked with `find` afterwards).
+**Run (v0.2):** `PYTHONDONTWRITEBYTECODE=1 python3 wrproto.py`, in `Design/prototype/`, on 2026-10-02 (19:00 UTC), Python 3.13.7: **92 checks, 92 passed, 0 failed**, exit status 0. It also loads Codex 0.158.0's generated v2 JSON Schema bundle (read only) to check constructed `turn/start` params and `thread/read` turns, and builds in memory RS's schema projected with FR-06 (C-01), because F-C edits RS in parallel; the on-disk RS outcome is printed as information. v0.1's run (2026-10-01, 58 of 58) is recorded in D/D5.md. The full output, with the sha256 of every input it read, is in the return file `D/D5.md`. It writes nothing outside its temporary folder and leaves no `__pycache__` (checked with `find` afterwards).
 
 What it does not show: any Codex behaviour, any native view, the real act control, a real person, a candidate, or a host.
 
@@ -405,7 +449,8 @@ What it does not show: any Codex behaviour, any native view, the real act contro
 - **ACT:** A15's capturing surface becomes DEL-01-04's act control (K-8) in §2.1, §2.6, §4.7 RC-3 and FX-56; content names per R17-11; purpose per library; §10.3's "Not mapped in detail (U-08)" row is filled.
 - **RS:** §6.1 relations and HA-10 per R17-11, with `RS_RECORD.schema.json`'s A15 rule and the act-log example; capturing surface; purpose per library; §10 rows; U-05 for act records outside a run.
 - **CA:** §3.1, §4, ST-5, W14-01/W14-09, F-1 and its UNRESOLVED row: registration is designed (PROPOSED), not built.
-- **DEL-01-04 (node D3, in parallel):** reconcile its `nir.draft-transition` and `aac.offer` vocabularies with `draft_transition` and `a15_descriptor` (mapping in the return file).
+- **DEL-01-04 (node D3, in parallel):** v0.1's vocabulary reconciliation is done (C-22: D3 adopted WR's names). v0.2 asks D3 for: the multi-entry A15 offer (§4.7), the "Start ‹workflow›" offer for agent proposals (§16.5), run start and end marks in the conversation view, and placing the run text as the first text element of the `turn/start` it composes (C-06).
+- **v0.2 (R19-7):** EXEC A-3, §6.1 *supplied*; WD §3.9 OS-7 and §6.2 *supplied*; HOSTING S-6, §8.2 and §11; RS R3 and R1 (a "follows ‹run›" relation); RS §6.1 for C-01's multi-entry list. Rows in the return file, Round 2.
 
 ## 15. UNRESOLVED
 
@@ -414,7 +459,7 @@ What it does not show: any Codex behaviour, any native view, the real act contro
 | U-WR-1 | Revision identity algorithm and method designation | DEL-02-01 with DEL-04-03 (WD U-03; HOSTING U-08) | Before implementation of the store and the A15 binding | The design needs *a* content identity with a method; the prototype uses WD's illustrative digest |
 | U-WR-2 | Process placement of the library writer and of A15 capture | App implementation owner (OI-008) | Before architecture production contracts | Requirements §11 hold for any placement; R17-5's placement is PROPOSED |
 | U-WR-3 | Location of act records outside a run, per library | DEL-04-03 (RS U-05) | Before writer implementation | The prototype keeps a per-library act log |
-| U-WR-4 | Library content without a registration record is not runnable (LS-2), so every pre-v4 project library needs one in-place review and A15 per workflow | **Owner** confirmation (consequence of K-7) | Before the first release that opens existing projects | Alternative: run it with its standing shown |
+| U-WR-4 | *Closed (DECISION-L L-4 A as clarified, 2026-10-02).* Library content without a registration record | The owner (decided) | — | Shipped workflows registered by the release (LS-5); byte-equal copies recognized (LS-8); the rest registered in place, several per act (§4.7) |
 | U-WR-5 | Host listing, relay and host position in unqualified names | Host owner and DEL-02-01 (WD U-10); DECISION-3 | Before host-origin discovery in the App | SL-3 places host last, PROPOSED; host steps AWAITING INPUT |
 | U-WR-6 | Withdrawing or retiring a revision or a workflow | Not obligated by the ScopeOfWork | If the owner asks | Nothing is ever removed by the App |
 | U-WR-7 | Hygiene values (OS-file list, 16 MiB, 1 000 files, UTF-8) | Integrator | Before implementation | PROPOSED |
@@ -424,3 +469,119 @@ What it does not show: any Codex behaviour, any native view, the real act contro
 | U-WR-11 | Vocabulary of draft transitions and the A15 offer shared with DEL-01-04 | DEL-01-04 with DEL-02-02 (node F or the comparison) | Next comparison | Mapping in the return file |
 | U-WR-12 | Draft bases are App-kept, so a draft moved to another machine loses its origin and K-6 refuses its same-name registration | Integrator | Before implementation | The person can re-create the draft with Refine |
 | U-WR-13 | Selection pinned rather than following (C-4) | Integrator; owner if a following default is wanted | Before implementation | PROPOSED pin, always visible |
+| U-WR-14 (v0.2) | Whether Codex returns a text element in `thread/read` byte for byte for every text the App may send (CR LF line endings, a trailing newline, NUL or other control characters, very long texts). OBS-3 W-4 observed it for one LF, UTF-8 text at 0.158.0 | A later observation (not OBS-2/OBS-3's scope) | Before qualification | Until then a mismatch reads "supply not verified", never "supplied" (SC-4) |
+| U-WR-15 (v0.2) | Whether `turn/start`'s `clientUserMessageId` is echoed as the `userMessage` item's `clientId` (same concept by name in the generated types; inference, not observed) | A later observation | Before implementation | SC-3 falls back to "first user message of the turn" |
+| U-WR-16 (v0.2) | Context cost of a large workflow carried in a turn, and repeated in history at every later turn of the conversation (OBS-3 W-2: nothing is removed from history) | Integrator with DEL-01-05 (model context) | Before implementation | HY-5's 16 MiB bound is far above any context window; a separate run-text bound may be needed |
+| U-WR-17 (v0.2) | *Closed (R20-1).* How a run *completes* | Integrator (decided) | — | Only the person or the run owner ends a run; *completed* is the cause when the person ends it on the agent's finished report (FN-1…FN-3) |
+| U-WR-18 (v0.2) | Contents of the shipped-revision manifest: every v4 release's shipped revisions; whether App v3's shipped workflows are included | Integrator; owner if v3 copies should be recognized | Before the first release | LS-8 recognizes what the manifest lists |
+| U-WR-19 (v0.2) | Earlier run texts stay in history; dropping the earlier workflow rests on the chain line and recency. OBS-3 W-2 saw a 9B local model follow B and drop A (2/2 replies); other models not observed | Later observation; DEL-09-02 for qualification | Before qualification | The chain line states it explicitly; nothing more is claimed |
+| U-WR-20 (v0.2) | The agent-proposal convention ("Next workflow: ‹name›" as the last line) is told to the model only in run texts; in a conversation with no run the agent does not know it unless DEL-02-04's product guidance states it | DEL-02-04 (product guidance) | Before implementation | Join to D6 |
+
+---
+
+## 16. Run text, supply check and chaining (v0.2; R19-1, R19-2, R19-7; DECISION-L L-2)
+
+Supplier facts in this section are at **Codex 0.158.0** (R19-5): OBS-3 (`OBS_3_0.158.0.md`, dated 2026-10-02, one local model `qwen/qwen3.5-9b`, labelled `observed`) and the generated types (`observed-in-generated-types`). A later Codex version reopens each such cell; where Codex reports a capability at run time the App reads it.
+
+### 16.1 Ownership and route (R19-7; INTEGRATION)
+
+| Part | Owner | Note |
+|---|---|---|
+| Role guidance (product guidance + the conversation's role), in `developerInstructions` at conversation start, for the conversation's life | DEL-02-04 | R19-1; L-2. Never a workflow |
+| The run text: composition, framing, identity | **DEL-02-02** (this section) | It holds the registered revision (§3) |
+| Opening and ending the run; the run record | DEL-02-03 (EXEC); ending by the person is DEL-01-02's definition (R17-3) | DEL-02-03 asks DEL-02-02 for the text after it opens the run, so the run identity is in the text |
+| Composing `turn/start` and sending it | DEL-01-04 (R18-1 C-06) | The run text is the first text element of the input; the person's own text, if any, follows as a separate element |
+| Supply check (§16.6); the RS R3 evidence | DEL-02-02 writes `supply_check`; DEL-04-03 records it | — |
+
+**Route chosen: a text element** (OBS-3 W-4: the model received exactly the text and followed it; `thread/read` returned the full bytes in the `userMessage` text; `observed` at 0.158.0). **Recorded alternative, not used:** the stable `skill` input, which Codex honoured only for a `SKILL.md` in a discovered skill root at the exact canonical path and otherwise accepted and silently ignored (W-1); a discovered root also advertises every skill in it to the model on every turn (W-1 side effect), which R19-7 excludes. `mention` supplies nothing (W-3). The experimental `thread/settings/update` persists for the conversation, piles up and replaces plan mode's text (W-5): not used for workflows. `TurnStartParams.additionalContext` exists in the generated types and was not examined (not observed).
+
+### 16.2 Composition (framing WR-FRAME-1; PROPOSED, fixed by the schema's patterns)
+
+The run-start text is, in this order, each line ended by a line feed:
+
+1. **Chain line**, only when the conversation has an earlier run (TX-5): `[Chirality] Previous workflow run ended: ‹name› revision ‹rev12› (run ‹run id›, ‹ended by the person | completed›). Its instructions no longer apply.`
+2. **Start line:** `[Chirality] Workflow run start: ‹name› from the ‹origin› library "‹source root›", revision ‹rev12›, run ‹run id›. Follow the workflow between the two markers below for this run, until the person ends the run.`
+3. **Proposal line:** `[Chirality] When you judge this workflow finished, say so in a line "Workflow finished: <name>". To propose that another registered workflow runs next, end the message with the line "Next workflow: <name>". The person decides; nothing ends or starts until they confirm.` (v0.2 with R20-1)
+4. **Files line**, only when the revision has files besides `WORKFLOW.md`: `[Chirality] Other files of this revision, in the folder "‹folder›": ‹path› (sha256 ‹12 hex›); …` — paths relative to the package, ordered by their UTF-8 bytes; ‹folder› is project-relative for a project library and `~`-relative for the user library, so no user name is written (OBS-3 noted absolute paths reaching the model).
+5. **Begin marker:** `<<<chirality-workflow ‹name›@‹rev12› begin>>>`
+6. **The body:** `WORKFLOW.md`'s bytes **exactly** (UTF-8, HY-7), with nothing added or removed.
+7. A line feed, then the **end marker** `<<<chirality-workflow ‹name›@‹rev12› end>>>`, with nothing after it.
+
+‹rev12› is the first twelve characters of the revision value; ‹run id› is DEL-02-03's run identity.
+
+- **TX-1** Only a selected revision with standing LS-1, LS-5, LS-6 or LS-8 is composed. A draft is never composed (K-7; TT-3).
+- **TX-2** A `"` in a source root is written as `'` in the start line; nothing else is escaped.
+- **TX-3 Extraction.** The body is the text between the begin-marker line (and its line feed) and the **last** occurrence of a line feed followed by the end marker. Because the marker carries the revision, a workflow would have to contain its own revision value to collide with it.
+- **TX-4 Identity.** The text identity is sha256 over the UTF-8 encoding of the whole text element (`text_identity`, method "sha256 over UTF-8 text"); `workflow_file.content` is sha256 over `WORKFLOW.md`'s bytes. The revision identity (U-03) stays the identity of the whole package.
+- **TX-5 End notice (the run-end line of R20-3).** When a run ends and no run starts with the next turn, the App prefixes the person's next turn with one App-written line, sent as the turn's first text element before the person's own text: `[Chirality] Workflow run ended: ‹name› revision ‹rev12› (run ‹run id›, ‹how›). No workflow is in force.` once. If the next turn starts a run instead, its chain line says the same and no separate notice is sent.
+- **TX-6 Determinism.** The same selection, run identity, chain and revision bytes give the same text (prototype P-48). The `run_text` record keeps the lines and identities, not a second copy of the bytes (the store holds them; Codex's history holds the text).
+- The model is not shown other registered workflows: the text names only this workflow and, on a chain line, the previous one (R19-7; prototype P-49).
+
+### 16.3 Chaining (R19-2; DECISION-L L-2)
+
+- **CH-1 One run at a time.** A conversation has at most one run in force. Starting another while one is in force is refused ("end it first"). The person may confirm **End ‹A› and start ‹B›** in one step: the App records run A ended by the person (R17-3), then starts B.
+- **CH-2 (a) Sequential.** After run A ends — only by the person (DEL-01-02 DEF-4) or by the run owner, recorded *ended by the person*, or *completed* when the person ended it on the agent's finished report (R20-1; FN-2) — the person selects workflow B; its selection carries `prior_run` (SL-7); B's run text opens with the chain line; B's run record cites A as the run it follows in this conversation (a relation, not part of B's identity; join for RS).
+- **CH-3 (b) Agent-proposed.** See §16.5. Nothing starts until the person confirms.
+- **CH-4** Runs are never nested in this pass. (c) declared chaining is DEL-02-01's later work.
+- **CH-5** The conversation view marks each run's start and end (DEL-01-04); the marks come from the run's open and end, not from the text.
+- **CH-6** Earlier run texts stay in Codex's history and are resent on every later turn (OBS-3 W-2, W-2b: nothing is removed; a recorded text is replayed as recorded, even after the file changes). The chain line is what tells the model the earlier workflow no longer applies (U-WR-19).
+
+### 16.4 States (one table per stateful thing)
+
+**Workflow in force, per conversation.**
+
+| From | Event | To | Record |
+|---|---|---|---|
+| none | The person selects a revision (or confirms a proposal) and DEL-02-03 opens run A | *starting A* | `selection_record`; `run_text` (run start, chain if any) |
+| *starting A* | `turn/start` accepted with the run text as its first element | *A in force* | supply check pending |
+| *starting A* | `turn/start` refused or fails before the item is recorded | none (run start not confirmed; DEL-02-03 decides the run's standing) | `supply_check` *not found* |
+| *A in force* | The person selects B | *A in force* (refused, CH-1) or, on "End ‹A› and start ‹B›", *starting B* via A ended | — |
+| *A in force* | The person (or the run owner) ends run A (R20-1) | *A ended, notice pending* | run end by DEL-02-03 |
+| *A ended, notice pending* | Next turn without a run start | none | `run_text` (run end notice) on that turn |
+| *A ended, notice pending* / none after A | A run B starts | *starting B* (chain line names A) | as above, with chain |
+
+**Supply check, per run text** (never relabelled; each read is a new check).
+
+| State | Condition |
+|---|---|
+| *verified* | The turn's user message holds a text element whose identity equals the composed text's |
+| *text differs, workflow bytes equal* | The text differs but the extracted body (TX-3) equals `WORKFLOW.md`: framing changed |
+| *text differs, workflow bytes differ* | Neither matches (for example line endings converted) |
+| *not found* | The turn, its user message or a text element is absent |
+| *unreadable* | `thread/read` failed, or the turn's `itemsView` is not `full` (the generated `TurnItemsView` allows `summary` and `notLoaded`); read again with turns included |
+
+### 16.5 Agent proposals (R19-2 (b); PROPOSED)
+
+- **PR-1** A proposal is the **last non-empty line** of a completed agent message, exactly `Next workflow: ‹name›` (the form the proposal line of §16.2 tells the model). Any other mention of a workflow is not a proposal.
+- **PR-2** The App resolves ‹name› as an unqualified name (SL-3) and offers **Start ‹workflow›** with the candidates (origin, source root, revision, standing). With several candidates the person picks one; nothing is preselected.
+- **PR-3** A name that is only a draft gives the notice "proposed workflow ‹name› is a draft only — not a workflow identity"; an unknown name "proposed workflow ‹name› is not registered". Neither offers Start.
+- **PR-4** The proposal is never a selection and never starts anything. Confirming it is ordinary input (R17-9), recorded as a selection with `how` = "agent proposal confirmed by the person" and the `proposal` reference; the run text records `origin_of_start` accordingly. If a run is in force, the offer reads "End ‹A› and start ‹B›" (CH-1).
+- **PR-5** A newer proposal or the person's own selection supersedes an open offer; offers are not kept across relaunch.
+- **FN-1 Finished report (R20-1).** A line `Workflow finished: ‹name›` among the last two non-empty lines of a completed agent message, naming the workflow of the run in force, is a finished report. A report naming another workflow is ignored.
+- **FN-2** On a finished report the App offers **End run**; with a proposal (PR-1) in the same message it also offers **End ‹A› and start ‹B›**. Choosing either ends run A with cause *completed* (R20-1); ending a run at any other time is *ended by the person*.
+- **FN-3** Nothing ends a run from the agent's words alone: the run stays in force until the person chooses (prototype P-60). The App never ends, opens or focuses anything because of the report (R18-5's rule for arrivals applies alike).
+
+### 16.6 Supply check against `thread/read` (R19-7; PROPOSED)
+
+- **SC-1** Before sending, the App records the `run_text` (expected text identity and `WORKFLOW.md` identity).
+- **SC-2** `turn/start` carries `clientUserMessageId` = an App identifier for this run start (stable `TurnStartParams` field, `observed-in-generated-types`), and `text_elements: []` on the text element.
+- **SC-3** When the turn's user message item completes, or at the latest at turn end, the App reads `thread/read {threadId, includeTurns: true}`, finds the turn by its identity, and the `userMessage` item whose `clientId` equals the identifier sent (that `clientId` echoes `clientUserMessageId` is an **inference** from the generated names, U-WR-15); failing that, the turn's first `userMessage`. It takes the first `text` element of its `content`.
+- **SC-4** It computes the identity of that text and sets the state (§16.4). Only *verified* lets the run record say the workflow was **supplied**; every other state reads "supplied — not verified" with the state. Whether the model followed it stays unknown (*supplied* is not *adopted*; WD §6.2).
+- **SC-5** The check is written as a `supply_check` and handed to DEL-04-03 as the R3 evidence for that run and turn; HOSTING §8.2's per-turn tap record, where it exists, is separate evidence of the request.
+- **SC-6** After a relaunch or a lost observation the App may read again; each read is a new check (the earlier one is kept).
+
+### 16.7 Sequences with failure behaviour
+
+**SQ-RUN — start a run.**
+
+| Step | Action | By | Failure · reported by · then |
+|---|---|---|---|
+| RN-1 | The person selects (or confirms a proposal); `selection_record` | Person; DEL-02-02 | Not runnable (SL-5) · refused · review to register |
+| RN-2 | DEL-02-03 opens the run (run identity); CH-1 checked | DEL-02-03 | A run in force · refused, or "End ‹A› and start ‹B›" |
+| RN-3 | Resolve the revision (SL-4) and compose the run text (§16.2) | DEL-02-02 | Not resolvable or not verified · the run does not start (EXEC A-1 wording); `WORKFLOW.md` not UTF-8 · cannot occur after HY-7, reported if it does |
+| RN-4 | `turn/start` with [run text, person's text] | DEL-01-04 | Refused or failed · `supply_check` *not found*; DEL-02-03 records the run start as not confirmed |
+| RN-5 | Supply check (SC-3, SC-4) | DEL-02-02 | *unreadable* · read again later; mismatch · recorded, shown "supplied — not verified" |
+
+**SQ-END — end a run without a successor.** EN-1 the person ends the run (cause *completed* when on a finished report, FN-2; otherwise *ended by the person*), recorded by DEL-02-03; EN-2 the next turn carries the end notice first (TX-5); EN-3 supply check of the notice. If no further turn comes, nothing more is sent.
+
+**SQ-CHAIN — (b) proposal.** CP-1 an agent message completes with a proposal line (PR-1); CP-2 offer (PR-2, PR-3); CP-3 the person confirms (PR-4) or ignores it; CP-4 SQ-RUN from RN-2 with `prior_run` and the chain line.
