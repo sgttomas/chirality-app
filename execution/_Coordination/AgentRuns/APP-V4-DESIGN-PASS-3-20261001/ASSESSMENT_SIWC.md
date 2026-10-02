@@ -92,3 +92,55 @@ unverified alternative to the restart route.
    remove the hourly restart).
 6. **Record the host-loop consequence** on the next-relay list: plan billing
    for a host needs a Responses provider behind the R12-11 boundary.
+
+## Addendum — dependency comparison (owner question, 2026-10-01)
+
+> what about the dependencies management.  How does this "sign-in with ChatGPT" approach compare to what we were currently doing with the Codex instance.
+
+**Runtime suppliers.** Current design: one supplier, Codex, pinned at
+0.158.0 (DEL-01-01), owns sign-in, token storage, refresh, logout, account
+reads and the model route. SIWC: two suppliers, Codex for the engine and
+OpenAI's SIWC authorization service for the grant, which is a preview, not
+versioned or pinned, and has no supplier contract in this project. The App
+takes over the OAuth client (loopback listener, PKCE, dynamic registration,
+ID-token validation against JWKS, keychain storage, serialized refresh,
+revocation, error handling).
+
+| Concern | Codex-custodied sign-in (current) | SIWC plan grant |
+|---|---|---|
+| Sign-in flow | Codex `account/login/start` (browser or device code) | App's own OAuth client |
+| Token custody | Codex home (per App home under K-1) | App (keychain) |
+| Renewal | Inside Codex, no interruption | App, hourly; documented route restarts Codex |
+| Model route | Codex's ChatGPT route, all Codex features | `api.openai.com/v1` Responses, preview limits (no hosted tools; `tool_search` fails) |
+| Model list | From Codex | Bundled catalog, "not an entitlement check" |
+| Plans | Codex's supported ChatGPT plans | Plus and Pro only |
+| Usage seen by the person | Codex usage | A "Chirality" line with cap and disconnect |
+| Account home | Each home holds one account (hence L-1's second home) | No credential in any home; one Codex home can serve every mode |
+| Pinning and qualification | Covered by the Codex pin | Needs its own record and observation |
+| Doctrine | Matches D-GOV-43 and V4-ARC-04 | Needs the custody amendment |
+
+**Project dependency graph (DAG-003).** DEL-01-05's register traces SOW-009
+and SOW-010 ("credentials held by Codex") and OBJ-002 ("three
+user-selectable Codex access modes"); both change. Its only production
+supplier is DEL-01-01. SIWC would add:
+
+- an external supplier row (OpenAI's authorization service), with
+  satisfaction pending eligibility and observation;
+- renewal at idle points, which needs DEL-01-02's live-work state. A row
+  DEL-01-05 → DEL-01-02 closes a cycle (D4, F0 §3), so it stays a runtime
+  value (C-23's "assess live work"), as now;
+- restarts through HOSTING's existing stop and start operations, written as
+  use of DEL-01-01, not as a new requirement on it (a requirement the other
+  way would also close a cycle);
+- a verified-identity source for DEL-04-03's person record (runtime value);
+- packaging items for DEL-01-06 (keychain access, loopback port, OpenAI's
+  branding rules, open-source eligibility alongside OI-007);
+- a next-relay note for DEL-05-01 (plan billing needs a Responses provider).
+
+These go through SCA-V4-003 with `dependency-extract` and a `project-dag`
+currency check, like the other proposals.
+
+**Recommendation, unchanged.** Keep Codex-custodied sign-in as the designed
+default: one pinned supplier, no restart coupling, no doctrine change. Design
+the SIWC grant as a PROPOSED optional mode behind eligibility and one
+observation, and record its external dependency with that status.
