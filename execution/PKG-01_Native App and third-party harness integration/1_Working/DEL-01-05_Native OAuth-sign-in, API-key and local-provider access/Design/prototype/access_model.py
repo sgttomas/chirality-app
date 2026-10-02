@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Executable model of DEL-01-05/ACCESS-v0.1 (design prototype, not product code).
+"""Executable model of DEL-01-05/ACCESS-v0.2 (design prototype, not product code).
 
-Node D4 of run APP-V4-DESIGN-PASS-3-20261001. Python 3 standard library only.
+Node D4 of run APP-V4-DESIGN-PASS-3-20261001 (round 1 2026-10-01; round 2
+2026-10-02). Python 3 standard library only. Supplier facts are at Codex 0.158.0.
 No Codex process, no model, no network, no credential: every value is invented.
 The strings used to test custody are canaries that are deliberately NOT shaped
 like any real key, token, URL or code.
@@ -12,8 +13,9 @@ Contents
   parse_doc_tables   reads the same tables from ACCOUNT_AND_PROVIDER_ACCESS.md
   App / Conversation the K-3 selection walk and K2-1 routing (§2-§6)
   Recorder           the CR-1…CR-10 redaction and the custody scan (§7)
-  link_case          the configuration-link dry run in a temporary folder (§5.5)
-  network_view       the K-12 view merge (§9)
+  link_case          the configuration, AGENTS.md and skills link dry run (§5.5; R18-6)
+  spawn_plan         the App's session flags and child environment (§6 Q-1; L-3; R18-3)
+  network_view       the K-12 view merge, following the person's plugin setting (§9)
 """
 import os
 import re
@@ -220,7 +222,8 @@ class Recorder:
 ENTRY_HOME = {"chatgpt-account": "account", "api-key": "api-key", "local-provider": "account"}
 CLASS = {"chatgpt-account": "user-chosen cloud", "api-key": "user-chosen cloud",
          "local-provider": "local model server"}
-NO_MODEL = "run not started — no model selected"
+NO_MODEL_CONV = "not started — no model selected"          # R18-2: ordinary conversation
+NO_MODEL = "run not started — no model selected"            # R18-2/R15-1: a workflow run
 
 
 class App:
@@ -234,10 +237,12 @@ class App:
         self.last_choice = {}        # project -> (entryId, providerId, model)
         self._login = None
         self._threads = 0
+        self.email = None
 
     # -- account (Q-2, Q-4) --
-    def read_account(self, kind):
+    def read_account(self, kind, email=None):
         self.account.apply({"null": "read:null", "chatgpt": "read:chatgpt"}.get(kind, "read:other-kind"))
+        self.email = email
 
     def sign_in_browser(self):
         self.account.apply("person:sign-in")
@@ -343,12 +348,13 @@ class Conversation:
                           "source": "offered-last-choice-accepted", "chosenAt": "2026-10-01T12:00:00Z"}
         self.offer = None
 
-    def message(self, text, start_outcome="ok"):
+    def message(self, text, start_outcome="ok", starts_run=False):
         s = self.m.state
         if s in ("no-selection", "offer-shown"):
             self.m.apply("person:message")
             self.drafts.append(text)
-            self.refusal = {"reason": "no-model-selected", "text": NO_MODEL}
+            self.refusal = {"reason": "no-model-selected", "runRequested": starts_run,
+                            "text": NO_MODEL if starts_run else NO_MODEL_CONV}
             return "refused"
         if s == "entry-unavailable":
             self.m.apply("person:message")
@@ -388,7 +394,7 @@ class Conversation:
             self.m.apply("entry:available-started" if self.thread else "entry:available-unstarted")
 
     def record(self):
-        r = {"schema": "chirality.access-selection/v0.1", "conversation": "conv-%x" % id(self),
+        r = {"schema": "chirality.access-selection/v0.2", "conversation": "conv-%x" % id(self),
              "project": self.project, "state": self.m.state, "selection": self.selection}
         if self.offer:
             r["offer"] = {k: v for k, v in self.offer.items() if not k.startswith("_")}
@@ -399,9 +405,22 @@ class Conversation:
         return r
 
 
+NO_EMAIL = "ChatGPT account (no email reported)"
+
+
+def codex_account(app):
+    """R18-1 C-10: RS codexAccount form; None when there is no ChatGPT account."""
+    if app.account.state not in ("signed-in", "needs-reauth"):
+        return None
+    return app.email if app.email else NO_EMAIL
+
+
 def state_snapshot(app):
-    entries = [{"entryId": "chatgpt-account", "kind": "chatgpt-account", "state": app.account.state,
-                "home": "account", "providerId": "openai", "destinationClass": CLASS["chatgpt-account"]},
+    acct = {"entryId": "chatgpt-account", "kind": "chatgpt-account", "state": app.account.state,
+            "home": "account", "providerId": "openai", "destinationClass": CLASS["chatgpt-account"]}
+    if codex_account(app):
+        acct["codexAccount"] = codex_account(app)
+    entries = [acct,
                {"entryId": "api-key", "kind": "api-key", "state": app.key.state, "home": "api-key",
                 "destinationClass": CLASS["api-key"]}]
     for pid, m in sorted(app.local.items()):
@@ -412,9 +431,10 @@ def state_snapshot(app):
         else:
             entries.append({"entryId": "local-provider:" + pid, "kind": "local-provider", "state": m.state,
                             "home": "account", "providerId": pid, "destinationClass": CLASS["local-provider"]})
-    homes = [{"role": r, "configLink": "linked", "childState": c["state"], "generation": c["generation"]}
+    homes = [{"role": r, "configLink": "linked", "childState": c["state"], "generation": c["generation"],
+              "guidanceLinks": {"agentsMd": "linked", "skills": "linked"}}
              for r, c in sorted(app.children.items())]
-    return {"schema": "chirality.access-state/v0.1", "observedAt": "2026-10-01T12:00:00Z",
+    return {"schema": "chirality.access-state/v0.2", "observedAt": "2026-10-01T12:00:00Z",
             "homes": homes, "entries": entries}
 
 
@@ -444,10 +464,26 @@ def link_case():
         f.write('# invented\nmodel_provider = "example_local"\n\n[model_providers.example_local]\n'
                 'name = "Example"\nbase_url = "http://127.0.0.1:1/v1"\nwire_api = "responses"\n')
     app_cfg = os.path.join(app_home, "config.toml")
+    # R18-6: the person's global AGENTS.md and skills/ are linked the same way
+    with open(os.path.join(person_home, "AGENTS.md"), "w") as f:
+        f.write("# invented global guidance\n")
+    os.makedirs(os.path.join(person_home, "skills", "example-skill"))
+    with open(os.path.join(person_home, "skills", "example-skill", "SKILL.md"), "w") as f:
+        f.write("---\nname: example-skill\ndescription: invented\n---\n")
+    os.symlink(os.path.join(person_home, "AGENTS.md"), os.path.join(app_home, "AGENTS.md"))
+    os.symlink(os.path.join(person_home, "skills"), os.path.join(app_home, "skills"))
+    skills_before = sorted(os.listdir(os.path.join(person_home, "skills")))
     m = Machine("CL")
     steps = []
     os.symlink(target, app_cfg)
     steps.append(("setup", m.apply("setup:target-exists"), m.state))
+    steps.append(("guidance-links", os.path.islink(os.path.join(app_home, "AGENTS.md"))
+                  and os.path.islink(os.path.join(app_home, "skills"))
+                  and os.path.exists(os.path.join(app_home, "skills", "example-skill", "SKILL.md")), m.state))
+    # the App's own working files go into its own home, never into the linked skills root (R19-7)
+    os.makedirs(os.path.join(app_home, "sessions"))
+    with open(os.path.join(app_home, "sessions", "invented.jsonl"), "w") as f:
+        f.write("{}\n")
     # read through the link sees the person's settings
     steps.append(("read-through-link", "example_local" in open(app_cfg).read(), m.state))
     # write A: explicit filePath = resolved target (Q-8 step 3)
@@ -471,7 +507,10 @@ def link_case():
     os.symlink(target, app_cfg)
     steps.append(("person-relink", m.apply("person:relink"), m.state))
     steps.append(("backup-kept", os.path.exists(backup), m.state))
-    steps.append(("probe-home-separate", len({os.path.realpath(p) for p in (person_home, app_home, probe_home)}) == 3, m.state))
+    steps.append(("probe-home-separate", len({os.path.realpath(p) for p in (person_home, app_home, probe_home)}) == 3
+                  and not os.listdir(probe_home), m.state))
+    steps.append(("skills-root-untouched", sorted(os.listdir(os.path.join(person_home, "skills"))) == skills_before,
+                  m.state))
     touched = []
     for dp, dns, fns in os.walk(root):
         for n in dns + fns:
@@ -484,53 +523,88 @@ def link_case():
 # ---------------------------------------------------------------------------
 LIMITS = ("lower bound: connections shorter than the sampling interval may be missing; "
           "host names only where the expected list or a lookup supplies them")
+PIN = "0.158.0"
+INTERNAL_RC = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED"
+CREDENTIAL_ENV = ("OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN")
 
-# Expected list at 0.158.0 from OBS-1 §8 and B.5 (destinations by name; the
-# settings column waits for OBS-2 O-7).
+
+def plugins_setting(person_cfg):
+    """L-3: the person's own setting. person_cfg: dict of the person's features, or {} when unset.
+    Unset -> on, Codex's default observed at 0.158.0 (OBS-2 O-7 v0)."""
+    if "plugins" in person_cfg:
+        return {"value": "on" if person_cfg["plugins"] else "off", "source": "person-config"}
+    return {"value": "on", "source": "codex-default-observed"}
+
+
+def spawn_plan(mode, person_cfg, inherited_env):
+    """Q-1 step 3. mode: 'linked' (M-A) or 'own-config' (fallback A). Returns (env, flags, plugins)."""
+    flags = ["analytics.enabled=false"]                    # K-12: a setting Codex offers
+    plugins = plugins_setting(person_cfg)
+    if mode == "own-config" and plugins["value"] == "off":
+        flags.append("features.plugins=false")           # only the fallback needs the App to carry it
+        plugins = {"value": "off", "source": "app-fallback-flag"}
+    env = {k: v for k, v in inherited_env.items()
+           if k not in CREDENTIAL_ENV and k != INTERNAL_RC}  # CR-7; R18-3
+    env["CODEX_HOME"] = "<App home>"
+    return env, flags, plugins
+
+
+# Expected list at 0.158.0 (OBS-1 §8, B.5; OBS-2 O-7). Plugin rows exist only when plugins are on.
 EXPECTED_0158 = [
-    {"host": "chatgpt.com", "process": "codex", "purpose": "remote-control", "setting": "features.remote_control"},
-    {"host": "chatgpt.com", "process": "codex", "purpose": "plugins-featured", "setting": "features.plugins"},
-    {"host": "github.com", "process": "git", "purpose": "plugin-sync", "setting": "features.plugins"},
+    {"host": "chatgpt.com", "process": "codex", "purpose": "plugins-featured", "plugins": True,
+     "standing": "observed@0.158.0 (OBS-2 O-7)"},
+    {"host": "github.com", "process": "git", "purpose": "plugin-sync", "plugins": True,
+     "standing": "observed@0.158.0 (OBS-2 O-7)"},
+    {"host": "chatgpt.com", "process": "codex", "purpose": "remote-control", "plugins": False,
+     "standing": "observed@0.158.0 (OBS-2 O-7): no socket without sign-in; signed in not observed"},
 ]
 
 
-def network_view(observed, o7_settled=None, home="account", generation=1):
+def network_view(observed, plugins, home="account", generation=1):
     """observed: list of dicts {address, port, process, phase, host_hint}; host_hint matches the
     expected list only when the sampling tool supplied a name (never inferred from an address)."""
-    o7_settled = o7_settled or {}
+    on = plugins["value"] == "on"
+    expected = [e for e in EXPECTED_0158 if (not e["plugins"]) or on]
     rows, matched = [], set()
+
+    def setting(e):
+        if e["plugins"]:
+            return {"name": "features.plugins", "state": "follows-person-setting"}
+        return {"state": "no-setting"}   # remote control: no setting stops it; internal variable unused
+
     for ob in observed:
-        exp = None
-        for i, e in enumerate(EXPECTED_0158):
-            if ob.get("host_hint") == e["host"] and ob["process"] == e["process"] and i not in matched:
-                exp = (i, e)
+        hit = None
+        for i, e in enumerate(expected):
+            if ob.get("host_hint") == e["host"] and ob["process"] == e["process"] and i not in matched \
+                    and e["purpose"] != "remote-control":
+                hit = (i, e)
                 break
-        if exp:
-            i, e = exp
+        if hit:
+            i, e = hit
             matched.add(i)
-            state = o7_settled.get(e["setting"], "pending-observation")
             rows.append({"destination": {"host": e["host"], "hostSource": "expected-list",
                                          "address": ob["address"], "port": ob["port"]},
                          "process": ob["process"], "phase": ob["phase"], "purpose": e["purpose"],
-                         "sources": ["app-observed", "expected-at-pin"],
-                         "appSetting": {"name": e["setting"], "state": state}})
+                         "sources": ["app-observed", "expected-at-pin"], "appSetting": setting(e),
+                         "standing": e["standing"]})
         elif ob.get("model"):
             rows.append({"destination": {"host": None, "hostSource": "none", "address": ob["address"],
                                          "port": ob["port"]},
                          "process": ob["process"], "phase": "turn", "purpose": "model",
-                         "sources": ["app-observed"], "appSetting": {"state": "not-applicable"}})
+                         "sources": ["app-observed"], "appSetting": {"state": "not-applicable"},
+                         "standing": "app-observed@" + PIN})
         else:
             rows.append({"destination": {"host": None, "hostSource": "none", "address": ob["address"],
                                          "port": ob["port"]},
                          "process": ob["process"], "phase": ob["phase"], "purpose": "unlisted",
-                         "sources": ["app-observed"], "appSetting": {"state": "no-setting-known"}})
-    for i, e in enumerate(EXPECTED_0158):
+                         "sources": ["app-observed"], "appSetting": {"state": "no-setting"},
+                         "standing": "app-observed@" + PIN})
+    for i, e in enumerate(expected):
         if i not in matched:
             rows.append({"destination": {"host": e["host"], "hostSource": "expected-list", "address": None,
                                          "port": 443},
                          "process": e["process"], "phase": "start-up", "purpose": e["purpose"],
-                         "sources": ["expected-at-pin"],
-                         "appSetting": {"name": e["setting"],
-                                        "state": o7_settled.get(e["setting"], "pending-observation")}})
-    return {"schema": "chirality.access-network/v0.1", "pin": "0.158.0", "home": home,
-            "generation": generation, "remoteControlStatus": "connecting", "limits": LIMITS, "rows": rows}
+                         "sources": ["expected-at-pin"], "appSetting": setting(e), "standing": e["standing"]})
+    return {"schema": "chirality.access-network/v0.2", "pin": PIN, "home": home,
+            "generation": generation, "remoteControlStatus": "disabled", "pluginsSetting": plugins,
+            "limits": LIMITS, "rows": rows}

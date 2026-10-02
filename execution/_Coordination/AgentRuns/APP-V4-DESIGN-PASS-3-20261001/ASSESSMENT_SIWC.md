@@ -156,3 +156,21 @@ this note, 0.160.0 (2026-10-01T20:26Z), five releases after 0.158.0 in three
 days. Both routes face supplier churn; the SIWC route touches fewer Codex
 internals (a provider entry instead of Codex's account methods) but is itself
 a preview. The conclusion (no pressing need) is unchanged.
+
+## The four triggers (as given to the owner, 2026-10-02; recorded here late)
+
+HELP_HUMAN's answer to "there's no pressing need … or do you see any?" named
+four developments that would make the plan grant pressing. R19-4 cites them;
+they were stated in the chat and are recorded here:
+
+1. OpenAI restricts third-party apps from using Codex's own ChatGPT sign-in
+   and points them to Sign in with ChatGPT.
+2. The owner wants a per-app usage cap and a "Chirality" entry in ChatGPT
+   settings as product features.
+3. A host needs plan billing when host joins resume.
+4. The owner decides records should carry an account identity OpenAI has
+   verified.
+
+Conditions before adoption (separate from the triggers): eligibility for the
+open-source route settled; the custody amendment accepted; one observation
+with the owner's own Plus or Pro sign-in.

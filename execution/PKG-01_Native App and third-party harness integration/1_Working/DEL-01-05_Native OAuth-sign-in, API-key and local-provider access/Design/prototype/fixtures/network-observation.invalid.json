@@ -1,7 +1,7 @@
 {
   "description": "Invalid for one reason: an 'unlisted' row claims the source 'expected-at-pin'; an unlisted connection can only be app-observed.",
   "instance": {
-    "schema": "chirality.access-network/v0.1",
+    "schema": "chirality.access-network/v0.2",
     "pin": "0.158.0",
     "home": "account",
     "generation": 1,
@@ -21,9 +21,14 @@
           "expected-at-pin"
         ],
         "appSetting": {
-          "state": "no-setting-known"
-        }
+          "state": "no-setting"
+        },
+        "standing": "app-observed@0.158.0"
       }
-    ]
+    ],
+    "pluginsSetting": {
+      "value": "on",
+      "source": "person-config"
+    }
   }
 }

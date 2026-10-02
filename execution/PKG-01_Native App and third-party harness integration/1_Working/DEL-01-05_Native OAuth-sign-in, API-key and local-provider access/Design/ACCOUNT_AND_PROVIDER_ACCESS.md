@@ -1,17 +1,20 @@
 # Account and provider access
 
-- Contribution: DEL-01-05/ACCESS-v0.1 (first version; no predecessor)
+- Contribution: DEL-01-05/ACCESS-v0.2 (supersedes DEL-01-05/ACCESS-v0.1,
+  committed at `63a6e0fa47`, file sha256
+  b82e40395a4a19bcd0b4e5623fd62b1040b7110ab19cb01af58b15582d447da4)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Nothing here is qualified; no App candidate exists.
 - Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001` (Type 2 TASK,
-  Claude Opus 5.5, high effort; does not delegate), 2026-10-01, at
-  repository HEAD `dc031b5bec`.
+  Claude Opus 5.5, high effort; does not delegate): v0.1 on 2026-10-01 at
+  repository HEAD `dc031b5bec`; v0.2 (D round 2) on 2026-10-02 at HEAD
+  `037063ce09`.
 - Companion record: [ACCOUNT_HOME_DECISION_RECORD.md](ACCOUNT_HOME_DECISION_RECORD.md)
   (OUT-003, REQ-005; the K-1 decision and its mechanism). Schemas beside this
   file (§15); prototype under [`prototype/`](prototype/) (§16).
-- **Hard limit observed in producing this file:** no sign-in, no API key and
-  no token was entered, created or read by anyone; no Codex process and no
-  model was run; no network was used. The 0.158.0 vendor binary was read as
+- **Hard limit observed in producing this file (both rounds):** no sign-in,
+  no API key and no token was entered, created or read by anyone; no Codex
+  process and no model was run; no network was used. The 0.158.0 vendor binary was read as
   bytes with `strings` (as HOSTING F-28 did), never executed.
 - Serves: OUT-001, OUT-002, OUT-003 (API-key definition record, §10),
   OUT-004 (designed method and the DEL-05-01 handoff, §11–§12); REQ-001…REQ-009
@@ -33,6 +36,20 @@ list). Earlier owner records: DECISION-K1 K1-4 (person identity) of
 `APP-V4-DESIGN-PASS-2-20260930`; DECISION-4 D4-3 (no default; cloud by
 OAuth sign-in or API key) of `APP-V4-SWBPIPE-INTAKE-20260928`; DECISION-1 D4
 (0.158.0 is the definition/generation pin).
+
+**Round-2 basis (binding; sha256 first 16 hex, recomputed 2026-10-02).**
+`BRIEFS.md` 316ea29325a0d450 ("D round 2"); `OWNER_DECISIONS.md`
+ea96c55710af41c9 (DECISION-L L-1…L-7; the "Sign in with ChatGPT" exchange);
+`R18_RESOLUTIONS.md` abf5eee6324647ff (R18-1 C-10, C-20, C-23; R18-2;
+R18-3; R18-6; R18-7 G-1; R18-9); `R19_RESOLUTIONS.md` 16930ecdcead7511
+(R19-4, R19-5; R19-7 for skill roots); `ASSESSMENT_SIWC.md`
+cc7e64c099021846 (with its addendum and correction);
+`F/F0_JOINS.md` e93608be1c6e3eb0 (§2, §6, §7.4; rows FH-10…FH-32, FE-20,
+FR-12, FL-01, FL-02); `DECISIONS_PENDING_2.md` 0ecbf87aae8d4350 (the L-n
+option texts). Observation records in DEL-01-01/Design, read, not edited:
+`OBS_2_0.158.0.md` 61cc34ffb811eb27 (§2, §9 O-6, §10 O-7, §11, §13,
+UNRESOLVED) and `OBS_3_0.158.0.md` 554ac4451d112824 (skill roots and the
+advertising side effect, W-1).
 
 **Joined first-increment files (read, not edited; R17-14).**
 DEL-01-01/HOSTING-BOUNDARY-v0.8 (`HOSTING_BOUNDARY.md` 3cf0381c…78b1; §1,
@@ -57,16 +74,25 @@ the session scratch folder and searched.
 PROPOSED. Supplier-fact labels as R17-13: `observed` (OBS-1/1b or the
 spike), `observed-in-generated-types`, and two more used here:
 `strings-in-binary` (present as text in the binary; **not behaviour**, F-28's
-standing) and `inference`. Cells that OBS-2 will settle are marked **OBS-2
-pending** with the item (O-5…O-7).
+standing) and `inference`. Round 2 adds `observed (OBS-2 O-n)` for the
+credential-free observations of 2026-10-01 and `observed through an adapter
+(OBS-2), not stock behaviour` (R18-9). No cell is left "OBS-2 pending"; the
+cells v0.1 marked so are filled or say why they stay open (§18).
+
+**Version rule (R19-5).** Every supplier fact in this file is a fact **at
+Codex 0.158.0** (the definition pin), whether or not the sentence repeats
+the version; a fact at another version names it. Where Codex reports a
+capability at run time, the App reads it rather than inferring it from the
+version (§18 lists the reads and the version-bound statements a version
+advance must recheck).
 
 **How this file reads the ScopeOfWork (R17-15).** The SoW lags the owner's
-answers in five places; the design follows the answers and the return file
+answers in six places; the design follows the answers and the return file
 lists the proposals for SCA-V4-003:
 
 1. TBD-001/REQ-005: OI-009 is decided at choice level by DECISION-K3 K-1
    (shared settings, separate sign-in custodied by Codex); the mechanism is
-   PROPOSED (decision record).
+   observed to work at 0.158.0 (OBS-2 O-6 M1; decision record).
 2. TBD-003: "the unidentified supplier pin" — 0.158.0 is the
    definition/generation pin (DECISION-1 D4); qualification stays under
    OI-012.
@@ -76,6 +102,29 @@ lists the proposals for SCA-V4-003:
    DEL-01-05" (§9).
 5. K1-4's "Codex account when Codex reports one" is a supply this file makes
    to the act record (§8); no SoW line names it.
+6. REQ-005 names "the Owner with the App implementation owner". This file
+   reads it as **"the Owner, who is also the App implementation owner
+   (DECISION-L L-7)"** (R19-4).
+
+## Changes from v0.1
+
+| Ruling / item | Where | Change |
+|---|---|---|
+| DECISION-L L-1 (A); R19-4; R18-1 C-20 | §2, §4, §17 F-A1, UNRESOLVED | K2-1 **adopted** by the owner; "pending owner" removed; U-A1 closed. One Codex process per App-owned home; generation identity {App session, App home, spawn counter} |
+| DECISION-L L-3 (A); R19-4; OBS-2 O-7 | §6 Q-1, §9, schema `access.network-observation`, prototype VC-A19 | Plugins follow the person's own setting: on → the two start-up connections happen and are shown and recorded; off → the App's Codex runs with `plugins = false` and they stop. Under the link the person's file already carries the setting; the App adds a session flag only in the fallback (own configuration) |
+| R18-3 (C-25); OBS-2 O-7 | §9, U-A9 | The internal environment variable is not used. The remote-control loop is shown as observed at 0.158.0: no connection without sign-in; with sign-in not observed. `remote_control` dropped as a candidate setting (a `removed` feature with no effect) |
+| R18-6 (C-18) | §3; decision record §4.1 | The person's global `AGENTS.md` and `skills/` are linked into each App home like `config.toml`; the App writes nothing into the linked skills root (R19-7) |
+| R18-1 C-10 | §1 I-6, §8; schema `access.state` | The Codex account is supplied as the reported email, or "ChatGPT account (no email reported)"; plan type is shown, not recorded |
+| R18-2 (C-09) | §5.4 CS-1/CS-2, schema `access.conversation-selection`, prototype VC-A20 | "not started — no model selected" for an ordinary conversation; "run not started — no model selected" when the message would start a workflow run |
+| DECISION-L L-6 (A) | §10, UNRESOLVED U-A2 | No sign-in or API-key observation now; the account cells stay labelled as resting on the protocol types; OI-010 stays OPEN |
+| DECISION-L L-7 (A); R19-4 | Header reading 6; decision record §3 | REQ-005 reading; U-A11 closed |
+| R18-7 G-1; F0 FH-19 | New §19 | Receiving comparison for seam S-4 |
+| R19-4 SIWC; ASSESSMENT_SIWC.md | New §20; §11 CH-8 | The ChatGPT plan grant recorded as an alternative considered, with four triggers and the dependency notes; the host-billing point on the next-relay list |
+| R19-5 | Header "Version rule"; new §18 | Supplier facts name their version; runtime reads listed; version-bound statements listed for the version-advance check |
+| OBS-2 O-6 (M1, M2, M3) | §3, §5.5, §6 Q-1, decision record §4 | Linked configuration observed to work; `-c` flags form the `sessionFlags` layer; `--profile` refused for `app-server`; fallback A not needed at 0.158.0; writes through the link still not observed |
+| OBS-2 §11, §13; F0 FH-26 | §9, §7 | The installation id and thread/session/turn ids in `client_metadata`, and the host time zone in every model input, are shown in the network/record view as content sent to the chosen provider |
+| OBS-2 O-4 (adapter) | §11 CH-2 | The delegation tools also travel in the `namespace` tool LM Studio 0.4.16 drops (R18-9 standing) |
+| Naming | §6 Q-2 | The control reads "Sign in with your ChatGPT account (through Codex)", so it is not confused with OpenAI's separate "Sign in with ChatGPT" grant (§20) |
 
 ---
 
@@ -109,7 +158,7 @@ the App). An agent may ask the person in conversation; nothing more.
 | I-3 | Conversation start: explicit `modelProvider` and `model` on `thread/start`; per-turn `model` on `turn/start` | DEL-01-05 → DEL-01-01 S-4 | A selection exists (§5.4) | Error response → `start-failed`, no other entry tried (NS-1) |
 | I-4 | Destination class of the chosen entry | DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5 | Per conversation | The class is never inferred from an address; with no selection there is no class (HOSTING §8.3; LOOP N-OPEN-1 closure, applied here by analogy) |
 | I-5 | Access state snapshot and the conversation's selection state (schemas `access.state`, `access.conversation-selection`) | DEL-01-05 → DEL-01-04 (conversation start display, K-3) | On change | A display without a snapshot shows "access state unknown", never a default |
-| I-6 | Observed Codex account of the home that runs the conversation (kind, `email` as reported or null, `planType`) | DEL-01-05 → DEL-01-04 CAP-8 / RS §6.1 (K1-4) | At act capture | No account or `apiKey` kind → no Codex-account element; never a guessed name |
+| I-6 | Observed Codex account of the home that runs the conversation, as RS `codexAccount`: the reported email, or "ChatGPT account (no email reported)" (R18-1 C-10); plan type is not part of it | DEL-01-05 → DEL-01-04 CAP-8 / RS §6.1 (K1-4); HOSTING `actorRef` is derived from the same value | At act capture | No account or `apiKey` kind → no Codex-account element; never a guessed name |
 | I-7 | Start-up network view (schema `access.network-observation`) | DEL-01-05 → the person; App diagnostics record | App start; on demand | Observation unavailable → the view says so; the per-pin expected list is still shown, labelled |
 | I-8 | Local-server capability requirements and limits (schema `access.capability-handoff`) | DEL-01-05 → DEL-05-01 (DEP-01-05-014) | When DEL-05-01 receives | — |
 | I-9 | Account/provider inputs and the focused sign-in and concurrent-mode checks | DEL-01-05 → DEL-09-02 (DEP-09-02-013) | Before V4-EXM-12 | — |
@@ -129,7 +178,7 @@ one per conversation (K-2, SETTLED).
 | Kind | What it is | Codex home that serves it (§3) | Provider at `thread/start` | Credential and custody | Destination class (RS R5 enum) |
 |---|---|---|---|---|---|
 | `chatgpt-account` | The ChatGPT sign-in, which is **the Codex account** of the App's account home (K-2) | H-acct | The built-in OpenAI provider (`inference`: id `openai`; the effective id is read back from the `thread/start` response, HOSTING §8.3) | Codex's credential store of H-acct (V4-ARC-04) | `user-chosen cloud` |
-| `api-key` | The API key, **a separate entry** (K-2) | H-key, a second App-owned home whose Codex account is the key (§4, PROPOSED K2-1) | As above, in H-key | Codex's credential store of H-key | `user-chosen cloud` |
+| `api-key` | The API key, **a separate entry** (K-2) | H-key, a second App-owned home whose Codex account is the key (§4, K2-1, adopted by DECISION-L L-1) | As above, in H-key | Codex's credential store of H-key | `user-chosen cloud` |
 | `local-provider:<id>` | A provider definition in the person's Codex configuration whose definition carries no credential element (§11 LP-1) | H-acct | `<id>` | None | `local model server` |
 | `other-provider:<id>` | Any other provider in the configuration (gateway OAuth, Bedrock, a definition with `env_key`, `experimental_bearer_token`, `auth`, `aws`, `gateway_oauth` or `requires_openai_auth = true`) | — | — | Not handled by the App at v0.1 | — |
 
@@ -147,20 +196,38 @@ closure, R12-7, reasons the same way for hosts).
 
 ## 3. Codex homes
 
-Summary of the decision record's mechanism (PROPOSED; confirmed or refused by
-OBS-2 O-6):
+The decision record's mechanism M-A, **observed to work at 0.158.0** (OBS-2
+O-6 M1: a second home whose `config.toml` is a symbolic link to the first's
+reads the first's values, the user layer is named by the second home's path,
+and `account/read` in the second home returns `account: null`; no credential
+existed anywhere). Under R18-6 the person's global `AGENTS.md` and `skills/`
+are linked the same way (PROPOSED; not observed through a link).
 
 | Home | Owner | Holds | Shared with the person's other Codex clients |
 |---|---|---|---|
-| The person's Codex home (`$CODEX_HOME` of their shell, usually `~/.codex`) | The person | Their `config.toml` (settings, providers, MCP servers) and their own sign-in | It is theirs. The App reads its configuration through the link and writes it only on the person's act (I-2) |
-| H-acct, the App's account home (App data folder) | The App | The App's own sign-in (Codex custody), threads, logs and state of the App's Codex; `config.toml` **is a link** to the person's configuration file | Configuration only, through the link |
-| H-key, the App's key home (App data folder; created only when the person adds a key) | The App | The API key (Codex custody); threads of API-key conversations; same configuration link | Configuration only |
-| H-probe, the probe home (App data folder) | The App | What the version-label probe writes (S-F-17: `tmp/arg0/…`) | Nothing; never an account home (answers HOSTING §7.2) |
+| The person's Codex home (`$CODEX_HOME` of their shell, usually `~/.codex`) | The person | Their `config.toml` (settings, providers, MCP servers, features including `plugins`), global `AGENTS.md`, `skills/`, and their own sign-in | It is theirs. The App reads it through the links and writes only `config.toml`, only on the person's act (I-2) |
+| H-acct, the App's account home (App data folder) | The App | The App's own sign-in (Codex custody), threads, logs and state of the App's Codex; `config.toml`, `AGENTS.md` and `skills/` **are links** to the person's | Configuration, global guidance and skills, through the links |
+| H-key, the App's key home (App data folder; created only when the person adds a key; DECISION-L L-1) | The App | The API key (Codex custody); threads of API-key conversations; the same three links | As H-acct |
+| H-probe, the probe home (App data folder) | The App | What the version-label probe writes (S-F-17: `tmp/arg0/…`) | Nothing; no links; never an account home (answers HOSTING §7.2) |
 
-If O-6 shows that 0.158.0 cannot read a linked configuration as its user
-layer, the fallback is option A (each App home keeps its own configuration),
-and the App says so in its settings view (K-1 as recorded; decision record
-§4, "Fallback rule").
+**One Codex process per App-owned account home** (DECISION-L L-1 A; R19-4):
+H-acct always, H-key while a key exists. DEL-01-02's stop, restart and quit
+apply to each (its DEF-5/DEF-6). Generation identity is {App session, App
+home, spawn counter} (R18-1 C-20; R19-4).
+
+**The App writes nothing into a linked `skills/`** (R19-7: workflows are
+not placed in any discovered skill root by the App). OBS-3 observed that at
+0.158.0 every discovered skill in `$CODEX_HOME/skills` is advertised in the
+developer block of every model request in that home; with the link, the
+person's own skills are advertised in App conversations exactly as in their
+Codex (F-A9). `instructionSources` on thread start records which guidance
+files Codex reports (R18-6); OBS-2 saw only `[]` (no `AGENTS.md` in its
+working folders), so whether Codex follows a linked global `AGENTS.md` is
+not observed (U-A14).
+
+The fallback (option A, each App home with its own configuration) is not
+needed at 0.158.0 (O-6). It stays defined for a later version whose
+`config/read` shows the link no longer read (CL-3; §18 version-bound list).
 
 ## 4. Keeping a ChatGPT sign-in and an API key side by side (K-2)
 
@@ -184,24 +251,25 @@ a separate entry; the mechanism is this file's to propose):
 
 | ID | Mechanism | Custody | REQ-004 (others preserved) | Consequence | Assessment |
 |---|---|---|---|---|---|
-| K2-1 | A second App-owned home H-key whose Codex account is the key (`account/login/start {apiKey}` in H-key); API-key conversations run on H-key's child | Codex (V4-ARC-04 held) | Yes: H-acct keeps the ChatGPT sign-in | Two supplier children: **HOSTING U-12 gains a per-home dimension** (generation, register and thread keyed by home); two start-ups, so K-12 traffic per home; conversation lists merged from two homes | **PROPOSED.** The only mechanism that keeps Codex custody of both credentials at 0.158.0 on the generated types |
+| K2-1 | A second App-owned home H-key whose Codex account is the key (`account/login/start {apiKey}` in H-key); API-key conversations run on H-key's child | Codex (V4-ARC-04 held) | Yes: H-acct keeps the ChatGPT sign-in | Two supplier children: **HOSTING U-12 gains a per-home dimension** (generation, register and thread keyed by home); two start-ups, so K-12 traffic per home; conversation lists merged from two homes | **ADOPTED** by the owner (DECISION-L L-1 A, 2026-10-02). The only mechanism that keeps Codex custody of both credentials at 0.158.0 on the generated types |
 | K2-2 | Provider entry with `env_key`; the App supplies the key in the child's environment from its own keychain item | The App (and every descendant process environment the supplier does not filter, `inference`) | Yes | Contradicts "credentials held by Codex" | Set aside unless the owner changes V4-ARC-04 |
 | K2-3 | Provider entry with `experimental_bearer_token` in a configuration layer | A plaintext configuration file; in the shared file (K-1) it would leak into the person's CLI configuration | Yes | Key in a file the person shares | Set aside |
 | K2-4 | Provider entry with a command-backed `auth` element (shape not in the types) | Whatever the command reads (an OS keychain item the App wrote) | Yes | Shape unknown at 0.158.0 (`strings-in-binary` only) | Not available until observed; App custody at entry |
 | K2-5 | Re-login per conversation in one home | Codex | **No**: logging in with one replaces the other (`inference` from the single `Account`); live threads of the other mode affected (not observed) | Breaks REQ-004 | Set aside |
 | K2-6 | One home holding both, chosen per thread | Codex | — | No element in the generated types selects an account per thread | Not available at 0.158.0 |
 
-**Standing.** K2-1's need for a second home rests on the generated types
-(one account per process) and is `inference` until observed. K-11 allows no
-sign-in or API-key observation without a separate owner answer, and OBS-2
-does not exercise it. R17-2 says: if this needs more than one Codex home,
-report the HOSTING U-12 dimension and do not restructure HOSTING here. This
-file reports it (return file, join list) and designs the App side for K2-1;
-UNRESOLVED U-A1 carries the owner question.
+**Standing.** The owner adopted K2-1 (DECISION-L L-1 A). Its premise,
+one account per Codex process, rests on the generated types at 0.158.0 and
+is `inference` until observed with a credential; DECISION-L L-6 (A) defers
+that observation ("not now"), so the premise stays labelled. OBS-2's remark
+that K-2 "needs no second home for configuration" (O-6) is true and beside
+the point: the second home exists for the second credential, not for
+settings. HOSTING records the per-home dimension of U-12 (R19-4; F0 FH-31);
+this file does not restructure HOSTING.
 
-**What changes if K2-1 is not adopted.** Only H-key and the API-key routing
-rows of §2 and §6 Q-6/Q-7; the selection states (§5.4) and the custody rules
-(§7) do not change.
+**Version-bound (R19-5).** If a later Codex offers a per-thread account or a
+provider credential that Codex itself holds, K2-1 is re-examined at that
+version advance (§18); nothing in §5.4 or §7 depends on the number of homes.
 
 ## 5. States
 
@@ -304,13 +372,16 @@ States: `no-selection`, `offer-shown`, `selected`, `starting`, `started`,
 
 **K-3 (SETTLED by DECISION-K3):** a new conversation has no model chosen
 until the person chooses. The App may offer the person's last explicit choice
-for that project, shown as such, never applied silently. The refusal wording
-reuses R15-1's "run not started — no model selected" (R17-2).
+for that project, shown as such, never applied silently. **Wording (R18-2,
+C-09):** an ordinary conversation reads "not started — no model selected";
+a message that would start a workflow run (R19-2: a run starts with a turn)
+reads "run not started — no model selected" (R15-1). The App knows which
+from whether a workflow is selected for that turn.
 
 | ID | From | Event | To | Effect and record |
 |---|---|---|---|---|
-| CS-1 | no-selection | `person:message` | no-selection | Refused: "run not started — no model selected"; the message stays as a draft; nothing is sent |
-| CS-2 | offer-shown | `person:message` | offer-shown | Same refusal; **the offer is not applied** |
+| CS-1 | no-selection | `person:message` | no-selection | Refused: "not started — no model selected", or "run not started — no model selected" when a workflow is selected for the turn (R18-2); the message stays as a draft; nothing is sent |
+| CS-2 | offer-shown | `person:message` | offer-shown | Same refusal and wording rule; **the offer is not applied** |
 | CS-3 | no-selection | `app:last-choice-exists` | offer-shown | Offer labelled "your last choice for this project: <entry>, <model>" |
 | CS-4 | offer-shown | `person:accept-offer` | selected | Selection source `offered-last-choice-accepted`; the acceptance is the person's act |
 | CS-5 | no-selection | `person:choose` | selected | Source `person` |
@@ -346,7 +417,11 @@ from `model/list` may be shown as Codex's own label, never preselected.
 ### 5.5 Configuration link (one per App home; K-1)
 
 States: `not-set-up`, `linked`, `target-missing`, `link-broken`,
-`own-config` (option A for settings).
+`own-config` (option A for settings). One machine per linked file
+(`config.toml`, `AGENTS.md`, `skills/`) per App home. Observed at 0.158.0:
+reading through the `config.toml` link (CL-1, O-6 M1). Not observed: writes
+through it (CL-10, CL-4; OBS-2 UNRESOLVED), and reading through the other two
+links (U-A14).
 
 | ID | From | Event | To | Effect and record |
 |---|---|---|---|---|
@@ -374,8 +449,11 @@ operate it.
 2. Configuration link check (§5.5). A broken link does not stop the start;
    it is shown.
 3. Spawn and handshake through HOSTING §4.2 with `CODEX_HOME=<home>`, the
-   K-12 session flags (§9; **OBS-2 pending, O-6/O-7**: whether `app-server`
-   accepts `-c` session flags) and the declared capability
+   App's session flags (§9: `analytics.enabled = false`; `plugins = false`
+   only in the fallback when the person's setting is off), carried as `-c`
+   flags, which `app-server` accepts and forms into the `sessionFlags` layer
+   (observed, OBS-2 O-6 M2), never the internal environment variable
+   `CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED` (R18-3), and the declared capability
    `explicitGatewayOauth: true` (I-1; PROPOSED: so no gateway browser
    authorization starts without the person's act — the capability text says
    it replaces "automatic browser authorization"). The App passes none of
@@ -391,7 +469,8 @@ operate it.
 6. Start the network observation of this child's process tree (§9).
 
 **Q-2 ChatGPT sign-in, browser (person's act).**
-1. Person chooses "Sign in with ChatGPT". If a sign-in is already pending on
+1. Person chooses "Sign in with your ChatGPT account (through Codex)" (not
+   OpenAI's separate "Sign in with ChatGPT" grant, §20). If a sign-in is already pending on
    H-acct, the App offers to cancel it first (one at a time).
 2. `account/login/start {type: "chatgpt"}`; the optional elements
    (`codexStreamlinedLogin`, `useHostedLoginSuccessPage`, `appBrand`) are left
@@ -455,7 +534,8 @@ explicit choice, `offer-shown` (CS-3). The model list per entry: for
 `chatgpt-account` and `api-key`, `model/list` on the entry's home; for a
 local provider, `model/list` does not name a provider (no element in
 `ModelListParams`), so the App offers the configured model of that provider
-if any and a free model identifier field (U-A7, OBS-2 pending in round 2).
+if any and a free model identifier field (U-A7: outside OBS-2's items, so it
+stays open).
 
 **Q-10 Start.** CS-8…CS-11. Requested values recorded per HOSTING §8.3;
 destination class from §2.
@@ -507,12 +587,15 @@ outside change applies at the next child start unless observed otherwise.
   it (or "no email reported") and the `planType`; for `api-key` only "API key
   stored by Codex"; never any part of a key, token, URL or code.
 - **Identity supply (I-6; SETTLED by K1-4 that the Codex account is a
-  source; the form is PROPOSED):** at act capture DEL-01-01/DEL-01-04 receive
-  from this file the account of **the home that runs the conversation**, as
-  last read: `{kind: "chatgpt", email|null, planType}`; for `apiKey` and for
-  no account, no Codex-account element. Labelled App-observed, "identity not
-  verified" (K1-4). Whether a record stores the email or a digest of it is
-  the record owner's (RS §6.1) — U-A8 names the privacy question.
+  source; form INTEGRATION by R18-1 C-10):** at act capture DEL-01-04
+  receives from this file the account of **the home that runs the
+  conversation**, as last read, in RS's `codexAccount` form: the reported
+  `email`, or the text "ChatGPT account (no email reported)" when Codex
+  reports a ChatGPT account with a null email. For an `apiKey` account and
+  for no account there is no Codex-account element. Plan type is shown in the
+  account view and **not recorded**. HOSTING's `actorRef` string is derived
+  from the same value. Labelled App-observed, "identity not verified" (K1-4).
+  Whether a record keeps the email or a digest of it stays RS's (U-A8).
 
 ## 9. Start-up traffic and the network view (K-12)
 
@@ -529,28 +612,38 @@ which reports the remote-control state, not destinations or other traffic
 by **both** means below (PROPOSED), and shows the remote-control status
 beside them.
 
-**Which is which (per pin; OBS-2 O-7 settles the "App action" column):**
+**Which is which, at Codex 0.158.0 (OBS-2 O-7, observed 2026-10-01 without
+sign-in; DECISION-L L-3; R18-3):**
 
-| Start-up traffic (OBS-1 §8, B.5) | Candidate Codex setting | App action | Standing |
+| Start-up traffic | What stops it at 0.158.0 | App action | Standing |
 |---|---|---|---|
-| Remote-control loop to `chatgpt.com/backend-api/` (retries about once a second without sign-in) | Feature key `remote_control` (`strings-in-binary`; also requirement `allow_remote_control`); runtime `remoteControl/disable` (experimental-only client method, `observed-in-generated-types`; acts after start, so not for the first contact); environment `CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED` (`strings-in-binary`; internal, not a setting) | Turn the feature off in the App's session flags at spawn if O-7 shows it stops the loop; the internal environment name is not used (it is not a Codex setting; using it needs an integrator ruling, U-A9) | **OBS-2 pending (O-7)** |
-| Featured-plugins request to chatgpt.com (401 without sign-in) | Feature key `plugins` (`strings-in-binary`) | As above, if O-7 shows the effect; consequence shown: plugins unavailable in the App's Codex | **OBS-2 pending (O-7)** |
-| Plugin repository sync, `github.com/openai/plugins` (full fetch ≈24 MB on a fresh home; `git ls-remote` on a synced one) | Feature key `plugins`; `remote_installed_plugin_sync` (`strings-in-binary`) | As above | **OBS-2 pending (O-7)** |
-| Analytics | `[analytics] enabled = false` (`AnalyticsConfig`, generated types) | Set off in the session flags | OBS-1: off does **not** stop the three rows above; whether it stops analytics traffic itself is not observed |
-| Update check | `check_for_update_on_startup` (`strings-in-binary`) | Set off in the session flags if O-7 confirms the key | **OBS-2 pending (O-7)** |
-| Model traffic of a conversation | The person's entry | Not turned off: it is the chosen destination; shown with its class | HOSTING §8.3 |
+| Featured-plugins request to chatgpt.com (401 without sign-in) | `[features] plugins = false` (O-7 v1, v6–v8) | **Follows the person's plugin setting** (L-3 A): plugins on → happens, shown and recorded; plugins off → does not happen. Under the link the person's own file carries the setting, so the App adds nothing; in the fallback (own configuration) the App passes `plugins = false` as a session flag when the person's setting is off | `observed (OBS-2 O-7)` |
+| Plugin repository check or fetch, `github.com/openai/plugins` (`ls-remote` warm; ≈24 MB fetch on a fresh home) | `[features] plugins = false` (v1, v8: no `.tmp/` created on a cold home) | As above (L-3 A) | `observed (OBS-2 O-7)` |
+| Remote-control loop for `chatgpt.com/backend-api/` | No configuration key: `remote_control` is a `removed` feature with no effect (v5); `remote_plugin`, `apps`, `tool_suggest` have none (v2, v3, v6). Only the internal environment variable `CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED=1` stops it (v4) | **Not turned off** (R18-3: an internal variable is not a setting). Shown as observed: without sign-in the loop retries locally about once a second and opens **no socket**; `remoteControl/status/changed` reported `disabled` at start. With a sign-in: not observed (DECISION-L L-6) | `observed (OBS-2 O-7)`; signed-in behaviour not observed |
+| Analytics | `[analytics] enabled = false` (`AnalyticsConfig`, generated types) | Set off in the session flags (K-12) | Every OBS run had it off; no analytics connection was seen, so its effect when on is not observed |
+| Update check | `check_for_update_on_startup` (`strings-in-binary`) | **Not set**: O-7 did not test it, and an unknown key is not sent (U-A13) | Not observed |
+| Model traffic of a conversation | The person's entry | Not turned off: the chosen destination; shown with its class | HOSTING §8.3 |
 | Sign-in endpoints during Q-2/Q-3 | — | Not turned off; shown as "sign-in" while pending | `inference` (LOOP N-OPEN-2 is the host counterpart) |
 
-**Carrier.** The App's traffic settings go in the session-flags layer of the
-App's own child (`ConfigLayerSource` `sessionFlags` is in the generated
-types; that `-c` flags form this layer is `inference`, OBS-2 pending O-6), never
-into the person's configuration file, and they are recorded in HOSTING's
-configuration identity (§7.1). They change only the App's Codex. The
-network view lists each as "turned off by the App". Whether the person may
-turn one back on for the App is PROPOSED **yes** (an App setting, shown and
-recorded), because Root `AGENTS.md` says the App does not "veto the user's
-Codex configuration" and an App-scoped flag the person controls keeps that
-true (U-A9 for the integrator).
+**Reading the person's plugin setting (L-3; R19-5 runtime read).** The App
+reads it at run time, not from the version: `config/read {includeLayers:
+true}` shows `features.plugins` and the layer that set it when it is set
+(OBS-2: `features` appear only when set), and `experimentalFeature/list`
+(stable, `observed-in-generated-types`) reports a feature's `enabled` in the
+loaded configuration and its `defaultEnabled`; whether it lists `plugins`
+is not observed (U-A15). With neither, the App takes the setting as **on**,
+because Codex 0.158.0 made both connections with no setting (O-7 v0), and
+labels the view "plugins on by Codex's default (observed at 0.158.0)". The network view states "Plugins are on in
+your Codex settings, so Codex contacts chatgpt.com and github.com at start"
+or "Plugins are off in your Codex settings; Codex made no start-up
+connection" and the record carries the same (schema `pluginsSetting`).
+
+**Carrier.** The App's own settings (analytics off; `plugins = false` in the
+fallback only) go in the session-flags layer of the App's own child, never
+into the person's configuration file, and are recorded in HOSTING's
+configuration identity (§7.1). They change only the App's Codex. Whether the
+person may turn analytics back on for the App remains U-A9 (Root `AGENTS.md`:
+the App does not "veto the user's Codex configuration").
 
 **How the App learns connections (both, PROPOSED):**
 
@@ -566,6 +659,14 @@ true (U-A9 for the integrator).
    250 ms samples); it shows addresses, and a host name only where the
    expected list or a lookup supplies it, labelled. Codex's own internal log
    files are not read (unpublished format).
+
+**Content sent to the chosen provider (OBS-2 §11; F0 FH-26).** At 0.158.0
+every model request's `client_metadata` carries the Codex installation id
+and thread, session and turn identifiers, and every model input carries the
+host's time zone (observed to a loopback provider). The network view and the
+App's record show these as content sent to the conversation's provider, for
+local and cloud entries alike; the App does not alter them (stock supplier,
+H1).
 
 A connection seen but not on the expected list is shown as **unlisted** and
 recorded; it is never blocked by the App (no App-side gate exists for the
@@ -595,9 +696,11 @@ Nothing here is observed live: no key has ever been used in this project.
 
 **Implications for the three modes (AC-006).** All three stay required and
 configurable together through K2-1 (H-acct: ChatGPT and local providers;
-H-key: the API key). **OI-010 remains OPEN**: AK-5, AK-6's storage effect and
-AK-10 need an observation with a key, which K-11 does not allow without a
-separate owner answer (U-A2).
+H-key: the API key; K2-1 adopted, DECISION-L L-1). **OI-010 remains OPEN**:
+AK-5, AK-6's storage effect and AK-10 need an observation with a key, and the
+owner chose not to observe sign-in or API-key flows now (DECISION-L L-6 A),
+so these rows stay labelled as resting on the protocol types at 0.158.0; the
+question returns at the phase review if the design needs it.
 
 ## 11. Local providers and the handoff to DEL-05-01 (REQ-003, REQ-008)
 
@@ -619,18 +722,19 @@ separate owner answer (U-A2).
   helper held its own key; App v3 is evidence only, not a commitment).
 
 **Handoff to DEL-05-01 (REQ-008; I-8; schema `access.capability-handoff`;
-fixture `prototype/fixtures/capability-handoff.valid.json` is its v0.1
-content).** Items, each with standing:
+fixture `prototype/fixtures/capability-handoff.valid.json` is its v0.2
+content).** Items, each with standing, all at Codex 0.158.0 unless named:
 
 | ID | Statement | Interface | Standing | What it means for a host loop |
 |---|---|---|---|---|
 | CH-1 | The App reaches a local model through Codex's provider interface, Responses (`wire_api = "responses"`); Chat Completions is refused by 0.158.0 for providers | App Codex provider | Responses at one pair `observed` (OB-8); refusal of `chat` `strings-in-binary` (F-28) | None directly: the host loop uses Chat Completions (V4-ARC-10, LOOP §1); a server serving both does not join them |
-| CH-2 | LM Studio 0.4.16 dropped `namespace` tools on Responses; MCP tools did not reach the model | App Codex provider | `observed` at one pair (OB-1; F-31) | Not a Chat Completions finding; LOOP's FB-CC-1 stands |
+| CH-2 | LM Studio 0.4.16 dropped `namespace` tools on Responses; MCP tools did not reach the model; the delegation tools travel in the same `namespace` tool, so delegation does not reach an LM Studio model either | App Codex provider | `observed` at one pair (OB-1; F-31); delegation part `observed (OBS-2 O-4)`, reached only through an adapter, not stock behaviour (R18-9) | Not a Chat Completions finding; LOOP's FB-CC-1 stands |
 | CH-3 | A flat function tool was called through Responses at that pair | App Codex provider | `observed` (OB-2) | — |
 | CH-4 | The server ignored `prompt_cache_key` and `include`, turned the developer role into system | App Codex provider | `observed` (OB-8) | The host may see the same server behaviour on its own route; to be checked on Chat Completions |
 | CH-5 | Codex put the host's IANA time zone into the model context | App Codex provider | `observed` (OB-11) | Not a host matter; recorded |
 | CH-6 | Credentials of the App's providers are Codex's; host credentials and endpoints are the host native layer's (LOOP NW-3, NW-6) | Both | SETTLED (V4-ARC-04, V4-ARC-12) | No App credential or provider configuration is shared with a host |
 | CH-7 | No host conformance is claimed from App observations | Both | SETTLED (SoW AC-009; AX-003) | — |
+| CH-8 | ChatGPT plan billing through OpenAI's "Sign in with ChatGPT" grant is Responses-only (published preview, read 2026-10-01) | Host loop | `published-only` (ASSESSMENT_SIWC.md) | **Next-relay item, not a requirement:** a host could use plan billing only if its model-interface boundary (R12-11) admits a Responses provider; host joins stay deferred (DECISION-3; R19-4) |
 
 LOOP §10.3 says this input is "not consumed by this file"; whether DEL-05-01
 consumes it is DEL-05-01's (pass-2 proposal R-0501-4; return file).
@@ -657,7 +761,7 @@ as such, never hidden by a switch.
 | DEP-01-01-022 (mirror of -012) | — | DEL-01-01 | S-4 carriage, §8.1 |
 | DEP-01-01-024 (held, SCC-001; no counterpart here) | DEL-01-01 consumes | Sign-in and substitution evidence "when needed" | §12 (designed); return file proposes a mirror row |
 | DEP-09-02-013 (admitted) | DEL-09-02 consumes | Account/provider inputs; focused checks | I-9; VC-A01…A05 |
-| (none yet) | DEL-01-04 would consume | Access state for the start display; Codex account for CAP-8 | I-5, I-6; new row proposed in the return file (SCC-neutral: DEL-01-05 reaches only DEL-01-01) |
+| (none yet; F0 §3 NR-07) | DEL-01-04 would consume | Access state for the start display; Codex account for CAP-8 | I-5, I-6; new row proposed (SCC-neutral: DEL-01-05 reaches only DEL-01-01) |
 
 ## 14. Owner and act boundary (REQ-009, AC-010)
 
@@ -675,9 +779,9 @@ as such, never hidden by a switch.
 
 | Schema | Handed to | Content |
 |---|---|---|
-| [`access.state.schema.json`](access.state.schema.json) | DEL-01-04 (I-5); the App's settings view | Homes with link state; entries with kind, state, provider, class, account view; never a credential element (closed objects) |
+| [`access.state.schema.json`](access.state.schema.json) | DEL-01-04 (I-5); the App's settings view | Homes with link state; entries with kind, state, provider, class, account view and the RS `codexAccount` string (C-10); never a credential element (closed objects) |
 | [`access.conversation-selection.schema.json`](access.conversation-selection.schema.json) | DEL-01-04 (I-5); DEL-01-01 S-4 (I-3); DEL-04-03 via §8.3 (I-4) | State per §5.4; selection with source; an offer that is never a selection; thread with requested and reported values; refusal reasons |
-| [`access.network-observation.schema.json`](access.network-observation.schema.json) | The person (I-7); App diagnostics | Rows with destination, process, phase, purpose, sources (`app-observed`, `expected-at-pin`), the App setting's state, and the lower-bound limit |
+| [`access.network-observation.schema.json`](access.network-observation.schema.json) | The person (I-7); App diagnostics | The person's plugin setting and its source (L-3); rows with destination, process, phase, purpose, sources (`app-observed`, `expected-at-pin`), the setting's state (following the person, turned off by the App, or no setting) and the standing with its version; the lower-bound limit |
 | [`access.capability-handoff.schema.json`](access.capability-handoff.schema.json) | DEL-05-01 (I-8) | Items with interface, standing and host meaning; `noHostConformanceClaimed: true` |
 
 Valid and invalid instances: `prototype/fixtures/*.valid.json`,
@@ -689,33 +793,41 @@ run shows it failing for that reason (VC-A17).
 
 [`prototype/`](prototype/), Python 3 standard library only, no install, no
 network, no Codex. `access_model.py` holds the §5 tables, the selection,
-routing, custody, link and network-view models; `run_cases.py` runs VC-A08…
-VC-A16 and the schema checks; `jsonschema_subset.py` is a byte-identical copy
+routing, custody, link, plugin-setting and network-view models;
+`run_cases.py` runs VC-A11…VC-A17, VC-A19 and VC-A20 (with the schema
+checks); `jsonschema_subset.py` is a byte-identical copy
 of DEL-01-01's validator (sha256 486e9286…c0ffc0). The link and probe-home
 cases use a temporary folder under `$TMPDIR` with invented content, check
 that no path outside it (and nothing under `~/.codex`) is touched, and remove
 it. Custody is tested with invented canary strings that are not shaped like
 any key, token, URL or code. Command: `cd prototype &&
-PYTHONDONTWRITEBYTECODE=1 python3 run_cases.py`. **Ran 2026-10-01 (UTC),
-Python 3.13.7, macOS Darwin 25.6.0 arm64: TOTAL 7, FAIL 0**; the output and
-the sha256 of every input are in `prototype/results/RUN_2026-10-01.txt`. A
+PYTHONDONTWRITEBYTECODE=1 python3 run_cases.py`. v0.1 ran 2026-10-01 (TOTAL
+7, FAIL 0; `prototype/results/RUN_2026-10-01.txt`, kept as history). **v0.2
+ran 2026-10-02 (UTC), Python 3.13.7, macOS Darwin 25.6.0 arm64: TOTAL 9,
+FAIL 0**; the output and the sha256 of every input are in
+`prototype/results/RUN_2026-10-02.txt`, which pins this file's bytes before
+the §20 trigger correction (sha256 75bafd81…6339; §5 tables unchanged since,
+so nothing was rerun). A
 "pass (model)" is evidence that the rules run as written, never a VER pass.
 
 ## 17. Findings
 
-- **F-A1 Two homes for two cloud credentials.** At 0.158.0 a Codex process
-  has one account and no per-thread account element, so a ChatGPT sign-in
-  and an API key kept side by side with Codex custody need two App-owned
-  Codex homes (K2-1). HOSTING U-12 needs a per-home dimension (R17-2).
-  `inference` from generated types; not observed.
+- **F-A1 Two homes for two cloud credentials (adopted).** At 0.158.0 a Codex
+  process has one account and no per-thread account element, so a ChatGPT
+  sign-in and an API key kept side by side with Codex custody need two
+  App-owned Codex homes (K2-1). The owner adopted it (DECISION-L L-1 A);
+  HOSTING U-12 gains a per-home dimension (R19-4). Premise `inference` from
+  generated types; not observed (L-6).
 - **F-A2 Capabilities are not per provider.**
-  `modelProvider/capabilities/read` takes no parameters, so `namespaceTools`
-  (the F-31 element) cannot be read per entry without observing which
-  provider it describes.
+  `modelProvider/capabilities/read` takes no parameters at 0.158.0, so
+  `namespaceTools` (the F-31 element) cannot be read per entry without
+  observing which provider it describes (U-A7).
 - **F-A3 Writes through a linked configuration.** A write that replaces the
   file at the link path breaks the link silently; writes therefore pass the
   resolved target as `filePath`, and the link is checked after each write
-  (VC-A11). How Codex writes (in place or by replacement) is not observed.
+  (VC-A11). OBS-2 confirmed reads through the link and that no case wrote
+  through it; how Codex writes (in place or by replacement) is still not
+  observed.
 - **F-A4 Gateway OAuth would open a browser by itself.** The handshake
   capability `explicitGatewayOauth` replaces "automatic browser
   authorization"; the App declares it true (join to HOSTING §4.2 step 4).
@@ -730,23 +842,180 @@ the sha256 of every input are in `prototype/results/RUN_2026-10-01.txt`. A
   `~/.codex`" (`frontend/src/components/settings/account-consent-settings.tsx`
   line 231), while Root `AGENTS.md` describes shared configuration with
   separate authentication. Evidence only; K-1 decides v4.
+- **F-A8 Following the person's plugin setting costs nothing under the
+  link (round 2).** Because the App home reads the person's `config.toml`,
+  Codex applies their `[features] plugins` value itself; the App needs a
+  session flag only in the fallback. L-3 is met by K-1's mechanism.
+- **F-A9 Linked skills are advertised in every request (round 2).** OBS-3
+  observed at 0.158.0 that each discovered skill is listed in the developer
+  block of every model request in that home. Linking the person's `skills/`
+  (R18-6) therefore puts their skills' names and descriptions into App
+  conversations' context, as in their own Codex; and the App must not put
+  registered workflows there (R19-7).
+- **F-A10 Three encodings of one identity reduced to one (round 2).** RS's
+  `codexAccount` string is the single form (R18-1 C-10); HOSTING's
+  `actorRef` is derived from it.
+
+## 18. Version standing and runtime reads (R19-5)
+
+**Runtime reads the App uses instead of version inference:**
+
+| Fact | Runtime read (0.158.0 method; stable unless marked) | Used in |
+|---|---|---|
+| Login methods allowed; credential store mode | `configRequirements/read` (`allowedLoginMethods`, `cliAuthCredentialsStore`) | §5.1 AE-4, §5.2 KE-3, CR-10 |
+| Account kind and email | `account/read` | §5.1, §5.2, §8 |
+| Effective configuration and its layers (link working; plugins setting; providers) | `config/read {includeLayers: true}` | §3, §5.3, §5.5, §9 |
+| Feature enablement and default | `experimentalFeature/list` (`enabled`, `defaultEnabled`) | §9 (plugins) |
+| Remote-control state | `remoteControl/status/changed` notification (the read method is experimental-only) | §9 |
+| Models of an entry's home | `model/list` | Q-9 |
+| Provider capabilities | `modelProvider/capabilities/read` (no parameters; provider not known, U-A7) | LP-2 |
+| Discovered skills | `skills/list` | §3 (linked skills) |
+| Guidance files Codex loaded | `instructionSources` in the `thread/start` response | §3 |
+| Supplier version | Version label and `userAgent` (HOSTING §7) | Every row below |
+
+**Version-bound statements (recheck at each version advance; R19-5's
+proposed version-advance check):** one account per Codex process (§4, F-A1);
+`app-server` accepts `-c` as the `sessionFlags` layer and refuses
+`--profile` (O-6 M2, M3); a linked `config.toml` is read as the user layer
+(O-6 M1); `plugins = false` stops the featured-plugins request and the
+plugin repository check (O-7); no setting stops the remote-control loop, which
+opens no socket without sign-in (O-7); `thread/resume` overrides are ignored
+(O-5; Q-11); `wire_api = "chat"` refused (F-28); `explicitGatewayOauth`
+semantics (F-A4); `modelProvider/capabilities/read` without parameters
+(F-A2); the redaction field names of CR-2; the account and login variants of
+§10; skills advertised per request (F-A9). The network view's expected list
+is per version (§9).
+
+## 19. Receiving comparison for seam S-4 (R18-7 G-1; HOSTING F-15)
+
+HOSTING-v0.8 §8 S-4 names what the boundary supplies to DEL-01-05 and what it
+does not. This is the receiving side, row for row, at 0.158.0.
+
+| S-4 supplied (HOSTING §8) | Received here as | Verdict | F row |
+|---|---|---|---|
+| Carriage of supplier account methods | I-1; §5.1, §5.2; Q-1…Q-7; CR-1…CR-10 | Received; needs the §9.1 redaction categories (CR-2) | FH-26 |
+| Per-conversation provider selection: `modelProvider` on thread start | I-3; CS-8 (explicit provider and model always) | Received | FH-25 |
+| `modelProvider` on thread resume | Not used (Q-11: entry fixed for the conversation; resume overrides ignored at 0.158.0, O-5) | Not used, by design | — |
+| `modelProvider/capabilities/read` | Not used per entry (LP-2, F-A2) | Received with a limit (U-A7) | — |
+| Observed model destination per thread/turn (§8.3) | DEL-01-05 supplies the class (§2, I-4); the per-turn facts go to DEL-04-03 and are shown, not consumed | Matches; DEL-01-05 is the class's source | FH-25 |
+| §8.1 account L-1…L-6 | §11 LP-1…LP-3, CH-1…CH-8 | Received and handed on to DEL-05-01 | FH-32, FL-01, FL-02 |
+| Recorded-exchange evidence per §9 | §12 method; CR-2 redaction | Received; redaction categories added | FH-26 |
+| The fresh-home network observation (L-4) | §9 (O-7 table; two-source view) | Received; filled by O-7 | FH-27, FH-29 |
+
+| S-4 not supplied (HOSTING §8) | Where DEL-01-05 supplies it |
+|---|---|
+| Sign-in (including OAuth) and API-key flows, no default between local and cloud | §5.1, §5.2, §5.4 (K-3), Q-2…Q-7 |
+| Account home (OI-009) | Decision record (option C, M-A observed) |
+| Provider configuration | §5.3, Q-8 |
+| Server-substitution checks | §12, VC-A08 |
+
+**Needed of HOSTING beyond S-4's text (F's rows):** one child per App-owned
+account home and generation identity {App session, App home, spawn counter}
+(U-12; FH-06, FH-31); `CODEX_HOME` per home, the links, and the App's session
+flags in the spawn and in the configuration identity (FH-10, FH-12, FH-14);
+`explicitGatewayOauth: true` declared (FH-11); a separate probe home (FH-13);
+`account/chatgptAuthTokens/refresh` known-app-unsupported (FH-15); the flows
+offered (FH-24); the process set of each child for the App's socket sampling
+(H11; a runtime value). **Result:** S-4 has a receiving side; F-15 can close
+for S-4, citing ACCESS-v0.2 §19.
+
+## 20. Alternative considered: the ChatGPT plan grant ("Sign in with ChatGPT")
+
+**What it is (published preview, read by HELP_HUMAN on 2026-10-01;
+ASSESSMENT_SIWC.md).** OpenAI's "Sign in with ChatGPT" lets an app obtain an
+OAuth grant to use the person's ChatGPT plan (Plus and Pro) for Responses
+API requests, with a per-app cap and disconnect in ChatGPT settings. For
+open-source, locally hosted apps the app registers dynamically, runs its own
+loopback OAuth client with PKCE and **stores the tokens itself** (access 1 h,
+rotating refresh 30 d). The documented Codex route puts the access token in
+the child's environment behind a custom Responses provider (`env_key`,
+`requires_openai_auth = false`) and restarts app-server at each renewal.
+Preview limits: no hosted tools; configurations that emit `tool_search` fail.
+This is distinct from the App's Q-2 control, which signs in to **Codex's own
+ChatGPT account** (renamed in v0.2 to avoid the confusion).
+
+**Decision record.** Not adopted. After the assessment the owner asked:
+"Well, there's no pressing need to go ahead with this alternative sign-in or
+do you see any?" HELP_HUMAN's recommendation (no pressing need; DEL-01-05
+records it as an alternative considered, with its triggers; the host-billing
+point goes on the next-relay list) was accepted with L-1 and L-6
+(OWNER_DECISIONS, "Sign in with ChatGPT" exchange). Reasons, from the assessment: it moves
+custody to the App, against V4-ARC-04 and D-GOV-43's "custodied by Codex"
+(K2-2's objection again); the documented route restarts Codex hourly, which
+interrupts live turns and drops pending requests (OBS-2 O-2); it is a
+preview, not versioned or pinned; Chirality's eligibility for the open-source
+route is not established; it adds a second runtime supplier with no supplier
+contract here.
+
+**Triggers for reopening it (the four given to the owner on 2026-10-02;
+recorded in ASSESSMENT_SIWC.md "The four triggers", sha256 4dfa320249b01a59…;
+R19-4).** Any one of these would make the plan grant pressing:
+
+| ID | Trigger |
+|---|---|
+| T-1 | OpenAI restricts third-party apps from using Codex's own ChatGPT sign-in and points them to Sign in with ChatGPT |
+| T-2 | The owner wants a per-app usage cap and a "Chirality" entry in ChatGPT settings as product features |
+| T-3 | A host needs plan billing when host joins resume (CH-8) |
+| T-4 | The owner decides records should carry an account identity OpenAI has verified (K1-4, L-5) |
+
+**Conditions before adoption** (separate from the triggers; from the
+assessment's recommendations 3–5):
+
+| ID | Condition |
+|---|---|
+| CA-1 | Eligibility for the open-source route settled (the owner decides whether to ask OpenAI; nothing is submitted by an agent) |
+| CA-2 | The custody amendment accepted: "custodied by Codex, or, for a ChatGPT plan grant made to Chirality, by the App in protected OS storage" (V4-ARC-04; SCA-V4-003) |
+| CA-3 | One observation with the owner's own Plus or Pro sign-in at the then-current Codex version, including whether `chatgptAuthTokens` accepts the token (which would remove the hourly restart) |
+
+**If reopened, the dependency notes (the assessment's addendum):**
+
+- A fourth access entry kind ("ChatGPT plan, connected to Chirality") with
+  App-held tokens in the macOS keychain, its own Codex process, renewal only
+  at idle points, the per-app cap and disconnect shown, and the preview limits
+  stated; Codex's own ChatGPT sign-in stays the designed default.
+- An **external supplier row** (OpenAI's authorization service), satisfaction
+  pending eligibility and observation, with its own version and qualification
+  record (R19-5: it is a preview with no pin).
+- Renewal at idle points needs DEL-01-02's live-work state: a **runtime
+  value**, not a row (a row DEL-01-05 → DEL-01-02 closes a cycle; C-23).
+- Restarts through HOSTING's existing stop and start operations, written as
+  use of DEL-01-01, not a new requirement on it (the other direction would
+  also close a cycle).
+- A verified-identity source (validated ID token, `sub`, email) for
+  DEL-04-03's person record, as a runtime value; presence at an act stays
+  unverified (L-5).
+- Packaging items for DEL-01-06: keychain access, a loopback port, OpenAI's
+  branding rules, open-source eligibility beside OI-007.
+- A next-relay note for DEL-05-01: plan billing needs a Responses provider
+  (CH-8).
+- SoW and register: SOW-009/SOW-010 ("credentials held by Codex") and OBJ-002
+  ("three user-selectable Codex access modes") change; through SCA-V4-003
+  with `dependency-extract` and a `project-dag` currency check.
+- Both routes face supplier churn (the assessment's correction: 0.160.0 was
+  published three days after 0.158.0); the pin is a design reference, not
+  lasting stability.
 
 ## UNRESOLVED
 
+Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
+(DECISION-L L-7 A), U-A12 (OBS-2 O-6 M2). U-A2 is answered "not now"
+(DECISION-L L-6 A) and kept only as the point at which it returns.
+
 | ID | Item | Owner | Point of need | Effect here |
 |---|---|---|---|---|
-| U-A1 | Adopt K2-1 (two App homes; HOSTING U-12 per-home dimension) or change V4-ARC-04's custody for the API key (K2-2/K2-4) | Owner with App implementation owner | Before account integration | §4 designs K2-1 |
-| U-A2 | An API-key and sign-in observation (OI-010; AK-5, AK-6, AK-10; K2-1's premise): with the owner's own key and sign-in, or with an invented non-functional key string in a scratch home | Owner (K-11 requires a separate answer) | Before API-key implementation | Rows stay `inference` |
-| U-A3 | K-1 mechanism (linked configuration) | OBS-2 O-6, then integrator | Before account integration | Decision record §4; fallback A |
-| U-A4 | `chatgpt` login options (`codexStreamlinedLogin`, `useHostedLoginSuccessPage`, `appBrand`) | App implementation owner | Before sign-in implementation | Left absent |
+| U-A2 | A sign-in and API-key observation (OI-010; AK-5, AK-6, AK-10; K2-1's premise) | Owner: "not now" (L-6); asked again at the phase review if the design needs it | Before API-key implementation | Rows stay labelled as resting on the protocol types at 0.158.0 |
+| U-A4 | `chatgpt` login options (`codexStreamlinedLogin`, `useHostedLoginSuccessPage`, `appBrand`) | App implementation owner (the owner, L-7) | Before sign-in implementation | Left absent |
 | U-A5 | What happens to H-key and its threads when the key is removed | App implementation owner | Before API-key implementation | Kept, readable |
 | U-A6 | A person-initiated loopback reachability check (App-origin contact) | App implementation owner | Before local-provider UI | Not offered |
-| U-A7 | Which provider `modelProvider/capabilities/read` describes; model listing for local providers | Next observation (round 2 or later) | Before per-entry capability display | Limits shown as text |
-| U-A8 | Email or digest of the Codex account in act records (privacy) | DEL-04-03 with the integrator | Before act-record implementation | Supplied as reported |
-| U-A9 | K-12 levers: whether the internal environment name may be used; whether the person may turn a traffic setting back on for the App | Integrator (doctrine) | After O-7 | Settings table; "yes" proposed |
+| U-A7 | Which provider `modelProvider/capabilities/read` describes; model listing for local providers | A later observation | Before per-entry capability display | Limits shown as text |
+| U-A8 | Email or digest of the Codex account in act records (privacy) | DEL-04-03 with the integrator | Before act-record implementation | Supplied as RS `codexAccount` |
+| U-A9 | Whether the person may turn analytics back on for the App (the internal remote-control variable is settled: not used, R18-3) | Integrator (doctrine) | Before K-12 implementation | "Yes" proposed |
 | U-A10 | Whether start-up network observations enter any run record | DEL-04-03 | Before records | Diagnostics only |
-| U-A11 | The App implementation owner's participation in the K-1 choice (REQ-005 names both) | Owner | Before account integration | Decision record §3 |
-| U-A12 | `-c` session flags accepted by `app-server` | OBS-2 O-6/O-7 | Before K-12 implementation | Carrier PROPOSED |
+| U-A13 | `check_for_update_on_startup`: whether the key exists and what it stops at 0.158.0 | A later observation | Before K-12 implementation | Not set |
+| U-A14 | Whether Codex follows a linked global `AGENTS.md` and a linked `skills/` (only `config.toml` was observed through a link) | A later observation (credential-free) | Before role supply implementation (with DEL-02-04) | Linked as R18-6 says; `instructionSources` and `skills/list` show the outcome at run time |
+| U-A15 | Whether `experimentalFeature/list` lists `plugins` | A later observation | Before K-12 implementation | `config/read` and the observed default are used |
+| U-A16 | *Closed:* the four triggers are recorded in ASSESSMENT_SIWC.md and copied into §20 | — | — | — |
+| U-R3 (record) | Writes through the link | A later observation | Before configuration-write implementation | `filePath` to the target |
 
 ## Verification cases
 
@@ -756,19 +1025,22 @@ candidate exists.
 | Case | Setup | Expected | Needs | Runnable now? | Serves |
 |---|---|---|---|---|---|
 | VC-A01 ChatGPT sign-in | Candidate; H-acct signed out | Q-2 completes; conversation on `chatgpt-account` starts; `account/read` chatgpt; no credential in App storage, records or logs (custody scan) | **The person's own sign-in**; candidate | No | VER-001 |
-| VC-A02 API-key entry | Candidate; no H-key | Q-6; KE-6; API-key conversation starts on H-key; custody scan clean | **The person's key**; candidate; U-A1 | No | VER-002 |
+| VC-A02 API-key entry | Candidate; no H-key | Q-6; KE-6; API-key conversation starts on H-key; custody scan clean | **The person's key**; candidate | No | VER-002 |
 | VC-A03 Local provider | Candidate; identified local server | Q-8; conversation starts; requested = reported provider; endpoint and model identity recorded | Identified server; candidate | No | VER-003 |
 | VC-A04 All three together | VC-A01…A03 configured | One conversation per entry; each starts; the other two stay configured and selectable after each | Person; key; server; candidate | No | VER-004 |
-| VC-A05 Account-home record review | Decision record | Alternatives, choice, participants, timing; open items explicit | Review | Yes (review) | VER-005 |
-| VC-A06 API-key definition review | §10 | Each AK row traced to its standing; OI-010 open | Review | Yes (review) | VER-006 |
+| VC-A05 Account-home record review | Decision record v0.2 | Alternatives, choice, participants (L-7), timing, observed mechanism; open items explicit | Review | Yes (review) | VER-005 |
+| VC-A06 API-key definition review | §10 | Each AK row traced to its standing and version; OI-010 open | Review | Yes (review) | VER-006 |
 | VC-A07 Qualification record | Candidate records | Observed passes, failures, unverified claims distinguished; DEL-01-01 input linked | Candidate | No | VER-007 |
 | VC-A08 Substitution | Two local servers | Edit `base_url` (Q-8); conversation starts on the substitute; result recorded | Two servers; candidate | No (model: routing only) | VER-008 |
-| VC-A09 Handoff review | §11 and the fixture | Interface distinction, limits, no conformance claim | Review; schema check | Yes | VER-009 |
+| VC-A09 Handoff review | §11 and the fixture | Interface distinction, limits, no conformance claim; CH-8 as a relay note | Review; schema check | Yes | VER-009 |
 | VC-A10 Act boundary | §14 | Each REQ-009 act to its owner | Review | Yes (review) | VER-010 |
-| VC-A11 Configuration link | Temporary folder, invented configuration | Write with explicit target keeps link (CL-10); write by replacement at the link path → `check:replaced` → `link-broken`, both files kept; nothing outside the folder touched | Prototype | **Yes. Ran 2026-10-01: pass (model)** | VER-004, VER-005 |
-| VC-A12 K-3 selection walk | Model | CS-1/CS-2 refuse with "run not started — no model selected"; the offer is never applied; start sends explicit provider and model; no entry switch on unavailability (NS-1) | Prototype | **Yes. Ran 2026-10-01: pass (model)** | VER-004 |
-| VC-A13 Custody scan | Model with invented canary strings standing in for a key, an auth URL and a device code | Canaries only in the frame written to the child and the transient display; absent from records, logs, snapshots, errors | Prototype | **Yes. Ran 2026-10-01: pass (model)** | VER-001, VER-002 |
-| VC-A14 Tables | This file and the model | §5 tables equal the model's, row for row | Prototype | **Yes. Ran 2026-10-01: pass (model)** | — |
-| VC-A15 Routing (K2-1) | Model | `chatgpt-account` and local entries start on H-acct; `api-key` on H-key; H-key child exists only with a key; cross-home entry change refused | Prototype | **Yes. Ran 2026-10-01: pass (model)** | VER-004 |
-| VC-A16 Network view | Model; expected list from OBS-1/1b; invented sockets (documentation addresses) | Rows carry sources; an unlisted address is shown and never blocked; settings marked "OBS-2 pending" until O-7 | Prototype | **Yes. Ran 2026-10-01: pass (model)** | — |
-| VC-A17 Schemas | Four schemas and fixtures; records the model emits | Valid valid; invalid invalid for the stated reason; every emitted record valid | Prototype | **Yes. Ran 2026-10-01: pass (model)** | VER-004, VER-009 |
+| VC-A11 Configuration links | Temporary folder, invented `config.toml`, `AGENTS.md` and `skills/` | Three links set; explicit-target write keeps the `config.toml` link (CL-10); replacement write → `link-broken`, both files kept; the App writes nothing into the linked `skills/`; nothing outside the folder touched | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-004, VER-005 |
+| VC-A12 K-3 selection walk | Model | CS-1/CS-2 refuse; the offer is never applied; start sends explicit provider and model; no entry switch on unavailability (NS-1) | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-004 |
+| VC-A13 Custody scan | Model with invented canary strings standing in for a key, an auth URL and a device code | Canaries only in the frame written to the child and the transient display; absent from records, logs, snapshots, errors | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-001, VER-002 |
+| VC-A14 Tables | This file and the model | §5 tables equal the model's, row for row | Prototype | **Yes. Ran 2026-10-02: pass (model)** | — |
+| VC-A15 Routing (K2-1) | Model | `chatgpt-account` and local entries start on H-acct; `api-key` on H-key; H-key child exists only with a key; cross-home entry change refused | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-004 |
+| VC-A16 Network view | Model; expected list from OBS-1/1b and OBS-2 O-7; invented sockets (documentation addresses) | Rows carry sources and states; remote-control row "no setting; no connection without sign-in (observed at 0.158.0)"; an unlisted address is shown and never blocked | Prototype | **Yes. Ran 2026-10-02: pass (model)** | — |
+| VC-A17 Schemas | Four schemas and fixtures; records the model emits | Valid valid; invalid invalid for the stated reason; every emitted record valid | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-004, VER-009 |
+| VC-A18 S-4 receiving review | §19 and HOSTING §8 S-4 | Every S-4 element received, used with a limit or not used by design; every "not supplied" element placed here | Review | Yes (review) | VER-007 |
+| VC-A19 Plugins follow the person (L-3) | Model; the person's setting on, off and absent; linked and fallback modes | Linked: no App plugins flag in any case; fallback: `plugins = false` only when the person's setting is off; the expected start-up rows are present only when plugins are on; the internal remote-control variable is never in the child's environment; analytics flag always set | Prototype | **Yes. Ran 2026-10-02: pass (model)** | — |
+| VC-A20 Refusal wording (R18-2) | Model | Ordinary conversation: "not started — no model selected"; message that would start a workflow run: "run not started — no model selected" | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-004 |

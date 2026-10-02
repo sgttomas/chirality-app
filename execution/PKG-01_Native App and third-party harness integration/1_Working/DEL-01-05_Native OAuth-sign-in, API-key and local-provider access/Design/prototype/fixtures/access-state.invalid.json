@@ -1,7 +1,7 @@
 {
   "description": "Invalid for one reason: the api-key entry carries an 'apiKey' element. Closed objects make any credential element invalid. The value is an invented marker, not a key.",
   "instance": {
-    "schema": "chirality.access-state/v0.1",
+    "schema": "chirality.access-state/v0.2",
     "observedAt": "2026-10-01T12:00:00Z",
     "homes": [
       {

@@ -1,7 +1,7 @@
 {
   "description": "Invalid for one reason: state 'offer-shown' with a non-null selection, i.e. the offer was applied silently (K-3).",
   "instance": {
-    "schema": "chirality.access-selection/v0.1",
+    "schema": "chirality.access-selection/v0.2",
     "conversation": "conv-0002",
     "project": "example-project",
     "state": "offer-shown",

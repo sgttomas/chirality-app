@@ -1,11 +1,11 @@
 {
-  "description": "Valid: shaped like OBS-1/1b start-up rows (redacted); addresses are documentation addresses, not observed ones.",
+  "description": "Valid (v0.2): plugins on by Codex's observed default, so the two start-up connections appear (L-3); the remote-control loop is listed as observed with no socket; one unlisted connection. Addresses are documentation addresses.",
   "instance": {
-    "schema": "chirality.access-network/v0.1",
+    "schema": "chirality.access-network/v0.2",
     "pin": "0.158.0",
     "home": "account",
     "generation": 1,
-    "remoteControlStatus": "connecting",
+    "remoteControlStatus": "disabled",
     "limits": "lower bound: connections shorter than the sampling interval may be missing; host names only where the expected list or a lookup supplies them",
     "rows": [
       {
@@ -17,15 +17,16 @@
         },
         "process": "codex",
         "phase": "start-up",
-        "purpose": "remote-control",
+        "purpose": "plugins-featured",
         "sources": [
           "app-observed",
           "expected-at-pin"
         ],
         "appSetting": {
-          "name": "features.remote_control",
-          "state": "pending-observation"
-        }
+          "name": "features.plugins",
+          "state": "follows-person-setting"
+        },
+        "standing": "observed@0.158.0 (OBS-2 O-7)"
       },
       {
         "destination": {
@@ -43,8 +44,27 @@
         ],
         "appSetting": {
           "name": "features.plugins",
-          "state": "pending-observation"
-        }
+          "state": "follows-person-setting"
+        },
+        "standing": "observed@0.158.0 (OBS-2 O-7)"
+      },
+      {
+        "destination": {
+          "host": "chatgpt.com",
+          "hostSource": "expected-list",
+          "address": null,
+          "port": 443
+        },
+        "process": "codex",
+        "phase": "start-up",
+        "purpose": "remote-control",
+        "sources": [
+          "expected-at-pin"
+        ],
+        "appSetting": {
+          "state": "no-setting"
+        },
+        "standing": "observed@0.158.0 (OBS-2 O-7): no socket without sign-in; signed in not observed"
       },
       {
         "destination": {
@@ -60,9 +80,14 @@
           "app-observed"
         ],
         "appSetting": {
-          "state": "no-setting-known"
-        }
+          "state": "no-setting"
+        },
+        "standing": "app-observed@0.158.0"
       }
-    ]
+    ],
+    "pluginsSetting": {
+      "value": "on",
+      "source": "codex-default-observed"
+    }
   }
 }

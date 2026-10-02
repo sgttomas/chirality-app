@@ -1,8 +1,8 @@
 {
   "description": "Invalid for one reason: noHostConformanceClaimed is false (an App observation presented as host conformance).",
   "instance": {
-    "schema": "chirality.access-capability-handoff/v0.1",
-    "from": "DEL-01-05/ACCESS-v0.1",
+    "schema": "chirality.access-capability-handoff/v0.2",
+    "from": "DEL-01-05/ACCESS-v0.2",
     "to": "DEL-05-01",
     "pin": "0.158.0",
     "noHostConformanceClaimed": false,

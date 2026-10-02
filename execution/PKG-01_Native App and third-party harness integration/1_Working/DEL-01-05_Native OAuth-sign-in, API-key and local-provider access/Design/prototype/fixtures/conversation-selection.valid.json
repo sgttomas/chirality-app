@@ -1,7 +1,7 @@
 {
-  "description": "Valid: K-3 offer shown, not applied; nothing selected; the person's message was refused with the R15-1 wording.",
+  "description": "Valid (v0.2): K-3 offer shown, not applied; nothing selected; an ordinary message (no workflow selected) was refused with R18-2's ordinary-conversation wording.",
   "instance": {
-    "schema": "chirality.access-selection/v0.1",
+    "schema": "chirality.access-selection/v0.2",
     "conversation": "conv-0001",
     "project": "example-project",
     "state": "offer-shown",
@@ -14,7 +14,8 @@
     },
     "refusal": {
       "reason": "no-model-selected",
-      "text": "run not started — no model selected"
+      "runRequested": false,
+      "text": "not started — no model selected"
     }
   }
 }

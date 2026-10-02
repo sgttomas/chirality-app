@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the prototype cases of DEL-01-05/ACCESS-v0.1 (VC-A11…VC-A17).
+"""Run the prototype cases of DEL-01-05/ACCESS-v0.2 (VC-A11…VC-A17, VC-A19, VC-A20).
 
 Python 3 standard library only; no Codex, no model, no network, no credential.
 Prints one line per case; exit status 0 when every result is as expected.
@@ -62,7 +62,7 @@ def vc_a12_selection():
     app.configure_local("example_lmstudio")
     c1 = app.new_conversation("example-project")
     r1 = c1.message("hello")
-    ok = (r1 == "refused" and c1.refusal["text"] == A.NO_MODEL and c1.drafts == ["hello"]
+    ok = (r1 == "refused" and c1.refusal["text"] == A.NO_MODEL_CONV and c1.drafts == ["hello"]
           and not app.thread_starts and c1.m.state == "no-selection")
     EMITTED.append(("conversation-selection", c1.record()))
     c1.choose("local-provider:example_lmstudio", "example_lmstudio", "example-model")
@@ -94,12 +94,12 @@ def vc_a12_selection():
     ok &= c1.m.state == "started" and c1.refusal["reason"] == "entry-change-not-offered"
     trace = c1.m.trace + ["|"] + c2.m.trace
     result("VC-A12", ok, "K-3 walk: refusal '%s'; offer not applied; explicit provider+model on start; "
-           "no switch on unavailability; entry change refused; trace %s" % (A.NO_MODEL, " ".join(trace)))
+           "no switch on unavailability; entry change refused; trace %s" % (A.NO_MODEL_CONV, " ".join(trace)))
 
 
 def vc_a15_routing():
     app = A.App()
-    app.read_account("chatgpt")
+    app.read_account("chatgpt", email="person@example.invalid")
     app.configure_local("example_lmstudio")
     ok = "api-key" not in app.children and app.key.state == "unknown"
     app.key.apply("read:null")
@@ -119,7 +119,9 @@ def vc_a15_routing():
     cl.message("z")
     homes = [h for h, _ in app.thread_starts]
     ok &= homes == ["api-key", "account", "account"]
-    EMITTED.append(("access-state", A.state_snapshot(app)))
+    snap = A.state_snapshot(app)
+    ok &= snap["entries"][0].get("codexAccount") == "person@example.invalid"
+    EMITTED.append(("access-state", snap))
     result("VC-A15", ok, "K2-1 routing: api-key -> H-key (created only with a key), chatgpt and local -> "
            "H-acct; homes used %s" % homes)
 
@@ -162,14 +164,16 @@ def vc_a11_link():
     under_tmp = os.path.realpath(root).startswith(tmp)
     codex_home = os.path.realpath(os.path.expanduser("~/.codex"))
     no_codex = all(not os.path.realpath(p).startswith(codex_home) for p in touched)
-    expect = [("setup", "CL-1", "linked"), ("read-through-link", True, "linked"),
+    expect = [("setup", "CL-1", "linked"), ("guidance-links", True, "linked"), ("read-through-link", True, "linked"),
               ("write-explicit-target", "CL-10", "linked"), ("write-by-replacement", "CL-4", "link-broken"),
               ("diverged-and-both-kept", True, "link-broken"), ("person-relink", "CL-7", "linked"),
-              ("backup-kept", True, "linked"), ("probe-home-separate", True, "linked")]
+              ("backup-kept", True, "linked"), ("probe-home-separate", True, "linked"),
+              ("skills-root-untouched", True, "linked")]
     ok = steps == expect and inside and under_tmp and no_codex
     shutil.rmtree(root)
     result("VC-A11", ok, "steps %s; %d paths, all inside a temporary folder under $TMPDIR (removed); "
-           "~/.codex untouched" % ([(s, r) for s, r, _ in steps], len(touched)))
+           "~/.codex untouched; config.toml, AGENTS.md and skills/ linked (R18-6); nothing written into the "
+           "linked skills root (R19-7)" % ([(s, r) for s, r, _ in steps], len(touched)))
 
 
 def vc_a16_network():
@@ -179,21 +183,63 @@ def vc_a16_network():
         {"address": "127.0.0.1", "port": 1234, "process": "codex", "phase": "turn", "model": True},
         {"address": "192.0.2.10", "port": 443, "process": "codex", "phase": "idle"},
     ]
-    view = A.network_view(observed)
+    view = A.network_view(observed, A.plugins_setting({}))
     EMITTED.append(("network-observation", view))
     purposes = [r["purpose"] for r in view["rows"]]
     unlisted = [r for r in view["rows"] if r["purpose"] == "unlisted"]
-    pending = all(r["appSetting"]["state"] == "pending-observation"
-                  for r in view["rows"] if r["purpose"] in ("remote-control", "plugins-featured", "plugin-sync"))
-    expected_only = [r for r in view["rows"] if r["sources"] == ["expected-at-pin"]]
-    view2 = A.network_view(observed, o7_settled={"features.remote_control": "turned-off-by-app"})
-    EMITTED.append(("network-observation", view2))
-    settled = [r["appSetting"]["state"] for r in view2["rows"] if r["purpose"] == "remote-control"]
-    ok = (len(unlisted) == 1 and unlisted[0]["sources"] == ["app-observed"] and pending
-          and len(expected_only) == 1 and expected_only[0]["purpose"] == "plugins-featured"
-          and settled == ["turned-off-by-app"] and "model" in purposes)
-    result("VC-A16", ok, "rows %s; unlisted shown, never blocked; expected-only row kept (not seen by "
-           "sampling: lower bound); settings 'pending-observation' until O-7, then as settled" % purposes)
+    rc = [r for r in view["rows"] if r["purpose"] == "remote-control"]
+    plug = [r for r in view["rows"] if r["purpose"] in ("plugins-featured", "plugin-sync")]
+    versioned = all("@0.158.0" in r["standing"] for r in view["rows"])
+    ok = (len(unlisted) == 1 and unlisted[0]["sources"] == ["app-observed"]
+          and len(rc) == 1 and rc[0]["sources"] == ["expected-at-pin"] and rc[0]["appSetting"]["state"] == "no-setting"
+          and "no socket without sign-in" in rc[0]["standing"]
+          and len(plug) == 2 and all(r["appSetting"]["state"] == "follows-person-setting" for r in plug)
+          and "model" in purposes and versioned)
+    result("VC-A16", ok, "rows %s; unlisted shown, never blocked; remote-control loop listed as observed "
+           "(no setting; no socket without sign-in); plugin rows follow the person's setting; every row "
+           "names its version" % purposes)
+
+
+def vc_a19_plugins():
+    inherited = {"PATH": "/usr/bin", "OPENAI_API_KEY": "INVENTED-MARKER-NOT-A-KEY",
+                 A.INTERNAL_RC: "1", "HOME": "/invented"}
+    lines, ok = [], True
+    for mode in ("linked", "own-config"):
+        for label, cfg in (("on", {"plugins": True}), ("off", {"plugins": False}), ("unset", {})):
+            env, flags, plugins = A.spawn_plan(mode, cfg, inherited)
+            want_flag = (mode == "own-config" and label == "off")
+            ok &= (("features.plugins=false" in flags) == want_flag)
+            ok &= "analytics.enabled=false" in flags
+            ok &= A.INTERNAL_RC not in env and not any(k in env for k in A.CREDENTIAL_ENV)
+            view = A.network_view([], plugins)
+            EMITTED.append(("network-observation", view))
+            has_plugin_rows = any(r["purpose"] in ("plugins-featured", "plugin-sync") for r in view["rows"])
+            ok &= has_plugin_rows == (label != "off")
+            ok &= plugins["source"] == ("app-fallback-flag" if want_flag else
+                                        "codex-default-observed" if label == "unset" else "person-config")
+            lines.append("%s/%s: flags=%s plugins=%s/%s plugin-rows=%s" % (
+                mode, label, ",".join(flags), plugins["value"], plugins["source"], has_plugin_rows))
+    result("VC-A19", ok, "L-3: " + "; ".join(lines) + "; internal remote-control variable and credential "
+           "variables never passed to the child")
+
+
+def vc_a20_wording():
+    app = A.App()
+    app.read_account("chatgpt")
+    c = app.new_conversation("w")
+    c.message("hello")
+    t1 = c.refusal["text"]
+    EMITTED.append(("conversation-selection", c.record()))
+    c.message("start the review workflow", starts_run=True)
+    t2 = c.refusal["text"]
+    EMITTED.append(("conversation-selection", c.record()))
+    ok = t1 == "not started — no model selected" and t2 == "run not started — no model selected"
+    bad = c.record()
+    bad["refusal"] = {"reason": "no-model-selected", "runRequested": True, "text": t1}
+    mismatch_rejected = bool(V.errors(bad, SCHEMAS["conversation-selection"]))
+    ok &= mismatch_rejected
+    result("VC-A20", ok, "R18-2: ordinary '%s'; workflow run '%s'; a run refusal with the ordinary wording "
+           "is rejected by the schema: %s" % (t1, t2, mismatch_rejected))
 
 
 def vc_a17_schemas():
@@ -223,6 +269,8 @@ if __name__ == "__main__":
     vc_a13_custody()
     vc_a11_link()
     vc_a16_network()
+    vc_a19_plugins()
+    vc_a20_wording()
     vc_a17_schemas()
     total, fails = len(RESULTS), RESULTS.count(False)
     print("TOTAL %d, FAIL %d" % (total, fails))

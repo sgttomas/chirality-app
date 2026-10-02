@@ -1,8 +1,8 @@
 {
-  "description": "Valid: the v0.1 content of ACCESS §11 CH-1…CH-7.",
+  "description": "Valid (v0.2): the content of ACCESS-v0.2 §11 CH-1…CH-8, all at Codex 0.158.0 unless named.",
   "instance": {
-    "schema": "chirality.access-capability-handoff/v0.1",
-    "from": "DEL-01-05/ACCESS-v0.1",
+    "schema": "chirality.access-capability-handoff/v0.2",
+    "from": "DEL-01-05/ACCESS-v0.2",
     "to": "DEL-05-01",
     "pin": "0.158.0",
     "noHostConformanceClaimed": true,
@@ -18,9 +18,9 @@
       {
         "id": "CH-2",
         "interface": "app-codex-provider",
-        "statement": "LM Studio 0.4.16 dropped namespace tools on Responses; MCP tools did not reach the model",
+        "statement": "LM Studio 0.4.16 dropped namespace tools on Responses; MCP tools did not reach the model; the delegation tools travel in the same namespace tool, so delegation does not reach an LM Studio model either",
         "standing": "observed-at-one-pair",
-        "source": "HOSTING §10.1 OB-1; F-31",
+        "source": "HOSTING §10.1 OB-1; F-31; OBS-2 O-4 (delegation part observed through an adapter, not stock behaviour; R18-9)",
         "hostMeaning": "Not a Chat Completions finding; LOOP FB-CC-1 stands"
       },
       {
@@ -62,6 +62,14 @@
         "standing": "SETTLED",
         "source": "DEL-01-05 SoW AC-009; AX-003",
         "hostMeaning": "Host qualification is separate"
+      },
+      {
+        "id": "CH-8",
+        "interface": "host-loop",
+        "statement": "ChatGPT plan billing through OpenAI's 'Sign in with ChatGPT' grant is Responses-only (published preview, read 2026-10-01)",
+        "standing": "published-only",
+        "source": "ASSESSMENT_SIWC.md; R19-4",
+        "hostMeaning": "Next-relay item, not a requirement: a host could use plan billing only if its model-interface boundary admits a Responses provider; host joins stay deferred (DECISION-3)"
       }
     ]
   }

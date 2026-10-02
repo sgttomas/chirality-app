@@ -1,18 +1,35 @@
 # Account-home decision record (OI-009)
 
-- Contribution: DEL-01-05/ACCOUNT-HOME-RECORD-v0.1 (first version)
-- Status: DECISION RECORDED AT CHOICE LEVEL (owner, DECISION-K3 K-1);
-  MECHANISM PROPOSED, to be confirmed or refused by OBS-2 O-6. Not
+- Contribution: DEL-01-05/ACCOUNT-HOME-RECORD-v0.2 (supersedes
+  DEL-01-05/ACCOUNT-HOME-RECORD-v0.1, committed at `63a6e0fa47`, file sha256
+  8761b4f9ec66e87d1a44f051e2097870da7f18d3dcd8d9bfae65387e1f9eaa9d)
+- Status: DECISION RECORDED AT CHOICE LEVEL (owner, DECISION-K3 K-1; the
+  owner is also the App implementation owner, DECISION-L L-7). MECHANISM
+  OBSERVED TO WORK AT CODEX 0.158.0 without a credential (OBS-2 O-6 M1);
+  separation of a real sign-in not observed (DECISION-L L-6: not now). Not
   implemented, not accepted as a production contract.
-- Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001`, 2026-10-01.
-  Companion: [ACCOUNT_AND_PROVIDER_ACCESS.md](ACCOUNT_AND_PROVIDER_ACCESS.md)
-  (ACCESS-v0.1), whose basis and labels apply here.
+- Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001`; v0.1 on
+  2026-10-01, v0.2 (D round 2) on 2026-10-02. Companion:
+  [ACCOUNT_AND_PROVIDER_ACCESS.md](ACCOUNT_AND_PROVIDER_ACCESS.md)
+  (ACCESS-v0.2), whose basis, labels and version rule (R19-5: every supplier
+  fact is at Codex 0.158.0 unless another version is named) apply here.
 - Serves: OUT-003 (account-home definition record), REQ-005, AC-005,
   VER-005; TBD-001; register constraint DEP-01-05-015.
 - **Not changed here:** `_Decomposition/Open_Issues.csv` still lists OI-009
   OPEN, and the ScopeOfWork's TBD-001 still says OPEN. An executor does not
-  write them (BRIEFS common rules); the return file proposes the change for
+  write them (BRIEFS common rules); the D4 return file proposes the change for
   SCA-V4-003.
+
+## Changes from v0.1
+
+| Ruling / item | Where | Change |
+|---|---|---|
+| OBS-2 O-6 (M1…M5) | §4 | M-A observed to work; M-B observed (a copy in the `sessionFlags` layer); `--profile` refused for `app-server` (new M-F); M-D not distinguishable without a credential; fallback not needed at 0.158.0; "what O-6 must show" replaced by what it showed |
+| DECISION-L L-7 (A); R19-4 | §3 | Participants: the owner is also the App implementation owner; REQ-005's reading recorded |
+| R18-6 (C-18) | §4.1 | Global `AGENTS.md` and `skills/` linked like `config.toml`; U-R1 closed |
+| DECISION-L L-1 (A); R19-4 | §5 | HOSTING U-12 per-home dimension is now firm (K2-1 adopted) |
+| DECISION-L L-6 (A) | UNRESOLVED U-R2 | Not observed now |
+| R19-5 | §4, §6 | Version named for every supplier fact; the link's working is version-bound |
 
 ## 1. The question (OI-009, SOW-132)
 
@@ -25,11 +42,11 @@ user's other Codex clients (v3's overlay home) or shares it".
 
 ## 2. Alternatives (as presented to the owner, DECISIONS_PENDING.md K-1)
 
-| Option | Sign-in | Settings, providers, MCP servers | Conversation history | Start-up traffic (HOSTING L-4, OB-9) | Effect on the person's Codex CLI | HOSTING consequences |
+| Option | Sign-in | Settings, providers, MCP servers | Conversation history | Start-up traffic (HOSTING L-4, OB-9; OBS-2 O-7) | Effect on the person's Codex CLI | HOSTING consequences |
 |---|---|---|---|---|---|---|
-| A. A Chirality home of its own | Separate | Separate: the person configures providers and MCP servers again for the App | Separate | Each App home is "fresh" once: plugin fetch (F-14); remote-control loop per home | None | §4.2 step 3 names the App home; §7.2 probe home separate; F-14 per home |
-| B. The person's existing Codex home | Shared: signing in or out in the App signs in or out for the CLI too | Shared | Shared: App threads appear to the CLI and the reverse | Same as the CLI's | The App writes sessions, state and logs into the person's home; an App sign-out ends the CLI's sign-in | §4.2 step 3 names the person's home; the probe would write into it (S-F-17) unless separate; F-18 (the person's own Codex process was present during the spike) bears directly |
-| **C. Shared settings, separate sign-in (recommended)** | Separate, custodied by Codex in an App-owned home | Shared: the App sees the person's configuration | Separate | Per App home, as A | Only person-directed configuration writes reach the person's file | §4.2 step 3 names the App home and the shared configuration; §7.2 probe home separate; F-14 per App home |
+| A. A Chirality home of its own | Separate | Separate: the person configures providers and MCP servers again for the App | Separate | Each App home is "fresh" once: plugin fetch (F-14) unless plugins are off | None | §4.2 step 3 names the App home; §7.2 probe home separate; F-14 per home |
+| B. The person's existing Codex home | Shared: signing in or out in the App signs in or out for the CLI too | Shared | Shared: App threads appear to the CLI and the reverse | Same as the CLI's | The App writes sessions, state and logs into the person's home; an App sign-out ends the CLI's sign-in | §4.2 step 3 names the person's home; the probe would write into it (S-F-17) unless separate; F-18 bears directly |
+| **C. Shared settings, separate sign-in (chosen)** | Separate, custodied by Codex in an App-owned home | Shared: the App sees the person's configuration | Separate | Per App home; follows the person's plugin setting (DECISION-L L-3) | Only person-directed configuration writes reach the person's file | §4.2 step 3 names the App home and the shared configuration; §7.2 probe home separate; F-14 per App home |
 
 The doctrine text: Root `AGENTS.md` describes the App as hosting Codex
 "against the user's shared Codex configuration and resources, with
@@ -50,99 +67,95 @@ describes C.
 > I accept 1-6, 8-9, and 11 as recommended.
 
 (DECISION-K3; custody: the owner's chat message to HELP_HUMAN, recorded in
-`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md`,
-sha256 9d18c40d…1b1b; the revision of the same day changed K-10 and K-12
-only.) K-1 as accepted reads: "Shared settings, separate sign-in
-(recommended). The App sees your Codex settings, providers and MCP servers,
-and signs in on its own. … The mechanism is designed as PROPOSED and
-confirmed by a local observation; if Codex 0.158.0 cannot do it, the design
-falls back to A and says so." R17-2 places it here.
+`_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md`;
+the revision of the same day changed K-10 and K-12 only.) K-1 as accepted
+reads: "Shared settings, separate sign-in (recommended). The App sees your
+Codex settings, providers and MCP servers, and signs in on its own. … The
+mechanism is designed as PROPOSED and confirmed by a local observation; if
+Codex 0.158.0 cannot do it, the design falls back to A and says so."
 
-**Participants (REQ-005: "the Owner with the App implementation owner").**
-The owner decided; the recommendation was HELP_HUMAN's (integrator). No
-separate App implementation owner is identified in the run records, and no
-record shows that party's participation. This record states that fact and
-does not infer it (U-A11 in ACCESS-v0.1).
+**Participants (REQ-005).** REQ-005 names "the Owner with the App
+implementation owner". DECISION-L L-7 (A), 2026-10-02: the App
+implementation owner is the owner, and the K-1 answer covers both. This
+record therefore reads REQ-005 as "the Owner, who is also the App
+implementation owner (DECISION-L L-7)" (R19-4). The recommendation was
+HELP_HUMAN's (integrator).
 
 **Timing (AC-005).** Recorded before any account integration: no App
 candidate or account code exists in v4 (`_STATUS.md` of DEL-01-05:
 INITIALIZED).
 
-## 4. Mechanism (PROPOSED; OBS-2 O-6 pending)
+## 4. Mechanism (observed at Codex 0.158.0)
 
-**Supplier facts.** The Codex home is selected by `CODEX_HOME` (HOSTING §4.2;
-OBS-1 §2; `InitializeResponse.codexHome`). The user configuration layer is a
-file in that home: `ConfigLayerSource` `user {file, profile}` ("the path to
-the user's config.toml file, though it is not guaranteed to exist"); other
-layers include `system`, `project`, `sessionFlags`, managed and MDM layers
-(`observed-in-generated-types`). `config/value/write` and `config/batchWrite`
-accept an explicit `filePath` ("defaults to the user's config.toml when
-omitted") and `expectedVersion` (`observed-in-generated-types`). No
-environment variable in the binary's strings names a separate configuration
-file location (`strings-in-binary`, by search of the `CODEX_*` names: only
-`CODEX_HOME` and `CODEX_SQLITE_HOME` relate to locations). Credentials are
-stored per home (`auth.json` in the strings; store modes in the generated
-types); whether a `keyring` entry is keyed per home is not observed.
+**Supplier facts at 0.158.0.** The Codex home is selected by `CODEX_HOME`
+(HOSTING §4.2; OBS-1 §2; `InitializeResponse.codexHome`). The user
+configuration layer is a file in that home: `ConfigLayerSource` `user {file,
+profile}`; other layers include `system`, `project`, `sessionFlags`, managed
+and MDM layers (`observed-in-generated-types`). `config/value/write` and
+`config/batchWrite` accept an explicit `filePath` and `expectedVersion`
+(`observed-in-generated-types`). No environment variable in the binary's
+strings names a separate configuration file location (`strings-in-binary`).
+The effective default credential store is `file` (OBS-2 O-6 M0–M2), so a
+separate `CODEX_HOME` gives separate credential storage by construction
+(`inference` from that default and the file name `auth.json` in the strings;
+not observed with a credential).
 
-**Mechanisms considered:**
+**Mechanisms and what OBS-2 O-6 showed (2026-10-01; scratch homes; no
+credential anywhere; `config/read` and `account/read` only):**
 
-| ID | Mechanism | Sharing | Separation of sign-in | Risks | Assessment |
-|---|---|---|---|---|---|
-| M-A | App-owned home whose `config.toml` is a **symbolic link** to the person's configuration file | Live: edits by either side are seen by both | By home (credential store in the App home) | A write that replaces the file at the link path breaks the link silently (F-A3) → writes pass `filePath`, link checked (ACCESS §5.5); only `config.toml` is shared, not other home resources (§4.1) | **PROPOSED** |
-| M-B | App-owned home; the person's settings passed as `-c` flags at each spawn | Snapshot at spawn; edits in the App cannot go back | By home | Settings visible in the process list; changes made in the CLI need a restart; large flag sets | Set aside |
-| M-C | App-owned home with a **copy** of the person's file | Snapshot; divergence | By home | Silent divergence | Set aside (it is option A with an initial copy) |
-| M-D | The person's own home with `cli_auth_credentials_store = "ephemeral"` set for the App | Full | Only if ephemeral mode never reads the stored sign-in (not observed) | App threads and logs written into the person's home (B's history effect); an App logout might remove the stored credential (strings: "Failed to remove auth.json"); sign-in lost each start | Set aside |
-| M-E | Option A (own configuration) | None | By home | The person configures twice | **Fallback** (K-1) |
+| ID | Mechanism | O-6 result at 0.158.0 | Assessment |
+|---|---|---|---|
+| M-A | App-owned home whose `config.toml` is a **symbolic link** to the person's | **Works** (M1): the second home reads the first's values; the user layer is named by the second home's path; `account/read` → `account: null`, `requiresOpenaiAuth` false; the first home's file byte-identical before and after | **Chosen** |
+| M-B | App-owned home; the person's settings passed as `-c` flags at each spawn | Works as a **copy** (M2): the values appear in a `sessionFlags` layer above an empty user layer; the App would have to read and re-send the person's file | Set aside for sharing; `-c` is the carrier for the App's own settings (ACCESS §9) |
+| M-C | App-owned home with a copy of the person's file | Not run | Set aside (option A with an initial copy; silent divergence) |
+| M-D | The person's own home with `cli_auth_credentials_store = "ephemeral"` or `"keyring"` for the App | Runs (M4, M5); separation of authentication **not distinguishable** without a credential | Set aside (writes the App's history into the person's home) |
+| M-F | `codex --profile <name> app-server` | **Refused at launch** (M3): `--profile` "only applies to runtime commands and `codex mcp`" | Not available |
+| M-E | Option A (own configuration) | — | Fallback, **not needed at 0.158.0**; kept for a later version where `config/read` no longer shows the linked file as the user layer (ACCESS CL-3, §18) |
 
-**What O-6 must show for M-A (R17-16 O-6: "observed by `config/read` and
-`account/read` only"):** in two scratch homes, the first with an invented
-configuration, the second empty except for the link, `config/read
-{includeLayers: true}` on the second returns the first's values with the
-user layer's `file` naming the link path (or its target), and `account/read`
-on the second returns `account: null` while the second has no credential.
-Separation of a *real* sign-in cannot be observed under K-11 (no sign-in);
-it rests on the per-home credential store (`inference` for `keyring`).
+**Still not observed:** writes through the link (O-6 did not exercise
+`config/value/write` or `config/batchWrite`; through a symlink they would
+land in the person's file, `inference`), hence the App writes with an
+explicit `filePath` to the resolved target (ACCESS Q-8, F-A3; U-R3); and
+the separation of a real sign-in between homes (L-6; U-R2).
 
-**Fallback rule.** If O-6 shows that the linked file is not read as the user
-layer, or that 0.158.0 refuses the link, the App uses M-E (option A) and its
-settings view says "the App keeps its own Codex settings at <path>; your
-Codex CLI settings are not used" (ACCESS CL-3). If O-6 is inconclusive, the
-cell stays OBS-2 pending; nothing falls back silently.
-
-### 4.1 What is shared and what is the App's own (PROPOSED)
+### 4.1 What is shared and what is the App's own
 
 | Resource in a Codex home | Under M-A | Reason |
 |---|---|---|
-| `config.toml` (settings, model providers, MCP servers, features, profiles) | Shared (link) | K-1 names settings, providers and MCP servers |
+| `config.toml` (settings, model providers, MCP servers, features including `plugins`, profiles) | Shared (link); **observed read** at 0.158.0 | K-1 names settings, providers and MCP servers; L-3 follows the person's plugin setting through it |
+| Global `AGENTS.md` | Shared (link), **R18-6** | So that Codex's native discovery in the App matches the person's Codex; `instructionSources` records what Codex reports. Following a linked file not observed (U-A14) |
+| `skills/` | Shared (link), **R18-6**; the App writes nothing into it (R19-7) | As above. OBS-3: every discovered skill in `$CODEX_HOME/skills` is advertised in every model request of that home (ACCESS F-A9). Following a linked folder not observed (U-A14) |
+| Prompts, rules and other files of the person's home | Not linked | R18-6 names `AGENTS.md` and skills only |
 | Credentials (`auth.json` or keyring entry) | App's own, per App home | K-1 separate sign-in; V4-ARC-04 custody by Codex |
 | Sessions, thread history, state and log databases | App's own | Not settings; option C separates history |
-| Plugin cache and sync state (`.tmp/plugins`, `plugins.sha`) | App's own | Supplier working state (F-14 per App home) |
-| Global `AGENTS.md`, skills and prompts in the home | **Not linked at v0.1** (U-R1) | Supplied guidance is DEL-02-04's (K-9, S-6); linking the person's global instructions would add an unrecorded guidance input to every App conversation; DEL-02-04 decides |
-| Installation identity | App's own | It is per home; OB-9 logged it beside the remote-control lines |
+| Plugin cache and sync state (`.tmp/plugins`, `plugins.sha`) | App's own | Supplier working state (F-14 per App home, when plugins are on) |
+| Installation identity | App's own | Per home; sent to the provider in `client_metadata` (OBS-2 §11) |
 
 ## 5. Consequences for the first-increment files (join list; node F edits)
 
 | File, section | Was | Now needed |
 |---|---|---|
-| HOSTING §4.2 step 3 | "account-home/environment element is `UNRESOLVED{OI-009}`" | K-1 decided (C); the spawn environment carries `CODEX_HOME=<App home>` (H-acct; H-key under K2-1); mechanism M-A PROPOSED, O-6 pending; fallback A |
-| HOSTING §7.2 | "Which home the label probe uses … is part of U-03/OI-009" | A separate App-owned probe home (H-probe); never an account home and never the person's home |
-| HOSTING H9 | "The account-home element remains `UNRESOLVED{OI-009}`" | Decided; settings are carried from the person's own configuration through the link; the App's session flags carry only the K-12 traffic settings (ACCESS §9) |
-| HOSTING F-14 | "a separate App account home would be 'fresh' at least once per home" | Stands, per App home (H-acct, H-key); whether the plugins feature setting stops the fetch is O-7 |
-| HOSTING F-18 | Relevant to OI-009, no conclusion | Under C the App never writes the person's home except by person-directed configuration writes |
-| HOSTING U-03 | Open | Closed at choice level; mechanism open until O-6 |
-| HOSTING U-12 | "One active child assumed" | Under K2-1 one child per App account home (ACCESS §4): a per-home dimension (R17-2: reported, not restructured here) |
+| HOSTING §4.2 step 3 | "account-home/environment element is `UNRESOLVED{OI-009}`" | K-1 decided (C); spawn with `CODEX_HOME=<App home>` per App-owned account home (H-acct; H-key, K2-1 adopted, L-1); the person's `config.toml`, `AGENTS.md` and `skills/` linked (M-A observed for `config.toml`, O-6 M1; R18-6 for the other two); the App's session flags by `-c` (O-6 M2) |
+| HOSTING §7.2 | "Which home the label probe uses … is part of U-03/OI-009" | A separate App-owned probe home H-probe, with no links |
+| HOSTING H9 | "The account-home element remains `UNRESOLVED{OI-009}`" | Decided; settings carried from the person's configuration through the link |
+| HOSTING F-14 | "a separate App account home would be 'fresh' at least once per home" | Per App home, and only when the person's plugins are on (O-7 v8: with `plugins = false` a cold home creates no `.tmp/` and fetches nothing) |
+| HOSTING F-18 | Relevant to OI-009, no conclusion | Under C the App writes the person's home only by person-directed configuration writes |
+| HOSTING U-03 | Open | Closed at choice level; mechanism observed (O-6 M1); separation with a credential not observed |
+| HOSTING U-12 | "One active child assumed" | One child per App-owned account home (K2-1 adopted, DECISION-L L-1; R19-4); generation identity {App session, App home, spawn counter} (R18-1 C-20) |
 
 ## 6. Status line for OI-009
 
-Choice: **made** (owner, DECISION-K3 K-1, 2026-10-01: option C).
-Mechanism: **PROPOSED** (M-A), pending OBS-2 O-6; fallback A on refusal.
-Open: the App implementation owner's participation (U-A11); the global
-guidance resources (U-R1, with DEL-02-04).
+Choice: **made** (owner, who is also the App implementation owner;
+DECISION-K3 K-1 and DECISION-L L-7). Mechanism: **observed to work at Codex
+0.158.0** (M-A, O-6 M1), without a credential. Open: writes through the link
+(U-R3); a real sign-in's separation (U-R2, deferred by L-6); whether Codex
+follows linked `AGENTS.md` and `skills/` (ACCESS U-A14). Version-bound:
+rechecked at each version advance (R19-5).
 
 ## UNRESOLVED
 
 | ID | Item | Owner | Point of need |
 |---|---|---|---|
-| U-R1 | Whether the App's Codex sees the person's global `AGENTS.md`, skills and prompts | DEL-02-04 with the integrator | Before role supply implementation |
-| U-R2 | Whether a `keyring` credential entry is separated per home | Observation with a sign-in (owner, K-11) | Before account integration |
-| U-R3 | How Codex writes `config.toml` (in place or by replacement) through a link | OBS-2 (not in O-6's read-only scope) or a later observation | Before configuration-write implementation |
+| U-R1 | *Closed (R18-6):* the person's global `AGENTS.md` and skills are linked into the App homes | — | — |
+| U-R2 | Whether a credential store (`file` per home, or `keyring`) keeps two homes' sign-ins apart, observed with a credential | Owner: not now (DECISION-L L-6) | Before account integration, if the design needs it |
+| U-R3 | How Codex writes `config.toml` (in place or by replacement) through a link | A later observation | Before configuration-write implementation |

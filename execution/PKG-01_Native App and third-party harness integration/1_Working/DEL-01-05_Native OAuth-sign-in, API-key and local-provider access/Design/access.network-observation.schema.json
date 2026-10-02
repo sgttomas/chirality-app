@@ -1,61 +1,212 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "chirality:app-v4:DEL-01-05:access.network-observation:v0.1",
-  "title": "Supplier network observation (PROPOSED, DEL-01-05/ACCESS-v0.1 §9, §15)",
+  "$id": "chirality:app-v4:DEL-01-05:access.network-observation:v0.2",
+  "title": "Supplier network observation (PROPOSED, DEL-01-05/ACCESS-v0.2 §9, §15)",
   "description": "What the App knows of its own Codex child's connections (K-12): its own sampling of the process tree and the per-pin expected list. App-observed diagnostics; never run evidence, never authority for what Codex sent.",
   "type": "object",
-  "required": ["schema", "pin", "home", "generation", "limits", "rows"],
+  "required": [
+    "schema",
+    "pin",
+    "home",
+    "generation",
+    "pluginsSetting",
+    "limits",
+    "rows"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema": {"const": "chirality.access-network/v0.1"},
-    "pin": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
-    "home": {"enum": ["account", "api-key", "probe"]},
-    "generation": {"type": "integer", "minimum": 1},
-    "remoteControlStatus": {"enum": ["disabled", "connecting", "connected", "errored", "not-reported"]},
-    "limits": {"const": "lower bound: connections shorter than the sampling interval may be missing; host names only where the expected list or a lookup supplies them"},
-    "rows": {"type": "array", "items": {"$ref": "#/$defs/row"}}
+    "schema": {
+      "const": "chirality.access-network/v0.2"
+    },
+    "pin": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "home": {
+      "enum": [
+        "account",
+        "api-key",
+        "probe"
+      ]
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "remoteControlStatus": {
+      "enum": [
+        "disabled",
+        "connecting",
+        "connected",
+        "errored",
+        "not-reported"
+      ]
+    },
+    "limits": {
+      "const": "lower bound: connections shorter than the sampling interval may be missing; host names only where the expected list or a lookup supplies them"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/row"
+      }
+    },
+    "pluginsSetting": {
+      "type": "object",
+      "required": [
+        "value",
+        "source"
+      ],
+      "additionalProperties": false,
+      "description": "DECISION-L L-3: the App follows the person's plugin setting",
+      "properties": {
+        "value": {
+          "enum": [
+            "on",
+            "off"
+          ]
+        },
+        "source": {
+          "enum": [
+            "person-config",
+            "codex-default-observed",
+            "app-fallback-flag"
+          ]
+        }
+      }
+    }
   },
   "$defs": {
     "row": {
       "type": "object",
-      "required": ["destination", "process", "phase", "purpose", "sources", "appSetting"],
+      "required": [
+        "destination",
+        "process",
+        "phase",
+        "purpose",
+        "sources",
+        "appSetting",
+        "standing"
+      ],
       "additionalProperties": false,
       "properties": {
         "destination": {
           "type": "object",
-          "required": ["port"],
+          "required": [
+            "port"
+          ],
           "additionalProperties": false,
           "properties": {
-            "host": {"type": ["string", "null"]},
-            "hostSource": {"enum": ["expected-list", "lookup", "none"]},
-            "address": {"type": ["string", "null"]},
-            "port": {"type": "integer", "minimum": 0}
+            "host": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hostSource": {
+              "enum": [
+                "expected-list",
+                "lookup",
+                "none"
+              ]
+            },
+            "address": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
-        "process": {"type": "string", "minLength": 1},
-        "phase": {"enum": ["start-up", "sign-in", "turn", "idle"]},
-        "purpose": {"enum": ["remote-control", "plugins-featured", "plugin-sync", "analytics", "update-check", "model", "sign-in", "unlisted"]},
+        "process": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase": {
+          "enum": [
+            "start-up",
+            "sign-in",
+            "turn",
+            "idle"
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "remote-control",
+            "plugins-featured",
+            "plugin-sync",
+            "analytics",
+            "update-check",
+            "model",
+            "sign-in",
+            "unlisted"
+          ]
+        },
         "sources": {
           "type": "array",
           "minItems": 1,
-          "items": {"enum": ["app-observed", "expected-at-pin"]}
+          "items": {
+            "enum": [
+              "app-observed",
+              "expected-at-pin"
+            ]
+          }
         },
-        "firstSeen": {"type": "string"},
-        "lastSeen": {"type": "string"},
+        "firstSeen": {
+          "type": "string"
+        },
+        "lastSeen": {
+          "type": "string"
+        },
         "appSetting": {
           "type": "object",
-          "required": ["state"],
+          "required": [
+            "state"
+          ],
           "additionalProperties": false,
           "properties": {
-            "name": {"type": "string", "minLength": 1},
-            "state": {"enum": ["turned-off-by-app", "turned-on-by-person", "no-setting-known", "not-applicable", "pending-observation"]}
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state": {
+              "enum": [
+                "follows-person-setting",
+                "turned-off-by-app",
+                "no-setting",
+                "not-applicable"
+              ]
+            }
           }
+        },
+        "standing": {
+          "type": "string",
+          "pattern": "@[0-9]+\\.[0-9]+\\.[0-9]+",
+          "description": "R19-5: the statement names its supplier version, e.g. 'observed@0.158.0 (OBS-2 O-7)'"
         }
       },
       "allOf": [
         {
-          "if": {"properties": {"purpose": {"const": "unlisted"}}},
-          "then": {"properties": {"sources": {"items": {"const": "app-observed"}}}}
+          "if": {
+            "properties": {
+              "purpose": {
+                "const": "unlisted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "sources": {
+                "items": {
+                  "const": "app-observed"
+                }
+              }
+            }
+          }
         }
       ]
     }
