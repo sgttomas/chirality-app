@@ -104,3 +104,10 @@ lists what the next relay should carry when the owner resumes UI-SUCCESSOR.
 - **Open on the App side and relevant to SWBPIPE:** the caller naming and the
   per-batch Apply against the App's per-item completion rule (DEL-09-09 XT
   F-18). The full list is the "next relay" row in RELAY's UNRESOLVED table.
+- **Plan billing for a host's agent (run APP-V4-DESIGN-PASS-3-20261001; LOOP-v0.9 NR-L1; ACCESS-v0.2 §11 CH-8).**
+  OpenAI's "Sign in with ChatGPT" lets an open-source, locally hosted app run
+  model requests on a person's ChatGPT Plus or Pro plan, through the Responses
+  API only. The host loop uses Chat Completions (V4-ARC-10), so a host could
+  use plan billing only if the model-interface boundary (R12-11) admits a
+  Responses provider. Information for the next relay; no requirement.
+  Added 2026-10-02.
