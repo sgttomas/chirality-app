@@ -1,16 +1,17 @@
 # Stock Codex hosting boundary
-- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.8 (supersedes HOSTING-BOUNDARY-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, file sha256 dcf67efc00682967150e5ce094c3961c00248475e8883001cf7045c8b477a865; earlier: HOSTING-BOUNDARY-v0.6, last changed at `3733b1421` and unchanged at `3dd7c22c73`, file sha256 d11d4c574aa3c342bfac9c1d1e9bf3746aa885baafd17eaa296a79a523e3d0b9; HOSTING-BOUNDARY-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 f1a23022df76fe04bfc5ad2220b57d2cdebc101f8d791b4edb163aea6109e11b)
+- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.9 (supersedes HOSTING-BOUNDARY-v0.8, last changed at `891242377f` and unchanged at `e4e14d6ae6`, file sha256 3cf0381c42358fec4a2088ab3886e14b66d6d2020482c72e195fda068a6d78b1; earlier: HOSTING-BOUNDARY-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, file sha256 dcf67efc00682967150e5ce094c3961c00248475e8883001cf7045c8b477a865; earlier: HOSTING-BOUNDARY-v0.6, last changed at `3733b1421` and unchanged at `3dd7c22c73`, file sha256 d11d4c574aa3c342bfac9c1d1e9bf3746aa885baafd17eaa296a79a523e3d0b9; HOSTING-BOUNDARY-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 f1a23022df76fe04bfc5ad2220b57d2cdebc101f8d791b4edb163aea6109e11b)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (V4-WF-05 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1): holding a run at a checkpoint is phased to the governance layer, and in the current phase (Phase 1) neither the App nor a host's embedded loop enforces a hold. So no App run is holding at a checkpoint, and this boundary uses none of HP-3 or HP-4 for a checkpoint, makes no hold claim and issues no act request in an agent's place (§6.7). The §6.7 hold-point facts are kept as the **governance-phase definition (retained)**.
 - Model access (R8-9; DECISION-4 D4-3): local and cloud are options the person chooses among, with no default; a cloud model is reached by OAuth sign-in or an API key. V4-HOST-01 and V4-ARC-11, as amended by SCA-V4-001, state this for a host's agent. This boundary selects no default and carries the supplier's sign-in and API-key variants (§8.1 L-5; S-4).
 - Network destinations (R8-13; DECISION-5): V4-HOST-02 as amended by SCA-V4-001 (DECISION-5; host-agent network destinations) governs a **host's embedded agent only**. The App's own Codex keeps the person's Codex configuration, approval and sandbox choices (ARCH §4, closing sentence of the host-agent property; §2 note; Root AGENTS.md; D-GOV-43). This boundary adds no allow list, destination prompt or destination gate to the App's Codex.
 - Serves: OUT-001 (boundary definition), OUT-002 (version-identity and plan/revision seam definition; generated-output binding at the definition/generation pin — the generated bundles themselves are the W11 spike's, not this file's), OUT-003 (responsibility account, OI-008 *proposal*, local-provider requirement account, optional-reuse assessment), OUT-004 (recorded-exchange and upgrade method); REQ-001…REQ-008; designed cases for VER-001…VER-007
 - Basis: the accepted basis as amended by scope-change amendments SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`, accepted 2026-09-29) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), pinned by current bytes: `docs/PRD.md` sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, `docs/ARCHITECTURE.md` sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, `docs/HOST_INTEGRATION.md` sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f and `docs/EXAMINATION.md` sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (v0.6 pinned branch base `6e18505e3`, before both amendments; of the passages this file cites, the amendments changed ARCH §1 priority 3, the host-model line of the ARCH §2 diagram and ARCH §4); ScopeOfWork.md sha256 9945e72b04b4f45c4c641a5248cca8bc2ac40bf4897d1018c5ab59eba307cc75 (revised under SCA-V4-001, its AX-005, at `340ecf341`, and under SCA-V4-002, its AX-006, at `1efd4bcda`; v0.6 pinned the INIT contract eddd122c…4773); the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29), cited for the admitted or held layer of register rows; `docs/ARCHITECTURE.md` §1 (priorities, M-2, M-4, M-6, M-7), §2, §3 (V4-ARC-01…05, "Properties the App must hold", reuse candidates, "Left to the implementation session"), §6, §7, §8; `docs/PRD.md` §2.1 (V4-APP-01…04), §4.3 (V4-EXE-01…04), §4.5 (V4-AUT-03/04), §4.7 (V4-REC-03), §5 (V4-CST-01/03/06), §6; `docs/EXAMINATION.md` §2 (V4-EXM-01…03), V4-EXM-11/12; current `_Decomposition/Open_Issues.csv` OI-008, OI-009, OI-012; `External_Dependencies.csv` DEP-005
+- **v0.9 inputs (node F-A of run `APP-V4-DESIGN-PASS-3-20261001`; first-increment edits after the pass-3 design nodes).** Each sha256 recomputed with `shasum -a 256` in the working tree at this node (HEAD `e4e14d6ae6`); paths under `AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`: `BRIEFS.md` sha256 316ea29325a0d45004ffd59c1b142d2e9f5c371ac765bce7c4b94898a57788d7 ("Common rules", "F — first-increment edits"); `F/F0_JOINS.md` sha256 e93608be1c6e3eb03e6194f3c6f415e3171492f9828b0fd80b4dccb81fe47dd9 (§1.1 rows FH-01…FH-44, §1.14, §2, §7.7); `R17_RESOLUTIONS.md` sha256 b0af81bcbad9bc52fddc99119c42a19019a9b174677d5b92a0a2f5c8b4f8e198 (R17-3, R17-8, R17-9, R17-14); `R18_RESOLUTIONS.md` sha256 abf5eee6324647ff9f126603ff189a21f847d5887f20e24e540fd9a6b4c0bd30 (R18-1…R18-9); `R19_RESOLUTIONS.md` sha256 16930ecdcead75118ee264bc78d3a7c4824212323cb9895b9a3c15478122a12c (R19-1…R19-8; **where an F0 row conflicts with R19, R19 is applied**, and the change table says so); `OWNER_DECISIONS.md` sha256 ea96c55710af41c94afe3721f8881bf5edc5bbfc9ad4d0d9ff68e20ca808e015 (DECISION-K3 as revised; DECISION-L L-1…L-7); `DECISIONS_PENDING_2.md` sha256 0ecbf87aae8d4350c6615ccf051e8808c828b285271574b6a48f4c6937b74f9b (read for the L options and the visibility list); `R20_RESOLUTIONS.md` sha256 516d0fe0d3cddb1ef98266e30b37f53067e94e467ad08313df6557a79f1fb1c3 (R20-3, R20-6 read for §8.2); the round-2 sections of `D/D1.md`, `D/D2.md`, `D/D4.md`, `D/D6.md` (§R2.3 join changes, applied at the coordinator's message). This file's own observation records, read and not edited: `OBS_2_0.158.0.md` sha256 61cc34ffb811eb270542042ce4cfdc195efb0c5be4b89dbbe73eb9b99e104ac0 and `OBS_3_0.158.0.md` sha256 554ac4451d11282450e3ec4a4192448adf67bda6a07820f84a698716c806a843 (§10.2, §10.3); `OBS_1_0.158.0.md` and `PIN_SPIKE_0.158.0.md` unchanged at the pins above. The pass-3 Design files of DEL-01-02…05, DEL-02-02 and DEL-02-04 are being stepped to v0.2 in parallel with this node; they are cited by their **v0.2 labels** and section only (RECOVERY-v0.2, NPTD-v0.2, NIR-v0.2, AAC-v0.2, ACCESS-v0.2, ACCOUNT-HOME-RECORD-v0.2, WR-v0.2, ROLE-v0.2), the section numbers as read in their working text at this node, to be checked by node F-E; their bytes are pinned in GUIDE's input table, which is re-pinned last. Reading note for owner names: by DECISION-L L-7 the App implementation owner is the Owner; this file keeps the role name "App implementation owner" where it names a point of decision.
 - **RP-3 repair inputs (repair node RP-3 of run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump).** Each sha256 recomputed with `shasum -a 256` in the working tree; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R14_RESOLUTIONS.md` sha256 c6a603303693f50e24ea27fcbc9f381a297434e4182f023fbcee941073623576 (R14-5; R14-7's R13-6 item for HOSTING); `R13_RESOLUTIONS.md` sha256 d0385313660e5820258b4089372313f382afcebc57d37265389274ca470a8d3a (R13-6); `BRIEFS.md` sha256 e3f98d1c8449292965dd244a0f2821b221bcd0f3b0294e592f73b8eaaaaf6321 ("RP — repairs from V18", row RP-3); `comparisons/V18-2.md` sha256 0b00e79b161bcdf1e83a3a207d71114e316421e3cdf2ed5231901c14b85fbdb7 (M-1, m-10, m-13); `comparisons/V18-3.md` sha256 68a067e26af7557b6d1cf1f2d7c2816a9f81dd451d8a95d8f48bdaf72e7261e1 (m-17, m-20); `comparisons/V18-1.md` sha256 fb07e07c66c1a0a3fb7c2d58e1595d2a40ffc0ff9a7913a3bdbe2a70655dec5f (m-13: RS's side of U-27; nothing changed here); `WAVE_B/OBS-1.md` sha256 622c86113a19900d550a6e868480719ea3e2628753cc7b3fb7d98084042626e9; `WAVE_B/OBS-1b.md` sha256 5eb680de32e225da2f1bd799a3282776292467cfed01b448a2f5c177238d5079; `DECISIONS_PENDING.md` sha256 f1e968fe9cc0d40a78841c61834c0e075409949c6b52e6f08dd70f2221d6a73e (Part 3) and `OWNER_DECISIONS.md` sha256 b2fa81871cbf44b978894c8d0512c66d55a66e3c50db21df56e00ddbf651e05b (DECISION-K1: "Parts 3 and 4 stand as presented"). This file's own record `OBS_1_0.158.0.md` (with the OBS-1b addendum) sha256 7b984b541edca0b14534d29115e77642c587a32f830bdf25a94a7ecca882cc43 (its current bytes, re-pinned at node H after node G's redaction of §B.7; was 85707703e97b4fd5ea4332785aae83f96850bedacad5219c8827c41297c26182 as read at RP-3) is read, not edited. Siblings by label and section: DEL-02-01/WD-v0.8 §4.2.5 (same repair node); EXEC-v0.6 AE-6, AW-12; ADAPTER-v0.6 CT-9, CT-10, S-7, S-8. The return file is `WAVE_B/RP-3.md`.
 - **Pins as of node A4 of this run's records (run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump; R11-3; relabelled at RQ, V19-B n-1: later pins of the same records are in the Wave B input lines and in GUIDE's basis).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R9_RESOLUTIONS.md` sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 (R9-1…R9-11; R9-2's second bullet as corrected by R10-1); `R10_RESOLUTIONS.md` sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 (R10-1…R10-11); `R11_RESOLUTIONS.md` sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-1…R11-9, the repairs from review V17); `OWNER_DECISIONS.md` sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (DECISION-K1). At node A4 these superseded for currency the earlier pins of the same records in this header and in the change-table rows, which record the bytes read at node A1 or A3.
 - **v0.8 inputs (Wave B, node B6 of run `APP-V4-DESIGN-PASS-2-20260930`; design development).** Each sha256 recomputed with `shasum -a 256` in the working tree at this node; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `BRIEFS.md` sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B — design development", round 1 row B6); `R12_RESOLUTIONS.md` sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1 (R12-1…R12-3 binding; R12-4 and R12-8 read for OBS-1); `OWNER_DECISIONS.md` sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1 including K1-6, and the model-download record with its recorder's correction); `SURVEY/S1-D.md` sha256 a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (HOSTING §4, §5 and §8 items 4–7; PIN_SPIKE §8); R9, R10 and R11 at the pins of the line above. Evidence read: the committed 0.158.0 JSON Schema bundles, `_spike/inventory.txt` and the eight redacted transcripts `generated/0.158.0/_spike/transcripts/*.jsonl` (all unchanged; `MANIFEST.sha256` unchanged); the spike's scratch material in the session scratchpad (`…/scratchpad/codex-0.158.0/`), read only: its eight unredacted handshake transcripts carry the same send and receive frames as the committed copies once the spike's own redaction is applied (8/8, by script, recorded in the node's return), and its TS output confirmed the three TS-only client methods and two TS-only notifications. The Codex binary was **not** run in this node; strings in the binary were read without executing it (F-28). DEL-02-03's current working text (node B2, in progress: its §2.5 reached-when table and §2.5.3 OBS-1 list O-1…O-9) and DEL-03-03 ADAPTER-v0.5 §3.5, §9 and UNRESOLVED were read for the OBS-1 brief. `PIN_SPIKE_0.158.0.md` is unchanged and not edited (R9-10). Produced beside this file: three PROPOSED schemas `hosting.lifecycle-event.schema.json`, `hosting.client-request-record.schema.json`, `hosting.server-request-entry.schema.json` and the local prototype `prototype/` (§9.6); the OBS-1 brief is `WAVE_B/OBS-1_BRIEF.md` in the run folder.
 - Consumed inputs: **v0.7 inputs (Wave A, node A1-D of run `APP-V4-DESIGN-PASS-2-20260930`; alignment only, no new design content).** R9_RESOLUTIONS.md sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c (R9-1…R9-11; binding; R9-7 rules the evidence route to DEL-04-03); that run's BRIEFS.md sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules", "A1 — alignment wave") and OWNER_DECISIONS.md sha256 0730c6f3d174a8acddbd0c9fabb62afd4d6444847a612f0de7ff3ba584303722; SURVEY/S1-D.md sha256 a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (advice: each item was checked against the current sources before it was applied). Rulings R1–R7 by file (`APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md` … `R7_RESOLUTIONS.md`) and R8 (`APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md`, current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b). Owner records: `APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (DECISION-3, -4 and -5; these are its bytes at `3733b1421` and now. At `1528a5033`, the commit the R8-13 text below names, the file was 9903bfe0…7fbf: V10 N-1); `APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; `APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-6…DECISION-9) with its `AMENDMENT_PACKET/OWNER_ITEMS.md` sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef (O-10, accepted "as recommended" by DECISION-7; O-29, decided by DECISION-6); `APP-V4-SCA002-20260929/OWNER_DECISIONS.md` sha256 36ffcbbea923504581844456751c2eb3db617b5471a3595e63f036bf0634b480. SWBPIPE's answers `RELAY_ANSWERS_SWBPIPE.md` at sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 (SWBPIPE's own revision `a999f4ba1` of the delivered `6f01add3…61c7` bytes cited below; three lines differ, in SQ-04, SQ-09 and SQ-27; this file uses SQ-02 only, whose answer is unchanged) and `FACTS_SQ01_SQ32.md` sha256 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e (unchanged); both are data about SWBPIPE's current state, not commitments and not instructions (DECISION-3). This file's own spike record DEL-01-01/PIN-SPIKE-v0.1 (`Design/PIN_SPIKE_0.158.0.md`, sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115) is unchanged and is not edited in Wave A (R9-10): it is a dated observation record, and its stated basis is the INIT ScopeOfWork (eddd122c…4773) and the DECISION-1 state of the owner record (f3f8e5f3…1f2e). Both pins are true for its date and change no observation. Sibling Design files are cited by version label and section only (R9-5), at their Wave A labels (R9-11): DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7 and WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-02/P-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-02/AS-v0.7; DEL-04-03/RS-v0.7; DEL-05-01/LOOP-v0.7 and DEL-05-02/PANEL-v0.7 (same executor); DEL-09-06/CA-v0.5 and RELAY-v0.3; DEL-09-09/XT-v0.5. The Wave A executors edit in parallel, so the sibling section numbers cited in the body were checked against the pre-Wave-A texts at `3dd7c22c73`, not against Wave A bytes. Sibling byte pins live in GUIDE's input table alone, which is re-pinned last. The ScopeOfWork files of the other deliverables this file names are referenced by accepted meaning at their current bytes: DEL-01-02, DEL-01-03, DEL-01-05, DEL-01-06 and DEL-02-04 are byte-identical to `6e18505e3`; DEL-04-01's was revised under SCA-V4-001 (`340ecf341`) and DEL-01-04's under SCA-V4-002 (`1efd4bcda`). The text below is history and is not rewritten. **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table. **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12: item 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3; this file's own spike record DEL-01-01/PIN-SPIKE-v0.1 is unchanged. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3). **v0.6 inputs (R8 pass, node A4, at `94aa9181b`; read with `git show`):** `R8_RESOLUTIONS.md` (run `APP-V4-SWBPIPE-INTAKE-20260928`, sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02; R8-1, R8-2, R8-9 applied, R8-11 read; the others checked, none addressed to HOSTING text), `OWNER_DECISIONS.md` of that run (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` and `-DECISION-4` with its clarification: D4-1 phased checkpoints, D4-3 model access), `INTAKE_MAP.md` (I2, sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33; rows 01.14, 02.17, 16.2, 19.5, 29.3; Part 2 §2.2 HOSTING rows; Part 4.11 D6 row), `BRIEFS.md` (sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517; "A-wave"), SWBPIPE's delivered answers `RELAY_ANSWERS_SWBPIPE.md` (sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7; SQ-02; data about SWBPIPE's current state, not commitments, DECISION-3), DEL-02-03/EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` (sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4; §2.1 PH-1…PH-10, §2.2 GV-1…GV-5, §2.3 HP-1…HP-4 and HP-H, CH-22) and DEL-02-01/WD-v0.6 `WORKFLOW_DECLARATION.md` (sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28; §4.3.0, §4.3.1 `governed`). **Earlier:** DEL-01-01/HOSTING-BOUNDARY-v0.4 (sha256 201ea32005dd2c9fb5281a376eb25eebfcb5a644d09a6d3bf5901aaf934c7e58, commit cc58211c5); **at commit 8fb51f07f, read with `git show` (current sibling versions):** `R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1; R5-1, R5-4, R5-9 applied), `reviews/V3-B.md` (sha256 5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3; m-5 and the m-1 note on §8.3), `reviews/V3-A.md` (sha256 f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87; no item addressed to HOSTING), DEL-02-03/EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` (sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0; §2 HP-1…HP-4, HP-H; §3.6; §5 CAP-2/6/9; U-E20 withdrawn), DEL-03-03/ADAPTER-v0.2 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc; §3.4, §3.5, OC-2/3/6/7, F-3, F-9), DEL-04-03/RS-v0.4 `RECORD_SEMANTICS.md` (sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199; R5 model destination, R13 tool-permission settlements). EXEC-v0.3 and ADAPTER-v0.3 are being produced in the same R5 pass; this file cites their v0.2 bytes and R5-1's ruled values. **R6-4 (in place):** DEL-02-03/EXEC-v0.3 `EXECUTION_COMPATIBILITY.md` (commit d3cebd1cc, sha256 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e) consumed for §2 HP-1…HP-4, HP-H and the HP-4 scope ruling. Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.3 (sha256 34c3383402aabe6e9347aa2f111318538c4a2a4ca85adb8fffff7e439fdde94e, commit ba0b37123); **at commit f05c7e4cd, read with `git show`:** `R3_RESOLUTIONS.md` (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R3-1…R3-4 read, none addressed to HOSTING), `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24; R4-1, R4-2, R4-12, R4-13, R4-19 applied), `OWNER_DECISIONS.md` with Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; D5, D6), DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` (sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8; superseded, see above), DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074; §3.4, §3.5, OC-3, F-3, F-9); the committed 0.158.0 JSON Schema bundle `json-schema/experimental/codex_app_server_protocol.v2.schemas.json` and `_spike/inventory.txt` (for the MCP surface and `turn/interrupt` facts in §6.7–§6.8). Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.2 (sha256 16711a83fec3439d7be634f6d62512be2a87f0dec32bd84028a39425bc84007a) and v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` — **current committed revision sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115** (commit 28bd00499; the parent's post-IR1 edits: SV-02 committed-tree wording, "what the spike proposed to commit" note, git-operations statement). Earlier revisions: v0.2 of this file consumed the **pre-correction** revision sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf; IR1-C reviewed sha256 26ea0c2fae8212ca46ed2ff60ddfaef5ca28e0ed73aae2105017d7ceccb40334 (commit c387730fb). `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e, byte-unchanged) and `Design/generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d29383e68239d085186401488c5d864046475b7cf9d3bc256f85782608); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e at that time), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088; R2-22 applied, with R2-8 and R2-11), `reviews/IR1-C.md` (sha256 295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9; IR1C-04, IR1C-18, IR1C-19, IR1C-20 addressed to HOSTING). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
-- Receivers (R9-6: rebuilt from the ACTIVE rows of this register and of the consumers' registers; layer per `_DAG/_LATEST.md` → DAG-003; table in §8). **This register's rows:** DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022, with DEP-01-01-024 the UPSTREAM row for its sign-in and substitution evidence (held); DEL-01-06 (distribution identity for packaging) via DEP-01-01-023. **Consumers among the first-increment deliverables, from their own registers (all six arcs admitted):** DEL-02-01 (DEP-02-01-025, N-16: harness-capability meaning; this file holds the 0.158.0 inventory, and a capability meaning beyond the inventory is named by that row and not yet defined here, §8); DEL-02-03 (DEP-02-03-023, N-23: observed supplier facts as capability information; §6.1, §6.7, §6.8, §10, R9); DEL-03-03 (DEP-03-03-013, N-B4: MCP and dynamic-tool surfaces, channel status, model destination; §6.8, §8.3); DEL-03-04 (DEP-03-04-021, N-B9: native surfaces for optional external access; §6.8); DEL-04-03 (DEP-04-03-027, N-15: supplied guidance, model and destination, tool-permission settlements, supplied to it directly, R9-7; §8.2, §8.3, R8, S-7); DEL-09-06 (DEP-09-06-032, N-C5: App-side supplied-guidance and model-destination evidence; §8.2, §8.3). **Consumers outside the first increment, from their own registers:** DEL-02-04 (DEP-02-04-010, admitted: additive guidance, seam S-6; this register has no DOWNSTREAM mirror row, F-16); DEL-06-01 (DEP-06-01-013), DEL-09-01 (DEP-09-01-019) and DEL-09-02 (DEP-09-02-009), all admitted; and the consumer-side rows of the PKG-01 receivers (DEP-01-02-018, DEP-01-03-011, DEP-01-04-007 and DEP-01-06-006 admitted; DEP-01-05-012 held; DEP-01-05-013). DEL-05-01 and DEL-05-02 (J9: guidance carriage, answer origin) have no register row to this deliverable. App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 are a later undertaking; their receiving comparisons of S-1…S-4 happen then. The arcs N-18, N-21, N-24 and X-1 have no end in DEL-01-01; X-1's supplier, DEL-01-04, is the receiver of seam S-3.
+- Receivers (R9-6: rebuilt from the ACTIVE rows of this register and of the consumers' registers; layer per `_DAG/_LATEST.md` → DAG-003; table in §8). **This register's rows:** DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022, with DEP-01-01-024 the UPSTREAM row for its sign-in and substitution evidence (held); DEL-01-06 (distribution identity for packaging) via DEP-01-01-023. **Consumers among the first-increment deliverables, from their own registers (all six arcs admitted):** DEL-02-01 (DEP-02-01-025, N-16: harness-capability meaning; this file holds the 0.158.0 inventory, and a capability meaning beyond the inventory is named by that row and not yet defined here, §8); DEL-02-03 (DEP-02-03-023, N-23: observed supplier facts as capability information; §6.1, §6.7, §6.8, §10, R9); DEL-03-03 (DEP-03-03-013, N-B4: MCP and dynamic-tool surfaces, channel status, model destination; §6.8, §8.3); DEL-03-04 (DEP-03-04-021, N-B9: native surfaces for optional external access; §6.8); DEL-04-03 (DEP-04-03-027, N-15: supplied guidance, model and destination, tool-permission settlements, supplied to it directly, R9-7; §8.2, §8.3, R8, S-7); DEL-09-06 (DEP-09-06-032, N-C5: App-side supplied-guidance and model-destination evidence; §8.2, §8.3). **Consumers outside the first increment, from their own registers:** DEL-02-04 (DEP-02-04-010, admitted: additive guidance, seam S-6; this register has no DOWNSTREAM mirror row, F-16); DEL-06-01 (DEP-06-01-013), DEL-09-01 (DEP-09-01-019) and DEL-09-02 (DEP-09-02-009), all admitted; and the consumer-side rows of the PKG-01 receivers (DEP-01-02-018, DEP-01-03-011, DEP-01-04-007 and DEP-01-06-006 admitted; DEP-01-05-012 held; DEP-01-05-013). DEL-05-01 and DEL-05-02 (J9: guidance carriage, answer origin) have no register row to this deliverable. App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 were left to a later undertaking; run `APP-V4-DESIGN-PASS-3-20261001` started them (with DEL-02-02 and DEL-02-04), and from v0.9 their Design files make the receiving comparisons: S-1 RECOVERY-v0.2 §1 (DEL-01-02), S-2 NPTD-v0.2 §2 (DEL-01-03), S-3 NIR-v0.2 §4–§6 with AAC-v0.2 (DEL-01-04), S-4 ACCESS-v0.2 §19 (DEL-01-05), S-6 ROLE-v0.2 §5 (DEL-02-04), and the workflow run-start supply of WR-v0.2 (DEL-02-02; §8.2) (F-15 closed). The arcs N-18, N-21, N-24 and X-1 have no end in DEL-01-01; X-1's supplier, DEL-01-04, is the receiver of seam S-3.
 
 **Reading note.** Element names defined by this file (for example *request
 identity*, *generation*, *version identity record*) are **semantic** names,
@@ -26,6 +27,19 @@ qualification (DEP-005), and it is re-examined before implementation starts.
 0.154.0 (v3 pin) and 0.156.1 / 0.157.1 (dated upstream reports) remain
 historical evidence only.
 
+**Version rule (R19-5; from v0.9).** Codex changes significantly between
+versions, so a pin lasts only so long. Every statement in this file that
+rests on a supplier fact names the version it was seen at (here 0.158.0,
+with the OBS records' local pairing where they are the source). Where Codex
+reports a capability at run time, the App reads it rather than inferring it
+from the version: at 0.158.0 for example the request's `availableDecisions`
+(R5), `Model.multiAgentVersion` and the provider's `namespaceTools` (§8.4
+HCG-A08), `experimentalFeature/list`, `config/read` with its layers,
+`skills/list`, and `instructionSources` on thread start (§8.2). A
+version-advance check (regenerate the types, diff, rerun the OBS harnesses
+under `prototype/obs1/`, `obs2/`, `obs3/`, list the statements affected) is
+proposed as a later node; its scheduling is open (§9.5).
+
 **Act names.** Canonical names from R-1 are used: A14 *answer tool
 permission* for the supplier's tool-use prompts, and A4–A7, A12, A13 for the
 acts reserved to the person by owner decision D2. Following R-4, "approval"
@@ -34,6 +48,65 @@ that contain "approval" (for example `item/commandExecution/requestApproval`)
 are quoted as supplier names and denote A14 subjects.
 
 ---
+
+## Changes from v0.8
+
+Node F-A of run `APP-V4-DESIGN-PASS-3-20261001`: first-increment edits after
+the pass-3 design nodes, D round 2, OBS-2 and OBS-3. Rows are keyed by the
+F0 row (F/F0_JOINS.md §1.1, §1.14) and the ruling. Where an F0 row conflicts
+with R19, **R19 is applied** and the row says so. Every boundary rule of
+v0.8 stands except where a row says otherwise; new structures are PROPOSED
+unless a row names the deciding text.
+
+| Row / ruling | Change in v0.9 | Where |
+|---|---|---|
+| FH-44; §1.14 (L13) | Version v0.8 → v0.9; v0.9 inputs line; Receivers line names the pass-3 Design files that make the S-1…S-4 and S-6 receiving comparisons. Status stays DRAFT | Header |
+| R19-5 | Version rule: supplier facts name their version; runtime reads preferred over version inference; version-advance check proposed as a later node | Header "Version rule"; §9.5 |
+| DECISION-L L-1; R19-4; R18-1 C-20; FH-06, FH-31 | One child per App-owned home; H5 generation identity {App session, App-owned home, spawn counter}; §4 states per home; U-12 gains the per-home dimension (report only, R17-2) | §1; H5; §4.1; U-12 |
+| FH-01; R17-3; R18-1 C-12; D1 H-1 | §4.5 and the §4.6 stop row cite DEF-5a (RECOVERY-v0.2 §2), reached by a confirmed quit (DEF-6) or DEL-01-04's Stop/Restart Codex, per home; DEF-3 and DEF-4 never stop the process; the process group ends at a deliberate stop (OBS-2 §11) | §4.5; §4.6; H11 |
+| FH-02 | §4.5 step 2: no App decline at stop or quit; entries end `ended-unanswered(process-exit)`; U-10 closed | §4.5; U-10 |
+| R18-7 G-5; D1 H-9 | §4.5 step 3 states Codex 0.158.0's graceful-stop history note (closing input writes "the user interrupted … on purpose"; a kill writes nothing; both read back `interrupted`); the App's label comes from its own record (RECOVERY-v0.2 §5 SQ-Q) | §4.5 |
+| FH-03; R17-9 | R3: no App rule declines a waiting request after any period; `timed_out` never sent; U-11 closed | §6.3 R3; U-11 |
+| FH-04 | §6.5 reconciled (RECOVERY-v0.2 §1); U-14 and F-01 closed | §6.5; F-01; U-14 |
+| FH-05; R18-1 C-03; D1 H-10; D2 J-3 withdrawn | Observer re-attachment: per-generation journal replay (OA-01) or snapshot + Codex history with a gap marker (OA-02); a closed generation's events are not re-read; §12's "which component re-attaches" answered | §4.6 observe row; §5 Order; §12 |
+| FH-07; D1 H-6 | U-09 narrowed (closed for the `turn/interrupt` before-reply trigger); U-16 cites RECOVERY-v0.2 §6's PROPOSED policy | §6.2; §6.2.1; U-09; U-16; §4.4 |
+| FH-08; FH-38; §1.14 (L985, L986) | "Outside this increment, D1" pointers re-pointed to RECOVERY, NPTD, NIR/AAC, ACCESS, ROLE (v0.2 labels); DEL-02-04 receivers row notes the mirror row is still a register proposal | H3; §6.4; §8 S-1, S-7; §8 receivers table |
+| FH-09 | §6.7 HP-2: live effect observed at OBS-2 (O-1, O-3); the App sends it for DEF-3 and the quit interrupts with a stop request written first (RECOVERY-v0.2 §3.4) | §6.7 |
+| FH-10; K-1; R18-6; L-3; R18-3; D4 FH-10, FH-14 | §4.2 step 3: spawn with `CODEX_HOME=<App-owned home>`; `config.toml` (and, by R18-6, `AGENTS.md` and `skills/`) linked to the person's; observed at OBS-2 O-6; fallback not needed at 0.158.0; session flags carry analytics off and, only in the fallback, `plugins = false`; plugins follow the person's setting; no internal environment variable and no credential variable passed; no workflow in any skill root (R19-7) | §4.2 step 3; H9 |
+| FH-11; K-5; C-05 | §4.2 step 4: `experimentalApi: true` recorded per generation (NPTD-v0.2 §4 EX-2); `explicitGatewayOauth: true` (PROPOSED, ACCESS-v0.2 Q-1); what needs the opt-in at OBS-2. F0's premise note applied: the edit lands at §4.2 step 4 **and** F-13 | §4.2 step 4; §7.3; F-13 |
+| FH-12 | Configuration identity adds the home, the linked files' targets and the session flags; never a credential | §7.1 |
+| FH-13 | Label probe uses the separate probe home H-probe | §7.2 |
+| FH-14 | H9: the account-home element is decided (K-1); carriers per element | H9 |
+| FH-15 | §6.1 partition: DEL-01-04's answer path and decline forms per kind (NIR-v0.2 §4.1, §4.3); `account/chatgptAuthTokens/refresh` known-app-unsupported (ACCESS-v0.2 CR-9); U-20 narrowed | §6.1; U-20 |
+| FH-16 | RT-08 guard names the negative forms per kind (incl. the PROPOSED empty answer map and empty grant) or `submittedAs` *decline*; `cancel` observed as decline + interrupt | §6.2.1 RT-08 guard and note |
+| FH-17 | Secret answer values not kept readable after the reply is written: redaction marker in the entry. **Schema changed** (`secretValuesPresent`, `redaction`, conditional rule); two new fixtures | §6.1 settlement; `hosting.server-request-entry.schema.json`; `prototype/fixtures/` |
+| FH-18; R18-1 C-10 | Actor reference: a string "person:‹name›/‹OS account›/‹Codex account› (identity not verified)" from AAC-v0.2 §7 sources; Codex account in RS's `codexAccount` form; plan type not part of it. **Schema changed** (`actorRef` pattern); one new invalid fixture | §6.1 settlement; schema; `prototype/fixtures/` |
+| FH-19; R18-7 G-1; D4 FH-19 | S-1…S-4 receiving sides cited; F-15 closed for every seam, S-4 by ACCESS-v0.2 §19 | §8 seams; F-15; header |
+| FH-20 | §11 rows point to RECOVERY, NPTD, NIR/AAC, ACCESS, WR, ROLE (meaning unchanged) | §11 |
+| FH-21; R18-5 | R9 person-input bullet cites AAC-v0.2 and NIR-v0.2 LB-4 (an "Open the App act control" entry, never pre-filled) | §6.3 R9 |
+| FH-22 | U-26: DEL-01-04 accepts the refusal order and gives each reason words (NIR-v0.2 §4.4) | U-26 |
+| FH-23 | §6.8 configuration writes: explicit `filePath`, `expectedVersion`, no credential; writes through the link not observed | §6.8 |
+| FH-24; L-1; L-6 | §8.1 L-5: flows offered and not offered; the key in H-key (no longer waiting on U-A1); no sign-in observed | §8.1 L-5 |
+| FH-25 | §8.3: class from the access entry kind | §8.3 |
+| FH-26 | §9.1 redaction categories: account-method credentials and URLs, error texts, email; secret answers; provider-bound installation and thread/session/turn ids; time zone; skill paths (OBS-3) | §9.1; U-13 |
+| FH-27; L-3 | F-14: per App-owned home and only with plugins on; `plugins = false` stops the fetch (O-7) | F-14 |
+| FH-28 | F-18 under K-1 | F-18 |
+| FH-29; R18-3 (C-25); L-3 | §8.1 L-4 and U-18: K-12 decided; O-7 fills which setting stops which connection; plugins follow the person; the internal environment variable is not used; the remote-control loop shown as observed (no socket without sign-in) | §8.1 L-4; U-18 |
+| FH-30 | U-03 closed at choice level; M4/M5 and writes through the link stay open | U-03 |
+| FH-32 | U-22 and F-31 extended: delegation tools travel in the dropped `namespace` tool (O-4); carried into ACCESS-v0.2 §11 CH-2 | §8.1 L-3; U-22; F-31 |
+| FH-33; R18-1 C-04, C-05; D2 J-2 | HCG-A08's signal replaced: `Model.multiAgentVersion` ≠ `disabled` and provider `namespaceTools`; `features.multi_agent = false` reads missing; not established otherwise; delegation not labelled experimental; adapter-observed child facts (`multiAgentMode` is "@deprecated Ignored" on thread and turn start in the 0.158.0 bundle, checked) | §8.4 HCG-A08 |
+| R18-7 G-3; D2 J-10 (in part) | Goals placed in §8.4: the model's goal tools beside HCG-B04's goal methods and notifications; **no new Part A group** (D2 J-10 asked for one): a group with no App Server member adds nothing to the account, and DEL-02-01's check S-11 (VC-31) expects 27 groups, so a new group needs F-D's change first | §8.4 |
+| FH-34; D6 FH-34 | F-20: consumed by ROLE-v0.2 §4.3; child-role facts observed through the adapter; `instructionSources` only `[]` seen | F-20 |
+| FH-35; D2 J-4 | VC-09 cites NPTD-v0.2 §5.2 RV-1, RV-2; plan mode yields only a `plan` item (O-8); S-2 and HCG-A09 note it | VC-09; §8 S-2; §8.4 HCG-A09 |
+| FH-36; **R19 wins over F0** | S-6: role guidance only as `developerInstructions` on `thread/start`; resume and fork accept and ignore it; `baseInstructions` never set; a workflow is a text element of the run-start `turn/start`, composed by DEL-02-02 (R19-7). F0's "on … resume must read accepted, not applied" is applied; F0's idle-point policy is replaced by "role fixed for the conversation's life; edits reach new conversations" (L-2, R19-3) | §8 S-6; §2 table |
+| FH-37; **R19 wins over F0**; D6 FH-37 | §8.2 carriers table at 0.158.0. F0 asked to add `thread/fork` and `collaborationMode` developer text as carriers: under R19-8 a fork **ignores** new instructions (OBS-3 W-6, W-6b), so it is listed as accepted-not-applied and the App sends none; under R19-7 neither `collaborationMode` developer text nor `thread/settings/update` is used for workflows (recorded if ever non-null). Role-guidance evidence at thread start only; workflow run-start text recorded with DEL-02-02's source identity, checked against `thread/read` by the composing owner; `skill` and `mention` inputs recorded as not used (R19-7); the run-end line (R20-3) and the handoff summary (R20-6) noted; P-15's open half observed | §8.2 |
+| FH-39; D6 FH-39 | Per-thread role configuration limited to additive `agents.<ROLE>.*`; never `features.*`, `agents.enabled`, `agents.max_depth`, approval or sandbox; the observed honouring used the home `config.toml`, and the App's own carrier is not observed (ROLE-v0.2 CR-1a, U-R3) | §8.2 |
+| FH-40 | No change (record only): DEL-02-02's supply to DEL-02-04 is superseded by R19-7 (DEL-02-02 composes run-start text itself); S-6 names DEL-02-02 | — |
+| FH-41 | New §10.2 (OBS-2, OB2-1…OB2-11, with the adapter and S-9 standing notes) and §10.3 (OBS-3, OB3-1…OB3-7); §10's still-to-observe note; U-19 narrowed | §10; §10.2; §10.3; U-19 |
+| FH-42 | §4.4 "Recovery reads": `thread/read` before resume; no re-raise; `deprecationNotice` on full reads; prefer `thread/turns/list`, `thread/items/list` | §4.4; §4.3 step 4 |
+| FH-43 | RT-10 provoked live (O-3): `serverRequest/resolved` after `turn/completed`; late answer ignored | §6.2; §6.2.1 RT-10 guard |
+| R19-8; OBS-3; new finding | F-33 "Accepted is not applied" | §13 |
+| Prototype | Rerun: 35/35 pass (model), exit 0; no program file changed; three new entry-schema fixtures | §9.6; VC-28 |
 
 ## Changes from v0.7
 
@@ -182,9 +255,13 @@ they differ. SETTLED here means by DECISION-3 or DECISION-4.
 ## 1. What this boundary is
 
 The App's main process owns one stock, unmodified Codex App Server child
-process (with the descendant processes the supplier itself starts) and speaks
-its published JSON-RPC protocol over the child's standard input and output
-(V4-ARC-01, SOW-118). The boundary is the single place where:
+process **per App-owned Codex home** (with the descendant processes the
+supplier itself starts) and speaks its published JSON-RPC protocol over each
+child's standard input and output (V4-ARC-01, SOW-118). From v0.9 there may
+be more than one such home (DECISION-L L-1: a second App-owned home for
+API-key conversations; ACCESS-v0.2 §3, §4 K2-1); every rule below holds per
+home, and nothing of one home's child settles, answers or is attributed to
+another's (H5; U-12). The boundary is the single place where:
 
 1. the supplier distribution is identified and verified before it is trusted
    as the pinned supplier (SOW-099, SOW-128, SOW-135);
@@ -237,7 +314,7 @@ approval". Checked against the v4 basis and the owner's rulings:
 | Native items, no translated vocabulary | V4-ARC-05, V4-APP-04, PRD §6, ARC §7 | Settled; H6 |
 | No notification filtering; unfamiliar notifications inspectable | Consistent with M-2; not stated as a v4 prohibition | **Definition choice** (H7); the supplier facility exists at 0.158.0 and is not used; open to the App implementation owner (U-07) |
 | Approval/sandbox policy is the user's choice per project/turn | **Owner decision D3** (OI-002), first increment | **Settled by ruling.** In the App, routine tool-permission and sandbox modes, including any classifier-based mode, are the user's own Codex setting per project/turn, carried unchanged. They govern tool execution only and never stand in for a reserved or professional act. DERIVED/INTEGRATION, not D3 text (R2-11): the DEL-04-01/04-02 autonomy grant governs host operations only, and no App rule answers A14 affirmatively (R-2 D3 bullet) |
-| Additive instruction inputs preserving Codex base instructions | Deliverable interface "PKG-02 supplies guidance/workflow inputs"; production is DEL-02-04 | Carried unchanged through supported inputs, with per-thread/turn content identity evidence (§8.2) |
+| Additive instruction inputs preserving Codex base instructions | Deliverable interface "PKG-02 supplies guidance/workflow inputs"; production is DEL-02-04 (role guidance) and, from v0.9, DEL-02-02 (a workflow's run-start text; R19-7) | Carried unchanged through supported inputs, with per-thread/turn content identity evidence (§8.2); `baseInstructions` is never set (R17-8) |
 
 **DECISION-5 scope note (R8-13; in the accepted basis since SCA-V4-001).**
 V4-HOST-02, as amended for DECISION-5, governs a
@@ -274,7 +351,8 @@ configuration, approval and sandbox choices."
   (V4-EXE-01).
 - **H3 Custody location.** The protocol session and the outstanding
   server-request register live in the main process for the child's lifetime
-  (ARC §3). Durable custody across relaunch is DEL-01-02's (§6.5).
+  (ARC §3). Durable custody across relaunch is DEL-01-02's (§6.5;
+  RECOVERY-v0.2 §3.5, §5, §7).
 - **H4 Verified before ready.** No receiver is told the supplier is ready
   until verification (§7.2) and the handshake (§4.2) have both succeeded.
   Frames the supplier sends before `ready` (at 0.158.0 a notification arrives
@@ -284,7 +362,12 @@ configuration, approval and sandbox choices."
 - **H5 Generation tagging.** Each spawn receives a new *generation* at spawn
   time. Every outbound request, inbound response, notification, server
   request and register entry carries its generation. Nothing from one
-  generation settles, answers or is attributed to another.
+  generation settles, answers or is attributed to another. **Generation
+  identity (v0.9; R18-1 C-20 with R19-4 L-1):** {App session, App-owned
+  home, spawn counter}, so a generation is unique across App sessions
+  (RECOVERY-v0.2 §6, F-R6: the ledger outlives the process) and across the
+  App's homes (each home has its own child, U-12). PROPOSED form; the
+  semantic element stays one identity.
 - **H6 Native delivery.** Well-formed notifications, responses and server
   requests reach receivers with the supplier's own method, identifiers,
   payload **and any other top-level supplier elements** (at 0.158.0 the
@@ -308,7 +391,16 @@ configuration, approval and sandbox choices."
   settings; DEL-01-04 for answers) and defines none of it. The DEL-04-01/04-02
   autonomy grant governs host operations only and is not consulted for A14
   (R-2; DERIVED from D3, attribution per R2-11).
-  The account-home element remains `UNRESOLVED{OI-009}`.
+  The account-home element is **decided** (v0.9; DECISION-K3 K-1, option C;
+  ACCOUNT-HOME-RECORD-v0.2 §3): each App-owned home shares the person's
+  configuration through a link to their `config.toml` and keeps its own
+  sign-in. Carriers per element: the person's settings, including approval
+  and sandbox, and their plugin setting (L-3), reach the App's Codex through
+  the link unchanged; the App's K-12 traffic settings travel in the App
+  child's session flags (analytics off; `plugins = false` only in the
+  fallback when the person's setting is off; §4.2 step 3; ACCESS-v0.2 §9); a
+  setting the supplier refuses is shown as refused, never "fixed" by the
+  App (F-32).
 - **H10 Unknown stays unknown.** When a request to the supplier was written
   but its response was never observed (exit, wait limit, write failure), its
   outcome is *unknown*, not failed and not succeeded (V4-EXE-03; ARC §3).
@@ -318,11 +410,18 @@ configuration, approval and sandbox choices."
   after the supplier exited; SPIKE §5). Stop, restart and exit handling treat
   the supplier and its descendants as one unit; surviving descendants are
   detected and recorded, never assumed gone (S-F-06). The mechanism (process
-  group or equivalent) is unselected.
+  group or equivalent) is unselected. At OBS-2 (0.158.0; §10.2 OB2-11) a
+  plugin `git ls-remote` child was still running when the supplier exited
+  about 0.7 s after spawn and was re-parented; so a deliberate stop ends the
+  whole process group (§4.5 step 3; U-16 as RECOVERY-v0.2 §6 proposes).
 
 ## 4. Child lifecycle
 
 ### 4.1 States (semantic)
+
+The states, tables and operations of §4 hold **per App-owned home** (v0.9;
+L-1; U-12): each home's child has its own state and generations, and a stop
+or restart names the home it applies to.
 
 | State | Meaning | Receivers may |
 |---|---|---|
@@ -346,15 +445,55 @@ configuration, approval and sandbox choices."
 2. **Verify** it (§7.2). Mismatch or unverifiable → `refused` with a reason;
    no child is started as the pinned supplier.
 3. **Spawn** with the recorded launcher/argument/environment set; assign
-   generation *g*. The account-home/environment element is
-   `UNRESOLVED{OI-009}` (DEL-01-05 owns the choice's integration). On a fresh
-   home the supplier performs a network fetch at start (§8.1 L-4, U-18).
+   generation *g*. **Account home (v0.9; DECISION-K3 K-1, option C;
+   ACCOUNT-HOME-RECORD-v0.2 §3, §4; ACCESS-v0.2 §3):** the child is spawned
+   with `CODEX_HOME=<App-owned home>`, one child per home (H-acct; H-key
+   only when the person has added an API key, DECISION-L L-1). The home's
+   `config.toml` is a symbolic link to the person's configuration file, so
+   the person's settings are shared and each home keeps its own sign-in.
+   *Observed at OBS-2 (0.158.0; O-6 M1; §10.2 OB2-8):* the linked file is
+   read as the home's user layer (named by the App home's path, content the
+   person's); `account/read` reports the App home's own account (none in the
+   observation); the person's file was not written. `-c` overrides also
+   work and form a `sessionFlags` layer (a copy; O-6 M2); `--profile` is
+   refused for `app-server` (M3). The fallback (each App home keeps its own
+   configuration, option A) is not needed at 0.158.0. Separate
+   authentication storage per home rests on the default credential store
+   (`file`) and is an inference: no credential was observed (M4, M5;
+   DECISION-L L-6). By R18-6 (PROPOSED in ACCESS-v0.2 §3 and ROLE-v0.2) the
+   person's global `AGENTS.md` and `skills/` are linked the same way, so
+   Codex's native discovery in the App matches the person's Codex; the App
+   writes nothing into a linked skills root and places no workflow in any
+   discovered skill root (R19-7). The App's own session flags carry only the
+   K-12 traffic settings ACCESS-v0.2 §9 names (analytics off; and
+   `plugins = false` only in the fallback with its own configuration when
+   the person's plugin setting is off), never a credential (CR-7, CR-8); the
+   child's environment carries no credential variable (CR-7). Plugins follow
+   the person's own setting (DECISION-L L-3): under the link Codex reads the
+   person's own `[features] plugins`, so the App adds nothing; when it is off
+   the start-up plugin connections stop, and when it is on (the 0.158.0
+   default, OBS-2 O-7 v0) they happen and are shown and recorded (§8.1 L-4).
+   The setting is read at run time (`config/read` layers). The internal
+   environment variable that stops the remote-control loop is not used and
+   is not passed to the child (R18-3; ACCESS-v0.2 §9). On a fresh home with
+   plugins on, the supplier performs a network fetch at start (§8.1 L-4,
+   U-18).
 4. **Handshake**: send the supplier's initialize request carrying the App's
    client identity and the capabilities the App declares (at 0.158.0:
    `experimentalApi` and `requestAttestation`, both required booleans;
    optional elements include `optOutNotificationMethods`, which stays absent
-   or empty per H7; SPIKE §5). Record the declared capabilities: they
-   determine request classification (§6.1, S-F-05). Record the handshake
+   or empty per H7; SPIKE §5). **Declared values (v0.9):** under K-5 the
+   App declares `experimentalApi: true`, recorded per generation, and
+   DEL-01-03 reads the declared value per generation (NPTD-v0.2 §4 EX-2).
+   At OBS-2 (0.158.0; §10.2) plan mode (`collaborationMode` on `turn/start`)
+   and `remoteControl/status/read` needed the opt-in; delegation did not
+   (stable feature `multi_agent`). The App also declares
+   `explicitGatewayOauth: true` (PROPOSED by ACCESS-v0.2 §6 Q-1; in the
+   0.158.0 types it replaces "automatic browser authorization" for the
+   gateway runtime), so no gateway browser authorization starts without the
+   person's act. `requestAttestation` stays false. Record the declared
+   capabilities: they determine request classification (§6.1, S-F-05).
+   Record the handshake
    response (at 0.158.0: `userAgent`, `codexHome`, `platformFamily`,
    `platformOs`) in the version identity record (§7.1). Send the
    `initialized` notice (whether it is *required* is not-observed, U-19).
@@ -386,7 +525,8 @@ closing input and a termination signal both give exit code 0 with no signal
    endpoint facts and in-flight submissions) and DEL-01-02, which
    owns recovery of actual thread/request state from the supplier after the
    next `ready` (V4-EXE-01, DEL-01-02 REQ-005; at 0.158.0 the supplier offers
-   thread resume/read/list methods, post-restart results not-observed, P-13).
+   thread resume/read/list methods, P-13; post-restart results are now
+   observed at one pairing, OBS-2 O-2, §4.4 "Recovery reads").
 5. Enter `restart-waiting` unless the restart bound is reached, in which case
    enter `halted-after-repeated-failure`.
 
@@ -402,24 +542,68 @@ closing input and a termination signal both give exit code 0 with no signal
   the boundary checks for surviving descendants of *g* (H11). Whether it waits
   for them, ends them, or starts alongside them (the supplier uses its own
   lock on the plugin sync, `.tmp/plugins.sync.lock`, SPIKE S-F-06) is U-16;
-  the choice and the observed descendant state are recorded.
+  the choice and the observed descendant state are recorded. v0.9:
+  RECOVERY-v0.2 §6 proposes that after an unexpected exit survivors are
+  recorded and shown to the person with a person's action to end them, the
+  App does not end them by rule, and *g+1* starts alongside after an overlap
+  wait (TEST VALUE); at a deliberate stop the whole tree is ended (§4.5).
 - Restart never re-sends a prompt, re-answers an old request or replays a
   client request of a closed generation (V4-EXE-01).
+- **Recovery reads (v0.9; OBS-2 O-2, 0.158.0; §10.2 OB2-3).** In a new
+  process `thread/read` works before `thread/resume` (the thread reads back
+  `notLoaded`); a turn live at the stop reads back `interrupted` after a
+  graceful stop and after a kill alike, so the supplier's status does not
+  tell a quit from a crash (the App's stop record does, S-F-07). A request
+  pending at the stop is **not** raised again on resume and no resolution is
+  sent for it. `thread/read {includeTurns: true}` and `thread/resume`
+  without `excludeTurns` each produced a `deprecationNotice` (full-history
+  hydration deprecated in favour of `thread/turns/list` and
+  `thread/items/list`), so recovery reads prefer those (RECOVERY-v0.2 §5
+  R-4; NPTD-v0.2 §12). The reads are App-initiated, initiator
+  `app-rule:recovery-read`; resume is `person-directed` (RECOVERY-v0.2 §6).
 
 ### 4.5 Deliberate stop
 
-A stop is an explicit act (person quits the App or chooses stop), distinct
-from closing or hiding a window (V4-EXE-01, V4-EXM-11). Sequence:
+A deliberate stop is **DEF-5a, stopping the Codex process** (v0.9; R17-3;
+the definitions are DEL-01-02's, RECOVERY-v0.2 §2). It is reached only by a
+confirmed App quit (DEF-6: with live work the App asks first, K-4) or by the
+person's explicit "Stop Codex" or "Restart Codex" (offered by DEL-01-04,
+each asking first with live work; R18-1 C-12; NIR-v0.2 §5.2). With several
+App-owned homes, a quit stops each home's child; "Stop Codex" and "Restart
+Codex" name the home they apply to (L-1). Interrupting a turn is DEF-3
+(`turn/interrupt`), which never stops the process; ending a workflow run is
+DEF-4 (DEL-02-03), which this boundary neither performs nor records.
+Closing, hiding or reloading a window is DEF-1, not a stop (V4-EXE-01,
+V4-EXM-11). An unexpected end is DEF-5b (§4.3). Sequence:
 
 1. Write the **App stop record** for *g* (actor, time, reason) — the only
    evidence that the end was deliberate (S-F-07).
-2. Announce `stopping`. Outstanding register entries are either explicitly
-   declined by the App with origin `app-rule:on-stop` or left to end with the
-   process — a DEL-01-02 recovery decision (U-10).
+2. Announce `stopping`. Outstanding register entries are **left to end with
+   the process** (`ended-unanswered(process-exit)`, RT-11); there is no App
+   decline at stop or quit (v0.9; RECOVERY-v0.2 §6 U-10; R17-9). At a quit
+   the question has listed them first (K-4), and interrupting each live turn
+   first (DEF-3, cause *quit*) lets the supplier resolve them itself, which
+   is recorded as `resolved-by-supplier` (RT-10; observed at OBS-2 O-3,
+   0.158.0). At OBS-2 (O-2) a pending request was not raised again after a
+   restart and resume and no resolution was sent for it, so the
+   `ended-unanswered` end is final.
 3. End the supplier politely (closing its input or a termination signal; at
-   0.158.0 both end the supplier within milliseconds, SPIKE §5), then
-   forcefully after a grace period (value unselected), **for the whole
-   process tree** (H11).
+   0.158.0 both end the supplier within milliseconds, SPIKE §5; OBS-2 O-2:
+   closing input with a live turn and a pending request, exit 0 in about
+   21 ms), then forcefully after a grace period (value unselected), **for
+   the whole process tree** (H11): the process group is ended, since a
+   plugin `git` child started near spawn can outlive the supplier (OBS-2
+   §11; U-16 as RECOVERY-v0.2 §6 proposes). *Observed at OBS-2 (0.158.0,
+   O-2):* on a stop by closing input with a live turn, Codex writes into the
+   thread's history a user-role marker saying the user interrupted the
+   previous turn on purpose (with an aborted tool output), so after a quit
+   the model's next turn reads the quit as the person's interrupt; a kill
+   writes nothing; both read back `interrupted`. The App's own record says
+   "interrupted by quit" or, for Stop/Restart Codex, cause `codex-stop`, and
+   recovery shows the note from the App's own record; the App never parses
+   or edits Codex's history (RECOVERY-v0.2 §3.4, §5 SQ-Q; R18-7 G-5; shown
+   to the owner in DECISIONS_PENDING_2's visibility list). Whether
+   `turn/interrupt` writes such a note is not observed.
 4. Record surviving descendants, if any, and their handling; enter `stopped`.
    No unattended execution after quit is promised.
 
@@ -432,9 +616,9 @@ Each lifecycle event is one record of `hosting.lifecycle-event.schema.json`
 | Operation | Caller | Accepted in | Result | Failure behaviour |
 |---|---|---|---|---|
 | start | The person, or App start-up (actor `app-startup`) | `absent`, `stopped`; `refused` only on the person's explicit start | Events LT-01…LT-09; `ready(g)` with the version identity record and the declared capabilities, or `refused` with the verification result | Verification mismatch or unverifiable → `refused`, no child (LT-05); spawn or handshake failure → counted toward the restart bound (LT-07, LT-08, LT-10, LT-11). A start asked for in any other state changes nothing and the current state is reported |
-| stop (actor, reason) | The person: quit or stop (V4-EXE-01) | Every state except `absent`, `stopped` and `refused` | The stop record first, then `stopping` → `stopped` with exit facts and the descendant outcome (LT-17…LT-23); with no child, `stopped` directly (LT-20…LT-22) | The polite end is ignored → the whole tree is ended after the grace period and `forcedAfterGrace` is recorded; surviving descendants are recorded, never assumed gone (H11); outstanding entries follow the handling the stop record names (U-10) |
+| stop (home, actor, reason) | The person, through DEF-5a (v0.9; RECOVERY-v0.2 §2): a confirmed App quit (DEF-6) or the person's "Stop Codex" / "Restart Codex" (DEL-01-04, R18-1 C-12). Never a turn interrupt (DEF-3), a run end (DEF-4) or a window event (DEF-1) | Every state except `absent`, `stopped` and `refused` | The stop record first, then `stopping` → `stopped` with exit facts and the descendant outcome (LT-17…LT-23); with no child, `stopped` directly (LT-20…LT-22). A restart is this stop followed by start | The polite end is ignored → the whole tree is ended after the grace period and `forcedAfterGrace` is recorded; surviving descendants are recorded, never assumed gone (H11); outstanding entries end `ended-unanswered(process-exit)`, with no App decline (RECOVERY-v0.2 §6 U-10) |
 | explicit restart | The person | `halted-after-repeated-failure` | LT-16, then verification and a new generation as for start | As start |
-| observe lifecycle (from a position) | DEL-01-02 (custody), DEL-01-03 (the `ready(g)` record, S-2), DEL-04-03 (evidence, S-7), DEL-02-03 (EXEC AE-6, AW-12: observation lost or recovered at supplier exit and restart), DEL-03-03 (ADAPTER CT-9, CT-10, S-7, S-8: channel status and in-flight submissions across supplier restart) | Any state | Lifecycle events in order | Observer loss loses nothing: events are kept and re-read from a position (realization DEL-01-02's, §6.5) |
+| observe lifecycle (from a position) | DEL-01-02 (custody), DEL-01-03 (the `ready(g)` record, S-2), DEL-04-03 (evidence, S-7), DEL-02-03 (EXEC AE-6, AW-12: observation lost or recovered at supplier exit and restart), DEL-03-03 (ADAPTER CT-9, CT-10, S-7, S-8: channel status and in-flight submissions across supplier restart) | Any state | Lifecycle events in order | Observer loss loses nothing within a generation: the main process keeps a bounded in-memory journal per generation and replays it from the observer's position (RECOVERY-v0.2 §3.3 OA-01); a position outside the journal or in a **closed** generation gets a snapshot plus Codex history reads with a gap marker (OA-02). A closed generation's events are not re-readable; views rebuild from Codex history (v0.9; R18-1 C-03). Each window's observer re-attaches; the main process holds the journal (RECOVERY-v0.2 §4.1) |
 | read version identity and verification result | DEL-01-03, DEL-01-06, DEL-04-03 | After a verification | §7.1 record; §7.2 result | `unverifiable(<reason>)` is itself a result, never a pass |
 
 **Failure at each step of the start and stop sequences** (§4.2, §4.5):
@@ -517,7 +701,10 @@ record exists). All 23 rows were exercised by the prototype (VC-27).
   `response-observed(error)`: a definite refusal, not unknown.
 - **Order.** Receivers get inbound frames in received order with a
   per-generation receipt position (semantic) that supports re-attachment
-  without gaps or duplicates (realization is DEL-01-02's, §6.5).
+  without gaps or duplicates (realization is DEL-01-02's, §6.5: a bounded
+  in-memory journal per generation, replayed from the position, RECOVERY-v0.2
+  §3.3 OA-01; otherwise a snapshot and Codex history reads with a gap
+  marker, OA-02; a closed generation is not replayed, R18-1 C-03).
 
 ### 5.1 Client-request path: operations (PROPOSED, v0.8; R12-1)
 
@@ -558,7 +745,7 @@ Each client request is one record of `hosting.client-request-record.schema.json`
 | native parameters | Payload unchanged |
 | receipt position | Per-generation position (H5) |
 | state | See 6.2 |
-| settlement | Native answer content or explicit error/decline content; **answer origin**: `person-via-interaction` (A14 by the person, actor supplied by DEL-01-04), `app-rule:<named rule>` (decline or error only), `app-explicit-error`; plus `supplier-internal` / `resolved-by-supplier` observations (§6.2, §6.6) |
+| settlement | Native answer content or explicit error/decline content; **answer origin**: `person-via-interaction` (A14 by the person, actor supplied by DEL-01-04), `app-rule:<named rule>` (decline or error only), `app-explicit-error`; plus `supplier-internal` / `resolved-by-supplier` observations (§6.2, §6.6). **Actor reference (v0.9; DECISION-K1 K1-4; R18-1 C-10):** a string "person:‹name set in the App›/‹OS account›/‹Codex account› (identity not verified)", formed by DEL-01-04 from the sources of AAC-v0.2 §7 (NIR-v0.2 §4.5), never inferred by this boundary; the Codex account element is the account DEL-01-05 reports for the home that runs the conversation (the reported email, or "ChatGPT account (no email reported)"; ACCESS-v0.2 §8); plan type is not part of it. It is the same identity RS records as an object (RS `person`); this boundary keeps the string form. **Secret values (v0.9; NIR-v0.2 §4.5 SE-1…SE-3):** when an answer carries values for a question marked `isSecret` (the submission's `secretValuesPresent`), the values are written to the supplier and then **not kept readable**: once the reply is written or its write has failed, the entry's settlement keeps a redaction marker naming the question identities in place of the native content. DEL-01-02's persistence follows the same rule |
 | reply write result | `written` / `write-failed` / `not-attempted` |
 | acknowledgment observation | `observed(<what>)` / `not-observed` / `not-observable-at-pin`. Writing a reply is not an acknowledgment (ARC §3; DEL-01-02 REQ-004) |
 
@@ -571,7 +758,14 @@ declare is `unfamiliar` for that generation.
 
 **Server-request kinds at 0.158.0 and a proposed partition** (PROPOSAL for
 the App implementation owner with DEL-01-04/01-05, U-20; the two generator
-outputs agree on these kinds — 10 stable, 11 experimental; SPIKE §4):
+outputs agree on these kinds — 10 stable, 11 experimental; SPIKE §4). From
+v0.9 both co-owners have answered: DEL-01-04 states the answer path per kind
+(NIR-v0.2 §4.1: a card for each known-answerable kind, an information line
+for the others) and the decline form per kind (NIR-v0.2 §4.3 DM-1…DM-6, §6.2.1
+RT-08); DEL-01-05 does not adopt external-token login (ACCESS-v0.2 §7 CR-9),
+so `account/chatgptAuthTokens/refresh` stays known-app-unsupported with an
+explicit error. U-20 is narrowed to the App implementation owner's
+confirmation:
 
 | Kind (supplier name) | A-name / subject | Proposed classification |
 |---|---|---|
@@ -582,7 +776,7 @@ outputs agree on these kinds — 10 stable, 11 experimental; SPIKE §4):
 | `item/tool/requestUserInput` | input to the agent (not A14); **not act evidence, never host act capture** (R4-12; EXEC CAP-6) | known-answerable; answered only by the person (R9) |
 | `mcpServer/elicitation/request` (modes include form and URL) | as above; the prompt is authored by an MCP server or the agent | known-answerable; answered only by the person (R9) |
 | `item/tool/call` (dynamic tools; `dynamicTools` is experimental-only on thread start) | App-offered tool | known-app-unsupported unless the App registers dynamic tools (none defined in this increment) |
-| `account/chatgptAuthTokens/refresh` | account | known-app-unsupported unless DEL-01-05 adopts external-token login |
+| `account/chatgptAuthTokens/refresh` | account | known-app-unsupported: DEL-01-05 does not adopt external-token login (ACCESS-v0.2 §7 CR-9); explicit error by a named rule (NIR-v0.2 §4.1) |
 | `attestation/generate` | account/attestation | unfamiliar while `requestAttestation` is declared false |
 | `currentTime/read` (experimental) | clock service (not A14, not a person's input) | unfamiliar unless the experimental opt-in is declared; then known-answerable by a named App rule (R9 service kind) |
 
@@ -600,9 +794,17 @@ received ─┬─(unfamiliar)──────────────► erro
 `declined` covers an explicit negative answer by the person or an explicit
 App rule; the origin says which. `resolved-by-supplier`: at 0.158.0 the
 stable notification `serverRequest/resolved` (thread identity, request
-identity) is the candidate source (`observed-in-generated-types`; its
-triggers are not-observed — U-09, S-F-12). The cause, when the supplier
-reports one, is recorded as observed; it is never inferred.
+identity) is the source. *Observed at OBS-2 (0.158.0, O-3; §10.2 OB2-2;
+v0.9):* with an approval request held unanswered, a client
+`turn/interrupt` (sent by the observation harness) ended the turn (`turn/completed`, status `interrupted`)
+and `serverRequest/resolved` for that request arrived **after**
+`turn/completed`, with no answer from the client; a later answer to that
+identity was silently ignored (no error, no notification); the command
+item never received `item/completed` and is absent from history. So
+`turn/interrupt` is one observed before-reply trigger of RT-10 (U-09
+narrowed); other triggers are not observed. The cause, when the supplier
+reports one, is recorded as observed; it is never inferred (the
+notification carries none at 0.158.0).
 
 #### 6.2.1 Register transition table (PROPOSED, v0.8; R12-1)
 
@@ -618,9 +820,9 @@ Each entry is one record of `hosting.server-request-entry.schema.json`
 | RT-05 | `outstanding` | answer-refused | R4, R5 or R9 refuses the answer | `outstanding` | the refusal reason, returned to the caller |
 | RT-06 | `outstanding` | answer-accepted-for-write | — | `settling` | settlement content and origin |
 | RT-07 | `settling` | reply-written-affirmative-or-content | write succeeded | `answered` | reply write result `written` |
-| RT-08 | `settling` | reply-written-negative | write succeeded; the answer is a decline or cancel form | `declined` | reply write result `written` |
+| RT-08 | `settling` | reply-written-negative | write succeeded; the answer is a negative form of its kind (v0.9, NIR-v0.2 §4.3: `decline`, `cancel`; legacy `denied`, `abort`; elicitation `decline`, `cancel`; PROPOSED empty answer map for `item/tool/requestUserInput` and empty grant for `item/permissions/requestApproval`), or the submission says `submittedAs` *decline* | `declined` | reply write result `written` |
 | RT-09 | `settling` | reply-write-failed | — | `settle-write-failed` | outcome unknown (H10) |
-| RT-10 | `outstanding` | supplier-reported-resolution | `serverRequest/resolved` for this identity and generation before any reply | `resolved-by-supplier` | source and cause as reported (U-09) |
+| RT-10 | `outstanding` | supplier-reported-resolution | `serverRequest/resolved` for this identity and generation before any reply (observed after `turn/interrupt` at OBS-2 O-3, 0.158.0) | `resolved-by-supplier` | source and cause as reported (U-09) |
 | RT-11 | `outstanding` | generation-closed | exit, handshake failure or stop (§4.3, §4.5) | `ended-unanswered` | end cause `process-exit` |
 | RT-12 | `answered` | supplier-reported-resolution | after the written reply | `answered` | acknowledgment observation `observed(serverRequest/resolved after the written reply)` |
 | RT-13 | `declined` | supplier-reported-resolution | after the written reply | `declined` | as RT-12 |
@@ -631,13 +833,24 @@ first in this order is returned: `no-such-request`, `generation-closed`,
 `invalid-answer`. Identity and generation are checked before state, and
 who may answer before what the answer says.
 
-**Acknowledgment reading (PROPOSED; U-09 stays open).** RT-12 and RT-13
+**Acknowledgment reading (PROPOSED; U-09 narrowed at v0.9).** RT-12 and RT-13
 read a `serverRequest/resolved` that follows the App's written reply as an
 acknowledgment observation, not as `resolved-by-supplier`. Writing a reply
 is still not an acknowledgment (§6.1). OBS-1b observed it once after a
 written reply, 8 ms after the answer and before the item continued
-(§10.1 OB-4), which is consistent with this reading; the trigger before any
-reply (RT-10) is still not observed, so the reading stays PROPOSED.
+(§10.1 OB-4), which is consistent with this reading. The trigger before any
+reply (RT-10) is now observed for `turn/interrupt` (OBS-2 O-3; §6.2), and
+DEL-01-02 adopts this reading (RECOVERY-v0.2 §6 U-09: with no notification
+before the generation closes, *not-observed*). The reading stays PROPOSED
+until a candidate confirms it.
+
+**Negative answers and the turn (v0.9; OBS-2 §5.1, 0.158.0).** A negative
+answer may do more than decline: on the stock pairing a `cancel` answer to a
+command approval ended the item `declined` **and** the turn `interrupted`
+(decline plus interrupt), as the supplier's own description of `cancel`
+says. The boundary records the answer as `declined` (RT-08) and delivers the
+turn's end natively; the label is DEL-01-04's (NIR-v0.2 §4.2 LB-1, §4.3
+DM-1) and the turn outcome's cause DEL-01-02's (R18-1 C-13).
 
 ### 6.3 Rules
 
@@ -649,10 +862,11 @@ reply (RT-10) is still not observed, so the reading stays PROPOSED.
   implementation choice; for reference, the supplier's own reply to an
   unknown client method is -32600 and v3 used -32601 (S-F-16).
 - **R3** `known-answerable` entries wait for an answer. No timeout, observer
-  loss or reconnect produces an answer. Any automatic decline after a period
-  is not defined here (U-11); the supplier's legacy decision set includes a
-  native `timed_out` form, and sending it would be an App rule under U-11,
-  never automatic by default.
+  loss or reconnect produces an answer. **No App rule declines a waiting
+  request after any period, and the native `timed_out` form of the legacy
+  decision set is never sent** (v0.9; R17-9 "a pending request waits";
+  RECOVERY-v0.2 §6 U-11; NIR-v0.2 §4.2 FO-3). A supplier's own resolution
+  of a waiting request is `resolved-by-supplier` (RT-10), never an answer.
 - **R4** An entry is settled at most once: second answer → `already-settled`;
   closed generation → `generation-closed`; unknown identity →
   `no-such-request`; entry already `resolved-by-supplier` → `already-resolved`.
@@ -699,7 +913,11 @@ reply (RT-10) is still not observed, so the reading stays PROPOSED.
     checkpoint, never record A4–A7, A12 or A13, and never stand for an act on
     host content. An agent question asked this way may be an A8 request; the
     App may answer it by presenting its own act control (EXEC CAP-2), which
-    settles no pending supplier request (EXEC CAP-9).
+    settles no pending supplier request (EXEC CAP-9). v0.9: that control is
+    AAC-v0.2 (PROPOSED); every question card offers a plain entry "Open the
+    App act control", never pre-filled from an arrival and never opened by
+    itself (NIR-v0.2 §4.2 LB-4); when the person opens it from an arrival
+    row, the person opened it, not the product (R18-5).
   - **Named service kinds** (at 0.158.0 only `currentTime/read`, when the
     experimental opt-in is declared): may be answered with content by a
     named App rule (`app-rule:<name>`); they carry no person's decision.
@@ -717,9 +935,9 @@ reply (RT-10) is still not observed, so the reading stays PROPOSED.
 | answer (request identity, native answer, origin, actor ref) | DEL-01-04 (person path, any valid form); named App rules per R9 (decline/error only for A14 and person-input kinds; content answers only for named service kinds such as `currentTime/read`) | `accepted-for-write` → `answered`/`declined`/`settle-write-failed`; or refusal with reason (R4/R5); an App-rule affirmative or content answer to an A14 or person-input kind is refused `origin-not-permitted` (R9) |
 | explicit error (request identity, reason) | boundary (R2), named App rules | `errored` |
 | (v0.8) refusal order | — | When several refusal reasons apply, §6.2.1 fixes which one is returned (PROPOSED; U-26) |
-| read settlement and acknowledgment observation | DEL-01-02 (custody of in-flight requests; outside this increment, D1); DEL-04-03 (evidence, supplied to it directly: R9-7; S-7) | Settlement, write result, acknowledgment observation |
+| read settlement and acknowledgment observation | DEL-01-02 (custody of in-flight requests; RECOVERY-v0.2 §3.5 RQ, §7); DEL-04-03 (evidence, supplied to it directly: R9-7; S-7) | Settlement, write result, acknowledgment observation |
 
-### 6.5 Split with DEL-01-02 (to reconcile when DEL-01-02 is defined)
+### 6.5 Split with DEL-01-02 (reconciled at v0.9)
 
 DEL-01-01 defines entry meaning, classification, R1–R9, the answer write path
 and generation tagging, and witnesses the unknown-request path at the
@@ -727,8 +945,9 @@ protocol seam (VER-001). DEL-01-02 owns custody across observation loss,
 reconnect and relaunch, recovery of outstanding requests from supplier state,
 the register's representation and persistence (DEL-01-02 TBD-002),
 stop-time handling (U-10), descendant handling with the App implementation
-owner (U-16) and the settlement fixtures. F-01 records the overlap; under D1
-the reconciliation happens in the later undertaking that defines DEL-01-02.
+owner (U-16) and the settlement fixtures. F-01 recorded the overlap.
+**Reconciled:** DEL-01-02's Design file accepts this split as written
+(RECOVERY-v0.2 §1; §6 "U-14 / F-01 … DERIVED"); U-14 and F-01 are closed.
 
 ### 6.6 Decisions made inside the supplier (S-F-11, D3)
 
@@ -782,14 +1001,19 @@ HP-1…HP-4, HP-H) and the hold-support value of each governed checkpoint
 that phase this boundary supplies only these facts and limits:
 
 - **HP-2 `turn/interrupt`.** A stable client method at 0.158.0 (parameters:
-  thread identity, turn identity; empty result) —
-  `observed-in-generated-types` only. Its live effect (what stops, when, and
-  what the supplier completes first) is **not observed** (U-19); no receiver
-  depends on observing it, since nothing relies on it (R4-2; EXEC-v0.5 §2.3
-  HP-2 "Not adopted"). If
-  the App sends it for another purpose (a person's explicit stop, V4-EXE-01),
-  the outcome is recorded as observed, and any action completed after the
-  request is recorded as observed, never as prevented.
+  thread identity, turn identity; empty result). Up to v0.8 its live effect
+  was not observed. *Observed at OBS-2 (0.158.0, one pairing; O-1, O-3;
+  §10.2):* the empty result came in about 21 ms; `turn/completed` with
+  status `interrupted` followed; two deltas arrived after the request and
+  before its result; an open item never received `item/completed` and is
+  not kept in history; a pending approval was resolved by the supplier
+  (RT-10). For a hold nothing relies on it, and no receiver depends on it
+  (R4-2; EXEC-v0.5 §2.3 HP-2 "Not adopted"). The App sends it for another
+  purpose: the person's interrupt of a turn (DEF-3) and the interrupts of a
+  confirmed quit (DEF-6), each with a stop request written first
+  (RECOVERY-v0.2 §2, §3.4 SR). The outcome is recorded as observed, and any
+  action completed after the request is recorded as observed, never as
+  prevented.
 - **HP-3 named-rule decline.** While a run is held, an App named rule may
   *decline* a tool-permission request that reaches the App (R7), with origin
   `app-rule:<name>`. This is a permitted **best effort** under D3: requests
@@ -841,7 +1065,7 @@ is who initiates the MCP-side effect.
 | Surface (supplier name) | Kind / variant | Caller | Boundary treatment | Receiver; evidence standing |
 |---|---|---|---|---|
 | `mcpServerStatus/list` (optional thread identity, detail, paging); `mcpServer/startupStatus/updated` notification | Client request (stable); notification (stable) | App (read) / supplier (report) | Generic request path; native delivery (H6) | DEL-03-03 channel state. A supplier status `disabled` is an **App-side configuration fact, never A13** (R4-13). *Observed (OBS-1)*: before any thread, `mcpServerStatus/list {}` listed the configured server with `runtimeStatus` null and no startup notification; on a thread, `mcpServer/startupStatus/updated` went `starting` → `ready`, and a thread-scoped list showed `connected` (OBS record A-1, §7; §10.1 OB-10) |
-| `config/mcpServer/reload`; `config/value/write`, `config/batchWrite` (write a key path into the user's Codex configuration) | Client requests (stable) | App, only as **person-directed** through the owning interface (DEL-03-03 OC-3; DEL-01-05) | Carries the change and records initiator; never initiated by an App rule or on an agent's instruction (H9: the person's own Codex configuration) | App-side configuration is **never A13 evidence**; any configuration an agent could write is not act evidence (R4-13). The host's refusal is the authoritative "off" (ADAPTER) |
+| `config/mcpServer/reload`; `config/value/write`, `config/batchWrite` (write a key path into the user's Codex configuration) | Client requests (stable) | App, only as **person-directed** through the owning interface (DEL-03-03 OC-3; DEL-01-05) | Carries the change and records initiator; never initiated by an App rule or on an agent's instruction (H9: the person's own Codex configuration). v0.9: DEL-01-05 writes with an explicit `filePath` and `expectedVersion` and never writes a credential (ACCESS-v0.2 §6 Q-8, §7 CR-8). Under K-1 the App home's `config.toml` is a link to the person's file; whether a write through the link lands in the person's file is not observed at 0.158.0 (OBS-2 UNRESOLVED; inference: it would) | App-side configuration is **never A13 evidence**; any configuration an agent could write is not act evidence (R4-13). The host's refusal is the authoritative "off" (ADAPTER) |
 | `mcpServer/oauth/login`; `mcpServer/oauthLogin/completed` | Client request; notification (stable) | App, person-directed | As above; credentials stay with the supplier | DEL-01-05 / DEL-03-03 (OC-6); not an act |
 | Thread item `mcpToolCall` {server, tool, arguments, status, result, error, …}; `item/mcpToolCall/progress` | Items and notification (stable) | **The agent** (model-issued call) | Native delivery only; the boundary never alters, retries or answers these calls | DEL-03-03 dispatch observation; host outcome per DEL-03-02/03-03. Whether an MCP tool call raises an A14 request at 0.158.0 is **not observed**: on the local Responses route of OBS-1 no MCP tool reached the model (`namespace` tool dropped; §10.1 OB-1), so no such item was produced |
 | `mcpServer/tool/call` (server, thread identity, tool, arguments, `_meta`; result content, structured content, is-error, `_meta`) | Client request (stable) | **The App** | App-origin only: recorded with initiator (§5) and never presented as the agent's call. Not issued for a holding run (HP-4, §6.7). It is **never used to act as the agent**, to perform, request on the person's behalf or record any person's act (A4–A7, A12, A13), or to submit a host operation in the agent's name. No use on a host channel is defined in this increment; a use needs DEL-03-03's definition and its own origin in the host's terms. It requires a thread identity; whether the call or its result enters that thread's items or model context is **not observed** | DEL-03-03 (OC-2/OC-7); results are App-origin evidence only |
@@ -876,7 +1100,7 @@ DEL-03-03's definition (U-24).
 | declared capabilities | What the App declared at handshake | Recorded per generation (§4.2 step 4) |
 | generated-output identity | Pin + generator kind (TS / JSON Schema) + variant (stable / experimental) + formatter use + output manifest identity | Four variants, byte-deterministic; manifest sha256 42b95826…69e over 2,359 files (SPIKE §4) |
 | supplement identity | Content identity and version of the supplement | Empty at 0.158.0 (no entries; §7.3) |
-| configuration identity | Launcher, arguments, environment supplied by the App | Per generation (H1) |
+| configuration identity | Launcher, arguments, environment supplied by the App; from v0.9 also the App-owned home's identity (H-acct, H-key; §4.2 step 3), the state and targets of the linked files (`config.toml`, `AGENTS.md`, `skills/`), and the K-12 session flags the App passed (ACCESS-v0.2 §9). **Never a credential** (ACCESS-v0.2 §7 CR-7, CR-8): no key, token or credential environment variable is ever part of it | Per generation (H1) |
 | verification result | `verified` / `mismatch(<element>)` / `unverifiable(<reason>)`, time, generation | — |
 
 ### 7.2 Verification rule
@@ -892,9 +1116,10 @@ an unverified distribution for development, and its label, is U-06; it is
 never labeled the pinned supplier.
 
 Probe side effect: at 0.158.0 even the version report writes into the home
-it runs against (`CODEX_HOME/tmp/arg0/…`; S-F-17). Which home the label probe
-uses (the account home or a separate probe home) is part of U-03/OI-009; the
-content-identity check does not execute the binary and has no such effect.
+it runs against (`CODEX_HOME/tmp/arg0/…`; S-F-17). The label probe uses a
+separate App-owned **probe home**, H-probe, which is never an account home
+(v0.9; ACCESS-v0.2 §3; K-1); the content-identity check does not execute the
+binary and has no such effect.
 
 ### 7.3 Generated output, reference choice and supplement (SOW-121, REQ-002)
 
@@ -937,7 +1162,9 @@ content-identity check does not execute the binary and has no such effect.
   Experimental-only elements the App needs at 0.158.0 include plan
   collaboration mode on turn start, `collaborationMode/list`,
   `thread/settings/update`, `dynamicTools` and `availableDecisions` (SPIKE §4).
-  Using them requires declaring the experimental opt-in (F-13). Observed at
+  Using them requires declaring the experimental opt-in (F-13). v0.9: of
+  these the App uses plan mode (K-5; NPTD-v0.2 §4); `thread/settings/update`
+  is not used for workflows (R19-7), and no dynamic tool is registered. Observed at
   OBS-1b: an approval request carried `availableDecisions` although the
   client declared `experimentalApi` false (§10.1 OB-5). So a client that has
   not opted in may still receive an experimental-only element in a server
@@ -957,13 +1184,13 @@ content-identity check does not execute the binary and has no such effect.
 
 | Seam | Receiver | Supplied by this boundary | Not supplied here |
 |---|---|---|---|
-| S-1 lifecycle and register | DEL-01-02 | §4 states with generation; App stop record; `unknown-no-response`; register interface §6; exit and descendant facts; receipt positions | Durable custody, reconnect/relaunch, persistence, recovery reads, settlement fixtures, descendant policy (U-16, joint) |
-| S-2 version identity + plan/revision | DEL-01-03 | Version identity record with each `ready(g)`; native plan items and plan updates unchanged with generation and receipt position; generic request path for plan interactions. At 0.158.0 each plan update carries the **whole plan with no revision identity**, plan deltas must not be assumed to concatenate to the completed item, and plan mode is experimental-only (S-F-13) | Revision identity (DEL-01-03 derives it from turn/item identities and receipt positions), registry, storage, export, UI, checker (SOW-128) |
-| S-3 request answering | DEL-01-04 | Register operations; refusal reasons incl. `origin-not-permitted`; settlement; supplier-internal decision notifications (§6.6) | Request cards, answer UX, attachments, outcome presentation |
-| S-4 embedding and provider | DEL-01-05; DEL-03-03 (channel status); DEL-04-03 via S-7 | Carriage of supplier account methods and per-conversation provider selection (at 0.158.0 `modelProvider` on thread start and resume; `modelProvider/capabilities/read`); **observed model destination** per thread/turn (§8.3; R4-1); §8.1 account; recorded-exchange evidence per §9; the fresh-home network observation (L-4) | Sign-in (including OAuth) and API-key flows, offered as options with no default between local and cloud (DECISION-4 D4-3; R8-9); account home (OI-009), provider configuration, server-substitution checks |
+| S-1 lifecycle and register | DEL-01-02 | §4 states with generation; App stop record; `unknown-no-response`; register interface §6; exit and descendant facts; receipt positions | Durable custody, reconnect/relaunch, persistence, recovery reads, settlement fixtures, descendant policy (U-16, joint). **Receiving side (v0.9):** RECOVERY-v0.2 §1 (receiving comparison), §2 (DEF-1…DEF-7), §3.3–§3.5, §5, §7 |
+| S-2 version identity + plan/revision | DEL-01-03 | Version identity record with each `ready(g)`; native plan items and plan updates unchanged with generation and receipt position; generic request path for plan interactions. At 0.158.0 each plan update carries the **whole plan with no revision identity**, plan deltas must not be assumed to concatenate to the completed item, and plan mode is experimental-only (S-F-13). At OBS-2 (0.158.0, O-8) plan mode produced one `plan` item streamed by `item/plan/delta`, no `turn/plan/updated`, and persisted on later turns until the default mode was sent | Revision identity (DEL-01-03 derives it from turn/item identities and receipt positions), registry, storage, export, UI, checker (SOW-128). **Receiving side (v0.9):** NPTD-v0.2 §2, §5.2 RV-1, RV-2 |
+| S-3 request answering | DEL-01-04 | Register operations; refusal reasons incl. `origin-not-permitted`; settlement; supplier-internal decision notifications (§6.6) | Request cards, answer UX, attachments, outcome presentation. **Receiving side (v0.9):** NIR-v0.2 §4 (cards, decline forms, card states over §6.2.1), §5 (turn outcomes, the three stop operations), §6 (attachments); AAC-v0.2 (the App act control, PROPOSED) |
+| S-4 embedding and provider | DEL-01-05; DEL-03-03 (channel status); DEL-04-03 via S-7 | Carriage of supplier account methods and per-conversation provider selection (at 0.158.0 `modelProvider` on thread start and resume; `modelProvider/capabilities/read`); **observed model destination** per thread/turn (§8.3; R4-1); §8.1 account; recorded-exchange evidence per §9; the start-up network observation (L-4); spawn per App-owned home (§4.2 step 3) | Sign-in (including OAuth) and API-key flows, offered as options with no default between local and cloud (DECISION-4 D4-3; R8-9); provider configuration, server-substitution checks. The account home is decided (K-1; ACCOUNT-HOME-RECORD-v0.2). **Receiving side (v0.9):** ACCESS-v0.2 §19 (receiving comparison, R18-7 G-1), §3, §4, §9 |
 | S-5 distribution identity | DEL-01-06 | Distribution content identity over the vendor tree, version label, launcher record; spike-observed signing facts (Developer ID, hardened runtime) as observations only | Packaging, signing, notarisation, relocation of the vendor tree (not-observed), distribution |
-| S-6 additive guidance | DEL-02-04 (inputs from DEL-02-01/02-02) | Carriage unchanged through the supplier's supported inputs (at 0.158.0 `baseInstructions` and `developerInstructions` on thread start and resume); per-thread/turn content-identity evidence (§8.2) | Guidance composition, role files, workflow semantics, idle-boundary change policy |
-| S-7 evidence | DEL-04-03, directly (R9-7; DEP-04-03-027, arc N-15); DEL-09-06 for the supplied-guidance and model-destination evidence (DEP-09-06-032, arc N-C5) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities, observed model destination (§8.3), client-request initiators (incl. App-initiated MCP calls, §6.8). A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act. Custody of in-flight requests across observation loss and relaunch, which is DEL-01-02's separate contribution (S-1; outside this increment, D1) |
+| S-6 additive guidance | DEL-02-04 for role guidance; DEL-02-02 for a workflow's run-start text (v0.9; R19-7) | Carriage unchanged through the supplier's supported inputs; per-thread/turn content-identity evidence (§8.2). **v0.9 (R17-8, R19-1, R19-7, R19-8; OBS-2 O-5, OBS-3 W-6, at 0.158.0):** role guidance travels only as `developerInstructions` on `thread/start`, where it is applied; `baseInstructions` is never set. On `thread/resume` and on `thread/fork` the same element is **accepted and not applied** (silently ignored), so it is not a carrier of changed guidance. A workflow is supplied per run as a **text element of the `turn/start` that starts the run**, composed by DEL-02-02 with framing lines naming the workflow and revision; the boundary carries it as any turn input and records it (§8.2) | Guidance composition and role files (ROLE-v0.2 §5.1); the role is fixed for the conversation's life and edits reach new conversations (DECISION-L L-2, R19-3; ROLE-v0.2 §3.1 SL-8, §4.4); workflow semantics, run-start composition and framing (WR-v0.2), run start (DEL-02-03) |
+| S-7 evidence | DEL-04-03, directly (R9-7; DEP-04-03-027, arc N-15); DEL-09-06 for the supplied-guidance and model-destination evidence (DEP-09-06-032, arc N-C5) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities, observed model destination (§8.3), client-request initiators (incl. App-initiated MCP calls, §6.8). A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act. Custody of in-flight requests across observation loss and relaunch, which is DEL-01-02's separate contribution (S-1; RECOVERY-v0.2 §3.5, §5, §7, §8.2) |
 
 **Receivers the live registers name (R9-6; rebuilt at v0.7).** The seams
 table above is unchanged except S-7. The rows below are the ACTIVE rows of
@@ -979,11 +1206,11 @@ table.
 | DEL-03-04 | DEP-03-04-021 (N-B9; admitted) | The supplier boundary: native surfaces for optional external access | §6.8 |
 | DEL-04-03 | DEP-04-03-027 (N-15; admitted) | Observed supplier facts: supplied guidance, model and destination, tool-permission settlements | S-7, §8.2, §8.3, R8; supplied directly (R9-7) |
 | DEL-09-06 | DEP-09-06-032 (N-C5; admitted) | App-side supplied-guidance and model-destination evidence | §8.2, §8.3 as definition; no evidence exists |
-| DEL-02-04 (outside the first increment) | DEP-02-04-010 (admitted) | The supported native supplier receiving contract for additive role supply | S-6; §8.2 |
+| DEL-02-04 (outside the first increment; Design file ROLE-v0.2) | DEP-02-04-010 (admitted) | The supported native supplier receiving contract for additive role supply | S-6; §8.2. The supplier-side mirror row is still a register proposal (pass-2 closeout C1-B R-11-1; F-16) |
 | DEL-06-01, DEL-09-01 (outside) | DEP-06-01-013, DEP-09-01-019 (admitted) | The selected supplier pin, before protocol generation and qualification | Pin note; §7.1; U-01 (0.158.0 is the definition and generation pin only) |
 | DEL-09-02 (outside) | DEP-09-02-009 (admitted) | Supplier hosting and protocol contribution and scoped feature checks, before the joined witness | §9 method and the designed cases; nothing is qualified |
-| DEL-01-02, -03, -04, -06 (outside; D1) | DEP-01-02-018, DEP-01-03-011, DEP-01-04-007, DEP-01-06-006 (admitted); this register's DEP-01-01-019, -020, -021 and -023 | The stock supplier boundary, generated types, selected identity | S-1, S-2, S-3, S-5 |
-| DEL-01-05 (outside; D1) | DEP-01-05-012 (held), DEP-01-05-013; this register's DEP-01-01-022, and DEP-01-01-024 (UPSTREAM, held) | The selected protocol and pin; embedding-qualification input | S-4; §8.1 |
+| DEL-01-02, -03, -04 (Design files RECOVERY-v0.2, NPTD-v0.2, NIR-v0.2 with AAC-v0.2); DEL-01-06 (outside; no Design file) | DEP-01-02-018, DEP-01-03-011, DEP-01-04-007, DEP-01-06-006 (admitted); this register's DEP-01-01-019, -020, -021 and -023 | The stock supplier boundary, generated types, selected identity | S-1, S-2, S-3, S-5 |
+| DEL-01-05 (Design files ACCESS-v0.2, ACCOUNT-HOME-RECORD-v0.2) | DEP-01-05-012 (held), DEP-01-05-013; this register's DEP-01-01-022, and DEP-01-01-024 (UPSTREAM, held) | The selected protocol and pin; embedding-qualification input | S-4; §8.1 |
 
 The 0.158.0 inventory in SPIKE §4 (170 client methods, 11 server-request
 kinds, 85 notifications in the TS experimental output) is the input to
@@ -1006,9 +1233,9 @@ file's grouping stands where the two read a member differently (§8.4,
 |---|---|---|
 | L-1 Local servers act as Codex model providers chosen per conversation | V4-ARC-04; T7 (2026-09-25) | `observed-in-generated-types`: `modelProvider` on thread start and resume; `modelProvider/capabilities/read`; CLI `--oss`, `--local-provider lmstudio|ollama` is `published-only`. Per-conversation effect live: not-observed |
 | L-2 Wire interface Codex requires from a provider | ARC §6: "oMLX also serves the Responses API Codex requires" | **not-observed** in the spike: provider definition form and required interface are not in the generated output (R-10; V1-C D-22). **Observed at one pair (OBS-1, OBS-1b; §10.1 OB-8):** a custom provider with `wire_api = "responses"` worked against LM Studio 0.4.16's `/v1/responses`, streamed; the server ignored `prompt_cache_key` and `include` and turned the developer role into system. Not qualification |
-| L-3 Tool calling through the provider | ARC §6, §8 risk | not-observed in the spike. **Observed at one pair (§10.1 OB-1, OB-2):** a flat function tool (`exec_command`) was called through LM Studio 0.4.16's Responses interface; MCP tools were **not** delivered: LM Studio logged "Ignoring unsupported tool type(s): namespace." and the MCP test tool never reached the model (that Codex offered them as that `namespace` tool is the record's inference, OB-1). Consequence at this pin: on such a route a host's MCP tools are unusable (F-31) |
-| L-4 Supplier network traffic at start (named "Local-operation boundary (priority 3)" up to v0.6) | ARC §1 priority 3. As amended by SCA-V4-001 it speaks of a host's agent ("It sends data only to the selected model service and to destinations the person has allowed, and every destination contacted is recorded and shown") and states no App local-operation boundary; ARCH §4 says the host-agent property does not govern the App's own Codex. No accepted text now decides this traffic (U-18) | **observed**: with a fresh home the supplier fetched ≈24 MB from `github.com/openai/plugins` at start, with no sign-in and no turn; warm home: none seen in ~6 s; whether a setting disables it: not-observed (S-F-10; F-14; U-18). **OBS-1 and OBS-1b (§10.1 OB-9):** with `[analytics] enabled = false` and no sign-in, start-up also contacted chatgpt.com (a remote-control loop and a featured-plugins request answered 401) and synced the plugin repository again (a full fetch on a home not fully synced; `git ls-remote` only on the next run). Analytics off does not stop it |
-| L-5 Credentials | V4-ARC-04; DECISION-4 D4-3 (R8-9) | `observed-in-generated-types`: login variants incl. API key and ChatGPT account sign-in; credential store modes `file`/`keyring`/`auto`/`ephemeral`; actual storage and local-provider key need: not-observed. **Model access choice (D4-3):** local and cloud are options the person chooses among, with **no default**; a cloud model is reached by **OAuth sign-in or an API key**. V4-HOST-01, as amended by SCA-V4-001, carries D4-3 for a host's agent; for the App path, D5 already leaves the model to the person. This boundary selects no default and carries the supplier's variants unchanged. Whether the supplier's sign-in variant serves D4-3's OAuth option for a given cloud provider is not-observed. Which flows the App offers is DEL-01-05's (S-4) |
+| L-3 Tool calling through the provider | ARC §6, §8 risk | not-observed in the spike. **Observed at one pair (§10.1 OB-1, OB-2):** a flat function tool (`exec_command`) was called through LM Studio 0.4.16's Responses interface; MCP tools were **not** delivered: LM Studio logged "Ignoring unsupported tool type(s): namespace." and the MCP test tool never reached the model (that Codex offered them as that `namespace` tool is the record's inference, OB-1). Consequence at this pin: on such a route a host's MCP tools are unusable (F-31). **OBS-2 (0.158.0, O-4; §10.2 OB2-4):** the pass-through tap showed that Codex's delegation tools also travel only inside a `namespace` tool (`multi_agent_v1`), which LM Studio 0.4.16 drops, so on that route delegation is unavailable too; no configuration found sends them as flat functions. Carried into ACCESS-v0.2 §11 CH-2 |
+| L-4 Supplier network traffic at start (named "Local-operation boundary (priority 3)" up to v0.6) | ARC §1 priority 3. As amended by SCA-V4-001 it speaks of a host's agent ("It sends data only to the selected model service and to destinations the person has allowed, and every destination contacted is recorded and shown") and states no App local-operation boundary; ARCH §4 says the host-agent property does not govern the App's own Codex. No accepted text now decides this traffic (U-18) | **observed**: with a fresh home the supplier fetched ≈24 MB from `github.com/openai/plugins` at start, with no sign-in and no turn; warm home: none seen in ~6 s; whether a setting disables it: not-observed (S-F-10; F-14; U-18). **OBS-1 and OBS-1b (§10.1 OB-9):** with `[analytics] enabled = false` and no sign-in, start-up also contacted chatgpt.com (a remote-control loop and a featured-plugins request answered 401) and synced the plugin repository again (a full fetch on a home not fully synced; `git ls-remote` only on the next run). Analytics off does not stop it. **K-12 decided (v0.9; DECISION-K3 revised; ACCESS-v0.2 §9):** the App turns off whatever Codex's **settings** allow, shows the rest in its network view and records it. **OBS-2 (0.158.0, O-7; §10.2 OB2-9) fills the App-action column:** `[features] plugins = false` stops both start-up connections seen (the featured-plugins request to chatgpt.com and the plugin-repository check or fetch from github.com, including a fresh home's ≈24 MB fetch); `remote_plugin`, `apps` and `remote_control` (a `removed` feature) do not. Plugins follow the person's own setting (DECISION-L L-3), read through the link: off → the connections stop (the App adds `plugins = false` only in the fallback with its own configuration); on → they happen, per App-owned home, and are shown and recorded. The remote-control loop is stopped by no setting; only an internal environment variable stops it, which is not a setting and is not used (R18-3); without sign-in it opened no socket at OBS-2 (local work only), and with sign-in it is not observed (DECISION-L L-6). The network view shows it so. Codex does not report its own connections in its event stream; the App learns them from a per-pin expected list and its own observation of the process tree's sockets (ACCESS-v0.2 §9) |
+| L-5 Credentials | V4-ARC-04; DECISION-4 D4-3 (R8-9) | `observed-in-generated-types`: login variants incl. API key and ChatGPT account sign-in; credential store modes `file`/`keyring`/`auto`/`ephemeral`; actual storage and local-provider key need: not-observed. **Model access choice (D4-3):** local and cloud are options the person chooses among, with **no default**; a cloud model is reached by **OAuth sign-in or an API key**. V4-HOST-01, as amended by SCA-V4-001, carries D4-3 for a host's agent; for the App path, D5 already leaves the model to the person. This boundary selects no default and carries the supplier's variants unchanged. Whether the supplier's sign-in variant serves D4-3's OAuth option for a given cloud provider is not-observed. Which flows the App offers is DEL-01-05's (S-4). **v0.9 (ACCESS-v0.2 §2, §6, §7):** offered: ChatGPT sign-in in the browser (`chatgpt`), device-code sign-in (`chatgptDeviceCode`), and an API key (`apiKey`), the key in its own App-owned home H-key (K2-1, adopted by DECISION-L L-1). Not offered: `chatgptAuthTokens` (external tokens, CR-9), `amazonBedrock*`, gateway OAuth. No sign-in or API-key flow is observed (DECISION-L L-6) |
 | L-6 Distinct from host loop interface | ARC §4 V4-ARC-10 | Unchanged: each interface is qualified separately (AG-14). V4-ARC-10 (D-20) stays the v4 host-loop direction (DECISION-4 D4-2; R8-8) |
 
 An unqualified server example establishes neither supported substitution nor
@@ -1017,8 +1244,9 @@ provider access (REQ-005).
 ### 8.2 Supplied-guidance evidence (V1-C D-16, R-10)
 
 For every client request that carries additive guidance input (at 0.158.0
-the base/developer instruction elements of thread start and thread resume),
-the boundary records, per thread and per turn at which it applies: the
+the developer instruction element of thread start, and the other carriers
+in the table below; from v0.9 also the text element of a workflow's
+run-start turn), the boundary records, per thread and per turn at which it applies: the
 request identity and generation, which guidance element was carried, the
 **content identity of each guidance input actually carried** (algorithm
 U-08), and the source identity supplied by the composing owner (DEL-02-04;
@@ -1028,14 +1256,52 @@ the bytes as evidence. These records are supplied to DEL-04-03 directly
 (supplied guidance, model and destination, tool-permission settlements)
 from `DEL-01-01`", and RS R3 and R13 name DEL-01-01 as their source in this
 undertaking; DEP-04-03-027). DEL-01-02's custody of in-flight requests is a
-separate contribution of a deliverable outside this increment (D1).
+separate contribution (RECOVERY-v0.2 §3.5, §7).
+
+**Carriers at 0.158.0 and what each does (v0.9; R17-8, R19-1, R19-7,
+R19-8; OBS-2 O-4a, O-5, O-5b; OBS-3 W-1…W-6).** The source identity of
+every record below is the one the composing owner supplies: the ROLE supply
+record for role guidance (ROLE-v0.2 §6.1), the registered revision for a
+workflow (WR-v0.2).
+
+| Carrier (supplier element) | Applied at 0.158.0? | Use in the App | What this boundary records |
+|---|---|---|---|
+| `developerInstructions` on `thread/start` | Yes (OBS-2 O-5: the thread's developer text reached every model request) | **Role guidance** (product guidance + the conversation's role), composed by DEL-02-04 (ROLE-v0.2 §5.1); fixed for the conversation's life (DECISION-L L-2) | Request identity, generation, element, content identity, source identity. Role-guidance supply evidence is recorded **at thread start only** |
+| `baseInstructions` on thread start, resume or fork | — | **Never set** (R17-8; Codex's base instructions preserved) | A request carrying it is a finding, not supply |
+| `developerInstructions` on `thread/resume` | **No**: accepted without error and silently ignored, for a loaded thread and for one the resume loads; nothing reports it (OBS-2 O-5) | **The App sends none** (ROLE-v0.2 §5.2, §5.5): relaunch keeps the start supply; changed role guidance reaches new conversations only (R19-3; ROLE-v0.2 §4.4) | If one is ever sent, it is recorded as *supplied, not applied at 0.158.0* |
+| `developerInstructions` and `config.developer_instructions` on `thread/fork` | **No**: accepted and ignored; the fork keeps the source's developer text and history and gets a new thread identity with `forkedFromId` (OBS-3 W-6, W-6b) | **The App sends none.** A fork is a same-role copy only, recorded by DEL-02-04 as `inherited` from its source (ROLE-v0.2 F-1); "Continue as ‹role›" is a new conversation with its own `thread/start` guidance and a handoff summary the source conversation's agent drafts in a visible turn and the person edits before sending (R19-8, R20-6); this boundary carries those turns as ordinary turns | The `thread/fork` request record; no guidance element carried |
+| A **text element of the `turn/start` that starts a workflow run** | Yes: the bytes reached the model as the user's text, and `thread/read` returns them (OBS-3 W-4) | **Workflow supply per run** (R19-1, R19-7): the registered revision's exact bytes framed by App-written lines naming the workflow and revision and, when chaining, saying the previous run ended (framing PROPOSED in WR-v0.2; R19-2). When a run ends and no run starts with the next turn, that turn is prefixed with one App-written line saying the run ended (R20-3; worded by DEL-02-02) | The `turn/start` request record with the content identity of that text element and the source identity DEL-02-02 supplies. The App's per-run supply evidence (bytes and content identity, checked against `thread/read`) is the composing owner's, through the generic request path (R19-7; RS R3) |
+| `turn/start` input `{type: "skill", name, path}` | Only for a `SKILL.md` of a discovered skill at its canonical path (then injected as a separate user message); otherwise accepted and silently ignored, with no error (OBS-3 W-1) | **Not used** for workflows (R19-7: a recorded alternative); the App places no workflow in any discovered skill root | If sent, recorded; a silently ignored input is never shown as supply |
+| `turn/start` input `{type: "mention", …}` | No content reached the model for a file or a skill (OBS-3 W-3) | Not used | — |
+| experimental `collaborationMode.settings.developer_instructions` on `turn/start` or `thread/settings/update` | Yes, **added**: a developer message is appended at each change and every earlier one stays in history; it persists across turns and a supplier restart; in plan mode a non-null value replaces the mode's built-in text (OBS-2 O-5b; OBS-3 W-5) | Not used for workflows or role supply (R19-7; ROLE-v0.2 §5.2). Plan mode is composed by DEL-01-04 with a null value (R18-1 C-06; NPTD-v0.2 §5.4) | Any non-null value is recorded as a guidance input with its content identity |
+| thread `config` keys `agents.<ROLE>.description`, `agents.<ROLE>.config_file` | Yes for a delegated child, *observed through the OBS-2 adapter, not stock behaviour* (R18-9), with the `agents.*` keys in the home's `config.toml`: the role is offered as `agent_type`, recorded as `agentRole`, and the role file's `developer_instructions` **replace** the parent's for that child (OBS-2 O-4a). Under K-1 that file is the person's and is never written by role supply, so the App's carrier (per-thread `config` on `thread/start`, or `-c` session flags) is **not observed** (ROLE-v0.2 CR-1a, U-R3) | Additive child roles only, composed as product guidance + that role (R18-4; ROLE-v0.2 §5.3) | The carried `agents.*` entries and the content identity of each role file the App supplies |
+| thread `config` keys `instructions`, `developer_instructions` | Not observed on `thread/start` (on `thread/fork`, ignored: OBS-3 W-6b) | Never (ROLE-v0.2 §5.2: one carrier only) | — |
+
+**Per-thread `config` from role supply (v0.9; ROLE-v0.2 §5.2, §5.3; K-10;
+H9).** The only configuration the App supplies for roles is the additive
+`agents.<ROLE>.description` and `agents.<ROLE>.config_file`, and only for
+role names the person's own configuration does not define. Its carrier
+(per-thread `config` on `thread/start`, or `-c` session flags) is not yet
+observed to be honoured; OBS-2 O-4a saw the keys honoured only from the
+home's `config.toml`, which under K-1 is the person's file and is never
+written for this (ROLE-v0.2 CR-1a, U-R3). It never sends
+`features.*`, `agents.enabled`, `agents.max_depth`, or approval or sandbox
+keys: the person's Codex configuration is not overridden (Root `AGENTS.md`;
+K-10 "stated, not enforced"). A child spawned without an `agent_type` is not
+observed; its guidance is stated as unknown, not as inherited (R18-4).
+
+`instructionSources` on the thread-start response reports the instruction
+files Codex itself found (with R18-6 these may include the person's global
+`AGENTS.md` through the link); it is recorded as Codex reports it
+(ROLE-v0.2 §4.3). At OBS-2 and OBS-3 every value was `[]` (no `AGENTS.md`
+in the scratch working folders).
 
 **Named limitation (P-15).** This evidence establishes that the input was
-*supplied*. Whether the supplier *adopted* it — in particular whether resume
-overrides apply to an already-loaded thread (v3 observed that 0.154 ignored
-them; at 0.158.0 not-observed) — is separate evidence and is not implied.
-Launch configuration identity (§7.1) is not a substitute: it is per child
-start, not per thread/turn.
+*supplied*. Whether the supplier *adopted* it is separate evidence and is
+not implied. At 0.158.0 P-15's open half is now observed: resume and fork
+overrides are ignored (OBS-2 O-5; OBS-3 W-6), as v3 observed of resume at
+0.154. Launch configuration identity (§7.1) is not a substitute: it is per
+child start, not per thread/turn.
 
 ### 8.3 Observed model destination (R4-1, R5-4; owner decision D5)
 
@@ -1085,6 +1351,10 @@ destination from the thread-level report is DEL-04-03's (RS R5).
 
 The destination **class** (local or cloud) is derived from the provider
 configuration the person chose (DEL-01-05), not inferred by this boundary.
+From v0.9 DEL-01-05 derives it from the kind of access entry the
+conversation uses (ACCESS-v0.2 §2): `chatgpt-account` and `api-key` →
+`user-chosen cloud`; `local-provider` → `local model server` (RS R5 values
+unchanged).
 Whether requested and effective values can differ in practice is not
 observed (U-19). OBS-1 and OBS-1b observed them equal at thread start, no
 `model/rerouted`, and no model element on the turn (§10.1 OB-7; F-23). D5 concerns host content reaching the conversation's model;
@@ -1165,8 +1435,8 @@ behaviour):
 | HCG-A05 | Calls tools and reads resources of MCP servers configured for the thread. The client methods in this group (`mcpServer/tool/call`, `mcpServer/resource/read` and the configuration methods) are App-origin calls (§6.8) | `mcpServerStatus/list`: servers, tools, runtime status (§6.8; ADAPTER §3.5). Added at the RP-3 repair (R13-6): `modelProvider/capabilities/read` → `namespaceTools`, which, on the evidence of OBS-1, bears on whether the provider can receive MCP tools at all, since Codex 0.158.0 offered them to a Responses provider as a `namespace` tool (inference from the record, not a stated meaning of the element). **Observed limit of one route (§10.1 OB-1):** on LM Studio 0.4.16 through the Responses interface no MCP tool reached the model |
 | HCG-A06 | Calls tools the App registers on the thread; the App answers `item/tool/call`. `functionCallOutput` is the output item of such a call (name, namespace, output), not a capability of its own | `dynamicTools` on thread start (experimental-only); `modelProvider/capabilities/read` → `namespaceTools` (see HCG-A05). None is registered in this increment (§6.1) |
 | HCG-A07 | Asks the person a question, or relays an MCP server's elicitation (its prompt is authored by an MCP server or the agent, §6.1); the answer goes to the agent and is never act evidence (R9) | Not stated in the generated types. The tool `request_user_input` was offered to the model in both OBS-1 runs and not used (§10.1) |
-| HCG-A08 | Starts and messages sub-agent threads (native delegation) | `multiAgentMode` on thread and turn start (experimental-only) |
-| HCG-A09 | Keeps and updates a plan; plan mode is a collaboration mode | Plan item and plan notifications stable; plan mode through `collaborationMode` on turn start (experimental-only; S-F-13) |
+| HCG-A08 | Starts and messages sub-agent threads (native delegation) | **v0.9 (R18-1 C-04, C-05; replaces v0.8's `multiAgentMode` signal, which the 0.158.0 types mark "@deprecated Ignored"):** delegation is available when `Model.multiAgentVersion` (on `model/list`; `disabled`, `v1`, `v2`) is not `disabled` **and** the provider accepts `namespace` tools (`modelProvider/capabilities/read` → `namespaceTools`, as HCG-A05); an effective `features.multi_agent = false`, when `config/read` shows it, reads missing (`config/read` shows no `features` unless set); a signal that cannot be read leaves availability *not established* (NPTD-v0.2 §7.1). Read at run time (R19-5). Delegation is a **stable** surface: its items are stable and the gating feature `multi_agent` is stable and on by default at 0.158.0 (OBS-2 O-4, O-8), so it carries no "experimental" label; only plan mode does (C-05). *Observed through the OBS-2 adapter, not stock behaviour (R18-9):* `collabAgentToolCall` items `spawnAgent`, `sendInput`, `wait` with `receiverThreadIds` and `agentsStates`; child notifications on the same connection with the child's thread identity and **no `thread/started`**; the child readable by `thread/read` with `parentThreadId`, `agentRole`, `agentNickname`; children absent from `thread/list`, present in `thread/loaded/list`. So receivers recognize a child from the parent's completed `spawnAgent` `receiverThreadIds`, never from `thread/started` or `thread/list` (RECOVERY-v0.2 F-R10; NPTD-v0.2 §7.4; ROLE-v0.2 CR-5). With `multi_agent_v2` the tool namespace is `collaboration` with a different tool set (OBS-2 §6.1). On LM Studio 0.4.16 delegation never reaches the model (§8.1 L-3) |
+| HCG-A09 | Keeps and updates a plan; plan mode is a collaboration mode | Plan item and plan notifications stable; plan mode through `collaborationMode` on turn start (experimental-only; S-F-13). *Observed at OBS-2 (0.158.0, O-8):* one `plan` item via `item/plan/delta`, no `turn/plan/updated`, no `update_plan` tool; plan mode persists on later turns until the default mode is sent explicitly (DEL-01-04 composes it, R18-1 C-06) |
 | HCG-A10 | Searches the web | `modelProvider/capabilities/read` → `webSearch`; web-search mode `disabled`, `cached`, `indexed` or `live` in configuration |
 | HCG-A11 | Views local images; generates images | `modelProvider/capabilities/read` → `imageGeneration` |
 | HCG-A12 | Reviews changes in a review mode | `review/start` |
@@ -1175,6 +1445,20 @@ behaviour):
 | HCG-A15 | Runs configured hooks, which may add prompt fragments | `hooks/list` |
 | HCG-A16 | Keeps memories across threads | `thread/memoryMode/set`, `memory/status` (experimental-only) |
 | HCG-A17 | Holds a realtime voice conversation | Experimental-only methods |
+
+**Goals (v0.9; R18-7 G-3; NPTD-v0.2 §6.4).** Every tool list captured at
+OBS-2 (0.158.0) offered the model three goal tools, `get_goal`,
+`create_goal` and `update_goal`, and a resume produced the notification
+`thread/goal/cleared`. The tools are model-facing tools inside a turn, not
+App Server surfaces; no item kind exists for them at 0.158.0, and whether a
+goal tool call yields an item is not observed (NPTD-v0.2 U-P9). They are
+placed with the thread-goal surface already in HCG-B04 (`thread/goal/set`,
+`get`, `clear`; `thread/goal/updated`, `thread/goal/cleared`), which is the
+App's own access to the same goal; no Part A group is added, so the counts
+above and the group set WD-v0.8 §4.2.5 resolves against are unchanged. A
+Codex goal status is never a run end, checkpoint or act (NPTD-v0.2 §6.4
+TA-5). DEL-01-03 shows the goal line as a native group without translation;
+this boundary delivers it natively (H6).
 
 **Client methods in Part A.** A client method listed in a Part A group
 (for example `thread/shellCommand`, `mcpServer/tool/call`, `review/start`,
@@ -1233,8 +1517,21 @@ controlled scenario on an identified candidate:
   personal paths **and, from the 0.158.0 stream, the host name
   (`serverName`), installation identifier, absolute home path and the
   client's own identity text inside `userAgent`** where it identifies a
-  person or machine (S-F-15). A redacted fixture never claims byte identity
-  with the original exchange;
+  person or machine (S-F-15). **From v0.9 (ACCESS-v0.2 §7 CR-2, CR-4;
+  NIR-v0.2 §4.5 SE-3; OBS-2 §11; OBS-3 §9; all at 0.158.0):** the
+  `account/login/start` parameters `apiKey`, `accessToken`,
+  `secretAccessKey`, `sessionToken` and the response elements `authUrl`,
+  `verificationUrl`, `userCode` are replaced by a redaction marker before
+  anything is written; supplier error texts from account methods are
+  redacted as text; the `account/read` `email` is an identity category;
+  answer values to questions marked `isSecret` are never kept (§6.1);
+  every model request carries the installation identifier and the thread,
+  session and turn identifiers to the provider (`client_metadata`, and
+  the `x-codex-turn-metadata` header at OBS-3), and the host's time zone is
+  in every model input (`<environment_context>`), so a captured provider
+  exchange carries these categories too; a skill injected by Codex carries
+  the skill file's absolute path to the model (OBS-3 W-1). A redacted
+  fixture never claims byte identity with the original exchange;
 - invented engineering material only (V4-CST-06); fixture subjects labeled.
 
 Live capture runs are few and deliberate; each needs the owner's credential
@@ -1306,6 +1603,14 @@ fixtures (no App candidate, no §7.2 step) but may seed a supplier double.
     incompatibility. The App implementation owner decides adoption; *p*
     stays in force until then.
 
+**Version-advance check (v0.9; R19-5; PROPOSED as a later node, scheduling
+open).** Before *p′* is used even for definition, steps 3–4 and 6 are run,
+the local observation harnesses (`prototype/obs1/`, `obs2/`, `obs3/`) are
+rerun at *p′* within the limits their briefs set, and every statement of
+this file and its receivers that names *p* as its version is listed as
+affected. Runtime reads (the version rule, header) are re-checked rather
+than carried forward.
+
 ### 9.6 Supplier double, boundary model and schemas (PROPOSED, v0.8; R12-1…R12-3)
 
 **What exists.** `Design/prototype/` holds a local prototype, run with the
@@ -1352,6 +1657,24 @@ VC-27…VC-30, the seed-fidelity checks (each of the eight transcripts
 replayed byte for byte) and two deliberate-stop checks. Not run: VC-07
 (needs the generators, that is, running the Codex binary), and every case
 marked "No" (live turn, candidate or credential).
+
+**Rerun at v0.9 (node F-A, 2026-10-02).** `PYTHONDONTWRITEBYTECODE=1
+python3 run_cases.py` in `Design/prototype/` (Python 3.13.7, Darwin 25.6.0
+arm64): **35 results, 35 pass (model), exit 0**, the same 35 cases as the
+RP-3 run. VC-27 compares the §4.7 and §6.2.1 tables of this file with the
+model (only guard text changed in RT-08 and RT-10, which the check does not
+compare); VC-30 parses §8.4 (no member added or moved);
+SCHEMA-records validates the 258 model records against the revised entry
+schema. No prototype program file was changed; the output is quoted in the
+node's return (`F/F-A.md`), not written into `results/`. The revised entry
+schema (FH-17, FH-18) has three new fixtures beside the two the run uses:
+`server-request-entry.secret-redacted.valid.json` (valid),
+`server-request-entry.secret-kept.invalid.json` (invalid: missing
+redaction) and `server-request-entry.actor-form.invalid.json` (invalid:
+actor pattern), checked with `jsonschema_subset.py` by a scratch script; the
+two original fixtures keep their results. DEL-01-04's prototype (read-only
+run at this node) validated every register entry it produced against the
+revised schema (its check R-16 passed).
 
 **OBS-1 test doubles.** `obs1_mcp_double.py` (a minimal stdio MCP server
 with one invented tool, logging receipt times) and `obs1_cli_tool.py` (a
@@ -1406,7 +1729,13 @@ relied upon, and no receiver depends on it); whether an MCP tool call raises an 
 and by which kind; whether an App-initiated `mcpServer/tool/call` enters the
 thread's items or model context; per-thread MCP configuration; whether
 requested and effective model/provider can differ. Live items need the owner's credential or an
-identified local provider.
+identified local provider. **v0.9:** OBS-2 and OBS-3 (§10.2, §10.3) observed
+at one local pairing: the live effect of `turn/interrupt`; a before-reply
+`serverRequest/resolved` (after an interrupt) and a never-answered request
+across a stop; post-restart thread reads; resume-override adoption (ignored)
+and fork-override adoption (ignored); the start-up traffic's
+configurability; runtime gating of plan mode and of `remoteControl/status/read`
+by the opt-in. U-19 lists what remains.
 
 **v0.8: OBS-1.** The brief for one live turn at 0.158.0 against a local LM
 Studio model (DECISION-K1 K1-6) is `WAVE_B/OBS-1_BRIEF.md` in run
@@ -1457,6 +1786,62 @@ Not observed by either run: a model-issued MCP tool call, its item order and
 whether it raises an A14 request (O-1…O-4); `serverRequest/resolved` before
 any reply; the effect of an answer the request does not offer; the live
 effect of `turn/interrupt`; post-restart reads; resume-override adoption.
+(v0.9: several of these were observed by OBS-2, §10.2; this section keeps
+OBS-1's record as it stood.)
+
+### 10.2 OBS-2 at 0.158.0 (dated observations; v0.9, FH-41)
+
+Record: `OBS_2_0.158.0.md` beside this file, not edited here. **Standing:**
+observed on 2026-10-01 at one pairing: the Codex 0.158.0 vendor binary
+(sha256 as SPIKE §3), LM Studio 0.4.16+2 on loopback, one model
+(`qwen/qwen3.5-9b`), scratch homes with no credential, invented material
+only. Every answer to a supplier request came from the observation harness
+(origin `observation-harness`), never a person's act. Not qualification
+(DEP-005); no App candidate. **O-4, O-4a and O-4b were observed only through
+a loopback adapter that flattened Codex's `namespace` tools for LM Studio;
+they are cited as "observed through an adapter (OBS-2), not stock
+behaviour"** (R18-9). The record notes a stop condition (S-9, memory
+pressure) hit during O-4a and the run's continuation; the observations
+after it stand with that note (R18-9; DISPATCH). Labels OB2-n are this
+section's.
+
+| ID | Observation (record section) | Bearing on this file |
+|---|---|---|
+| OB2-1 `turn/interrupt` (O-1, §4) | Empty result in about 21 ms; `thread/status/changed` idle; `turn/completed` status `interrupted`; two deltas after the request and before its result; the open `reasoning` item never got `item/completed` and is not in history; Codex closed the provider stream | §6.7 HP-2; G-4: an item opened and never completed settles "not completed (turn ended)" in the receivers (NPTD, NIR, RECOVERY; R18-7); this boundary delivers what arrives (H6) |
+| OB2-2 Supplier resolution before a reply (O-3, §5.1) | With an approval held, `turn/interrupt` → `turn/completed` `interrupted`, then `serverRequest/resolved` for the request; a later answer silently ignored; the command item never completed and is absent from history. Side observation: a `cancel` answer ended the item `declined` and the turn `interrupted` | RT-10 provoked (§6.2); U-09 narrowed; §6.2.1 "Negative answers and the turn" |
+| OB2-3 Stop, restart, resume (O-2, §5.2) | Stop by closing input: exit 0 in about 21 ms; kill: signal 9. After both: `thread/read` before resume works (`notLoaded`); the turn `interrupted`; the pending request **not** raised again and no resolution sent; no model request on resume; a graceful stop writes a "user interrupted … on purpose" marker into history; `deprecationNotice` on full reads | §4.4 "Recovery reads"; §4.5 steps 2, 3; RECOVERY-v0.2 §5 |
+| OB2-4 Delegation on the stock pairing (O-4, §6.1) | Delegation tools travel only in a `namespace` tool (`multi_agent_v1`), dropped by LM Studio 0.4.16; no configuration sends them flat; `[features] multi_agent = false` removes them; `multi_agent_v2` gives namespace `collaboration` with other tools; `agents.<role>` adds `agent_type` to `spawn_agent` | §8.1 L-3; §8.4 HCG-A08; F-31; U-22 |
+| OB2-5 Delegation through the adapter (O-4, O-4a, §6.2) | `collabAgentToolCall` `spawnAgent`, `sendInput`, `wait`; child frames on the same connection, no `thread/started`; child readable with `parentThreadId`, `agentRole`, `agentNickname`, `source.subAgent`; children not in `thread/list`, in `thread/loaded/list`; the role file's `developer_instructions` replace the parent's for the child; the child had no delegation tools at default depth | §8.2 table; §8.4 HCG-A08; F-20 |
+| OB2-6 Task guidance against delegation (O-4b) | A parent told "you do not delegate" delegated anyway; recorded and shown in full | K-10 "stated, not enforced" (ROLE-v0.2 §6.3); this boundary delivers the items |
+| OB2-7 Resume with changed developer text (O-5, §7) | `developerInstructions` on `thread/resume` accepted and ignored, loaded or not; nothing reports it. O-5b: `collaborationMode.settings.developer_instructions` on `turn/start` applied, **added** to the thread's own text | §8 S-6; §8.2 table and P-15 |
+| OB2-8 Account home mechanism (O-6, §9) | Linked `config.toml`: the App home reads the person's values as its user layer and reports its own account; `-c` overrides form `sessionFlags`; `--profile` refused for `app-server`; the shared file not written; separate credential storage not distinguishable without a credential | §4.2 step 3; H9; U-03 |
+| OB2-9 Start-up traffic (O-7, §10) | `plugins = false` stops both start-up connections, cold or warm; `remote_plugin`, `apps`, `remote_control` do not; the remote-control loop stops only with an internal environment variable and opened no socket without sign-in; no non-loopback socket during turns | §8.1 L-4; U-18; F-14 |
+| OB2-10 Plan mode (O-8, §8) | One `plan` item via `item/plan/delta`; no `turn/plan/updated`, no `update_plan` tool; plan mode persists until the default is sent; developer text still sent beside the plan text; `remoteControl/status/read` and plan mode need the opt-in | §4.2 step 4; §8 S-2; §8.4 HCG-A09; VC-09 |
+| OB2-11 Process exit and content (§11) | A plugin `git ls-remote` child outlived a stop made about 0.7 s after spawn and was re-parented; every model request's `client_metadata` carried the installation identifier and thread, session and turn identifiers; the host time zone in every model input; no user path in any model input | H11; §4.5 step 3; §9.1 |
+
+Not observed by OBS-2: an interrupt while an `agentMessage` streams; the
+remote-control loop when signed in; a shared home with a separate credential
+store (M4, M5); writes through a linked `config.toml`; whether plan mode's
+precedence over developer text is real or this model's adherence; a child
+spawned without an `agent_type`; an interrupt cascading to a child.
+
+### 10.3 OBS-3 at 0.158.0 (dated observations; v0.9; R19-6, R19-7, R19-8)
+
+Record: `OBS_3_0.158.0.md` beside this file, not edited here. **Standing:**
+observed on 2026-10-02 at the same pairing as OBS-2, with `plugins = false`
+in every home and the model run one prediction at a time; no adapter; no
+stop condition hit; no supplier request arrived. Not qualification. Labels
+OB3-n are this section's.
+
+| ID | Observation (record section) | Bearing on this file |
+|---|---|---|
+| OB3-1 `skill` input (W-1, §3) | Honoured only for a `SKILL.md` of a skill Codex has discovered (home root, or a root set by `skills/extraRoots/set`), at its canonical path; then injected as a separate user-role `<skill>` message with the file's bytes and absolute path. Any other path or shape (including `WORKFLOW.md`, a non-canonical spelling, a missing file) is accepted and **silently ignored**, with no error. Every discovered skill is advertised in every request's skills block. An extra root is not kept across a supplier restart | §8.2 table (not used for workflows, R19-7); §9.1 (path disclosure) |
+| OB3-2 Chaining in one conversation (W-2, W-2b, §4) | Run B started after a line saying run A ended: the model followed B and dropped A; nothing is removed from history; the injected bytes are fixed in the rollout at the turn's start | §8.2 (supply is per run; history keeps earlier runs' text) |
+| OB3-3 `mention` input (W-3, §5) | Accepted; nothing reached the model for a file or a skill | §8.2 table |
+| OB3-4 Text input (W-4, §6) | The workflow's bytes as a text element reached the model as the user's text; `thread/read` returns the full bytes | §8 S-6; §8.2 table (the R19-7 route) |
+| OB3-5 Experimental settings update (W-5, §7) | `thread/settings/update` with developer text: a developer message appended at each change, earlier ones kept and resent; persists across turns and restart; in plan mode a non-null value replaces the mode's built-in text | §8.2 table (not used for workflows, R19-7) |
+| OB3-6 Fork (W-6, W-6b, §8) | `thread/fork` with new `developerInstructions` (or `config.developer_instructions`): accepted and ignored; the fork carries the source's developer text and history, gets a new thread identity with `forkedFromId`, keeps the source's turn identities, and references the source's rollout rather than copying it; `thread/list` shows `forkedFromId` null | §8 S-6; §8.2 table (R19-8); U-19 (whether deleting a source breaks its forks) |
+| OB3-7 Content sent (§9) | Base instructions, the thread's developer text, the skills block, a permissions block and `<environment_context>` (working folder, shell, date, time zone); installation and thread, session, turn identifiers in `client_metadata` and the `x-codex-turn-metadata` header; no non-loopback socket with plugins off | §9.1 |
 
 ## 11. Owner / act boundary (REQ-007, REQ-008, AC-007, VER-007)
 
@@ -1465,16 +1850,16 @@ effect of `turn/interrupt`; post-restart reads; resume-override adoption.
 | Select the definition/generation pin | App implementation owner; owner decision D4 selected 0.158.0 | §7 record, §10 observations, §9.5 method | Qualification; re-examination before implementation |
 | Decide Rust/TS allocation | App implementation owner (OI-008) | §12 proposal | Decision |
 | Choose the reference generator output | App implementation owner (U-15) | §7.3 options | Decision |
-| Durable session/request custody, reconnect, relaunch, stop | DEL-01-02 | §4, §6 interface, S-1 | Custody code, persistence, recovery |
-| Plan/tool/delegation presentation | DEL-01-03 | S-2 | Views, registry, revision identity, checker |
-| Request cards, answers, outcomes, attachments | DEL-01-04 | S-3 | Cards, answer UX |
-| Sign-in (including OAuth), API key, local provider (options the person chooses among, no default: DECISION-4 D4-3), substitution checks | DEL-01-05 | S-4, §8.1 | Flows, configuration, substitution evidence; any sign-in, which is the person's own |
+| Durable session/request custody, reconnect, relaunch, stop | DEL-01-02 (RECOVERY-v0.2) | §4, §6 interface, S-1 | Custody code, persistence, recovery |
+| Plan/tool/delegation presentation | DEL-01-03 (NPTD-v0.2) | S-2 | Views, registry, revision identity, checker |
+| Request cards, answers, outcomes, attachments | DEL-01-04 (NIR-v0.2 §4–§6; the App act control AAC-v0.2) | S-3 | Cards, answer UX |
+| Sign-in (including OAuth), API key, local provider (options the person chooses among, no default: DECISION-4 D4-3), substitution checks | DEL-01-05 (ACCESS-v0.2; ACCOUNT-HOME-RECORD-v0.2) | S-4, §8.1 | Flows, configuration, substitution evidence; any sign-in, which is the person's own |
 | Packaging, signing, notarisation, distribution | DEL-01-06 (terms obtained by owner, OQ-08) | S-5 | Packaging production |
-| Workflow semantics / making / registration | DEL-02-01 / DEL-02-02 | S-6 carriage | Semantics, registration, capability naming |
-| Additive guidance production | DEL-02-04 | S-6 carriage, §8.2 evidence | Composition |
+| Workflow semantics / making / registration | DEL-02-01 / DEL-02-02 (WR-v0.2) | S-6 carriage of the run-start text (R19-7), §8.2 evidence | Semantics, registration, run-start composition and framing, capability naming |
+| Additive guidance production | DEL-02-04 (ROLE-v0.2) | S-6 carriage at thread start, §8.2 evidence | Composition |
 | Operation-policy / human-act definition | DEL-04-01 (D2, D3 adopted; OI-021 additions pending) | R7–R9 origin truthfulness | Policy |
 | Run/act records | DEL-04-03 | S-7 observed facts | Records |
-| A14 answer tool permission | The person (via DEL-01-04), or the user's own Codex mode inside the supplier (D3 setting; origin rule R7, DERIVED per R-2/R2-11) | Register accepts and records it with supplied actor/origin; evidence to the run record's tool-permission entries only (R2-8) | Performing, inferring or answering it affirmatively by App rule |
+| A14 answer tool permission | The person (via DEL-01-04's request cards, NIR-v0.2 §4), or the user's own Codex mode inside the supplier (D3 setting; origin rule R7, DERIVED per R-2/R2-11) | Register accepts and records it with supplied actor/origin; evidence to the run record's tool-permission entries only (R2-8) | Performing, inferring or answering it affirmatively by App rule |
 | A4 mark checked, A5 accept, A6 approve, A7 rely, A12 set grant, A13 enable external access | The person (reserved, D2) | None; no A14 answer or App rule stands for any of them (R7, R8) | All |
 | Supplier engine, credentials, published protocol | OpenAI Codex (DEP-005) | Consumes as published | Any modification |
 
@@ -1498,9 +1883,12 @@ release-candidate frameworks (M-6, SOW-101).
 | O-4 Node helper in main process | Rust spawns Node running ported v3 client code | Presentation | Adds a runtime and process, resembles the excluded v3 service (V4-ARC-03, M-6). Set aside |
 
 **Open within O-1:** where thread/turn orchestration and guidance carriage
-live beyond the generic request path; which interface component re-attaches
-after reload (DEL-01-02); how the familiar set and answer-validity rules are
-derived for Rust from the chosen reference output (U-15).
+live beyond the generic request path; how the familiar set and
+answer-validity rules are derived for Rust from the chosen reference output
+(U-15). Which interface component re-attaches after reload is answered by
+DEL-01-02 (v0.9): each window's observer re-attaches from its position and
+the main process holds the per-generation journal (RECOVERY-v0.2 §3.3, §4.1;
+PROPOSED placement under R17-5).
 
 **Optional-reuse assessment (REQ-004, AC-004, ARC §3 reuse candidates).**
 v3 code is evidence of behavior, not qualified v4 material.
@@ -1517,8 +1905,8 @@ v3 code is evidence of behavior, not qualified v4 material.
 
 - **F-01 Overlap on the unknown-request error** (DEL-01-01 REQ-001/AC-001/
   VER-001 vs DEL-01-02 OUT-001/REQ-004). Proposed reading in §6.5.
-  Reconciliation now waits for the later undertaking that defines DEL-01-02
-  (D1).
+  **Closed at v0.9:** DEL-01-02 accepts the split as written (RECOVERY-v0.2
+  §1, §6; §6.5).
 - **F-02 v3 conflated "no live turn" with "unknown"** (answered known
   requests with method-not-found). R6 forbids carrying this over.
 - **F-03 v3 swallowed reply write failures.** v4 records
@@ -1552,7 +1940,13 @@ v3 code is evidence of behavior, not qualified v4 material.
   collaboration mode, thread settings update, dynamic tools, available
   decisions). The App must declare the experimental opt-in to use plan mode;
   the supplement narrows but upgrade exposure to experimental churn widens
-  (ARC §8 risk "protocol drift").
+  (ARC §8 risk "protocol drift"). **v0.9:** under K-5 the App declares
+  `experimentalApi: true` and records it per generation (§4.2 step 4;
+  NPTD-v0.2 §4 EX-2). At OBS-2 (0.158.0) plan mode and
+  `remoteControl/status/read` needed the opt-in and delegation did not
+  (stable feature `multi_agent`), so only plan mode is labelled
+  "experimental" (R18-1 C-05). `thread/settings/update` is not used for
+  workflows (R19-7).
 - **F-14 Network at start on a fresh home (L-4).** ≈24 MB fetch from
   `github.com/openai/plugins` with no sign-in or turn; its descendants can
   outlive the supplier. Routed to the **owner** and **DEL-01-05** (OI-009: a
@@ -1562,9 +1956,20 @@ v3 code is evidence of behavior, not qualified v4 material.
   boundary". The amended ARC §1 priority 3 speaks of a host's agent and
   states no such boundary for the App, so no accepted text now frames this
   traffic (L-4); the question to the owner stands as U-18 states it.
+  **v0.9:** the separate App account home is decided (K-1), and with
+  DECISION-L L-1 there is one per App-owned home (H-acct; H-key when a key is
+  added), so the fresh-home fetch happens at most once per home, and only
+  with plugins on. At OBS-2 (0.158.0, O-7; v1, v8) `[features] plugins =
+  false` stopped the fresh-home fetch and the warm `ls-remote`, and the
+  featured-plugins request; plugins follow the person's own setting
+  (DECISION-L L-3; §8.1 L-4).
 - **F-15 D1 defers the standalone-App receivers.** DEL-01-02…05 definitions
   are a later undertaking; seams S-1…S-4 have no receiving comparison in this
-  one.
+  one. **Closed at v0.9, per seam:** S-1 by RECOVERY-v0.2 §1 (DEL-01-02),
+  S-2 by NPTD-v0.2 §2 (DEL-01-03), S-3 by NIR-v0.2 §4–§6 with AAC-v0.2
+  (DEL-01-04), S-4 by ACCESS-v0.2 §19 (DEL-01-05; R18-7 G-1). S-6 has its
+  receiver in ROLE-v0.2 §5 (DEL-02-04) and, for a workflow's run-start text,
+  WR-v0.2 (DEL-02-02; R19-7).
 - **F-16 Register rows.** No DEL-01-01 → DEL-02-04 DOWNSTREAM row (V1-C
   RF-6); with R7 repaired per V1-A D-13 the existing rows suffice for D3
   (RF-03). Both went to closeout C1; not edited here. v0.7: the arc is now
@@ -1578,7 +1983,10 @@ v3 code is evidence of behavior, not qualified v4 material.
 - **F-18 `~/.codex` changed during the spike window** (SPIKE §1), with
   attribution to the spike not established and a separate person-owned Codex
   process present. Relevant to OI-009 (shared vs separate home); no
-  conclusion drawn.
+  conclusion drawn. **v0.9:** under K-1 (option C) the App's Codex runs in
+  App-owned homes; the person's home is written by the App only through a
+  person-directed configuration write (§6.8; ACCESS-v0.2 §6), and OBS-2
+  (O-6) found the person's stand-in file unchanged by every case.
 - **F-19 App-initiated MCP calls are thread-bound (0.158.0).** The
   generated `mcpServer/tool/call` parameters **require** a thread identity.
   An App-origin call therefore names a conversation whose model and history
@@ -1592,7 +2000,14 @@ v3 code is evidence of behavior, not qualified v4 material.
   (`observed-in-generated-types`). They could serve R4-1 (effective
   destination) and possibly the P-15 "adopted" question (instruction
   sources). They are not relied upon until observed live (U-19); routed to
-  DEL-04-03 and DEL-02-04 as candidate evidence.
+  DEL-04-03 and DEL-02-04 as candidate evidence. **v0.9:** DEL-02-04
+  consumes `instructionSources` as Codex's own report (ROLE-v0.2 §4.3); at
+  OBS-2 and OBS-3 (0.158.0) it was `[]` in every case (no `AGENTS.md` in the
+  scratch working folders), so its content is still not observed. Child-role
+  facts now seen through the OBS-2 adapter (§10.2 OB2-5): `Thread.parentThreadId`,
+  `Thread.agentRole`, `Thread.agentNickname` and
+  `source.subAgent.thread_spawn.agent_role` on the child's `thread/read`.
+  Neither resume nor fork changes the developer text (§8.2).
 - **F-22 Closed (R6-4, in place).** The HP-4 scope question (person's own
   messages on a holding run) is settled by EXEC-v0.3 §2 HP-4: not blocked,
   carried `person-directed`, disposition unchanged, governed agent actions
@@ -1692,7 +2107,11 @@ v3 code is evidence of behavior, not qualified v4 material.
   provider capability `namespaceTools` is the element to observe on another
   route. Whether a setting makes Codex send flat function tools to such a
   provider, or another local server accepts `namespace` tools, is not
-  observed (U-19).
+  observed (U-19). **v0.9 (OBS-2 O-4, 0.158.0):** the delegation tools also
+  travel only inside a `namespace` tool, so on such a route delegation is
+  unavailable as well (K-5's "views absent" applies to every LM
+  Studio-served conversation at this pin); no configuration tried at OBS-2
+  sends them as flat functions.
 - **F-32 The approval setting through two carriers (RP-3 repair; R13-6).**
   At 0.158.0 the supplier refused `approval_policy = "untrusted"` in its
   configuration file at start-up, while the generated types still list the
@@ -1702,6 +2121,17 @@ v3 code is evidence of behavior, not qualified v4 material.
   handshake failure; which carrier the App uses for the person's setting is
   DEL-01-05's (S-4). The answer a person may give is the one the request
   offers (R5).
+- **F-33 Accepted is not applied (v0.9; OBS-2, OBS-3 at 0.158.0).** Several
+  inputs are accepted without error and have no effect, and nothing in the
+  protocol reports that: `developerInstructions` on `thread/resume` (O-5)
+  and on `thread/fork` (W-6), `config.developer_instructions` on
+  `thread/fork` (W-6b), a `skill` input whose path is not a discovered
+  skill's canonical path (W-1), and a `mention` input for a file or skill
+  (W-3). A response without error is therefore never evidence that an
+  input took effect. This boundary records such inputs as *supplied* (§8.2)
+  and never shows them as applied; the model-facing effect is read from
+  history (`thread/read`) or a provider-side observation, not inferred
+  (R19-5: re-checked at each version).
 
 ## UNRESOLVED
 
@@ -1709,29 +2139,29 @@ v3 code is evidence of behavior, not qualified v4 material.
 |---|---|---|---|
 | U-01 Pin qualification and re-examination of 0.158.0 (D4 selected it for definition/generation only) | App implementation owner | Before implementation and qualification | 0.158.0 used as definition/generation basis; nothing qualified |
 | U-02 `UNRESOLVED{OI-008}` Rust/TS division | App implementation owner | Before architecture production contracts | §12 is a proposal only |
-| U-03 `UNRESOLVED{OI-009}` account home, incl. which home the label probe writes into (S-F-17) | Owner with App implementation owner (DEL-01-05) | Before account integration | Configuration-identity element open |
+| U-03 ~~`UNRESOLVED{OI-009}`~~ account home, incl. which home the label probe writes into (S-F-17). **Closed at choice level (v0.9)** by DECISION-K3 K-1 (option C) and DECISION-L L-1: App-owned homes sharing the person's configuration by a link, each with its own sign-in; a separate probe home (ACCOUNT-HOME-RECORD-v0.2; ACCESS-v0.2 §3) | Owner with App implementation owner (DEL-01-05) | Before account integration | Mechanism observed for configuration sharing (OBS-2 O-6 M1, M2; §4.2 step 3). Still open: separation of credentials with a credential present (M4, M5; not observed under DECISION-L L-6), and writes through the link |
 | U-04 *Closed by owner decision D3* (tool-permission/sandbox modes are the user's own Codex setting) | — | — | H9, R7 settled |
 | U-05 Restart bound values and grace period | App implementation owner with DEL-01-02 | Before implementation | Rules defined; numbers open |
 | U-06 Running an unverified distribution for development, and its label | App implementation owner | Before implementation | Default: refused as pinned supplier |
 | U-07 Use of the supplier's notification opt-out (`optOutNotificationMethods`) | App implementation owner | Before implementation | Definition uses none (H7) |
 | U-08 Content-identity algorithm for distribution/output/supplement/guidance records | App implementation owner (with DEL-04-03) | Before qualification records | Spike used SHA-256 as an observation method; not selected for records |
-| U-09 Acknowledgment observation mechanism; `serverRequest/resolved` triggers | DEL-01-02 with this deliverable | Before settlement fixtures | Candidate source named; semantics open. v0.8: the PROPOSED reading of §6.2.1 (after a written reply it is an acknowledgment observation; before any reply, `resolved-by-supplier`) is exercised against the double. OBS-1b observed the notification once, 8 ms after a written accept (§10.1 OB-4), consistent with the reading; the before-reply trigger is not observed |
-| U-10 Stop-time handling of outstanding entries | DEL-01-02 | Before recovery implementation | Both paths defined with truthful origin |
-| U-11 Any automatic decline after a period (incl. the native `timed_out` form) | App implementation owner with DEL-01-02 | Before implementation | Not defined; never affirmative (R7) |
-| U-12 More than one concurrent supplier child | App implementation owner | Before implementation | One active child assumed |
-| U-13 Redaction policy details | App implementation owner | Before first capture | Categories extended (§9.1) |
-| U-14 DEL-01-01/DEL-01-02 unknown-request split (F-01) | Both owners | When DEL-01-02 is defined (later undertaking, D1) | Proposed reading §6.5 |
+| U-09 Acknowledgment observation mechanism; `serverRequest/resolved` triggers | DEL-01-02 with this deliverable | Before settlement fixtures | Candidate source named; semantics open. v0.8: the PROPOSED reading of §6.2.1 (after a written reply it is an acknowledgment observation; before any reply, `resolved-by-supplier`) is exercised against the double. OBS-1b observed the notification once, 8 ms after a written accept (§10.1 OB-4), consistent with the reading. **v0.9: narrowed.** The RT-12 reading is adopted by DEL-01-02 (RECOVERY-v0.2 §6 U-09); the before-reply trigger is observed for `turn/interrupt` (OBS-2 O-3; §6.2), so that trigger is closed. Open: other before-reply triggers, and whether every kind is followed by a notification after a reply (for *not-observable-at-pin*) |
+| U-10 Stop-time handling of outstanding entries. **Closed (v0.9)** by RECOVERY-v0.2 §6 U-10: no App decline at stop or quit; entries end `ended-unanswered(process-exit)` (§4.5 step 2) | DEL-01-02 | — | Consistent with OBS-2 O-2 (no re-raise, no resolution sent) |
+| U-11 Any automatic decline after a period (incl. the native `timed_out` form). **Closed (v0.9)**: none; `timed_out` is never sent (R17-9; RECOVERY-v0.2 §6 U-11; R3) | — | — | R3 |
+| U-12 More than one concurrent supplier child | App implementation owner | Before implementation | Up to v0.8: one active child assumed. **v0.9 (DECISION-L L-1; R19-4; report only, R17-2):** one child per App-owned home (H-acct; H-key when the person adds an API key); generation, register and thread are keyed by home (H5); DEL-01-02's DEF-5/DEF-6, quit, Stop Codex and Restart Codex apply to each home's child, and each conversation's recovery reads go to its own home (RECOVERY-v0.2 §2; V2-1); H-probe runs only the label probe and is not a hosted child; K-12 start-up traffic happens per home. The concurrency of two homes' children beyond that (for example a shared resource lock) is not observed |
+| U-13 Redaction policy details | App implementation owner | Before first capture | Categories extended (§9.1; v0.9 adds the account-method elements, secret answers, the provider-bound identifiers and time zone, and skill paths) |
+| U-14 DEL-01-01/DEL-01-02 unknown-request split (F-01). **Closed (v0.9)**: RECOVERY-v0.2 §1 accepts §6.5 as written | Both owners | — | §6.5 |
 | U-15 Reference generator output (O-R1/O-R2/O-R3) | App implementation owner | Before R2/R5 implementation and conformance | Options in §7.3 |
-| U-16 Supplier descendant handling on stop/restart/overlap | DEL-01-02 with App implementation owner | Before lifecycle implementation | H11 requires detection and recording; policy open |
+| U-16 Supplier descendant handling on stop/restart/overlap | DEL-01-02 with App implementation owner | Before lifecycle implementation | H11 requires detection and recording. **v0.9:** policy PROPOSED in RECOVERY-v0.2 §6 (the whole tree ended at a deliberate stop; after an unexpected exit, survivors recorded and shown with a person's action to end them, not ended by rule; overlap wait a TEST VALUE), still with the App implementation owner. OBS-2 §11 shows why a deliberate stop ends the process group (H11) |
 | U-17 Distribution-identity composition and launcher (wrapper vs vendor) | App implementation owner with DEL-01-06 | Before verification implementation | Both recorded; composition open |
-| U-18 Supplier network fetch at start: acceptability (framed up to v0.6 as "under priority 3"; the amended priority 3 speaks of a host's agent, and no accepted text now decides this traffic, L-4); configurability (not addressed by D5, which concerns host content reaching the conversation model) | Owner with DEL-01-05 | Before any local-operation claim; the supplier's start-up fetch is left for the phase review (DECISIONS_PENDING.md Part 3, standing under DECISION-K1) | Observed; no claim of local-only operation. OBS-1 and OBS-1b (§10.1 OB-9): with analytics off and no sign-in, start-up also contacts chatgpt.com (remote control; featured plugins, 401) and syncs github.com/openai/plugins on a warm home |
-| U-19 Unobserved live behaviors (§10 "Still to observe") | App implementation owner (next spike; needs credential or local provider) | Before settlement fixtures, handshake implementation and qualification | Recorded as not observed. v0.8: OBS-1 is briefed for a subset (§10 note; `WAVE_B/OBS-1_BRIEF.md`). OBS-1 and OBS-1b observed part of it at one pair (§10.1); the MCP tool-call items remain unobserved because the local Responses route dropped the MCP tools (OB-1; F-31) |
-| U-20 Partition of the 0.158.0 server-request kinds and their R9 origin classes (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal only; R9 classes fixed as INTEGRATION, membership open |
+| U-18 Supplier network fetch at start: acceptability (framed up to v0.6 as "under priority 3"; the amended priority 3 speaks of a host's agent, and no accepted text now decides this traffic, L-4); configurability (not addressed by D5, which concerns host content reaching the conversation model) | Owner with DEL-01-05 | Before any local-operation claim; the supplier's start-up fetch is left for the phase review (DECISIONS_PENDING.md Part 3, standing under DECISION-K1) | Observed; no claim of local-only operation. OBS-1 and OBS-1b (§10.1 OB-9): with analytics off and no sign-in, start-up also contacts chatgpt.com (remote control; featured plugins, 401) and syncs github.com/openai/plugins on a warm home. **v0.9: decided for the App** by DECISION-K3 K-12 (as revised) with DECISION-L L-3 and R18-3: the App turns off what Codex's settings allow, plugins follow the person's own setting, the remote-control loop is shown (no internal environment variable is used), and the network view shows and records the rest (ACCESS-v0.2 §9). OBS-2 O-7 filled which setting stops which connection (§8.1 L-4). Still open: the update check (`check_for_update_on_startup` not tested), and the remote-control loop when signed in |
+| U-19 Unobserved live behaviors (§10 "Still to observe") | App implementation owner (next spike; needs credential or local provider) | Before settlement fixtures, handshake implementation and qualification | Recorded as not observed. v0.8: OBS-1 is briefed for a subset (§10 note; `WAVE_B/OBS-1_BRIEF.md`). OBS-1 and OBS-1b observed part of it at one pair (§10.1); the MCP tool-call items remain unobserved because the local Responses route dropped the MCP tools (OB-1; F-31). **v0.9: narrowed** by OBS-2 and OBS-3 (§10.2, §10.3). What remains: an interrupt while an `agentMessage` streams; the remote-control loop when signed in; a shared home with a separate credential store (M4, M5); writes through a linked `config.toml`; a model-issued MCP tool call and whether it raises an A14 request; delegation on a stock pairing that accepts `namespace` tools, a child without an `agent_type`, and an interrupt reaching a child; whether deleting a fork's source breaks the fork; whether a skill disabled by `skills/config/write` is still injected by a `skill` input; plus the v0.8 items not touched (whether `initialized` is required, relocation, outbound frames without the version member, requested against effective model when they could differ) |
+| U-20 Partition of the 0.158.0 server-request kinds and their R9 origin classes (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal; R9 classes fixed as INTEGRATION. **v0.9: narrowed** to the App implementation owner's confirmation: DEL-01-04 states the answer path and decline form per kind (NIR-v0.2 §4.1, §4.3), DEL-01-05 confirms `account/chatgptAuthTokens/refresh` as known-app-unsupported (ACCESS-v0.2 §7 CR-9) |
 | U-21 Supplier's `[experimental]` label on app-server/generators; dependence on experimental API (F-12, F-13) | Owner visibility; App implementation owner at pin re-examination | Before implementation | Recorded; supplier direction not reopened |
-| U-22 L-2 provider wire interface (Responses) and L-3 | DEL-01-05 | Before provider qualification | Observed at one pair, not qualified (§10.1 OB-1, OB-2, OB-8): Responses to LM Studio 0.4.16 works; flat function tools work; MCP tools are not delivered on that route (F-31) |
+| U-22 L-2 provider wire interface (Responses) and L-3 | DEL-01-05 | Before provider qualification | Observed at one pair, not qualified (§10.1 OB-1, OB-2, OB-8): Responses to LM Studio 0.4.16 works; flat function tools work; MCP tools are not delivered on that route (F-31). **v0.9:** carried into ACCESS-v0.2 §11 CH-1…CH-3; OBS-2 O-4 adds that the delegation tool set travels in the same dropped `namespace` tool, so delegation is unavailable on that route too (§8.1 L-3; F-31) |
 | U-23 `UNRESOLVED{D6}` App-side run holds. SWBPIPE answered SQ-02 on 2026-09-28 with no host-held route (route (iv), none planned). **Closed for Phase 1** by DECISION-4 D4-1; re-opens when the governance phase is taken up (R8-2) | The owner (DECISION-4; D6 re-opens with the governance phase), via DEL-02-03 | When the governance phase is taken up for a workflow that needs it; before App-side hold implementation | Phase 1: no App run is holding, and no hold point is used (§6.7). Governance phase: no hold claim; `turn/interrupt` not relied upon; HP-3 and HP-4 best effort only; hold-support values per R5-1 as amended by R8-2 |
 | U-24 Any App-initiated use of `mcpServer/tool/call` / `mcpServer/resource/read` on a host channel | DEL-03-03 (OC-2/OC-7) with App implementation owner | Before any such use | None defined; App-origin rules of §6.8 bind any later use |
-| U-26 Order of the register refusal reasons and the client-request outcome `refused-not-sent(not-ready)` (§6.2.1, §5.1; PROPOSED at v0.8) | App implementation owner with DEL-01-04 (answer path) and DEL-01-02 (custody) | Before R4 and client-request implementation | Proposed and exercised against the double; not decided |
+| U-26 Order of the register refusal reasons and the client-request outcome `refused-not-sent(not-ready)` (§6.2.1, §5.1; PROPOSED at v0.8) | App implementation owner with DEL-01-04 (answer path) and DEL-01-02 (custody) | Before R4 and client-request implementation | Proposed and exercised against the double; not decided. **v0.9:** DEL-01-04 accepts the order and gives each reason words for the person (NIR-v0.2 §4.4 RT-05 row); the App implementation owner's decision remains |
 | U-27 Per-turn effective destination reading: a turn's effective value only from a report naming that turn; the thread-level report kept at thread scope (§8.3; PROPOSED at v0.8) | DEL-04-03 (RS R5) with this deliverable | Before the model-destination record is implemented | Proposed and exercised against the double (VC-26); OBS-1 and OBS-1b observed the thread-level report live (requested = reported; no turn element; no re-route; §10.1 OB-7) |
 | U-25 *Closed (R6-4)* by EXEC-v0.3 §2 HP-4 scope: person-directed turns are not blocked, carried `person-directed`, disposition unchanged, governed agent actions are action during hold | — | — | §6.7 |
 
@@ -1755,7 +2185,7 @@ rules run as written, not a VER pass.
 | VC-06 Restart bound | Constructed failures | Force failures past bound | `halted-after-repeated-failure`; explicit restart needed | Yes (double). **Ran 2026-09-30 (§9.6): pass (model)**: three handshake failures → `halted-after-repeated-failure`; explicit restart → `ready`; an exit after `ready` with exit code 0 and no stop record → `exited-unexpectedly`, pending request `unknown-no-response`, entry `ended-unanswered`, automatic restart | VER-001 |
 | VC-07 Generated provenance | 0.158.0 | Regenerate both kinds/variants; check manifest; inspect supplement | Identical identities; supplement per chosen reference only | Yes. Evidence so far (`generated/0.158.0/COMMITTED_STATE.md`, IR1C-04): committed tree against the manifest **2 OK / 2,357 not committed / 0 mismatched**; the 1,605 TS files verified **OK** against the manifest from the parent's temporary scratch copy (after its deletion TS verification needs regeneration); SV-01 determinism as returned by W11. The W11 SV-02 line "1,607 OK, 752 missing" described the spike's proposed, never-committed form. Reference not chosen (U-15); no pass claimed | VER-002 |
 | VC-08 Native pass-through | X-01/X-02 | Compare delivered frames to recorded | Method, ids, payload and top-level supplier elements (`emittedAtMs`) unchanged; metadata beside | Partly: X-01 side from spike transcripts. **Ran 2026-09-30 (§9.6): pass (model)** for the X-01 side: delivered frame byte-identical to the recording, `emittedAtMs` included, metadata beside. X-02 needs a live turn (OBS-1) | VER-002 |
-| VC-09 Version identity to plan receiver | X-01/X-03 | Trace `ready(g)` record and plan updates to S-2 | Record complete; plan updates native, whole-plan, with generation/position; revision identity left to DEL-01-03 | No (plan needs live turn) | VER-003 |
+| VC-09 Version identity to plan receiver | X-01/X-03 | Trace `ready(g)` record and plan updates to S-2 | Record complete; plan updates native, whole-plan, with generation/position; revision identity is DEL-01-03's (v0.9: NPTD-v0.2 §5.2 RV-1 plan-item revision, RV-2 checklist revision) | No (plan needs live turn). v0.9: at OBS-2 (0.158.0, O-8) plan mode produced a `plan` item via `item/plan/delta` and no `turn/plan/updated`, so only the RV-1 surface was seen; observation, not a run of this case | VER-003 |
 | VC-10 Label-only mismatch | X-11 | Same label, different content identity | `refused` with `mismatch(distribution content identity)` | Yes. **Ran 2026-09-30 (§9.6): pass (model)** with a constructed identity (the binary was not run): `refused` with `mismatch(distribution content identity)`, no child | VER-003, VER-006 |
 | VC-11 OI-008 review | §12 and the owner's decision | Review against ARC §3, priorities, M-6 | Decision source recorded; while OI-008 open the allocation criterion is **not met** | Review only | VER-004 |
 | VC-12 Local-provider account | §8.1 | Compare claims to candidate observations | Rows labeled; L-4 observed; L-2/L-3 not observed; no substitution claimed | Partly (L-4 observed). At the RP-3 repair: L-2 and L-3 observed at one pair, MCP tools not delivered on that route (§10.1; F-31); L-4 widened by OB-9. Still no candidate and no substitution claim | VER-005 |
@@ -1765,7 +2195,7 @@ rules run as written, not a VER pass.
 | VC-16 Frames during handshaking | X-01 (spike transcripts show `remoteControl/status/changed` before `initialized`) | Replay handshake | Early notification held in order under *g* and delivered at `ready`; not dropped (H4) | Yes (double). **Ran 2026-09-30 (§9.6): pass (model)**; also two server requests sent before `initialized`: entries at receipt (R1), unfamiliar one errored at once, delivery at `ready` in order | VER-001 |
 | VC-17 Deliberate stop with descendants | X-13, fresh home | Start, then deliberate stop while the plugin fetch runs | App stop record marks the end deliberate (exit code 0 not used); surviving descendants detected and recorded; handling per U-16 | Yes, with owner visibility of the network fetch | VER-001 |
 | VC-18 Supplier-internal decision | X-14, user sets `auto_review` | Trigger a tool-permission decision inside Codex | No register entry for an unreceived request; notifications delivered natively; origin `supplier-internal`; never shown as the person's answer | No (live turn) | VER-001, VER-007 |
-| VC-19 Supplied-guidance evidence | Thread start and resume carrying developer instructions | Inspect records per thread/turn | Content identity of each carried input recorded with request identity and generation; adoption not claimed (P-15 limitation) | No (candidate; resume needs a thread) | VER-003, VER-007 |
+| VC-19 Supplied-guidance evidence | Thread start carrying developer instructions; a workflow run-start `turn/start` text element (v0.9); a resume or fork carrying developer instructions | Inspect records per thread/turn | Content identity of each carried input recorded with request identity, generation and source identity; adoption not claimed (P-15 limitation); a resume or fork override recorded as *supplied, not applied at 0.158.0* (§8.2; F-33) | No (candidate; resume needs a thread). OBS-2 O-5 and OBS-3 W-4, W-6 observed the supplier side at one pairing | VER-003, VER-007 |
 | VC-20 Classification by declared capabilities | Double; experimental opt-in false | Double raises `currentTime/read` and `attestation/generate` | Both `unfamiliar` → explicit error; with opt-in declared, `currentTime/read` becomes familiar | Yes (double). **Ran 2026-09-30 (§9.6): pass (model)**, and with `requestAttestation` declared: `attestation/generate` familiar, known-app-unsupported, explicit error by a named rule | VER-001, VER-002 |
 | VC-21 Supplier refusal of an App request | Spike transcript (unknown client method → -32600) | Replay | Outcome `response-observed(error)`, not unknown; connection continues | Yes (transcript). **Ran 2026-09-30 (§9.6): pass (model)**: -32600 → `response-observed(error)`; the connection continued | VER-001 |
 | VC-22 Answer origin by kind (R9) | Double; opt-in declared | App rule attempts a content answer to `item/tool/requestUserInput`, an affirmative answer to `item/fileChange/requestApproval`, a decline of an elicitation, and a content answer to `currentTime/read` | First two refused `origin-not-permitted`; decline recorded `app-rule:<name>`; `currentTime/read` answered `app-rule:<name>`; no answer presented as a checkpoint act | Yes (double). **Ran 2026-09-30 (§9.6): pass (model)** | VER-001, VER-007 |
@@ -1774,7 +2204,7 @@ rules run as written, not a VER pass.
 | VC-25 No hold claim (R4-2; R8-1) | **Phase 1:** a run with a reached checkpoint (DEL-02-03 records the arrival); a tool-permission request reaches the App; a second tool settled by the user's mode. **Governance phase:** held run of a governed checkpoint (DEL-02-03 state), same requests | **Phase 1:** a receiver attempts an App-initiated `mcpServer/tool/call` for the run. **Governance phase:** named App rule declines the first request; a receiver then attempts an App-initiated `mcpServer/tool/call` for the run | **Phase 1:** no run is reported holding; no named-rule decline and no `run-holding` refusal is made for the checkpoint; the call is handled by the ordinary §6.8 rules; both tools are delivered natively; no hold claimed and no hold-support value carried; `turn/interrupt` not sent. **Governance phase:** decline recorded `app-rule:<name>`; the auto-settled tool is delivered natively as completed; the App-initiated call is refused `run-holding` (HP-4); no hold claimed and no hold-support value raised; `turn/interrupt` not sent for the hold | Yes (double). **Ran 2026-09-30 (§9.6): pass (model)** in both parts; `turn/interrupt` never sent | VER-001, VER-007 |
 | VC-26 Model destination facts (R4-1) | Thread start with a selected provider; a constructed re-route notification | Inspect S-4/S-7 facts | Requested and effective provider/model kept separate per turn; the re-route recorded on its turn; a turn with no supplier report carries *unknown*, never an earlier value; no gate on enablement; class taken from DEL-01-05's configuration | Partly (constructed re-route with a double; live start needs credential or local provider). **Ran 2026-09-30 (§9.6): pass (model)** for the constructed re-route under the §8.3 per-turn reading (U-27); the live part is OBS-1's: thread-level requested = reported, no re-route, no turn element (§10.1 OB-7) | VER-005 |
 | VC-27 Lifecycle and register transition tables (v0.8) | Double; a scenario for every row | Drive every row of §4.7 and §6.2.1 | Every row is reached; the model refuses any transition outside the tables | Yes (double). **Ran 2026-09-30 (§9.6): pass (model)**: 23/23 LT rows, 13/13 RT rows; the tables in this file equal the model's | VER-001 |
-| VC-28 Record formats (v0.8) | The three PROPOSED schemas, their fixtures and the records the model emits | Validate | Valid fixtures valid; invalid fixtures invalid (each for its stated reason); every emitted record valid | Yes. **Ran 2026-09-30: pass (model)** | VER-001, VER-003 |
+| VC-28 Record formats (v0.8) | The three PROPOSED schemas, their fixtures and the records the model emits | Validate | Valid fixtures valid; invalid fixtures invalid (each for its stated reason); every emitted record valid | Yes. **Ran 2026-09-30: pass (model)**. Rerun at v0.9 (2026-10-02): pass (model), with the revised entry schema; its three new fixtures (secret values redacted, valid; secret values kept, invalid; actor form, invalid) give their stated results (§9.6) | VER-001, VER-003 |
 | VC-29 Double fidelity (v0.8) | The eight committed transcripts | Replay each transcript's App frames against the double seeded from it, then against the double seeded from `A-bin-freshhome` | Supplier frames byte-identical and exit code 0; across seeds equal except `emittedAtMs`; constructed and mutated frames valid against the committed bundle | Yes. **Ran 2026-09-30: pass** (8/8 byte-identical; cross-seed equal) | VER-001, VER-002 |
 | VC-30 Capability account completeness (v0.8; §8.4) | Committed bundles, `_spike/inventory.txt`, the recorded accepted-method list, the five TS-only names | Parse §8.4 | Each of 19 item kinds, 11 server-request kinds, 170 client methods and 85 notifications in exactly one group; variant and (obs) marks match the sources. The (obs) marks stay the spike's; OBS-1 and OBS-1b observations are in §10.1, not in the marks | Yes. **Ran 2026-09-30: pass**; rerun at the RP-3 repair: pass | OUT-002; DEP-02-01-025 |
 | VC-31 Name-to-group mapping (RP-3 repair; R14-5) | WD-v0.8 §4.2.5 and this §8.4 | Resolve each portable name's group and every supplier name its row cites | Each of WD's ten names resolves to one Part A group; every cited supplier name that §8.4 places in a group is a member of that group | Yes. **Ran 2026-09-30: pass**, as DEL-02-01's prototype check S-11 (`wdproto.py selftest`), which reads this file | OUT-002; DEP-02-01-025 |

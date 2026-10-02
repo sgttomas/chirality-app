@@ -51,3 +51,10 @@ The declared part's contract version stays `WD-v0.8`: it versions the
 declared part's meaning, not the file label, and no declared-part meaning
 changed in WD-v0.9. A declaration naming `WD-v0.9` remains an unknown
 version (L-WDEX-33a).
+
+## R20-8 F-A's two questions — INTEGRATION
+
+- Codex goals stay a §8.4 note beside HCG-B04 (no new group HCG-A18); DEL-01-03
+  NPTD shows them as its goals line. WD's S-11 count stays 27.
+- The three new HOSTING fixtures stand: "the schema and its fixtures"
+  includes new fixture files where a row adds a rule.
