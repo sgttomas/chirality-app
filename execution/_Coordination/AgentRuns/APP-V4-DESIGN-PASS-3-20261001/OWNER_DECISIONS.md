@@ -117,3 +117,63 @@ So, finally: K-1…K-6 and K-8…K-12 as recommended; K-7 the owner's
 alternative. HELP_HUMAN's K-10 and K-12 reservations no longer apply; the
 K-12 point that Codex does not report its own connections remains a design
 matter for DEL-01-05.
+
+## Sign in with ChatGPT (owner exchange, 2026-10-01/02)
+
+Owner: "This is a brand new development and is relevant here.  Assess and
+report back with recommendations before I attend to your seven follow-up
+choices: https://help.openai.com/en/articles/20001410-sign-in-with-chatgpt";
+then "what about the dependencies management.  How does this "sign-in with
+ChatGPT" approach compare to what we were currently doing with the Codex
+instance."; then "Well, there's no pressing need to go ahead with this
+alternative sign-in or do you see any?"; then "btw Codex frequently updates
+its version in significant ways.  Pinning can only last so long."
+
+HELP_HUMAN's answers are in [ASSESSMENT_SIWC.md](ASSESSMENT_SIWC.md). The
+recommendation the owner then accepted with L-1 and L-6 (below) is: no
+pressing need; DEL-01-05 records the plan grant as an alternative considered,
+with its triggers; the host-billing point goes on the next-relay list.
+
+## DECISION-L (owner, exact, 2026-10-02)
+
+**Custody:** the owner's chat messages to HELP_HUMAN, after the package was
+presented as [DECISIONS_PENDING_2.md](DECISIONS_PENDING_2.md) (sha256 prefix
+`0ecbf87aae8d4350`, committed at `7447e0f821`) and as the review page https://claude.ai/artifact/N44DW6RVzVjvrLGxpL2ris (Version 2,
+with L-4 clarified at the owner's question "Regarding decision L-4 why can't
+the existing workflows be declared as "registered" when they are the default
+workflows I ship with the product?").
+
+On L-2 the owner wrote:
+
+> For L-2 I don't see much need to be able to switch from HELP_HUMAN to WORKING_ITEMS between turns.  For the most part its just HELP_HUMAN that will interface with the user.  A direct WORKING_ITEMS conversation would be done in a new conversation only.  We could consider ways to make that process easy and allow forking the conversation to do so (as is possible in Codex in general).  So I'm going to take the "New conversations only" option unless you see something I'm missing and a risk I haven't considered?
+
+After HELP_HUMAN noted that the same constraint would confine workflow
+selection to new conversations (under R17-8):
+
+> No that's not acceptable.  We need a way to chain workflows.  If we need to go back to square one then that's what we need to do.
+
+After HELP_HUMAN proposed supplying workflows per turn and asked what
+chaining should mean ((a) sequential, (b) agent-proposed with the person
+confirming, (c) declared in the workflow):
+
+> design (a) and (b) now, run the local check.  Then for the App Design Follow-ups I will go with your recommendations for the other six of the seven decisions put to me.
+
+**Effects:**
+
+- **L-1:** A — a second App-owned Codex home for API-key conversations,
+  sharing the person's settings; one Codex process per App home.
+- **L-2 (owner's choice):** a conversation's role is fixed for its life; a
+  different role is a new conversation, which the App makes easy, including
+  by forking the conversation where Codex supports it. Edited guidance applies
+  to new conversations. **Workflows are not bound to the conversation:** they
+  can be chained within one conversation, (a) sequentially, the person
+  starting the next after one ends, and (b) on the agent's proposal, the
+  person confirming. (c) declared chaining is left for DEL-02-01. The local
+  check runs first.
+- **L-3:** A — follow the person's own plugin setting.
+- **L-4:** A as clarified — shipped workflows are registered by the release;
+  entries byte-equal to a shipped revision are recognized; the rest are
+  registered in place, several per act allowed.
+- **L-5:** A — no OS password or Touch ID check per act now.
+- **L-6:** A — no sign-in or API-key observation now.
+- **L-7:** A — the App implementation owner is the owner; K-1 covers both.

@@ -128,3 +128,38 @@ would need anything outside these limits is skipped and recorded as such.
 **Write fence:** scratch under `$TMPDIR/chirality-obs2-0.158.0`; one record
 `DEL-01-01/Design/OBS_2_0.158.0.md` (redacted as OBS-1's); harness scripts
 under `DEL-01-01/Design/prototype/obs2/`; the return file `D/OBS-2.md`.
+
+## OBS-3 — workflow supply per turn, chaining, fork (one Type 2)
+
+Scope: [R19-6](R19_RESOLUTIONS.md), DECISION-L ("run the local check").
+Same hard limits and materials as OBS-2 (Codex 0.158.0 scratch binary,
+installed LM Studio `qwen/qwen3.5-9b`, scratch `CODEX_HOME`s, invented
+material, no sign-in, key, download or install, never `~/.codex`). One model
+prediction at a time. **S-9 (memory pressure critical) means stop and
+report** (OBS-1 brief §8); do not continue past it. Reuse the OBS-2 harness
+(`DEL-01-01/Design/prototype/obs2/`). The loopback adapter may be used only
+where an item needs a namespace tool, labelled as in OBS-2.
+
+Write two invented workflow packages (A and B), each a `WORKFLOW.md` with a
+distinctive, checkable instruction (for example "begin every reply with
+`[WF-A]`"), plus a `SKILL.md`-shaped copy of each if the skill input needs
+one.
+
+| Item | Observe |
+|---|---|
+| W-1 | A turn whose input includes `{type:"skill", name, path}` for workflow A: whether Codex accepts it (and what path or file shape it needs: `WORKFLOW.md` as is, a `SKILL.md`, a discovered skill root), what the model receives (provider tap), what the item and history show, whether the reply follows A |
+| W-2 | Chaining: after W-1, a turn starting workflow B the same way, with a plain text line saying run A ended. What the model receives; whether replies follow B and drop A; what history and `thread/read` show for both |
+| W-3 | The `mention` input type with the same file, for comparison |
+| W-4 | Baseline: workflow B's bytes as a plain text input |
+| W-5 | Experimental `thread/settings/update` with `collaborationMode.settings.developer_instructions` = workflow A, then replaced by B: whether later turns carry only the current text, whether it persists, how it interacts with plan mode (`mode`) |
+| W-6 | `thread/fork` of a conversation, with new `developerInstructions` (a different invented role line): whether the fork takes them (provider tap), what history the fork carries, the fork's identifiers |
+
+Record per item: request sent, responses and notifications, what reached the
+model (tap), the reply's compliance with the checkable instruction, and what
+`thread/read` returns. "Not accepted" and "not provoked" are results.
+
+**Write fence:** scratch under `$TMPDIR/chirality-obs3-0.158.0`; one record
+`DEL-01-01/Design/OBS_3_0.158.0.md` (redacted as OBS-2's); harness changes
+under `DEL-01-01/Design/prototype/obs3/`; the return file `D/OBS-3.md`. Stop
+everything you start (Codex processes, taps, the LM Studio server if you
+started it, the loaded model) before returning.
