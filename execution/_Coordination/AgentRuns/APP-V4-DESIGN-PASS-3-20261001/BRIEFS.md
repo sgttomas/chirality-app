@@ -244,3 +244,18 @@ only if you judge them worse than MINOR.
 |---|---|
 | V21-A | The six new Design files (RECOVERY, NPTD, NIR, AAC, ACCESS with the account-home record, WR, ROLE), their schemas and prototypes, and their joins with each other |
 | V21-B | The first-increment edits (HOSTING-v0.9, EXEC-v0.7, RS/ACT-POLICY/AS-v0.9, WD/WD-EX-v0.9, CA-v0.7, ADAPTER/XT-v0.7, LOOP/PANEL-v0.9, GUIDE-v0.6), their joins with the six new files, the run records (OWNER_DECISIONS, R17–R20, DISPATCH, ASSESSMENT_SIWC, HANDOFF additions) and the OBS-2/OBS-3 records |
+
+## RV21 — repairs from V21 (two Type 2 in parallel, disjoint fences), then a GUIDE re-pin
+
+Binding: R21-1…R21-4 (in R20_RESOLUTIONS.md), the two reviews
+`reviews/V21-A.md` and `reviews/V21-B.md`. In place, no version steps; an
+"RV21" row in each touched file's change table naming the finding IDs. Rerun
+the prototypes touched. Return file `F/RV21-<X>.md`: findings fixed, not
+fixed with reason, new sha256, reruns.
+
+| ID | Fence | Findings |
+|---|---|---|
+| RV21-A | The six new Design folders (DEL-01-02, 01-03, 01-04, 01-05, 02-02, 02-04) | V21-A M-1 (R21-3, with a WR→AAC→RS cross-check case), M-2 (R21-2), MINOR 1–14; V21-B M-3 AAC side, m-4 (R21-4), m-11, and the "interrupted by Stop Codex" label |
+| RV21-B | First-increment Design files (HOSTING, EXEC with its prototype, WD, WD-EX, GUIDE content, RS/ACT if a finding needs them) and DEL-09-06 `RELAY_QUESTIONS_SWBPIPE.md`'s next-relay row only | V21-B M-1 EXEC/WD side (R21-1), M-2, m-1, m-2 (add NR-L1), m-5, m-6, m-8, m-10, m-9 (F-E2 §4.3 rows 7, 9–11) |
+
+After both: GUIDE re-pinned last (25 inputs) with B8's `pins.py`.
