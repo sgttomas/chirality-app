@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-02-04:role-limit-account:0.1",
-  "title": "Role limit account and limit observations (PROPOSED, ROLE-v0.1 §6.2, §6.3)",
-  "description": "The per-release account of each role's stated limits with their enforcement standing (SoW OUT-002, REQ-003, AC-003, AC-004; DECISION-K3 K-10), and the observations of a limit not kept (a task agent delegating). Handed to DEL-04-03 (RS R3 'limits'), DEL-11-02 and DEL-01-03 (runtime label). PROPOSED; not accepted.",
+  "$id": "urn:chirality:app-v4:del-02-04:role-limit-account:0.2",
+  "title": "Role limit account and limit observations (PROPOSED, ROLE-v0.2 §6.2, §6.3)",
+  "description": "The per-release account of each role's stated limits with their enforcement standing (SoW OUT-002, REQ-003, AC-003, AC-004; DECISION-K3 K-10), and the observations of a limit not kept (a task agent delegating). Handed to DEL-04-03 (RS R3 'limits'), DEL-11-02 and DEL-01-03 (runtime value, carried as handed: C-07, C-08). PROPOSED; not accepted.",
   "type": "object",
   "required": ["format", "formatVersion", "accountId", "appRelease", "supplierPin", "roles"],
   "additionalProperties": false,
   "properties": {
     "format": {"const": "chirality.role.limits"},
-    "formatVersion": {"const": "0.1"},
+    "formatVersion": {"const": "0.2"},
     "accountId": {"type": "string", "pattern": "^lim:"},
     "appRelease": {"type": "string", "minLength": 1},
     "supplierPin": {"type": "string", "minLength": 1, "description": "Codex version the standings were read at (definition pin 0.158.0; nothing qualified)"},
@@ -60,7 +60,7 @@
         "mechanism": {"type": "string", "minLength": 1, "description": "Required for enforced-by-supplier: the supplier control and its evidence"},
         "notEnforcement": {
           "type": "array",
-          "items": {"enum": ["approval-policy", "sandbox", "brief-text", "worktree", "user-configuration"]},
+          "items": {"enum": ["approval-policy", "sandbox", "brief-text", "worktree", "user-configuration", "depth-limit"]},
           "description": "Things that may restrict the agent but are not reported as enforcement of this limit (AC-004)"
         }
       },
@@ -83,7 +83,7 @@
         "limitId": {"type": "string", "pattern": "^L-[A-Z_]+-[0-9]+$"},
         "thread": {"type": "string", "minLength": 1},
         "roleInForce": {"$ref": "#/$defs/roleName"},
-        "roleBasis": {"enum": ["supplied-to-thread", "native-child-role-reported", "inherited-from-parent (inference)"]},
+        "roleBasis": {"enum": ["supplied-to-thread", "native-child-role-reported"], "description": "A child spawned without a role type has unknown guidance (R18-4) and is never attributed a role"},
         "supplyRef": {"type": "string", "pattern": "^sup:"},
         "item": {
           "type": "object",

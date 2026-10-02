@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """DEL-02-04 design prototype: guidance store, composition, supply records,
 child-role configuration, limit account, delegation observation and the
-conversation role-selection state machine of ROLE-v0.1.
+conversation role-selection state machine of ROLE-v0.2.
 
-Prototype only (ROLE-v0.1 §10; R17-1, R12-3). Not product code. Python 3
+Prototype only (ROLE-v0.2 §10; R17-1, R12-3). Not product code. Python 3
 standard library only. No Codex process is started; the supplier is a test
 double (SupplierDouble) that answers in the shapes of the 0.158.0 generated
-types (observed-in-generated-types), nothing more.
+types and with the behaviour OBS-2 and OBS-3 observed at 0.158.0 (resume and
+fork accept new instructions and ignore them); nothing more.
 """
 import hashlib
 import json
@@ -15,8 +16,7 @@ import shutil
 
 ROLES = ("HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK")
 ID_METHOD = "proto-sha256-0 (illustration; HOSTING U-08 open)"
-REV_METHOD = "proto-sha256-list-0 (illustration; WD U-03 open)"
-COMPOSITION_FORMAT = "chirality.role.compose/0.1"
+COMPOSITION_FORMAT = "chirality.role.compose/0.2"
 GUIDANCE_FILES = ["AGENTS.md"] + ["agents/AGENT_%s.md" % r for r in ROLES]
 CHILD_KEY_SUFFIXES = ("description", "config_file")
 
@@ -33,25 +33,6 @@ class IllegalTransition(Exception):
 
 def cid(data):
     return {"method": ID_METHOD, "value": hashlib.sha256(data).hexdigest()}
-
-
-def package_revision(pkg_dir):
-    """WD-v0.8 §6.1 RV-1..RV-5 with the illustration method of WD's prototype
-    (re-implemented here, not imported). Returns a contentIdentity or raises."""
-    entries = []
-    for dp, dns, fns in os.walk(pkg_dir, followlinks=False):
-        for name in dns + fns:
-            p = os.path.join(dp, name)
-            if os.path.islink(p) or not (os.path.isdir(p) or os.path.isfile(p)):
-                raise SupplyRefused("revision-not-verified", "non-regular entry " + name)
-        for f in fns:
-            p = os.path.join(dp, f)
-            rel = os.path.relpath(p, pkg_dir).replace(os.sep, "/")
-            with open(p, "rb") as fh:
-                entries.append((rel.encode("utf-8"), hashlib.sha256(fh.read()).hexdigest()))
-    entries.sort()
-    listing = "".join("%s  %s\n" % (h, r.decode("utf-8")) for r, h in entries).encode("utf-8")
-    return {"method": REV_METHOD, "value": hashlib.sha256(listing).hexdigest()}
 
 
 # ------------------------------------------------------------------ role set (§4.1)
@@ -190,37 +171,19 @@ class GuidanceStore:
 
 
 # ------------------------------------------------------------------ composition (§5.1)
-def compose(store, roleset, role, workflow=None):
-    """Return (composed_bytes, parts). role is one of ROLES or 'none'.
-    workflow: dict(tuple=..., package_dir=..., registered=bool) or None."""
-    pieces = []  # (separator_bytes, data, part_meta)
+def compose(store, roleset, role):
+    """Role guidance only (R19-1, R19-7): product guidance, then the role.
+    Returns (composed_bytes, parts). role is one of ROLES or 'none'.
+    No workflow part: a workflow is supplied per run by DEL-02-02's run-start text."""
+    pieces = []
     agents, src = store.read("AGENTS.md")
     pieces.append((b"", agents, {"kind": "product-guidance", "source": src}))
     if role != "none":
         if role not in ROLES:
             raise SupplyRefused("role-set-invalid", "unknown role " + role)
-        rel = roleset.by_role[role]["guidance"]
-        data, src = store.read(rel)
+        data, src = store.read(roleset.by_role[role]["guidance"])
         pieces.append((("\n\n# Active role: %s\n\n" % role).encode("utf-8"), data,
                        {"kind": "role-guidance", "role": role, "source": src}))
-    if workflow is not None:
-        if not workflow.get("registered"):
-            raise SupplyRefused("workflow-not-registered", workflow["tuple"]["name"])
-        rev = package_revision(workflow["package_dir"])
-        if rev != workflow["tuple"]["revision"]:
-            raise SupplyRefused("revision-not-verified", workflow["tuple"]["name"])
-        with open(os.path.join(workflow["package_dir"], "WORKFLOW.md"), "rb") as fh:
-            data = fh.read()
-        try:
-            data.decode("utf-8")
-        except UnicodeDecodeError:
-            raise SupplyRefused("guidance-not-utf8", "WORKFLOW.md")
-        t = workflow["tuple"]
-        sep = ("\n\n# Selected workflow: %s (%s, revision %s)\n\n" % (t["name"], t["origin"], t["revision"]["value"][:12])).encode("utf-8")
-        wsrc = {"workflow": t, "file": "WORKFLOW.md", "revisionVerified": True}
-        if workflow.get("runRef"):
-            wsrc["runRef"] = workflow["runRef"]
-        pieces.append((sep, data, {"kind": "workflow", "source": wsrc}))
     out, parts = b"", []
     for sep, data, meta in pieces:
         out += sep
@@ -243,10 +206,28 @@ def verify_composition(composed, parts, total):
     return problems
 
 
+def changed_since_start(store, roleset, record):
+    """§4.4 GC-1: which parts of the guidance this conversation started with
+    differ from the store now. The conversation is not changed (L-2); the
+    App shows 'guidance changed since this conversation started'."""
+    changed = []
+    for p in record["carried"]["developerInstructions"]["parts"]:
+        try:
+            data, _ = store.read(p["source"]["path"])
+            if cid(data) != p["content"]:
+                changed.append(p["source"]["path"])
+        except SupplyRefused as e:
+            changed.append("%s (%s)" % (p["source"]["path"], e.reason))
+    return changed
+
+
 # ------------------------------------------------------------------ child roles (§5.3)
 def child_roles(store, roleset, parent_role, user_agent_names, out_dir, supported_at_pin=True):
-    """Additive per-thread config keys for native child roles (R17-9). Never sets
-    features.*, agents.enabled or agents.max_depth (K-10). Returns (config, entries)."""
+    """Additive config keys for native child roles (R17-9 as amended by R18-4).
+    The role file's developer_instructions replace the parent's for the child
+    (OBS-2 O-4a, through an adapter), so each file carries product guidance +
+    role. Never sets features.*, agents.enabled or agents.max_depth (K-10).
+    user_agent_names None means config/read failed. Returns (config, entries)."""
     config, entries = {}, []
     offered = roleset.by_role[parent_role]["offersChildRoles"] if parent_role != "none" else []
     os.makedirs(out_dir, exist_ok=True)
@@ -278,7 +259,8 @@ def child_roles(store, roleset, parent_role, user_agent_names, out_dir, supporte
         keys = ["agents.%s.description" % role, "agents.%s.config_file" % role]
         config[keys[0]] = "Chirality %s (%s)" % (role, roleset.by_role[role]["meaning"])
         config[keys[1]] = path
-        entries.append({"role": role, "status": "supplied", "configKeys": keys, "composed": cid(text), "file": cid(body)})
+        entries.append({"role": role, "status": "supplied", "configKeys": keys, "composed": cid(text), "file": cid(body),
+                        "_text": text})
     return config, entries
 
 
@@ -286,12 +268,17 @@ def child_roles(store, roleset, parent_role, user_agent_names, out_dir, supporte
 FORBIDDEN_PARAMS = ("baseInstructions", "personality", "approvalPolicy", "approvalsReviewer", "sandbox", "multiAgentMode")
 
 
-def check_request(params):
-    """The role-supply part of a request: only developerInstructions and additive
-    agents.<ROLE>.(description|config_file) config keys. Raises SupplyRefused."""
+def check_request(params, method="thread/start"):
+    """The role-supply part of a request. On thread/start: only developerInstructions
+    and additive agents.<ROLE>.(description|config_file) config keys. On
+    thread/resume and thread/fork: no instructions at all (ignored at 0.158.0,
+    OBS-2 O-5, OBS-3 W-6; the App does not send what it would have to record as
+    'supplied' while knowing it is not taken up). Raises SupplyRefused."""
     for k in FORBIDDEN_PARAMS:
         if k in params:
             raise SupplyRefused("forbidden-input-in-request", k)
+    if method != "thread/start" and ("developerInstructions" in params or params.get("config")):
+        raise SupplyRefused("forbidden-input-in-request", "instructions on " + method)
     for key in (params.get("config") or {}):
         parts = key.split(".")
         if not (len(parts) == 3 and parts[0] == "agents" and parts[1] in ROLES and parts[2] in CHILD_KEY_SUFFIXES):
@@ -301,13 +288,13 @@ def check_request(params):
 
 # ------------------------------------------------------------------ supplier double
 class SupplierDouble:
-    """Answers thread/start, thread/resume and thread/fork in 0.158.0 shapes.
-    mode: 'ok' | 'no-response' | 'error'. adopts_resume_overrides models the
-    unobserved P-15 behaviour (OBS-2 O-5 pending): it only changes what the
-    double later reports as in force, which the App cannot see in reality."""
+    """Answers thread/start, thread/resume and thread/fork in 0.158.0 shapes and
+    with the observed behaviour: resume and fork ignore new instructions (OBS-2
+    O-5; OBS-3 W-6); a fork keeps the source's developer text and reports
+    forkedFromId. mode: 'ok' | 'no-response' | 'error'."""
 
-    def __init__(self, mode="ok", adopts_resume_overrides=None):
-        self.mode, self.adopts = mode, adopts_resume_overrides
+    def __init__(self, mode="ok"):
+        self.mode = mode
         self.n, self.in_force = 0, {}
         self.sent = []
 
@@ -318,12 +305,17 @@ class SupplierDouble:
             return None
         if self.mode == "error":
             return {"error": {"code": -32603, "message": "invented error"}}
-        tid = params.get("threadId") or "thr-%d" % self.n
-        if method == "thread/start" or method == "thread/fork":
+        if method == "thread/start":
+            tid = "thr-%d" % self.n
             self.in_force[tid] = params.get("developerInstructions")
-        elif method == "thread/resume" and self.adopts:
-            self.in_force[tid] = params.get("developerInstructions")
-        return {"result": {"thread": {"id": tid, "agentRole": None}, "instructionSources": []}}
+            return {"result": {"thread": {"id": tid, "agentRole": None, "forkedFromId": None}, "instructionSources": []}}
+        if method == "thread/fork":
+            tid = "thr-%d" % self.n
+            self.in_force[tid] = self.in_force.get(params["threadId"])   # source's text kept
+            return {"result": {"thread": {"id": tid, "agentRole": None, "forkedFromId": params["threadId"]}, "instructionSources": []}}
+        if method == "thread/resume":
+            return {"result": {"thread": {"id": params["threadId"], "agentRole": None, "forkedFromId": None}, "instructionSources": []}}
+        raise ValueError(method)
 
 
 # ------------------------------------------------------------------ supply (§5, §6.1)
@@ -335,29 +327,30 @@ def _sid():
     return "sup:%04d" % _seq[0]
 
 
-def supply(supplier, method, thread, store, roleset, role, preselected=False, workflow=None,
-           trigger="thread-start", change_cause=None, previous=None, user_agent_names=(),
-           child_dir=None, generation=1, extra_params=None):
-    rec = {"format": "chirality.role.supply", "formatVersion": "0.1", "supplyId": _sid(),
-           "thread": thread, "trigger": trigger, "request": {"method": method},
-           "selection": {"role": role, "preselected": preselected, "roleSet": roleset.identity},
-           "adoption": "unknown"}
-    if previous:
-        rec["previousSupply"] = previous
-    if change_cause:
-        rec["changeCause"] = change_cause
+def _base(thread, trigger, method, role, preselected, roleset):
+    return {"format": "chirality.role.supply", "formatVersion": "0.2", "supplyId": _sid(),
+            "thread": thread, "trigger": trigger, "request": {"method": method},
+            "selection": {"role": role, "preselected": preselected, "roleSet": roleset.identity},
+            "adoption": "unknown"}
+
+
+def start(supplier, conv_ref, store, roleset, role, preselected=False, user_agent_names=(), child_dir=None,
+          generation=1, extra_params=None, continued_from=None):
+    """thread/start with the role composition (the only supply of a conversation)."""
+    rec = _base(conv_ref, "thread-start", "thread/start", role, preselected, roleset)
+    if continued_from:
+        rec["continuedFrom"] = continued_from
     try:
-        composed, parts = compose(store, roleset, role, workflow)
+        composed, parts = compose(store, roleset, role)
         config, entries = ({}, [{"role": r, "status": "not-supplied", "reason": "not-offered-by-role"} for r in ROLES])
         if role != "none" and child_dir:
-            config, entries = child_roles(store, roleset, role, set(user_agent_names), child_dir)
+            config, entries = child_roles(store, roleset, role, user_agent_names if user_agent_names is None else set(user_agent_names), child_dir)
+        entries = [{k: v for k, v in e.items() if not k.startswith("_")} for e in entries]
         params = {"developerInstructions": composed.decode("utf-8")}
         if config:
             params["config"] = config
-        if method != "thread/start":
-            params["threadId"] = thread
         params.update(extra_params or {})
-        check_request(params)
+        check_request(params, "thread/start")
     except SupplyRefused as e:
         rec.update({"outcome": "refused-before-send", "refusal": e.reason})
         return rec, None
@@ -365,7 +358,34 @@ def supply(supplier, method, thread, store, roleset, role, preselected=False, wo
                       "developerInstructions": {"content": cid(composed), "byteLength": len(composed), "parts": parts},
                       "baseInstructions": "not-set", "nativeChildRoles": entries}
     rec["request"].update({"requestRef": "req:%d" % (supplier.n + 1), "generation": generation})
-    resp = supplier.call(method, params)
+    resp = supplier.call("thread/start", params)
+    _settle(rec, resp)
+    return rec, composed
+
+
+def fork(supplier, source_record, generation=1):
+    """A same-role copy (R19-8): thread/fork with no instructions; the fork keeps
+    the source's role and guidance. Recorded as 'inherited', never 'supplied'."""
+    sel = source_record["selection"]
+    rec = {"format": "chirality.role.supply", "formatVersion": "0.2", "supplyId": _sid(),
+           "thread": source_record["thread"], "trigger": "fork", "request": {"method": "thread/fork"},
+           "selection": dict(sel, preselected=False), "inheritedFrom": source_record["supplyId"], "adoption": "unknown"}
+    params = {"threadId": source_record["thread"]}
+    check_request(params, "thread/fork")
+    rec["request"].update({"requestRef": "req:%d" % (supplier.n + 1), "generation": generation})
+    resp = supplier.call("thread/fork", params)
+    _settle(rec, resp, inherited=True)
+    return rec
+
+
+def resume(supplier, thread):
+    """Relaunch or reattach: thread/resume with no instructions; no supply record."""
+    params = {"threadId": thread}
+    check_request(params, "thread/resume")
+    return supplier.call("thread/resume", params)
+
+
+def _settle(rec, resp, inherited=False):
     if resp is None:
         rec["outcome"] = "unknown-no-response"
         rec["supplierReported"] = {"instructionSources": "not-reported"}
@@ -375,9 +395,11 @@ def supply(supplier, method, thread, store, roleset, role, preselected=False, wo
     else:
         r = resp["result"]
         rec["thread"] = r["thread"]["id"]
-        rec["outcome"] = "supplied"
-        rec["supplierReported"] = {"instructionSources": r["instructionSources"], "agentRole": r["thread"]["agentRole"]}
-    return rec, composed
+        rec["outcome"] = "inherited" if inherited else "supplied"
+        rep = {"instructionSources": r["instructionSources"], "agentRole": r["thread"]["agentRole"]}
+        if inherited:
+            rep["forkedFromId"] = r["thread"]["forkedFromId"]
+        rec["supplierReported"] = rep
 
 
 # ------------------------------------------------------------------ limit account (§6.2)
@@ -391,8 +413,8 @@ def limit_account(store, roleset, release, pin="0.158.0"):
             if src["state"] == "default":
                 limits.append({"limitId": "L-TASK-1", "statement": "A task agent does not delegate",
                                "standing": "stated-not-enforced", "presentedAs": "Stated, not enforced",
-                               "basis": "DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control at 0.158.0 (multiAgentMode '@deprecated Ignored', observed-in-generated-types)",
-                               "notEnforcement": ["approval-policy", "sandbox", "user-configuration"]})
+                               "basis": "DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control at 0.158.0 (multiAgentMode '@deprecated Ignored', observed-in-generated-types); a TASK-guided parent delegated (OBS-2 O-4b, through an adapter)",
+                               "notEnforcement": ["approval-policy", "sandbox", "user-configuration", "depth-limit"]})
             else:
                 limits.append({"limitId": "L-TASK-1", "statement": "A task agent does not delegate",
                                "standing": "unknown", "presentedAs": "Not known whether the supplied guidance states this",
@@ -405,21 +427,52 @@ def limit_account(store, roleset, release, pin="0.158.0"):
         roles.append({"role": role, "meaning": roleset.by_role[role]["meaning"],
                       "delegation": roleset.by_role[role]["delegation"], "guidanceState": src["state"],
                       "guidanceContent": cid(data), "limits": limits})
-    return {"format": "chirality.role.limits", "formatVersion": "0.1", "accountId": "lim:%s" % release,
+    return {"format": "chirality.role.limits", "formatVersion": "0.2", "accountId": "lim:%s" % release,
             "appRelease": release, "supplierPin": pin, "roles": roles}
 
 
 # ------------------------------------------------------------------ delegation observation (§6.3)
-def observe(notifications, role_in_force, supply_by_thread=None):
-    """role_in_force: thread -> (role, basis). One observation per spawnAgent item
-    id whose sender thread is a TASK thread. Records; never prevents (K-10)."""
+def children(notifications):
+    """Children are known from completed spawnAgent items' receiverThreadIds:
+    Codex sends no thread/started for a child (OBS-2 O-4). The started item has
+    an empty receiver list."""
+    out = {}
+    for n in notifications:
+        item = n["params"]["item"]
+        if n["method"] == "item/completed" and item.get("type") == "collabAgentToolCall" and item.get("tool") == "spawnAgent":
+            for c in item["receiverThreadIds"]:
+                out[c] = item["senderThreadId"]
+    return out
+
+
+def role_in_force(top_level, child_parent, thread_read, supplied_child_roles):
+    """top_level: thread -> role supplied at start (or 'none').
+    child_parent: child -> parent (from children()).
+    thread_read: child -> Thread.agentRole as read (thread/read).
+    supplied_child_roles: parent -> set of roles supplied as native child roles.
+    A child's role counts only if it names a child role the App supplied to its
+    parent; otherwise its guidance is unknown (R18-4)."""
+    out = {t: (r, "supplied-to-thread") for t, r in top_level.items() if r != "none"}
+    for c, p in child_parent.items():
+        r = thread_read.get(c)
+        root = p
+        while root in child_parent:
+            root = child_parent[root]
+        if r in ROLES and r in supplied_child_roles.get(root, set()):
+            out[c] = (r, "native-child-role-reported")
+    return out
+
+
+def observe(notifications, in_force, supply_by_thread=None):
+    """in_force: thread -> (role, basis). One observation per spawnAgent item id
+    whose sender has TASK in force. Records; never prevents (K-10)."""
     seen, out = set(), []
     for n in notifications:
         item = n["params"]["item"]
         if item.get("type") != "collabAgentToolCall" or item.get("tool") != "spawnAgent":
             continue
         sender = item["senderThreadId"]
-        role, basis = role_in_force.get(sender, (None, None))
+        role, basis = in_force.get(sender, (None, None))
         if role != "TASK" or item["id"] in seen:
             continue
         seen.add(item["id"])
@@ -435,33 +488,27 @@ def observe(notifications, role_in_force, supply_by_thread=None):
 
 
 # ------------------------------------------------------------------ selection state machine (§3.2, T-2)
-# state -> event -> next state. Guards are applied by Conversation.
+# The role is fixed for the conversation's life (DECISION-L L-2; R19-3).
 T2 = {
     "draft": {"select": "draft", "clear": "draft", "send": "starting"},
     "starting": {"ok": "supplied", "error": "not-started", "no-response": "start-unknown", "refused": "supply-refused"},
     "supply-refused": {"select": "draft", "clear": "draft", "restored": "draft"},
     "not-started": {"send": "starting", "select": "not-started", "clear": "not-started"},
     "start-unknown": {"thread-read-ok": "supplied", "thread-read-absent": "not-started"},
-    "supplied": {"select": "change-pending", "clear": "change-pending", "guidance-changed": "change-pending",
-                 "run-start": "change-pending", "run-end": "change-pending", "relaunch": "relaunched", "send": "supplied"},
-    "change-pending": {"select": "change-pending", "clear": "change-pending", "guidance-changed": "change-pending",
-                       "revert": "supplied", "send": "re-supplying", "relaunch": "relaunched"},
-    "re-supplying": {"ok": "supplied", "ok-not-adopted-route": "change-not-applied", "error": "change-not-applied",
-                     "no-response": "re-supply-unknown", "refused": "change-not-applied"},
-    "re-supply-unknown": {"thread-read-ok": "supplied-unknown-guidance", "relaunch": "relaunched"},
-    "supplied-unknown-guidance": {"send": "re-supplying", "relaunch": "relaunched"},
-    "change-not-applied": {"send-anyway": "supplied", "new-conversation": "closed-here", "select": "change-pending",
-                           "revert": "supplied"},
-    "relaunched": {"send": "re-supplying"},
+    "supplied": {"send": "supplied", "guidance-changed": "supplied", "relaunch": "supplied"},
 }
 
 
 class Conversation:
-    def __init__(self, roleset):
+    def __init__(self, roleset, role=None, preselected=None, continued_from=None, prefill=None):
         self.state = "draft"
-        self.role = roleset.default or "none"   # preselection from the role set (R17-9)
-        self.preselected = roleset.default is not None
-        self.pending = None
+        if role is None:
+            self.role = roleset.default or "none"   # preselection from the role set (R17-9)
+            self.preselected = roleset.default is not None
+        else:
+            self.role, self.preselected = role, bool(preselected)
+        self.continued_from, self.prefill = continued_from, prefill
+        self.guidance_changed = []
         self.trace = [("init", self.state, self.role)]
 
     def on(self, event, **kw):
@@ -469,15 +516,18 @@ class Conversation:
         if nxt is None:
             raise IllegalTransition("%s --%s-->" % (self.state, event))
         if event in ("select", "clear"):
-            new_role = kw.get("role", "none") if event == "select" else "none"
-            if self.state in ("draft", "not-started", "supply-refused"):
-                self.role, self.preselected = new_role, False
-            else:
-                self.pending = new_role
-        if event == "revert":
-            self.pending = None
-        if event in ("ok",) and self.state == "re-supplying" and self.pending is not None:
-            self.role, self.pending = self.pending, None
+            self.role = kw.get("role", "none") if event == "select" else "none"
+            self.preselected = False
+        if event == "guidance-changed":
+            self.guidance_changed = kw.get("parts", [])
         self.state = nxt
         self.trace.append((event, self.state, self.role))
         return nxt
+
+    def continue_as(self, roleset, role, summary):
+        """'Continue as <role>' (R19-3, R19-8): a NEW conversation, role chosen,
+        the handoff summary pre-filled for the person to edit; nothing is sent.
+        This conversation is unchanged."""
+        if self.state != "supplied":
+            raise IllegalTransition("continue-as from " + self.state)
+        return Conversation(roleset, role=role, preselected=False, continued_from=self, prefill=summary)

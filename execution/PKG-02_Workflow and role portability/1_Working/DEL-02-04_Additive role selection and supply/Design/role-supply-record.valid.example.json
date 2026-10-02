@@ -1,16 +1,16 @@
 {
   "format": "chirality.role.supply",
-  "formatVersion": "0.1",
-  "supplyId": "sup:0006",
-  "thread": "thr-6",
+  "formatVersion": "0.2",
+  "supplyId": "sup:0003",
+  "thread": "thr-3",
   "trigger": "thread-start",
   "request": {
     "method": "thread/start",
-    "requestRef": "req:6",
+    "requestRef": "req:3",
     "generation": 1
   },
   "selection": {
-    "role": "TASK",
+    "role": "WORKING_ITEMS",
     "preselected": false,
     "roleSet": {
       "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
@@ -19,13 +19,13 @@
   },
   "adoption": "unknown",
   "carried": {
-    "compositionFormat": "chirality.role.compose/0.1",
+    "compositionFormat": "chirality.role.compose/0.2",
     "developerInstructions": {
       "content": {
         "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
-        "value": "3fcd933337d45e792d9cd66a9c00de207ad4a77b4c0e0fd629b1e289d2fd3dc2"
+        "value": "5af21c6b4b5adc7226a69c968e7ae19e3263fc6d5b001f54e58568db50770822"
       },
-      "byteLength": 730,
+      "byteLength": 409,
       "parts": [
         {
           "kind": "product-guidance",
@@ -48,47 +48,23 @@
         },
         {
           "kind": "role-guidance",
-          "role": "TASK",
+          "role": "WORKING_ITEMS",
           "source": {
             "store": "seeded-copy",
-            "path": "agents/AGENT_TASK.md",
+            "path": "agents/AGENT_WORKING_ITEMS.md",
             "release": "app-fixture-1",
             "state": "default",
             "defaultContent": {
               "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
-              "value": "b985bfa22afc0fa38d0e2bf303a20c79bf9e722e3506f5fef59296f3307b71be"
+              "value": "b4f2e2dd72009a68a85bd11696de287e474d5043806df8088a543f30188ccb11"
             }
           },
           "content": {
             "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
-            "value": "b985bfa22afc0fa38d0e2bf303a20c79bf9e722e3506f5fef59296f3307b71be"
+            "value": "b4f2e2dd72009a68a85bd11696de287e474d5043806df8088a543f30188ccb11"
           },
-          "offset": 289,
-          "length": 166
-        },
-        {
-          "kind": "workflow",
-          "source": {
-            "workflow": {
-              "kind": "workflow",
-              "origin": "project",
-              "sourceRoot": "project:fixture",
-              "name": "demo-check",
-              "revision": {
-                "method": "proto-sha256-list-0 (illustration; WD U-03 open)",
-                "value": "8ba834c4adb41e70b711d7a9a1162e98026fd78ac22d0e7c81a446be415cc15d"
-              }
-            },
-            "file": "WORKFLOW.md",
-            "revisionVerified": true,
-            "runRef": "run:fixture-1"
-          },
-          "content": {
-            "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
-            "value": "2b7c4ce0c0f0244c758bcf5935cba3fc5113cef3273f015a05b841cf9bf475c0"
-          },
-          "offset": 523,
-          "length": 207
+          "offset": 298,
+          "length": 111
         }
       ]
     },
@@ -111,8 +87,19 @@
       },
       {
         "role": "TASK",
-        "status": "not-supplied",
-        "reason": "not-offered-by-role"
+        "status": "supplied",
+        "configKeys": [
+          "agents.TASK.description",
+          "agents.TASK.config_file"
+        ],
+        "composed": {
+          "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+          "value": "db96acdaacd779dd7e212c3907999db5b00e1e843ce4378b41f069c7e96e43ce"
+        },
+        "file": {
+          "method": "proto-sha256-0 (illustration; HOSTING U-08 open)",
+          "value": "d9556c8c8398e86142f11b4b9850a8b1acec7ece2a26b0ea17d114eff91ee60a"
+        }
       }
     ]
   },

@@ -1,6 +1,6 @@
 {
   "format": "chirality.role.limits",
-  "formatVersion": "0.1",
+  "formatVersion": "0.2",
   "accountId": "lim:app-fixture-1",
   "appRelease": "app-fixture-1",
   "supplierPin": "0.158.0",
@@ -95,11 +95,12 @@
           "statement": "A task agent does not delegate",
           "standing": "stated-not-enforced",
           "presentedAs": "Stated, not enforced",
-          "basis": "DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control at 0.158.0 (multiAgentMode '@deprecated Ignored', observed-in-generated-types)",
+          "basis": "DECISION-K3 K-10; stated in the shipped TASK guidance; no supplier control at 0.158.0 (multiAgentMode '@deprecated Ignored', observed-in-generated-types); a TASK-guided parent delegated (OBS-2 O-4b, through an adapter)",
           "notEnforcement": [
             "approval-policy",
             "sandbox",
-            "user-configuration"
+            "user-configuration",
+            "depth-limit"
           ]
         },
         {
@@ -130,9 +131,7 @@
         "id": "call-1",
         "tool": "spawnAgent",
         "senderThreadId": "thr-task-1",
-        "receiverThreadIds": [
-          "thr-child-9"
-        ],
+        "receiverThreadIds": [],
         "status": "inProgress"
       },
       "finding": "delegation by a task agent (stated limit, not enforced)",
@@ -141,7 +140,30 @@
         "delegation-view",
         "run-record"
       ],
-      "supplyRef": "sup:0006"
+      "supplyRef": "sup:0004"
+    },
+    {
+      "observationId": "obs:call-3",
+      "limitId": "L-TASK-1",
+      "thread": "thr-child-3",
+      "roleInForce": "TASK",
+      "roleBasis": "native-child-role-reported",
+      "item": {
+        "type": "collabAgentToolCall",
+        "id": "call-3",
+        "tool": "spawnAgent",
+        "senderThreadId": "thr-child-3",
+        "receiverThreadIds": [
+          "thr-child-4"
+        ],
+        "status": "completed"
+      },
+      "finding": "delegation by a task agent (stated limit, not enforced)",
+      "shownIn": [
+        "conversation",
+        "delegation-view",
+        "run-record"
+      ]
     }
   ]
 }
