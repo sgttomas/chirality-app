@@ -221,3 +221,26 @@ files. Version steps as F0 §6.
 **F-E2 (after RX and F-E1):** GUIDE (DEL-03-04) → v0.6: FG-01…FG-03 and
 re-pin every input; check every cross-file section citation made in this run
 against the cited text and report mismatches (fixing only GUIDE).
+
+## V21 — independent review of the pass-3 candidate (two Type 2 reviewers, read-only)
+
+Candidate: the branch at `7a331c24b3`. Each reviewer writes only
+`reviews/V21-<X>.md`. Read the owner records (OWNER_DECISIONS.md), R17–R20,
+and the files in your scope whole. Check: (1) the owner's decisions are
+carried exactly and nowhere contradicted (K-3 revised, L, the SIWC exchange);
+(2) every join in scope agrees on both sides (names, values, states,
+ownership, standing labels), comparing supplier and receiver text;
+(3) supplier facts are labelled with their version and source (OBS-1/2/3,
+generated types, inference), and adapter-mediated results are labelled as
+such; (4) nothing claims more than it has (no qualification, no host join,
+no SWBPIPE adoption, no enforcement where the text says stated); (5) the
+schemas, examples and prototypes run as the files say (rerun them);
+(6) the cycle guard (R17-10) and proposed rows. Findings: BLOCKING, MAJOR,
+MINOR, each with file, location, quote, why, and a fix. Verdict: MERGE AS
+DRAFTS or HOLD. Include the known leftovers from `F/F-E2.md` §4.3 as findings
+only if you judge them worse than MINOR.
+
+| ID | Scope |
+|---|---|
+| V21-A | The six new Design files (RECOVERY, NPTD, NIR, AAC, ACCESS with the account-home record, WR, ROLE), their schemas and prototypes, and their joins with each other |
+| V21-B | The first-increment edits (HOSTING-v0.9, EXEC-v0.7, RS/ACT-POLICY/AS-v0.9, WD/WD-EX-v0.9, CA-v0.7, ADAPTER/XT-v0.7, LOOP/PANEL-v0.9, GUIDE-v0.6), their joins with the six new files, the run records (OWNER_DECISIONS, R17–R20, DISPATCH, ASSESSMENT_SIWC, HANDOFF additions) and the OBS-2/OBS-3 records |
