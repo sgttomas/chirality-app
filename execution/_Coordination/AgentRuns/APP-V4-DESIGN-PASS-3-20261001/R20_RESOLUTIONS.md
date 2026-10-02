@@ -44,3 +44,10 @@ visible turn of that conversation, to draft a handoff summary; the person
 edits it in the new conversation before sending. The App adds a header
 naming the source conversation; the summary carries no instructions beyond
 the person's own text, and nothing is sent until the person sends it.
+
+## R20-7 WD's declared contract version (F-D) — INTEGRATION
+
+The declared part's contract version stays `WD-v0.8`: it versions the
+declared part's meaning, not the file label, and no declared-part meaning
+changed in WD-v0.9. A declaration naming `WD-v0.9` remains an unknown
+version (L-WDEX-33a).
