@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "chirality:app-v4:DEL-01-03:npt.delegation-export:v0.1",
+  "$id": "chirality:app-v4:DEL-01-03:npt.delegation-export:v0.2",
   "title": "Native delegation identity export (PROPOSED, NPTD-v0.2 §7.7)",
   "description": "The native descendant identities and last observed activity under one root thread, offered to the PKG-06 fleet receiving interface (DEP-01-03-014; DEL-06-01 reads it as DEP-06-01-007 names) (R18-1 C-07: DEL-02-04 does not consume it; its K-10 label is a runtime value handed to DEL-01-03, carried here as handed, C-08). Export only: DEL-01-03 imports nothing from PKG-06 (R17-10). There is deliberately no element for a child's return, review or integration, and additionalProperties is false so none can be added (REQ-003, AC-003).",
   "type": "object",

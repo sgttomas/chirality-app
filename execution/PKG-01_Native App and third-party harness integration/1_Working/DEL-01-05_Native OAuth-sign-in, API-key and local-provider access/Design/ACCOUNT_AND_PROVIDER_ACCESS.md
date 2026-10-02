@@ -124,6 +124,7 @@ lists the proposals for SCA-V4-003:
 | OBS-2 O-6 (M1, M2, M3) | §3, §5.5, §6 Q-1, decision record §4 | Linked configuration observed to work; `-c` flags form the `sessionFlags` layer; `--profile` refused for `app-server`; fallback A not needed at 0.158.0; writes through the link still not observed |
 | OBS-2 §11, §13; F0 FH-26 | §9, §7 | The installation id and thread/session/turn ids in `client_metadata`, and the host time zone in every model input, are shown in the network/record view as content sent to the chosen provider |
 | OBS-2 O-4 (adapter) | §11 CH-2 | The delegation tools also travel in the `namespace` tool LM Studio 0.4.16 drops (R18-9 standing) |
+| RV21 (repairs from V21; in place, no version step): V21-A MINOR 10, 11 | §1 (runtime-value paragraph); §5.1 AE-12; §5.2 KE-13; §6 Q-5, Q-7, Q-11 | **MINOR 10:** sign-out and key removal ask first with DEL-01-02's **`assess live work`** (RECOVERY-v0.2 §4.1; R18-1 C-23), which returns the live turns, the outstanding requests and the active delegated children of the home, as a runtime value (no row); all three are listed. **MINOR 11:** resume overrides nothing on `thread/resume`; a model change is per turn (CS-18), one rule with RECOVERY-v0.2 §4.1 and ROLE-v0.2 §5.5 |
 | Naming | §6 Q-2 | The control reads "Sign in with your ChatGPT account (through Codex)", so it is not confused with OpenAI's separate "Sign in with ChatGPT" grant (§20) |
 
 ---
@@ -165,8 +166,10 @@ the App). An agent may ask the person in conversation; nothing more.
 | I-10 | Selected pin and embedding qualification input; sign-in and substitution evidence "when needed" | DEL-01-01 ↔ DEL-01-05 (DEP-01-05-012/013; DEP-01-01-022/024; held, SCC-001) | Held arcs gate nothing | — |
 
 A runtime value DEL-01-05 is handed is not a production input (R17-10
-pattern): the live-turn list used by §6 Q-5 and Q-7 comes from HOSTING's
-lifecycle and register at run time; no row DEL-01-05 → DEL-01-02 is proposed
+pattern): the live work listed by §6 Q-5 and Q-7 comes from DEL-01-02's
+**`assess live work`** operation (RECOVERY-v0.2 §4.1; R18-1 C-23: the live
+turns, the outstanding requests and the active delegated children of the
+homes named, K-4's pattern), read at run time; no row DEL-01-05 → DEL-01-02 is proposed
 (it would put DEL-01-02 into SCC-001; the return file shows the check).
 
 ## 2. Access entries
@@ -297,7 +300,7 @@ exclude ChatGPT: `ConfigRequirements.allowedLoginMethods`, or the person's
 | AE-9 | signing-in | `completed:failure` | signed-out | `success: false`; `error` shown after redaction |
 | AE-10 | signing-in | `person:cancel` | signed-out | `account/login/cancel`; status `canceled` or `notFound` recorded |
 | AE-11 | signing-in | `generation:closed` | unknown | Sign-in outcome unknown; re-read after the next `ready`; never restarted by the App |
-| AE-12 | signed-in | `person:sign-out` | signing-out | Asks first when live turns run on H-acct, listing them (K-4 pattern) |
+| AE-12 | signed-in | `person:sign-out` | signing-out | Asks first when H-acct has live work, listing its live turns, outstanding requests and active delegated children (RECOVERY `assess live work`; K-4 pattern) |
 | AE-13 | signing-out | `logout:ok` | signed-out | — |
 | AE-14 | signing-out | `logout:failed` | unknown | Error or no response; re-read |
 | AE-15 | signed-in | `auth:recovery-started` | needs-reauth | `modelProvider/authRecoveryStarted {threadId, turnId, provider, message}` |
@@ -334,7 +337,7 @@ for authentication), `removing`, `not-permitted` (login methods exclude
 | KE-10 | failing | `use:ok` | present | A later turn completed |
 | KE-11 | present | `person:replace-key` | entering | A new login replaces the stored key in Codex; the App never held the old one |
 | KE-12 | failing | `person:replace-key` | entering | — |
-| KE-13 | present | `person:remove-key` | removing | `account/logout` in H-key; asks first with live turns |
+| KE-13 | present | `person:remove-key` | removing | `account/logout` in H-key; asks first with live work (RECOVERY `assess live work`, as AE-12) |
 | KE-14 | failing | `person:remove-key` | removing | — |
 | KE-15 | removing | `logout:ok` | absent | — |
 | KE-16 | removing | `logout:failed` | unknown | — |
@@ -494,8 +497,10 @@ records them (CR-3).
 both end in `signed-out` (AE-10); `notFound` is shown as "Codex had no
 pending sign-in".
 
-**Q-5 Sign out (person's act).** Live turns on H-acct (runtime value from
-HOSTING) → ask first, listing them; the person may cancel. `account/logout`
+**Q-5 Sign out (person's act).** The App calls DEL-01-02's `assess live work`
+for H-acct (RECOVERY-v0.2 §4.1; runtime value, C-23); with live turns,
+outstanding requests or active delegated children it asks first, listing all
+three; the person may cancel. `account/logout`
 → AE-13/AE-14. Conversations on `chatgpt-account` go `entry-unavailable`
 (CS-15).
 
@@ -541,7 +546,9 @@ stays open).
 destination class from §2.
 
 **Q-11 Resume.** The conversation resumes on the home that holds its thread
-with its entry unchanged. Changing entry is not offered at v0.1 (CS-19):
+with its entry unchanged, and `thread/resume` carries no override (RV21: one
+rule with RECOVERY-v0.2 §4.1 and ROLE-v0.2 §5.5); a model the person
+chooses afterwards is sent per turn (CS-18). Changing entry is not offered at v0.1 (CS-19):
 across homes a thread cannot move (K2-1), and within H-acct whether a
 `thread/resume` provider override is adopted by a loaded thread is not
 observed (P-15 pattern; O-5 tests the developer-instruction case only).

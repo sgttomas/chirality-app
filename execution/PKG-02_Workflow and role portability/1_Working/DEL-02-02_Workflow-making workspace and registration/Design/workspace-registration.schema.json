@@ -880,7 +880,7 @@
       ]
     },
     "selection_record": {
-      "description": "WR section 4.4 SL-1...SL-6: the person's explicit selection of registered content, handed to DEL-02-03 (CK-1, A-1; the resolver), DEL-04-03 (R2 selected link) and DEL-02-04 (workflow supply, R17-8).",
+      "description": "WR section 4.4 SL-1...SL-6: the person's explicit selection of registered content, handed to DEL-02-03 (CK-1, A-1; the resolver) and DEL-04-03 (R2 selected link). DEL-02-04 receives no selection: it composes role guidance only (R19-7, which dropped R17-8's workflow supply).",
       "type": "object",
       "required": [
         "record_kind",
@@ -1483,7 +1483,7 @@
       ]
     },
     "supply_check": {
-      "description": "WR §16.5 (R19-7): one check of a run text against what thread/read returns for the turn that carried it. Feeds RS R3 (supplied guidance). A check is never relabelled; a later read is a new check. 'Verified' means the text was supplied as composed; whether the model followed it stays unknown (supplied is not adopted).",
+      "description": "WR §16.6 (R19-7): one check of a run text against the turn's items as Codex returns them through thread/items/list {threadId, turnId}, all pages read (R21-4; HOSTING §4.4 'Recovery reads'). Feeds RS R3 (supplied guidance). A check is never relabelled; a later read is a new check. 'Verified' means the text was supplied as composed; whether the model followed it stays unknown (supplied is not adopted).",
       "type": "object",
       "required": [
         "record_kind",

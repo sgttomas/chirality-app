@@ -57,6 +57,7 @@ file's semantic naming.
 | R19-2 | Run boundaries: the views draw none; they show the run in force at a turn from run markers handed in, display only | §5.7; PC-18 |
 | R19-5 | Version dependence listed; capabilities read at run time | §18 |
 | U-P5 | Closed: no polling; children are read on demand (CO-1 holds) | §7.4 |
+| RV21 (repairs from V21; in place, no version step) | **R21-1** (V21-B M-1; HELP_HUMAN's RV21 note): §7.1 states the reading order R21-1 rules and names this section the reference; the prototype now reads a configuration that was never read as *not established* (v0.2's code read it as "nothing set" and answered *present*), PC-16 gains that case, an ordering case and a check of all 64 signal combinations against R21-1. **V21-A MINOR 14:** the `$id`s of the two schemas v0.2 changed are bumped to `…:v0.2` (`npt.item-anchor`: state `not-completed`; `npt.delegation-export`: three-value standing); `npt.plan-revision` is unchanged and stays `…:v0.1`. Rerun 18/18 | §7.1; §11; §15.3; two schemas; `prototype/npt_model.py`, `prototype/run_cases.py` |
 
 ---
 
@@ -359,10 +360,17 @@ Delegation is **available** for a conversation when all hold:
 `Model.multiAgentVersion` of the selected model (`model/list`) is `v1` or
 `v2` (not `disabled`), **and** `modelProvider/capabilities/read` reports
 `namespaceTools` true, **and** the effective configuration does not set
-`features.multi_agent = false` (`config/read`; absent unless set). Readings:
-`disabled`, `namespaceTools` false or `multi_agent` false → **missing**, the
-view absent with its reason; a value not read or null → **not
-established**, the view shown only if delegation items arrive. Reason
+`features.multi_agent = false` (`config/read`; absent unless set).
+**Readings, in R21-1's order (this section is the reference R21-1 names;
+EXEC EV-3a, its `_delegation` and WD §4.2.5 follow it):** (1)
+`multiAgentVersion` = `disabled` → **missing**; (2) effective
+`features.multi_agent = false` → **missing**; (3) `namespaceTools` false →
+**missing**; (4) any of the three not read (the model entry or its version
+not read or null, the configuration not read, the capabilities not read or
+`namespaceTools` null) → **not established**; (5) otherwise **present**.
+*Missing* hides the view with the first reason in that order; *not
+established* shows the view only if delegation items arrive. A configuration
+that was read and sets nothing is read, not unread (prototype PC-16, RV21). Reason
 (observed, OBS-2 §6.1): at 0.158.0 Codex sends the delegation tools only
 inside a `namespace` tool, and with `multi_agent = false` sends none.
 
@@ -509,9 +517,9 @@ DEL-02-04 (R18-1 C-07).
   act; any child return or integration; run records.
 - **Formats (PROPOSED JSON Schema 2020-12, beside this file; valid and
   invalid instance each in `prototype/fixtures/`):**
-  `npt.plan-revision.schema.json`, `npt.item-anchor.schema.json` (v0.2: state
-  `not-completed`), `npt.delegation-export.schema.json` (v0.2: three-value
-  standing).
+  `npt.plan-revision.schema.json` (`$id` `…:v0.1`), `npt.item-anchor.schema.json` (v0.2: state
+  `not-completed`; `$id` `…:v0.2` since RV21), `npt.delegation-export.schema.json` (v0.2: three-value
+  standing; `$id` `…:v0.2` since RV21).
 
 ---
 
@@ -670,7 +678,11 @@ conformance; PC-02…PC-05 plans incl. C-03 and G-4; PC-06, PC-07 tools;
 PC-08…PC-10 delegation incl. C-08; PC-11 version; PC-12 experimental
 surfaces and plan mode (C-05, C-06); PC-13 truthful actor; PC-14 schema
 fixtures; PC-16 availability (C-04); PC-17 goals (G-3); PC-18 run boundaries
-(R19-2); PC-15 every row of §13 reached and equal to the model's). A pass
+(R19-2); PC-15 every row of §13 reached and equal to the model's).
+**Rerun at RV21** (2026-10-02, same command; output in
+`prototype/results/RUN_2026-10-02_RV21.txt`): 18/18; PC-16 now follows
+R21-1's order, with a configuration never read giving *not established*
+and all 64 signal combinations checked against R21-1. A pass
 shows that the rules run as written against constructed frames; it passes
 no VER criterion.
 

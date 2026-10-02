@@ -403,21 +403,47 @@ def pc16_delegation_availability():
     m = M.Model()
     caps_yes = {"namespaceTools": True, "imageGeneration": False, "webSearch": False}
     caps_no = dict(caps_yes, namespaceTools=False)
+    read_none = {}                       # configuration read; features absent unless set (OBS-2 O-8)
     cases = [
-        ((MODEL_V1, caps_yes, None), "present"),
-        ((dict(MODEL_V1, multiAgentVersion="disabled"), caps_yes, None), "missing"),
-        ((MODEL_V1, caps_no, None), "missing"),
+        ((MODEL_V1, caps_yes, read_none), "present"),
+        ((dict(MODEL_V1, multiAgentVersion="disabled"), caps_yes, read_none), "missing"),
+        ((MODEL_V1, caps_no, read_none), "missing"),
         ((MODEL_V1, caps_yes, {"multi_agent": False}), "missing"),
-        ((dict(MODEL_V1, multiAgentVersion=None), caps_yes, None), "not-established"),
-        ((MODEL_V1, None, None), "not-established"),
+        ((dict(MODEL_V1, multiAgentVersion=None), caps_yes, read_none), "not-established"),
+        ((MODEL_V1, None, read_none), "not-established"),
+        ((MODEL_V1, caps_yes, None), "not-established"),            # RV21 (R21-1): configuration never read
+        ((None, caps_no, None), "missing"),                          # a missing signal settles it, unread or not
     ]
     got = [m.delegation_availability(*a)[0] for a, _ in cases]
+    # R21-1's order decides the reason when several signals say missing
+    order = [m.delegation_availability(dict(MODEL_V1, multiAgentVersion="disabled"), caps_no, {"multi_agent": False})[1],
+             m.delegation_availability(MODEL_V1, caps_no, {"multi_agent": False})[1]]
+    # all 64 combinations of {missing, present, not read} per signal (4 x 4 x 4 inputs) against R21-1 read literally
+    versions = {"disabled": dict(MODEL_V1, multiAgentVersion="disabled"), "v1": MODEL_V1,
+                "null": dict(MODEL_V1, multiAgentVersion=None), "unread": None}
+    configs = {"off": {"multi_agent": False}, "on": {"multi_agent": True}, "unset": {}, "unread": None}
+    capss = {"false": caps_no, "true": caps_yes, "null": dict(caps_yes, namespaceTools=None), "unread": None}
+    bad = []
+    for vk, v in versions.items():
+        for ck, c in configs.items():
+            for pk, pcap in capss.items():
+                if vk == "disabled" or ck == "off" or pk == "false":
+                    want = "missing"
+                elif vk in ("null", "unread") or ck == "unread" or pk in ("null", "unread"):
+                    want = "not-established"
+                else:
+                    want = "present"
+                if m.delegation_availability(v, pcap, c)[0] != want:
+                    bad.append((vk, ck, pk))
     errs = V.validate_against(dict(MODEL_V1, multiAgentVersion="disabled"), ROOT, "#/definitions/Model")
-    ok = got == [e for _, e in cases] and not errs
-    result("PC-16 delegation availability (C-04)", ok,
-           "readings %s for: v1 + namespace tools; disabled; provider without namespace tools; "
-           "features.multi_agent false; version null; capabilities not read. Inputs valid against the bundle's "
-           "Model and ModelProviderCapabilitiesReadResponse (PC-01)" % got)
+    ok = (got == [e for _, e in cases] and not errs and not bad
+          and "multi-agent runtime" in order[0] and "features.multi_agent" in order[1])
+    result("PC-16 delegation availability (C-04 as ordered by R21-1)", ok,
+           "readings %s for: v1 + namespace tools + configuration read; disabled; provider without namespace tools; "
+           "features.multi_agent false; version null; capabilities not read; configuration not read (RV21); "
+           "namespaceTools false with the rest unread. Reasons in R21-1's order: %r. All 64 signal combinations agree "
+           "with R21-1 (disagreements: %s). Inputs valid against the bundle's Model and "
+           "ModelProviderCapabilitiesReadResponse (PC-01)" % (got, order, bad or "none"))
 
 
 def pc17_goals():

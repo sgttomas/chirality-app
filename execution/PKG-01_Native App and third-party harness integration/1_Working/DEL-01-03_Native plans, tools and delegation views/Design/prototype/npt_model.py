@@ -628,20 +628,27 @@ class Model:
         return element in EXPERIMENTAL_ELEMENTS
 
     def delegation_availability(self, model_entry, capabilities, effective_features):
-        """C-04 (R18-1): available when Model.multiAgentVersion != disabled and the provider
-        accepts namespace tools; an effective features.multi_agent = false reads missing.
-        Inputs are run-time reads (R19-5): model/list entry, modelProvider/capabilities/read,
-        the effective configuration's features (absent unless set, OBS-2 O-8)."""
-        if (effective_features or {}).get("multi_agent") is False:
-            return ("missing", "delegation is turned off in the Codex configuration (features.multi_agent)")
+        """R21-1 (from C-04, R18-1), read in this order: Model.multiAgentVersion = disabled -> missing; effective
+        features.multi_agent = false -> missing; provider capabilities report namespaceTools false -> missing; any of
+        the three not read -> not established; otherwise present. Inputs are run-time reads (R19-5): the model/list
+        entry (None, or multiAgentVersion null: not read), modelProvider/capabilities/read (None, or namespaceTools
+        null: not read), and the effective configuration's features (None: configuration not read; {} : read, nothing
+        set, since features are absent unless set, OBS-2 O-8). RV21: v0.2's code read a configuration never read as
+        "nothing set" and answered present where R21-1 says not established."""
         version = (model_entry or {}).get("multiAgentVersion")
         if version == "disabled":
             return ("missing", "this model declares no multi-agent runtime")
-        if capabilities is not None and capabilities.get("namespaceTools") is False:
+        if effective_features is not None and effective_features.get("multi_agent") is False:
+            return ("missing", "delegation is turned off in the Codex configuration (features.multi_agent)")
+        ns = (capabilities or {}).get("namespaceTools")
+        if ns is False:
             return ("missing", "this provider does not accept the namespace tools delegation travels in")
-        if version in ("v1", "v2") and capabilities is not None and capabilities.get("namespaceTools"):
-            return ("present", None)
-        return ("not-established", "model or provider capability not read")
+        unread = [name for name, unread_ in (("model multi-agent version", version is None),
+                                             ("Codex configuration", effective_features is None),
+                                             ("provider capabilities", ns is None)) if unread_]
+        if unread:
+            return ("not-established", "not read: " + ", ".join(unread))
+        return ("present", None)
 
     def goal_line(self, thread):
         g = self.goals.get(thread)

@@ -1,32 +1,130 @@
 {
-  "description": "Valid (invented): a file mentioned in a turn, identical at selection and submission, later found changed; what Codex read stays not observed.",
-  "instance": {
-    "format": "chirality.nir.attachment-supply",
-    "formatVersion": "0.1",
-    "attachmentId": "att-ex-1",
-    "displayName": "load-table.csv",
-    "suppliedAs": "mention",
-    "localPath": "/ex/project/data/load-table.csv",
-    "identityAtSelection": {
-      "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
-      "value": "5f2b...e1"
-    },
-    "identityAtSubmission": {
-      "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
-      "value": "5f2b...e1"
-    },
-    "byteLength": 2048,
-    "turnRef": "turn:thr-ex-1/turn-ex-3",
-    "recordedAt": "2026-10-01T10:02:00Z",
-    "supplierRead": "not observed: Codex reads the path itself",
-    "providerAdoption": "not observed",
-    "laterCheck": {
-      "identity": {
+  "description": "Valid (invented), R21-2: (1) a text file supplied as a text element of the turn, later found changed (what Codex read stays not observed); (2) a spreadsheet named by path for the agent to read with its tools, with the tool item that read it (still 'named'); (3) an image supplied as a localImage input; (4) a draft's WORKFLOW.md tried in an ordinary conversation (K-7; AT-8).",
+  "instances": [
+    {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-1",
+      "displayName": "load-table.csv",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/data/load-table.csv",
+      "identityAtSelection": {
         "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
-        "value": "77aa...09"
+        "value": "5f2b...e1"
       },
-      "at": "2026-10-01T10:05:00Z",
-      "result": "changed after it was supplied; what Codex read is not observed"
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "c0de...71"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
+      "providerAdoption": "not observed",
+      "laterCheck": {
+        "identity": {
+          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+          "value": "77aa...09"
+        },
+        "at": "2026-10-01T10:05:00Z",
+        "result": "changed after it was supplied; what Codex read is not observed"
+      }
+    },
+    {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-2",
+      "displayName": "beam-model.xlsx",
+      "suppliedAs": "path-named",
+      "supplyStanding": "named; read only if a tool item shows it",
+      "localPath": "/ex/project/data/beam-model.xlsx",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "byteLength": 48211,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "a11e...5f"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: read only if a tool item shows it",
+      "providerAdoption": "not observed",
+      "toolReads": [
+        {
+          "threadId": "thr-ex-1",
+          "turnId": "turn-ex-3",
+          "itemId": "item-cmd-7",
+          "observedAt": "2026-10-01T10:02:40Z"
+        }
+      ]
+    },
+    {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-3",
+      "displayName": "crack-photo.png",
+      "suppliedAs": "localImage",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/site/crack-photo.png",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "e4e4...20"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "e4e4...20"
+      },
+      "byteLength": 301122,
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: Codex reads the path itself",
+      "providerAdoption": "not observed"
+    },
+    {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-4",
+      "displayName": "WORKFLOW.md (draft supports-adjust)",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/.chirality/workflow-drafts/supports-adjust/WORKFLOW.md",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "d13c...4a"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "d13c...4a"
+      },
+      "byteLength": 1804,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "f00d...33"
+      },
+      "turnRef": "turn:thr-ex-7/turn-ex-1",
+      "recordedAt": "2026-10-01T11:00:00Z",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
+      "providerAdoption": "not observed",
+      "draft": {
+        "location": "project",
+        "name": "supports-adjust",
+        "content": {
+          "method": "proto-sha256-list-0 (illustration)",
+          "value": "rev-A3"
+        },
+        "standing": "draft — not a registered workflow; this conversation is not a workflow run"
+      }
     }
-  }
+  ]
 }

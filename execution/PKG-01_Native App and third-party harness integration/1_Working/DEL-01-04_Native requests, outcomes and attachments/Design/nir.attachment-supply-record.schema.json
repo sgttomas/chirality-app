@@ -1,61 +1,404 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-04:nir:attachment-supply-record:0.1",
-  "title": "Attachment supply record (PROPOSED, DEL-01-04/NIR-v0.1 §6)",
-  "description": "PROPOSED by DEL-01-04/NIR-v0.1 (R17-1; REQ-003). The identity of the content the App actually supplied at the local interface, taken when the turn input is written (AT-1...AT-6). It is App-observed: Codex reads a supplied path itself, so what Codex read and whether the provider adopted it are not observed at the 0.158.0 pin (labels fixed below). 'method' names a content-identity designation only; no algorithm is chosen (RS U-04; HOSTING U-08). Handed to the conversation view, to DEL-02-02 for draft attachments, and cited by DEL-04-03 records as an evidence reference of kind 'content identity'. No storage location is chosen (TBD-003; OI-014).",
+  "$id": "urn:chirality:app-v4:del-01-04:nir:attachment-supply-record:0.2",
+  "title": "Attachment supply record (PROPOSED, DEL-01-04/NIR-v0.2 §6; schema 0.2 at RV21)",
+  "description": "PROPOSED by DEL-01-04/NIR-v0.2 (R17-1; REQ-003), revised at RV21 for R21-2. The identity of the content the App actually put in a turn for an attachment, taken when the turn input is written (AT-1…AT-9). An attachment is carried in one of three ways (R21-2): a text file as a text element of the turn, with the file named (form 'text-element'); an image as an 'image' or 'localImage' input (forms 'localImage', 'image-url', 'image-fileId'); any other file by naming its path for the agent to read with its tools (form 'path-named'). Only the first two are 'supplied'; the third is 'named; read only if a tool item shows it'. 'mention' and 'skill' are not attachment forms: at Codex 0.158.0 'mention' delivered nothing to the model and 'skill' was honoured only for a discovered SKILL.md at its canonical path (observed, OBS-3 W-3, W-1). Every record is App-observed; whether the provider adopted the content is not observed. 'method' names a content-identity designation only; no algorithm is chosen (RS U-04; HOSTING U-08). Handed to the conversation view, to DEL-02-02 for a draft tried in a conversation (K-7; AT-8), and cited by DEL-04-03 records as an evidence reference of kind 'content identity'. No storage location is chosen (TBD-003; OI-014).",
   "type": "object",
-  "required": ["format", "formatVersion", "attachmentId", "displayName", "suppliedAs", "identityAtSelection", "identityAtSubmission", "turnRef", "recordedAt", "supplierRead", "providerAdoption"],
+  "required": [
+    "format",
+    "formatVersion",
+    "attachmentId",
+    "displayName",
+    "suppliedAs",
+    "supplyStanding",
+    "identityAtSelection",
+    "identityAtSubmission",
+    "turnRef",
+    "recordedAt",
+    "supplierRead",
+    "providerAdoption"
+  ],
   "additionalProperties": false,
   "$defs": {
     "contentIdentity": {
       "oneOf": [
-        {"type": "object", "required": ["method", "value"], "additionalProperties": false, "properties": {"method": {"type": "string", "minLength": 1}, "value": {"type": "string", "minLength": 1}}},
-        {"type": "object", "required": ["notObtainable", "reason"], "additionalProperties": false, "properties": {"notObtainable": {"const": true}, "reason": {"type": "string", "minLength": 1}}}
+        {
+          "type": "object",
+          "required": [
+            "method",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "notObtainable",
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "notObtainable": {
+              "const": true
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
       ]
+    },
+    "itemRef": {
+      "type": "object",
+      "required": [
+        "threadId",
+        "turnId",
+        "itemId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observedAt": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   },
   "properties": {
-    "format": {"const": "chirality.nir.attachment-supply"},
-    "formatVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
-    "attachmentId": {"type": "string", "minLength": 1},
-    "displayName": {"type": "string", "minLength": 1},
-    "suppliedAs": {
-      "description": "The supplier input form used (UserInput at 0.158.0), or a thread attachment, or a draft package handed to DEL-02-02.",
-      "enum": ["localImage", "localAudio", "mention", "skill", "image-url", "image-fileId", "audio-url", "thread-attachment", "draft-package"]
+    "format": {
+      "const": "chirality.nir.attachment-supply"
     },
-    "localPath": {"type": "string", "minLength": 1},
-    "remoteRef": {"type": "string", "minLength": 1, "description": "A URL or supplier file identity, recorded as given; the App does not fetch it."},
-    "identityAtSelection": {"$ref": "#/$defs/contentIdentity"},
-    "identityAtSubmission": {"$ref": "#/$defs/contentIdentity"},
-    "byteLength": {"type": "integer", "minimum": 0},
-    "turnRef": {"type": "string", "minLength": 1},
-    "recordedAt": {"type": "string", "minLength": 1},
-    "supplierRead": {"enum": ["not observed: Codex reads the path itself", "not applicable: content passed by reference"]},
-    "providerAdoption": {"const": "not observed"},
-    "laterCheck": {
+    "formatVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "attachmentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "suppliedAs": {
+      "description": "How the attachment is carried in the turn (R21-2): 'text-element' (a text file: a text element of the turn holding an App-written line naming the file and then the file's bytes, AT-9); 'localImage' (UserInput localImage {path}); 'image-url', 'image-fileId' (UserInput image by url or supplier file id); 'path-named' (any other file: its path named in an App-written text element for the agent to read with its tools, AT-10). 'mention' and 'skill' are not used (OBS-3 W-3, W-1).",
+      "enum": [
+        "text-element",
+        "localImage",
+        "image-url",
+        "image-fileId",
+        "path-named"
+      ]
+    },
+    "supplyStanding": {
+      "enum": [
+        "supplied",
+        "named; read only if a tool item shows it"
+      ],
+      "description": "R21-2: 'supplied' for a text element or an image input; 'named; read only if a tool item shows it' for a named path."
+    },
+    "localPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "remoteRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A URL or supplier file identity, recorded as given; the App does not fetch it."
+    },
+    "identityAtSelection": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "identityAtSubmission": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "byteLength": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "elementIdentity": {
+      "$ref": "#/$defs/contentIdentity",
+      "description": "For 'text-element' and 'path-named', present when the element was sent: the identity of the whole text element (the naming line and, for a text file, the bytes)."
+    },
+    "turnRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "supplierRead": {
+      "enum": [
+        "not applicable: the bytes are in the turn's own text element",
+        "not observed: Codex reads the path itself",
+        "not applicable: content passed by reference",
+        "not observed: read only if a tool item shows it"
+      ]
+    },
+    "providerAdoption": {
+      "const": "not observed"
+    },
+    "toolReads": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/itemRef"
+      },
+      "description": "For 'path-named' only: tool items of the conversation that name this path, as the App observed them (for example a command or file read). They show that the agent read the path then; which bytes it read stays not observed."
+    },
+    "draft": {
+      "description": "AT-8 (K-7; C-14): the attachment is a draft's file tried in an ordinary conversation. The draft is not a registered workflow and the conversation is not a workflow run.",
       "type": "object",
-      "required": ["identity", "at", "result"],
+      "required": [
+        "location",
+        "name",
+        "content",
+        "standing"
+      ],
       "additionalProperties": false,
       "properties": {
-        "identity": {"$ref": "#/$defs/contentIdentity"},
-        "at": {"type": "string", "minLength": 1},
-        "result": {"enum": ["unchanged since supplied", "changed after it was supplied; what Codex read is not observed", "missing"]}
+        "location": {
+          "enum": [
+            "project",
+            "user"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "standing": {
+          "const": "draft — not a registered workflow; this conversation is not a workflow run"
+        }
+      }
+    },
+    "laterCheck": {
+      "type": "object",
+      "required": [
+        "identity",
+        "at",
+        "result"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "enum": [
+            "unchanged since supplied",
+            "changed after it was supplied; what Codex read is not observed",
+            "missing"
+          ]
+        }
       }
     }
   },
   "allOf": [
     {
-      "description": "Path forms carry the local path.",
       "anyOf": [
-        {"properties": {"suppliedAs": {"not": {"enum": ["localImage", "localAudio", "mention", "skill", "draft-package"]}}}},
-        {"required": ["localPath"]}
-      ]
+        {
+          "properties": {
+            "suppliedAs": {
+              "not": {
+                "enum": [
+                  "text-element",
+                  "localImage",
+                  "path-named"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "localPath"
+          ]
+        }
+      ],
+      "description": "Path forms carry the local path."
     },
     {
-      "description": "Reference forms carry the reference and say the App read no bytes.",
       "anyOf": [
-        {"properties": {"suppliedAs": {"not": {"enum": ["image-url", "image-fileId", "audio-url"]}}}},
-        {"required": ["remoteRef"], "properties": {"supplierRead": {"const": "not applicable: content passed by reference"}, "identityAtSubmission": {"required": ["notObtainable"]}}}
+        {
+          "properties": {
+            "suppliedAs": {
+              "not": {
+                "enum": [
+                  "image-url",
+                  "image-fileId"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "remoteRef"
+          ],
+          "properties": {
+            "identityAtSubmission": {
+              "required": [
+                "notObtainable"
+              ]
+            }
+          }
+        }
+      ],
+      "description": "Reference forms carry the reference; the App read no bytes."
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "suppliedAs": {
+              "not": {
+                "enum": [
+                  "text-element"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "supplyStanding": {
+              "const": "supplied"
+            },
+            "supplierRead": {
+              "const": "not applicable: the bytes are in the turn's own text element"
+            }
+          }
+        }
+      ],
+      "description": "A text file is supplied in the turn's own text (R21-2)."
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "suppliedAs": {
+              "not": {
+                "enum": [
+                  "localImage"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "supplyStanding": {
+              "const": "supplied"
+            },
+            "supplierRead": {
+              "const": "not observed: Codex reads the path itself"
+            }
+          }
+        }
+      ],
+      "description": "A local image is supplied as a localImage input; Codex reads the path itself (R21-2)."
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "suppliedAs": {
+              "not": {
+                "enum": [
+                  "image-url",
+                  "image-fileId"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "supplyStanding": {
+              "const": "supplied"
+            },
+            "supplierRead": {
+              "const": "not applicable: content passed by reference"
+            }
+          }
+        }
+      ],
+      "description": "An image by reference is supplied as an image input (R21-2)."
+    },
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "suppliedAs": {
+              "not": {
+                "enum": [
+                  "path-named"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "supplyStanding": {
+              "const": "named; read only if a tool item shows it"
+            },
+            "supplierRead": {
+              "const": "not observed: read only if a tool item shows it"
+            }
+          }
+        }
+      ],
+      "description": "Any other file is named, not supplied (R21-2)."
+    },
+    {
+      "description": "Tool reads belong to a named path only.",
+      "anyOf": [
+        {
+          "properties": {
+            "suppliedAs": {
+              "const": "path-named"
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "toolReads"
+            ]
+          }
+        }
       ]
     }
   ]

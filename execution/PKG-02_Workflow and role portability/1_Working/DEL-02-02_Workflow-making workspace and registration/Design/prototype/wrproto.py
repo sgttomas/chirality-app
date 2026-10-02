@@ -956,8 +956,10 @@ class RunDesk:
         inputs.append({"type": "text", "text": person_text, "text_elements": []})
         return {"threadId": c, "input": inputs}, rec
 
-    # ---- supply check against thread/read (SC-1..SC-6)
+    # ---- supply check (SC-1..SC-6), read with thread/items/list (R21-4; HOSTING §4.4 "Recovery reads")
     def check(self, read, rec, expected_text, turn_id, cuid, now):
+        """`read` answers `thread/items/list` params with one page ({data: [ThreadItemEntry], nextCursor}) or None when
+        the request fails; None for `read` means no read could be made. Pages are followed to the end."""
         out = {"record_kind": "supply_check", "check": "chk-%s-%s" % (rec["run"], now), "run": rec["run"],
                "conversation": rec["conversation"], "purpose": rec["purpose"], "expected_text": rec["text_identity"],
                "read_at": now, "evidence_limits": ["supplied is not adopted: whether the model followed it is not shown"]}
@@ -968,11 +970,23 @@ class RunDesk:
         if read is None:
             out["state"] = "unreadable"
             return self.ws.emit(out)
-        turns = [x for x in read["thread"].get("turns", []) if x["id"] == turn_id]
-        if not turns or turns[0].get("itemsView", "full") != "full":
-            out["state"] = "not found" if not turns else "unreadable"
+        items, cursor = [], None
+        while True:
+            params = {"threadId": rec["conversation"], "turnId": turn_id}
+            if cursor:
+                params["cursor"] = cursor
+            page = read(params)
+            if page is None:                  # a page could not be read: the check is incomplete
+                out["state"] = "unreadable"
+                return self.ws.emit(out)
+            items += [e["item"] for e in page["data"] if e["turnId"] == turn_id]
+            cursor = page.get("nextCursor")
+            if not cursor:
+                break
+        if not items:
+            out["state"] = "not found"
             return self.ws.emit(out)
-        ums = [i for i in turns[0]["items"] if i["type"] == "userMessage"]
+        ums = [i for i in items if i["type"] == "userMessage"]
         um = [i for i in ums if cuid and i.get("clientId") == cuid]
         located = "client id" if um else "first user message of the turn"
         um = um or ums[:1]
@@ -1477,8 +1491,21 @@ def main():
                 tr["itemsView"] = view
             return tr
 
-        def read_of(c, turns):
-            return {"thread": {"id": c, "turns": turns}}
+        def read_of(c, turns, page_size=1, fail_after_first=False):
+            """A stand-in for Codex answering thread/items/list {threadId, turnId, cursor} with pages (R21-4)."""
+            entries = [{"turnId": t["id"], "item": i} for t in turns for i in t["items"]]
+            seen.clear()
+
+            def fetch(params):
+                seen.append(params)
+                sel = [e for e in entries if params.get("turnId") in (None, e["turnId"])]
+                start = int(params.get("cursor") or 0)
+                if fail_after_first and start > 0:
+                    return None
+                nxt = str(start + page_size) if start + page_size < len(sel) else None
+                return {"data": sel[start:start + page_size], "nextCursor": nxt, "backwardsCursor": None}
+            return fetch
+        seen = []
 
         # a registered multi-file workflow B
         ws.agent_writes_draft(P, "review-pack", {"WORKFLOW.md": simple_pkg("review-pack", "check the pack")["WORKFLOW.md"],
@@ -1503,12 +1530,21 @@ def main():
         tA = turn_of("turn-A1", pA)
         e1_ = minischema.validate(pA, {"$ref": CODEX_ID + "#/definitions/TurnStartParams"}, reg)
         e2_ = minischema.validate(tA, {"$ref": CODEX_ID + "#/definitions/Turn"}, reg)
-        check("P-50", "the constructed turn/start params and thread/read turn conform to Codex 0.158.0's generated types (TurnStartParams, Turn)",
+        check("P-50", "the constructed turn/start params and the turn conform to Codex 0.158.0's generated types (TurnStartParams, Turn)",
               not e1_ and not e2_, (e1_[:2], e2_[:2]))
         ck = desk.check(read_of(c, [tA]), recA, textA, "turn-A1", pA["clientUserMessageId"], ws.tick())
+        sent = [dict(x) for x in seen]
+        fetch = read_of(c, [tA])
+        pages = [fetch(dict(sent[0])), fetch(dict(sent[1]))]
+        e3_ = [x for pg in pages for x in minischema.validate(pg, {"$ref": CODEX_ID + "#/definitions/ThreadItemsListResponse"}, reg)]
+        e4_ = [x for pr in sent for x in minischema.validate(pr, {"$ref": CODEX_ID + "#/definitions/ThreadItemsListParams"}, reg)]
+        check("P-50a", "R21-4: the supply check reads with thread/items/list {threadId, turnId, cursor} (HOSTING §4.4), never "
+              "thread/read {includeTurns: true}; it follows the pages to the end; params and pages conform to Codex 0.158.0's "
+              "generated types", not e3_ and not e4_ and len(sent) == 2 and sent[0] == {"threadId": c, "turnId": "turn-A1"}
+              and sent[1].get("cursor") == "1" and "includeTurns" not in str(sent), (sent, e3_[:2], e4_[:2]))
         tA2 = dict(tA, items=[dict(tA["items"][0], clientId=None), tA["items"][1]])
         ck2 = desk.check(read_of(c, [tA2]), recA, textA, "turn-A1", pA["clientUserMessageId"], ws.tick())
-        check("P-51", "supply check against thread/read: verified, located by client id, or by the first user message when no client id is echoed",
+        check("P-51", "supply check against thread/items/list: verified, located by client id, or by the first user message when no client id is echoed",
               ck["state"] == "verified" and ck["located_by"] == "client id" and ck2["state"] == "verified"
               and ck2["located_by"] == "first user message of the turn", (ck["state"], ck2.get("located_by")))
         crlf = copy.deepcopy(pA)
@@ -1518,9 +1554,9 @@ def main():
         s1 = desk.check(read_of(c, [turn_of("turn-A1", crlf)]), recA, textA, "turn-A1", None, ws.tick())["state"]
         s2 = desk.check(read_of(c, [turn_of("turn-A1", fr)]), recA, textA, "turn-A1", None, ws.tick())["state"]
         s3 = desk.check(read_of(c, [tA]), recA, textA, "turn-XX", None, ws.tick())["state"]
-        s4 = desk.check(read_of(c, [turn_of("turn-A1", pA, view="summary")]), recA, textA, "turn-A1", None, ws.tick())["state"]
+        s4 = desk.check(read_of(c, [tA], fail_after_first=True), recA, textA, "turn-A1", None, ws.tick())["state"]
         s5 = desk.check(None, recA, textA, "turn-A1", None, ws.tick())["state"]
-        check("P-52", "mismatch states: line endings changed; framing changed with bytes intact; turn absent; items not loaded; read failed",
+        check("P-52", "mismatch states: line endings changed; framing changed with bytes intact; turn absent; a later page failed; read failed",
               (s1, s2, s3, s4, s5) == ("text differs, workflow bytes differ", "text differs, workflow bytes equal",
                                        "not found", "unreadable", "unreadable"), (s1, s2, s3, s4, s5))
         selB, _ = ws.select(revB, P.source_root, c)

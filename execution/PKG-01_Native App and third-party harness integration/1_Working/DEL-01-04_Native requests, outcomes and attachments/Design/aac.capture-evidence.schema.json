@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.2",
-  "title": "App act control capture evidence (PROPOSED, DEL-01-04/AAC-v0.2 §5.2)",
-  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6). The capture-evidence object EXEC CAP-3 names: {act identity, actor, act kind, bound content identity with method designation, scope, purpose, time, capturing surface 'App interface', arrival reference}. Produced on the capture side only from the person's native confirmation of a presented offer (CAP-4; R17-5 PROPOSED); DEL-04-03's human_act or act_declined record cites it by 'captureId' (RS §6.1; RS §9). The actor is named from what the App observes, never verified (DECISION-K1 K1-4; EXEC CAP-8); 'codexAccount' is the reported email or 'ChatGPT account (no email reported)', and no plan type is recorded (R18-1 C-10). An A15 capture lists its entries (DECISION-L L-4), each with the workspace's descriptor, the revision, the reviewed draft (WR ID-3 string and content) and the prior revision (RS workflowTuple or null) (R17-11; R18-1 C-01), and, once DEL-02-02 reports it, that entry's registration outcome beside the act, never part of it (AAC AK-f). 'seal' is SEAL-2's optional provenance element (AAC §6.3).",
+  "$id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3",
+  "title": "App act control capture evidence (PROPOSED, DEL-01-04/AAC-v0.2 §5.2; schema 0.3 at RV21)",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6). The capture-evidence object EXEC CAP-3 names: {act identity, actor, act kind, bound content identity with method designation, scope, purpose, time, capturing surface 'App interface', arrival reference}. Produced on the capture side only from the person's native confirmation of a presented offer (CAP-4; R17-5 PROPOSED); DEL-04-03's human_act or act_declined record cites it by 'captureId' (RS §6.1; RS §9). The actor is named from what the App observes, never verified (DECISION-K1 K1-4; EXEC CAP-8); 'codexAccount' takes exactly RS's two forms, the reported email or 'ChatGPT account (no email reported)', and no plan type is recorded (R18-1 C-10; RS $defs/person; V21-B m-11). An A15 capture names the one DEL-02-02 descriptor it was composed from (R21-3) and lists its entries (DECISION-L L-4), each with the revision, the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content) and the prior revision (RS workflowTuple or null) (R17-11; R18-1 C-01), and, once DEL-02-02 reports it, that entry's registration outcome beside the act, never part of it (AAC AK-f). 'seal' is SEAL-2's optional provenance element (AAC §6.3). Schema 0.3 (RV21; R21-3, V21-B m-11).",
   "type": "object",
   "required": [
     "format",
@@ -44,7 +44,7 @@
       }
     },
     "workflowTuple": {
-      "description": "RS $defs/workflowTuple (RS-v0.8; WD §6.1 identity tuple in RS's spelling), copied here so the schema stands alone; C-01 makes RS's the persisted form.",
+      "description": "RS $defs/workflowTuple (RS-v0.9; WD §6.1 identity tuple in RS's spelling), copied here so the schema stands alone; C-01 makes RS's the persisted form.",
       "type": "object",
       "required": [
         "kind",
@@ -96,8 +96,8 @@
       "properties": {
         "draft": {
           "type": "string",
-          "pattern": "^draft:(project|user):[^@]+@.+$",
-          "description": "WR ID-3 string draft:<location>:<name>@<content identity> (C-01)."
+          "pattern": "^(draft|entry):(project|user):[^@]+@.+$",
+          "description": "WR ID-3 string (C-01): 'draft:<location>:<name>@<content identity>' for a reviewed draft (WR `a15_descriptor`), or 'entry:<location>:<name>@<content identity>' for a library entry reviewed in place (WR `a15_multi_descriptor`, §4.7; L-4); RS-v0.9's pattern (R21-3)."
         },
         "content": {
           "$ref": "#/$defs/contentIdentity"
@@ -165,8 +165,16 @@
           "minLength": 1
         },
         "codexAccount": {
-          "type": "string",
-          "minLength": 1
+          "description": "RS $defs/person.codexAccount (RS-v0.9; ACCESS-v0.2 I-6): the reported email of the ChatGPT account of the Codex home that runs the conversation, or 'ChatGPT account (no email reported)'; no plan type (R18-1 C-10).",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[^@\\s]+@[^@\\s]+$"
+            },
+            {
+              "const": "ChatGPT account (no email reported)"
+            }
+          ]
         },
         "identityVerified": {
           "const": false
@@ -275,23 +283,30 @@
       "type": "string",
       "pattern": "^rec:"
     },
+    "descriptorId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The identity of the one DEL-02-02 descriptor this A15 act is composed from (R21-3; WR `descriptor_id`)."
+    },
+    "descriptorKind": {
+      "enum": [
+        "a15_descriptor",
+        "a15_multi_descriptor"
+      ],
+      "description": "The kind of DEL-02-02's descriptor the A15 act is composed from: one descriptor per act (R21-3). 'a15_descriptor' (WR RB-4): one reviewed draft, one entry. 'a15_multi_descriptor' (WR §4.7 ME-3): two or more library entries registered in place, in one act."
+    },
     "entries": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "required": [
-          "descriptorId",
           "revision",
           "reviewedDraft",
           "priorRevision"
         ],
         "additionalProperties": false,
         "properties": {
-          "descriptorId": {
-            "type": "string",
-            "minLength": 1
-          },
           "revision": {
             "type": "string",
             "minLength": 1
@@ -383,7 +398,7 @@
       ]
     },
     {
-      "description": "A15 lists its entries (L-4; R17-11; C-01).",
+      "description": "A15 names its one descriptor and lists its entries (R21-3; L-4; R17-11; C-01).",
       "anyOf": [
         {
           "properties": {
@@ -396,13 +411,15 @@
         },
         {
           "required": [
+            "descriptorId",
+            "descriptorKind",
             "entries"
           ]
         }
       ]
     },
     {
-      "description": "Entries belong to A15 only.",
+      "description": "Entries and the descriptor belong to A15 only.",
       "anyOf": [
         {
           "properties": {
@@ -412,10 +429,104 @@
           }
         },
         {
+          "allOf": [
+            {
+              "not": {
+                "required": [
+                  "entries"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "descriptorId"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "descriptorKind"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "An a15_descriptor (WR RB-4): exactly one entry, a reviewed draft ('draft:' form).",
+      "anyOf": [
+        {
           "not": {
             "required": [
-              "entries"
-            ]
+              "descriptorKind"
+            ],
+            "properties": {
+              "descriptorKind": {
+                "const": "a15_descriptor"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "entries": {
+              "not": {
+                "type": "array",
+                "minItems": 2
+              },
+              "items": {
+                "properties": {
+                  "reviewedDraft": {
+                    "properties": {
+                      "draft": {
+                        "pattern": "^draft:"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "An a15_multi_descriptor (WR §4.7 ME-3; L-4): two or more library entries reviewed in place ('entry:' form), none with a prior revision.",
+      "anyOf": [
+        {
+          "not": {
+            "required": [
+              "descriptorKind"
+            ],
+            "properties": {
+              "descriptorKind": {
+                "const": "a15_multi_descriptor"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "entries": {
+              "minItems": 2,
+              "items": {
+                "properties": {
+                  "reviewedDraft": {
+                    "properties": {
+                      "draft": {
+                        "pattern": "^entry:"
+                      }
+                    }
+                  },
+                  "priorRevision": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
           }
         }
       ]

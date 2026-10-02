@@ -5,8 +5,9 @@ DEL-01-04/NIR-v0.2 (`../NATIVE_INTERACTION_RECEIVING.md`, §13.2) and
 DEL-01-04/AAC-v0.2 (`../APP_ACT_CONTROL.md`, §8), written by node D3 of run
 `APP-V4-DESIGN-PASS-3-20261001` under R17-1 (R12-3 limits). It is not an App
 candidate and not the OI-008 placement; nothing in it is qualified or
-selected. Python 3 standard library only; no package is installed; no network
-is used; the Codex binary is never started; all content is invented.
+selected. Python 3 standard library for every check except two optional
+third-party cross-checks (S-4, O-9; see below); no package is installed; no
+network is used; the Codex binary is never started; all content is invented.
 
 ## Files
 
@@ -22,9 +23,14 @@ folder; nothing in them is changed): DEL-04-03's `minischema.py` (validator)
 and `record_store.py` (the PROPOSED writer and reader), so the act control's
 entries are validated by RS's own schema before they are written; DEL-01-01's
 `jsonschema_subset.py`, so every register entry the walk produces is checked
-against HOSTING's PROPOSED entry schema. If the already-installed `jsonschema`
-package is importable, the five DEL-01-04 schemas are cross-checked with it
-(S-4); otherwise that check is skipped.
+against HOSTING's PROPOSED entry schema; and, at RV21, DEL-02-02's
+`workspace-registration.schema.json` with its valid examples and DEL-02-01's
+`workflow-declaration.schema.json`, so that K-17 runs WR's own A15 descriptors
+through the act control into RS's writer (R21-3). **Optional third-party
+cross-checks:** if the already-installed `jsonschema` package is importable,
+the five DEL-01-04 schemas are cross-checked with it (S-4) and composed
+`turn/start` parameters are checked against the committed 0.158.0
+`TurnStartParams` (O-9); otherwise both are skipped and say so.
 
 ## How to run
 
@@ -50,6 +56,13 @@ Logs written by the act control go to a temporary folder under `$TMPDIR`
   checks, 0 failed. `start_offer` follows R20-11 (only "End ‹A› and start ‹B›"
   during a run; the proposal line last and once), new `finished_offer` (NIR
   RN-7) and `handoff_composer` (CA-2, R20-6); O-11, O-12 rewritten, O-13 new.
+
+- RV21 (repairs from V21, 2026-10-02): `results/RUN_2026-10-02_RV21.txt` —
+  151 checks, 0 failed. Attachments per R21-2 (A-1…A-8: text element, image,
+  named path with tool reads, `mention`/`skill` refused, a draft's
+  `WORKFLOW.md`); the Stop Codex label (O-3a); the run-end line and attachment
+  order (O-8a); one A15 descriptor per act with the multi-entry in-place case
+  (K-12b…K-12d) and the WR → AAC → RS cross-check (K-17, K-17b) per R21-3.
 
 A "pass" means the rules ran as written on this model. It is evidence about
 the design, never a VER pass: no App candidate exists.

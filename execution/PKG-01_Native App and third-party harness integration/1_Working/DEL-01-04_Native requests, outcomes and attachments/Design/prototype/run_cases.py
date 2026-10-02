@@ -31,6 +31,8 @@ RS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04_*", "1_Working", "DEL-04-0
 ACT_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04_*", "1_Working", "DEL-04-01_*", "Design"))[0]
 AS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04_*", "1_Working", "DEL-04-02_*", "Design"))[0]
 HOSTING_DESIGN = glob.glob(os.path.join(WORKING, "DEL-01-01_*", "Design"))[0]
+WR_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02_*", "1_Working", "DEL-02-02_*", "Design"))[0]
+WD_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02_*", "1_Working", "DEL-02-01_*", "Design"))[0]
 
 sys.path.insert(0, HERE)
 sys.path.insert(1, os.path.join(RS_DESIGN, "prototype"))
@@ -40,7 +42,7 @@ from minischema import Registry, validate, check_supported   # noqa: E402  (DEL-
 from record_store import Writer, Reader, WriteFailed          # noqa: E402  (DEL-04-03, read only)
 import jsonschema_subset as hosting_js                        # noqa: E402  (DEL-01-01, read only)
 import nir_model as nm                                        # noqa: E402
-from act_control import ActControl, NATIVE_SOURCE             # noqa: E402
+from act_control import ActControl, NATIVE_SOURCE, from_wr_descriptor   # noqa: E402
 
 FAIL = []
 COUNT = [0]
@@ -95,9 +97,9 @@ def main():
             vf = load(os.path.join(DESIGN, name + ".example.valid.json"))
             ok &= all(val.is_valid(v) for v in (vf.get("instances") or [vf["instance"]]))
             ok &= all(not val.is_valid(c["instance"]) for c in load(os.path.join(DESIGN, name + ".example.invalid.json")))
-        check(ok, f"S-4 cross-check with the installed jsonschema {_version("jsonschema")}: same verdicts on all examples")
+        check(ok, f"S-4 optional third-party cross-check with the installed jsonschema {_version("jsonschema")}: same verdicts on all examples")
     except ImportError:
-        print("SKIP S-4 jsonschema not importable (nothing installed)")
+        print("SKIP S-4 jsonschema not importable (optional third-party cross-check; nothing installed)")
 
     hosting_schema = load(os.path.join(HOSTING_DESIGN, "hosting.server-request-entry.schema.json"))
 
@@ -237,6 +239,7 @@ def main():
         "lost-in-progress": nm.turn_label("inProgress", "lost"),
         "you": nm.turn_label("interrupted", "live", "person"),
         "quit": nm.turn_label("interrupted", "live", "quit"),
+        "codex-stop": nm.turn_label("interrupted", "live", "codex-stop"),
         "cancel": nm.turn_label("interrupted", "live", "cancel-answer"),
         "plain": nm.turn_label("interrupted", "live"),
         "desc": nm.turn_label("completed", "live", descendants={"thr-c1": "running", "thr-c2": "completed", "thr-c3": None}),
@@ -249,6 +252,8 @@ def main():
           "O-2 primary completion with a running delegated agent says so; it never implies the descendant finished")
     check(all("Stopped" not in v and "stopped" not in v for v in lbl.values()) and "cause not observed" in lbl["plain"],
           "O-3 an interruption is never called 'stopped' (R17-3); its cause is shown only when observed")
+    check(lbl["codex-stop"] == "TO-4 Interrupted (interrupted by Stop Codex)" and lbl["quit"].endswith("(interrupted by quit)"),
+          "O-3a TO-4 uses RECOVERY-v0.2 §3.4's labels: 'interrupted by quit', 'interrupted by Stop Codex' (V21-A MINOR 4)")
     v0 = nm.start_view(None, {"model": "qwen/qwen3.5-9b", "provider": "lmstudio", "chosenAt": "2026-09-30"})
     check(v0["model"] is None and not v0["sendable"] and v0["offer"]["applied"] is False
           and v0["sendResult"].startswith("not started — no model selected"),
@@ -272,6 +277,11 @@ def main():
     t1, _ = nm.compose_turn(conv, "plan this", plan_chosen=True, plan_element=plan_el)
     t2, _ = nm.compose_turn(conv, "carry out this plan")
     tr, _ = nm.compose_turn(conv, "go", run_start_text="[run start text composed by DEL-02-02]")
+    att_in = [nm.attachment_input("text-element", "notes.md", "data/notes.md", b"alpha\n")[0],
+              nm.attachment_input("localImage", "crack.png", "/ex/p/site/crack.png", b"\x89PNG")[0],
+              nm.attachment_input("path-named", "beam.xlsx", "data/beam.xlsx", b"PK\x03\x04")[0]]
+    ta, _ = nm.compose_turn(conv, "see attached", attachments=att_in,
+                            run_end_line="[run end line composed by DEL-02-02]")
     tn, whyn = nm.compose_turn({"threadId": "t", "model": None}, "hi")
     check("collaborationMode" not in t0 and t1["collaborationMode"]["mode"] == "plan"
           and t2["collaborationMode"]["mode"] == "default" and tr["collaborationMode"]["mode"] == "default"
@@ -284,10 +294,15 @@ def main():
         tsp = dict(bundle["definitions"]["TurnStartParams"])
         tsp["definitions"] = bundle["definitions"]
         val = jsonschema.Draft7Validator(tsp)
-        check(all(val.is_valid(x) for x in (t0, t1, t2, tr)),
-              "O-9 composed turn/start parameters are valid against the committed 0.158.0 TurnStartParams (installed jsonschema)")
+        check(all(val.is_valid(x) for x in (t0, t1, t2, tr, ta)),
+              "O-9 composed turn/start parameters, with a run-end line and the three attachment carriers, are valid against "
+              "the committed 0.158.0 TurnStartParams (optional third-party cross-check: installed jsonschema)")
     except ImportError:
-        print("SKIP O-9 jsonschema not importable")
+        print("SKIP O-9 jsonschema not importable (optional third-party cross-check)")
+    check([x["type"] for x in ta["input"]] == ["text", "text", "text", "localImage", "text"]
+          and ta["input"][0]["text"].startswith("[run end") and ta["input"][1]["text"] == "see attached",
+          "O-8a TC-2: the run-end line (R20-3; WR TX-5) first, then the person's text, then the attachments (text element, "
+          "image input, named path)")
     # C-24 indicator
     regA = nm.RegisterDouble(declared=off); regA.receive("a1", "item/tool/requestUserInput", q, 1)
     regB = nm.RegisterDouble(declared=off); regB.receive("b1", "item/fileChange/requestApproval", {"threadId": "t"}, 1)
@@ -338,19 +353,49 @@ def main():
           "O-12 R19-3/R19-8, R20-6: 'Continue as ‹role›' opens a new conversation; the source agent drafts the summary in a visible turn there; the person edits it under an App header; nothing sent")
 
     # ------------------------------------------------------------------ A attachments
-    print("\n== A attachments (NIR §6; VER-003) ==")
+    print("\n== A attachments (NIR §6; VER-003; R21-2) ==")
     att_schema = reg.by_id[ids["nir.attachment-supply-record"]]
-    r1, d1 = nm.supply_record("att-1", "notes.md", "mention", "/ex/p/notes.md", b"alpha\n", b"alpha\n", "turn:t/1", "t1")
-    check(d1 == "sent" and not validate(r1, att_schema, reg), "A-1 unchanged content is sent; the supply record is valid")
-    r2, d2 = nm.supply_record("att-2", "notes.md", "mention", "/ex/p/notes.md", b"alpha\n", b"alpha-changed\n", "turn:t/2", "t2")
+    el1, tx1 = nm.attachment_input("text-element", "notes.md", "/ex/p/notes.md", b"alpha\n")
+    r1, d1 = nm.supply_record("att-1", "notes.md", "text-element", "/ex/p/notes.md", b"alpha\n", b"alpha\n", "turn:t/1", "t1",
+                              element_text=tx1)
+    check(d1 == "sent" and not validate(r1, att_schema, reg) and tx1.endswith("alpha\n") and "notes.md" in tx1.split("\n")[0]
+          and r1["supplyStanding"] == "supplied" and r1["elementIdentity"] == nm.text_identity(el1["text"]),
+          "A-1 a text file is supplied as a text element naming the file, then its bytes; the supply record is valid")
+    r2, d2 = nm.supply_record("att-2", "notes.md", "text-element", "/ex/p/notes.md", b"alpha\n", b"alpha-changed\n", "turn:t/2", "t2")
     check(d2.startswith("held") and not validate(r2, att_schema, reg),
           f"A-2 content changed between selection and submission is held, never sent silently: '{d2}'")
-    r3, _ = nm.supply_record("att-3", "notes.md", "mention", "/ex/q/notes.md", b"beta\n", b"beta\n", "turn:t/3", "t3")
+    r3, _ = nm.supply_record("att-3", "notes.md", "text-element", "/ex/q/notes.md", b"beta\n", b"beta\n", "turn:t/3", "t3",
+                             element_text=nm.attachment_input("text-element", "notes.md", "/ex/q/notes.md", b"beta\n")[1])
     check(nm.same_name_distinct([r1, r3]) == {"notes.md": 2}, "A-3 two same-named files with different content stay two attachments")
-    r4, d4 = nm.supply_record("att-4", "gone.md", "mention", "/ex/p/gone.md", b"x", None, "turn:t/4", "t4")
+    r4, d4 = nm.supply_record("att-4", "gone.md", "text-element", "/ex/p/gone.md", b"x", None, "turn:t/4", "t4")
     check(d4.startswith("held") and not validate(r4, att_schema, reg), f"A-4 a file missing at submission: '{d4}'")
-    check(r1["providerAdoption"] == "not observed" and r1["supplierRead"].startswith("not observed"),
-          "A-5 no record claims what Codex read or that the provider adopted it")
+    xlsx = b"PK\x03\x04 invented workbook bytes \x00\x01"
+    eln, txn = nm.attachment_input("path-named", "beam.xlsx", "/ex/p/beam.xlsx", xlsx)
+    rn, dn = nm.supply_record("att-5", "beam.xlsx", "path-named", "/ex/p/beam.xlsx", xlsx, xlsx, "turn:t/5", "t5", element_text=txn)
+    ri, di = nm.supply_record("att-6", "crack.png", "localImage", "/ex/p/crack.png", b"\x89PNG", b"\x89PNG", "turn:t/6", "t6")
+    check(r1["providerAdoption"] == "not observed" and rn["providerAdoption"] == "not observed"
+          and rn["supplyStanding"] == "named; read only if a tool item shows it" and rn["supplierRead"].startswith("not observed")
+          and ri["supplyStanding"] == "supplied" and ri["supplierRead"] == "not observed: Codex reads the path itself"
+          and dn == "sent (named, not supplied)" and not validate(rn, att_schema, reg) and not validate(ri, att_schema, reg),
+          "A-5 per form (R21-2): text element and image 'supplied'; other files 'named; read only if a tool item shows it'; "
+          "no record claims provider adoption")
+    nm.tool_read(rn, {"threadId": "t", "turnId": "5", "itemId": "item-cmd-1", "observedAt": "t5+40s"})
+    check(rn["supplyStanding"].startswith("named") and len(rn["toolReads"]) == 1 and not validate(rn, att_schema, reg),
+          "A-6 a tool item that reads a named path is recorded beside it; the record stays 'named' (which bytes were read is not observed)")
+    refused = [nm.supply_record("att-x", "f", f, "/ex/f", b"a", b"a", "turn:t/7", "t7")[1] for f in ("mention", "skill")]
+    forms = [nm.carrier_for("a.md", b"text\n"), nm.carrier_for("b.png", b"\x89PNG"), nm.carrier_for("c.bin", b"\x00\x01"),
+             nm.carrier_for("d.txt", b"x" * (nm.TEXT_BOUND + 1))]
+    check(all(r.startswith("refused") for r in refused) and forms == ["text-element", "localImage", "path-named", "path-named"],
+          f"A-7 'mention' and 'skill' are never attachment forms (OBS-3 W-3, W-1); carriers chosen by content: {forms}")
+    wf = b"---\nname: supports-adjust\n---\n# Adjust supports\n"
+    eld, txd = nm.attachment_input("text-element", "WORKFLOW.md (draft supports-adjust)",
+                                   ".chirality/workflow-drafts/supports-adjust/WORKFLOW.md", wf)
+    rd_, dd = nm.supply_record("att-8", "WORKFLOW.md (draft supports-adjust)", "text-element",
+                               ".chirality/workflow-drafts/supports-adjust/WORKFLOW.md", wf, wf, "turn:t/8", "t8", element_text=txd,
+                               draft={"location": "project", "name": "supports-adjust",
+                                      "content": {"method": "proto-sha256-list-0 (illustration)", "value": "rev-A3"}})
+    check(dd == "sent" and not validate(rd_, att_schema, reg) and rd_["draft"]["standing"].startswith("draft — not a registered workflow"),
+          "A-8 AT-8 (K-7): a draft's WORKFLOW.md tried in an ordinary conversation is a supplied text element, shown as a draft, never a run")
 
     # ------------------------------------------------------------------ D drafts
     print("\n== D draft receiving (NIR §7; WR-v0.1 §5.1 events; VER-004) ==")
@@ -445,10 +490,23 @@ def main():
                 "revision": rev, "revisionMethod": "illustration"}
 
     def descriptor(n, location, prior, name="w"):
+        """One WR a15_descriptor (one reviewed draft), in the control's spelling (R21-3)."""
         ident = ac._identity(files[location])
-        return {"descriptorId": f"a15d:{name}:{n}", "subject": f"project:.chirality/workflows:{name}@rev-{n}",
-                "reviewedDraft": {"draft": f"draft:project:{name}@{ident['value'][:16]}", "content": ident},
-                "priorRevision": prior, "location": location}
+        return {"descriptorId": f"a15d:{name}:{n}", "descriptorKind": "a15_descriptor",
+                "entries": [{"subject": f"project:.chirality/workflows:{name}@rev-{n}",
+                             "reviewedDraft": {"draft": f"draft:project:{name}@{ident['value'][:16]}", "content": ident},
+                             "priorRevision": prior, "location": location}]}
+
+    def multi_descriptor(tag, names):
+        """One WR a15_multi_descriptor: library entries reviewed in place (L-4; WR §4.7; R21-3)."""
+        ents = []
+        for name in names:
+            loc = f"entry:{name}"
+            ident = ac._identity(files[loc])
+            ents.append({"subject": f"workflow revision project:{name}@{ident['value'][:16]}",
+                         "reviewedDraft": {"draft": f"entry:project:{name}@{ident['value'][:16]}", "content": ident},
+                         "priorRevision": None, "location": loc})
+        return {"descriptorId": f"a15m:{tag}", "descriptorKind": "a15_multi_descriptor", "entries": ents}
     offer_schema = reg.by_id[ids["aac.offer"]]
     cap_schema = reg.by_id[ids["aac.capture-evidence"]]
     refused = {k: ac.compose(k, "AF-1", "AF-1", "p")[1] for k in ("A12", "A5", "A13")}
@@ -493,7 +551,7 @@ def main():
     check(st == "AC-6 stale", f"K-8 content changed after it was shown: '{why}'")
     # A15 success, failure, decline
     o4, _ = ac.compose("A15", None, "project library .chirality/workflows", "make it available in the project library",
-                       descriptors=[descriptor(2, "draft:w@d-2", tup("w", "rev-1"))])
+                       descriptor=descriptor(2, "draft:w@d-2", tup("w", "rev-1")))
     _, why0 = ac.compose("A15", "draft:w@d-2", "project library", "make it available in the project library")
     check(why0 and "no A15 descriptor" in why0, f"K-8a an A15 is offered only from the workspace's descriptor: '{why0}'")
     check(not validate(o4, offer_schema, reg) and o4["declineAvailable"] is False and "derivedFrom" not in str(o4)
@@ -514,7 +572,7 @@ def main():
     reg_state["ok"] = False
     files["draft:w@d-3"] = b"workflow package bytes v3\n"
     o5, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptors=[descriptor(3, "draft:w@d-3", None)])
+                       descriptor=descriptor(3, "draft:w@d-3", None))
     ac.present(o5["offerId"])
     n_before = len(Reader(reg).read_log(writers["acts"].path)["entries"])
     st, why = ac.operate(o5["offerId"], NATIVE_SOURCE, "act")
@@ -525,35 +583,40 @@ def main():
           f"K-12 the act is recorded; the registration's failure is reported beside it: '{capF['entries'][0]['outcome']['reason']}'")
     files["draft:w@d-5"] = b"workflow package bytes v5\n"
     o9, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptors=[descriptor(5, "draft:w@d-5", tup("w", "rev-2"))])
+                       descriptor=descriptor(5, "draft:w@d-5", tup("w", "rev-2")))
     ac.present(o9["offerId"])
     current["ok"] = False                                # WR RB-3: the slot's latest revision moved on
     st9, why9 = ac.operate(o9["offerId"], NATIVE_SOURCE, "act")
     current["ok"] = True
     check(st9 == "AC-6 stale", f"K-12a the workspace withdrew the descriptor (RB-3): nothing captured: '{why9}'")
-    # L-4: several entries in one act, each entry's bytes bound
+    # L-4 (as clarified; R21-3): library entries registered in place, several in one act, from ONE multi descriptor
     reg_state["ok"] = True
-    files["draft:a@d-1"] = b"workflow a v1\n"
-    files["draft:b@d-1"] = b"workflow b v1\n"
-    om, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptors=[descriptor(1, "draft:a@d-1", None, name="a"),
-                                    descriptor(1, "draft:b@d-1", None, name="b")])
+    files["entry:notes-a"] = b"workflow notes-a (library entry without a registration record)\n"
+    files["entry:notes-b"] = b"workflow notes-b (library entry without a registration record)\n"
+    _, whys = ac.compose("A15", None, "project library", "make them available in the project library",
+                         descriptor=multi_descriptor("rv-0", ["notes-a"]))
+    check(whys is not None and "two or more library entries" in whys,
+          f"K-12d an a15_multi_descriptor with one entry is not offered (WR §4.7 ME-1): '{whys}'")
+    om, _ = ac.compose("A15", None, "project library", "make them available in the project library",
+                       descriptor=multi_descriptor("rv-1", ["notes-a", "notes-b"]))
     ac.present(om["offerId"])
-    files["draft:b@d-1"] = b"workflow b v1 edited\n"
+    files["entry:notes-b"] = b"workflow notes-b edited after review\n"
     stm, whym = ac.operate(om["offerId"], NATIVE_SOURCE, "act")
-    check(stm == "AC-6 stale" and "load" not in whym and "b@rev-1" in whym,
-          f"K-12b a several-entry A15 is refused whole when one entry changed: '{whym}'")
-    om2, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                        descriptors=[descriptor(2, "draft:a@d-1", None, name="a"),
-                                     descriptor(2, "draft:b@d-1", None, name="b")])
+    check(stm == "AC-6 stale" and "notes-b" in whym and "notes-a" not in whym,
+          f"K-12b a several-entry A15 is refused whole when one entry changed (WR ME-4): '{whym}'")
+    om2, _ = ac.compose("A15", None, "project library", "make them available in the project library",
+                        descriptor=multi_descriptor("rv-2", ["notes-a", "notes-b"]))
     ac.present(om2["offerId"])
     stm2, recm = ac.operate(om2["offerId"], NATIVE_SOURCE, "act")
     capM = [c for c in ac.captures.values() if c["offerId"] == om2["offerId"]][0]
     eM = Reader(reg).read_log(writers["acts"].path)["entries"][-1]
-    check(stm2 == "AC-7 recorded" and len(capM["entries"]) == 2 and len(eM["body"]["boundSubject"]) == 2
+    check(stm2 == "AC-7 recorded" and om2["wording"] == "register workflow revisions" and om2["descriptorId"] == "a15m:rv-2"
+          and len(capM["entries"]) == 2 and len(eM["body"]["boundSubject"]) == 2
+          and all(x["reviewedDraft"]["draft"].startswith("entry:project:") for x in eM["body"]["relations"]["registeredEntries"])
           and not validate(capM, cap_schema, reg) and not validate(eM, rs_entry, reg)
           and not validate(om2, offer_schema, reg),
-          "K-12c L-4: one A15 act over two entries: one capture, one RS record naming both, each entry's outcome beside it")
+          "K-12c L-4: one multi descriptor, one A15 act over two library entries in place ('entry:'; plural wording): "
+          "one capture, one RS record naming both, each entry's outcome beside it")
     # write failure and late write
     reg_state["ok"] = True
     files["AF-2"] = b"another output\n"
@@ -574,7 +637,7 @@ def main():
     # recovery after a crash between registration and record
     files["draft:w@d-4"] = b"workflow package bytes v4\n"
     o8, _ = ac.compose("A15", None, "project library", "make it available in the project library",
-                       descriptors=[descriptor(4, "draft:w@d-4", tup("w", "rev-2"))])
+                       descriptor=descriptor(4, "draft:w@d-4", tup("w", "rev-2")))
     ac.present(o8["offerId"])
     real_record = ac._record
     ac._record = lambda cap: ("crashed", None)          # the App ends after the capture, before the record is written
@@ -584,6 +647,70 @@ def main():
     rec_done = ac.recover(present)
     check(len(rec_done) == 1 and rec_done[0][0] == "AC-7 recorded",
           "K-15 relaunch: a capture whose record was never written gets its record, late (AC-R1)")
+    # R21-3 cross-check: DEL-02-02's own descriptors (WR-v0.2's valid examples) through this control's offer and
+    # capture into RS's writer; then RS's L-4 act-log example (record 4) against this control's capture format.
+    wd_schema = load(os.path.join(WD_DESIGN, "workflow-declaration.schema.json"))
+    reg.add(wd_schema)                       # WD uses keywords outside the subset (WR's prototype does the same)
+    wr_id = reg.load(os.path.join(WR_DESIGN, "workspace-registration.schema.json"))
+    wr_lines = [json.loads(x) for x in open(os.path.join(WR_DESIGN, "workspace-registration.valid.examples.jsonl"),
+                                            encoding="utf-8") if x.strip()]
+    wr_desc = {d["record_kind"]: d for d in wr_lines if d.get("record_kind") in ("a15_descriptor", "a15_multi_descriptor")}
+    wr_ok = all(not validate(d, {"$ref": wr_id + "#/$defs/" + k}, reg) for k, d in wr_desc.items())
+    live = {}                                # stub: each location's live identity is WR's own example value
+    acx = ActControl(lambda: dict(person, codexAccount="enga@example.invalid"), lambda ref: live.get(ref),
+                     registrar, writer_for, lambda: next(clock), descriptor_current=lambda d: True, rs_a15_form=rs_form)
+    acx._identity = lambda data: {"method": "proto-sha256-list-0", "value": data.decode("utf-8")}
+    xres = {}
+    for k, wr in sorted(wr_desc.items()):
+        values = ([wr["relations"]["reviewed_draft"]["content"]["value"]] if k == "a15_descriptor"
+                  else [e["bound_content"]["value"] for e in wr["entries"]])
+        locs = [f"wr:{k}:{i}" for i in range(len(values))]
+        for loc, v in zip(locs, values):
+            live[loc] = v.encode("utf-8")
+        d = from_wr_descriptor(wr, locs)
+        ox, whyx = acx.compose("A15", None, d["scope"], d["purpose"], descriptor=d)
+        if ox is None:
+            xres[k] = whyx
+            continue
+        acx.present(ox["offerId"])
+        stx, _ = acx.operate(ox["offerId"], NATIVE_SOURCE, "act")
+        capx = [c for c in acx.captures.values() if c["offerId"] == ox["offerId"]][0]
+        ex = Reader(reg).read_log(writers["acts"].path)["entries"][-1]
+        rel = ex["body"]["relations"]
+        if k == "a15_descriptor":
+            dk = wr["relations"]["reviewed_draft"]["draft"]
+            same = (rel["reviewedDraft"]["draft"] == f"draft:{dk['draft_location']}:{dk['name']}@{values[0]}"
+                    and rel["priorRevision"]["revision"] == wr["relations"]["prior_revision"]["revision"]
+                    and rel["priorRevision"]["sourceRoot"] == wr["relations"]["prior_revision"]["source_root"])
+        else:
+            same = ([x["reviewedDraft"]["draft"] for x in rel["registeredEntries"]] == [e["reviewed_entry"] for e in wr["entries"]]
+                    and all(x["priorRevision"] is None for x in rel["registeredEntries"]))
+        xres[k] = (stx == "AC-7 recorded" and ox["wording"] == wr["wording"] and ox["descriptorId"] == wr["descriptor_id"]
+                   and ox["purpose"] == wr["purpose"] and not validate(ox, offer_schema, reg)
+                   and not validate(capx, cap_schema, reg) and not validate(ex, rs_entry, reg) and same)
+    check(wr_ok and xres == {"a15_descriptor": True, "a15_multi_descriptor": True},
+          "K-17 R21-3 cross-check: WR-v0.2's own a15_descriptor and a15_multi_descriptor examples (valid against WR's schema) "
+          "pass through this control's offer and capture into RS's writer; offer, capture and RS entry valid; "
+          f"wording, descriptor, purpose and reviewed content carried unchanged {xres}")
+    rs4 = [json.loads(x) for x in open(os.path.join(RS_DESIGN, "RS_RECORD.valid.act-log.example.jsonl"), encoding="utf-8")
+           if x.strip()][3]
+    b4 = rs4["body"]
+    cap4 = {"format": "chirality.aac.capture-evidence", "formatVersion": "0.3", "captureId": b4["captureEvidence"][0]["ref"],
+            "offerId": "offer:rs-act-log-4", "offerDigest": {"method": "illustration", "value": "rs-act-log-4"},
+            "choice": "act", "actKind": "A15", "actor": b4["decisionActor"], "boundSubject": b4["boundSubject"],
+            "boundContent": b4["boundContent"], "scope": b4["scope"], "purpose": b4["purpose"],
+            "capturedAt": b4["captureTime"], "surface": "App interface", "inputSource": "host-native-confirmation",
+            "answers": {"standing": "no arrival: a standing act (RC-6)"}, "descriptorId": "a15m:rs-act-log-4",
+            "descriptorKind": "a15_multi_descriptor",
+            "entries": [{"revision": x["subject"], "reviewedDraft": x["reviewedDraft"], "priorRevision": x["priorRevision"]}
+                        for x in b4["relations"]["registeredEntries"]],
+            "recordId": rs4["recordId"], "evidenceLimits": b4["evidenceLimits"]}
+    _, kind4, body4 = acx._entry(cap4)
+    check(not validate(cap4, cap_schema, reg) and kind4 == "human_act" and body4["relations"] == b4["relations"]
+          and body4["boundSubject"] == b4["boundSubject"] and body4["boundContent"] == b4["boundContent"]
+          and body4["decisionActor"] == b4["decisionActor"] and body4["captureEvidence"][0]["ref"] == "cap:reg-in-place-2",
+          "K-17b RS's L-4 act-log example (record 4: 'entry:' strings, capture cap:reg-in-place-2) has capture evidence this "
+          "control's format accepts, and this control writes the same relations, subjects, content and actor from it")
     allent = Reader(reg).read_log(writers["acts"].path)["entries"] + log1["entries"]
     bad = [x["recordId"] for x in allent if validate(x, rs_entry, reg)]
     check(not bad, f"K-16 all {len(allent)} RS entries the act control wrote are valid against RS_RECORD.schema.json {bad}")

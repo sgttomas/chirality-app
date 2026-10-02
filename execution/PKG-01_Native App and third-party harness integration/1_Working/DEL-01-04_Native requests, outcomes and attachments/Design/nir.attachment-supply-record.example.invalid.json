@@ -1,13 +1,14 @@
 [
   {
     "case": "INV-AT-1",
-    "reason": "Claims provider adoption, which nothing observes at 0.158.0 (REQ-003).",
+    "reason": "Provider adoption claimed (not observable at the pin).",
     "instance": {
       "format": "chirality.nir.attachment-supply",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "attachmentId": "att-ex-1",
       "displayName": "load-table.csv",
-      "suppliedAs": "mention",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
       "localPath": "/ex/project/data/load-table.csv",
       "identityAtSelection": {
         "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
@@ -18,9 +19,13 @@
         "value": "5f2b...e1"
       },
       "byteLength": 2048,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "c0de...71"
+      },
       "turnRef": "turn:thr-ex-1/turn-ex-3",
       "recordedAt": "2026-10-01T10:02:00Z",
-      "supplierRead": "not observed: Codex reads the path itself",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
       "providerAdoption": "adopted",
       "laterCheck": {
         "identity": {
@@ -37,10 +42,11 @@
     "reason": "A path form without its local path.",
     "instance": {
       "format": "chirality.nir.attachment-supply",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "attachmentId": "att-ex-1",
       "displayName": "load-table.csv",
-      "suppliedAs": "mention",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
       "identityAtSelection": {
         "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
         "value": "5f2b...e1"
@@ -50,9 +56,13 @@
         "value": "5f2b...e1"
       },
       "byteLength": 2048,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "c0de...71"
+      },
       "turnRef": "turn:thr-ex-1/turn-ex-3",
       "recordedAt": "2026-10-01T10:02:00Z",
-      "supplierRead": "not observed: Codex reads the path itself",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
       "providerAdoption": "not observed",
       "laterCheck": {
         "identity": {
@@ -66,46 +76,40 @@
   },
   {
     "case": "INV-AT-3",
-    "reason": "A URL image with an App-computed identity: the App does not fetch it.",
+    "reason": "A reference form claiming an identity the App could not take (it does not fetch the reference).",
     "instance": {
       "format": "chirality.nir.attachment-supply",
-      "formatVersion": "0.1",
-      "attachmentId": "att-ex-1",
-      "displayName": "load-table.csv",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-3",
+      "displayName": "crack-photo.png",
       "suppliedAs": "image-url",
+      "supplyStanding": "supplied",
       "identityAtSelection": {
         "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
-        "value": "5f2b...e1"
+        "value": "e4e4...20"
       },
       "identityAtSubmission": {
         "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
-        "value": "5f2b...e1"
+        "value": "e4e4...20"
       },
-      "byteLength": 2048,
+      "byteLength": 301122,
       "turnRef": "turn:thr-ex-1/turn-ex-3",
       "recordedAt": "2026-10-01T10:02:00Z",
       "supplierRead": "not applicable: content passed by reference",
       "providerAdoption": "not observed",
-      "laterCheck": {
-        "identity": {
-          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
-          "value": "77aa...09"
-        },
-        "at": "2026-10-01T10:05:00Z",
-        "result": "changed after it was supplied; what Codex read is not observed"
-      },
       "remoteRef": "https://example.invalid/a.png"
     }
   },
   {
     "case": "INV-AT-4",
-    "reason": "Content identity without a method designation (RS L-2).",
+    "reason": "A content identity without its method designation.",
     "instance": {
       "format": "chirality.nir.attachment-supply",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "attachmentId": "att-ex-1",
       "displayName": "load-table.csv",
-      "suppliedAs": "mention",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
       "localPath": "/ex/project/data/load-table.csv",
       "identityAtSelection": {
         "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
@@ -115,9 +119,13 @@
         "value": "5f2b...e1"
       },
       "byteLength": 2048,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "c0de...71"
+      },
       "turnRef": "turn:thr-ex-1/turn-ex-3",
       "recordedAt": "2026-10-01T10:02:00Z",
-      "supplierRead": "not observed: Codex reads the path itself",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
       "providerAdoption": "not observed",
       "laterCheck": {
         "identity": {
@@ -126,6 +134,266 @@
         },
         "at": "2026-10-01T10:05:00Z",
         "result": "changed after it was supplied; what Codex read is not observed"
+      }
+    }
+  },
+  {
+    "case": "INV-AT-5",
+    "reason": "'mention' as an attachment form: at 0.158.0 it delivered nothing to the model (OBS-3 W-3; R21-2).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-2",
+      "displayName": "beam-model.xlsx",
+      "suppliedAs": "mention",
+      "supplyStanding": "named; read only if a tool item shows it",
+      "localPath": "/ex/project/data/beam-model.xlsx",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "byteLength": 48211,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "a11e...5f"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: read only if a tool item shows it",
+      "providerAdoption": "not observed"
+    }
+  },
+  {
+    "case": "INV-AT-6",
+    "reason": "'skill' as an attachment form (honoured only for a discovered SKILL.md, OBS-3 W-1; R21-2).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-2",
+      "displayName": "beam-model.xlsx",
+      "suppliedAs": "skill",
+      "supplyStanding": "named; read only if a tool item shows it",
+      "localPath": "/ex/project/data/beam-model.xlsx",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "byteLength": 48211,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "a11e...5f"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: read only if a tool item shows it",
+      "providerAdoption": "not observed"
+    }
+  },
+  {
+    "case": "INV-AT-7",
+    "reason": "A named path recorded as 'supplied' (R21-2: named; read only if a tool item shows it).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-2",
+      "displayName": "beam-model.xlsx",
+      "suppliedAs": "path-named",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/data/beam-model.xlsx",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "byteLength": 48211,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "a11e...5f"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: read only if a tool item shows it",
+      "providerAdoption": "not observed",
+      "toolReads": [
+        {
+          "threadId": "thr-ex-1",
+          "turnId": "turn-ex-3",
+          "itemId": "item-cmd-7",
+          "observedAt": "2026-10-01T10:02:40Z"
+        }
+      ]
+    }
+  },
+  {
+    "case": "INV-AT-8",
+    "reason": "A named path recorded with v0.1's fixed sentence 'Codex reads the path itself' (V21-A M-2: per form).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-2",
+      "displayName": "beam-model.xlsx",
+      "suppliedAs": "path-named",
+      "supplyStanding": "named; read only if a tool item shows it",
+      "localPath": "/ex/project/data/beam-model.xlsx",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "9b1e...4d"
+      },
+      "byteLength": 48211,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "a11e...5f"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not observed: Codex reads the path itself",
+      "providerAdoption": "not observed",
+      "toolReads": [
+        {
+          "threadId": "thr-ex-1",
+          "turnId": "turn-ex-3",
+          "itemId": "item-cmd-7",
+          "observedAt": "2026-10-01T10:02:40Z"
+        }
+      ]
+    }
+  },
+  {
+    "case": "INV-AT-9",
+    "reason": "Tool reads on a supplied text element (they belong to a named path).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-1",
+      "displayName": "load-table.csv",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/data/load-table.csv",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "c0de...71"
+      },
+      "turnRef": "turn:thr-ex-1/turn-ex-3",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
+      "providerAdoption": "not observed",
+      "laterCheck": {
+        "identity": {
+          "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+          "value": "77aa...09"
+        },
+        "at": "2026-10-01T10:05:00Z",
+        "result": "changed after it was supplied; what Codex read is not observed"
+      },
+      "toolReads": [
+        {
+          "threadId": "thr-ex-1",
+          "turnId": "turn-ex-3",
+          "itemId": "item-cmd-7",
+          "observedAt": "2026-10-01T10:02:40Z"
+        }
+      ]
+    }
+  },
+  {
+    "case": "INV-AT-10",
+    "reason": "A draft tried in a conversation shown as anything but a draft (K-7).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-4",
+      "displayName": "WORKFLOW.md (draft supports-adjust)",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/.chirality/workflow-drafts/supports-adjust/WORKFLOW.md",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "d13c...4a"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "d13c...4a"
+      },
+      "byteLength": 1804,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "f00d...33"
+      },
+      "turnRef": "turn:thr-ex-7/turn-ex-1",
+      "recordedAt": "2026-10-01T11:00:00Z",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
+      "providerAdoption": "not observed",
+      "draft": {
+        "location": "project",
+        "name": "supports-adjust",
+        "content": {
+          "method": "proto-sha256-list-0 (illustration)",
+          "value": "rev-A3"
+        },
+        "standing": "registered workflow"
+      }
+    }
+  },
+  {
+    "case": "INV-AT-11",
+    "reason": "v0.1's form 'draft-package' (a draft reaches a trial as a text element or a named path, R21-2; AT-8).",
+    "instance": {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-ex-4",
+      "displayName": "WORKFLOW.md (draft supports-adjust)",
+      "suppliedAs": "draft-package",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/.chirality/workflow-drafts/supports-adjust/WORKFLOW.md",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "d13c...4a"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "d13c...4a"
+      },
+      "byteLength": 1804,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "f00d...33"
+      },
+      "turnRef": "turn:thr-ex-7/turn-ex-1",
+      "recordedAt": "2026-10-01T11:00:00Z",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
+      "providerAdoption": "not observed",
+      "draft": {
+        "location": "project",
+        "name": "supports-adjust",
+        "content": {
+          "method": "proto-sha256-list-0 (illustration)",
+          "value": "rev-A3"
+        },
+        "standing": "draft — not a registered workflow; this conversation is not a workflow run"
       }
     }
   }

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-04:aac:offer:0.2",
-  "title": "App act control offer (PROPOSED, DEL-01-04/AAC-v0.2 §5.1)",
-  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6); the act control is PROPOSED until SCA-V4-003 carries SC2-01-04-1 as amended (SC3-01-04-1). One offer presents one act kind (EXEC CAP-2). For A4, A6, A7 it presents one subject whose content identity is fixed when the offer is composed. For A15 it presents one or more entries (DECISION-L L-4: several entries in one registration act), each composed from one of DEL-02-02's A15 descriptors (WR-v0.1 RB-4) and each with its own bound bytes (K-8); the person's confirmation is accepted only while every entry still has those bytes and every descriptor is current. Each A15 entry names its subject by the reviewed draft (WR ID-3 string and content identity) and the prior revision (RS workflowTuple or null), the persisted form R18-1 C-01 gives RS; 'derived-from' stays WD's parent-workflow relation and is not carried. The offer is composed on the capture side from authoritative sources, never from agent text (R17-5, PROPOSED). Wording follows ACT §9. Decline only where ACT §2.3 defines an act-declined event.",
+  "$id": "urn:chirality:app-v4:del-01-04:aac:offer:0.3",
+  "title": "App act control offer (PROPOSED, DEL-01-04/AAC-v0.2 §5.1; schema 0.3 at RV21)",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6); the act control is PROPOSED until SCA-V4-003 carries SC2-01-04-1 as amended (SC3-01-04-1). One offer presents one act kind (EXEC CAP-2). For A4, A6, A7 it presents one subject whose content identity is fixed when the offer is composed. For A15 it is composed from exactly one of DEL-02-02's descriptors (R21-3): an `a15_descriptor` (WR RB-4; one reviewed draft, wording 'register workflow revision') or an `a15_multi_descriptor` (WR §4.7 ME-3; DECISION-L L-4: several library entries registered in place in one act, wording 'register workflow revisions'); the entries are listed inside the one descriptor, each with its own bound bytes (K-8), and the person's confirmation is accepted only while every entry still has those bytes and the descriptor is current. Each entry names its subject by the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content identity) and the prior revision (RS workflowTuple or null), the persisted form R18-1 C-01 gives RS; 'derived-from' stays WD's parent-workflow relation and is not carried. The offer is composed on the capture side from authoritative sources, never from agent text (R17-5, PROPOSED). Wording follows ACT §9 and WR (plural for L-4). Decline only where ACT §2.3 defines an act-declined event. Schema 0.3 (RV21; R21-3): one descriptor per act, 'entry:' accepted, the plural wording; 0.2 had one descriptor per entry.",
   "type": "object",
   "required": [
     "format",
@@ -39,7 +39,7 @@
       }
     },
     "workflowTuple": {
-      "description": "RS $defs/workflowTuple (RS-v0.8; WD §6.1 identity tuple in RS's spelling), copied here so the schema stands alone; C-01 makes RS's the persisted form.",
+      "description": "RS $defs/workflowTuple (RS-v0.9; WD §6.1 identity tuple in RS's spelling), copied here so the schema stands alone; C-01 makes RS's the persisted form.",
       "type": "object",
       "required": [
         "kind",
@@ -91,8 +91,8 @@
       "properties": {
         "draft": {
           "type": "string",
-          "pattern": "^draft:(project|user):[^@]+@.+$",
-          "description": "WR ID-3 string draft:<location>:<name>@<content identity> (C-01)."
+          "pattern": "^(draft|entry):(project|user):[^@]+@.+$",
+          "description": "WR ID-3 string (C-01): 'draft:<location>:<name>@<content identity>' for a reviewed draft (WR `a15_descriptor`), or 'entry:<location>:<name>@<content identity>' for a library entry reviewed in place (WR `a15_multi_descriptor`, §4.7; L-4); RS-v0.9's pattern (R21-3)."
         },
         "content": {
           "$ref": "#/$defs/contentIdentity"
@@ -136,7 +136,8 @@
         "mark checked",
         "approve (engineering approval)",
         "rely (professional reliance)",
-        "register workflow revision"
+        "register workflow revision",
+        "register workflow revisions"
       ]
     },
     "subject": {
@@ -160,23 +161,30 @@
         }
       }
     },
+    "descriptorId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The identity of the one DEL-02-02 descriptor this A15 act is composed from (R21-3; WR `descriptor_id`)."
+    },
+    "descriptorKind": {
+      "enum": [
+        "a15_descriptor",
+        "a15_multi_descriptor"
+      ],
+      "description": "The kind of DEL-02-02's descriptor the A15 act is composed from: one descriptor per act (R21-3). 'a15_descriptor' (WR RB-4): one reviewed draft, one entry. 'a15_multi_descriptor' (WR §4.7 ME-3): two or more library entries registered in place, in one act."
+    },
     "entries": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "required": [
-          "descriptorId",
           "subject",
           "reviewedDraft",
           "priorRevision"
         ],
         "additionalProperties": false,
         "properties": {
-          "descriptorId": {
-            "type": "string",
-            "minLength": 1
-          },
           "subject": {
             "type": "object",
             "required": [
@@ -188,7 +196,7 @@
               "ref": {
                 "type": "string",
                 "minLength": 1,
-                "description": "The target revision the workspace's descriptor names."
+                "description": "The target revision the descriptor names for this entry."
               },
               "contentIdentity": {
                 "$ref": "#/$defs/contentIdentity"
@@ -371,6 +379,8 @@
         },
         {
           "required": [
+            "descriptorId",
+            "descriptorKind",
             "entries"
           ],
           "not": {
@@ -380,7 +390,10 @@
           },
           "properties": {
             "wording": {
-              "const": "register workflow revision"
+              "enum": [
+                "register workflow revision",
+                "register workflow revisions"
+              ]
             },
             "declineAvailable": {
               "const": false
@@ -390,7 +403,7 @@
       ]
     },
     {
-      "description": "Entries belong to A15 only.",
+      "description": "Entries and the descriptor belong to A15 only.",
       "anyOf": [
         {
           "properties": {
@@ -400,10 +413,134 @@
           }
         },
         {
+          "allOf": [
+            {
+              "not": {
+                "required": [
+                  "entries"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "descriptorId"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "descriptorKind"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "The plural wording is A15's over several library entries only.",
+      "anyOf": [
+        {
+          "properties": {
+            "wording": {
+              "not": {
+                "const": "register workflow revisions"
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "descriptorKind"
+          ],
+          "properties": {
+            "descriptorKind": {
+              "const": "a15_multi_descriptor"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "An a15_descriptor (WR RB-4): exactly one entry, a reviewed draft ('draft:' form); wording 'register workflow revision'.",
+      "anyOf": [
+        {
           "not": {
             "required": [
-              "entries"
-            ]
+              "descriptorKind"
+            ],
+            "properties": {
+              "descriptorKind": {
+                "const": "a15_descriptor"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "entries": {
+              "not": {
+                "type": "array",
+                "minItems": 2
+              },
+              "items": {
+                "properties": {
+                  "reviewedDraft": {
+                    "properties": {
+                      "draft": {
+                        "pattern": "^draft:"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "wording": {
+              "const": "register workflow revision"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "An a15_multi_descriptor (WR §4.7 ME-3; L-4): two or more library entries reviewed in place ('entry:' form), none with a prior revision; wording 'register workflow revisions'.",
+      "anyOf": [
+        {
+          "not": {
+            "required": [
+              "descriptorKind"
+            ],
+            "properties": {
+              "descriptorKind": {
+                "const": "a15_multi_descriptor"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "entries": {
+              "minItems": 2,
+              "items": {
+                "properties": {
+                  "reviewedDraft": {
+                    "properties": {
+                      "draft": {
+                        "pattern": "^entry:"
+                      }
+                    }
+                  },
+                  "priorRevision": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            "wording": {
+              "const": "register workflow revisions"
+            }
           }
         }
       ]

@@ -443,6 +443,7 @@ def turn_label(observed_status, observation, cause=None, descendants=None):
         base = "TO-3 Completed"
     elif observed_status == "interrupted":
         why = {"person": "interrupted by you", "quit": "interrupted by quit",
+               "codex-stop": "interrupted by Stop Codex",
                "cancel-answer": "interrupted after your `cancel` tool-permission answer"}.get(cause)
         base = "TO-4 Interrupted" + (f" ({why})" if why else " (cause not observed)")
     elif observed_status == "failed":
@@ -496,13 +497,20 @@ def choose_role(view, choice):
 # NIR §5.6  Turn composition (C-06): DEL-01-04 composes turn/start
 # ---------------------------------------------------------------------------
 
-def compose_turn(conv, text, attachments=(), plan_chosen=False, plan_element=None, run_start_text=None):
-    """Returns (params, why). conv: {threadId, model, usedPlanMode}. plan_element: NPTD §5.4's value."""
+def compose_turn(conv, text, attachments=(), plan_chosen=False, plan_element=None, run_start_text=None,
+                 run_end_line=None):
+    """Returns (params, why). conv: {threadId, model, usedPlanMode}. plan_element: NPTD §5.4's value.
+    TC-2: the run-start text (TC-3) or, when a run ended and none starts, DEL-02-02's run-end line (R20-3; WR TX-5),
+    then the person's text, then the attachments (text elements, image inputs, named paths; §6)."""
     if conv.get("model") is None:
         return None, "not started — no model selected"
+    if run_start_text is not None and run_end_line is not None:
+        return None, "a run start carries its own chain line; no separate run-end line (WR TX-5)"
     inputs = []
     if run_start_text is not None:      # R19-7: DEL-02-02's run-start text, its own element, first
         inputs.append({"type": "text", "text": run_start_text, "text_elements": []})
+    if run_end_line is not None:        # R20-3: the run-end line, first, before the person's own text
+        inputs.append({"type": "text", "text": run_end_line, "text_elements": []})
     if text:
         inputs.append({"type": "text", "text": text, "text_elements": []})
     for a in attachments:
@@ -643,16 +651,80 @@ def content_identity(data):
     return {"method": ILLUSTRATION_METHOD, "value": hashlib.sha256(data).hexdigest()}
 
 
-def supply_record(attachment_id, name, form, path, bytes_at_selection, bytes_at_submission, turn_ref, at):
-    """AT-1...AT-6. Returns (record, decision). The App never sends bytes other than those it showed."""
+# R21-2 (V21-A M-2; OBS-3 W-3, W-1 at Codex 0.158.0): an attachment is carried as a text element (text files, the
+# file named), as an image input (images), or by naming its path for the agent to read with its tools (any other
+# file). Only the first two are "supplied". `mention` and `skill` are not attachment forms: `mention` delivered nothing
+# to the model and `skill` was honoured only for a discovered SKILL.md at its canonical path.
+SUPPLIED = "supplied"
+NAMED = "named; read only if a tool item shows it"
+SUPPLIER_READ = {
+    "text-element": "not applicable: the bytes are in the turn's own text element",
+    "localImage": "not observed: Codex reads the path itself",
+    "image-url": "not applicable: content passed by reference",
+    "image-fileId": "not applicable: content passed by reference",
+    "path-named": "not observed: read only if a tool item shows it",
+}
+NOT_ATTACHMENT_FORMS = {"mention": "delivers nothing to the model at 0.158.0 (OBS-3 W-3)",
+                        "skill": "honoured only for a discovered SKILL.md at its canonical path (OBS-3 W-1)"}
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+TEXT_BOUND = 256 * 1024          # PROPOSED bound for carrying a text file in the turn (U-NIR-10)
+
+
+def text_identity(text):
+    return {"method": "sha256 over UTF-8 text", "value": hashlib.sha256(text.encode("utf-8")).hexdigest()}
+
+
+def carrier_for(name, data):
+    """AT-9/AT-10 (PROPOSED): the carrier the App uses for a file's bytes."""
+    if name.lower().endswith(IMAGE_SUFFIXES):
+        return "localImage"
+    if data is not None and len(data) <= TEXT_BOUND and b"\x00" not in data:
+        try:
+            data.decode("utf-8")
+            return "text-element"
+        except UnicodeDecodeError:
+            pass
+    return "path-named"
+
+
+def attachment_input(form, name, path, data):
+    """The turn input element for one attachment (UserInput at 0.158.0). Returns (element, element_text or None).
+    The naming lines are App-written; they name the file and instruct nothing beyond R21-2's 'read it with your
+    tools' for a named path (PROPOSED wording, AT-9, AT-10)."""
+    if form in NOT_ATTACHMENT_FORMS:
+        raise ValueError(f"{form} is not an attachment form: {NOT_ATTACHMENT_FORMS[form]}")
+    ident = content_identity(data)["value"][:12] if data is not None else "not obtainable"
+    if form == "text-element":
+        text = f'[Chirality] Attached file "{name}" ({path}; content {ident}). Its bytes follow this line.\n' + data.decode("utf-8")
+        return {"type": "text", "text": text, "text_elements": []}, text
+    if form == "localImage":
+        return {"type": "localImage", "path": path}, None
+    if form == "path-named":
+        text = (f'[Chirality] File named, not supplied: "{name}" at {path} (content {ident} when attached). '
+                "Read it with your tools if you need it.")
+        return {"type": "text", "text": text, "text_elements": []}, text
+    raise ValueError(form)
+
+
+def supply_record(attachment_id, name, form, path, bytes_at_selection, bytes_at_submission, turn_ref, at,
+                  element_text=None, draft=None):
+    """AT-1...AT-10. Returns (record, decision). The App never sends bytes other than those it showed, and records
+    per form what it sent: supplied (text element, image input) or named (a path for the agent's tools)."""
+    if form in NOT_ATTACHMENT_FORMS:
+        return None, f"refused: {form} is not an attachment form ({NOT_ATTACHMENT_FORMS[form]})"
     sel = content_identity(bytes_at_selection) if bytes_at_selection is not None else None
     sub = content_identity(bytes_at_submission) if bytes_at_submission is not None else None
-    rec = {"format": "chirality.nir.attachment-supply", "formatVersion": "0.1", "attachmentId": attachment_id,
-           "displayName": name, "suppliedAs": form, "localPath": path,
+    rec = {"format": "chirality.nir.attachment-supply", "formatVersion": "0.2", "attachmentId": attachment_id,
+           "displayName": name, "suppliedAs": form, "supplyStanding": NAMED if form == "path-named" else SUPPLIED,
+           "localPath": path,
            "identityAtSelection": sel if sel else {"notObtainable": True, "reason": "not read at selection"},
            "turnRef": turn_ref, "recordedAt": at,
-           "supplierRead": "not observed: Codex reads the path itself",
+           "supplierRead": SUPPLIER_READ[form],
            "providerAdoption": "not observed"}
+    if element_text is not None:
+        rec["elementIdentity"] = text_identity(element_text)
+    if draft is not None:
+        rec["draft"] = dict(draft, standing="draft — not a registered workflow; this conversation is not a workflow run")
     if sub is None:
         rec["identityAtSubmission"] = {"notObtainable": True, "reason": "file missing at submission"}
         return rec, "held: file missing at submission; not sent"
@@ -660,7 +732,15 @@ def supply_record(attachment_id, name, form, path, bytes_at_selection, bytes_at_
     if sel and sel["value"] != sub["value"]:
         return rec, "held: content changed since you selected it; confirm the current content before sending"
     rec["byteLength"] = len(bytes_at_submission)
-    return rec, "sent"
+    return rec, ("sent (named, not supplied)" if form == "path-named" else "sent")
+
+
+def tool_read(record, item):
+    """AT-10: a tool item that names a named path is recorded beside it; the standing stays 'named'."""
+    if record["suppliedAs"] != "path-named":
+        raise ValueError("tool reads belong to a named path only")
+    record.setdefault("toolReads", []).append(item)
+    return record
 
 
 def same_name_distinct(records):

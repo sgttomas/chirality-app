@@ -14,10 +14,13 @@ What it models (AAC §3-§6):
   * capture evidence (AAC §5.2) and the RS `human_act` / `act_declined` entry,
     written through DEL-04-03's prototype writer (record_store.Writer), so the
     entries are checked by RS's own PROPOSED schema;
-  * A15: the act is recorded at capture like every kind; the registration is
-    then performed by DEL-02-02 (a stub here) and its outcome is reported
-    beside the act, as ACT keeps "accepted — not applied" apart from A5
-    (AAC §4.2; AK-f);
+  * A15: one offer is composed from exactly one of DEL-02-02's descriptors
+    (R21-3): an `a15_descriptor` (one reviewed draft) or an
+    `a15_multi_descriptor` (several library entries registered in place, L-4),
+    mapped from WR's snake_case by `from_wr_descriptor`; the act is recorded at
+    capture like every kind; the registration is then performed by DEL-02-02
+    (a stub here) and its outcome is reported beside the act, as ACT keeps
+    "accepted — not applied" apart from A5 (AAC §4.2; AK-f);
   * record write failure and late write (RS FC-1), and relaunch recovery of a
     capture whose record was not written (AC-R1).
 """
@@ -42,6 +45,8 @@ KIND_TABLE = {
     "A11": {"served": False, "why": "the proposer's act on a host proposal; not App content"},
     "A13": {"served": False, "why": "captured by the host's enablement facility (ACT §2.6); no App-owned external interface exists"},
 }
+A15_WORDING = {"a15_descriptor": "register workflow revision",             # WR RB-4
+               "a15_multi_descriptor": "register workflow revisions"}    # WR §4.7 ME-3 (L-4; R21-3)
 ACT_CLASS = {"A4": "reserved to the person", "A6": "reserved to the person", "A7": "reserved to the person",
              "A15": "person's act (V4-WF-02)"}
 NATIVE_SOURCE = "host-native-confirmation"
@@ -56,7 +61,7 @@ class ActControl:
         self.registrar = registrar          # (capture) -> (ok, revision or reason)
         self.writers = writers              # (run_id or None) -> RS Writer
         self.clock = clock
-        self.descriptor_current = descriptor_current   # DEL-02-02 RB-3: is the A15 descriptor still current?
+        self.descriptor_current = descriptor_current   # DEL-02-02 RB-3 / ME-4: is the act's one A15 descriptor still current?
         self.offers, self.captures, self.states = {}, {}, {}
         self.rs_a15_form = rs_a15_form                 # "relations" (RS after FR-06) or "derivedFrom" (RS-v0.8)
         self.locations = {}                            # prototype only: where each A15 entry's live bytes are read
@@ -72,29 +77,42 @@ class ActControl:
 
     # AC-1 compose ----------------------------------------------------------
     def compose(self, kind, subject_ref, scope, purpose, arrival=None, run_id=None, request_ref=None,
-                descriptors=None):
-        """For A15, subject_ref is ignored: the offer is composed from one or more of DEL-02-02's
-        a15_descriptors (WR RB-4), one entry each (L-4: several entries in one act)."""
+                descriptor=None):
+        """For A15, subject_ref is ignored: the offer is composed from exactly one of DEL-02-02's descriptors
+        (R21-3), in this control's spelling (see from_wr_descriptor): {descriptorId, descriptorKind, entries:
+        [{subject, reviewedDraft, priorRevision, location}]}. An a15_descriptor has one entry (a reviewed draft);
+        an a15_multi_descriptor two or more library entries reviewed in place ('entry:' strings, no prior revision)."""
         k = KIND_TABLE.get(kind)
         if k is None or not k["served"]:
             return None, f"not offered: {kind} — " + (k["why"] if k else "unknown act kind")
-        offer = {"format": "chirality.aac.offer", "formatVersion": "0.2", "offerId": self._id("offer"),
+        offer = {"format": "chirality.aac.offer", "formatVersion": "0.3", "offerId": self._id("offer"),
                  "actKind": kind, "wording": k["wording"],
                  "scope": scope, "purpose": purpose, "actorRequirement": k["actorRequirement"],
                  "declineAvailable": k["decline"], "composedAt": self.clock()}
         if kind == "A15":
-            if not descriptors:
-                return None, "not offered: no A15 descriptor from the workspace (WR RB-4)"
+            d = descriptor
+            if not d:
+                return None, "not offered: no A15 descriptor from the workspace (WR RB-4, §4.7)"
+            dk, ents = d.get("descriptorKind"), d.get("entries") or []
+            if dk == "a15_descriptor" and (len(ents) != 1 or not ents[0]["reviewedDraft"]["draft"].startswith("draft:")):
+                return None, "not offered: an a15_descriptor names exactly one reviewed draft (WR RB-4)"
+            if dk == "a15_multi_descriptor" and (len(ents) < 2 or any(
+                    not e["reviewedDraft"]["draft"].startswith("entry:") or e["priorRevision"] is not None for e in ents)):
+                return None, "not offered: an a15_multi_descriptor names two or more library entries in place (WR §4.7)"
+            if dk not in A15_WORDING:
+                return None, f"not offered: unknown descriptor kind {dk!r}"
+            if not self.descriptor_current(d["descriptorId"]):
+                return None, "not offered: the workspace withdrew the descriptor (WR RB-3, ME-4)"
             entries, locations = [], []
-            for d in descriptors:
-                data = self.read_content(d["location"])
-                if data is None or self._identity(data)["value"] != d["reviewedDraft"]["content"]["value"] \
-                        or not self.descriptor_current(d["descriptorId"]):
-                    return None, f"not offered: entry {d['subject']} is not current (changed since review, WR RB-3)"
-                entries.append({"descriptorId": d["descriptorId"],
-                                "subject": {"ref": d["subject"], "contentIdentity": d["reviewedDraft"]["content"]},
-                                "reviewedDraft": d["reviewedDraft"], "priorRevision": d["priorRevision"]})
-                locations.append(d["location"])
+            for e in ents:
+                data = self.read_content(e["location"])
+                if data is None or self._identity(data)["value"] != e["reviewedDraft"]["content"]["value"]:
+                    return None, f"not offered: entry {e['subject']} is not current (changed since review, WR RB-3)"
+                entries.append({"subject": {"ref": e["subject"], "contentIdentity": e["reviewedDraft"]["content"]},
+                                "reviewedDraft": e["reviewedDraft"], "priorRevision": e["priorRevision"]})
+                locations.append(e["location"])
+            offer["wording"] = A15_WORDING[dk]
+            offer["descriptorId"], offer["descriptorKind"] = d["descriptorId"], dk
             offer["entries"] = entries
         else:
             data = self.read_content(subject_ref)
@@ -136,12 +154,12 @@ class ActControl:
         if choice == "decline" and not offer["declineAvailable"]:
             return "AC-R refused", f"no decline for {offer['actKind']} (ACT §2.3); close the control instead"
         if offer["actKind"] == "A15":
-            # every entry's bytes are bound: one changed or withdrawn entry makes the whole offer stale
+            # every entry's bytes are bound: a withdrawn descriptor or one changed entry makes the whole offer stale
+            if not self.descriptor_current(offer["descriptorId"]):
+                self.states[offer_id] = "AC-6 stale"
+                return "AC-6 stale", (f"the workspace withdrew the descriptor {offer['descriptorId']} "
+                                      "(WR RB-3, ME-4): nothing captured; review it again")
             for e, loc in zip(offer["entries"], self.locations[offer_id]):
-                if not self.descriptor_current(e["descriptorId"]):
-                    self.states[offer_id] = "AC-6 stale"
-                    return "AC-6 stale", (f"the workspace withdrew the descriptor of {e['subject']['ref']} "
-                                          "(WR RB-3): nothing captured; review it again")
                 data = self.read_content(loc)
                 if data is None or self._identity(data)["value"] != e["subject"]["contentIdentity"]["value"]:
                     self.states[offer_id] = "AC-6 stale"
@@ -157,7 +175,7 @@ class ActControl:
                 return "AC-6 stale", "content changed since it was shown: nothing captured; review it again"
             subjects, contents = [offer["subject"]["ref"]], [offer["subject"]["contentIdentity"]]
         person = self.identity()
-        cap = {"format": "chirality.aac.capture-evidence", "formatVersion": "0.2", "captureId": self._id("cap"),
+        cap = {"format": "chirality.aac.capture-evidence", "formatVersion": "0.3", "captureId": self._id("cap"),
                "offerId": offer_id, "offerDigest": offer["offerDigest"], "choice": choice,
                "actKind": offer["actKind"], "actor": person, "boundSubject": subjects,
                "boundContent": contents, "scope": offer["scope"],
@@ -167,7 +185,8 @@ class ActControl:
         if "requestRef" in offer:
             cap["requestRef"] = offer["requestRef"]
         if offer["actKind"] == "A15":
-            cap["entries"] = [{"descriptorId": e["descriptorId"], "revision": e["subject"]["ref"],
+            cap["descriptorId"], cap["descriptorKind"] = offer["descriptorId"], offer["descriptorKind"]
+            cap["entries"] = [{"revision": e["subject"]["ref"],
                                "reviewedDraft": e["reviewedDraft"], "priorRevision": e["priorRevision"]}
                               for e in offer["entries"]]
         self.captures[cap["captureId"]] = cap
@@ -264,6 +283,49 @@ class ActControl:
                 continue
             done.append(self._record(cap))
         return done
+
+
+def _tuple_rs(t):
+    """WD/WR snake_case tuple -> RS workflowTuple (camelCase), one to one (WD §3.6 spelling table)."""
+    if t is None:
+        return None
+    out = {"kind": t["kind"], "origin": t["origin"], "sourceRoot": t["source_root"], "name": t["name"]}
+    if "revision" in t:
+        out["revision"] = t["revision"]
+    if "revision_method" in t:
+        out["revisionMethod"] = t["revision_method"]
+    if t.get("derived_from"):
+        out["derivedFrom"] = _tuple_rs(t["derived_from"])
+    return out
+
+
+def subject_text(t):
+    """The bound-subject text this prototype writes for a revision (RS act-log example form)."""
+    return f"workflow revision {t['origin']}:{t['name']}@{t['revision']}"
+
+
+def from_wr_descriptor(wr, locations):
+    """R21-3: map one of DEL-02-02's descriptors (WR-v0.2 `a15_descriptor` or `a15_multi_descriptor`, snake_case)
+    to the one descriptor this control composes an offer from. `locations` (prototype only) says where each
+    entry's live bytes are read, in entry order. Scope and purpose are the descriptor's own (WR RB-4, ME-3)."""
+    kind = wr["record_kind"]
+    if kind == "a15_descriptor":
+        rd = wr["relations"]["reviewed_draft"]
+        dk = rd["draft"]
+        entries = [{"subject": subject_text(wr["subject"]),
+                    "reviewedDraft": {"draft": f"draft:{dk['draft_location']}:{dk['name']}@{rd['content']['value']}",
+                                      "content": dict(rd["content"])},
+                    "priorRevision": _tuple_rs(wr["relations"]["prior_revision"])}]
+    elif kind == "a15_multi_descriptor":
+        entries = [{"subject": subject_text(e["subject"]),
+                    "reviewedDraft": {"draft": e["reviewed_entry"], "content": dict(e["bound_content"])},
+                    "priorRevision": None} for e in wr["entries"]]
+    else:
+        raise ValueError(kind)
+    for e, loc in zip(entries, locations):
+        e["location"] = loc
+    return {"descriptorId": wr["descriptor_id"], "descriptorKind": kind, "entries": entries,
+            "scope": wr["scope"], "purpose": wr["purpose"]}
 
 
 def dump(obj):

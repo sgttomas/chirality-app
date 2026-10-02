@@ -32,6 +32,7 @@
 | C-10 | R18-1 | §7 | The Codex account is the reported email or "ChatGPT account (no email reported)"; no plan type is recorded |
 | O-6 | OBS-2 O-6 | §7 | Filled in part: each Codex home reports its own account (a second home sharing the first's configuration reported `null`); a signed-in account stays not observed (DECISION-L L-6) |
 | C-22 | R18-1 | U-AAC-4 | Closed: the A15 order and names agree with WR |
+| RV21 (repairs from V21; in place, no version step) | R21-3 (V21-A M-1; V21-B M-3); V21-A MINOR 1, 2, 3; V21-B m-11 | §1.2 A15 row; §2 AI-2, AI-7; §3 AX-06; §4.2; §4.4; §5.1–§5.3; §8; both schemas (0.3) and their examples; `prototype/act_control.py`, `prototype/run_cases.py` | **M-1/M-3 (R21-3):** an A15 offer is composed from exactly **one** DEL-02-02 descriptor, WR's `a15_descriptor` (one reviewed draft, `draft:`) or `a15_multi_descriptor` (L-4: two or more library entries registered in place, `entry:`, no prior revision), with the entries inside it; the reviewed-content pattern is RS-v0.9's `^(draft\|entry):(project\|user):[^@]+@.+$`; the wording gains "register workflow revisions" for the multi descriptor; v0.2's reading of L-4 as "several reviewed drafts at once" is withdrawn (several drafts are several acts, AK-d). New cross-check K-17 runs WR-v0.2's own two descriptor examples through the offer and the capture into RS's writer, and K-17b checks RS's L-4 act-log example (record 4, capture `cap:reg-in-place-2`) against the capture format. **MINOR 1:** A15 is recorded at capture like every kind; the two contrary phrases (AI-7, §4.4) are deleted. **MINOR 2:** §5.3's entry count follows the rerun. **MINOR 3:** RS-v0.9 cited as current. **m-11:** the capture's `codexAccount` takes RS's two forms exactly |
 
 **Binding inputs.** DECISION-K1 K1-1 (the agent asks; the product offers the
 means and records what it observes), K1-2 (an earlier act on current content
@@ -90,7 +91,7 @@ Rules this file adds (PROPOSED unless labelled):
 | A4 | "mark checked" | **Yes**, on App files and App-side outputs | Yes (act-declined event) | The person | File content identity (RS L-1) |
 | A6 | "approve (engineering approval)" | **Yes**, on App files | Yes | The accountable person | As A4 |
 | A7 | "rely (professional reliance)" | **Yes**, on App files | Yes | The accountable professional; recorded as the person's own statement, with an evidence limit (CAP-8) | As A4 |
-| A15 | "register workflow revision" | **Yes** (K-8); **one or several entries in one act** (L-4) | **No**: ACT §2.3 defines no act-declined event for A15; the person closes the control | The person | Per entry: the revision DEL-02-02's A15 descriptor names (WR RB-4), bound by that entry's reviewed draft content identity; relations per entry: the **reviewed draft** (WR ID-3 string and content) and, for a new revision, the **prior revision** (RS `workflowTuple`) (R17-11; C-01). WD's *derived-from* is not this act's relation. Shipped workflows are registered by the release and entries byte-equal to a shipped revision are recognized by DEL-02-02 (L-4); neither is offered here |
+| A15 | "register workflow revision" (from WR's `a15_descriptor`); "register workflow revisions" (from WR's `a15_multi_descriptor`, L-4; R21-3) | **Yes** (K-8); one act is composed from **one** DEL-02-02 descriptor: one reviewed draft, or **two or more library entries registered in place** (L-4 as clarified; WR §4.7) | **No**: ACT §2.3 defines no act-declined event for A15; the person closes the control | The person | Per entry: the revision the descriptor names (WR RB-4, ME-3), bound by that entry's reviewed content identity; relations per entry: the **reviewed content** (WR ID-3 string, `draft:` for a reviewed draft or `entry:` for a library entry reviewed in place, and its content) and, for a new revision, the **prior revision** (RS `workflowTuple`; none for an entry registered in place) (R17-11; C-01). WD's *derived-from* is not this act's relation. Shipped workflows are registered by the release and entries byte-equal to a shipped revision are recognized by DEL-02-02 (L-4); neither is offered here. Several drafts are several acts (AK-d) |
 | A12 | "set grant" | Not offered: no setting the App itself establishes exists in this increment (CAP-1; ACT §2.6). The App's Codex settings are the user's own (D3) and model choice is not A12 (ACT §2.7) | (Yes, when one exists) | The person | Setting content |
 | A5, A10 | "accept" / "rejected the item" | Not offered: no App-content proposal exists in this increment; host proposals use the host's act facility | — | — | — |
 | A11 | — | Not offered: the proposer's act on a host proposal | — | — | — |
@@ -108,12 +109,12 @@ row, not a restructure.
 | # | Exchange | Supplier → receiver | Condition | Failure behaviour |
 |---|---|---|---|---|
 | AI-1 | Subject content identity: App files and outputs (file content identity, RS L-1, method designation carried) | DEL-04-03's identity method (method unselected, RS U-04) → the control | At compose (AC-1) and at confirmation (AK-c) | Not obtainable → not offered ("the subject's content identity is not obtainable") |
-| AI-2 | One or more A15 descriptors (WR-v0.1 RB-4, `a15_descriptor`; L-4: one per entry), each with: descriptor identity; subject (the target revision); bound content (the reviewed draft's content identity, equal to the revision's, WR ID-2); reviewed draft {draft, content}; prior revision or none; scope and purpose per library; and its **withdrawal** when the live draft or the slot changes (RB-3) | DEL-02-02 → the control (DEP-01-04-009, held) | A15 offers are composed only from a current descriptor | No descriptor → not offered; descriptor withdrawn or draft changed → AC-6 stale, nothing captured |
+| AI-2 | **One** A15 descriptor per act (R21-3): WR-v0.2's `a15_descriptor` (RB-4; one reviewed draft) or `a15_multi_descriptor` (§4.7 ME-3; L-4: two or more library entries registered in place), with: descriptor identity and kind; its entries, each with subject (the target revision), bound content (the reviewed content identity, equal to the revision's, WR ID-2), reviewed content (WR ID-3 string, `draft:` or `entry:`, and content) and prior revision or none; scope and purpose per library ("make it available …" / "make them available …"); and its **withdrawal** when a live draft or entry, or the slot, changes (RB-3, ME-4). The control maps WR's snake_case to its own spelling one to one (WD §3.6; prototype `from_wr_descriptor`) | DEL-02-02 → the control (DEP-01-04-009, held) | A15 offers are composed only from a current descriptor | No descriptor → not offered; descriptor withdrawn or any entry changed → AC-6 stale, nothing captured |
 | AI-3 | Arrival and request references: the arrival {checkpoint, arrival ordinal} and run, the RS `act_request` record | DEL-02-03 (recorder) / DEL-04-03 (record-out) → the control (NR-2 proposed) | Only when the person opens the control from an arrival row or a request | Absent → the offer is a standing act; nothing is inferred |
 | AI-4 | Act wording, record kinds, act class | DEL-04-01 → the control (DEP-01-04-011, admitted) | Every offer | — |
 | AI-5 | Identity sources: the name set in the App (this control's setting, §7), the operating-system account, the Codex account as reported | The App; DEL-01-05 (NR-3 proposed) | Each capture | A source not available is absent; at least the operating-system account is always present |
 | AI-6 | Report of the capture {A15 record identity, capture-evidence reference, descriptor identity, bound content}; DEL-02-02 then registers exactly those bytes and reports the outcome | The control → DEL-02-02 (K-8; WR §7, G-0) | A15, after capture and record | §4.2 |
-| AI-7 | RS entries `human_act`, `act_declined` | The control → DEL-04-03's writer (DEP-01-04-012, held) | After capture (and for A15 after registration) | RS §14: late write, "record write failed" |
+| AI-7 | RS entries `human_act`, `act_declined` | The control → DEL-04-03's writer (DEP-01-04-012, held) | After capture, for every kind including A15 (AK-f; R18-1 C-22) | RS §14: late write, "record write failed" |
 | AI-8 | The act record, observed by the checkpoint recorder | DEL-04-03 record → DEL-02-03 (AE-2: "Direct capture through the App act control") | When the act answers or counts at an arrival | DEL-02-03's §2.6 A-7, A-8 |
 
 ---
@@ -127,7 +128,7 @@ row, not a restructure.
 | AX-03 | AC-1 | present | The host shows the offer in its native confirmation (§6.2) | **AC-2 presented** | — |
 | AX-04 | AC-2 | operate(source ≠ native confirmation) | — | AC-2 (unchanged) | Nothing; "not operable from ‹source›" returned to the caller (CAP-4) |
 | AX-05 | AC-2 | dismiss | — | **AC-5 dismissed** | Nothing |
-| AX-06 | AC-2 | act / decline | Subject identity now ≠ the offer's, or (A15) **any** entry's bytes changed or its descriptor withdrawn (RB-3; L-4) | **AC-6 stale** | Nothing; "content changed since it was shown" / "the workspace withdrew the A15 descriptor": review it again |
+| AX-06 | AC-2 | act / decline | Subject identity now ≠ the offer's, or (A15) the descriptor withdrawn or **any** entry's bytes changed (RB-3, ME-4; L-4) | **AC-6 stale** | Nothing; "content changed since it was shown" / "the workspace withdrew the A15 descriptor": review it again |
 | AX-07 | AC-2 | decline | Kind has no decline (A15) | AC-2 (unchanged) | Nothing; "no decline for A15; close the control instead" |
 | AX-08 | AC-2 | act | Identity equal; kind ≠ A15 | **AC-3 captured** | Capture evidence |
 | AX-09 | AC-2 | decline | Identity equal; kind has a decline | **AC-4 declined** | Capture evidence (choice *decline*) |
@@ -162,16 +163,16 @@ The prototype exercised AX-01…AX-15 (§8).
 
 ### 4.2 Registration of a reviewed draft, A15 (K-8)
 
-Aligned with DEL-02-02's WR-v0.1 §4.3 (RB-1…RB-5), §5.2 and SQ-G (node D5).
+Aligned with DEL-02-02's WR-v0.2 §4.3 (RB-1…RB-5), §4.7 (ME-1…ME-6), §5.2 and SQ-G (R21-3).
 
 | Step | Action | By | Record | Failure: what fails · who reports · record · next |
 |---|---|---|---|---|
-| 1 | The person reviews the draft; DEL-02-02 shows the review package and, for a registrable disposition, hands the control an `a15_descriptor` (RB-2, RB-4); the draft is *under review* (NIR §7) | Person; DEL-02-02 | WR's `registration_disposition`, `a15_descriptor` | A refusing disposition (for example *refused: name taken*, K-6) · DEL-02-02 · *registration refused* · no descriptor, so no offer |
-| 2 | The person opens the control on the draft, or on several reviewed drafts at once (L-4) ("Register…"); the offer holds one entry per current descriptor, each with: subject the target revision, bound content the reviewed draft's content identity, reviewed draft, prior revision (or none), scope and purpose per library ("make it available in the project library" / "… in the user library") | Person; host | — | No descriptor, or the live draft's identity ≠ the reviewed content · the control · nothing · not offered |
+| 1 | The person reviews the draft, or picks two or more library entries without a registration record (WR §4.7 ME-1, ME-2); DEL-02-02 shows the review package and, for a registrable disposition, hands the control **one** descriptor: an `a15_descriptor` for the draft (RB-2, RB-4) or an `a15_multi_descriptor` for the entries (ME-3); a draft is *under review* (NIR §7) | Person; DEL-02-02 | WR's `registration_disposition`; the descriptor | A refusing disposition (for example *refused: name taken*, K-6) or an entry refused by hygiene · DEL-02-02 · *registration refused* · no descriptor (or the entry left out), so no offer for it |
+| 2 | The person opens the control on the draft, or on the reviewed library entries ("Register…"); the offer is composed from the one descriptor and holds its entries (one for a draft; two or more for library entries in place, L-4), each with: subject the target revision, bound content the reviewed content identity, reviewed content (`draft:` or `entry:` string, WR ID-3), prior revision (or none; always none in place), with the descriptor's scope and purpose per library and its wording, "register workflow revision" or "register workflow revisions" (R21-3) | Person; host | — | No descriptor, or a live draft's or entry's identity ≠ the reviewed content · the control · nothing · not offered |
 | 3 | Present in the native confirmation; the person confirms | Person | — | Dismissed · nothing · AC-5 (WR: the attempt is *withdrawn*, nothing inferred) |
-| 4 | Re-read the live draft's identity and ask whether the descriptor is still current (RB-3) | Host | — | Changed or withdrawn · AC-6 · "review again" (K-8); DEL-02-02 reports *review stale* and the view shows "changed since review" |
-| 5 | Capture evidence listing every entry with `descriptorId`, `revision`, `reviewedDraft` (WR ID-3 string, content) and `priorRevision` (RS `workflowTuple` or null) (R17-11; C-01) | Host | Capture evidence | As §4.1 step 6. One entry changed or withdrawn at step 4 · nothing captured for any entry (AX-06); the person reviews again and may leave that entry out |
-| 6 | Write **one** A15 `human_act` for the act: bound subject every entry's revision; bound content every entry's reviewed content identity with method; relations `reviewedDraft` and `priorRevision` for one entry, or `registeredEntries` [{subject, reviewedDraft, priorRevision}] for several, as node F's RS change (FR-06, RS-v0.9, in progress at this node) defines them; purpose; capture evidence | Host → DEL-04-03 | RS `human_act` A15 | Write fails · as §4.1 step 7 (late write; the capture is kept). The App ends before the write · on relaunch the capture is recorded late (AX-15) |
+| 4 | Re-read every entry's live identity and ask whether the descriptor is still current (RB-3, ME-4) | Host | — | Changed or withdrawn · AC-6 · "review again" (K-8); DEL-02-02 reports *review stale* and the view shows "changed since review" |
+| 5 | Capture evidence naming the descriptor (`descriptorId`, `descriptorKind`) and listing every entry with `revision`, `reviewedDraft` (WR ID-3 string, content) and `priorRevision` (RS `workflowTuple` or null) (R17-11; C-01; R21-3) | Host | Capture evidence | As §4.1 step 6. One entry changed or the descriptor withdrawn at step 4 · nothing captured for any entry (AX-06); the person reviews again and may leave that entry out |
+| 6 | Write **one** A15 `human_act` for the act: bound subject every entry's revision; bound content every entry's reviewed content identity with method; relations `reviewedDraft` and `priorRevision` for an `a15_descriptor`, or `registeredEntries` [{subject, reviewedDraft, priorRevision}] for an `a15_multi_descriptor`, as RS-v0.9 §6.1 and its schema define them (HA-10; `reviewedDraft.draft` admits `draft:` and `entry:`); purpose; capture evidence | Host → DEL-04-03 | RS `human_act` A15 | Write fails · as §4.1 step 7 (late write; the capture is kept). The App ends before the write · on relaunch the capture is recorded late (AX-15) |
 | 7 | Report the capture to DEL-02-02 {record identity, capture-evidence reference, descriptor identity, bound content} | Host → DEL-02-02 | — | The workspace is not reachable · the control · the report is repeated when it is (WR SQ-X reconciles at App start) |
 | 8 | DEL-02-02 registers exactly those bytes, entry by entry (WR SQ-G G-0…G-6), and reports per entry *registered* with the A15 record and the revision, or *registration not completed* with its cause | DEL-02-02 | WR `library_entry` | Not completed · DEL-02-02 · `library_entry` *not completed* citing the A15 · the act record stands, the capture carries the outcome, the view shows "registration not completed: ‹cause›; the act is recorded and had no effect"; registering again needs a new review and a new act |
 
@@ -195,8 +196,8 @@ nothing that requires the act (ACT §2.3; DS-5).
 
 On relaunch the host reads its capture store and DEL-04-03's logs. A capture
 whose record is not in any log is recorded late, in order, with its own
-capture time (`observedAt`), except an A15 whose registration did not
-complete. A capture is never re-made and never back-dated.
+capture time (`observedAt`), for every kind including A15 (AK-e, AK-f). A
+capture is never re-made and never back-dated.
 
 ---
 
@@ -204,34 +205,49 @@ complete. A capture is never re-made and never back-dated.
 
 ### 5.1 The offer — [`aac.offer.schema.json`](aac.offer.schema.json)
 
-Schema 0.2 (`urn:chirality:app-v4:del-01-04:aac:offer:0.2`): {offer
-identity; act kind (A4, A6, A7, A15); the wording; for A4, A6, A7 one subject
-{class, reference, content identity}; for A15 `entries` (one or more, L-4),
-each {descriptor identity, subject {target revision, content identity},
-`reviewedDraft` {WR ID-3 string, content}, `priorRevision` (RS
-`workflowTuple` or null)} (R17-11; C-01); scope; purpose; actor requirement;
+Schema 0.3 (`urn:chirality:app-v4:del-01-04:aac:offer:0.3`; RV21, R21-3; 0.2
+had one descriptor per entry): {offer identity; act kind (A4, A6, A7, A15);
+the wording; for A4, A6, A7 one subject {class, reference, content identity};
+for A15 the **one** descriptor it is composed from {`descriptorId`,
+`descriptorKind` `a15_descriptor` · `a15_multi_descriptor`} and its
+`entries`, each {subject {target revision, content identity},
+`reviewedDraft` {WR ID-3 string, `draft:` or `entry:`, content},
+`priorRevision` (RS `workflowTuple` or null)} (R17-11; C-01): an
+`a15_descriptor` has exactly one entry in the `draft:` form and the wording
+"register workflow revision"; an `a15_multi_descriptor` has two or more
+entries in the `entry:` form, none with a prior revision, and the wording
+"register workflow revisions" (L-4); scope; purpose; actor requirement;
 whether a decline is offered; what it answers (an arrival and run, or "no
 arrival: a standing act"); the act request it answers, where one was
 recorded; composed at; offer digest}. Examples:
-`aac.offer.example.valid.json` (2: an A4 at an arrival; one A15 over two
-entries), `aac.offer.example.invalid.json` (9 cases, among them a prior
-revision as a free string, a reviewed draft not in ID-3 form and an A15 with
-no entries).
+`aac.offer.example.valid.json` (3: an A4 at an arrival; an A15 from one
+`a15_descriptor`; an A15 over two library entries from one
+`a15_multi_descriptor`), `aac.offer.example.invalid.json` (16 cases, among
+them a prior revision as a free string, reviewed content not in ID-3 form, an
+A15 with no entries, several entries with the singular wording, an
+`a15_descriptor` with two entries, a `draft:` entry under the multi
+descriptor, no descriptor, and 0.2's per-entry descriptor).
 
 ### 5.2 Capture evidence — [`aac.capture-evidence.schema.json`](aac.capture-evidence.schema.json)
 
 {capture identity `cap:…`; offer identity and digest; choice (*act*,
 *decline*); act kind; actor {name set in the App, operating-system account,
-Codex account; `identityVerified` false; no plan type, C-10}; bound subject;
-bound content; scope; purpose; captured at; surface "App interface"; input
-source "host-native-confirmation"; what it answers; request reference; for
-A15 `entries`, each {descriptor identity, revision, `reviewedDraft`,
-`priorRevision` and, once DEL-02-02 reports it, that entry's registration
-outcome (beside the act, AK-f)}; the RS record identity once written;
-evidence limits; optional *seal* (§6.3)}. Schema 0.2. Examples:
-`aac.capture-evidence.example.valid.json` (1: one A15 over two entries, one
+Codex account in RS's two forms only (the reported email, or "ChatGPT
+account (no email reported)"; RS `$defs/person`; V21-B m-11);
+`identityVerified` false; no plan type, C-10}; bound subject; bound content;
+scope; purpose; captured at; surface "App interface"; input source
+"host-native-confirmation"; what it answers; request reference; for A15 the
+descriptor (`descriptorId`, `descriptorKind`) and `entries`, each {revision,
+`reviewedDraft`, `priorRevision` and, once DEL-02-02 reports it, that
+entry's registration outcome (beside the act, AK-f)}, with the same rules per
+descriptor kind as the offer; the RS record identity once written; evidence
+limits; optional *seal* (§6.3)}. Schema 0.3
+(`urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3`; RV21). Examples:
+`aac.capture-evidence.example.valid.json` (2: one A15 from an
+`a15_descriptor`, registered; one A15 over two library entries in place, one
 registered and one not completed), `aac.capture-evidence.example.invalid.json`
-(8 cases). Where captures are
+(12 cases, among them a Codex account in a form RS refuses and 0.2's
+per-entry descriptor). Where captures are
 stored is not chosen (OI-014; RS U-05); a reader resolves `cap:` references
 through the store (RS §9 resolution status).
 
@@ -247,11 +263,11 @@ through the store (RS §9 resolution status).
 | Capture evidence references | [{kind "capture evidence", ref `cap:…`, resolution at write "resolved"}] |
 | Capture time | Capture |
 | Evidence limits | "identity not verified"; for A7, the professional standing is the person's own statement |
-| Relations | Arrival answered; act request; for A15 `reviewedDraft` and `priorRevision` (one entry) or `registeredEntries` (several) (R17-11; C-01; L-4), in RS's form after FR-06. The prototype reads the RS schema it finds and writes that form; under RS-v0.8 it wrote the single `derivedFrom` string (both runs passed; §8) |
+| Relations | Arrival answered; act request; for A15 `reviewedDraft` and `priorRevision` (an `a15_descriptor`) or `registeredEntries` (an `a15_multi_descriptor`) (R17-11; C-01; L-4), in RS-v0.9's form. The prototype reads the RS schema it finds and writes that form; under RS-v0.8 (round 2's first run) it wrote the single `derivedFrom` string (§8) |
 
-The prototype wrote 7 such entries through DEL-04-03's own writer, which
-validates every entry against `RS_RECORD.schema.json` before writing; all 7
-were valid (K-16).
+At the RV21 rerun the prototype wrote 11 such entries through DEL-04-03's own
+writer, which validates every entry against `RS_RECORD.schema.json` before
+writing; all 11 were valid (K-16; 9 at round 2 and RX2).
 
 ---
 
@@ -329,7 +345,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 ## 8. Verification
 
 "Needs" as NIR §13.1. The prototype checks are in
-`prototype/run_cases.py` group K and ran on 2026-10-01 and again on 2026-10-02 for v0.2 (all pass, model).
+`prototype/run_cases.py` group K and ran on 2026-10-01 and again on 2026-10-02 for v0.2 (all pass, model); rerun at RV21 (2026-10-02, `results/RUN_2026-10-02_RV21.txt`): all pass, with K-12b…K-12d rewritten for one multi descriptor and K-17, K-17b new.
 
 | Case | Expected | Needs | Prototype |
 |---|---|---|---|
@@ -345,8 +361,9 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 | VC-AAC-10 Write failure | Capture kept; late write in order; "record write failed" | model (RS writer) | K-13, K-14 pass |
 | VC-AAC-11 Relaunch recovery | A capture whose record was never written is recorded late | model | K-15 pass |
 | VC-AAC-11a Dismiss; second capture | Dismissing records nothing; a second confirmation of a recorded offer is refused | model | K-5a, K-5b pass |
-| VC-AAC-09b Several entries (L-4) | One changed entry makes the whole offer stale; two current entries: one capture, one RS record naming both, each entry's outcome beside it | model | K-12b, K-12c pass |
-| VC-AAC-12 All entries conform | Every RS entry the control wrote is valid | model | K-16 pass (9 entries at v0.2) |
+| VC-AAC-09b Several library entries in place (L-4; R21-3) | One `a15_multi_descriptor`: one changed entry makes the whole offer stale; two current entries: one capture, one RS record naming both (`registeredEntries`, `entry:` strings), the plural wording, each entry's outcome beside it; a multi descriptor with one entry is not offered | model | K-12b, K-12c, K-12d pass |
+| VC-AAC-15 WR → AAC → RS cross-check (R21-3) | WR-v0.2's own `a15_descriptor` and `a15_multi_descriptor` examples, valid against WR's schema, compose valid offers and captures and an RS entry valid against RS's schema, with wording, descriptor, purpose and reviewed content unchanged; RS's L-4 act-log example (record 4, capture `cap:reg-in-place-2`) has capture evidence in this format and the control writes the same relations from it | model | K-17, K-17b pass |
+| VC-AAC-12 All entries conform | Every RS entry the control wrote is valid | model | K-16 pass (11 entries at RV21; 9 at v0.2) |
 | VC-AAC-13 Native confirmation | A script in the webview cannot complete a capture; the native confirmation shows the offer's own text | candidate | Not run |
 | VC-AAC-14 Provenance | An entry written by another process without a valid seal is reported "capture not verifiable" | candidate; DEL-04-03 reader rule | Not run (SEAL-2 not implemented) |
 
@@ -364,5 +381,6 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 
 ## Changes
 
+- RV21 (repairs from V21, 2026-10-02; in place, no version step): R21-3, V21-A MINOR 1–3, V21-B m-11; row "RV21" in "Changes from v0.1".
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1".
 - v0.1 (D round 1): first version.

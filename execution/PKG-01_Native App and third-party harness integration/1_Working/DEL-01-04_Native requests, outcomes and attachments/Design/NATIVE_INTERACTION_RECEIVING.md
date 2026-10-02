@@ -48,6 +48,7 @@
 | G-5 | R18-7 | §5.3 V-e | Codex's graceful-stop history marker is shown as Codex's, not the person's |
 | C-10 | R18-1 | §4.5 | The actor reference derives from the same three values as RS's person; no plan type |
 | RX (residual sweep; in place, no version step) | R20-9, R20-1, R20-5 | §5.7 RN-4, RN-6, new RN-7; UNRESOLVED U-NIR-8 | "End run" (and "End ‹A› and start ‹B›" with a proposal) offered on the exact line `Workflow finished: ‹origin›:‹name›` naming the run in force; the press is the person's end with cause `completed`; both line forms recorded as ruled; U-NIR-8 ruled. Not prototyped (`prototype/` unchanged) |
+| RV21 (repairs from V21; in place, no version step) | R21-2 (V21-A M-2); R21-3 (V21-A M-1, IF-5 side); V21-A MINOR 4–9, 14; V21-B's Stop Codex label | §6 (rewritten), AT-1…AT-10, AO-1, AO-2; §5.1 TO-4 and labels paragraph; §5.2; §5.6 TC-2; §5.7 RN-2; §5.8 CA-3; §2 IF-5, IF-13; §13.1 VC-NIR-13, VC-NIR-23; §13.2; §14; UNRESOLVED U-NIR-10; `nir.attachment-supply-record.schema.json` 0.2 and examples; `prototype/` | **M-2 (R21-2):** an attachment is carried as a text element (text files, the file named), as an `image`/`localImage` input (images), or, for other files, by naming the path for the agent to read with its tools; only the first two are "supplied", the third "named; read only if a tool item shows it"; `mention` and `skill` are not attachment forms (OBS-3 W-3, W-1); `supplierRead` is per form; the `mention` example is replaced; AT-8's draft trial follows. **MINOR 4 (and V21-B):** TO-4 and §5.2 use RECOVERY-v0.2 §3.4's labels, "interrupted by quit" and "interrupted by Stop Codex"; §5.1 cites RECOVERY-v0.2, not its draft. **MINOR 5:** IF-13 quotes NPTD §5.4's value "no model selected". **MINOR 6:** TC-2 places the run-end line. **MINOR 7:** RN-2 and VC-NIR-23 follow R20-1 and R20-11 (1). **MINOR 8:** "End run" is DEL-02-03's, with DEL-01-02 DEF-4 as the definition. **MINOR 9:** CA-3 offers the project's last explicit choice (ST-2), not the source's model. **MINOR 14:** S-4 and O-9 are labelled optional third-party cross-checks. Prototype: 151 checks (A-1…A-8, O-3a, O-8a new or rewritten) |
 | RX2 (residual sweep 2; in place, no version step) | R20-11 (1), (2), (4); R20-6 | §5.7 RN-3, RN-4, RN-5, RN-7; §5.8 CA-2; UNRESOLVED U-NIR-9; `prototype/` | During a run a proposal is offered only as "End ‹A› and start ‹B›" (enabled; A ends by the person with cause `ended to start ‹B›`, or `completed` on a finished report); a plain "Start ‹B›" only with no run in force. The proposal line is the message's last non-empty line and the finished line the last non-empty line or the one immediately before the proposal line, each at most once (follows WR-v0.2 §16.5). CA-2: the App asks the source conversation's agent, in a visible turn there, to draft the handoff summary; the person edits it under an App header naming the source; U-NIR-9 ruled. Prototype: `start_offer`, new `finished_offer`, `continue_as` and new `handoff_composer`; checks O-11, O-12 rewritten, new O-13 |
 
 **Basis and inputs (sha256 recomputed with `shasum -a 256` at this node;
@@ -185,14 +186,14 @@ input.
 | IF-2 | Recovered state: threads, turns with their observed status and cause, observation-lost markers, outstanding requests, run association, descendant states as the supplier reported them | DEL-01-02 → DEL-01-04 | On every view open, reload, reconnect and relaunch | Where DEL-01-02 cannot settle a state it says so and the view shows *unknown* (TO-6); the view never synthesizes completion or interruption (REQ-002) | DEP-01-04-008 (admitted) |
 | IF-3 | Native items and notifications delivered unchanged (`turn/completed`, `thread/status/changed`, `error`, `serverRequest/resolved`, `item/*`) | DEL-01-01 → DEL-01-04 (through DEL-01-02's view of them) | Live session | Gaps are DEL-01-02's to report; the view shows the gap, not a guess | DEP-01-04-007, -008 |
 | IF-4 | Draft identity and transitions: DEL-02-02's `draft_transition` and `draft_reference` (WR-v0.1 §5.1, §8), restated with D5's names in `nir.draft-transition.schema.json` plus two requested elements | DEL-02-02 → DEL-01-04 | When the workspace changes a draft's standing | A transition not in WR §5.1, or a *registered* without its A15 record, is refused and shown as an error of the feed; the view re-reads `draft_reference` | DEP-01-04-009 (held, SCC-002) |
-| IF-5 | Native draft and attachment interactions; the App act control for A15 (K-8), composed from WR's `a15_descriptor` (RB-4) and reporting the capture back {record, capture evidence, descriptor, bound content} | DEL-01-04 ↔ DEL-02-02 | The workspace's journey | AAC §4.2 failure rows | DEP-02-02-013, mirror DEP-01-04-010 (held); statement update proposed (SC3-02-02-6 by D5) |
+| IF-5 | Native draft and attachment interactions; the App act control for A15 (K-8), composed from one WR descriptor, `a15_descriptor` (RB-4) or `a15_multi_descriptor` (§4.7; L-4; R21-3), and reporting the capture back {record, capture evidence, descriptor, bound content} | DEL-01-04 ↔ DEL-02-02 | The workspace's journey | AAC §4.2 failure rows | DEP-02-02-013, mirror DEP-01-04-010 (held); statement update proposed (SC3-02-02-6 by D5) |
 | IF-6 | Act names and record kinds (V-01), outcome map (V-05), label rules (V-07), no professional standing from agent output (V-08), routine tool permission (V-21) | DEL-04-01 → DEL-01-04 | Every label this deliverable shows | A value not carried is shown by its record's own words, never invented | DEP-01-04-011 (admitted) |
 | IF-7 | Record format and writer (the act control writes `human_act`, `act_declined`); record-out for act and lapse display | DEL-04-03 → DEL-01-04 | Writes: on capture; reads: on view | RS §14 (late write with "record write failed"; *not yet evaluated* never shown as current) | DEP-01-04-012 (held) |
 | IF-8 | Checkpoint overlay (K-5) and standing facets (K-6) component meanings; AS §4, §8, §9 display rules | DEL-04-02 → DEL-01-04 | Run panel and act log (§9) | A meaning not supplied is not shown; the display compares with the record (AS §6) | **None. New row proposed (NR-1)**, held, SCC-002, SCC-neutral |
 | IF-9 | Display meanings SD-1…SD-5, CE labels and arrival references | DEL-02-03 → DEL-01-04 | Run panel (§9); the act control's "arrival it answers" (AAC §2) | As IF-8 | **None. New row proposed (NR-2)**, held, SCC-002, SCC-neutral (reverse of X-1) |
 | IF-10 | Model selection state for the start display (none chosen / chosen / last explicit choice for the project); the Codex account as reported, for the person's identity (K1-4) | DEL-01-05 → DEL-01-04 | Conversation start (§5.4); each act capture (AAC §7) | No selection state → "No model selected"; no account reported → the account element is absent, never guessed | **None. New row proposed (NR-3)**, admitted, SCC-neutral (DEL-01-05 reaches no SCC-002 member) |
 | IF-11 | The App act control (capture evidence, RS entries) | DEL-01-04 → DEL-02-03 (App-side positive capture fixtures), DEL-04-03, DEL-04-01 | AAC | AAC §3, §4 | DEP-02-03-027 (X-1, held); mirror R2-01-04-a proposed in pass 2 |
-| IF-13 | Plan-mode element (NPTD §5.4: the `collaborationMode` value, "not offered (‹reason›)" or "run not started — no model selected") and item anchors (`npt.item-anchor`, TR-6) | DEL-01-03 → DEL-01-04 | Turn composition (§5.6); request cards and act display (§4.7, AP-10) | Element absent → no Plan control; anchor absent → the card shows its supplier item identity only | **D2's row DEL-01-04 → DEL-01-03 adopted (R18-1 C-06)**: admitted, SCC-free |
+| IF-13 | Plan-mode element (NPTD §5.4: the `collaborationMode` value, "not offered (‹reason›)" or "no model selected"; the composer words the last per R18-2, ST-3) and item anchors (`npt.item-anchor`, TR-6) | DEL-01-03 → DEL-01-04 | Turn composition (§5.6); request cards and act display (§4.7, AP-10) | Element absent → no Plan control; anchor absent → the card shows its supplier item identity only | **D2's row DEL-01-04 → DEL-01-03 adopted (R18-1 C-06)**: admitted, SCC-free |
 | IF-14 | Run-start text element (R19-7: the registered revision's bytes framed by DEL-02-02's lines) and the person's selection handed back on "Start ‹workflow›" | DEL-02-02 → DEL-01-04 (text); DEL-01-04 → DEL-02-02 / DEL-02-03 (the person's confirmed selection, a runtime value) | The turn that starts a run (§5.6, §5.7) | No text → no run starts; the turn is not sent as a run start | DEP-01-04-009 (held; statement update proposed) |
 | IF-15 | Role list with `default_for_new_chat` (registry data) and "guidance changed since this conversation started" | DEL-02-04 → DEL-01-04 | Start display (ST-5, ST-6); "Continue as ‹role›" (§5.8) | No list → "no role" only | **New row proposed (NR-4)**: held inside SCC-002, SCC-neutral |
 | IF-12 | Native interaction view and scoped request/outcome checks | DEL-01-04 → DEL-09-02 | Before the joined request witness | Nothing is claimed beyond the cases run (§13) | DEP-09-02-012 (admitted) |
@@ -401,16 +402,17 @@ DEL-01-02's recovered state (IF-2).
 | TO-1 | "In progress" | `inProgress` observed while observation is live | — |
 | TO-2 | "In progress: Codex waits for your tool-permission answer" / "…for your answer to a question" | Active flag `waitingOnApproval` / `waitingOnUserInput` | "Waiting for the person" as a state of a workflow run, or any checkpoint hold wording (SD-4). The flag is the supplier's report about its own turn |
 | TO-3 | "Completed" | `completed` observed | Any statement about descendants (§5.5) |
-| TO-4 | "Interrupted (‹cause›)": "interrupted by you" (the person's interrupt, R17-3 op 1), "interrupted by quit" (K-4), "interrupted after your `cancel` tool-permission answer", or "cause not observed" | `interrupted` observed; the cause only where DEL-01-02's record or this App's own answer shows it | "Stopped" (App v3 used it, §10); a run end |
+| TO-4 | "Interrupted (‹cause›)": "interrupted by you" (the person's interrupt, R17-3 op 1), "interrupted by quit" (K-4), "interrupted by Stop Codex" (C-12; cause *codex-stop*), "interrupted after your `cancel` tool-permission answer", or "cause not observed" | `interrupted` observed; the cause only where DEL-01-02's record or this App's own answer shows it | "Stopped" (App v3 used it, §10); a run end |
 | TO-5 | "Failed: ‹supplier's message›" | `failed` with `Turn.error` | A cause of the App's own |
 | TO-6 | "Outcome unknown: observation was lost before Codex reported an end" | Observation lost (supplier exit, connection loss) with no terminal status observed, or DEL-01-02 cannot settle it after recovery | Completed, interrupted or failed by inference |
 | TO-7 | "Interrupted by quit; resume?" | After relaunch, for turns K-4 recorded "interrupted by quit"; the resume offer is DEL-01-02's | An automatic resume |
 
 **Labels from DEL-01-02.** Where DEL-01-02 supplies an outcome label for a
-turn (its node-D1 draft, read in progress, names for example *interrupted by
-the person*, *completed (stop requested)*, *interrupted by quit (final status
-not observed)*), the view shows that label and, after a relaunch, Codex's own
-reported status beside it. TO-0…TO-7 constrain the wording: never "stopped"
+turn (RECOVERY-v0.2 §3.4, `outcomeLabel`: for example *interrupted by the
+person*, *completed (stop requested)*, *interrupted by quit (final status not
+observed)*, *interrupted by Stop Codex*, *interrupted by Stop Codex (final
+status not observed)*), the view shows that label and, after a relaunch,
+Codex's own reported status beside it. TO-0…TO-7 constrain the wording: never "stopped"
 for an interruption, unknown stays unknown, no cause the record does not show.
 
 | TO-9 | "‹item› not completed (turn ended)" | A message or reasoning item opened (`item/started`) and never completed by the time the turn ends; such items are also absent from history (OBS-2 O-1, O-3) | Completed; silently dropped (G-4, R18-7) |
@@ -428,8 +430,8 @@ DEL-01-02 owns the definitions; this file presents them and keeps them apart.
 | Operation (R17-3) | Where the person meets it | What the view shows afterwards |
 |---|---|---|
 | Interrupt a turn | The turn's "Interrupt" control (DEL-01-02's operation, `turn/interrupt`) | TO-4 "interrupted by you"; the conversation and any workflow run continue; never "run ended" |
-| End a run | The run panel's "End run" control (DEL-01-02 / EXEC run end) | The run-ended event from the record (§9); turns keep their own outcomes |
-| Stop the Codex process | Quit, or the App's **"Stop Codex"**. With live work the App asks first (K-4; DEF-5a): the question lists the live turns, the waiting requests and active delegated agents as DEL-01-02 supplies them, and has no timeout | Live turns "interrupted by quit" / "interrupted (Codex stopped)" (K-4); waiting cards CS-7 (no App decline at stop, DEL-01-02 U-10) |
+| End a run | The run panel's "End run" control (DEL-02-03's run end, EXEC; DEL-01-02 DEF-4 defines the person's end and neither performs nor records it) | The run-ended event from the record (§9); turns keep their own outcomes |
+| Stop the Codex process | Quit, or the App's **"Stop Codex"**. With live work the App asks first (K-4; DEF-5a): the question lists the live turns, the waiting requests and active delegated agents as DEL-01-02 supplies them, and has no timeout | Live turns "interrupted by quit" / "interrupted by Stop Codex" (RECOVERY-v0.2 §3.4; K-4); waiting cards CS-7 (no App decline at stop, DEL-01-02 U-10) |
 | Restart the Codex process | **"Restart Codex"** (C-12). With live work the App asks first, as for Stop; then DEL-01-02 stops and starts the process | As Stop, then the conversations re-attach (§5.3) |
 
 Under DECISION-L L-1 the App runs one Codex process per App-owned home
@@ -493,7 +495,7 @@ committed 0.158.0 `TurnStartParams`.
 | # | Rule |
 |---|---|
 | TC-1 | No model chosen → nothing is sent (ST-3) |
-| TC-2 | The `input` list holds, in order: the run-start text element when the turn starts a run (TC-3), the person's text, then the supplied attachments (§6) |
+| TC-2 | The `input` list holds, in order: the run-start text element when the turn starts a run (TC-3), or, when a run has ended and no run starts with this turn, DEL-02-02's run-end line as its own text element (R20-3; WR-v0.2 §16.2 TX-5; once); then the person's text; then the attachments (§6: text elements, image inputs, and the text element naming paths) |
 | TC-3 | **Run start (R19-7).** The run-start text is DEL-02-02's composition (the registered revision's exact bytes between App-written lines naming the workflow and revision and, when chaining, saying the previous run ended). This file places it as its own text element and changes nothing in it; DEL-02-02 records the bytes and DEL-02-03 starts the run |
 | TC-4 | **Plan mode (NPTD §5.4).** When the person chooses Plan (labelled "experimental", C-05), the turn carries NPTD's plan-mode element as `collaborationMode`; when NPTD says "not offered (‹reason›)", the Plan control is absent |
 | TC-5 | **Leaving plan mode.** Once a conversation has used plan mode, every later turn carries `collaborationMode` with mode `default` (model the conversation's, `developer_instructions` null) explicitly, because plan mode persists until the default mode is sent (OBS-2 O-8) |
@@ -504,7 +506,7 @@ committed 0.158.0 `TurnStartParams`.
 | # | Rule |
 |---|---|
 | RN-1 | The conversation view marks each run's start ("‹workflow› ‹revision› started", the supplied bytes folded and openable) and end ("run ended: ‹how›") from the run records DEL-02-03 writes; one run at a time (R19-2) |
-| RN-2 | **Sequential (a).** After a run ends or completes, the workflow selector (DEL-02-02's selection) is available again in the same conversation; starting B is TC-3 |
+| RN-2 | **Sequential (a).** After a run ends (only by the person, DEL-01-02 DEF-4, with cause *ended by the person*, *ended to start ‹B›* or *completed*, or by the run owner; R20-1), the workflow selector (DEL-02-02's selection) offers a plain start again in the same conversation; starting B is TC-3. While a run is in force, selecting B is offered only as "End ‹A› and start ‹B›" (RN-4; R20-11 (1)) |
 | RN-3 | **Agent-proposed (b).** When the last non-empty line of a completed `agentMessage` is `Next workflow: ‹origin›:‹name›`, the message carries that line form only once (R20-11 (2); WR-v0.2 §16.5 PR-1), and it resolves to exactly one registered workflow, the App shows a button **"Start ‹workflow› (proposed by the agent)"** beneath it when no run is in force (RN-4 otherwise). Nothing starts until the person presses it; the press is ordinary input (R17-9), handed to DEL-02-02 as the person's selection and to DEL-02-03 to start the run |
 | RN-4 | **During a run (R20-11 (1)).** While a run is in force, the proposal is offered only as **"End ‹A› and start ‹B›"**, one step and the person's choice: pressing it ends A by the person (DEL-01-02 DEF-4) with cause `ended to start ‹B›` (R20-11 (4), EXEC's wording), or `completed` when the same message carries a finished report (RN-7; R20-1), then starts B by TC-3. A plain "Start ‹workflow›" appears only when no run is in force (one run at a time) |
 | RN-5 | A proposal naming no registered workflow, or several, a proposal line that is not the last non-empty line, or a message with more than one proposal line shows no button; prose suggestions are not read (the App never classifies message text as a request: EXEC RC-5). The offer records nothing and is never a selection by the agent |
@@ -517,7 +519,7 @@ committed 0.158.0 `TurnStartParams`.
 |---|---|
 | CA-1 | "Continue as ‹role›" opens a **new conversation** with that role (fixed for its life, L-2) and the role's guidance composed by DEL-02-04 at start. It does not fork: at 0.158.0 `thread/fork` ignores new instructions, so a fork keeps the source's role (OBS-3 W-6; R19-8) |
 | CA-2 | **Handoff summary (R20-6).** When the person chooses "Continue as ‹role›", the App asks the **source conversation's agent**, in a visible turn of that conversation, to draft a handoff summary (the request names what it should cover: the person's last request, the last workflow run and how it ended, and the attachments supplied there by name and content identity). The draft is placed in the new conversation's composer under one App-written header naming the source conversation and its role; the header names and does not instruct, and the summary carries no instructions beyond the person's own text. The person edits it before sending; nothing is sent to the new conversation until the person sends it. If the source turn fails or is interrupted, the composer holds the header only and the person writes the summary (PROPOSED) |
-| CA-3 | The new conversation starts with no model chosen (ST-1); the source's model may be offered as the last explicit choice (ST-2) |
+| CA-3 | The new conversation starts with no model chosen (ST-1); the project's last explicit choice is offered exactly as ST-2 defines it, as for any new conversation (K-3). The source conversation's model is not offered as such |
 | CA-4 | "Fork" stays available as a same-role copy of a conversation (`thread/fork`), labelled "same role" |
 
 
@@ -525,45 +527,70 @@ committed 0.158.0 `TurnStartParams`.
 
 ## 6. Attachments and the identity of supplied content (OUT-002; REQ-003; AC-003; VER-003)
 
-**Supplier facts (`observed-in-generated-types`).** At 0.158.0 a turn's input
-is a list of `UserInput`: `text`; `image` by `url` or by supplier `fileId`;
-`localImage` by `path`; `audio` by `url`; `localAudio` by `path`; `skill`
-{name, path}; `mention` {name, path}. The supplier reads a path itself.
-Separately, `thread/attachment/add|list|remove` (stable) persists
-{`attachmentType`, `identityKey`, `payload`} per thread with outcome
-`created` · `existing`; its semantics are not observed.
+**Supplier facts.** At 0.158.0 a turn's input is a list of `UserInput`:
+`text`; `image` by `url` or by supplier `fileId`; `localImage` by `path`;
+`audio` by `url`; `localAudio` by `path`; `skill` {name, path}; `mention`
+{name, path} (`observed-in-generated-types`). **Observed (OBS-3, Codex
+0.158.0, one local model, 2026-10-02):** `mention` with a file, with a
+`SKILL.md` copy and with a discovered skill's canonical path was accepted and
+**nothing reached the model**, neither the bytes nor the path, only the
+text message (W-3); `skill` was honoured only for a `SKILL.md` at the
+canonical path of a skill Codex had discovered, and otherwise accepted and
+silently ignored (W-1); a plain text element reached the model byte for byte
+and `thread/read` returned it (W-4). Separately, `thread/attachment/add|list|remove`
+(stable) persists {`attachmentType`, `identityKey`, `payload`} per thread with
+outcome `created` · `existing`; its semantics are not observed.
 
-**Consequence (inference).** For path forms, the bytes Codex reads are not
-observable from the App, and nothing at the pin reports provider adoption. The
-App can only state what it read and when.
+**Carriers (R21-2; INTEGRATION).** The App carries an attachment in one of
+three ways, and records which:
+
+| Form (`suppliedAs`) | For | What the turn carries | Standing (`supplyStanding`) | `supplierRead` |
+|---|---|---|---|---|
+| `text-element` | A text file (AT-9) | A text element: one App-written line naming the file, then the file's bytes | **supplied** | "not applicable: the bytes are in the turn's own text element" (W-4 observed the text route) |
+| `localImage`; `image-url`, `image-fileId` | An image | A `localImage` {path} or `image` {url · fileId} input | **supplied** | `localImage`: "not observed: Codex reads the path itself" (`observed-in-generated-types`; the image route was not observed in OBS-1…3); by reference: "not applicable: content passed by reference" |
+| `path-named` | Any other file (including audio, binary and text above the bound) (AT-10) | A text element naming the path for the agent to read with its tools | **named; read only if a tool item shows it** | "not observed: read only if a tool item shows it" |
+
+`mention` and `skill` are **not** attachment forms (W-3, W-1). `audio` and
+`localAudio` are not used: an audio file is named (AT-10).
+
+**Consequence (inference).** For `localImage` and a named path the bytes Codex
+or the agent reads are not observable from the App; for a text element they
+are the bytes the App sent. Nothing at the pin reports provider adoption. The
+App states what it read, what it sent and when, and for a named path any
+tool item that shows a read.
 
 | # | Rule |
 |---|---|
-| AT-1 | When the person selects a file, the App takes its content identity (method designation carried; no algorithm chosen: RS U-04, HOSTING U-08) and shows it with the name |
+| AT-1 | When the person selects a file, the App takes its content identity (method designation carried; no algorithm chosen: RS U-04, HOSTING U-08) and shows it with the name and the carrier it will use (AT-9, AT-10) |
 | AT-2 | When the host writes the turn input, it takes the identity again. If it differs from the selection's, the file is **not sent**: the card says "content changed since you selected it; confirm the current content", and the person confirms the current content or removes it. A file missing at that moment is held the same way |
-| AT-3 | One [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) record per supplied item: the identities at selection and submission, the form used, the path or reference, the turn, and the fixed labels "supplier read: not observed: Codex reads the path itself" and "provider adoption: not observed" |
+| AT-3 | One [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) record (0.2) per attachment: the identities at selection and submission, the form (`suppliedAs`), its standing (`supplyStanding`), the path or reference, the identity of the text element sent (`elementIdentity`, for a text element or a named path), the turn, `supplierRead` **per form** (table above), "provider adoption: not observed", and for a named path the tool items that show a read (`toolReads`) |
 | AT-4 | Same-named items with different content are different attachments, shown with distinguishing identity prefixes; nothing is merged or substituted by name |
 | AT-5 | A URL or supplier `fileId` is recorded as given, with identity "not obtainable (the App does not fetch it)" |
 | AT-6 | A later check (the person opens the item, or the view re-checks on display) records "unchanged since supplied" or "changed after it was supplied; what Codex read is not observed"; it never rewrites the supply record's earlier identities |
 | AT-7 | `thread/attachment/*` is not used by this design: its semantics are not observed and no requirement needs it (UNRESOLVED U-NIR-4) |
-| AT-8 | A draft reaches a trial conversation (K-7) only as a message or attachment the person sends; the App may pre-fill the composer, never sends it (C-14; WR TT-2, TT-3). It is shown as "draft ‹name› at content ‹id› — not a registered workflow; this conversation is not a workflow run", with a supply record of form `draft-package`. No guidance carries a draft |
+| AT-8 | A draft reaches a trial conversation (K-7) only as a message or attachment the person sends; the App may pre-fill the composer, never sends it (C-14; WR TT-2, TT-3). Its `WORKFLOW.md` and other text files go as text elements (AT-9) and any other file is named (AT-10), exactly as for any attachment (R21-2); each supply record carries the `draft` element {location, name, content} and is shown as "draft ‹name› at content ‹id› — not a registered workflow; this conversation is not a workflow run". No guidance carries a draft, and `skill` is never used for it |
+| AT-9 | **Text element (PROPOSED wording).** A file that decodes as UTF-8, has no NUL byte and is within the App's bound (PROPOSED 256 KiB; U-NIR-10) goes as its own text element: `[Chirality] Attached file "‹name›" (‹path›; content ‹12 hex›). Its bytes follow this line.`, a line feed, then the bytes exactly. The line names; it instructs nothing |
+| AT-10 | **Named path (PROPOSED wording).** Any other file is named in one App-written text element after the person's text: `[Chirality] File named, not supplied: "‹name›" at ‹path› (content ‹12 hex› when attached). Read it with your tools if you need it.` A later tool item of the conversation that names the path (a command or file read) is recorded in `toolReads` (App-observed); the record stays "named": which bytes were read then is not observed |
 
-**Two ways to narrow the gap between the App's read and Codex's read (options;
-not chosen: TBD-003 keeps attachment storage open, REQ-003 forbids choosing
-it here).**
+**Two ways to narrow the gap between the App's read and Codex's read for
+`localImage` and named paths (options; not chosen: TBD-003 keeps attachment
+storage open, REQ-003 forbids choosing it here).** A text element has no such
+gap: its bytes are in the turn.
 
 | Option | What is supplied | For | Against |
 |---|---|---|---|
-| AO-1 (this design's default) | The original path; identity at selection and submission | No copy; no storage choice | A change between the App's read and Codex's read is not detected |
-| AO-2 | A copy in an App-held, content-addressed store, whose path is supplied | The bytes Codex reads are the bytes the App identified, unless the copy itself is altered | A storage location and lifecycle must be chosen (TBD-003); the agent sees a different path |
+| AO-1 (this design's default) | For `localImage` and a named path: the original path; identity at selection and submission | No copy; no storage choice | A change between the App's read and Codex's or the agent's read is not detected |
+| AO-2 | A copy in an App-held, content-addressed store, whose path is supplied or named | The bytes read are the bytes the App identified, unless the copy itself is altered | A storage location and lifecycle must be chosen (TBD-003); the agent sees a different path |
 
-**Sequence (SQ-A).** Select (AT-1) → compose → write the turn input (AT-2,
-AT-3) → turn runs (Codex reads) → later checks (AT-6). Failures: identity not
-obtainable at selection (unreadable file) · the App · nothing sent · the
-person picks again; identity differs at submission · the App · held, not sent
-· the person confirms or removes; the supply record cannot be written · the
-App · the item is still held until the record is written, so the App never
-sends what it has not recorded.
+**Sequence (SQ-A).** Select (AT-1) → choose the carrier (AT-9, AT-10) →
+compose → write the turn input (AT-2, AT-3) → turn runs (Codex receives the
+text element or image input; the agent may read a named path with its tools)
+→ later checks (AT-6; tool reads, AT-10). Failures: identity not obtainable at
+selection (unreadable file) · the App · nothing sent · the person picks
+again; identity differs at submission · the App · held, not sent · the person
+confirms or removes; the supply record cannot be written · the App · the item
+is still held until the record is written, so the App never sends what it has
+not recorded.
 
 ---
 
@@ -739,19 +766,19 @@ until a candidate exists.
 | VC-NIR-07 Attempt ≠ acknowledgment | Answer; acknowledgment later; write failure | Walk | CS-3 → CS-3a; CS-5 | model, double | R-3, R-6 pass (model) | VER-001, VER-002 |
 | VC-NIR-08 Refusals | Second answer, closed generation, unknown identity, resolved, invalid form, App-rule affirmative | Answer | U-26 reasons shown; card waits | model | R-1, R-4, R-10, R-12, R-13, R-14 pass (model) | VER-001 |
 | VC-NIR-09 Register coverage | All RT rows | Walk | 13/13 rows; entries valid against HOSTING's schema | model | R-15, R-16 pass (model) | VER-001 |
-| VC-NIR-10 Outcomes | Status set; observation lost; causes; running descendant | Label | TO-1…TO-6; never "stopped"; descendants not implied | model; OBS-2 (O-1, O-4); candidate | O-1…O-3 pass (model) | VER-002 |
+| VC-NIR-10 Outcomes | Status set; observation lost; causes (incl. Stop Codex); running descendant | Label | TO-1…TO-6; RECOVERY's labels; never "stopped"; descendants not implied | model; OBS-2 (O-1, O-4); candidate | O-1…O-3, O-3a pass (model) | VER-002 |
 | VC-NIR-11 Reload and relaunch | Live turn with a waiting card | Reload; relaunch after quit | Recovered state drawn; cards rebuilt; "interrupted by quit" with resume offer | candidate; DEL-01-02 interface (O-2 settled: no re-raise) | Not run | VER-002 |
 | VC-NIR-12 Start display | No selection; last choice exists | Open; send | "No model selected"; offer not applied; message kept | model; candidate | O-4 pass (model) | VER-002 (K-3) |
-| VC-NIR-13 Attachment identity | Same file; changed file; same name different content; missing file | Select and submit | Sent; held; two items; held. Records valid | model; candidate | A-1…A-5 pass (model) | VER-003 |
+| VC-NIR-13 Attachment identity and carriers (R21-2) | Same file; changed file; same name different content; missing file; a text file, an image, another file; a tool read of a named path; `mention` and `skill`; a draft's `WORKFLOW.md` | Select and submit | Sent; held; two items; held. Text element and image "supplied"; other files "named; read only if a tool item shows it", the tool read recorded beside it; `mention`/`skill` refused as forms; the draft shown as a draft. Records valid | model; candidate | A-1…A-8 pass (model; rewritten at RV21) | VER-003 |
 | VC-NIR-14 Draft transitions | WR §5.1 walk: written, review shown, review stale, review shown, registered; name taken; registration not completed | Receive | WR states shown; stale review; refusals of invented registration | model; DEL-02-02's interface (D5) | D-1…D-6 pass (model) | VER-004 |
 | VC-NIR-15 Act presentation | Record-out with direct capture, faithful record, earlier act, joint answer, lapse, decline, A14, agent claim | Display | AP-1…AP-9 | fixture (RS examples), candidate | Not run (display) | VER-005 |
 | VC-NIR-16 Positive act case | A person, an App file, the act control | Act; then change the file | Direct-capture record, actor ≠ recorder; then lapse | **person** (DEP-01-04-019), candidate | Model only: AAC K-4, K-6 | VER-005 |
 | VC-NIR-17 Receiving review | This file | Trace REQ-006 exclusions; open pairs | §11, §12 complete | review | — | VER-006 |
 | VC-NIR-18 Fixture suite | All of the above on a candidate | Run | Simulated vs observed reported | candidate | — | VER-007 |
-| VC-NIR-20 Turn composition | Plan chosen; later turns; run start | Compose | Plan element; explicit default after plan; run-start text first; valid against `TurnStartParams` | model; bundle | O-8, O-9 pass | VER-002 (C-06) |
+| VC-NIR-20 Turn composition | Plan chosen; later turns; run start; run-end line with attachments | Compose | Plan element; explicit default after plan; run-start text or run-end line first, then the person's text, then the attachments; valid against `TurnStartParams` | model; bundle | O-8, O-8a, O-9 pass | VER-002 (C-06) |
 | VC-NIR-21 Start display wording and role | Run vs conversation; registry default | Open; clear role | R18-2 wording; preselected, clearable, "no role" | model; candidate | O-5, O-6 pass | VER-002 |
 | VC-NIR-22 Waiting indicator | Requests in two conversations; two windows | Count; answer twice | Count with no window; second answer refused | model; candidate | O-10 pass | VER-001 (C-24) |
-| VC-NIR-23 Start offer | Proposal lines exact, absent, unknown; run in progress | Offer; confirm | Offer only for one registered workflow; disabled during a run; person confirms | model; candidate | O-11 pass | VER-004 (R19-2) |
+| VC-NIR-23 Start offer | Proposal lines exact, absent, unknown; run in progress | Offer; confirm | Offer only for one registered workflow; with no run in force "Start ‹B›"; during a run only "End ‹A› and start ‹B›" (enabled; R20-11 (1)); the person confirms | model; candidate | O-11 pass | VER-004 (R19-2) |
 | VC-NIR-24 Continue as role | A conversation | Continue as another role | New conversation, editable summary, nothing sent, no model | model; candidate | O-12 pass | VER-002 (R19-3) |
 | VC-NIR-25 Items never completed | Open reasoning item at turn end | Settle | "not completed (turn ended)" | model; fixture (OBS-2 O-1) | O-7 pass | VER-002 (G-4) |
 | VC-NIR-19 Formats | Three schemas and examples | Validate | Valid valid; invalid invalid | model | S-1…S-4 pass | OUT-003 |
@@ -759,7 +786,12 @@ until a candidate exists.
 ### 13.2 Local prototype (R17-1; R12-3)
 
 `prototype/` (Python 3 standard library; read-only imports of DEL-04-03's
-`minischema.py` and `record_store.py` and DEL-01-01's `jsonschema_subset.py`).
+`minischema.py` and `record_store.py` and DEL-01-01's `jsonschema_subset.py`;
+at RV21 it also reads DEL-02-02's WR schema and examples and DEL-02-01's WD
+schema for K-17. Checks S-4 and O-9 are **optional third-party
+cross-checks**: they use the already-installed `jsonschema` when it can be
+imported and are skipped otherwise; every other check needs only the
+standard library).
 Command: `python3 run_cases.py` in `prototype/`. Round 2 run on 2026-10-02,
 macOS Darwin 25.6.0 arm64, Python 3.13.7: **119 checks, 0 failed**, exit
 status 0; output in [`prototype/results/RUN_2026-10-02.txt`](prototype/results/RUN_2026-10-02.txt)
@@ -776,6 +808,11 @@ the same verdicts on all schema examples (S-4). **Rerun at RX2** (2026-10-02, sa
 failed**, exit status 0; O-11 and O-12 rewritten and O-13 added for
 R20-11 and R20-6 (RN-3, RN-4, RN-7, CA-2); output in
 [`prototype/results/RUN_2026-10-02_RX2.txt`](prototype/results/RUN_2026-10-02_RX2.txt).
+**Rerun at RV21** (2026-10-02, same command and host): **151 checks, 0
+failed**, exit status 0; A-1…A-8 rewritten for R21-2, O-3a (Stop Codex label),
+O-8a (run-end line and attachment order), and AAC's K-12b…K-12d, K-17, K-17b
+for R21-3; output in
+[`prototype/results/RUN_2026-10-02_RV21.txt`](prototype/results/RUN_2026-10-02_RV21.txt).
 A pass is evidence that the
 rules run as written, not a VER pass.
 
@@ -784,7 +821,7 @@ rules run as written, not a VER pass.
 | Schema | Handed from → to | Examples |
 |---|---|---|
 | [`nir.answer-submission.schema.json`](nir.answer-submission.schema.json) | DEL-01-04 card → register *answer* (DEL-01-01 / DEL-01-02) | `.example.valid.json` (1), `.example.invalid.json` (6 cases) |
-| [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) | DEL-01-04 → conversation view, DEL-02-02 (draft attachments), DEL-04-03 (cited as evidence) | 1 valid, 4 invalid |
+| [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) (0.2, RV21: R21-2) | DEL-01-04 → conversation view, DEL-02-02 (a draft tried in a conversation), DEL-04-03 (cited as evidence) | 4 valid (text element, named path with a tool read, local image, draft), 11 invalid (among them `mention`, `skill`, a named path recorded as supplied, v0.1's fixed `supplierRead` on a named path, v0.1's `draft-package`) |
 | [`nir.draft-transition.schema.json`](nir.draft-transition.schema.json) (0.2) | DEL-02-02 → DEL-01-04 (D5's `draft_transition` with D5's names, plus the two optional elements of C-02) | 1 valid, 5 invalid |
 
 The act control's two formats are AAC §5. All five use the keyword subset
@@ -819,9 +856,11 @@ RS's own schema.
 | U-NIR-7 *Filled:* O-1 and O-3 confirm TO-4 and CS-6; O-4 confirms the descendant line through an adapter only (R18-9). "Primary completed, child running" stays not observed | DEL-01-03 | When observed | §5.5 |
 | U-NIR-8 *Ruled (R20-5, R20-9; recorded at RX):* the line forms `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`; the shipped product guidance states both (ROLE-v0.2 GS-7) | — | — | RN-3…RN-7; the buttons' wording and placement stay PROPOSED |
 | U-NIR-9 *Ruled (R20-6; recorded at RX2):* the source conversation's agent drafts the handoff summary in a visible turn there; the person edits it; the App adds only a header naming the source | — | — | CA-2; the request's wording and the failure fallback stay PROPOSED |
+| U-NIR-10 (RV21) The text-element bound (AT-9: PROPOSED 256 KiB) and whether an image input reaches a given provider (not observed at 0.158.0; OBS-1…3 sent no image) | App implementation owner with DEL-01-05 (model context) | Before attachment implementation | A file above the bound is named (AT-10); an image is recorded "supplied", its read "not observed" |
 
 ## Changes
 
+- RV21 (repairs from V21, 2026-10-02; in place, no version step): R21-2, R21-3 (IF-5), V21-A MINOR 4–9 and 14, V21-B's Stop Codex label; row "RV21" in "Changes from v0.1" at the top.
 - RX2 (design pass 3 residual sweep 2, 2026-10-02; in place, no version step): R20-11 and R20-6, row "RX2" in "Changes from v0.1" at the top.
 - RX (design pass 3 residual sweep, 2026-10-02; in place, no version step): R20-9 "End run" offer, row "RX" in "Changes from v0.1" at the top.
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1" at the top.
