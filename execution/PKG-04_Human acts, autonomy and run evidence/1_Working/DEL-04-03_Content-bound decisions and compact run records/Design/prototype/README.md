@@ -1,8 +1,8 @@
 # DEL-04-03 record-format prototype (R12-3)
 
 **This is a prototype, not product code.** It shows that the PROPOSED record
-format of RS-v0.8 §13 can be written and read back, and it exercises the
-writer and reader failure behaviour of RS-v0.8 §14. It selects no placement
+format of RS-v0.9 §13 can be written and read back, and it exercises the
+writer and reader failure behaviour of RS-v0.9 §14. It selects no placement
 (OI-013, OI-014), no path, no identity algorithm and no canonicalization
 (DEL-03-01 TBD-003). It sends nothing anywhere and installs nothing.
 
@@ -52,6 +52,13 @@ files; nothing is written beside the Design files.
   act without capture evidence; the reader flags a recorder named as the
   decision actor and an unsandboxed process without "process network not
   observed".
+
+- RS-v0.9 (node F-C of run `APP-V4-DESIGN-PASS-3-20261001`, 2026-10-02):
+  six logs (4, 8, 20, 12, 20 and 1 entries; the act log gained a two-entry
+  A15 and the chained-run log is new) validate and round-trip; INV-RS-1…24
+  fail for their stated reasons; the reader's new A15 rule (bound content
+  equals reviewed content, WR ID-2; registered entries in order) flags the
+  two FC-7c entries; 63 PASS, 0 FAIL. Output in `F/F-C.md` of that run.
 
 The exact console output is recorded in the Wave B return file
 `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/WAVE_B/B4.md`; the

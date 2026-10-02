@@ -191,3 +191,33 @@ checked by F-E). Rerun each touched deliverable's prototype. Return file
 `F/<ID>.md`: rows applied, rows not applied with reason, new sha256, rerun
 output. Never edit `OBS_*`, `PIN_SPIKE_*`, `generated/`, SWBPIPE data files,
 ScopeOfWork, registers or `_STATUS.md`.
+
+## RX — residual sweep (one Type 2) and F-E1 (one Type 2), in parallel; then F-E2
+
+**RX fence:** WR (DEL-02-02 Design), ROLE (DEL-02-04 Design), NIR (DEL-01-04
+Design: NIR only), HOSTING (DEL-01-01 `HOSTING_BOUNDARY.md` only), EXEC
+(DEL-02-03 Design), CA (DEL-09-06 Design: the CA file, its examples and
+prototype outputs; never `FACTS_*`, `RELAY_*`). In place, no version steps
+(each file's change table gets an "RX" row). Items:
+
+1. R20-9: align WR-v0.2 (text, schema patterns, examples, prototype) to
+   `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`;
+   add the finished line to ROLE GS-7 and the "End run" offer to NIR §5.7.
+2. D3 and D5 round-2 join items for HOSTING and EXEC (D3.md and D5.md §R2.3:
+   e.g. J-H11/FH-43, J-E2, J-17, J-28…J-31) not yet applied by F-A or F-B.
+3. Citations of "WR-v0.2 … run-start supply" become "WR-v0.2 §16" in
+   HOSTING, EXEC and (read-only check) WD; report WD's for F-E2.
+4. CA: regenerate examples (`--write-examples`) against the final DEL-02-03
+   prototype; investigate the `run_w14_rehearsals.py` failure F-C saw.
+5. Rerun every prototype in the twenty Design folders touched in this run
+   (the six new and the first-increment ones) and report each result.
+
+**F-E1 fence:** ADAPTER (DEL-03-03), XT (DEL-09-09), LOOP (DEL-05-01),
+PANEL (DEL-05-02) Design files and their prototypes. Rows FD-01, FT-01,
+FL-01, FL-02, FP-01 (F0 §1.9–§1.13) plus D4's CH-8 (host plan billing on the
+next-relay list) and every round-2 item in D/D1…D6.md §R2.3 aimed at these
+files. Version steps as F0 §6.
+
+**F-E2 (after RX and F-E1):** GUIDE (DEL-03-04) → v0.6: FG-01…FG-03 and
+re-pin every input; check every cross-file section citation made in this run
+against the cited text and report mismatches (fixing only GUIDE).

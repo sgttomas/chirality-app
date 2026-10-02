@@ -13,9 +13,9 @@
   },
   {
     "case": "INV-RS-3",
-    "why": "An A15 registration that does not name the draft it derives from (R12-5)",
+    "why": "An A15 registration that names neither its reviewed draft nor its prior revision (R12-5; R17-11; C-01; RS-v0.9)",
     "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0903", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001",
-      "body": {"actKind": "A15", "decisionActor": {"displayName": "Engineer A", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "unselected", "value": "wfrev:rev-4"}], "scope": "project FX-W1", "purpose": "make it available in the project", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": []}}
+      "body": {"actKind": "A15", "decisionActor": {"displayName": "Engineer A", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "unselected", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": []}}
   },
   {
     "case": "INV-RS-4",
@@ -85,5 +85,50 @@
     "why": "Workflow identity without its source root (WD §6.1; RS R2; R14-3)",
     "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:run-13:0915", "kind": "run_opened", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-13", "seq": 1, "writtenAt": "w001",
       "body": {"runId": "run:E-13", "startedBy": {"kind": "person", "identity": "Engineer A"}, "surface": "host-loop run", "workflow": {"kind": "workflow", "origin": "host", "name": "supports-adjust", "revision": "rev-3", "revisionVerification": "verified"}, "conversationRef": "conv:K-13", "declaredCheckpoints": [{"name": "CP-L4", "requiredAct": "A4", "subjectClass": "objects changed by a named outcome"}]}}
+  },
+  {
+    "case": "INV-RS-16",
+    "why": "An A15 that names its draft under the retired relation derivedFrom: derived-from is WD's parent workflow identity, not the A15's relation (R17-11; C-01; RS-v0.9)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0916", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "codexAccount": "ChatGPT account (no email reported)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"derivedFrom": "draft:supports-adjust@d-12"}}}
+  },
+  {
+    "case": "INV-RS-17",
+    "why": "An A15 whose prior revision is a free string: it is RS's workflowTuple or null (C-01; K-6)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0917", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "codexAccount": "ChatGPT account (no email reported)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:supports-adjust@wfrev:rev-4", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}}, "priorRevision": "project:supports-adjust@rev-3"}}}
+  },
+  {
+    "case": "INV-RS-18",
+    "why": "An A15 that gives both the one-entry relations and registeredEntries (L-4: one form or the other)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0918", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "codexAccount": "ChatGPT account (no email reported)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:supports-adjust@wfrev:rev-4", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}}, "priorRevision": null, "registeredEntries": [{"subject": "workflow revision project:row-review@rr-1", "reviewedDraft": {"draft": "entry:project:row-review@wfrev:rr-1", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rr-1"}}, "priorRevision": null}, {"subject": "workflow revision project:span-check@sc-1", "reviewedDraft": {"draft": "entry:project:span-check@wfrev:sc-1", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:sc-1"}}, "priorRevision": null}]}}}
+  },
+  {
+    "case": "INV-RS-19",
+    "why": "A tool-permission request ended unanswered at a process exit, without its context and custody event (RECOVERY-v0.2 §8.2; FR-02)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0919", "kind": "tool_permission_settlement", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"request": "tool-request:13", "settledBy": "none — ended unanswered", "settlement": "ended unanswered (process exit)"}}
+  },
+  {
+    "case": "INV-RS-20",
+    "why": "A request ended at a process exit recorded as the App's named-rule decline: no automatic decline (R17-9); an ended request is settled by no one",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0920", "kind": "tool_permission_settlement", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"request": "tool-request:13", "settledBy": "App named-rule decline", "settlement": "ended unanswered (process exit)", "context": "App quit", "custodyEventRef": "cev:0042"}}
+  },
+  {
+    "case": "INV-RS-21",
+    "why": "A workflow supplied as turn text without its check against thread/read (R19-7)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0921", "kind": "supplied_guidance", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"supplyForm": "workflow run start (turn text)", "thread": "conv:K-7", "turn": 6, "sourceIdentity": "workflow:project:FX-W1:span-summary@rev-2", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:ss-2"}, "supplyRecord": {"kind": "supply record", "ref": "wr-supply:run-R-100-13", "resolutionAtWrite": "resolved"}}}
+  },
+  {
+    "case": "INV-RS-22",
+    "why": "A Codex account recorded with its plan type: codexAccount is the reported email or 'ChatGPT account (no email reported)'; plan type is not recorded (R18-1 C-10)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0922", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A15", "actClass": {"value": "person's act (V4-WF-02)"}, "decisionActor": {"displayName": "Engineer A", "codexAccount": "plus (enga@example.invalid)", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["workflow revision project:supports-adjust@rev-4"], "boundContent": [{"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}], "scope": "project library FX-W1", "purpose": "make it available in the project library", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:reg-rev-4", "resolutionAtWrite": "resolved"}], "captureTime": "d1", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:supports-adjust@wfrev:rev-4", "content": {"method": "workflow revision content identity (method unselected)", "value": "wfrev:rev-4"}}, "priorRevision": null}}}
+  },
+  {
+    "case": "INV-RS-23",
+    "why": "A role limit observation attributed by inference: a child without a role type is never attributed TASK (ROLE-v0.2 §6.3 DL-1; IL-6)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-13:0923", "kind": "role_limit_observation", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "runId": "run:R-100/13", "seq": 1, "writtenAt": "w001", "body": {"limit": "L-TASK-1", "roleInForce": "TASK", "basis": "inherited", "standing": "stated-not-enforced", "item": {"kind": "conversation item", "ref": "item:collabAgentToolCall-31", "resolutionAtWrite": "resolved"}, "observedAt": "T-c3"}}
+  },
+  {
+    "case": "INV-RS-24",
+    "why": "An A4 that carries the A15 relation reviewedDraft (the A15 relations are A15's only; RS-v0.9)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:acts:0924", "kind": "human_act", "recorder": {"role": "App interface (capturing surface)", "identity": "app-interface:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001", "body": {"actKind": "A4", "actClass": {"value": "reserved to the person"}, "decisionActor": {"displayName": "Engineer A", "osAccount": "enga", "identityVerified": false}, "recordingMode": "direct capture", "boundSubject": ["AF-1"], "boundContent": [{"method": "file content identity (method unselected)", "value": "AF-1@f1"}], "scope": "AF-1", "purpose": "App output checked", "captureEvidence": [{"kind": "capture evidence", "ref": "cap:app-AF-1", "resolutionAtWrite": "resolved"}], "captureTime": "d2", "evidenceLimits": ["identity not verified"], "relations": {"reviewedDraft": {"draft": "draft:project:af@AF-1@f1", "content": {"method": "file content identity (method unselected)", "value": "AF-1@f1"}}}}}
   }
 ]

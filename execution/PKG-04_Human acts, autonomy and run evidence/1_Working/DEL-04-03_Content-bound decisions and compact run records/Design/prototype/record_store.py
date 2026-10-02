@@ -1,4 +1,4 @@
-"""Prototype writer and reader for the PROPOSED record format (RS-v0.8 §13, §14).
+"""Prototype writer and reader for the PROPOSED record format (RS-v0.9 §13, §14).
 
 Prototype only (R12-3): it shows the format and the failure behaviour of the
 writer and reader sequences. It is not product code, selects no placement
@@ -209,6 +209,19 @@ class Reader:
                 names = {actor.get(k) for k in ("displayName", "osAccount", "codexAccount", "hostActor")} - {None}
                 if e["recorder"]["identity"] in names:
                     nonconf.append((e["recordId"], ["HA-2: recorder named as decision actor"]))
+                if b.get("actKind") == "A15":
+                    # RS-v0.9 R-7: the A15 binds the reviewed bytes (WR ID-2; C-01; L-4)
+                    rel = b.get("relations", {})
+                    entries_ = rel.get("registeredEntries") or [
+                        {"subject": (b["boundSubject"] or [None])[0], "reviewedDraft": rel.get("reviewedDraft")}]
+                    subjects, contents = b["boundSubject"], b["boundContent"]
+                    if len(entries_) != len(subjects) or len(entries_) != len(contents):
+                        nonconf.append((e["recordId"], ["A15: registered entries, bound subjects and bound contents do not correspond one-to-one"]))
+                    else:
+                        for i, x in enumerate(entries_):
+                            if x["subject"] != subjects[i] or (x.get("reviewedDraft") or {}).get("content") != contents[i]:
+                                nonconf.append((e["recordId"], [f"A15: entry {i + 1} is not bound to its reviewed content (WR ID-2)"]))
+                                break
             if e["kind"] == "outside_process" and not b.get("sandboxed"):
                 ok = any(x["kind"] == "evidence_limit" and x["body"]["label"] == "process network not observed"
                          and x["body"].get("subjectRef") == b["processId"] for x in entries)

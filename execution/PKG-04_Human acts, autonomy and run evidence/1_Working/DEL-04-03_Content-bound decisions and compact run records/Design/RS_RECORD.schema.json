@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-04-03:rs-record:0.1",
   "title": "Run and act record entry (DEL-04-03 OUT-001) — PROPOSED",
-  "description": "PROPOSED record format of RS-v0.8 §13 (R12-1, R12-2; U-04). RS format 0.1 is the only record container (R14-1): a record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. The bodies of the checkpoint entry kinds (EXEC CE-1…CE-19) are DEL-02-03's and are referenced by relative path to EXEC's `checkpoint-record-entries.schema.json` (RS §13.3); the settings_version body is DEL-04-02's, referenced by $id. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Recording entries of kind destination_declined is SETTLED by DEL-04-03 ScopeOfWork CLM-004 (R16-1, correcting R12-10); recording boundary_refusal entries is PROPOSED (R12-10, R16-1); every representation here is PROPOSED. The R11 labels include R13-1's and R13-2's.",
+  "description": "PROPOSED record format of RS-v0.9 §13 (R12-1, R12-2; U-04). RS format 0.1 is the only record container (R14-1): a record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. The bodies of the checkpoint entry kinds (EXEC CE-1…CE-19) are DEL-02-03's and are referenced by relative path to EXEC's `checkpoint-record-entries.schema.json` (RS §13.3); the settings_version body is DEL-04-02's, referenced by $id. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Recording entries of kind destination_declined is SETTLED by DEL-04-03 ScopeOfWork CLM-004 (R16-1, correcting R12-10); recording boundary_refusal entries is PROPOSED (R12-10, R16-1); every representation here is PROPOSED. The R11 labels include R13-1's and R13-2's. RS-v0.9 (node F-C of run APP-V4-DESIGN-PASS-3-20261001) adds, in place in format 0.1 (R13-4): the A15 relations reviewedDraft and priorRevision, and registeredEntries for one act over several library entries (C-01, R17-11; L-4), replacing relations.derivedFrom; the codexAccount form (C-10); R3 supply forms citing the supplier's own record (R19-1, R19-7); role_limit_observation (ROLE-v0.2 §6.3); R13 settlements 'resolved by supplier' and 'ended unanswered (process exit)' (RECOVERY-v0.2 §8.2); runOpened.follows (R19-2) and the run-end line in R3 (R20-3).",
   "$ref": "#/$defs/entry",
   "$defs": {
     "recordId": {
@@ -87,7 +87,9 @@
             "supplier settlement",
             "compatibility report",
             "carriage manifest",
-            "conversation item"
+            "conversation item",
+            "supply record",
+            "limit account"
           ]
         },
         "ref": {
@@ -113,7 +115,7 @@
       "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/arrivalRef"
     },
     "person": {
-      "description": "RS §6.1 decision actor. For App-captured acts: the name set in the App, the operating-system account and the Codex account when Codex reports one, marked identity not verified (DECISION-K1 K1-4).",
+      "description": "RS §6.1 decision actor. For App-captured acts: the name set in the App, the operating-system account and the Codex account when Codex reports one, marked identity not verified (DECISION-K1 K1-4). codexAccount is the reported email of the ChatGPT account of the Codex home that runs the conversation, or 'ChatGPT account (no email reported)'; plan type is not recorded; an API-key account identifies no person and gives no codexAccount (R18-1 C-10; ACCESS-v0.2 I-6).",
       "type": "object",
       "required": [
         "identityVerified"
@@ -127,7 +129,15 @@
           "type": "string"
         },
         "codexAccount": {
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[^@\\s]+@[^@\\s]+$"
+            },
+            {
+              "const": "ChatGPT account (no email reported)"
+            }
+          ]
         },
         "hostActor": {
           "type": "string"
@@ -247,7 +257,8 @@
             "observation_lost",
             "observation_recovered",
             "arrival_replaced",
-            "act_after_run_end"
+            "act_after_run_end",
+            "role_limit_observation"
           ]
         },
         "recorder": {
@@ -693,11 +704,21 @@
               "$ref": "#/$defs/actAfterRunEnd"
             }
           }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "role_limit_observation"
+            },
+            "body": {
+              "$ref": "#/$defs/roleLimitObservation"
+            }
+          }
         }
       ]
     },
     "runOpened": {
-      "description": "R1, R2, R4, R5a and the declared checkpoints listed as guidance (Phase 1). notStarted: R1 'run not started — no model selected' (R15-1), host-loop runs only.",
+      "description": "R1, R2, R4, R5a and the declared checkpoints listed as guidance (Phase 1). notStarted: R1 'run not started — no model selected' (R15-1), host-loop runs only. follows: R1 chaining (R19-2), the run that preceded this one in the same conversation, cited as context; it is not part of this run's identity and nothing carries from it.",
       "type": "object",
       "required": [
         "runId",
@@ -737,6 +758,10 @@
           ]
         },
         "continues": {
+          "$ref": "#/$defs/runId"
+        },
+        "follows": {
+          "description": "R19-2 (a), (b): 'follows ‹run› in this conversation' — the run that preceded this one in the same conversation (ended by the person, RECOVERY DEF-4, with cause 'completed' where the person ended it after the agent reported the workflow finished, R20-1), cited as context: a relation, not a dependency of this run's identity. Unlike continues (R4-4), nothing carries: no arrival, disposition or act. PROPOSED (RS-v0.9).",
           "$ref": "#/$defs/runId"
         },
         "workflow": {
@@ -787,7 +812,9 @@
           "type": "string"
         },
         "seatRole": {
-          "type": "string"
+          "description": "R5a. App runs: the role in force from DEL-02-04's supply record for the conversation (ROLE-v0.2 §6.1), or 'no role' (R17-9); a same-role fork keeps the source's role (R19-8). Host-loop runs: DEL-05-01 / DEL-02-01.",
+          "type": "string",
+          "minLength": 1
         },
         "declaredCheckpoints": {
           "type": "array",
@@ -1375,16 +1402,59 @@
             "afterRunEnd": {
               "type": "boolean"
             },
-            "derivedFrom": {
-              "type": "string",
-              "minLength": 1
+            "reviewedDraft": {
+              "$ref": "#/$defs/reviewedDraft"
+            },
+            "priorRevision": {
+              "description": "A15 (R17-11; C-01): the revision this one follows in its slot (K-6), as RS's workflowTuple, or null for a first revision. WD's derived-from (the parent workflow identity) is not this act's relation (R17-11; C-21).",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/workflowTuple"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "registeredEntries": {
+              "description": "A15 over several library entries in one act (DECISION-L L-4; R19-4): each entry with the bound subject it registers, its reviewed bytes and its prior revision. Entries correspond one-to-one, in order, with boundSubject and boundContent, and each reviewedDraft.content equals its boundContent (WR ID-2): a reader rule (RS §14.2 R-7). PROPOSED (RS-v0.9).",
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "required": [
+                  "subject",
+                  "reviewedDraft",
+                  "priorRevision"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reviewedDraft": {
+                    "$ref": "#/$defs/reviewedDraft"
+                  },
+                  "priorRevision": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/workflowTuple"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
             }
           }
         }
       },
       "allOf": [
         {
-          "description": "A15: the bound content is the revision identity and the relations name the draft it derives from (R12-5).",
+          "description": "A15 (R12-5; R17-11; C-01; L-4): the bound content is the reviewed content identity, equal to the revision identity (WR ID-2); the relations name the reviewed draft and the prior revision (or null), for one entry, or registeredEntries for several. relations.derivedFrom is not an element of this kind (refused by additionalProperties).",
           "anyOf": [
             {
               "properties": {
@@ -1401,8 +1471,37 @@
               ],
               "properties": {
                 "relations": {
-                  "required": [
-                    "derivedFrom"
+                  "oneOf": [
+                    {
+                      "required": [
+                        "reviewedDraft",
+                        "priorRevision"
+                      ],
+                      "not": {
+                        "required": [
+                          "registeredEntries"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "registeredEntries"
+                      ],
+                      "not": {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "reviewedDraft"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "priorRevision"
+                            ]
+                          }
+                        ]
+                      }
+                    }
                   ]
                 }
               }
@@ -1425,6 +1524,50 @@
               "required": [
                 "a12Subclass"
               ]
+            }
+          ]
+        },
+        {
+          "description": "The A15 relations are A15's only (RS-v0.9).",
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "const": "A15"
+                }
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "relations"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "relations": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "reviewedDraft"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "priorRevision"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "registeredEntries"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
             }
           ]
         }
@@ -1835,14 +1978,24 @@
       }
     },
     "suppliedGuidance": {
-      "description": "R3: per thread and turn, the source identity and content identity of each guidance input supplied; supplied is not adopted.",
+      "description": "R3: per thread and turn, the source identity and content identity of each guidance input supplied; supplied is not adopted (adoption is always unknown). App runs (RS-v0.9): role guidance supplied at conversation start, or inherited at a same-role fork, cites DEL-02-04's supply record (ROLE-v0.2 §6.1) and its limit account (§6.2); the workflow supplied per run as a text element of the run-start turn, and the App-written run-end line on the next turn when no run starts with it (R20-3), cite DEL-02-02's run_text record and state its supply_check against thread/read (WR-v0.2 §16; R19-7). Each cites its supplier's record by reference; RS does not embed it (RS-v0.9 §4 R3).",
       "type": "object",
       "required": [
+        "supplyForm",
         "sourceIdentity",
         "content"
       ],
       "additionalProperties": false,
       "properties": {
+        "supplyForm": {
+          "enum": [
+            "role guidance at conversation start",
+            "role guidance inherited at fork",
+            "workflow run start (turn text)",
+            "workflow run end notice (turn text)",
+            "host-loop guidance"
+          ]
+        },
         "thread": {
           "type": "string"
         },
@@ -1851,12 +2004,78 @@
           "minimum": 1
         },
         "sourceIdentity": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "content": {
           "$ref": "#/$defs/contentIdentity"
+        },
+        "supplyRecord": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "limitAccount": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "adoption": {
+          "const": "unknown"
+        },
+        "supplyCheck": {
+          "description": "R19-7, R20-3: the state of DEL-02-02's supply check of the turn text against what thread/read returns for that turn (WR-v0.2 §16.6 `supply_check`), or 'not checked'. 'verified' means the text was supplied as composed; adoption stays unknown.",
+          "enum": [
+            "verified",
+            "text differs, workflow bytes equal",
+            "text differs, workflow bytes differ",
+            "not found",
+            "unreadable",
+            "not checked"
+          ]
+        },
+        "supplyCheckRecord": {
+          "$ref": "#/$defs/evidenceRef"
         }
-      }
+      },
+      "allOf": [
+        {
+          "description": "App supply forms cite the supplier's own record.",
+          "anyOf": [
+            {
+              "properties": {
+                "supplyForm": {
+                  "const": "host-loop guidance"
+                }
+              }
+            },
+            {
+              "required": [
+                "supplyRecord"
+              ]
+            }
+          ]
+        },
+        {
+          "description": "A workflow run-start text or run-end notice states its turn and its supply check (R19-7; R20-3).",
+          "anyOf": [
+            {
+              "properties": {
+                "supplyForm": {
+                  "not": {
+                    "enum": [
+                      "workflow run start (turn text)",
+                      "workflow run end notice (turn text)"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "turn",
+                "supplyCheck"
+              ]
+            }
+          ]
+        }
+      ]
     },
     "examinationFindings": {
       "description": "R10: A3 findings by reference; never 'host checks passed', never A4.",
@@ -1879,7 +2098,7 @@
       }
     },
     "toolPermissionSettlement": {
-      "description": "R13 (A14; App runs only): the settlement and its origin. Never a human-act record, never a grant.",
+      "description": "R13 (A14; App runs only): the settlement and its origin. Never a human-act record, never a grant. RS-v0.9: 'resolved by supplier' (DEL-01-01's observed fact; OBS-2 O-3 at 0.158.0) and 'ended unanswered (process exit)' (DEL-01-02's custody fact request_ended_unanswered, with its context; RECOVERY-v0.2 §8.2) are settlements by no one: never an answer, never a decline by the App (R17-9).",
       "type": "object",
       "required": [
         "request",
@@ -1896,20 +2115,110 @@
             "the person via interaction",
             "the user's Codex mode",
             "App named-rule decline",
-            "explicit error"
+            "explicit error",
+            "the supplier",
+            "none — ended unanswered"
           ]
         },
         "settlement": {
           "enum": [
             "answered",
             "declined",
-            "errored"
+            "errored",
+            "resolved by supplier",
+            "ended unanswered (process exit)"
           ]
         },
         "ruleName": {
           "type": "string"
+        },
+        "context": {
+          "enum": [
+            "supplier exit",
+            "supplier stop",
+            "App quit",
+            "system termination",
+            "App ended without record"
+          ]
+        },
+        "custodyEventRef": {
+          "type": "string",
+          "pattern": "^cev:.+"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "settledBy": {
+              "enum": [
+                "the person via interaction",
+                "the user's Codex mode",
+                "App named-rule decline",
+                "explicit error"
+              ]
+            },
+            "settlement": {
+              "enum": [
+                "answered",
+                "declined",
+                "errored"
+              ]
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "context"
+                ]
+              },
+              {
+                "required": [
+                  "custodyEventRef"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "settledBy": {
+              "const": "the supplier"
+            },
+            "settlement": {
+              "const": "resolved by supplier"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "context"
+                ]
+              },
+              {
+                "required": [
+                  "custodyEventRef"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "context",
+            "custodyEventRef"
+          ],
+          "properties": {
+            "settledBy": {
+              "const": "none — ended unanswered"
+            },
+            "settlement": {
+              "const": "ended unanswered (process exit)"
+            }
+          }
+        }
+      ]
     },
     "compatibilityReportRef": {
       "description": "R14: reference to a required-tool compatibility report evaluated for the run.",
@@ -2109,6 +2418,73 @@
         },
         "derivedFrom": {
           "$ref": "#/$defs/workflowTuple"
+        }
+      }
+    },
+    "roleLimitObservation": {
+      "description": "R3 limits (RS-v0.9): a stated limit of the role in force observed not kept, e.g. L-TASK-1 'a task agent does not delegate' at a spawnAgent item (ROLE-v0.2 §6.3 DL-1). Written when the conversation serves a run (DL-4). Nothing was prevented (DL-3); the standing is carried as handed (C-08). Never a human act, a refusal or a defect of the run. PROPOSED.",
+      "type": "object",
+      "required": [
+        "limit",
+        "roleInForce",
+        "basis",
+        "standing",
+        "item",
+        "observedAt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "string",
+          "pattern": "^L-[A-Z]+-[0-9]+$"
+        },
+        "roleInForce": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": {
+          "enum": [
+            "supplied-to-thread",
+            "native-child-role-reported"
+          ]
+        },
+        "standing": {
+          "enum": [
+            "stated-not-enforced",
+            "enforced-by-supplier",
+            "unknown"
+          ]
+        },
+        "item": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "thread": {
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitAccount": {
+          "$ref": "#/$defs/evidenceRef"
+        }
+      }
+    },
+    "reviewedDraft": {
+      "description": "A15 (R17-11; C-01): the reviewed content as WR's ID-3 string — 'draft:<location>:<name>@<content identity>' for a reviewed draft, or 'entry:<location>:<name>@<content identity>' for a library entry reviewed in place (WR-v0.2 §4.7; L-4) — with location 'project' or 'user', and the content identity it was reviewed at. WR keeps its internal draft-key object and writes this string through the RS writer.",
+      "type": "object",
+      "required": [
+        "draft",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "draft": {
+          "type": "string",
+          "pattern": "^(draft|entry):(project|user):[^@]+@.+$"
+        },
+        "content": {
+          "$ref": "#/$defs/contentIdentity"
         }
       }
     }

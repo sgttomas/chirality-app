@@ -249,6 +249,23 @@ def main():
     check(any(m.startswith("HA-2") for m in msgs) and any("process network not observed" in m for m in msgs),
           f"FC-7b reader flags {msgs}")
 
+    # FC-7c (RS-v0.9 R-7): an A15 binds the reviewed bytes; schema-valid entries whose bound content differs
+    # from the reviewed content, or whose registered entries are out of order, are flagged by the reader
+    acts_src = [json.loads(l) for l in open(os.path.join(RS_DIR, "RS_RECORD.valid.act-log.example.jsonl"), encoding="utf-8")]
+    one = copy.deepcopy(acts_src[0])
+    one["body"]["boundContent"] = [{"method": one["body"]["boundContent"][0]["method"], "value": "wfrev:other"}]
+    many = copy.deepcopy(acts_src[3])
+    many["body"]["relations"]["registeredEntries"].reverse()
+    p = os.path.join(scratch, "fc7c.jsonl")
+    with open(p, "w", encoding="utf-8") as fh:
+        for i, e in enumerate((one, many), start=1):
+            fh.write(json.dumps(dict(e, seq=i), ensure_ascii=False) + "\n")
+    log = reader.read_log(p)
+    v = reader.view([log])
+    msgs = [m for _, ms in v["nonconformant"] for m in ms]
+    check(not log["nonconformant"] and len(msgs) == 2 and all("WR ID-2" in m for m in msgs),
+          f"FC-7c schema-valid A15 entries not bound to their reviewed content flagged by the reader: {msgs}")
+
     # 5. EXEC -> RS (R14-1)
     print("\n== EXEC recorder outputs as RS entries (R14-1) ==")
     import exec_to_rs                                         # noqa: E402

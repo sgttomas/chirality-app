@@ -58,3 +58,17 @@ version (L-WDEX-33a).
   NPTD shows them as its goals line. WD's S-11 count stays 27.
 - The three new HOSTING fixtures stand: "the schema and its fixtures"
   includes new fixture files where a row adds a rule.
+
+## R20-9 The two agent lines — INTEGRATION (WR-v0.2 vs R20-5)
+
+Both lines name the workflow by origin and name, each alone on its own line:
+`Next workflow: ‹origin›:‹name›` (R20-5) and
+`Workflow finished: ‹origin›:‹name›` (R20-1's report, introduced in WR-v0.2
+§16). The App reads only these exact forms. The shipped product guidance
+(ROLE GS-7) carries both; the run-start text (WR-FRAME-1) repeats them for
+the run in force. NIR §5.7 offers "End run" on the finished line.
+
+## R20-10 F-C's proposed row — noted for SCA-V4-003
+
+DEL-04-03 → DEL-02-02 (WR's run-text and supply-check records), inside
+SCC-002, no SCC change. Collected with the other proposed rows.
