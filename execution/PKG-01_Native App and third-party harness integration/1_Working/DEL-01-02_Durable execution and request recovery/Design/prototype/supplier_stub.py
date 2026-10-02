@@ -2,19 +2,24 @@
 """In-memory stand-in for the parts of stock Codex App Server 0.158.0 that
 DEL-01-02's recovery design depends on.
 
-Prototype only (DEL-01-02 Design, EXECUTION-AND-RECOVERY-v0.1, run
-APP-V4-DESIGN-PASS-3-20261001 node D1). NOT product code, NOT an App
+Prototype only (DEL-01-02 Design, RECOVERY-v0.2, run
+APP-V4-DESIGN-PASS-3-20261001 node D1, rounds 1 and 2). NOT product code, NOT an App
 candidate, NOT the supplier. Python 3 standard library only; no network; the
 Codex binary is never started.
 
 Every behaviour here is CONSTRUCTED from the generated protocol types at
 0.158.0 (ThreadStatus, TurnStatus, turn/interrupt, thread/resume, thread/read,
-thread/turns/list, serverRequest/resolved, thread/closed, Thread.parentThreadId)
-and from the design's assumptions. Where the supplier's live behaviour is not
-observed (OBS-2 pending: O-1, O-2, O-3, O-4), the stub offers VARIANTS so that
-each designed case can be run under every plausible answer. A case passing
-under all variants shows that the design's labels stay truthful whichever
-answer OBS-2 returns; it shows nothing about which answer is true.
+thread/turns/list, serverRequest/resolved, thread/closed, thread/fork,
+Thread.parentThreadId) and from the design's assumptions. Round 2: the
+DEFAULT_VARIANT is the behaviour OBS-2 observed at 0.158.0 (one local pair,
+2026-10-01; `OBS_2_0.158.0.md` §4, §5); the other variant values are kept as
+defences and are labelled "not observed at 0.158.0". The observed orders are
+reproduced: on interrupt the response, then `turn/completed` (interrupted),
+then `serverRequest/resolved` for a held request; an open item never gets
+`item/completed`; a `cancel` answer declines the item and interrupts the
+turn; a child is announced only by the parent's `collabAgentToolCall` item
+(no `thread/started`, observed through OBS-2's adapter, R18-9); a fork copies
+the source's turns with their ids (OBS-3 W-6).
 
 Content strings are invented. The marker CONTENT_MARKER is placed in every
 message, command and request payload so that the runner can check that the
@@ -39,7 +44,7 @@ VARIANTS = {
     "child_after_interrupt": ["stops", "survives"],
 }
 
-DEFAULT_VARIANT = {
+DEFAULT_VARIANT = {   # observed at 0.158.0 (OBS-2); O-4 child behaviour not observed
     "interrupt": "interrupted",
     "pending_on_interrupt": "resolved-by-supplier",
     "persisted_after_exit": "interrupted",
@@ -56,6 +61,7 @@ class Store:
     def __init__(self):
         self.threads = {}  # tid -> {"parent": tid|None, "turns": [turn dicts]}
         self.pending = {}  # tid -> list of request dicts pending at process end
+        self.markers = {}  # tid -> turn ids for which a graceful-stop abort note was written
 
     def snapshot(self):
         return copy.deepcopy(self.threads)
@@ -132,9 +138,16 @@ class SupplierProcess:
         """A delegated child thread the agent starts (Thread.parentThreadId;
         constructed: delegation is experimental at 0.158.0, K-5)."""
         ctid = "thr-%s-%d" % (self.g, len(self.store.threads) + 1)
+        parent_turn = [t for t in self.store.threads[parent_tid]["turns"] if t["status"] == "inProgress"][-1]["id"]
+        self._iid += 1
+        spawn = {"id": "item-%s-%d" % (self.g, self._iid), "type": "collabAgentToolCall", "tool": "spawnAgent",
+                 "status": "inProgress", "receiverThreadIds": []}
+        self._turn(parent_tid, parent_turn)["items"].append(spawn)
+        self._emit("item/started", {"threadId": parent_tid, "turnId": parent_turn, "item": dict(spawn)})
         self.store.threads[ctid] = {"parent": parent_tid, "turns": []}
         self.loaded[ctid] = {"status": {"type": "idle"}}
-        self._emit("thread/started", {"thread": {"id": ctid, "parentThreadId": parent_tid}})
+        spawn.update({"status": "completed", "receiverThreadIds": [ctid]})
+        self._emit("item/completed", {"threadId": parent_tid, "turnId": parent_turn, "item": dict(spawn)})
         turn_id = "turn-%s-c%d" % (self.g, len(self.store.threads))
         self.store.threads[ctid]["turns"].append({"id": turn_id, "status": "inProgress", "items": []})
         self._set_status(ctid, {"type": "active", "activeFlags": []})
@@ -146,6 +159,18 @@ class SupplierProcess:
 
     def report_idle(self, tid):
         self._set_status(tid, {"type": "idle"})
+
+    def _m_thread_fork(self, rid, p):
+        src = p["threadId"]
+        if src not in self.store.threads:
+            self._respond(rid, error={"code": -32602, "message": "thread not found"})
+            return
+        tid = "thr-%s-%d" % (self.g, len(self.store.threads) + 1)
+        turns = [dict(t, items=[]) for t in self.store.threads[src]["turns"]]   # same turn ids
+        self.store.threads[tid] = {"parent": None, "turns": turns, "forkedFrom": src}
+        self.loaded[tid] = {"status": {"type": "idle"}}
+        self._respond(rid, {"thread": {"id": tid, "status": {"type": "idle"}, "forkedFromId": src,
+                                       "parentThreadId": None, "turns": []}})
 
     def close_thread(self, tid):
         self.loaded.pop(tid, None)
@@ -210,10 +235,10 @@ class SupplierProcess:
             self._finish_turn(tid, turn_id, "completed")
             self._respond(rid, {})
             return
-        # "interrupted"
+        # "interrupted" (observed order, OBS-2 §4, §5.1): response, turn/completed, then resolved
         self._respond(rid, {})
-        self._settle_pending_on_interrupt(tid, turn_id)
         self._finish_turn(tid, turn_id, "interrupted")
+        self._settle_pending_on_interrupt(tid, turn_id)
         self._children_after_interrupt(tid)
 
     # ---- supplier-initiated -------------------------------------------
@@ -267,6 +292,16 @@ class SupplierProcess:
             return
         req["open"] = False
         self._emit("serverRequest/resolved", {"threadId": req["threadId"], "requestId": frame["id"]})
+        decision = (frame.get("result") or {}).get("decision")
+        if decision == "cancel" and req["method"].endswith("requestApproval"):
+            # observed side effect (OBS-2 §5.1): cancel = decline the item and interrupt the turn
+            for it in self._turn(req["threadId"], req["turnId"])["items"]:
+                if it["id"] == req["itemId"]:
+                    it["status"] = "declined"
+                    self._emit("item/completed", {"threadId": req["threadId"], "turnId": req["turnId"],
+                                                  "item": dict(it)})
+            self._finish_turn(req["threadId"], req["turnId"], "interrupted")
+            return
         self._set_status(req["threadId"], {"type": "active", "activeFlags": []})
 
     def _settle_pending_on_interrupt(self, tid, turn_id):
@@ -293,12 +328,19 @@ class SupplierProcess:
         return rid
 
     # ---- process end --------------------------------------------------
-    def end(self):
+    def end(self, graceful=False):
         """The process ends (stop or crash). What Codex's history then shows
-        for a live turn follows the variant (O-2)."""
+        for a live turn follows the variant (O-2). On a graceful stop (input
+        closed) with a live turn Codex 0.158.0 writes an abort note into
+        history (OBS-2 §5.2 run A); a kill writes nothing."""
         if not self.alive:
             return
         self.alive = False
+        if graceful:
+            for tid, th in self.store.threads.items():
+                for t in th["turns"]:
+                    if t["status"] == "inProgress":
+                        self.store.markers.setdefault(tid, []).append(t["id"])
         mode = self.v["persisted_after_exit"]
         for tid, th in self.store.threads.items():
             for t in list(th["turns"]):

@@ -2,10 +2,14 @@
   "kind": "register_entry_summary",
   "session": "sess-1",
   "at": "2026-10-01T09:31:40.510Z",
-  "generation": "sess-1/g1",
+  "generation": "sess-1/H-acct/g1",
   "requestIdentity": "sr-ex-4",
   "method": "item/commandExecution/requestApproval",
-  "subject": {"threadId": "thr-ex-1", "turnId": "turn-ex-5", "itemId": "item-ex-15"},
+  "subject": {
+    "threadId": "thr-ex-1",
+    "turnId": "turn-ex-5",
+    "itemId": "item-ex-15"
+  },
   "state": "closed",
   "transition": "RQ-04",
   "endedAs": "ended-unanswered(process-exit)",

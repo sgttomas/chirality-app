@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:custody-event:0.1",
+  "$id": "urn:chirality:app-v4:del-01-02:custody-event:0.2",
   "title": "DEL-01-02 custody event — observation and recovery facts offered to receivers (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §4 and §9. DEL-01-02's own format, offered to DEL-01-04, DEL-01-03, DEL-04-03 (DEP-01-02-020), DEL-02-03 and DEL-03-03. DEL-01-02 writes no entry in DEL-04-03's record format (R17-10); the receiving writer maps these facts (§9 table). No kind here is a human act, an approval or a run end.",
   "oneOf": [
@@ -33,6 +33,7 @@
         "appSession",
         "at",
         "standing",
+        "home",
         "generation",
         "cause",
         "conversations",
@@ -57,6 +58,9 @@
         "standing": {
           "description": "R17-4: the App's own observation, never authority for what Codex holds.",
           "const": "App-observed"
+        },
+        "home": {
+          "$ref": "#/$defs/home"
         },
         "generation": {
           "$ref": "#/$defs/nonempty"
@@ -140,6 +144,7 @@
         "at",
         "standing",
         "threadId",
+        "home",
         "generation",
         "via",
         "priorEvents",
@@ -165,6 +170,9 @@
         },
         "threadId": {
           "$ref": "#/$defs/nonempty"
+        },
+        "home": {
+          "$ref": "#/$defs/home"
         },
         "generation": {
           "$ref": "#/$defs/nonempty"
@@ -211,6 +219,10 @@
               "appReading": {
                 "type": "string",
                 "minLength": 1
+              },
+              "historyNote": {
+                "description": "G-5 (R18-7): on a graceful stop with a live turn Codex 0.158.0 writes into history that the user interrupted the turn on purpose (OBS-2 §5.2). Stated from the App's own record of the stop; the App does not parse history text.",
+                "const": "graceful-stop abort note (Codex 0.158.0, observed OBS-2)"
               }
             }
           }
@@ -283,14 +295,26 @@
           ]
         },
         "cause": {
+          "description": "cancel-answer (C-13): no stop request; the person's cancel answer to a tool-permission request in this turn, after which Codex declined the item and interrupted the turn (observed OBS-2 §5.1).",
           "enum": [
             "person-interrupt",
-            "quit"
+            "quit",
+            "codex-stop",
+            "cancel-answer"
           ]
         },
         "stopRequest": {
           "type": "string",
           "pattern": "^stop:.+"
+        },
+        "causeRequest": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "itemsNotCompleted": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/notCompleted"
+          }
         },
         "descendantsActive": {
           "type": "array",
@@ -328,6 +352,33 @@
             "properties": {
               "outcome": {
                 "const": "unknown"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cause": {
+                "const": "cancel-answer"
+              }
+            },
+            "required": [
+              "cause"
+            ]
+          },
+          "then": {
+            "required": [
+              "causeRequest"
+            ],
+            "not": {
+              "required": [
+                "stopRequest"
+              ]
+            },
+            "properties": {
+              "outcome": {
+                "const": "interrupted"
               }
             }
           }
@@ -425,6 +476,7 @@
         "at",
         "standing",
         "threadId",
+        "home",
         "priorSession",
         "priorSessionEnd",
         "liveTurnsAtEnd"
@@ -449,6 +501,9 @@
         },
         "threadId": {
           "$ref": "#/$defs/nonempty"
+        },
+        "home": {
+          "$ref": "#/$defs/home"
         },
         "priorSession": {
           "$ref": "#/$defs/nonempty"
@@ -577,6 +632,33 @@
         "system-termination",
         "app-ended-without-record"
       ]
+    },
+    "home": {
+      "description": "The App-owned Codex home (DECISION-L L-1): H-acct, or H-key for API-key conversations.",
+      "type": "string",
+      "pattern": "^H-[a-z]+$"
+    },
+    "notCompleted": {
+      "description": "G-4 (R18-7): an item opened in the turn and never completed, settled at turn end.",
+      "type": "object",
+      "required": [
+        "itemId",
+        "itemType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "settled": {
+          "const": "not completed (turn ended)"
+        }
+      }
     }
   }
 }

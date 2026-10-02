@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.1",
+  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.2",
   "title": "DEL-01-02 App ledger entry — what the App keeps across relaunch (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §7. Append-only, one entry per line (as RS S-A); location and technology unselected (TBD-002). Pointers and App-observed facts only: no message, item, plan, command text, tool output or request payload is kept; those are read back from Codex (ARCHITECTURE §3; R17-4).",
   "oneOf": [
@@ -27,6 +27,9 @@
     },
     {
       "$ref": "#/$defs/lifecycle_ref"
+    },
+    {
+      "$ref": "#/$defs/codex_stop"
     }
   ],
   "$defs": {
@@ -200,6 +203,7 @@
         "session",
         "at",
         "threadId",
+        "home",
         "project",
         "tags",
         "lastObservedExecution"
@@ -217,18 +221,26 @@
         "threadId": {
           "$ref": "#/$defs/nonempty"
         },
+        "home": {
+          "$ref": "#/$defs/home"
+        },
+        "forkedFrom": {
+          "description": "The source thread when this conversation was made by thread/fork (OBS-3 W-6: the fork's history is referenced from the source's rollout).",
+          "$ref": "#/$defs/nonempty"
+        },
         "project": {
           "description": "Opaque project reference of the App.",
           "$ref": "#/$defs/nonempty"
         },
         "tags": {
-          "description": "Opaque tags handed at run time by receivers (for example a run reference). Stored and returned, never interpreted (R17-10).",
+          "description": "Opaque tags handed at run time by receivers (for example a run reference). Several per owner, in order (seq), so that runs follow one another in one conversation (R19-2). Stored and returned, never interpreted (R17-10).",
           "type": "array",
           "items": {
             "type": "object",
             "required": [
               "owner",
-              "value"
+              "value",
+              "seq"
             ],
             "additionalProperties": false,
             "properties": {
@@ -239,6 +251,10 @@
               "value": {
                 "type": "string",
                 "minLength": 1
+              },
+              "seq": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           }
@@ -275,6 +291,31 @@
             },
             "lostCause": {
               "$ref": "#/$defs/lossContext"
+            },
+            "abortNoteExpected": {
+              "description": "G-5: the live turn was ended by a graceful stop, after which Codex 0.158.0 writes its abort note into history (OBS-2 §5.2).",
+              "type": "boolean"
+            },
+            "openItems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "itemId",
+                  "itemType"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "itemId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "itemType": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
             }
           }
         },
@@ -413,6 +454,7 @@
         "kind",
         "session",
         "at",
+        "home",
         "generation",
         "transition",
         "state"
@@ -427,6 +469,9 @@
         "at": {
           "$ref": "#/$defs/nonempty"
         },
+        "home": {
+          "$ref": "#/$defs/home"
+        },
         "generation": {
           "$ref": "#/$defs/nonempty"
         },
@@ -436,6 +481,56 @@
         },
         "state": {
           "$ref": "#/$defs/nonempty"
+        }
+      }
+    },
+    "codex_stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "session",
+        "at",
+        "actor",
+        "homes",
+        "restart",
+        "liveTurns",
+        "outstandingEntries"
+      ],
+      "properties": {
+        "kind": {
+          "const": "codex_stop"
+        },
+        "session": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "actor": {
+          "$ref": "#/$defs/person"
+        },
+        "homes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/home"
+          }
+        },
+        "restart": {
+          "type": "boolean"
+        },
+        "liveTurns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/turnRef"
+          }
+        },
+        "outstandingEntries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entryRef"
+          }
         }
       }
     },
@@ -569,6 +664,11 @@
         "system-termination",
         "app-ended-without-record"
       ]
+    },
+    "home": {
+      "description": "The App-owned Codex home (DECISION-L L-1): H-acct, or H-key for API-key conversations.",
+      "type": "string",
+      "pattern": "^H-[a-z]+$"
     }
   }
 }

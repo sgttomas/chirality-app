@@ -4,10 +4,37 @@
   "appSession": "sess-1",
   "at": "2026-10-01T09:31:40.500Z",
   "standing": "App-observed",
-  "generation": "sess-1/g1",
+  "home": "H-acct",
+  "generation": "sess-1/H-acct/g1",
   "cause": "supplier-exit",
-  "conversations": ["thr-ex-1"],
-  "liveTurns": [{"threadId": "thr-ex-1", "turnId": "turn-ex-5"}],
-  "inFlightItems": [{"threadId": "thr-ex-1", "turnId": "turn-ex-5", "itemId": "item-ex-14", "itemType": "mcpToolCall", "lastObservedStatus": "inProgress"}],
-  "outstandingEntries": [{"generation": "sess-1/g1", "requestIdentity": "sr-ex-4", "method": "item/commandExecution/requestApproval", "subject": {"threadId": "thr-ex-1", "turnId": "turn-ex-5", "itemId": "item-ex-15"}}]
+  "conversations": [
+    "thr-ex-1"
+  ],
+  "liveTurns": [
+    {
+      "threadId": "thr-ex-1",
+      "turnId": "turn-ex-5"
+    }
+  ],
+  "inFlightItems": [
+    {
+      "threadId": "thr-ex-1",
+      "turnId": "turn-ex-5",
+      "itemId": "item-ex-14",
+      "itemType": "mcpToolCall",
+      "lastObservedStatus": "inProgress"
+    }
+  ],
+  "outstandingEntries": [
+    {
+      "generation": "sess-1/H-acct/g1",
+      "requestIdentity": "sr-ex-4",
+      "method": "item/commandExecution/requestApproval",
+      "subject": {
+        "threadId": "thr-ex-1",
+        "turnId": "turn-ex-5",
+        "itemId": "item-ex-15"
+      }
+    }
+  ]
 }

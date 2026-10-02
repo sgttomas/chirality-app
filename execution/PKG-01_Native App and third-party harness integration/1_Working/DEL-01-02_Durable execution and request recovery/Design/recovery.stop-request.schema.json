@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:stop-request:0.1",
+  "$id": "urn:chirality:app-v4:del-01-02:stop-request:0.2",
   "title": "DEL-01-02 stop request — the record of one turn interrupt (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §3.4 and table SR. One record per request to interrupt one turn (R17-3 operation 1), by the person or by a confirmed quit (K-4). Written before the supplier request is sent and again at every SR transition (append-only; the latest record for a stopRequestId is current). Element names are Chirality's own; supplier identities are carried as data. Not a human-act record and never a run end.",
   "type": "object",
@@ -19,7 +19,8 @@
     "turnOutcome",
     "outcomeSource",
     "state",
-    "transition"
+    "transition",
+    "home"
   ],
   "additionalProperties": false,
   "properties": {
@@ -33,6 +34,9 @@
     "appSession": {
       "$ref": "#/$defs/nonempty"
     },
+    "home": {
+      "$ref": "#/$defs/home"
+    },
     "generation": {
       "$ref": "#/$defs/nonempty"
     },
@@ -43,9 +47,11 @@
       "$ref": "#/$defs/nonempty"
     },
     "cause": {
+      "description": "person-interrupt: the person's stop of this turn; quit: a confirmed quit (K-4); codex-stop: the person's Stop Codex or Restart Codex (C-12).",
       "enum": [
         "person-interrupt",
-        "quit"
+        "quit",
+        "codex-stop"
       ]
     },
     "requestedBy": {
@@ -106,8 +112,18 @@
         "interrupted by quit",
         "completed (quit requested)",
         "failed (quit requested)",
-        "interrupted by quit (final status not observed)"
+        "interrupted by quit (final status not observed)",
+        "interrupted by Stop Codex",
+        "completed (Stop Codex requested)",
+        "failed (Stop Codex requested)",
+        "interrupted by Stop Codex (final status not observed)"
       ]
+    },
+    "itemsNotCompleted": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/notCompleted"
+      }
     },
     "itemsCompletedAfterRequest": {
       "description": "Items observed completing after the request: recorded as observed, never as prevented (HOSTING §6.7 HP-2).",
@@ -389,6 +405,33 @@
             "ended",
             "unknown"
           ]
+        }
+      }
+    },
+    "home": {
+      "description": "The App-owned Codex home (DECISION-L L-1): H-acct, or H-key for API-key conversations.",
+      "type": "string",
+      "pattern": "^H-[a-z]+$"
+    },
+    "notCompleted": {
+      "description": "G-4 (R18-7): an item opened in the turn and never completed, settled at turn end.",
+      "type": "object",
+      "required": [
+        "itemId",
+        "itemType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "settled": {
+          "const": "not completed (turn ended)"
         }
       }
     }

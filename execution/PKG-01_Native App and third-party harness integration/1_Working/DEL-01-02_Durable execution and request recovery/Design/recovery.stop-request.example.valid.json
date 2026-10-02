@@ -2,11 +2,16 @@
   "kind": "stop_request",
   "stopRequestId": "stop:sess-1:1",
   "appSession": "sess-1",
-  "generation": "sess-1/g1",
+  "home": "H-acct",
+  "generation": "sess-1/H-acct/g1",
   "threadId": "thr-ex-1",
   "turnId": "turn-ex-3",
   "cause": "person-interrupt",
-  "requestedBy": {"kind": "person", "identity": "person:ex-1", "identityStatus": "identity not verified"},
+  "requestedBy": {
+    "kind": "person",
+    "identity": "person:ex-1",
+    "identityStatus": "identity not verified"
+  },
   "requestedAt": "2026-10-01T09:14:02.120Z",
   "clientRequest": "cr-sess-1/g1-17",
   "send": "sent",
@@ -14,8 +19,26 @@
   "turnOutcome": "interrupted",
   "outcomeSource": "observed",
   "outcomeLabel": "interrupted by the person",
-  "itemsCompletedAfterRequest": [{"itemId": "item-ex-9", "itemType": "commandExecution"}],
-  "descendantsActiveAtOutcome": [{"kind": "child-thread", "ref": "thr-ex-2", "observedStatus": "active"}],
+  "itemsCompletedAfterRequest": [
+    {
+      "itemId": "item-ex-9",
+      "itemType": "commandExecution"
+    }
+  ],
+  "descendantsActiveAtOutcome": [
+    {
+      "kind": "child-thread",
+      "ref": "thr-ex-2",
+      "observedStatus": "active"
+    }
+  ],
+  "itemsNotCompleted": [
+    {
+      "itemId": "item-ex-8",
+      "itemType": "reasoning",
+      "settled": "not completed (turn ended)"
+    }
+  ],
   "state": "settled",
   "transition": "SR-06"
 }
