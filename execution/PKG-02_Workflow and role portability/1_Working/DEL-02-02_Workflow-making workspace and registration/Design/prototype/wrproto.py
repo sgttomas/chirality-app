@@ -64,10 +64,11 @@ ORIGINS = ("project", "user", "bundled", "host")
 
 
 def proposal_line(t):
-    """WR 16.2 line 3 (R20-1; RX with R20-9): both agent lines name origin and name; the finished line is the run's own."""
-    return ('[Chirality] When you judge this workflow finished, say so in a line of its own "Workflow finished: %s:%s". '
+    """WR 16.2 line 3 (R20-1; RX with R20-9; RX2 with R20-11 (2)): both agent lines name origin and name; the finished line is the run's own and comes last or just before the proposal line."""
+    return ('[Chirality] When you judge this workflow finished, end the message with a line of its own "Workflow finished: %s:%s". '
             'To propose that another registered workflow runs next, end the message with a line of its own '
-            '"Next workflow: <origin>:<name>", where <origin> is project, user, bundled or host. '
+            '"Next workflow: <origin>:<name>", where <origin> is project, user, bundled or host; '
+            'when you write both, the finished line comes just before it. '
             'The person decides; nothing ends or starts until they confirm.' % (t["origin"], t["name"]))
 
 
@@ -991,21 +992,37 @@ class RunDesk:
 
     # ---- agent proposals (PR-1..PR-5)
     def proposal_in(self, agent_text):
-        """PR-1 (R20-5, R20-9): the last non-empty line, exactly 'Next workflow: <origin>:<name>'. Returns (origin, name)."""
+        """PR-1 (R20-5, R20-9, R20-11 (2)): the last non-empty line, exactly 'Next workflow: <origin>:<name>',
+        appearing at most once in the message. Returns (origin, name)."""
         lines = [l for l in agent_text.split("\n") if l.strip()]
+        if sum(1 for l in lines if PROPOSAL_RE.match(l)) != 1:
+            return None
         m = PROPOSAL_RE.match(lines[-1]) if lines else None
         return (m.group(1), m.group(2)) if m else None
 
     def finished_in(self, c, agent_text):
-        """FN-1 (R20-1, R20-9): a 'Workflow finished: <origin>:<name>' line among the last two non-empty lines,
-        naming the run in force by its tuple's origin and name."""
+        """FN-1 (R20-1, R20-9, R20-11 (2)): 'Workflow finished: <origin>:<name>', at most once, as the last non-empty
+        line or the line immediately before the proposal line, naming the run in force by its tuple's origin and name."""
         cur = self.state(c)["current"]
-        lines = [l for l in agent_text.split("\n") if l.strip()][-2:]
-        for l in lines:
-            m = FINISHED_RE.match(l)
-            if m and cur and (m.group(1), m.group(2)) == (cur["workflow"]["origin"], cur["workflow"]["name"]):
-                return m.group(1), m.group(2)
+        lines = [l for l in agent_text.split("\n") if l.strip()]
+        if not lines or sum(1 for l in lines if FINISHED_RE.match(l)) != 1:
+            return None
+        cand = lines[-1]
+        if self.proposal_in(agent_text) and len(lines) >= 2:
+            cand = lines[-2]
+        m = FINISHED_RE.match(cand)
+        if m and cur and (m.group(1), m.group(2)) == (cur["workflow"]["origin"], cur["workflow"]["name"]):
+            return m.group(1), m.group(2)
         return None
+
+    def end_and_start(self, c, sel, pkg, person_text, finished=False, origin="selected by the person", folder_label=""):
+        """CH-1 (R20-11 (1), (4)): the one step 'End <A> and start <B>'. A is ended by the person (DEF-4) with cause
+        'ended to start <B>', or 'completed' when the person chose it on a finished report (FN-2, R20-1); then B starts."""
+        cur = self.state(c)["current"]
+        if not cur:
+            return None, "no run in force: the offer is a plain 'Start %s'" % sel["identity"]["name"]
+        self.end(c, "completed" if finished else "ended to start %s" % sel["identity"]["name"])
+        return self.start(c, sel, pkg, person_text, origin=origin, folder_label=folder_label)
 
     def resolve_pair(self, origin, name):
         """PR-2 (RX): SL-3's candidates restricted to the named origin."""
@@ -1600,6 +1617,61 @@ def main():
               '"Workflow finished: project:supports-adjust"' in pl and '"Next workflow: <origin>:<name>"' in pl
               and '"Workflow finished: bundled:review-notes"' in plS and pl == proposal_line(recF["workflow"]),
               (pl, plS))
+
+        print("\n== RX2: the run_text example's identities; R20-11 (1), (2), (4) ==")
+        fxd = os.path.join(HERE, "fixtures")
+        bad63 = []
+        texts = {}
+        for r in valid:
+            if r["record_kind"] != "run_text":
+                continue
+            L = r["lines"]
+            if r["purpose"] == "run end notice":
+                txt = L["end_line"]
+            else:
+                pk = os.path.join(fxd, r["workflow"]["name"])
+                raw = open(os.path.join(pk, "WORKFLOW.md"), "rb").read()
+                if (hashlib.sha256(raw).hexdigest(), len(raw)) != (r["workflow_file"]["content"]["value"], r["workflow_file"]["bytes"]):
+                    bad63.append(("WORKFLOW.md identity", r["run"]))
+                for o in r.get("other_files", []):
+                    h = sha(os.path.join(pk, o["path"]))
+                    if h != o["sha256"] or "%s (sha256 %s)" % (o["path"], h[:12]) not in L.get("files_line", ""):
+                        bad63.append(("other file", o["path"]))
+                b_, e_ = markers(r["workflow"])
+                if (L["begin_marker"], L["end_marker"]) != (b_, e_) or L["proposal_line"] != proposal_line(r["workflow"]):
+                    bad63.append(("markers or proposal line", r["run"]))
+                head = [L[k] for k in ("chain_line", "start_line", "proposal_line", "files_line", "begin_marker") if k in L]
+                txt = "\n".join(head) + "\n" + raw.decode("utf-8") + "\n" + L["end_marker"]
+            if tsha(txt) != r["text_identity"] or len(txt.encode("utf-8")) != r["text_bytes"]:
+                bad63.append(("text identity or bytes", r["run"], r["purpose"]))
+            texts[(r["run"], r["purpose"])] = r["text_identity"]
+        for r in valid:
+            if r["record_kind"] == "supply_check" and texts.get((r["run"], r["purpose"])) != r["expected_text"]:
+                bad63.append(("supply check expected text", r["check"]))
+        check("P-63", "the valid run_text examples' identities and sizes recompute from their lines and the fixture bytes (prototype/fixtures/review-pack); the supply check example expects that identity",
+              not bad63 and len(texts) == 2, bad63)
+        c4 = "thr-43"
+        selG, _ = ws.select(rev3, P.source_root, c4)
+        pkgG, _ = ws.resolve(selG)
+        desk.start(c4, selG, pkgG, "", folder_label=label(pkgG))
+        offs_run = desk.offers(c4, "Checked.\nNext workflow: project:review-pack\n")
+        selH, _ = ws.select(revB, P.source_root, c4)
+        pkgH, _ = ws.resolve(selH)
+        pH, recH = desk.end_and_start(c4, selH, pkgH, "", folder_label=label(pkgH))
+        offs_none = desk.offers("thr-44", "Next workflow: project:review-pack\n")
+        check("P-64", "R20-11 (1), (4): during a run a proposal is offered only as 'End A and start B'; confirming it ends A 'ended to start B' and B's chain line says so; with no run, a plain 'Start B'",
+              offs_run == ["End supports-adjust and start review-pack"] and offs_none == ["Start review-pack"]
+              and recH["chain"]["ended"] == "ended to start review-pack"
+              and "(run %s, ended to start review-pack)" % recH["chain"]["prior_run"] in recH["lines"]["chain_line"]
+              and desk.state(c4)["history"][-1]["ended"] == "ended to start review-pack", (offs_run, offs_none, recH["lines"].get("chain_line")))
+        fin_ok = desk.finished_in(c4, "Done.\nWorkflow finished: project:review-pack\nNext workflow: project:supports-adjust")
+        fin_last = desk.finished_in(c4, "Done.\nWorkflow finished: project:review-pack")
+        fin_bad = desk.finished_in(c4, "Workflow finished: project:review-pack\nThanks for waiting.")
+        fin_two = desk.finished_in(c4, "Workflow finished: project:review-pack\nok\nWorkflow finished: project:review-pack")
+        prop_two = desk.proposal_in("Next workflow: project:supports-adjust\nor\nNext workflow: project:review-pack")
+        check("P-65", "R20-11 (2): the finished line counts as the last line or the one just before the proposal line, each at most once; two proposal lines are no proposal",
+              fin_ok == ("project", "review-pack") and fin_last == ("project", "review-pack") and fin_bad is None
+              and fin_two is None and prop_two is None, (fin_ok, fin_last, fin_bad, fin_two, prop_two))
 
         print("\n== every record the prototype produced ==")
         bad = [(r["record_kind"], conforms(r)[:2]) for r in ws.records if conforms(r)]

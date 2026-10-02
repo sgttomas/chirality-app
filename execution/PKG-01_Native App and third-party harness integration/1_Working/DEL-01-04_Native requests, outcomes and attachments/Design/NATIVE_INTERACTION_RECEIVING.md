@@ -48,6 +48,7 @@
 | G-5 | R18-7 | §5.3 V-e | Codex's graceful-stop history marker is shown as Codex's, not the person's |
 | C-10 | R18-1 | §4.5 | The actor reference derives from the same three values as RS's person; no plan type |
 | RX (residual sweep; in place, no version step) | R20-9, R20-1, R20-5 | §5.7 RN-4, RN-6, new RN-7; UNRESOLVED U-NIR-8 | "End run" (and "End ‹A› and start ‹B›" with a proposal) offered on the exact line `Workflow finished: ‹origin›:‹name›` naming the run in force; the press is the person's end with cause `completed`; both line forms recorded as ruled; U-NIR-8 ruled. Not prototyped (`prototype/` unchanged) |
+| RX2 (residual sweep 2; in place, no version step) | R20-11 (1), (2), (4); R20-6 | §5.7 RN-3, RN-4, RN-5, RN-7; §5.8 CA-2; UNRESOLVED U-NIR-9; `prototype/` | During a run a proposal is offered only as "End ‹A› and start ‹B›" (enabled; A ends by the person with cause `ended to start ‹B›`, or `completed` on a finished report); a plain "Start ‹B›" only with no run in force. The proposal line is the message's last non-empty line and the finished line the last non-empty line or the one immediately before the proposal line, each at most once (follows WR-v0.2 §16.5). CA-2: the App asks the source conversation's agent, in a visible turn there, to draft the handoff summary; the person edits it under an App header naming the source; U-NIR-9 ruled. Prototype: `start_offer`, new `finished_offer`, `continue_as` and new `handoff_composer`; checks O-11, O-12 rewritten, new O-13 |
 
 **Basis and inputs (sha256 recomputed with `shasum -a 256` at this node;
 repository HEAD `dc031b5bec`).** The accepted basis as amended by SCA-V4-001
@@ -504,18 +505,18 @@ committed 0.158.0 `TurnStartParams`.
 |---|---|
 | RN-1 | The conversation view marks each run's start ("‹workflow› ‹revision› started", the supplied bytes folded and openable) and end ("run ended: ‹how›") from the run records DEL-02-03 writes; one run at a time (R19-2) |
 | RN-2 | **Sequential (a).** After a run ends or completes, the workflow selector (DEL-02-02's selection) is available again in the same conversation; starting B is TC-3 |
-| RN-3 | **Agent-proposed (b).** When a completed `agentMessage` carries exactly one line `Next workflow: ‹origin›:‹name›` that resolves to exactly one registered workflow, the App shows a button **"Start ‹workflow› (proposed by the agent)"** beneath it. Nothing starts until the person presses it; the press is ordinary input (R17-9), handed to DEL-02-02 as the person's selection and to DEL-02-03 to start the run |
-| RN-4 | While a run is in progress the button reads "Start ‹workflow› — end run ‹A› first" and is disabled beside the End run control (one run at a time), except on a finished report (RN-7) |
-| RN-5 | A proposal naming no registered workflow, or several, shows no button; prose suggestions are not read (the App never classifies message text as a request: EXEC RC-5). The offer records nothing and is never a selection by the agent |
+| RN-3 | **Agent-proposed (b).** When the last non-empty line of a completed `agentMessage` is `Next workflow: ‹origin›:‹name›`, the message carries that line form only once (R20-11 (2); WR-v0.2 §16.5 PR-1), and it resolves to exactly one registered workflow, the App shows a button **"Start ‹workflow› (proposed by the agent)"** beneath it when no run is in force (RN-4 otherwise). Nothing starts until the person presses it; the press is ordinary input (R17-9), handed to DEL-02-02 as the person's selection and to DEL-02-03 to start the run |
+| RN-4 | **During a run (R20-11 (1)).** While a run is in force, the proposal is offered only as **"End ‹A› and start ‹B›"**, one step and the person's choice: pressing it ends A by the person (DEL-01-02 DEF-4) with cause `ended to start ‹B›` (R20-11 (4), EXEC's wording), or `completed` when the same message carries a finished report (RN-7; R20-1), then starts B by TC-3. A plain "Start ‹workflow›" appears only when no run is in force (one run at a time) |
+| RN-5 | A proposal naming no registered workflow, or several, a proposal line that is not the last non-empty line, or a message with more than one proposal line shows no button; prose suggestions are not read (the App never classifies message text as a request: EXEC RC-5). The offer records nothing and is never a selection by the agent |
 | RN-6 | The two line forms are ruled (R20-5, R20-9): `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`, each alone on its own line; the App reads only these exact forms. The shipped product guidance that tells the agent both is DEL-02-04's (ROLE-v0.2 §4.2 GS-7); the run-start text that repeats them for the run in force, and the run-end line the model reads, are DEL-02-02's (WR-v0.2 §16.2, TX-5) (U-NIR-8) |
-| RN-7 | **Finished report (R20-1, R20-9; RX).** When a completed `agentMessage` carries the line `Workflow finished: ‹origin›:‹name›`, alone on its line and naming the workflow of the run in force, the App shows an **"End run"** button beneath it; when the same message also carries a proposal that RN-3 accepts, it shows **"End ‹A› and start ‹B›"** beside it. Pressing either is the person's end of the run (DEL-01-02 DEF-4), with cause `completed`, handed to DEL-02-03 (and, for the second, the person's selection of B to DEL-02-02, then B's start by TC-3). The line itself ends nothing: the run stays in force until the person presses, and the App never ends, opens or focuses anything because of it (R18-5's rule for arrivals applies alike). A finished line naming another workflow, or arriving with no run in force, shows nothing. The button records nothing until pressed |
+| RN-7 | **Finished report (R20-1, R20-9; RX).** When a completed `agentMessage` carries the line `Workflow finished: ‹origin›:‹name›`, alone on its line, once in the message, as its last non-empty line or the line immediately before its proposal line (R20-11 (2)), and naming the workflow of the run in force, the App shows an **"End run"** button beneath it; when the same message also carries a proposal that RN-3 accepts, it shows **"End ‹A› and start ‹B›"** beside it. Pressing either is the person's end of the run (DEL-01-02 DEF-4), with cause `completed`, handed to DEL-02-03 (and, for the second, the person's selection of B to DEL-02-02, then B's start by TC-3). The line itself ends nothing: the run stays in force until the person presses, and the App never ends, opens or focuses anything because of it (R18-5's rule for arrivals applies alike). A finished line naming another workflow, or arriving with no run in force, shows nothing. The button records nothing until pressed |
 
 ### 5.8 "Continue as ‹role›" and "Fork" (R19-3, R19-8)
 
 | # | Rule |
 |---|---|
 | CA-1 | "Continue as ‹role›" opens a **new conversation** with that role (fixed for its life, L-2) and the role's guidance composed by DEL-02-04 at start. It does not fork: at 0.158.0 `thread/fork` ignores new instructions, so a fork keeps the source's role (OBS-3 W-6; R19-8) |
-| CA-2 | The new conversation's composer holds a **handoff summary** the person sees and can edit before sending: a reference to the source conversation, its role, the person's last request, the last workflow run and how it ended, and the attachments supplied there (by name and content identity). Nothing is sent until the person sends it. The person may instead ask the source conversation's agent to write a summary, as an ordinary message there |
+| CA-2 | **Handoff summary (R20-6).** When the person chooses "Continue as ‹role›", the App asks the **source conversation's agent**, in a visible turn of that conversation, to draft a handoff summary (the request names what it should cover: the person's last request, the last workflow run and how it ended, and the attachments supplied there by name and content identity). The draft is placed in the new conversation's composer under one App-written header naming the source conversation and its role; the header names and does not instruct, and the summary carries no instructions beyond the person's own text. The person edits it before sending; nothing is sent to the new conversation until the person sends it. If the source turn fails or is interrupted, the composer holds the header only and the person writes the summary (PROPOSED) |
 | CA-3 | The new conversation starts with no model chosen (ST-1); the source's model may be offered as the last explicit choice (ST-2) |
 | CA-4 | "Fork" stays available as a same-role copy of a conversation (`thread/fork`), labelled "same role" |
 
@@ -771,7 +772,11 @@ schema in the working tree has (RS-v0.8's `derivedFrom` string, or FR-06's
 the FR-06 form (RS schema sha256 prefix `ab824dc5974ad128`), and an earlier
 round-2 run against RS-v0.8 also passed 119 of 119.
 The installed `jsonschema` 4.26.0 (already present; nothing installed) gave
-the same verdicts on all schema examples (S-4). A pass is evidence that the
+the same verdicts on all schema examples (S-4). **Rerun at RX2** (2026-10-02, same command and host): **120 checks, 0
+failed**, exit status 0; O-11 and O-12 rewritten and O-13 added for
+R20-11 and R20-6 (RN-3, RN-4, RN-7, CA-2); output in
+[`prototype/results/RUN_2026-10-02_RX2.txt`](prototype/results/RUN_2026-10-02_RX2.txt).
+A pass is evidence that the
 rules run as written, not a VER pass.
 
 ## 14. Data formats (PROPOSED; JSON Schema 2020-12)
@@ -813,10 +818,11 @@ RS's own schema.
 | U-NIR-6 *Ruled (C-02):* D5 adds `a15_record`, `revision` as optional; the view also reads `library_entry` | — | — | §7 |
 | U-NIR-7 *Filled:* O-1 and O-3 confirm TO-4 and CS-6; O-4 confirms the descendant line through an adapter only (R18-9). "Primary completed, child running" stays not observed | DEL-01-03 | When observed | §5.5 |
 | U-NIR-8 *Ruled (R20-5, R20-9; recorded at RX):* the line forms `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`; the shipped product guidance states both (ROLE-v0.2 GS-7) | — | — | RN-3…RN-7; the buttons' wording and placement stay PROPOSED |
-| U-NIR-9 Contents of the handoff summary | DEL-01-04 with DEL-02-04 | Before implementation | CA-2 PROPOSED |
+| U-NIR-9 *Ruled (R20-6; recorded at RX2):* the source conversation's agent drafts the handoff summary in a visible turn there; the person edits it; the App adds only a header naming the source | — | — | CA-2; the request's wording and the failure fallback stay PROPOSED |
 
 ## Changes
 
+- RX2 (design pass 3 residual sweep 2, 2026-10-02; in place, no version step): R20-11 and R20-6, row "RX2" in "Changes from v0.1" at the top.
 - RX (design pass 3 residual sweep, 2026-10-02; in place, no version step): R20-9 "End run" offer, row "RX" in "Changes from v0.1" at the top.
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1" at the top.
 - v0.1 (D round 1): first version.

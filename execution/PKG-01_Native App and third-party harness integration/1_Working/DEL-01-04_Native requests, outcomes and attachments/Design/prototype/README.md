@@ -46,6 +46,10 @@ Logs written by the act control go to a temporary folder under `$TMPDIR`
   wording and role, the waiting indicator, the start offer, "Continue as",
   items never completed, the C-02 read side, and several-entry A15.
 - Round 1: `results/RUN_2026-10-01.txt` — 103 checks, 0 failed.
+- RX2 (residual sweep 2, 2026-10-02): `results/RUN_2026-10-02_RX2.txt` — 120
+  checks, 0 failed. `start_offer` follows R20-11 (only "End ‹A› and start ‹B›"
+  during a run; the proposal line last and once), new `finished_offer` (NIR
+  RN-7) and `handoff_composer` (CA-2, R20-6); O-11, O-12 rewritten, O-13 new.
 
 A "pass" means the rules ran as written on this model. It is evidence about
 the design, never a VER pass: no App candidate exists.

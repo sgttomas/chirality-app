@@ -306,16 +306,36 @@ def main():
     of2 = nm.start_offer("Next workflow: project:load-check", registered, "supports-adjust#1")
     of3 = nm.start_offer("You might want to run load-check next.", registered, None)
     of4 = nm.start_offer("Next workflow: project:unknown", registered, None)
+    of5 = nm.start_offer("Next workflow: project:load-check\nThat is my suggestion.", registered, None)
+    of6 = nm.start_offer("Next workflow: project:supports-adjust\nNext workflow: project:load-check", registered, None)
     sel = nm.confirm_start(of1)
-    check(of1["enabled"] and of1["startsNothingByItself"] and not of2["enabled"] and "end run" in of2["label"]
-          and of3 is None and of4["offer"] is None and sel["selectedBy"] == "the person",
-          "O-11 R19-2 (b): 'Start ‹workflow›' only from an exact proposal line naming one registered workflow; the person confirms")
+    check(of1["enabled"] and of1["startsNothingByItself"] and of1["label"].startswith("Start load-check")
+          and of2["enabled"] and of2["label"] == "End supports-adjust#1 and start load-check"
+          and of2["endsRun"]["cause"] == "ended to start load-check"
+          and of3 is None and of4["offer"] is None and of5 is None and of6 is None and sel["selectedBy"] == "the person",
+          "O-11 R19-2 (b), R20-11 (1), (2), (4): 'Start ‹B›' only with no run; during a run only 'End ‹A› and start ‹B›' (cause 'ended to start ‹B›'); the proposal line must be the last line, once")
+    # RN-7 finished report (R20-1, R20-9, R20-11 (2))
+    run = {"run": "supports-adjust#1", "origin": "project", "name": "supports-adjust"}
+    fo1 = nm.finished_offer("All checked.\nWorkflow finished: project:supports-adjust", run)
+    fo2 = nm.finished_offer("Workflow finished: project:supports-adjust\nNext workflow: project:load-check", run)
+    of7 = nm.start_offer("Workflow finished: project:supports-adjust\nNext workflow: project:load-check", registered,
+                         "supports-adjust#1", finished=fo2 is not None)
+    fo3 = nm.finished_offer("Workflow finished: project:supports-adjust\nLet me know.", run)
+    fo4 = nm.finished_offer("Workflow finished: project:load-check", run)
+    fo5 = nm.finished_offer("Workflow finished: project:supports-adjust", None)
+    check(fo1 and fo1["label"] == "End run" and fo1["endsRun"]["cause"] == "completed" and fo1["endsNothingByItself"]
+          and fo2 and of7["endsRun"]["cause"] == "completed" and fo3 is None and fo4 is None and fo5 is None,
+          "O-13 RN-7: 'End run' on the exact finished line (last line, or just before the proposal line) naming the run in force; with a proposal, 'End ‹A› and start ‹B›' ends A 'completed'; nothing otherwise")
     # R19-3/R19-8 continue as role
     ca = nm.continue_as({"threadId": "thr-ex-9", "role": "HELP_HUMAN"}, "WORKING_ITEMS",
-                        ["the person's last request: …", "last run: supports-adjust rev-5, ended"])
-    check(ca["newConversation"] and not ca["fork"] and ca["composer"]["editable"] and not ca["composer"]["sent"]
-          and ca["model"] is None,
-          "O-12 R19-3/R19-8: 'Continue as ‹role›' opens a new conversation with an editable handoff summary; nothing sent")
+                        ["the person's last request", "the last workflow run and how it ended", "the attachments supplied"])
+    comp = nm.handoff_composer(ca, "The person asked for … Run supports-adjust rev-5 ended by the person.")
+    comp0 = nm.handoff_composer(ca, None)
+    check(ca["newConversation"] and not ca["fork"] and ca["model"] is None
+          and ca["sourceTurn"]["threadId"] == "thr-ex-9" and ca["sourceTurn"]["visible"]
+          and comp["header"] == "Handoff from conversation thr-ex-9 (HELP_HUMAN)." and comp["text"].startswith(comp["header"])
+          and comp["editable"] and not comp["sent"] and comp0["text"] == comp0["header"] and not comp0["sent"],
+          "O-12 R19-3/R19-8, R20-6: 'Continue as ‹role›' opens a new conversation; the source agent drafts the summary in a visible turn there; the person edits it under an App header; nothing sent")
 
     # ------------------------------------------------------------------ A attachments
     print("\n== A attachments (NIR §6; VER-003) ==")

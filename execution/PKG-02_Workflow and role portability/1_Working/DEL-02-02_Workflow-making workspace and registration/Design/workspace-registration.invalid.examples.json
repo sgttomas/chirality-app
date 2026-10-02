@@ -344,14 +344,14 @@
         "path": "WORKFLOW.md",
         "content": {
           "method": "sha256 over UTF-8 text",
-          "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+          "value": "d7d8b6e0d5989b431dc22b51b72acad90cac2825bd1efc070a37c9e4f8e08088"
         },
-        "bytes": 84
+        "bytes": 85
       },
       "other_files": [
         {
           "path": "resources/checklist.md",
-          "sha256": "d192375885ec7d50df1287cb5e19b55d4a79f1cdd1597b9cc52fd59e05da6730"
+          "sha256": "c989b2391e00effe3c225b9dee35e27d7a40a47fe40563e8efe2185bb6ec8a70"
         }
       ],
       "chain": {
@@ -370,16 +370,16 @@
       "selection": "sel-6",
       "lines": {
         "start_line": "[Chirality] Workflow run start: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
-        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line of its own \"Workflow finished: project:review-pack\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host. The person decides; nothing ends or starts until they confirm.",
-        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
+        "proposal_line": "[Chirality] When you judge this workflow finished, end the message with a line of its own \"Workflow finished: project:review-pack\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it. The person decides; nothing ends or starts until they confirm.",
+        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 c989b2391e00)",
         "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
         "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
       },
       "text_identity": {
         "method": "sha256 over UTF-8 text",
-        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+        "value": "ac3f264b52a0227a9be14a1ed3272f956f9e576b73d3f6c11ac01af6dcb66117"
       },
-      "text_bytes": 812
+      "text_bytes": 1149
     }
   },
   {
@@ -405,14 +405,14 @@
         "path": "WORKFLOW.md",
         "content": {
           "method": "sha256 over UTF-8 text",
-          "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+          "value": "d7d8b6e0d5989b431dc22b51b72acad90cac2825bd1efc070a37c9e4f8e08088"
         },
-        "bytes": 84
+        "bytes": 85
       },
       "other_files": [
         {
           "path": "resources/checklist.md",
-          "sha256": "d192375885ec7d50df1287cb5e19b55d4a79f1cdd1597b9cc52fd59e05da6730"
+          "sha256": "c989b2391e00effe3c225b9dee35e27d7a40a47fe40563e8efe2185bb6ec8a70"
         }
       ],
       "chain": {
@@ -432,16 +432,16 @@
       "lines": {
         "chain_line": "[Chirality] Previous workflow run ended: supports-adjust revision rev-A3 (run run:thr-40/1, ended by the person). Its instructions no longer apply.",
         "start_line": "[Chirality] Workflow begins: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
-        "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line of its own \"Workflow finished: project:review-pack\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host. The person decides; nothing ends or starts until they confirm.",
-        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
+        "proposal_line": "[Chirality] When you judge this workflow finished, end the message with a line of its own \"Workflow finished: project:review-pack\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it. The person decides; nothing ends or starts until they confirm.",
+        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 c989b2391e00)",
         "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
         "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
       },
       "text_identity": {
         "method": "sha256 over UTF-8 text",
-        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+        "value": "ac3f264b52a0227a9be14a1ed3272f956f9e576b73d3f6c11ac01af6dcb66117"
       },
-      "text_bytes": 812
+      "text_bytes": 1149
     }
   },
   {
@@ -458,11 +458,11 @@
       "purpose": "run start",
       "expected_text": {
         "method": "sha256 over UTF-8 text",
-        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+        "value": "ac3f264b52a0227a9be14a1ed3272f956f9e576b73d3f6c11ac01af6dcb66117"
       },
       "expected_workflow": {
         "method": "sha256 over UTF-8 text",
-        "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+        "value": "d7d8b6e0d5989b431dc22b51b72acad90cac2825bd1efc070a37c9e4f8e08088"
       },
       "state": "verified",
       "item": "item-u-turn-B1",
@@ -531,14 +531,14 @@
         "path": "WORKFLOW.md",
         "content": {
           "method": "sha256 over UTF-8 text",
-          "value": "55cf1725549ddc93e4855595839742334c9a658c145f24c047f2831896768fa0"
+          "value": "d7d8b6e0d5989b431dc22b51b72acad90cac2825bd1efc070a37c9e4f8e08088"
         },
-        "bytes": 84
+        "bytes": 85
       },
       "other_files": [
         {
           "path": "resources/checklist.md",
-          "sha256": "d192375885ec7d50df1287cb5e19b55d4a79f1cdd1597b9cc52fd59e05da6730"
+          "sha256": "c989b2391e00effe3c225b9dee35e27d7a40a47fe40563e8efe2185bb6ec8a70"
         }
       ],
       "chain": {
@@ -559,15 +559,15 @@
         "chain_line": "[Chirality] Previous workflow run ended: supports-adjust revision rev-A3 (run run:thr-40/1, ended by the person). Its instructions no longer apply.",
         "start_line": "[Chirality] Workflow run start: review-pack from the project library \"fx-proj (LIB-A1)\", revision rev-P1, run run:thr-40/2. Follow the workflow between the two markers below for this run, until the person ends the run.",
         "proposal_line": "[Chirality] When you judge this workflow finished, say so in a line \"Workflow finished: <name>\". To propose that another registered workflow runs next, end the message with the line \"Next workflow: <name>\". The person decides; nothing ends or starts until they confirm.",
-        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 0d6b1c2e4f50)",
+        "files_line": "[Chirality] Other files of this revision, in the folder \".chirality/workflow-revisions/review-pack/rev-P1/review-pack\": resources/checklist.md (sha256 c989b2391e00)",
         "begin_marker": "<<<chirality-workflow review-pack@rev-P1 begin>>>",
         "end_marker": "<<<chirality-workflow review-pack@rev-P1 end>>>"
       },
       "text_identity": {
         "method": "sha256 over UTF-8 text",
-        "value": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
+        "value": "ac3f264b52a0227a9be14a1ed3272f956f9e576b73d3f6c11ac01af6dcb66117"
       },
-      "text_bytes": 812
+      "text_bytes": 1149
     }
   },
   {

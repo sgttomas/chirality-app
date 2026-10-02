@@ -957,9 +957,18 @@
               "$ref": "#/$defs/revision_identity"
             },
             "ended": {
-              "enum": [
-                "ended by the person",
-                "completed"
+              "description": "How the earlier run ended; RX2 (R20-11 (4)) adds 'ended to start <B>' for the one-step End A and start B without a finished report.",
+              "anyOf": [
+                {
+                  "enum": [
+                    "ended by the person",
+                    "completed"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^ended to start (?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+                }
               ]
             }
           }
@@ -1179,16 +1188,16 @@
       "properties": {
         "chain_line": {
           "type": "string",
-          "pattern": "^\\[Chirality\\] Previous workflow run ended: \\S+ revision \\S+ \\(run \\S+, (ended by the person|completed)\\)\\. Its instructions no longer apply\\.$"
+          "pattern": "^\\[Chirality\\] Previous workflow run ended: \\S+ revision \\S+ \\(run \\S+, (ended by the person|completed|ended to start [a-z0-9]+(?:-[a-z0-9]+)*)\\)\\. Its instructions no longer apply\\.$"
         },
         "start_line": {
           "type": "string",
           "pattern": "^\\[Chirality\\] Workflow run start: \\S+ from the (project|user|bundled|host) library \"[^\"\\n]+\", revision \\S+, run \\S+\\. Follow the workflow between the two markers below for this run, until the person ends the run\\.$"
         },
         "proposal_line": {
-          "description": "WR section 16.2 line 3 (R20-1; RX with R20-9): tells the model the two agent lines; its finished line names the run's own origin and name (a reader check: it equals the run_text's workflow origin and name).",
+          "description": "WR section 16.2 line 3 (R20-1; RX with R20-9; RX2 with R20-11 (2)): tells the model the two agent lines and their placement; its finished line names the run's own origin and name (a reader check: it equals the run_text's workflow origin and name).",
           "type": "string",
-          "pattern": "^\\[Chirality\\] When you judge this workflow finished, say so in a line of its own \"Workflow finished: (project|user|bundled|host):(?=[a-z0-9-]{1,64}\")[a-z0-9]+(?:-[a-z0-9]+)*\"\\. To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host\\. The person decides; nothing ends or starts until they confirm\\.$"
+          "pattern": "^\\[Chirality\\] When you judge this workflow finished, end the message with a line of its own \"Workflow finished: (project|user|bundled|host):(?=[a-z0-9-]{1,64}\")[a-z0-9]+(?:-[a-z0-9]+)*\"\\. To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it\\. The person decides; nothing ends or starts until they confirm\\.$"
         },
         "files_line": {
           "type": "string",
@@ -1308,9 +1317,18 @@
                   "$ref": "#/$defs/revision_identity"
                 },
                 "ended": {
-                  "enum": [
-                    "ended by the person",
-                    "completed"
+                  "description": "How the earlier run ended; RX2 (R20-11 (4)) adds 'ended to start <B>' for the one-step End A and start B without a finished report.",
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "ended by the person",
+                        "completed"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^ended to start (?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+                    }
                   ]
                 }
               }

@@ -285,3 +285,173 @@ pins (`simhost.py`, `run_fixture.py`, `observe_map.py`,
 `git status` then showed `wrproto.py` as the only modified prototype file,
 and that one is RX's. F-E1 had changed no prototype file. No `__pycache__`
 was present under the execution root.
+
+---
+
+# RX2 — residual sweep 2 (2026-10-02)
+
+- **Brief:** HELP_HUMAN's message after RX was committed at `a8eb3765be`.
+- **Rules:** in place, no version steps, an "RX2" row in each touched file's
+  change table.
+- **Fence:** WR; NIR and the DEL-01-04 prototype; EXEC; ROLE; RS (the
+  `RECORD_SEMANTICS.md` file only); WD (the `WORKFLOW_DECLARATION.md` file
+  only); CA only if a pinned file changed. None did, so CA was not touched.
+- **Binding:** `R20_RESOLUTIONS.md` R20-11 (sha256 `b52e0347ad91ba42`) and
+  R20-6.
+- **Limits:** read-only git; no network; no Codex or model run.
+- **How I edited and checked:** exact-once scripted replacements; table
+  column counts compared before and after (no new mismatched row); no
+  `__pycache__` left.
+
+## RX2.1 Items done
+
+**1. R20-11, all four rulings.**
+
+- **(1) A proposal during a run.** It is offered only as "End ‹A› and start
+  ‹B›". A plain "Start ‹B›" is offered only when no run is in force.
+  - WR: CH-1 and PR-4.
+  - NIR: RN-3; RN-4 is rewritten so the one step is enabled.
+  - EXEC: RE-7, the "sequential" bullet.
+  - ROLE: GS-7.
+- **(2) Where the lines sit.** The proposal line is the message's last
+  non-empty line. The finished line is the last non-empty line, or the line
+  immediately before the proposal line. Each appears at most once.
+  - Placement and the at-most-once rule are in WR PR-1 and FN-1, NIR RN-3,
+    RN-5 and RN-7, EXEC RE-7, and WD §3.9.
+  - The run text and ROLE GS-7 tell the model the placement. So WR §16.2's
+    third framing line now says to end the message with the finished line,
+    and to put it just before the proposal line when both are written.
+  - Following from that, the schema pattern, the example lines and the
+    prototype's `proposal_line()` all changed.
+- **(3) An unreadable supply check.** The reading is "supplied — not
+  verified": the App observed its own send, and Codex's copy could not be
+  read.
+  - WR SC-4.
+  - EXEC: A-3's failure cell (was *supplied* **unknown**) and §6.1's
+    *supplied* row.
+  - RS R3: one sentence added stating the reading. The recorded `supplyCheck`
+    value stays WR's state, so the schema is unchanged.
+- **(4) The cause for "End ‹A› and start ‹B›".** It is "ended to start ‹B›",
+  EXEC's wording, which WR now records as well.
+  - WR: CH-1, CH-2 and FN-2. The chain line's third cause is added in §16.2
+    and in the schema (chain-line pattern, and the two `ended` value lists).
+  - NIR: RN-4.
+  - EXEC: RE-7 cites R20-11 (4).
+  - **My reading:** on a finished report the cause stays *completed* (R20-1),
+    as EXEC RE-7 already says. R20-11 (4) is read as adopting EXEC's wording,
+    which keeps *completed* for that case.
+
+**2. WR's stale R17-8 references.**
+
+- The header Receivers line no longer lists DEL-02-04. It now notes that R19-7
+  dropped the row.
+- The §1 row now reads "R17-8 as amended by R19-1, R19-7": role guidance only,
+  with the workflow supplied per run by DEL-02-02 (§16).
+
+**3. NIR §5.8 CA-2 and U-NIR-9 (R20-6).**
+
+- CA-2: the App asks the source conversation's agent, in a visible turn
+  there, to draft the handoff summary. The person edits it in the new
+  conversation under one App header that names the source; the header gives
+  no instruction. Nothing is sent until the person sends it.
+- PROPOSED fallback: if the source turn fails, the composer holds the header
+  only.
+- U-NIR-9 is marked ruled.
+
+**4. WR run_text example with real identities.**
+
+- New fixture `prototype/fixtures/review-pack/WORKFLOW.md`, the prototype's own
+  review-pack body (85 bytes), plus `resources/checklist.md`.
+- In the valid examples, these values are now computed from the fixture:
+  - the `workflow_file` content and size, `other_files`, and the
+    `files_line` digest;
+  - `text_identity` = `ac3f264b52a0…`, with `text_bytes` 1149;
+  - the end-notice record's `text_identity` and `text_bytes`, which were
+    illustrative too;
+  - the supply-check example's expected, observed and workflow identities.
+- The invalid examples' copies carry the same values.
+- New check P-63 recomputes all of these from the lines and the fixture bytes.
+- Also new: P-64, for R20-11 (1) and (4) through a new `end_and_start`, and
+  P-65, for R20-11 (2).
+
+**5. WD.**
+
+- The six citations from the RX table now give the section number: L8 and L63
+  (§16), L549 (§16.2 and §16.6), L572 (§16.5), L583 (§16.2 TX-5), L1578 (§16).
+  Line numbers are from before the edit.
+- §3.9 (a) gains `Workflow finished: ‹origin›:‹name›` with its placement.
+- §3.9 (b) gains the placement and the during-a-run rule.
+- An RX2 row is added to "Changes from v0.8". No declared-part meaning
+  changed. The only remaining "run-start supply" string in WD is the quote
+  inside that row.
+
+**6. CA.** No CA example pins a file that RX2 changed. CA pins
+`simhost.py`, `run_fixture.py`, `observe_map.py`, `checkpoint_recorder.py` and
+`run_all.py`, and all five still equal their pins (rechecked after the rerun).
+Nothing was regenerated.
+
+## RX2.2 Prototype reruns
+
+- **Snapshot:** all prototypes ran on a scratch copy of the `PKG-0*` folders
+  taken at 2026-10-02T19:57:17Z, after every RX2 edit. Afterwards,
+  `diff -rq` between the copy and the working tree showed no difference.
+- **Where the copy differs:** WD's self-test reads the Root `workflows/` folder,
+  which is outside the copy, so it fails there by construction. The result
+  below is from the in-place run.
+- **Environment:** the same Python, node and host as in RX.
+
+| Folder | Result (commands as in RX §1 item 5) |
+|---|---|
+| DEL-01-01 HOSTING | exit 0; 35/35 |
+| DEL-01-02 RECOVERY | exit 0; 16/16 |
+| DEL-01-03 NPTD | exit 0; 18/18 |
+| DEL-01-04 NIR/AAC | exit 0; **120 checks, 0 failed** (was 119). O-11 and O-12 rewritten, O-13 new. Recorded in `prototype/results/RUN_2026-10-02_RX2.txt`; NIR §13.2 and the README note it |
+| DEL-01-05 ACCESS | exit 0; 9/9 |
+| DEL-02-01 WD | in place: exit 0; 62/62 (S-11 holds) |
+| DEL-02-02 WR | exit 0; **98 checks, 98 passed, 0 failed** (was 95). New P-63, P-64, P-65; P-37 has 137 records conforming |
+| DEL-02-03 EXEC | exit 0; "ALL CHECKS HOLD: 0 failure(s)"; output byte-identical to RX's run |
+| DEL-02-04 ROLE | exit 0; pass=36, fail=0 |
+| DEL-03-01, DEL-03-02, DEL-03-03 | exit 0; 22/22; "all checks passed" (×3) |
+| DEL-04-01 ACT, DEL-04-02 AS | exit 0; "all expectations held" |
+| DEL-04-03 RS | exit 0; 63 PASS; `exec_to_rs` 40/40 |
+| DEL-05-01 LOOP | exit 0; 22/22; destination flow "all expectations held" |
+| DEL-05-02 PANEL | exit 0; 4/4 |
+| DEL-05-01, DEL-05-02 schema checks | exit 1 by design: VALID for the valid example, INVALID for the invalid one |
+| DEL-09-06 CA | exit 0; 44 PASS, 0 failures |
+| DEL-09-09 XT | exit 0; 59 PASS, 0 failures |
+| DEL-03-04 GUIDE | no prototype |
+
+## RX2.3 Not done and residuals
+
+- **No schema change in RS.** R3's recorded `supplyCheck` keeps WR's state
+  values, and the reading is stated in text.
+- **Wording that stays PROPOSED:**
+  - the request text that CA-2's source turn sends;
+  - the header-only fallback;
+  - the "End ‹A› and start ‹B›" button label.
+- **Reading to confirm:** the R20-11 (4) and R20-1 reading above (*completed*
+  on a finished report).
+- **WR §8 receiver cells, not changed.** `library_entry` and
+  `selection_record` still list DEL-02-04 as a receiver; only the header and
+  the §1 row were in scope.
+
+## RX2.4 sha256
+
+| File | Before RX2 | After RX2 |
+|---|---|---|
+| WR `WORKSPACE_AND_REGISTRATION.md` | `ecf85cd94275e21a5600021fcb8b5f2d66e605b67f3040a0be293a8c88e1bc53` | `f1ca71b92bdc5e26757234f6f3adda1a9407e87f6fc188f23a6b9b905ce22424` |
+| WR `workspace-registration.schema.json` | `28488f5172013e03f7af58a48edf96d880baa17bfc236cc1749f52ab45ba5e45` | `61ebfe86f973b87da0fb72e43dbea71f652256587233e7c52b35480b4bbf13d4` |
+| WR `workspace-registration.valid.examples.jsonl` | `81fcf8cf5f81e5059b5c4e22cc47bbf3a2d43622fe87551a50b4ae14dfeae7b7` | `9b21cc8b5860c4b312ab0a8f091fff394b0db86368e199d34b472e7828e1b063` |
+| WR `workspace-registration.invalid.examples.json` | `6c1d05a7f2f2be532aab86a79250ee03442b403e88e8751059143a838ed31429` | `2a2f2afccd9f6d11391228e738587a77406bc6c9857ea1ad467d88797b863866` |
+| WR `prototype/wrproto.py` | `46ec3d12ddeecae02fca54585bdba2f3f25c2d0c4527c79e873f24d032cec1bb` | `3c79e72b671a16589591023e0ad6a1935ff04d33ae955cbefa4c3d1eaa7ea9d4` |
+| WR `prototype/fixtures/review-pack/WORKFLOW.md` (new) | — | `d7d8b6e0d5989b431dc22b51b72acad90cac2825bd1efc070a37c9e4f8e08088` |
+| WR `prototype/fixtures/review-pack/resources/checklist.md` (new) | — | `c989b2391e00effe3c225b9dee35e27d7a40a47fe40563e8efe2185bb6ec8a70` |
+| ROLE `ROLE_SUPPLY.md` | `ec345158db604fdca27cfbd821a22242a3e8f8d09129b9c1d455e7f185347035` | `45a748697cf8fca8625a6927417647a30f90e60e0c3020f93fd22bcfc4cd2f3a` |
+| NIR `NATIVE_INTERACTION_RECEIVING.md` | `7133abcee034ecd9d0267df5da6d91babb5bc836d252765f21ae4a580360ba3e` | `d56830e7274be4d2fb814b7d93b405f9b4093f59626c0533d2d5a818bb2b2f2f` |
+| DEL-01-04 `prototype/nir_model.py` | `2b040e01277ab69c06c296cf10df28038307a88aff3cd8239e20391d4ba09575` | `83085f636ff804d9cc496259b8b46e82efee1b83202b09bb9bf2913ff8cbaaad` |
+| DEL-01-04 `prototype/run_cases.py` | `c4c9c8474ecfaf4786c579cb9a53cb65854eed6692452c01d08513c1e2a57346` | `48607363eb9642661ce32efd91f0128cd479350e065e66e5ac9fb719f9127d74` |
+| DEL-01-04 `prototype/README.md` | `a63a0004049851594097931b9fbd97ecc0441c9d0349d14c4a3bebbfadb03665` | `650cbca5dc02bd0f8be542c65b5efb8182226e83302be25494501a60b2397369` |
+| DEL-01-04 `prototype/results/RUN_2026-10-02_RX2.txt` (new) | — | `a81c7a9705f06870fc5f8c39db48dda6e95ba67ab18c3c80f1f632f8aae347ed` |
+| EXEC `EXECUTION_COMPATIBILITY.md` | `3188d23e4815acf830c8c4af84d63519107c37f909c672fd1298fb6f844fe729` | `8337b1d594292d16d93785263cb38462c34f54eb47443ea5566e2b9dff49bc2a` |
+| RS `RECORD_SEMANTICS.md` | `d523dc9e679701eb9eea7495f1da4d909a4c71915be324595a139ec488204ec3` | `6c6408d8c10a9a7e5aea0c6a5fe91e30374cf99ef9f919983cdafafb3818739f` |
+| WD `WORKFLOW_DECLARATION.md` | `a53a1be461ff634a8cde8089851c690015987052a7ee72a6d9e29ff98c3e1696` | `b1a647290b966f1bb97697ad435650ba76e29cfd3fd39ee160e58cf076742e9f` |

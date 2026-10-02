@@ -543,27 +543,49 @@ def waiting_indicator(registers, open_windows):
 # ---------------------------------------------------------------------------
 
 PROPOSAL_PREFIX = "Next workflow: "
+FINISHED_PREFIX = "Workflow finished: "
 
 
-def start_offer(final_message_text, registered, run_in_progress):
-    """An offer only from a completed agentMessage line 'Next workflow: <origin>:<name>' that names exactly one
-    registered workflow. The offer starts nothing; the person's confirmation is ordinary input (R17-9)."""
-    lines = [l.strip() for l in (final_message_text or "").splitlines() if l.strip().startswith(PROPOSAL_PREFIX)]
-    if len(lines) != 1:
+def _lines(text):
+    return [l.strip() for l in (text or "").splitlines() if l.strip()]
+
+
+def start_offer(final_message_text, registered, run_in_progress, finished=False):
+    """RN-3…RN-5 (R20-5, R20-9, R20-11 (1), (2)): an offer only when the message's last non-empty line is
+    'Next workflow: <origin>:<name>', that line form appears once, and it names exactly one registered workflow.
+    With no run in force the offer is 'Start <B>'; during a run it is only 'End <A> and start <B>' (enabled), whose
+    press ends A with cause 'ended to start <B>', or 'completed' on a finished report (RN-7). It starts nothing by itself."""
+    lines = _lines(final_message_text)
+    if sum(1 for l in lines if l.startswith(PROPOSAL_PREFIX)) != 1 or not lines[-1].startswith(PROPOSAL_PREFIX):
         return None
-    named = lines[0][len(PROPOSAL_PREFIX):].strip()
+    named = lines[-1][len(PROPOSAL_PREFIX):].strip()
     matches = [r for r in registered if f"{r['origin']}:{r['name']}" == named]
     if len(matches) != 1:
         return {"offer": None, "note": f"the agent proposed {named!r}, which names no single registered workflow"}
     r = matches[0]
-    offer = {"label": f"Start {r['name']} (proposed by the agent)", "workflow": r, "startsNothingByItself": True,
-             "recordsNothing": True}
+    offer = {"workflow": r, "startsNothingByItself": True, "recordsNothing": True, "enabled": True}
     if run_in_progress:
-        offer["enabled"] = False
-        offer["label"] += f" — end run {run_in_progress} first"
+        offer["label"] = f"End {run_in_progress} and start {r['name']}"
+        offer["endsRun"] = {"run": run_in_progress, "by": "the person (DEF-4)",
+                            "cause": "completed" if finished else f"ended to start {r['name']}"}
     else:
-        offer["enabled"] = True
+        offer["label"] = f"Start {r['name']} (proposed by the agent)"
     return offer
+
+
+def finished_offer(final_message_text, run_in_force):
+    """RN-7 (R20-1, R20-9, R20-11 (2)): 'End run' when 'Workflow finished: <origin>:<name>' appears once, as the last
+    non-empty line or the line immediately before the proposal line, naming the run in force. Nothing ends by itself."""
+    lines = _lines(final_message_text)
+    if not run_in_force or sum(1 for l in lines if l.startswith(FINISHED_PREFIX)) != 1:
+        return None
+    cand = lines[-1]
+    if lines[-1].startswith(PROPOSAL_PREFIX) and len(lines) >= 2:
+        cand = lines[-2]
+    if cand != FINISHED_PREFIX + f"{run_in_force['origin']}:{run_in_force['name']}":
+        return None
+    return {"label": "End run", "endsRun": {"run": run_in_force["run"], "by": "the person (DEF-4)", "cause": "completed"},
+            "endsNothingByItself": True, "recordsNothing": True}
 
 
 def confirm_start(offer):
@@ -578,12 +600,24 @@ def confirm_start(offer):
 # ---------------------------------------------------------------------------
 
 def continue_as(source, role, parts):
-    """A new conversation with the role's guidance; the composer holds an editable handoff summary; nothing is sent."""
-    summary = "\n".join([f"Handoff from conversation {source['threadId']} ({source.get('role') or 'no role'}).",
-                          *[f"- {p}" for p in parts]])
+    """CA-1, CA-2 (R19-3, R19-8, R20-6): a new conversation with the role's guidance. The App asks the source
+    conversation's agent, in a visible turn of that conversation, to draft the handoff summary; nothing is sent to
+    the new conversation."""
+    header = f"Handoff from conversation {source['threadId']} ({source.get('role') or 'no role'})."
+    request = ("Please draft a handoff summary for a new conversation, covering: " + "; ".join(parts) + ".")
     return {"newConversation": True, "role": role, "fork": False, "model": None,
-            "composer": {"text": summary, "editable": True, "sent": False},
+            "sourceTurn": {"threadId": source["threadId"], "visible": True, "text": request},
+            "composer": {"header": header, "text": header, "editable": True, "sent": False},
             "note": "a fork keeps the source's role at 0.158.0 (OBS-3 W-6); this is a new conversation"}
+
+
+def handoff_composer(plan, agent_draft):
+    """CA-2: the source agent's draft goes under the App header; the person edits it; nothing is sent. If the source
+    turn failed or was interrupted (draft None), the composer holds the header only (PROPOSED)."""
+    comp = dict(plan["composer"])
+    comp["text"] = comp["header"] + ("\n\n" + agent_draft if agent_draft else "")
+    comp["draftedBy"] = "source conversation's agent (visible turn)" if agent_draft else "none (source turn failed)"
+    return comp
 
 
 # ---------------------------------------------------------------------------
