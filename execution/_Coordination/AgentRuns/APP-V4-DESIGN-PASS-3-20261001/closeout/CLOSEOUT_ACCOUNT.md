@@ -49,7 +49,8 @@ candidate. Prototypes are design aids.
 
 Pass 2's proposals for these deliverables are mapped in each record
 (superseded, kept or changed). The consolidated ledger of both passes is
-SCA-V4-003's `AMENDMENT_PACKET/LEDGER.csv`.
+SCA-V4-003's `AMENDMENT_PACKET/LEDGER.csv` (committed at `40e04273da`). C1-B §7
+items 3–4 are disposed by R22-7.
 
 ## Returned to the graph and done in this run
 

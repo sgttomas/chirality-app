@@ -935,7 +935,9 @@ by script (§4.5).
 
 Closed since v0.1: **G-1** (closed at v0.6 by the pass-3 Design files ROLE-v0.2 and AAC-v0.2), **G-3** (SQ-29…SQ-32), **G-4** (W9 files swept under R4/R5: RELAY SQ-02, SQ-16; CA §2.2; XT IN-14, IN-25), **G-9** (ADAPTER §12 re-headed RELAY-v0.3 under R6), **G-10** and **G-11** (closed at the R7 working state), **G-6**, **G-7** and **G-12** (closed at v0.4 by SCA-V4-001; rows kept above for traceability).
 
-### 4.5 Pin check (R8-12 item 7; repeated at R8-13, at Wave A, nodes A1-G and A4, at Wave B, nodes B8 and RQ, at closeout, node C0, at nodes G, H and RV20, and at design pass 3, nodes F-E2, RP-final and closeout C0)
+### 4.5 Pin check (R8-12 item 7; repeated at R8-13, at Wave A, nodes A1-G and A4, at Wave B, nodes B8 and RQ, at closeout, node C0, at nodes G, H and RV20, and at design pass 3, nodes F-E2, RP-final, closeout C0 and closeout G)
+
+At design pass 3 closeout node G (R22-1…R22-3 edits to RECOVERY, NIR and ROLE) HELP_HUMAN re-pinned the table with B8's script (`pins.py`, sha256 `b943319d…5423`, unchanged): 22/25 before the write, 25/25 after; check mode after the write: 25/25.
 
 Every sha256 in the header's input table was recomputed by script from the
 working-tree bytes after this guide's R8-13 edits and compared with the table:

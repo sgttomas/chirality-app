@@ -20,3 +20,11 @@ Integrator: HELP_HUMAN. R1–R21 stand.
 - **R22-5 Lifecycle.** Moving the six deliverables from INITIALIZED to
   IN_PROGRESS follows the first-increment precedent (owner direction
   DECISION-6); it is put to the owner with SCA-V4-003's first checkpoint.
+- **R22-6 ROLE T-1's last row (G's judgment; V22 m-6).** Accepted: a
+  modified guidance copy kept at a new release reaches no conversation until
+  the person restores or edits it (L-2, GC-1).
+- **R22-7 C1-B §7 items 3–4 (V22 m-7).** The ACCESS §13 counterpart and the
+  supplier rows owed by DEL-04-03 (DEP-02-04-012) and DEL-11-02
+  (DEP-02-04-013) are not in SCA-V4-003's ledger; HELP_HUMAN adds them to
+  P2's work as mirror rows (DEL-04-03) or records them open with DEL-11-02's
+  owner (DEL-11-02 is outside the design passes).

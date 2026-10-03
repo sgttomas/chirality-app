@@ -55,12 +55,12 @@ All are recorded with the owner's exact text in
     shared settings, start-up traffic, plan mode and per-turn workflow
     supply.
   - **Rulings:** R17–R21.
-- **Closeout (this PR):**
+- **Closeout (this PR; review V22: MERGE, MINORs fixed in records):**
   - C0 fixed the remaining MINORs.
   - C1-A and C1-B are the bounded reconciliation, with the account in
     [closeout/CLOSEOUT_ACCOUNT.md](closeout/CLOSEOUT_ACCOUNT.md).
   - G applied R22.
-  - GUIDE was re-pinned 25/25.
+  - GUIDE was re-pinned 25/25 (after C0 and again after G).
   - MEMORY rows were added for 18 deliverables.
 - **SCA-V4-003** was opened as run `APP-V4-SCA003-20261002`. It carries the
   contract proposals of passes 2 and 3 and is prepared toward its first
@@ -74,8 +74,8 @@ All are recorded with the owner's exact text in
   - V21-A and V21-B returned MERGE AS DRAFTS (5 MAJOR in all), repaired in
     RV21-A/B;
   - the rechecks V21b-A and V21b-B returned MERGE AS DRAFTS.
-- **Prototypes:** all rerun clean in the twenty touched Design folders after
-  every repair.
+- **Prototypes:** all rerun clean in the touched Design folders after every
+  repair (18 deliverable folders, 20 Design files).
 - **Citations and pins:**
   - the citation check over the run found none missing;
   - GUIDE is at 25/25.
