@@ -51,3 +51,19 @@ P2-B: all others. Output `AMENDMENT_PACKET/SOW_REVISIONS_A.md` / `_B.md`.
 
 As SCA-V4-002's P3 (`BASELINE/`): coverage audit of the current
 decomposition and registers, input manifest. Output `BASELINE/`.
+
+## V23 — independent review of the SCA-V4-003 packet (one Type 2, read-only)
+
+Candidate: the branch head at launch. Scope: `AMENDMENT_PACKET/` (LEDGER,
+IMPACT_ASSESSMENT, ARC_EFFECT, OWNER_ITEMS, BASIS_AMENDMENT,
+SOW_REVISIONS_A/B) and `BASELINE/`. Check: every ledger row traces to its
+source and its disposition is reasoned; every INCLUDE ScopeOfWork row has a
+block and every block a row (including P2-A's and P2-B's departures and the
+R22-7 addition); rerun both dry-runs and the validators on copies; recompute
+the SCC/arc effect with all INCLUDE blocks (what `dependency-extract` would
+extract from the revised ScopeOfWork text, including receivers beyond the
+mirror groups that P2-B lists); the method's group-1 and group-2 contents are
+present (package roles, supersession bindings, propagation plan, ISSUED
+check); the owner items are complete, neutral and decidable. Findings
+BLOCKING / MAJOR / MINOR; verdict READY FOR CHECKPOINT or HOLD. Write only
+`reviews/V23.md`.
