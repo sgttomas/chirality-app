@@ -181,3 +181,18 @@ confirming, (c) declared in the workflow):
 - **L-5:** A — no OS password or Touch ID check per act now.
 - **L-6:** A — no sign-in or API-key observation now.
 - **L-7:** A — the App implementation owner is the owner; K-1 covers both.
+
+## Closeout (owner, exact, 2026-10-02)
+
+After PR #1072 merged, HELP_HUMAN asked whether to run the closeout,
+starting with the three wording fixes and preparing the contract amendment
+(SCA-V4-003) for the owner's sign-off, and offered a version-advance check
+against Codex 0.160.0.
+
+> yes, run the closeout.
+
+**Reading (HELP_HUMAN):** the closeout runs (C0, C1, receipt, MEMORY rows,
+final PR) and SCA-V4-003 is prepared to its first grouped checkpoint. The
+version-advance check is not run: it was offered as optional, not answered,
+and it would need a download (the Codex 0.160.0 package) that requires the
+owner's separate yes with file, source and size.

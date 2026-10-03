@@ -259,3 +259,42 @@ fixed with reason, new sha256, reruns.
 | RV21-B | First-increment Design files (HOSTING, EXEC with its prototype, WD, WD-EX, GUIDE content, RS/ACT if a finding needs them) and DEL-09-06 `RELAY_QUESTIONS_SWBPIPE.md`'s next-relay row only | V21-B M-1 EXEC/WD side (R21-1), M-2, m-1, m-2 (add NR-L1), m-5, m-6, m-8, m-10, m-9 (F-E2 §4.3 rows 7, 9–11) |
 
 After both: GUIDE re-pinned last (25 inputs) with B8's `pins.py`.
+
+## Closeout (after PR #1072)
+
+### C0 — the remaining MINORs and a GUIDE re-pin (one Type 2)
+
+In place, no version steps, a "C0" row in each touched change table:
+V21b-A N-1 (ACCESS §20 attribution: say the SIWC arrangement is HELP_HUMAN's
+recommendation, not separately answered by the owner, as OWNER_DECISIONS
+reads); R21-5 (WR TT-3 follows NIR AT-8); R21-6 (align "against
+`thread/read`" to "against Codex's history (`thread/items/list`, WR §16.6)"
+in EXEC, WD, HOSTING §8.2, CA, RS text and schema description, GUIDE §5).
+Rerun the touched prototypes; regenerate CA examples if a pinned file
+changed; re-pin GUIDE last with B8's `pins.py` (25/25). Return `closeout/C0.md`.
+
+### C1 — bounded closeout (two Type 2, read-only on Design files)
+
+As pass 2's C1 (method `chirality-root:bundled:workflow:bounded-reconciliation`,
+read `workflows/bounded-reconciliation/WORKFLOW.md` whole; DAG-003's
+`SOURCE_MANIFEST` binds every ScopeOfWork, `Dependencies.csv` and
+`_DEPENDENCIES.md`, so no change to them or to `_STATUS.md`, `_CONTEXT.md`,
+`_REFERENCES.md`; every warranted change is a precise proposal: file,
+section or row, old → new, reason, source).
+
+| ID | Deliverables |
+|---|---|
+| C1-A | DEL-01-02, DEL-01-03, DEL-01-04 |
+| C1-B | DEL-01-05, DEL-02-02, DEL-02-04 |
+
+For each: commitments (OUT, REQ, AC, VER) → where the Design files answer
+them (developed / partial / named only / absent); results without a
+commitment; what the 60% description in `loop/LOOP_INIT.md` still lacks;
+register rows the Design files show wrong, missing or stale; a lifecycle
+observation (the six are INITIALIZED with Design files now; say what is
+truthful, change nothing). **Collect every proposed ScopeOfWork, register
+or basis item** raised in this run for your deliverables (D/*.md SC3-…,
+NR-…, P-…; F0 §3–§4; F/*.md; reviews), deduplicated with sources, and say
+which pass-2 proposals for your deliverables (pass-2
+`closeout/C1-A/B/C.md`, CLOSEOUT_ACCOUNT) this run supersedes, keeps or
+changes. Write `closeout/C1-A.md` or `C1-B.md`. No other file.
