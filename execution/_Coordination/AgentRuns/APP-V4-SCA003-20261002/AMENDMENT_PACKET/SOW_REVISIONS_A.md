@@ -571,7 +571,7 @@ the complete workflow-making workspace, the registration of a reviewed revision 
 
 #### G-0104-09 · new REQ-008 (the App act control) · SC3-01-04-1 · Q-5 · one sentence adjusted (P2-A)
 Target: DEL-01-04
-Trace: P3RUN C1-A "SC3-01-04-1, full text as amended here", verbatim except the "Consumers:" sentence, and with the closing OI-008 sentence that C1-A states after the quotation, written as part of the requirement. Grounds: DECISION-K1 K1-4; DECISION-K3 K-8; R17-2, R17-6; R21-3 (one act from one descriptor; several drafts are several acts); AAC-v0.2 §0, §1, AI-2, AK-d. Supersedes pass-2 SC2-01-04-1 (DROP).
+Trace: P3RUN C1-A "SC3-01-04-1, full text as amended here", verbatim except the "Consumers:" sentence and the backtick convention ("in `DEL-04-03`'s format" is written "in the format of DEL-04-03"; see "Backticks"; disclosed at RP1, V23 M-2), and with the closing OI-008 sentence that C1-A states after the quotation, written as part of the requirement. Grounds: DECISION-K1 K1-4; DECISION-K3 K-8; R17-2, R17-6; R21-3 (one act from one descriptor; several drafts are several acts); AAC-v0.2 §0, §1, AI-2, AK-d. Supersedes pass-2 SC2-01-04-1 (DROP).
 **Adjusted (P2-A):** the source ends "Consumers: `DEL-02-02` (A15), `DEL-02-03` (App-side positive capture fixtures), `DEL-04-03`, `DEL-04-01`." AAC-v0.2 §2 shows DEL-04-01 and DEL-04-03 as *suppliers* to the control (AI-4: act wording, record kinds and act class "DEL-04-01 → the control (DEP-01-04-011, admitted)"; AI-7: "The control → DEL-04-03's writer (DEP-01-04-012, held)"), and SC2-04-03-1 (part B) names DEL-01-04 among DEL-04-03's consumers. DAG-003 has DEL-01-04 → DEL-04-01 and DEL-01-04 → DEL-04-03 and no arc the other way (checked in both edge files). Extracted as written, "consumers" would yield DOWNSTREAM rows DEL-04-01 → DEL-01-04 (against the guard "DEL-04-01 gains no supplier", and a new cycle pulling DEL-04-01 into SCC-002) and DEL-04-03 → DEL-01-04 (a held arc ARC_EFFECT does not count). The adjusted sentence keeps DEL-02-02 and DEL-02-03 as users (mirrors of DEP-02-02-013 and DEP-02-03-027; the latter is R2-01-04-a) and states the two supplier relations the design records. **Alternative (source wording):** replace the adjusted sentence by the source sentence above and add an extraction guard that `DEL-04-03` and `DEL-04-01` yield no DOWNSTREAM row. The owner chooses at Q-5.
 If declined (Q-5): drop G-0104-04, -09, -10, -12 and -14, and the dependent clauses named under G-0104-02 and G-0104-08; G-0104-11's "through the App act control" stays only if another construction is named; remove the new IDs from AX-005.
 ```old
@@ -823,7 +823,7 @@ not (computed by the dry-run script).
 | DEL-01-01 | DEL-02-03, DEL-03-03, DEL-03-04, DEL-06-01, DEL-09-01, DEL-09-02, DEL-09-06 | R-11-1: 10 DOWNSTREAM mirror rows (all admitted arcs; DEL-02-01, DEL-02-04 and DEL-04-03 were already named) | any UPSTREAM row |
 | DEL-01-02 | DEL-01-03, DEL-02-02, DEL-02-03, DEL-03-03, DEL-09-02 | R3-01-02-a, -b (mirrors); -e, -f, -h (mirrors of NR-01, NR-02, NR-04) | an UPSTREAM row to DEL-01-04, 02-02, 02-03, 04-02, 04-03 or 06-01 (R17-10); any row to DEL-09-09 (NR-03 DROP) |
 | DEL-01-03 | DEL-06-01, DEL-09-02, DEL-09-05 (DEL-01-04 was already named) | R3-01-03-a…c (mirrors); R3-01-03-d (mirror of NR-05) | an UPSTREAM row to DEL-01-04 or DEL-06-01 (R17-10) |
-| DEL-01-04 | DEL-01-05, DEL-02-03, DEL-02-04, DEL-04-02, DEL-09-02 | NR-05, NR-07 (new admitted); NR-08, NR-09, NR-4 (new held); R2-01-04-a (mirror of DEP-02-03-027); R3-01-04-b (mirror of DEP-09-02-012); a DOWNSTREAM mirror of DEP-02-02-013 (held) from REQ-008 | a DOWNSTREAM row to DEL-04-01 or DEL-04-03 (see G-0104-09) |
+| DEL-01-04 | DEL-01-05, DEL-02-03, DEL-02-04, DEL-04-02, DEL-09-02 | NR-05, NR-07 (new admitted); NR-08, NR-09, NR-4 (new held); R2-01-04-a (mirror of DEP-02-03-027); R3-01-04-b (mirror of DEP-09-02-012); REQ-008's "used by DEL-02-02" is already mirrored by DEP-01-04-010 (refreshed by SC3-01-04-9), so no new row (corrected at RP1, V23 m-1) | a DOWNSTREAM row to DEL-04-01 or DEL-04-03 (see G-0104-09) |
 | DEL-01-05 | DEL-09-02 | R3-01-05-b (mirror of DEP-09-02-013) | a row naming DEL-01-04 (none is proposed on this side) |
 
 Notes:
@@ -833,11 +833,10 @@ Notes:
   (G-0104-06). The other five (NR-01, NR-02, NR-04, R2-04-03-e, R20-10) are
   grounded on the consumer side in part B (P1-01, P1-02, P1-03, SC2-04-03-2,
   P1-05); G-0102-01 carries only their DEL-01-02-side mirrors.
-- **DOWNSTREAM mirror of DEP-02-02-013.** REQ-008's "used by `DEL-02-02`"
-  mirrors the existing held arc DEL-02-02 → DEL-01-04. ARC_EFFECT §1.2 lists
-  no DEL-01-04 row for it; it changes no topology. The extractor may emit it
-  or leave it, as the register owner prefers; it is noted so that its
-  appearance is not read as a departure.
+- **DOWNSTREAM mirror of DEP-02-02-013.** *Corrected at RP1 (V23 m-1):*
+  REQ-008's "used by DEL-02-02" mirrors the held arc DEL-02-02 → DEL-01-04,
+  whose DOWNSTREAM row already exists (DEP-01-04-010; SC3-01-04-9 refreshes
+  its Statement). Extraction adds no new row for it.
 - **R-11-1 in DEL-01-01.** The script's new-name list for DEL-01-01 is
   exactly the seven P1-09 names, none of them named before (the ledger's
   "names 3 of 10" is confirmed), so the R-11-1 rows the SoW grounds rise

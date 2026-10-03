@@ -16,7 +16,8 @@ is applied.** Every edit is an exact old → new replacement in one
   deliverable is outside PKG-01, including the P1 grounding sentences P1-01,
   P1-02, P1-03 (R22-4 for NR-01, NR-02, NR-04), P1-05 (R20-10), P1-06, P1-07,
   P1-08 and P1-10; plus one block HELP_HUMAN added under design pass 3's R22-7
-  (G-0403-06, not in P1's ledger; see "For the ledger").
+  (G-0403-03, not in P1's ledger; see "For the ledger"; added to the ledger
+  at RP1 as R22-7-SoW, R22-7-reg, R22-7-open).
 - **Lifecycle:** DEL-02-02 and DEL-02-04 are INITIALIZED; the other twelve are
   IN_PROGRESS. REVISE admits both; none is CHECKING or ISSUED, so no
   reopening is involved. REVISE runs `STATUS_POLICY=NO_STATUS_TOUCH`; the
@@ -1083,10 +1084,12 @@ only). The owner's item for it would sit with Q-15 (receivers sentences).
   DEL-01-04 in G-0204-01 (NR-4) and DEL-04-03 in G-0202-02 (R20-10), which
   are proposed new arcs. Some named receivers are beyond the ledger's mirror
   groups (DEL-02-01's DEL-02-02, 02-04, 08-02, 09-02, 10-03; DEL-02-03's
-  DEL-02-02, 09-02, 09-06, 10-03; DEL-04-03's DEL-01-04, 02-02, 09-02, 09-05,
-  10-03): extraction may add their DOWNSTREAM mirrors; each is mirror-only on
-  an existing arc. The UPDATE brief should state whether to add them now or
-  leave them to the register owners' pass.
+  DEL-02-02, 09-02, 10-03; DEL-04-03's DEL-01-04, 02-02, 09-02, 09-05, 10-03;
+  DEL-04-01's DEL-01-04 and DEL-02-02 from G-0401-02): 15 DOWNSTREAM mirrors,
+  each mirror-only on an existing arc. *Corrected at RP1 (V23 m-1):* DEL-02-03's
+  DEL-09-06 was listed here in error (its mirror exists, DEP-02-03-014), and
+  DEL-04-01's two were missing. The 15 rows are ledger RP1-MX-0201, -0203,
+  -0403 and -0401, put to the owner as OWNER_ITEMS Q-17 (recommended include).
 - **Consumer-side sentences on existing arcs:** G-0203-04 (→ DEL-04-02),
   G-0302-03 (→ DEL-04-02), G-0303-01 clause b (→ DEL-04-02, → DEL-02-01),
   G-0403-03 (→ DEL-02-04, R22-7), G-0501-02 (→ DEL-01-05), G-0906-01

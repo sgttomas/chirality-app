@@ -1,6 +1,6 @@
 # Arc effect — SCA-V4-003, node P1
 
-**Status: PROPOSED.** This file lists every register row the ledger proposes,
+**Status: PROPOSED; repaired at RP1 after review V23 (M-1, M-2, m-1).** This file lists every register row the ledger proposes,
 classes each against the accepted graph, computes the SCC effect of the rows
 recommended INCLUDE, checks the guards, and states the departure from DAG-003
 that the next currency audit should find. Nothing here writes a register or a
@@ -27,9 +27,12 @@ SCC-002 (13): DEL-01-04, 02-01, 02-02, 02-03, 02-04, 03-01, 03-02, 03-03,
 
 ## 1. Every proposed row, by graph class
 
-Totals of the ledger's register kind: 89 items. INCLUDE 81 items standing for
-140 rows: **10 new arcs**, 30 mirror items (80 rows), 41 statement, notes,
-maturity or label items (50 rows). DEFER 3, DROP 5 (listed in §1.4).
+Totals of the ledger's register kind: 95 items. INCLUDE 86 items standing for
+156 rows: **10 new arcs**, 35 mirror items (96 rows), 41 statement, notes,
+maturity or label items (50 rows). DEFER 4, DROP 5 (listed in §1.4). RP1 added
+R22-7-reg (1 mirror row), R22-7-open (DEFER) and RP1-MX-0201/-0203/-0403/-0401
+(15 mirror rows; §1.2a). Of the 96 mirror rows, 90 lie on DAG-003 arcs and 6
+mirror this amendment's new arcs.
 
 ### 1.1 New arcs (no row in either direction today; checked ABSENT in both edge files)
 
@@ -102,6 +105,29 @@ Each mirror was checked present in DAG-003, with its layer.
 | R3-02-02-d | DEL-02-02 | 1 | mirror of R20-10 (new held) | SC3-02-02-12 |
 | R3-02-04-a, -b | DEL-02-04 | 2 | 03-04, 10-03 → 02-04 admitted | SC3-02-04-9 |
 | R3-02-04-c | DEL-02-04 | 1 | mirror of NR-4 (new held) | SC3-02-04-9 |
+| R22-7-reg (RP1) | DEL-04-03 | 1 | 04-03 → 02-04 held (consumer side; mirror of DEP-02-04-012) | R22-7-SoW (P2-B G-0403-03) |
+
+### 1.2a Mirror rows the revised receivers sentences ground beyond the groups above (RP1; V23 m-1)
+
+The receivers sentences P2-B wrote (pass 2's SC2-02-01-2, SC2-02-03-6,
+SC2-04-03-1 and SC2-04-01-4) name 15 consumers whose UPSTREAM row exists while
+the supplier register has no counterpart. A script over every ACTIVE register
+row and DAG-003 (`$TMPDIR/p1/m1.py`) confirmed each one: consumer row present,
+supplier row absent, arc present.
+
+| Ledger ID | Register | Rows | Consumers (their UPSTREAM row) | Layer |
+|---|---|---:|---|---|
+| RP1-MX-0201 | DEL-02-01 | 5 | DEL-02-02 (DEP-02-02-014), DEL-02-04 (DEP-02-04-011), DEL-08-02 (DEP-08-02-006), DEL-09-02 (DEP-09-02-015), DEL-10-03 (DEP-10-03-008) | 2 held, 3 admitted |
+| RP1-MX-0203 | DEL-02-03 | 3 | DEL-02-02 (DEP-02-02-015), DEL-09-02 (DEP-09-02-017), DEL-10-03 (DEP-10-03-009) | 1 held, 2 admitted |
+| RP1-MX-0403 | DEL-04-03 | 5 | DEL-01-04 (DEP-01-04-012), DEL-02-02 (DEP-02-02-017), DEL-09-02 (DEP-09-02-019), DEL-09-05 (DEP-09-05-010), DEL-10-03 (DEP-10-03-014) | 2 held, 3 admitted |
+| RP1-MX-0401 | DEL-04-01 | 2 | DEL-01-04 (DEP-01-04-011), DEL-02-02 (DEP-02-02-016); only if the optional G-0401-02 (SC2-04-01-4, Q-11) is accepted | admitted |
+
+Total 15 rows (10 on admitted arcs, 5 on held arcs); no topology change.
+Recommended INCLUDE (OWNER_ITEMS Q-17): extraction reads "each of which
+declares it upstream" as DOWNSTREAM rows, so leaving them out would make the
+register disagree with its ScopeOfWork. Corrections to P2's notes: DEL-02-03 →
+DEL-09-06 is not owed (DEP-02-03-014 exists), and REQ-008's "used by DEL-02-02"
+is already mirrored by DEP-01-04-010 (SC3-01-04-9 refreshes it).
 
 **Grounding finding (this node).** Every register here records CONSERVATIVE
 extraction from `ScopeOfWork.md` only (each `_DEPENDENCIES.md` Run Notes;
@@ -139,6 +165,7 @@ these is topological.
 | ID | Class | Disposition | Why |
 |---|---|---|---|
 | NR-03 | new admitted arc | DROP | R22-4 (above) |
+| R22-7-open | consumer row owed by DEL-11-02 (DEP-02-04-013) | DEFER | DEL-11-02 is outside the design passes; R22-7 leaves it open with its owner |
 | R3-01-02-g | mirror of NR-03 | DROP | follows NR-03 |
 | NR-06 | new admitted arc DEL-02-04 → DEL-01-03 | DROP | withdrawn (R18-1 C-07) |
 | NR-10 | new held arc DEL-02-04 → DEL-02-02 | DROP | withdrawn (R19-7) |
@@ -176,6 +203,15 @@ these is topological.
   SCC-002; DEL-01-02 → DEL-02-04 pulls DEL-01-02 and DEL-01-03 into SCC-002.
   This reproduces F0 §3 and C1-A. The withdrawn NR-06 and NR-10 change no SCC;
   they were withdrawn on design grounds, not graph grounds.
+- **REQ-008's source wording (RP1; V23 M-2).** C1-A's text ends "Consumers:
+  `DEL-02-02` (A15), `DEL-02-03` …, `DEL-04-03`, `DEL-04-01`". Extracted as
+  written it yields DEL-04-01 → DEL-01-04 and DEL-04-03 → DEL-01-04. The first
+  turns SCC-002 into a 16-member SCC (DEL-04-01, DEL-01-02 and DEL-01-03 join
+  it), on DAG-003 alone and with this amendment's arcs alike (recomputed;
+  existing arcs DEL-01-02 → DEL-04-01, DEL-01-04 → DEL-01-02 and DEL-02-02 →
+  DEL-01-03 close the loop). That breaks the DEL-04-01 and R17-10 guards. The
+  second is SCC-neutral but a reciprocal arc not counted here. P2-A's adjusted
+  REQ-008 (G-0104-09) names the two as suppliers and yields neither.
 
 ## 3. Guards
 
@@ -204,8 +240,10 @@ currency audit should find:
 - **DAG pending** (ends of added arcs, 11): DEL-01-02, DEL-01-03, DEL-01-04,
   DEL-01-05, DEL-02-01, DEL-02-02, DEL-02-03, DEL-02-04, DEL-03-03, DEL-04-02,
   DEL-04-03. The flags clear when the successor graph is accepted.
-- **Rows:** at least 10 new arc rows and at least 80 mirror rows, plus the
-  statement and notes changes (§1.3). An extractor may split one arc into
+- **Rows:** at least 10 new arc rows and 96 mirror rows (81 without the Q-17
+  group), plus the statement and notes changes (§1.3). The revised receivers
+  sentences ground no mirror beyond these (checked against P2's extraction
+  notes, as corrected). An extractor may split one arc into
   several rows; the arc set is what counts.
 - **Changed bound files without an arc change:** the ScopeOfWork, register and
   `_DEPENDENCIES.md` of every deliverable the INCLUDE rows touch: 19
@@ -223,12 +261,12 @@ currency audit should find:
 
 - The supplier-side mirrors pass 2 noted "outside mirrors noted, not
   proposed": DEL-04-01 → DEL-01-02, 01-04, 02-02; DEL-04-03 → DEL-01-04, 02-02;
-  DEL-02-01 → DEL-02-02, 02-04; DEL-02-03 → DEL-02-02. F0 §1.14 notes they are
-  proposable now; no node proposed them, and both pass-3 C1 records keep them
-  "as noted". They would add no arc. Not in this ledger; a later amendment or
-  the register owners may take them.
-- Consumer rows owed by DEL-04-03 for DEP-02-04-012 and by DEL-11-02 for
-  DEP-02-04-013 (P3RUN C1-B §3.4, §7 item 4): returned to the graph by C1-B,
-  not proposed. No arc change.
+  DEL-02-01 → DEL-02-02, 02-04; DEL-02-03 → DEL-02-02. Since RP1 all but one
+  are in the ledger as part of RP1-MX-* (§1.2a), because the revised receivers
+  sentences name them. DEL-04-01 → DEL-01-02 stays out: DEL-04-01's revised
+  SoW does not name DEL-01-02 (DEP-01-02-021 is DEL-01-02's own row).
+- Consumer rows owed for DEP-02-04-012 and DEP-02-04-013 (P3RUN C1-B §3.4,
+  §7 item 4; R22-7): DEL-04-03's is now proposed (R22-7-SoW, R22-7-reg);
+  DEL-11-02's stays open with its owner (R22-7-open, DEFER). No arc change.
 - SCC-forming rows (§2 negative controls): not proposed; their needs stay
   runtime values (`assess live work`, the K-10 standing).
