@@ -6,3 +6,4 @@ HELP_HUMAN session, under D-GOV-35, agent type `type2-opus-high`.
 | Node | State |
 |---|---|
 | S0 | Run opened from design pass 3's closeout; owner direction recorded; briefs written |
+| P3 | Pre-change baseline: 0 BLOCKER, 35 WARNING, 93 INFO (scope PKG-01…05, 09, 10; 32 deliverables); expected source SCA-V4-002 over GROUP3, 148/148 files equal; DAG-003 130/130 and 37/37; all differences from SCA-V4-002's post-acceptance audit attributed (no new findings). Notes: R22-5 would move 16 INFO to WARNING (attribute it, not a regression); C1-A's DEL-01-04 _STATUS hash prefix slip (actual `12de2a18b401688c…`); expect DAG-004 for the new admitted arcs. Fence verified |

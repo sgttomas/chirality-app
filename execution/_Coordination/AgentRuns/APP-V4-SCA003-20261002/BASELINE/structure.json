@@ -1,0 +1,1246 @@
+{
+  "contract": {
+    "basis": "docs/SPEC.md sections 1-2; production format via tools/scope_of_work/common.py",
+    "partition_directories": [
+      "0_References",
+      "1_Working",
+      "2_Checking",
+      "3_Issued"
+    ],
+    "tool_roots": [
+      "_Aggregation",
+      "_Coordination",
+      "_Decomposition",
+      "_Estimates",
+      "_Reconciliation",
+      "_Sources"
+    ],
+    "version": "structure-audit/v1"
+  },
+  "inventory_source": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/BASELINE/inventory.json",
+  "issues": [
+    "required tool roots are missing"
+  ],
+  "partitions": [
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-08_Domains research receiving"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice"
+    },
+    {
+      "missing_directories": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity"
+    }
+  ],
+  "root": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution",
+  "run_status": "COMPLETE",
+  "schema_version": 1,
+  "subject_status": "FAIL",
+  "summary": {
+    "fail": 0,
+    "lifecycle_states": {
+      "INITIALIZED": 27,
+      "IN_PROGRESS": 14
+    },
+    "partitions": 11,
+    "pass": 41,
+    "production_formats": {
+      "SOW_V1": 41
+    },
+    "units": 41
+  },
+  "tool_roots": {
+    "_Aggregation": false,
+    "_Coordination": true,
+    "_Decomposition": true,
+    "_Estimates": false,
+    "_Reconciliation": false,
+    "_Sources": true
+  },
+  "units": [
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-01-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-01-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-01-03",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-01-04",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-01-05",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-01-06",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-02-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-02-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-02-03",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-02-04",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-03-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-03-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-03-03",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-03-04",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-04-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-04-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-04-03",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-05-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-05-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-06-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-06-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-07-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-07-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-08-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-08-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-05",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-06",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-07",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "IN_PROGRESS",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-09",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-10",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-11",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-09-12",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-10-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-10-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-10-03",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-10-04",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-11-01",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-11-02",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    },
+    {
+      "current_state": "INITIALIZED",
+      "files": {
+        "Datasheet.md": false,
+        "Dependencies.csv": true,
+        "Guidance.md": false,
+        "Procedure.md": false,
+        "ScopeOfWork.md": true,
+        "Specification.md": false,
+        "_CONTEXT.md": true,
+        "_DEPENDENCIES.md": true,
+        "_MEMORY.md": false,
+        "_REFERENCES.md": true,
+        "_SEMANTIC.md": true,
+        "_SEMANTIC_LENSING.md": false,
+        "_STATUS.md": true
+      },
+      "id": "DEL-11-03",
+      "issues": [],
+      "path": "/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet",
+      "production_format": {
+        "accepted_baseline": true,
+        "issues": [],
+        "state": "SOW_V1",
+        "valid": true
+      },
+      "subject_status": "PASS"
+    }
+  ],
+  "variant": "SOFTWARE"
+}
