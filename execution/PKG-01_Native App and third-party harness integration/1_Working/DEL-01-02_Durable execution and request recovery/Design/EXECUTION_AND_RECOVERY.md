@@ -31,6 +31,7 @@
 | V2-11 | Every supplier statement names 0.158.0; where Codex reports a fact at run time the App reads it (U-R13) | §0, §9, UNRESOLVED | R19-5 |
 | RV21 | Repairs from V21 (in place, no version step). **V21-A MINOR 11:** resume overrides nothing: no model choice is handed at resume; a model the person chooses for a resumed conversation is sent per turn (`turn/start` `model`, ACCESS-v0.2 CS-18), one rule with ACCESS Q-11 and ROLE-v0.2 §5.5; the "model choice from DEL-01-05 at resume" runtime value is removed. **V21-A MINOR 12:** H-probe is cited at ACCESS §3; CV-21 separates "Continue as ‹role›" (a new conversation by `thread/start`, R19-8, R20-6) from a fork (`thread/fork`, a same-role copy recorded with `forkedFrom`); V2-6 is read with this correction. No schema or prototype change (the prototype's resume already sends the thread id only, `recovery_model.py` `resume`); prototype rerun | §1; §3.2 CV-21; §4.1 resume; §4.2 | V21-A MINOR 11, 12 |
 | V2-12 | Prototype extended (cases C-13…C-16), schemas at `…:0.2`, run of 2026-10-02: 16 results, all as expected | §8.1, §11 | R17-1 |
+| G | Closeout node G (in place, no version step, 2026-10-02). **U-R5 closed (R22-3; C1-A G-A2):** each window on a conversation is an observer and shows the interrupt control for a live turn; the first person's press writes the one stop request; a press in another window is refused (`stop-already-requested`, SR-11; `no-live-turn` once the turn has ended, §4.1), and that window's control then shows the turn's state from the same stop request, as NIR-v0.2 §4.8 WI-4 does for request cards (DEL-01-04 states it as WI-5). **U-R6 closed (C1-A G-A1):** RS-v0.9 §10's DEL-01-02 row answers it, "a turn interrupt is not recorded in format 0.1"; §8.2's stop-request row cites that. No transition, schema or prototype change (SR-11 already refused a second press from any window; windows are presentation); prototype rerun. Inputs (sha256, first 16 hex): `R22_RESOLUTIONS.md` `2acc830206bd40b3`; `closeout/C1-A.md` `0c2a44af8c09ce32`; RS-v0.9 `RECORD_SEMANTICS.md` `a91882e74064495c`; NIR-v0.2 as edited at G (WI-5) | §3.3; §3.4 SR-11; §8.2; UNRESOLVED U-R5, U-R6 | R22-3; C1-A G-A1, G-A2 |
 
 ---
 
@@ -274,6 +275,16 @@ On every attach the observer's rendered execution state is replaced by the
 snapshot: a stale rendered or cached state never establishes an outcome
 (AC-005).
 
+**Several windows on one conversation (R22-3; closes U-R5).** Each window is
+an observer with its own OA state, and each shows the turn's interrupt
+control while the turn is live. The first person's press settles it: one
+stop request is written (SR-01) and sent once. A press in another window is
+refused `stop-already-requested` while that request is requested, sent or
+accepted (SR-11), or `no-live-turn` once the turn has ended (§4.1), and that
+window's control then shows the turn's state from the same stop request and
+outcome, as NIR-v0.2 §4.8 WI-4 does for request cards. DEL-01-04 presents
+it (NIR-v0.2 §4.8 WI-5).
+
 ### 3.4 Stop request (SR)
 
 One record per request to interrupt one turn (DEF-3), whether the person
@@ -308,7 +319,7 @@ were not observed at 0.158.0 and are kept as defences.
 | SR-08 | sent, accepted, refused | generation-closed | no `turn/completed` observed before the generation closed | outcome-unknown | S outcome *unknown*; response *unknown-no-response* if still pending; cause *quit* reads "interrupted by quit (final status not observed)", cause *codex-stop* "interrupted by Stop Codex (final status not observed)" |
 | SR-09 | outcome-unknown | recovery-read | Codex history reports a final status for the turn | outcome-recovered | S with that status, source *recovered-from-supplier*. Observed at 0.158.0: after a graceful stop and after a kill alike, history reports the turn `interrupted` (OBS-2 §5.2) |
 | SR-10 | sent | wait-limit | the caller's wait ended (TEST VALUE) | sent | S `waitingEnded`; nothing else changes (HOSTING H10) |
-| SR-11 | requested, sent, accepted | interrupt-requested-again | — | same | Refused `stop-already-requested`; no second send |
+| SR-11 | requested, sent, accepted | interrupt-requested-again | — | same | Refused `stop-already-requested`; no second send. The same from another window on the conversation, whose control then shows this stop request's state (§3.3; R22-3) |
 | SR-12 | settled | response-observed | the response arrives after `turn/completed` | settled | S response recorded; the outcome is unchanged |
 
 **Labels** (the `outcomeLabel` element; meanings for DEL-01-04): *interrupted
@@ -645,7 +656,7 @@ does with them (node F edits the receivers' files, §14).
 | `request_ended_unanswered` | DEL-04-03: RS R13 tool-permission settlement *ended unanswered (process exit)* for A14 kinds in App runs (a value R13 does not yet have, §14 J-RS-2); DEL-01-04 display | RS's spelling |
 | `acknowledgment_not_observed` | DEL-04-03: RS R11 "lost acknowledgement" on the run whose conversation it names | — |
 | `app_restart_interruption` | DEL-04-03: RS R11 "App-restart interruption" on relaunch (R13-2; RS §14.3 FC-9), on the run current in the conversation at the end. DEL-02-03: that run stays interrupted (RE-4) and may continue as the same run when the person continues the conversation; earlier runs of the same conversation that had ended are unaffected (R19-2). DEL-03-03: PI-6 | Which run was current; whether it continues |
-| Stop request (cause, actor, outcome) | DEL-01-04 display. DEL-04-03 decides whether an App run's record carries a turn interrupt (U-R6); it is never a human-act record and never `run_ended` | Whether RS records it |
+| Stop request (cause, actor, outcome) | DEL-01-04 display. DEL-04-03 decided that an App run's record carries no turn interrupt: RS-v0.9 §10, DEL-01-02 row, "a turn interrupt is not recorded in format 0.1 (§3)" (RS-v0.9 §3, "Run-ended event" row: the interrupt's effects are recorded by the kinds that exist, R13, R11, `observation_lost`). It is never a human-act record and never `run_ended` | Decided: not recorded in format 0.1 (U-R6 closed) |
 
 The R13 feed beyond DEL-01-01's observed facts (RS U-20) is therefore exactly
 two facts: requests ended unanswered by a generation close or an App end,
@@ -873,8 +884,8 @@ qualified.
 | U-R2 Ledger lost or unreadable at relaunch: list conversations from `thread/list`, labelled "App history unavailable" (PROPOSED); whether that list is filtered by project `cwd` | App execution/recovery owner | Before implementation | R-1 failure row |
 | U-R3 Ledger retention and deletion; what a person's deletion of a conversation removes | App execution/recovery owner, with the owner for privacy | Before implementation | Not designed |
 | U-R4 Numbers: quit wait limit, stop wait limit, journal size, overlap wait (with HOSTING U-05) | App implementation owner | Before implementation | TEST VALUES in the prototype only |
-| U-R5 More than one App window on one conversation: each is an observer (OA per window); whether two windows may both show the stop control | DEL-01-04 | Before DEL-01-04's design | OA is per observer already |
-| U-R6 Whether RS records a turn interrupt in an App run, and how | DEL-04-03 | Node F or later | Offered (§8.2) |
+| U-R5 *Closed at G (R22-3):* more than one App window on one conversation. Each window is an observer and shows the interrupt control; the first press settles it, another window's press is refused and its control shows the turn's state (§3.3, SR-11; NIR-v0.2 §4.8 WI-5, beside WI-4) | — | — | — |
+| U-R6 *Closed at G (C1-A G-A1):* RS does not record a turn interrupt in format 0.1 (RS-v0.9 §10, DEL-01-02 row; §3, "Run-ended event" row) | — | — | §8.2 cites it |
 | U-R7 TBD-002 persistence technology and location | App execution/recovery owner with the supplier-integration owner | Before implementation | Format PROPOSED only |
 | U-R8 OI-008 process division (O-1 PROPOSED, R17-5) | App implementation owner (phase review) | Before architecture production | Requirements stated apart from placement |
 | U-R12 Deleting or archiving a conversation that has forks: at 0.158.0 a fork's history is referenced from the source's rollout (OBS-3 W-6, UNRESOLVED), so the App may need to warn or keep the source (with U-R3) | App execution/recovery owner | Before deletion is offered | `forkedFrom` recorded |
