@@ -1978,7 +1978,7 @@
       }
     },
     "suppliedGuidance": {
-      "description": "R3: per thread and turn, the source identity and content identity of each guidance input supplied; supplied is not adopted (adoption is always unknown). App runs (RS-v0.9): role guidance supplied at conversation start, or inherited at a same-role fork, cites DEL-02-04's supply record (ROLE-v0.2 §6.1) and its limit account (§6.2); the workflow supplied per run as a text element of the run-start turn, and the App-written run-end line on the next turn when no run starts with it (R20-3), cite DEL-02-02's run_text record and state its supply_check against thread/read (WR-v0.2 §16; R19-7). Each cites its supplier's record by reference; RS does not embed it (RS-v0.9 §4 R3).",
+      "description": "R3: per thread and turn, the source identity and content identity of each guidance input supplied; supplied is not adopted (adoption is always unknown). App runs (RS-v0.9): role guidance supplied at conversation start, or inherited at a same-role fork, cites DEL-02-04's supply record (ROLE-v0.2 §6.1) and its limit account (§6.2); the workflow supplied per run as a text element of the run-start turn, and the App-written run-end line on the next turn when no run starts with it (R20-3), cite DEL-02-02's run_text record and state its supply_check against Codex's history, read with thread/items/list (WR-v0.2 §16, §16.6 SC-3; R19-7; R21-4). Each cites its supplier's record by reference; RS does not embed it (RS-v0.9 §4 R3).",
       "type": "object",
       "required": [
         "supplyForm",
@@ -2020,7 +2020,7 @@
           "const": "unknown"
         },
         "supplyCheck": {
-          "description": "R19-7, R20-3: the state of DEL-02-02's supply check of the turn text against what thread/read returns for that turn (WR-v0.2 §16.6 `supply_check`), or 'not checked'. 'verified' means the text was supplied as composed; adoption stays unknown.",
+          "description": "R19-7, R20-3: the state of DEL-02-02's supply check of the turn text against what Codex's history returns for that turn, read with thread/items/list (WR-v0.2 §16.6 SC-3 `supply_check`; R21-4), or 'not checked'. 'verified' means the text was supplied as composed; adoption stays unknown.",
           "enum": [
             "verified",
             "text differs, workflow bytes equal",

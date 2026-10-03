@@ -126,6 +126,7 @@ lists the proposals for SCA-V4-003:
 | OBS-2 O-4 (adapter) | §11 CH-2 | The delegation tools also travel in the `namespace` tool LM Studio 0.4.16 drops (R18-9 standing) |
 | RV21 (repairs from V21; in place, no version step): V21-A MINOR 10, 11 | §1 (runtime-value paragraph); §5.1 AE-12; §5.2 KE-13; §6 Q-5, Q-7, Q-11 | **MINOR 10:** sign-out and key removal ask first with DEL-01-02's **`assess live work`** (RECOVERY-v0.2 §4.1; R18-1 C-23), which returns the live turns, the outstanding requests and the active delegated children of the home, as a runtime value (no row); all three are listed. **MINOR 11:** resume overrides nothing on `thread/resume`; a model change is per turn (CS-18), one rule with RECOVERY-v0.2 §4.1 and ROLE-v0.2 §5.5 |
 | Naming | §6 Q-2 | The control reads "Sign in with your ChatGPT account (through Codex)", so it is not confused with OpenAI's separate "Sign in with ChatGPT" grant (§20) |
+| C0 (closeout; in place, no version step): V21b-A N-1 (V21-B m-3, ACCESS side) | §20 "Decision record" | The SIWC arrangement (no pressing need; alternative considered with its triggers; host-billing point on the next-relay list) is attributed as HELP_HUMAN's recommendation, not separately answered by the owner and not objected to, as OWNER_DECISIONS (sha256 prefix `8a5d11149045770d`) now reads; "was accepted with L-1 and L-6" removed. Substance unchanged: not adopted. Prototype rerun 2026-10-02: `run_cases.py` TOTAL 9, FAIL 0 (run `APP-V4-DESIGN-PASS-3-20261001` `closeout/C0.md`) |
 
 ---
 
@@ -945,8 +946,11 @@ ChatGPT account** (renamed in v0.2 to avoid the confusion).
 "Well, there's no pressing need to go ahead with this alternative sign-in or
 do you see any?" HELP_HUMAN's recommendation (no pressing need; DEL-01-05
 records it as an alternative considered, with its triggers; the host-billing
-point goes on the next-relay list) was accepted with L-1 and L-6
-(OWNER_DECISIONS, "Sign in with ChatGPT" exchange). Reasons, from the assessment: it moves
+point goes on the next-relay list) is HELP_HUMAN's recommendation, which the
+owner did not separately answer and did not object to; L-1 and L-6 were
+answered A ("I will go with your recommendations for the other six";
+HELP_HUMAN's reading in OWNER_DECISIONS, "Sign in with ChatGPT" exchange, as
+corrected after V21-B m-3). Reasons, from the assessment: it moves
 custody to the App, against V4-ARC-04 and D-GOV-43's "custodied by Codex"
 (K2-2's objection again); the documented route restarts Codex hourly, which
 interrupts live turns and drops pending requests (OBS-2 O-2); it is a
