@@ -845,7 +845,7 @@ external dispatch entries from `DEL-03-03`,
 external dispatch entries from `DEL-03-03`, the per-run run-start text and run-end line with their content identity and supply-check record, the selection record and the A15 descriptor's reviewed-content and prior-revision relations from `DEL-02-02`,
 ```
 
-#### G-0403-03 · CLM-004, DEL-02-04 item · added under R22-7 (not in P1's ledger) · owner item (new; recommended include)
+#### G-0403-03 · CLM-004, DEL-02-04 item · added under R22-7 · ledger row R22-7-SoW · owner item Q-15 (recommended include)
 Target: DEL-04-03
 Trace: design pass 3 R22-7 (`R22_RESOLUTIONS.md`): DEP-02-04-012 (DEL-02-04 DOWNSTREAM HANDOVER to DEL-04-03: "Provide the role-specific source identity, actual supplied bytes and enforcement-limit evidence to the content-bound run-record owner") has no supplier-side counterpart because this SoW names no DEL-02-04 input. RS-v0.9 §4 R3 (a) and R5a (DEL-02-04's supply record 0.2, limit account, `role_limit_observation`), §10 row "DEL-02-04 (ROLE-v0.2; v0.9) … DEP-02-04-012". Arc DEL-04-03 → DEL-02-04 exists today (through DEP-02-04-012; held, both in SCC-002): mirror only, no topology change. Grounds a new register mirror row in DEL-04-03 (UPSTREAM INTERFACE → DEL-02-04), to be added to the ledger (see "For the ledger"). DEP-02-04-013 (DEL-11-02) is not addressed here: it stays open with DEL-11-02's owner (R22-7).
 ```old

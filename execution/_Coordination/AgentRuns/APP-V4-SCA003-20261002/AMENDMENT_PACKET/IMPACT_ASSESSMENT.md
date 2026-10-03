@@ -399,3 +399,8 @@ decomposition 1). INCLUDE register: 10 new arcs, 35 mirror items (96 rows),
   registered `_latest_pointer_target` and `_pointer_matches` is True; the
   accumulator, with D-021, exits 0 with 30 rows and 0 findings (29 rows
   without a delta).
+
+
+## After review V23b (HELP_HUMAN, record fixes)
+
+V23b: READY FOR CHECKPOINT. Its three new MINOR record items are fixed in place: n-1 (BASIS_AMENDMENT's C-02 note now cites V23b's check of the 18 basis pins, not pass 2's ScopeOfWork-pin sentence); n-2 (G-0403-03's heading names R22-7-SoW and Q-15; no fence changed); n-3 (DC-01 says "No decomposition ID was added", noting the ScopeOfWork-local IDs). The OI-009/OI-018 fields and the four result hashes are unaffected; the DC-01 template changed in wording only.

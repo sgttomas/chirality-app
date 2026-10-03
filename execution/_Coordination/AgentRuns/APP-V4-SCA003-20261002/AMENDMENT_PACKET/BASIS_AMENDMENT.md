@@ -49,7 +49,7 @@ Snapshot: `../_ScopeChange/SCA-V4-002_2026-09-29_1901`.
 ```new
 Snapshot: `../_ScopeChange/SCA-V4-002_2026-09-29_1901`.
 
-- SCA-V4-003 ({ACCEPT_DATE}), requested by the owner (run APP-V4-DESIGN-PASS-3-20261001, start and closeout directions; run APP-V4-SCA003-20261002): MODIFY only. ScopeOfWork text of DEL-01-01, DEL-01-02, DEL-01-03, DEL-01-04, DEL-01-05, DEL-02-01, DEL-02-02, DEL-02-03, DEL-02-04, DEL-03-01, DEL-03-02, DEL-03-03, DEL-03-04, DEL-04-01, DEL-04-02, DEL-04-03, DEL-05-01, DEL-09-06 and DEL-09-09, carrying the contract proposals of design passes 2 and 3{Q5_CLAUSE}; {OI009_CLAUSE}{OI018_CLAUSE}{D021_CLAUSE}. No ID was added, retired, renumbered or moved; 11 Packages, 41 Deliverables and 262 scope IDs are unchanged. Snapshot: `../_ScopeChange/{AMENDMENT_SNAPSHOT}`.
+- SCA-V4-003 ({ACCEPT_DATE}), requested by the owner (run APP-V4-DESIGN-PASS-3-20261001, start and closeout directions; run APP-V4-SCA003-20261002): MODIFY only. ScopeOfWork text of DEL-01-01, DEL-01-02, DEL-01-03, DEL-01-04, DEL-01-05, DEL-02-01, DEL-02-02, DEL-02-03, DEL-02-04, DEL-03-01, DEL-03-02, DEL-03-03, DEL-03-04, DEL-04-01, DEL-04-02, DEL-04-03, DEL-05-01, DEL-09-06 and DEL-09-09, carrying the contract proposals of design passes 2 and 3{Q5_CLAUSE}; {OI009_CLAUSE}{OI018_CLAUSE}{D021_CLAUSE}. No decomposition ID was added, retired, renumbered or moved (the ScopeOfWork files gain local IDs listed in their AX lines); 11 Packages, 41 Deliverables and 262 scope IDs are unchanged. Snapshot: `../_ScopeChange/{AMENDMENT_SNAPSHOT}`.
 
 ## Checkpoint and next stage
 ```
@@ -177,9 +177,10 @@ accepted SCA-V4-003 checkpoint group 1. Append-only: it edits no SCA-V4-002
 group-bound byte, moves no pointer and accepts nothing.
 
 Since the record of 20260930T044342Z:
-- The 17 Design re-pins: done in run APP-V4-DESIGN-PASS-2-20260930 (its
-  closeout C1-A, "Inputs": each Design header's ScopeOfWork pin equals the
-  current ScopeOfWork bytes).
+- The Design re-pins to the amended basis documents: done in run
+  APP-V4-DESIGN-PASS-2-20260930 (Wave A); checked for SCA-V4-003 by review
+  V23b: all 18 Design files that pin the basis documents carry their current
+  hashes.
 - The SWBPIPE handoff "local-first" line: replaced in that run (its closeout
   C1-C, "Confirmations": HANDOFF line 22 reads "on a model the person
   chooses, local or cloud, with no default"); not yet relayed.
