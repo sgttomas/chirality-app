@@ -298,3 +298,13 @@ NR-…, P-…; F0 §3–§4; F/*.md; reviews), deduplicated with sources, and sa
 which pass-2 proposals for your deliverables (pass-2
 `closeout/C1-A/B/C.md`, CLOSEOUT_ACCOUNT) this run supersedes, keeps or
 changes. Write `closeout/C1-A.md` or `C1-B.md`. No other file.
+
+### G — items the closeout returned to the graph (one Type 2)
+
+Fence: ROLE (DEL-02-04 Design), RECOVERY (DEL-01-02 Design), NIR (DEL-01-04
+Design: NIR only). In place, no version steps, a "G" row in each touched
+change table. Items: R22-1 (ROLE §7.2 O-8 adopts NR-4), R22-2 (ROLE v0.2
+self-contained: write out every "as v0.1" section from `63a6e0fa47` without
+changing meaning), R22-3 (two windows and the stop control; close RECOVERY
+U-R5 and U-R6; NIR states the stop control's two-window behaviour beside
+WI-4). Rerun the three prototypes. Return `closeout/G.md`.
