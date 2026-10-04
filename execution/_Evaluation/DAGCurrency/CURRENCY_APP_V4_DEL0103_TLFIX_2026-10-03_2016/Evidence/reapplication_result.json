@@ -1,0 +1,135 @@
+{
+  "classification": "CURRENT_WITH_EVIDENCE_DRIFT",
+  "source_manifest_members": 130,
+  "source_manifest_members_changed": 2,
+  "changed_members": [
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Dependencies.csv",
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_DEPENDENCIES.md"
+  ],
+  "inventory_unchanged": true,
+  "inventory_detail": {
+    "register_unchanged": true,
+    "pointer_bytes_changed": false,
+    "pointer_names_same_snapshot": true
+  },
+  "active_execution_rows": 567,
+  "retired_execution_rows": 7,
+  "non_topological_rows": 208,
+  "deliverable_target_rows": 359,
+  "arcs": {
+    "dag004_admitted": 129,
+    "dag004_candidate": 83,
+    "dag004_total": 212,
+    "current_admitted": 129,
+    "current_candidate": 83,
+    "current_total": 212,
+    "added": 0,
+    "removed": 0,
+    "added_admitted": 0,
+    "added_candidate": 0,
+    "existing_arcs_changing_layer": [],
+    "reciprocal_pairs": 27
+  },
+  "sccs_current": [
+    [
+      "DEL-01-04",
+      "DEL-02-01",
+      "DEL-02-02",
+      "DEL-02-03",
+      "DEL-02-04",
+      "DEL-03-01",
+      "DEL-03-02",
+      "DEL-03-03",
+      "DEL-04-02",
+      "DEL-04-03",
+      "DEL-05-01",
+      "DEL-05-02",
+      "DEL-09-09"
+    ],
+    [
+      "DEL-07-01",
+      "DEL-07-02",
+      "DEL-08-01"
+    ],
+    [
+      "DEL-01-01",
+      "DEL-01-05"
+    ],
+    [
+      "DEL-01-06",
+      "DEL-09-01"
+    ],
+    [
+      "DEL-10-02",
+      "DEL-10-04"
+    ],
+    [
+      "DEL-11-01",
+      "DEL-11-03"
+    ]
+  ],
+  "sccs_unchanged": true,
+  "representative_changes": [],
+  "core_field_drift_on_existing_representatives": [
+    {
+      "arc": "DEL-01-03 -> DEL-01-01",
+      "row": "DEP-01-03-011",
+      "fields": [
+        "TargetLocation"
+      ]
+    },
+    {
+      "arc": "DEL-01-03 -> DEL-01-02",
+      "row": "DEP-01-03-012",
+      "fields": [
+        "TargetLocation"
+      ]
+    }
+  ],
+  "expected_arcs": {},
+  "expected_arcs_missing": [],
+  "arcs_added_outside_expected": [],
+  "expected_layers_hold": true,
+  "guard_arcs_present": [],
+  "del_04_01_suppliers": [],
+  "scc002_members_consuming_del_09_06": [],
+  "r17_10": {
+    "DEL-01-02_reaches": [
+      "DEL-01-01",
+      "DEL-01-05",
+      "DEL-04-01"
+    ],
+    "DEL-01-03_reaches": [
+      "DEL-01-01",
+      "DEL-01-02",
+      "DEL-01-05",
+      "DEL-04-01"
+    ],
+    "holds": true
+  },
+  "dag_pending": [],
+  "advice_renewed_examination": {},
+  "scratch_audit": {
+    "tool": "tools/coordination/audit_dag.py",
+    "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a",
+    "argv": [
+      "python3",
+      "tools/coordination/audit_dag.py",
+      "--edges",
+      "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DEL0103_TLFIX_2026-10-03_2016/Evidence/scratch_admissible_edges.csv",
+      "--nodes",
+      "projects/chirality-app-v4/execution/_DAG/DAG-004/DeliverableNodes.csv",
+      "--canonical",
+      "--json-out",
+      "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DEL0103_TLFIX_2026-10-03_2016/Evidence/scratch_admissible_audit.json"
+    ],
+    "exit_code": 0,
+    "edge_count": 212,
+    "scc_count": 6,
+    "canonical_finding_count": 0
+  },
+  "script": {
+    "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DEL0103_TLFIX_2026-10-03_2016/Evidence/reapply_selection.py",
+    "sha256": "5bff372f188870c2a250a88488220ed84ea6ccbfd95b006fd793c2ce4a745a11"
+  }
+}
