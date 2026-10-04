@@ -226,3 +226,24 @@
 The owner checkpoint can use §1.3 and §2 as they stand. Before G1 goes to the owner as a whole, §2b's treatment of A2/A3 and of Q-5 must be corrected, because it concerns how an owner decision is presented to the owner. The fix is local: §2b.1 rows A2 and A3, §2b.2 with an A3-as-I line, and reading point 3. G1r2-m1 can be fixed in the same pass.
 
 **Addendum counts.** BLOCKING 0, MAJOR 1, MINOR 1, NOTE 2.
+
+---
+
+## Addendum B — confirmation of G1 r3 (2026-10-04)
+
+- **Subject.** `SURVEY/G1.md` r3, commit `4575bc1649`, sha256 `3d6543bc2a05e5e62cb9673c1d3177386f484de38d9058a0b396eee9299f0a45`. I read the r2 → r3 diff in full, `GC_RULINGS.md` GC-2, and the `$TMPDIR/rvg` recomputation over the r3 kinds parsed from the file.
+
+| Addendum A item | r3 change | Checked |
+|---|---|---|
+| G1r2-M1 (A2/A3; Q-5) | A2 and A3 are I. Q-5 is quoted as accepted ("the App act control in DEL-01-04, with REQ-008 as adjusted …"), with GC-2. P5/P15 re-target safety is now conditional | **Confirmed.** A2's basis, `aac.capture-evidence.schema.json`, exists in DEL-01-04's Design. A3 or A2 alone, read as I, gives 16 members under O-1 (with 04-01, 01-02, 01-03 and 09-09) and 15 under O-2…O-4. With all G2 rows: O-4 17 (04-01 added); without N26 and N27, 16. O-1, O-2 and O-3 stay 21 / 17 / 17. All match §2b.2 |
+| G1r2-m1 (DEP-06-01-011) | P/L under K-6 and K-4 | **Confirmed.** Admitted kinds are I 85, P 40, L 2, E 2, V 0. Admitted arcs leaving: O-3 {DEP-07-02-015, DEP-10-01-020}; O-4 adds DEP-02-04-013 and DEP-09-12-012. That gives 0/2/4. SCCs, moves and the 19 interface or production rows are unchanged |
+| G1r2-n1 (K-3 blanket) | Per-item basis. DEP-04-03-024 rests on RS R14-3 adopting P-v0.8 §9 | **Confirmed** (RS Changes row R14-3) |
+
+**One note, no new finding of substance.**
+- A1 (04-03 → 01-04) stays E on the ground that "RS defines the human-act record format".
+- RS FR-07, however, references AAC's capture evidence "by its `cap:` identity … RS copies none of it". Carrying AAC's identity scheme is I under K-2, as RVG-C2's condition (a) also holds.
+- The kind of A1 changes no SCC: both ends are already in the core under every option. Tidy it when §2b is next touched.
+
+**Verdict on r3: CONFIRMED — READY** as the shared basis for case agents and for the owner checkpoint. My REPAIR verdicts on G1 r1 and r2 are closed by r3.
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 0, NOTE 1.
