@@ -220,3 +220,19 @@ AA2-R1 and CA2-N1 are **resolved**. There is 1 new MINOR finding (AA3-R1), on a 
 - **Repair** (one line in SR-3, plus a negative case):
   - Refuse an adoption act whose record is a notice the renewal's change record routes, or more generally any file the change's own tranche wrote.
   - Add this construction as N-32.
+
+---
+
+# Addendum — EU-F3R3: AA3-R1 (committed `158c0b2859`), 2026-10-04: **READY; AA3-R1 resolved**
+
+- **Scope.** Only AA3-R1, by the coordinator's ruling. `git diff 821f236649 158c0b2859` touches two files in the unit:
+  - `check_aa.py`: +15 lines, being the SR-3 notice refusal and N-32;
+  - `ADOPTION_ACCOUNT.md`: the header note, the SR-3 lists, the uncovered-list qualifier and a changes row.
+
+  The AA records (`records/*`) are byte-identical to `821f236649` (`git diff --quiet`), and nothing changed after `158c0b2859`. `check_aa.py` (`84b79bc8…`) gives **47/47**, with N-32 "[refused by: SR-3]" and P-4 still holding.
+- **My construction, rerun by me.** I added App v3's `consumer_adopted` on an `agent_act` (class `adoption`, consumer `APP-V3`) whose record is the routed D-GOV-52 notice and whose exact text is "Your loop decides whether to adopt, amend or decline.", with the status updated to match. The result:
+  - schema 0 errors, evidence none, acts none, status none;
+  - separation, **SR-3 only**: "SR-3 APP-V3: AD-Z's record is a notice RN-1's change routes, not the loop's own act".
+
+  The unmodified account still passes SR with no errors.
+- **The declared limit stays true and listed.** The textual renewal test, which now applies to entries other than the routed notice, and the negation-list behaviour are stated in AA §7 as uncovered. Per the coordinator's ruling, there is no further hardening this tranche.
