@@ -74,3 +74,48 @@ This is a byte copy of v7 with the edits below. v7's front matter has no edition
 - **SPEC §5.4 and the lessons.** SPEC §5.4 treats any added or removed edge, or a new cycle, as a departure: the DAG goes pending and the human decides. L§6 says a successor comes "only on a structural event". The manuals defer to the adopted rules. Registering the roughly 60 design-level dependencies may therefore set some App v4 deliverables to DAG pending, even inside a group.
 - **Check 4 of the grouping test.** L§3 lists "SWBPIPE host joins: A and D" under "contained in one group". The general check 4 therefore allows containment "within a group, or at an identified join that follows the group order". This should be confirmed.
 - **Grouping as a merge in App v4.** The owner explicitly approved merging the contract core under change control. For groups B–E, the record of the human decision is the gate acceptance itself, which followed the owner's "a valid decision to start grouping items together". The B0 merge page was dropped. The manuals say grouping requires the human's decision. They do not claim a separate merge record was made.
+
+## 5. Repair after review MR-MANUAL (REPAIR: 2 MAJOR, 11 MINOR)
+
+**Basis.** These repairs answer `reviews/MR-MANUAL.md`, committed at `b935a016a6` against candidate `a8d835ad7b`. They are made in place in v8, the field book and the Agent User Manual. v7 is still unchanged (sha256 `0aafefb1…f095032`).
+
+The repair supersedes parts of §§1–4 above:
+- corrections C1–C3 are reverted where they narrowed when a successor is needed;
+- "merge for planning purposes" is withdrawn everywhere.
+
+### Findings and changes
+
+| Finding | Repair |
+|---|---|
+| **MAJOR-1** "merge" and "resolved" | The gate-time treatment is now called **grouping for development**. It is a planning arrangement that the human accepts, typically with the gate. Each manual says plainly that it is not a merge ruling under CDR §2 rule 3 or project-dag SR-4: held rows stay `SCC_UNRESOLVED`, their cases stay open, and the local work graph orders the parts. A recorded merge, cut or other move remains available through the doctrine and project-dag, and it produces a successor. "An SCC is resolved when…" is removed; the gate asks that every SCC have an *accepted treatment* under which its work can proceed. "Resolved" appears only in the owner's quoted criterion and its reading. Places changed: v8 §3.11 (Merge paragraph), §4.7 (SCC sentence), §4.12 (SCC paragraph), Figure 4.10 "Coupled work"; the field book §1 DISCERN list and §4; AUM §5 `#gate-60` and §8. |
+| **MAJOR-2** do not narrow SPEC §5.4 | Restored "commonly" in v8 §1.7, the chapter 4 intro and §3.12 (C1–C3 reverted). The text now separates two things: a *departure* (an added or removed relationship, or a changed cycle), which the human decides under the adopted rules and which can be batched into one successor; and a *structural change* (the Deliverable set or the order between groups), which is what the gate expects not to happen. Fixed the four passages MR quoted: §1.7, §4.7, §4.12 after the level table (now MR's wording), and §4.12 "No successor was needed" (now "…needed to pass the gate; the dependencies found in the designs are carried through the departure rules as the loops register them"). The §4.12 opening paragraph and the chapter 5 intro gain the departure statement. The §4.12 handoff paragraph now sets out the proportionate path once: batch per scope amendment, one currency examination, one small successor. It cites App v4's three successors accepted during 60% (DAG-002 to DAG-004, checked in each ACCEPTANCE_RECORD) and the future departures from G2b. The field book §1 framing, the handoff block and §5 step 2 are restated on the departure rule. In AUM step 4 the scope-amendment route comes first, followed by batching and the DAG-002 to DAG-004 example. |
+| **MINOR-1** "settled" | Field book DISCERN now reads: "…is settled, contained as a residual risk with an owner, or accepted by the human as a stated qualification." |
+| **MINOR-2** check 4 | Field book: "contained in a group or at an identified join that follows the group order, with an owner." |
+| **MINOR-3** grouping before the gate | Field book: "grouping for development proposed for the human's decision, which may be given with the gate." The DISCERN list no longer implies a prior decision. |
+| **MINOR-4** v7 §1.7 reference | The field book reference beside the gate subsection is repointed to v8 §1.7 and §4.12. The other v7 links are left for the v8 adoption decision. |
+| **MINOR-5** revision marks | Added a dated revision line to the field book (after its title) and to the AUM header. The AUM line names §5, §8 and the v8 citation, and says that the rest is unchanged. |
+| **MINOR-6** GC-5 premise | v8 §4.12 handoff and the AUM ruling now say "Under (part-level) edge semantics such as App v4's (the consumer requires the supplier's contribution before the stated part of its work)…". |
+| **MINOR-7** placement | In v8 §4.12, the phase-names paragraph and Figure 4.10 now end "Examine what could still change the route". "Prepare the assessment and obtain the decision" follows the figure. |
+| **MINOR-8** where groups are recorded | "The DAG's group order" becomes "the group order accepted at the gate" in v8, the field book and the AUM. The decision record now includes "the groups, their members, the order between them, and the result of the grouping test". The assessment and Figure 4.10 list the groups with their members. |
+| **MINOR-9** owner's criterion | AUM: "with few or no conflicting outcomes" ("without many or any" in the owner's words). |
+| **MINOR-10** residual risks | v8 example: the host-side joins touched the core and the fleet group, which lie in group order; the placement question and the policy Deliverable's reach lay within the core; the roughly 60 dependencies became register updates. |
+| **MINOR-11** dense figures | Removed from v8: "10,584 … 536 pairs" and the 16–26 range. The text now reads "Each survey found more coupling: the 83 held relationships, then 30…, then 62…". The 41/83/six/five-group outline and the quotes are kept. |
+| **NOTE-1** "towards" | Both instances changed to "toward". |
+| **NOTE-2** "recorded" | Changed to "replied". |
+| **NOTE-3** duplication | v8 §1.7's second paragraph is shortened to one statement and a pointer. The §4.7 paragraph is tightened to the departure/structure distinction and a pointer. |
+| NOTE-4, -5, -6 | No manual change. NOTE-4 (stale HTML, README editions) belongs to the publication step. |
+
+### Words added against the original baselines
+
+| Document | Before | After this repair | Added |
+|---|---|---|---|
+| v8 against v7 | 69,271 | 72,227 | +2,956 |
+| Field book | 2,631 | 3,116 | +485 |
+| AUM | 17,033 | 18,745 | +1,712 |
+
+### Still for HELP_HUMAN
+
+- **Group membership.** App v4 should commit its group A–E membership before the loops fan out (MR MINOR-8). The manuals now ask for that record.
+- **Residual-risk wording.** `OWNER_DECISIONS.md` says the residual risks are "contained within single groups". LESSONS §3 places the SWBPIPE joins at A and D. The v8 example follows LESSONS and MR's ruling 2.
+- **Notice to the App v4 loop.** The pinned field book and AUM changed in place. The App v4 loop should be notified (MR MINOR-5).
+- **Separate decision.** Adopting v8 and repointing the remaining v7 links, the README and LOOP_INIT is a separate decision (MR ruling 4).

@@ -105,3 +105,13 @@ v3 HTML confirmed that the renderer reproduces it.
 ## Close-out and development-loop handoff (owner, exact, 2026-10-04)
 
 > When that work lands and the PR is merged, then proceed with the "Close out this session" steps you outlined earlier.  I will then start the development loops in a new session with the handoff you provide.  Review the init-prompt and LOOP_INIT text before finalizing your handoff.  We should incorporate the `coordinated-knowledge-work` workflow into the LOOP_INIT instructions too.
+
+## Correction to HELP_HUMAN's recorded assessment (2026-10-04)
+
+The "60% gate" entry above summarises HELP_HUMAN's assessment as
+"Residual risks are contained within single groups". That overstates it.
+The SWBPIPE host joins touch two groups, the core (A) and the fleet group
+(D). These are in group order, so the joins do not reverse the order
+(LESSONS_60PCT §3; MR-MANUAL ruling 2). Placement OI-013/014 and
+DEL-04-01's reach do lie within group A. The owner's quoted words are
+unchanged.
