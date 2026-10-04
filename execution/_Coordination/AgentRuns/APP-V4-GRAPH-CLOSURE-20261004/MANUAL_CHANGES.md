@@ -166,3 +166,40 @@ HAND OFF block: a ready or blocked verdict read from the project DAG does
 not cover relationships recorded only in a work graph or the shared list,
 so read those before declaring work ready. GROUPS.md's trigger list now
 matches GC-7 (N-B1).
+
+## 8. GC-8, the current edition, and repointed links (MW, 2026-10-04)
+
+**Basis.**
+- The owner's directions in `OWNER_DECISIONS.md`: no new record types, no edition pinning, and the entry reading.
+- Ruling GC-8 in `GC_RULINGS.md`.
+
+v7 is unchanged. No HTML, DOCX or PDF file was edited.
+
+**GC-8 wording.** The shared list is gone. A cross-group relationship is now recorded in the work graph of each affected loop, and the readiness sentence is kept. Changed passages:
+
+| Document | Passage | Change |
+|---|---|---|
+| v8 | §4.12 level table, last row | Now reads "Work graphs or dependency records"; "across groups, the work graph of each affected loop". |
+| v8 | §4.12 handoff, "Found relationships recorded where they will be seen" | Records cross-group relationships in the work graph of each affected loop, carried into a group's graph when that graph is constructed. Adds "No new standing list is needed." The readiness sentence now reads "relationships recorded only in work graphs". |
+| Field book | §1 HAND OFF block | Now reads "the work graph of each affected loop across groups; read them before declaring work ready". |
+| Field book | §5 step 2 | A relationship that crosses groups goes in the work graph of each affected loop. |
+| AUM | §5 step 4 | Covers each affected loop's work graph and the carry-over when the other group has no graph yet. Says to create no new standing list and cites GC-8 and the groups record. The readiness sentence is kept. `CROSS_GROUP_RELATIONSHIPS.md` is no longer named. |
+
+**Current edition (README.md).**
+- "Current editions" now lists v8 with its Markdown, Word and PDF. The Word and PDF are named `Project_Management_for_Human_Agent_Teams_Consolidated_v8.docx` and `.pdf`; they do not exist yet, and HELP_HUMAN will produce them or remove the entries.
+- v7 is moved to the top of the Archive table, with its Markdown, Word, PDF and the `plans/evidence/2026-09-22_manual_v7/` evidence link. All three of those targets exist.
+- In "Maintain the management-manual formats", the v7 evidence is now described as the retained layout's preparation. A link to this change summary records the v8 text revisions.
+
+**Links repointed: 18.**
+- **Field book: 16 links** from v7 to v8 (one bare link and 15 with anchors), plus one label "Manual v8 §1.7" changed to "Manual §1.7".
+- **AUM: 2 links**, the header link and the `[human-manual]` definition.
+  - The `[human-manual-v8]` definition is removed. Its three uses become "[Human manual §4.12][human-manual]".
+  - The header now reads "An operational companion to the current edition of *Project Management for Human–Agent Teams*".
+  - The revision line says the links now point to the current edition.
+  - Two unrequested edits remove edition pinning in passing. "Version 7 develops…" becomes "The management manual, since version 7, develops…". The source-map label "v7 route and adoption boundary" becomes "route and adoption boundary". The anchor `#v7-adoption` is kept so links do not break.
+- **Not changed:** the AUM `[guide-sources]` and `[guide-conflicts]` evidence links under `manual_v7`. They record the guide's source basis.
+
+**Anchors.**
+- All 17 fragment links from the field book into v8 resolve to explicit `<a id>` anchors. These are `ch_1_6`, `1_7`, `1_9`, `1_10`, `2_1`, `2_9`, `3_1`, `3_9`, `4_1`, `4_3`, `4_7`, `4_12`, `5_2`, `5_5`, `5_6`, `5_9` and `ch_6`.
+- All 30 internal fragment links in the AUM resolve to its own explicit anchors.
+- No anchor is unresolved. The anchors are explicit ids, not ids derived from headings, so the changed headings do not affect them.
