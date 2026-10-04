@@ -389,3 +389,110 @@ This verdict covers the content of the guidance only. Making v8 the current edit
 - commit App v4's A–E group membership;
 - send the notice to the App v4 loop;
 - make the edition decision.
+
+---
+
+## Addendum B: recheck after the owner's direction on structure versus detail (GC-7)
+
+**Reviewer:** MR, the same instance (Claude Opus 5.5, `claude-opus-5-5`). I used read-only git and no network, and I edited only this file.
+
+**Candidate:** `0c45aba0e9`. I checked the diff `db25aa3256..HEAD` for the three manuals against:
+- `OWNER_DECISIONS.md`, section "Structure versus detail after 60%";
+- `GC_RULINGS.md` GC-7;
+- `GROUPS.md`;
+- `MANUAL_CHANGES.md` §6.
+
+| File | sha256 (prefix) |
+|---|---|
+| v8 | `d0de0b1ec4da…` |
+| Field book | `9adac4b575f0…` |
+| AUM | `30d6ec602b13…` |
+| `GC_RULINGS.md` | `058cf8c8b027…` |
+| `GROUPS.md` | `7d3bfb79ae4f…` |
+| `OWNER_DECISIONS.md` | `7b04069a49e8…` |
+| v7, still unchanged | `0aafefb12e9a…` |
+
+### 1. Faithful to GC-7 and the owner's words: yes
+
+**Recording.** All three manuals carry GC-7 items 2 and 3 in the same form. A found relationship is recorded "where those who depend on it will see it":
+- within a group, in the group's work graph;
+- across groups, in a shared list that every loop reads.
+
+Registers and Scope of Work are updated "when their wording would otherwise mislead". These updates are decided by the human "in batches at natural boundaries" under the departure rules. The places are v8 §4.12 (handoff and level table), AUM step 4, and the field book's handoff block and §5 step 2.
+
+**The in-the-moment triggers** match GC-7 item 4 in all three manuals, and "In doubt, ask" is kept. The triggers are:
+- a relationship that seems to run against the group order;
+- a cycle across groups;
+- a change to the Deliverable set;
+- a change that would make another group's finished work wrong;
+- any sign that the grouping is wrong.
+
+**Lightness and stated limits.** No tiers, names or thresholds are introduced. Each manual says the guidance comes from one project and sets no thresholds:
+- v8: "This guidance comes from one project's experience. It sets no thresholds or fixed tiers, and leaves judgment to the moment."
+- AUM: "(App v4 ruling GC-7); it sets no thresholds or fixed tiers".
+- Field book: "(From one project's experience; no thresholds.)"
+
+This fits the owner's "better to leave some things underdefined and seek human judgment in the moment".
+
+**Superseded GC-5 item 3.** The AUM's ruling summary now states it historically, accurately: "App v4 first required … its later ruling GC-7 relaxed that…".
+
+### 2. Consistency with SPEC §5.4: yes
+
+The departure rule still applies once a change reaches the registers:
+- v8 §4.12: "When such changes reach the dependency registers, the project's departure rules apply, and the human can decide them in batches."
+- AUM step 4 keeps the explicit statement: "SPEC §5.4 still governs the registers: a row that adds or removes an edge, or creates a cycle, is a departure, and the affected deliverables are DAG pending…". It also keeps the batching example.
+- Field book §5 step 2: "as the adopted departure rules require when the dependency records change".
+
+No passage says the registers may knowingly stay misleading. The rule for updating them is stated as the opposite: update them when wording would otherwise mislead. The earlier MAJOR-2 repair still holds in substance:
+- "commonly" is retained in §1.7, §3.12 and the chapter 4 introduction;
+- §1.7 keeps "several can be decided together in one successor";
+- §4.12 keeps "None is a reason to withhold the transition unless it crosses the group order or closes a cycle between groups".
+
+The sentences that called every finer edge a departure have been removed. That removal follows GC-7 and does not narrow SPEC §5.4. SPEC acts on the local files, and GC-7 governs when a found relationship is put into them.
+
+### 3. No new obscuring: one gap to close (MINOR-B1)
+
+**MINOR-B1: say that DAG-derived readiness does not cover relationships held outside the registers.**
+
+**Evidence.**
+- Under SPEC §5.4, blockers come "from the accepted current version's edges".
+- `construct-local-work-graph` reads readiness from the DAG and the dependency records.
+- Under GC-7, a known relationship may now live only in a group's work graph or in the cross-group list.
+
+So a ready or blocked verdict computed from the DAG will not reflect such a relationship. A cross-group one in group order is the likely case: a D deliverable reported ready while the A input it needs, recorded only in the list, has not been produced. The unchanged AUM §8 sentence warns of exactly this: "An omitted dependency can make the topology look cleaner while making execution less reliable" (AUM l.337). App v4 runs in `FULL_GRAPH` mode, and DAG-004's `GRAPH_BASIS.md` declares "Completeness FULL for the selected semantics". That completeness claim is now qualified by the relationships held outside the registers.
+
+**Consequence.** A readiness claim made from the DAG alone could be unsupported. This is the risk the owner asked about. The texts do make the list visible to every loop, but they do not say that readiness must consult it.
+
+**Proposed fix.** Add one sentence to the v8 handoff paragraph and to AUM step 4, and optionally to the field book: "A ready or blocked verdict from the project DAG does not cover relationships recorded only in a work graph or the shared list; read those before declaring work ready." For App v4 (HELP_HUMAN, close-out), qualify DAG-004's FULL completeness claim in the handoff, pointing to the shared list. This is a MINOR item and not a condition of the verdict. It is a one-sentence change and is worth making before rendering.
+
+**Clarity of the triggers.** They are stated identically in the three manuals and in GC-7.
+
+### 4. Consistency and anchors: intact
+
+- The unchanged §3.12 text ("Each departure is decided as the project's rules require…") and the §4.7 renewal paragraphs remain compatible with the revised text.
+- §4.7 now reads "Distinguish detail from structural change … record it where those who depend on it will see it, as §4.12 describes". It is consistent with §4.12.
+- The new AUM link `[app-v4-groups]` resolves to the committed `GROUPS.md`. The AUM points at `CROSS_GROUP_RELATIONSHIPS.md` only by name, through GROUPS.md, which is appropriate while the file does not exist.
+- The field book fence count is balanced at 4, and the new "ASK THE HUMAN AT ONCE" block lies inside the fenced block.
+- No other link or anchor changed.
+- The revision lines in the AUM (§5, §8) and the field book (§§1, 4, 5) still describe the edited sections correctly.
+
+### Notes for HELP_HUMAN (records, not manual text)
+
+- **N-B1.** `GROUPS.md` gives the in-the-moment triggers more narrowly than GC-7. It omits "suggests the grouping is wrong", and it says "makes finished work wrong" where GC-7 says another group's finished work. Align it with GC-7.
+- **N-B2.** `GROUPS.md` places `CROSS_GROUP_RELATIONSHIPS.md` "in the handoff location". Name the exact path when the list is created in the close-out, and seed it from the sorted G2b items, so that the v8 sentence "the dependencies found in the designs are recorded for the loops that need them" is true when the loops start.
+- **N-B3.** An uncommitted `SURVEY/GROUP_SORT.md` (RVG, untracked in this worktree) reports two things:
+  - a second cross-group arc, DEP-09-01-027 (DEL-09-10 in C consumes DEL-09-01 in B), which orders C after B;
+  - a possible move of DEL-09-10 to group D.
+
+  I did not review that file. If the grouping changes, recheck the App v4 example in v8 §4.12 ("core → {packaging, connectors} → fleet → practice") and GROUPS.md.
+
+### Verdict
+
+**READY.** The revision is faithful to GC-7 and the owner's direction. It is light and states its limits. It stays consistent with SPEC §5.4, and it introduces no contradiction or broken anchor.
+
+| Severity | Count |
+|---|---|
+| BLOCKING | 0 |
+| MAJOR | 0 |
+| MINOR | 1 (MINOR-B1, a one-sentence readiness caveat, recommended before rendering) |
+| NOTE | 3 (N-B1 to N-B3, for HELP_HUMAN's records) |

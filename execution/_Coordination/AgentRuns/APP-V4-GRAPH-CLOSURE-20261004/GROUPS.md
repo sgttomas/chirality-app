@@ -30,6 +30,9 @@ The independent reproduction is in `SURVEY/GROUP_SORT.md`.
 
 **Recording relationships found later.** See GC-7. Within a group, the
 group's work graph records them. Across groups, they go in the shared list
-`CROSS_GROUP_RELATIONSHIPS.md` (in the handoff location). Anything that seems
-to run against the order, crosses groups in a cycle, changes the
-deliverable set or makes finished work wrong goes to the human at once.
+`CROSS_GROUP_RELATIONSHIPS.md` (in the handoff location). Bring the human in at
+once when something seems to run against the order, forms a cycle across
+groups, changes the deliverable set, would make another group's finished
+work wrong, or suggests the grouping is wrong. In doubt, ask (GC-7). A
+ready or blocked verdict read from the DAG does not cover relationships
+recorded only in work graphs or the shared list.

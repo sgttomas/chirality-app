@@ -157,3 +157,12 @@ No tier names are introduced. v7 is unchanged.
 | v8 against v7 | +2,902 |
 | Field book | +523 |
 | AUM | +1,772 |
+
+## 7. MR Addendum B, MINOR-B1 (HELP_HUMAN, 2026-10-04)
+
+One sentence was added in v8 §4.12 ("Found relationships recorded where
+they will be seen"), in Agent User Manual §5 step 4, and in the field book's
+HAND OFF block: a ready or blocked verdict read from the project DAG does
+not cover relationships recorded only in a work graph or the shared list,
+so read those before declaring work ready. GROUPS.md's trigger list now
+matches GC-7 (N-B1).
