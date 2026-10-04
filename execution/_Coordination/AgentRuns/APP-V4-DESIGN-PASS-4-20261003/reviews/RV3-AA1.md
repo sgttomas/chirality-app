@@ -106,3 +106,81 @@ The real case is read correctly from the files and git, A-1 is recorded faithful
 
 - `build_aa.py`'s determinism.
 - The schema's other negative cases individually (they ran inside `check_aa`, 19/19).
+
+---
+
+# Addendum — EU-F3R repair: AA-v0.2, CA-v0.3, RP-v0.6 (committed `0e0036b685`), 2026-10-04
+
+- **Subject.** Every file in `O-F.md` "EU-F3R — frozen" re-hashed and matching:
+  - AA `3d4ba2ec…`, schema `70b5d215…`;
+  - CA `8f47aa08…`, RP `71eb2881…`, RP schema `5b2a4b2a…`;
+  - `check_aa` `2a531ad4…`, `check_ca` `74f9b9c0…`, `check_rp` `9e2a8575…`;
+  - FX-RP1-6 `19050b12…`;
+  - the AA and CA record manifests.
+
+  HEAD is `0e3591a65d` (EU-F4, on top). `git diff 0e0036b685 HEAD` is empty for every EU-F3R path, and `git status --ignored` is clean.
+- **Checks rerun:** `check_aa` **43/43**; `check_ca` **36/36** (with archives); `check_rp` **99/99**.
+
+## Verdict on EU-F3R: **READY**
+
+AA1-R1, AA1-R2, AA1-R3 and notes N1–N3 are **resolved**. There is one new MINOR finding, about a residual gap and the uncovered list's wording (AA2-R1), and two NOTEs.
+
+## 1. My findings
+
+| Finding | State | How I checked |
+|---|---|---|
+| AA1-R1 (MAJOR) | **Resolved.** I reran **my own** five constructions (built as in this file's first section, not O-F's copies), plus *hardened* forms of variants 4 and 5 with every new field (`act_class: adoption`, `recording_mode`, `kind: agent_act`) set to pass. All are refused. V1 and V2 by the schema plus SR-1 (per-fact kinds). V3 by the schema plus SR-1 and SR-2. V4, original and hardened: SR-3 (record not in App v3's lane) and SR-4 (negated text). V5, original and hardened: SR-3 and SR-4. O-F's N-9…N-15 match these and run through the same rule functions | Script calling `check_aa`'s schema, `separation_errors`, `evidence_errors` and `act_errors` on in-memory variants of AA-1 v2 |
+| AA1-R2 | **Resolved.** The status now reads "a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown)". It flows verbatim into CA-1 v3 `adoption_status.ref` and FX-RP1-6 S-6 / `adoption.statement`; CA N-16 refuses the old "received" wording | Records; diffs |
+| AA1-R3 | **Resolved.** RN-2/Root `absence_search` is now `git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- '.' ':(exclude)projects/chirality-app-v4'` (I reran it: 0 files), with my search cited second and attributed to RV3 | Rerun |
+| N1 | **Resolved.** AD-1 `recording_mode: direct capture`; A-1 `faithful recording` | Record |
+| N2 | **Resolved.** `owner_record` is renamed `deliverable_record` in the schema enum with a description, and defined in the packet's terms as "standing (supplied item)" | Schema; FX-RP1-6 terms |
+| N3 | **Resolved.** The keyword limit is stated in RP §3 and in the uncovered list | RP §3, §8 |
+
+## 2. The checker audit: is the covered/uncovered list truthful?
+
+- **Covered lines.** Each listed negative exists, and each is refused by the rule it names:
+  - AA N-1…N-29;
+  - CA N-1…N-20 and K-14;
+  - RP C-1…C-21 and the B-cases.
+- **Rewiring.** AA N-7 and CA N-5 and N-9 now break the real record and run the shared rule functions (`status`, `acts`). The old N-5 and N-9 re-derived their rule inline (diff against `b2fbfdbac8`).
+- **CA K-14 is real and necessary.** An obligation with all RE-1 conditions met but `retirement_eligible: false` passes the schema, and only K-14 refuses it ("recorded False, rule True"). Note: the listed negatives for K-14 (N-2, N-3) are also refused by the schema. No negative breaks K-14 alone. Add the understated-eligibility case I built (CA2-N1).
+- **What the uncovered list omits (AA2-R1 below).** Two constructions pass every AA check, and the list does not plainly name either.
+
+### AA2-R1 — MINOR — AA's evidence is bound to the consumer's lane, not to the renewal; the uncovered list does not say so plainly (SR-2, SR-3; O-F.md uncovered list)
+
+- **Evidence.** Both constructions were built on AA-1 v2 in memory and run through `check_aa`.
+  1. **RN-1 App v3 `delivered`.** Its evidence is replaced by `projects/chirality-app-dev/README.md` (a real file at its real sha256) instead of the D-GOV-52 notice. Schema: 0 errors. SR: none. Evidence: none. Routing (K-8): none. SR-2 checks only that the file is in the lane, and K-8 checks only the state against the manifest's routing, not which file.
+  2. **RN-1 App v3 `consumer_adopted`.** It is established by a new `agent_act` (class `adoption`, consumer `APP-V3`) whose exact text is a real, unrelated App v3 sentence: "UPD-133 adopts the stricter live rule: every ACTIVE dependency row requires both `EvidenceFile` and `SourceRef`." (DEL-07-05 `ScopeOfWork.md` in App v3's lane). Schema, SR-1…SR-4, evidence and act checks all pass. Only K-9 differs, and only because I left the status unchanged; updating the status would clear it.
+- **Consequence.**
+  - AA1-R1's guarantee now holds for evidence kinds, act class, consumer, lane and wording. It does not tie the evidence to *this* renewal.
+  - O-F's uncovered list comes close ("a mislabelled record passes SR-3 if its lane and text pass"; "K-8 covers RN-1 notices only"), but it reads as if delivered notices were checked. It does not say that any in-lane file establishes `delivered`, or that an adoption act need not concern the renewal.
+- **Repair.**
+  - **`delivered`:** must cite the routed notice path for that consumer (RN-1), or a file whose text names the renewal's change record.
+  - **Adoption acts:** an act cited for `consumer_adopted` must name the renewal (its id, tranche id or change record) in its text or its record's surrounding entry.
+  - **Tests:** add both constructions as N-cases.
+  - **List:** until then, state both plainly in the uncovered list.
+
+## 3. CA-v0.3 and RP-v0.6: scope
+
+- **Built content: in scope.**
+  - CA-1 v3 differs from v2 only in `adoption_status.ref` (AA-v0.2's wording) and the version numbers.
+  - FX-RP1-6 differs from FX-RP1-5 only in:
+    - S-6's statement;
+    - S-4/S-6 `standing: owner_record` → `deliverable_record`;
+    - one new term, "standing (supplied item)";
+    - the CA-1 v3 hand-over and AA-1 v2 status;
+    - the `produced_by` version names;
+    - the format and package id (FX-RP1-6);
+    - the hashes that follow from these.
+
+  The fixture purpose differs only in "FX-RP1-5." → "FX-RP1-6.". I compared field by field and word by word.
+- **Design and check changes beyond the two stated items:**
+  - the coordinator's checker audit (CA §8 lists, K-14, N-10…N-20; RP §8 lists, C-1…C-21, P-1/P-2);
+  - my N3 note in RP §3.
+
+  These are the audit you directed and my own note, not unrequested scope. I note them so "nothing else" is read as "nothing else in the built content".
+
+## Notes
+
+- **CA2-N1.** As above: no negative breaks K-14 alone. Add an understated-eligibility case.
+- **AA2-N1.** `NEGATION_RE` (`not|no|never|without`) refuses any adoption text containing those words anywhere, including a true adoption such as "App v3 adopts the change without amendment". This is the conservative direction, and the list states SR-4 is keyword-based. It is noted so a real adoption is not wrongly refused later.

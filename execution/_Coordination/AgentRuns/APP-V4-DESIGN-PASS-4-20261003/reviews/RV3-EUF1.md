@@ -609,3 +609,16 @@ My three MINOR findings from Addendum 4 and N9 are resolved, each with one quali
 - **Limit (NOTE).** `PLACEHOLDER_RE` is keyword-based (`illustrative|invented|example|placeholder`). The other derivation conditions still hold any illustrative fixture (see RV3-AA1 N3).
 
 **DEL-11-02's hand-over.** S-6 `supplied/adoption-status.AA-1.json` is byte-identical (`cmp`) to `F/aa/records/AA-1.status.json`, and `adoption.status` is `supplied`. RV3-AA1 AA1-R2's wording point ("received" should read "delivered") applies to the repeated statement. RV3-AA1 N2 ("owner_record" undefined) applies to S-4 and S-6.
+
+---
+
+# Addendum 8 — RP-v0.6 (EU-F3R, `0e0036b685`), 2026-10-04: **READY**
+
+- **Checks.** `REPLACEMENT_PACKET.md` `71eb2881…`; schema `5b2a4b2a…`; FX-RP1-6 `19050b12…`; `check_rp.py` **99/99**.
+- **Scope.** FX-RP1-6 differs from FX-RP1-5 only by:
+  - AA1-R2's wording in S-6;
+  - the `owner_record` → `deliverable_record` rename and its new term;
+  - the CA-1 v3 and AA-1 v2 hand-overs, with the version, id and hash consequences.
+
+  §3 adds my N3 keyword limit; §8 and C-1…C-21 are the coordinator's audit (RV3-AA1 addendum §3).
+- **EUF4-R1** stays resolved: my Addendum 6 probe remains refused (shown in Addendum 7).

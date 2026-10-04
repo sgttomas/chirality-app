@@ -105,3 +105,12 @@ All my EU-F2 findings are **confirmed resolved**:
 | CA1-N1 (re-pin) | **Resolved.** The vendored RA is `811c868c…` (RA-v0.2, `ce64a97a2a`; the vendored file hash is verified). The stale "not frozen" wording is corrected in VENDOR.json, the header and CF-5, with the history stated | `shasum`; diff |
 
 DEL-11-02's adoption status is now recorded as `supplied` from AA-1, closing U-CA-4. Its `ref` repeats AA-1's statement, so RV3-AA1 AA1-R2 ("received a notice" should read "a notice was delivered") applies here too, and flows in at CA's next build.
+
+---
+
+# Addendum — CA-v0.3 (EU-F3R, `0e0036b685`), 2026-10-04: **READY**
+
+- **Checks.** `CONTINUITY_ACCOUNT.md` `8f47aa08…`; `check_ca.py` **36/36**.
+- **Built content.** It changes only `adoption_status.ref`, to AA-v0.2's "delivered" wording (RV3-AA1 AA1-R2), and the version.
+- **K-14.** Checked and real; see RV3-AA1 addendum CA2-N1 for a missing K-14-only negative.
+- My CA1 findings stay resolved.
