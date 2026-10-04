@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-04-03:rs-record:0.1",
   "title": "Run and act record entry (DEL-04-03 OUT-001) — PROPOSED",
-  "description": "PROPOSED record format of RS-v0.9 §13 (R12-1, R12-2; U-04). RS format 0.1 is the only record container (R14-1): a record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. The bodies of the checkpoint entry kinds (EXEC CE-1…CE-19) are DEL-02-03's and are referenced by relative path to EXEC's `checkpoint-record-entries.schema.json` (RS §13.3); the settings_version body is DEL-04-02's, referenced by $id. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Recording entries of kind destination_declined is SETTLED by DEL-04-03 ScopeOfWork CLM-004 (R16-1, correcting R12-10); recording boundary_refusal entries is PROPOSED (R12-10, R16-1); every representation here is PROPOSED. The R11 labels include R13-1's and R13-2's. RS-v0.9 (node F-C of run APP-V4-DESIGN-PASS-3-20261001) adds, in place in format 0.1 (R13-4): the A15 relations reviewedDraft and priorRevision, and registeredEntries for one act over several library entries (C-01, R17-11; L-4), replacing relations.derivedFrom; the codexAccount form (C-10); R3 supply forms citing the supplier's own record (R19-1, R19-7); role_limit_observation (ROLE-v0.2 §6.3); R13 settlements 'resolved by supplier' and 'ended unanswered (process exit)' (RECOVERY-v0.2 §8.2); runOpened.follows (R19-2) and the run-end line in R3 (R20-3).",
+  "description": "PROPOSED record format of RS-v0.9 §13 (R12-1, R12-2; U-04). RS format 0.1 is the only record container (R14-1): a record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. The bodies of the checkpoint entry kinds (EXEC CE-1…CE-19) are DEL-02-03's and are referenced by relative path to EXEC's `checkpoint-record-entries.schema.json` (RS §13.3); the settings_version body is DEL-04-02's, referenced by $id. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Recording entries of kind destination_declined is SETTLED by DEL-04-03 ScopeOfWork CLM-004 (R16-1, correcting R12-10); recording boundary_refusal entries is PROPOSED (R12-10, R16-1); every representation here is PROPOSED. The R11 labels include R13-1's and R13-2's. RS-v0.9 (node F-C of run APP-V4-DESIGN-PASS-3-20261001) adds, in place in format 0.1 (R13-4): the A15 relations reviewedDraft and priorRevision, and registeredEntries for one act over several library entries (C-01, R17-11; L-4), replacing relations.derivedFrom; the codexAccount form (C-10); R3 supply forms citing the supplier's own record (R19-1, R19-7); role_limit_observation (ROLE-v0.2 §6.3); R13 settlements 'resolved by supplier' and 'ended unanswered (process exit)' (RECOVERY-v0.2 §8.2); runOpened.follows (R19-2) and the run-end line in R3 (R20-3). Pass 4 (R23-8; run APP-V4-DESIGN-PASS-4-20261003) adds, in place in format 0.1: actKindPerson A16 (decide), actClass 'person's act (V4-PM-04)' and the A16-only relation alternativeChosen, with requestRef required for A16; the decision package's act_request body remains DEL-02-03's CE-4 and is not changed here.",
   "$ref": "#/$defs/entry",
   "$defs": {
     "recordId": {
@@ -23,7 +23,8 @@
         "A11",
         "A12",
         "A13",
-        "A15"
+        "A15",
+        "A16"
       ]
     },
     "contentIdentity": {
@@ -1284,7 +1285,8 @@
                 "may apply within granted autonomy",
                 "proposal only",
                 "no policy basis",
-                "person's act (V4-WF-02)"
+                "person's act (V4-WF-02)",
+                "person's act (V4-PM-04)"
               ]
             },
             "noPolicyBasisReason": {
@@ -1372,6 +1374,11 @@
             },
             "requestRef": {
               "$ref": "#/$defs/recordId"
+            },
+            "alternativeChosen": {
+              "description": "A16 decide (R23-8; pass 4, PROPOSED): the identity of the alternative the person chose, one of those the decided package (requestRef) names; a reader rule checks membership (RS §6.1).",
+              "type": "string",
+              "minLength": 1
             },
             "controlEffect": {
               "type": "object",
@@ -1564,6 +1571,63 @@
                           "registeredEntries"
                         ]
                       }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "A16 decide (R23-8; pass 4, PROPOSED): names the decision package it decides (requestRef, the package's act_request entry) and the alternative chosen.",
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "not": {
+                    "const": "A16"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "relations"
+              ],
+              "properties": {
+                "relations": {
+                  "required": [
+                    "requestRef",
+                    "alternativeChosen"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "The A16 relation alternativeChosen is A16's only (pass 4).",
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "const": "A16"
+                }
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "relations"
+                ]
+              }
+            },
+            {
+              "properties": {
+                "relations": {
+                  "not": {
+                    "required": [
+                      "alternativeChosen"
                     ]
                   }
                 }

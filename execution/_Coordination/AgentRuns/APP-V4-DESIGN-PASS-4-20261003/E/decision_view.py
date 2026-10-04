@@ -1,4 +1,4 @@
-"""DEL-06-02 decision view, derived from files only (prototype; DECISION_VIEW.md DV-1...DV-9).
+"""DEL-06-02 decision view, derived from files only (prototype; DECISION_VIEW.md DV-1...DV-9 (DV-6 as decided under R23-25)).
 
 Prototype only, not product code. Python 3 standard library. It reads an RS record
 log and the package files the records cite; it writes nothing (DV-9). The rules it
@@ -105,8 +105,13 @@ def derive(root, record_paths):
                 row["limits"].append(f"{a['recordId']}: act not counted: chosen alternative {chosen!r} is not one the package names")
                 continue
             decided.append(a)
+        # DV-6 (R23-25): a correction (RS OF-5, `corrects`) replaces the entry it corrects; a later act of the named kind
+        # on the same package is a new decision that supersedes the earlier one, as a later established A12 does
+        # (RS §7 L-0). Nothing is erased: corrected and superseded acts stay listed with their relation.
+        corrected = {a.get("corrects"): a["recordId"] for a in decided if a.get("corrects")}
+        current = [a for a in decided if a["recordId"] not in corrected]
         if decided:
-            a = decided[-1]  # DV-6: the latest in written order; earlier ones stay listed.
+            a = current[-1]
             ab = a["body"]
             chosen = ab.get("relations", {}).get("alternativeChosen")
             bound = ab["boundContent"][0].get("value")
@@ -129,7 +134,11 @@ def derive(root, record_paths):
                 "captureEvidence": [c["ref"] for c in ab["captureEvidence"]],
                 "capturedAt": ab["captureTime"],
                 "lapse": lapse,
-                "earlierActs": [x["recordId"] for x in decided[:-1]],
+                "earlierActs": [{"act": x["recordId"],
+                                 "relation": (f"corrected by {corrected[x['recordId']]}" if x["recordId"] in corrected
+                                              else f"superseded by {a['recordId']}"),
+                                 "alternativeChosen": x["body"].get("relations", {}).get("alternativeChosen")}
+                                for x in decided if x is not a],
             }
         rows.append(row)
     # §6: an act citing a request the log does not hold is listed as a view limit, on no row.

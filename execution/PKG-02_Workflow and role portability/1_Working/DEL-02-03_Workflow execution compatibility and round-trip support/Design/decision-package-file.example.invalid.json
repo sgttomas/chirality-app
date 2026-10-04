@@ -1,0 +1,224 @@
+[
+  {
+    "case": "INV-PKG-1",
+    "reason": "a recorder-supplied element (evidence) in the file (R23-24 item 1)",
+    "instance": {
+      "format": "chirality.decision-package",
+      "formatVersion": "0.1",
+      "packageId": "pkg:fx-u1:stage-2-route",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "reservedBy": [
+        {
+          "ref": "brief FX-U1, item 4",
+          "statement": "the stage-2 route is decided by the person"
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now",
+          "consequences": [
+            "Starts today; a changed fact reopens parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns",
+          "consequences": [
+            "Starts later; no rework from a changed fact"
+          ]
+        }
+      ],
+      "evidence": {
+        "kind": "content identity",
+        "ref": "x",
+        "resolutionAtWrite": "resolved"
+      }
+    }
+  },
+  {
+    "case": "INV-PKG-2",
+    "reason": "a hash of the file inside the file (R23-24 item 1)",
+    "instance": {
+      "format": "chirality.decision-package",
+      "formatVersion": "0.1",
+      "packageId": "pkg:fx-u1:stage-2-route",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "reservedBy": [
+        {
+          "ref": "brief FX-U1, item 4",
+          "statement": "the stage-2 route is decided by the person"
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now",
+          "consequences": [
+            "Starts today; a changed fact reopens parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns",
+          "consequences": [
+            "Starts later; no rework from a changed fact"
+          ]
+        }
+      ],
+      "contentIdentity": "sha256:..."
+    }
+  },
+  {
+    "case": "INV-PKG-3",
+    "reason": "no basis that reserves the decision (R23-24 item 1)",
+    "instance": {
+      "format": "chirality.decision-package",
+      "formatVersion": "0.1",
+      "packageId": "pkg:fx-u1:stage-2-route",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now",
+          "consequences": [
+            "Starts today; a changed fact reopens parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns",
+          "consequences": [
+            "Starts later; no rework from a changed fact"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case": "INV-PKG-4",
+    "reason": "an alternative without a consequence (V4-PM-04)",
+    "instance": {
+      "format": "chirality.decision-package",
+      "formatVersion": "0.1",
+      "packageId": "pkg:fx-u1:stage-2-route",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "reservedBy": [
+        {
+          "ref": "brief FX-U1, item 4",
+          "statement": "the stage-2 route is decided by the person"
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now",
+          "consequences": []
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns",
+          "consequences": [
+            "Starts later; no rework from a changed fact"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case": "INV-PKG-5",
+    "reason": "one alternative (two or more)",
+    "instance": {
+      "format": "chirality.decision-package",
+      "formatVersion": "0.1",
+      "packageId": "pkg:fx-u1:stage-2-route",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "reservedBy": [
+        {
+          "ref": "brief FX-U1, item 4",
+          "statement": "the stage-2 route is decided by the person"
+        }
+      ],
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now",
+          "consequences": [
+            "Starts today; a changed fact reopens parts"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case": "INV-PKG-6",
+    "reason": "the act_request body offered as the file (R23-18 item 3, superseded)",
+    "instance": {
+      "requester": {
+        "kind": "agent",
+        "identity": "thread:fx-u1-manager"
+      },
+      "form": "decision package file",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "association": "not at a checkpoint",
+      "evidence": {
+        "kind": "content identity",
+        "ref": "project/decisions/stage-2-route.json",
+        "claimedIdentity": "sha256:3ea08ff575698e769784e0c4788a21c01be81020ad0a3c0534114f5c87895fbe",
+        "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+        "resolutionAtWrite": "resolved"
+      },
+      "time": "T200",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now"
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns"
+        }
+      ],
+      "consequences": [
+        {
+          "alternative": "ALT-1",
+          "statement": "Starts today; a changed fact reopens parts"
+        },
+        {
+          "alternative": "ALT-2",
+          "statement": "Starts later; no rework from a changed fact"
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,1918 @@
+[
+ {
+  "why": "V4-EXM-12 without access modes",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.1",
+   "record_id": "SQ-INV-01",
+   "support_revision": "EXP-v0.2",
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ]
+      },
+      {
+       "step": "J-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ]
+      },
+      {
+       "step": "J-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ]
+      },
+      {
+       "step": "J-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-04"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      },
+      {
+       "step": "J-9",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        }
+       ]
+      },
+      {
+       "step": "S11-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "S11-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ]
+      },
+      {
+       "step": "M12-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A02"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-15"
+        }
+       ]
+      },
+      {
+       "step": "M12-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ]
+      },
+      {
+       "step": "M12-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ]
+      },
+      {
+       "step": "M12-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A04"
+        }
+       ]
+      },
+      {
+       "step": "M12-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ]
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03"
+  }
+ },
+ {
+  "why": "recorded step without a result record",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.1",
+   "record_id": "SQ-INV-02",
+   "support_revision": "EXP-v0.2",
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ]
+      },
+      {
+       "step": "J-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ]
+      },
+      {
+       "step": "J-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-04"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      },
+      {
+       "step": "J-9",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        }
+       ]
+      },
+      {
+       "step": "S11-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "S11-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ]
+      },
+      {
+       "step": "M12-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A02"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-15"
+        }
+       ]
+      },
+      {
+       "step": "M12-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ]
+      },
+      {
+       "step": "M12-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ]
+      },
+      {
+       "step": "M12-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A04"
+        }
+       ]
+      },
+      {
+       "step": "M12-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run",
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "api_key",
+       "home": "H-key",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv C"
+      }
+     ]
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ]
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03"
+  }
+ },
+ {
+  "why": "handoff to another deliverable",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.1",
+   "record_id": "SQ-INV-03",
+   "support_revision": "EXP-v0.2",
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ]
+      },
+      {
+       "step": "J-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ]
+      },
+      {
+       "step": "J-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ]
+      },
+      {
+       "step": "J-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-04"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      },
+      {
+       "step": "J-9",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        }
+       ]
+      },
+      {
+       "step": "S11-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "S11-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ]
+      },
+      {
+       "step": "M12-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A02"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-15"
+        }
+       ]
+      },
+      {
+       "step": "M12-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ]
+      },
+      {
+       "step": "M12-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ]
+      },
+      {
+       "step": "M12-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A04"
+        }
+       ]
+      },
+      {
+       "step": "M12-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run",
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "api_key",
+       "home": "H-key",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv C"
+      }
+     ]
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-02",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ]
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03"
+  }
+ },
+ {
+  "why": "step outside the defined set",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.1",
+   "record_id": "SQ-INV-04",
+   "support_revision": "EXP-v0.2",
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-10",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ]
+      },
+      {
+       "step": "J-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ]
+      },
+      {
+       "step": "J-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ]
+      },
+      {
+       "step": "J-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-04"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      },
+      {
+       "step": "J-9",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        }
+       ]
+      },
+      {
+       "step": "S11-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ]
+      },
+      {
+       "step": "S11-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-07"
+        }
+       ]
+      },
+      {
+       "step": "S11-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ]
+      },
+      {
+       "step": "M12-2",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A02"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-15"
+        }
+       ]
+      },
+      {
+       "step": "M12-3",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ]
+      },
+      {
+       "step": "M12-4",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ]
+      },
+      {
+       "step": "M12-5",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A04"
+        }
+       ]
+      },
+      {
+       "step": "M12-6",
+       "state": "awaiting_input",
+       "missing_input": "identified App candidate (DEP-09-02-022)",
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ]
+      }
+     ],
+     "outcome": "not-run",
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "api_key",
+       "home": "H-key",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv C"
+      }
+     ]
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ]
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03"
+  }
+ }
+]

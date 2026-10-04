@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.6",
+  "$id": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7",
   "title": "Checkpoint entry bodies (EXEC-v0.6 §2.4.5; PROPOSED; R14-1)",
-  "description": "PROPOSED schema (R12-1, R12-2) as ruled by R14-1: RS format 0.1 is the only record container, and this schema defines no container. It defines the BODIES of the checkpoint entry kinds CE-1…CE-19 (EXEC §2.4.2), which RS's entry kinds reference by relative path (RS §13.3); the root validates one recorder output {kind, observedAt, body}, before the RS writer adds the RS header. A human act is cited by its RS §6 record identity, never copied or created here (RS HA-1, HA-2). Current phase only: no hold, hold-support value, re-hold or 'action during hold' body exists (PH-2, PH-3, PH-8). Names are Chirality's own; no wire field, transport, hash, canonicalization or persistence is selected (OI-013, OI-014, TBD-003, TBD-004).",
+  "description": "PROPOSED schema (R12-1, R12-2) as ruled by R14-1: RS format 0.1 is the only record container, and this schema defines no container. It defines the BODIES of the checkpoint entry kinds CE-1…CE-19 (EXEC §2.4.2), which RS's entry kinds reference by relative path (RS §13.3); the root validates one recorder output {kind, observedAt, body}, before the RS writer adds the RS header. A human act is cited by its RS §6 record identity, never copied or created here (RS HA-1, HA-2). Current phase only: no hold, hold-support value, re-hold or 'action during hold' body exists (PH-2, PH-3, PH-8). Names are Chirality's own; no wire field, transport, hash, canonicalization or persistence is selected (OI-013, OI-014, TBD-003, TBD-004). Schema 0.7 (pass 4, R23-18/R23-21; run APP-V4-DESIGN-PASS-4-20261003, owner O-A): actRequest gains A16, the form 'decision package file', the elements alternatives and consequences with the rule tying them to that form (a decision package, V4-PM-04; R23-8), and actRef gains A16 so an A16's lapse can be recorded; additive only. Pass-4 repair (R23-24, RV E1-R1): $defs/decisionPackageFile defines the package file the agent writes; it is not the CE-4 body (R23-18 item 3 superseded).",
   "$ref": "#/$defs/recorderOutput",
   "$defs": {
     "nonempty": {
@@ -112,7 +112,8 @@
             "A11",
             "A12",
             "A13",
-            "A15"
+            "A15",
+            "A16"
           ]
         },
         "capturedAt": {
@@ -471,7 +472,8 @@
             "MCP elicitation",
             "host-recorded request",
             "host-loop A8 event",
-            "A8 issued after a not-permitted outcome"
+            "A8 issued after a not-permitted outcome",
+            "decision package file"
           ]
         },
         "actKind": {
@@ -485,7 +487,8 @@
                 "A10",
                 "A12",
                 "A13",
-                "A15"
+                "A15",
+                "A16"
               ]
             },
             {
@@ -536,8 +539,80 @@
         },
         "time": {
           "$ref": "#/$defs/nonempty"
+        },
+        "alternatives": {
+          "description": "Decision package (V4-PM-04; R23-8): the alternatives, two or more, each with an identity unique within the package and a statement. From the package file (R23-24): each file alternative {id, statement} in the file's order.",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "statement"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        },
+        "consequences": {
+          "description": "Decision package (V4-PM-04; R23-8): the stated consequences, each tied to one alternative by its identity. From the package file (R23-24): one entry {alternative: id, statement} per consequence statement of each file alternative, in file order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "alternative",
+              "statement"
+            ],
+            "properties": {
+              "alternative": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
         }
-      }
+      },
+      "anyOf": [
+        {
+          "description": "PR-5 (pass 4, R23-18): a decision package file carries alternatives and consequences; they appear on no other request (R23-8). Written with anyOf, const, enum and false so that EXEC's subset checker reads it.",
+          "required": [
+            "form",
+            "alternatives",
+            "consequences"
+          ],
+          "properties": {
+            "form": {
+              "const": "decision package file"
+            }
+          }
+        },
+        {
+          "properties": {
+            "form": {
+              "enum": [
+                "supplier person-input request",
+                "MCP elicitation",
+                "host-recorded request",
+                "host-loop A8 event",
+                "A8 issued after a not-permitted outcome"
+              ]
+            },
+            "alternatives": false,
+            "consequences": false
+          }
+        }
+      ]
     },
     "actCounted": {
       "description": "CE-5 → RS act_counted: an act that answers the arrival for the referents it covers (SP-1…SP-8); 'earlier act' cites an act captured before the arrival (SP-6; K1-2). Several for one arrival are a joint answer (JA-1; K1-3).",
@@ -1222,6 +1297,111 @@
           }
         }
       ]
+    },
+    "decisionPackageFile": {
+      "description": "R23-24 (pass 4; supersedes R23-18 item 3): the decision package FILE an agent writes in the project, which the person decides on (V4-PM-04). It names the act requested, its subject, purpose and scope, the basis that reserves the decision, and the alternatives, each with its consequences. It holds no element the recorder supplies (requester, form, association, time, evidence) and no hash of itself. The recorder identifies it (form 'decision package file') and writes an act_request (CE-4) whose evidence names this file by path and content identity; the mapping is stated in RS-v0.10 §13.6 and in the descriptions of actRequest's alternatives and consequences. Not a record of any act; the person's decision is the act it names (A16 or an existing kind).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "formatVersion",
+        "packageId",
+        "actKind",
+        "subject",
+        "purpose",
+        "reservedBy",
+        "alternatives"
+      ],
+      "properties": {
+        "format": {
+          "const": "chirality.decision-package"
+        },
+        "formatVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "packageId": {
+          "type": "string",
+          "pattern": "^pkg:[A-Za-z0-9._:-]+$",
+          "description": "The package's identity within the project, chosen by its author; never a hash of the file"
+        },
+        "actKind": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A10",
+            "A12",
+            "A13",
+            "A15",
+            "A16"
+          ],
+          "description": "The exact act requested (V4-PM-04). A16 for a reserved coordination decision; otherwise the existing kind, decided by that kind (ACT §2.1)"
+        },
+        "subject": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "purpose": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "reservedBy": {
+          "type": "array",
+          "minItems": 1,
+          "description": "The basis that reserves this decision to the person: the governing workflow, brief item or accepted instrument the package cites (R23-8 item 3; R23-24)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ref",
+              "statement"
+            ],
+            "properties": {
+              "ref": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "statement",
+              "consequences"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "consequences": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonempty"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

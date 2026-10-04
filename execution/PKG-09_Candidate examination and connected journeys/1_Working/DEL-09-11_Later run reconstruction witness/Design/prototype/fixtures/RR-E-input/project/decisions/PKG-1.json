@@ -1,0 +1,29 @@
+{
+  "packageId": "PKG-1",
+  "actKind": "A16",
+  "subject": [
+    "route for stage 2 of undertaking FX-U1"
+  ],
+  "purpose": "choose how stage 2 of FX-U1 proceeds (reserved to the person by the FX-U1 brief, item 4; invented)",
+  "scope": "undertaking FX-U1 (invented)",
+  "alternatives": [
+    {
+      "id": "ALT-1",
+      "statement": "Start stage 2 now on the current supplier facts"
+    },
+    {
+      "id": "ALT-2",
+      "statement": "Hold stage 2 until the version check returns, then start"
+    }
+  ],
+  "consequences": [
+    {
+      "alternative": "ALT-1",
+      "statement": "Stage 2 starts today; any changed supplier fact reopens the affected parts"
+    },
+    {
+      "alternative": "ALT-2",
+      "statement": "Stage 2 starts after the check; no rework from a changed fact; about one day later"
+    }
+  ]
+}

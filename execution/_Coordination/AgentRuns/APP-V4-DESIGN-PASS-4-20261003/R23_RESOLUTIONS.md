@@ -213,3 +213,70 @@ evidence rules and the owner's earlier decisions already settle them.
      scratch Codex homes go under a path without the user name (for
      example `/tmp/cvx-<run>`), so that model input carries no personal
      path.
+
+## On O-A's refreeze of E-1
+
+- **R23-23 E-1 follow-ups. INTEGRATION.**
+  1. PR-5 was written with `anyOf`/`const`/`enum` instead of `allOf`/`not`,
+     so DEL-02-03's subset checker can read it. The meaning is unchanged,
+     and an independent `jsonschema` run agrees. Accepted; RV checks the
+     equivalence.
+  2. O-A also adds A16's row to ACT §2.5 (per-kind content binding), as
+     R23-18 item 2 intended, and corrects DEL-02-03
+     `EXECUTION_COMPATIBILITY.md`'s stale "v0.6, unchanged at v0.7" line.
+  3. The record formats (AAC 0.3, RS 0.1) are not bumped for additive rows,
+     following RV21 and RS-v0.9; the Design files' version labels carry the
+     change (R23-21).
+  4. FX-DP1 changed only in its offer and capture files: the digest named
+     in AAC-v0.3 §5.1 and the offer's key order. RR-E's account stays
+     valid evidence for input set IS-FX-DP1-1, which it read. O-C's
+     EP-05 and EP-11 adopt the new manifest, under a new input-set id.
+
+## On RV's review of E-1
+
+- **R23-24 The package file's shape. INTEGRATION. Supersedes R23-18
+  item 3** (RV E1-R1). R23-18 item 3 ("the package file is the CE-4 body")
+  was HELP_HUMAN's error: CE-4's `evidence` holds the package file's own
+  hash, so the file cannot be that body, and the fixture's file did not
+  validate against it.
+  1. The package file is what the person decides on: package id, subject,
+     purpose, the basis that reserves the decision, and the alternatives,
+     each with its consequences. It gets its own `$def` in DEL-02-03's
+     checkpoint schema, with valid and invalid examples. It holds no
+     writer-supplied element and no hash of itself.
+  2. The `act_request` record (the CE-4 body, PR-2's `form` value) is
+     written by the recorder. It carries the requester, form, association,
+     time and `evidence` (the package file's path and content identity),
+     and repeats the alternatives as the file states them.
+  3. DECISION_VIEW §7, RS §13.6, the fixture and O-C's EP units follow
+     this. Adoption is checked in the returned files, not assumed.
+  4. Affected work: E-1 (O-A) and FX-DP1. EP-05 and EP-11 (O-C) rely on
+     the request record, not on the file's shape, so they re-run, not
+     redesign. The RR-E account stays evidence for its input set.
+- **R23-25 A second A16 on the same package (RV E1-R7).** O-A decides,
+  consistently with how ACT treats repeated acts of other kinds, and states
+  it. Earlier acts are never erased.
+
+## On RV2's reviews of PKG-U2 and SQ-U3
+
+- **R23-26 OI-011 for design (RV2 PKG-R10). INTEGRATION**, confirming
+  R23-13.
+  1. SIGN-1 (option B) settles the App-side signing arrangement for
+     design purposes.
+  2. OI-011 stays open in the Open_Issues register for its SWB co-owner
+     part, which waits with the host joins, and for its record at the next
+     amendment (R23-11). No executor edits the register.
+- **R23-27 Conditions a scenario's own verification requires (RV2 SQ-R-A,
+  SQ-R-B). DERIVED,** extending R23-15.
+  1. Where a ScopeOfWork VER item requires a condition, the scenario's run
+     creates it as a named stimulus, declared in the case definition before
+     the run. Examples: a revision or source collision; unperformed-act
+     negatives such as silence, timeout or an agent's claim; a delegated
+     child that outlives its parent turn; a lost acknowledgment.
+  2. Because the verification requires them, the parts that depend on them
+     count toward that scenario's outcome (V4-EXM-10, V4-EXM-11). This
+     differs from R23-15, where the stimuli served another examination.
+  3. A condition that cannot be produced on the candidate is supplied by
+     the replay counterpart, which is then required, not optional. If
+     neither is possible, the part is `blocked` with its cause (R23-20). It
+     never passes vacuously.

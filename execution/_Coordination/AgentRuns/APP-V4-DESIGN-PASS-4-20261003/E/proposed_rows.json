@@ -1,5 +1,5 @@
 {
-  "description": "PROPOSED rows (owner O-A, run APP-V4-DESIGN-PASS-4-20261003, R23-8) for two schema files outside O-A's write boundary. Nothing here is applied to those files. run_e.py applies them in memory only, to show the early path working with them; the same harness first validates against the files as they are, to show the gap. Each row adds; none removes, narrows or relaxes an existing constraint.",
+  "description": "Rows for two schema files outside O-A's first write boundary, proposed at E-1 and APPLIED in those files by O-A under R23-18 (run APP-V4-DESIGN-PASS-4-20261003). PR-5 is applied with the same meaning written in anyOf/const/enum/false, the keyword subset EXEC's own checker reads (EXEC schema 0.7). run_e.py part A checks that each row is present. Each row adds; none removes, narrows or relaxes an existing constraint.",
   "files": {
     "EXEC": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/checkpoint-record-entries.schema.json",
     "AAC_OFFER": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.offer.schema.json",

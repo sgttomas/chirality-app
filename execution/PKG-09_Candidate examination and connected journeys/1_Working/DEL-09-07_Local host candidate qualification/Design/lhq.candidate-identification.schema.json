@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-07:candidate-identification:0.1",
+  "title": "Candidate-identification record (DEL-09-07 LHQ-v0.1 §3; PROPOSED)",
+  "description": "One record before any LHQ case runs; cited by every EXP result record of DEL-09-07 through subject.identification_record. Semantic labels only; no host or supplier wire field is selected. Rules a schema cannot express (CI-2 source history is not deployment evidence; CI-3 blocking; CI-4 reopening via EXP change-impact) are stated in LHQ §3.",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "record_id",
+    "date",
+    "elements",
+    "agreed_activity",
+    "external_contributions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "lhq_candidate_identification"
+    },
+    "format": {
+      "const": "LHQ-v0.1"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "$ref": "#/$defs/date"
+    },
+    "supersedes": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The CIR this one replaces (LHQ CI-4)."
+    },
+    "elements": {
+      "type": "object",
+      "required": [
+        "app_candidate",
+        "app_codex_version",
+        "host_candidate",
+        "host_loop",
+        "local_model_server",
+        "machine",
+        "adopted_policy",
+        "initial_allow_list",
+        "invented_material",
+        "examiner",
+        "observation_tooling"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "app_candidate": {
+          "$ref": "#/$defs/element"
+        },
+        "app_codex_version": {
+          "$ref": "#/$defs/element"
+        },
+        "host_candidate": {
+          "$ref": "#/$defs/element"
+        },
+        "host_loop": {
+          "$ref": "#/$defs/element"
+        },
+        "local_model_server": {
+          "$ref": "#/$defs/element"
+        },
+        "machine": {
+          "$ref": "#/$defs/element"
+        },
+        "adopted_policy": {
+          "$ref": "#/$defs/element"
+        },
+        "initial_allow_list": {
+          "$ref": "#/$defs/element"
+        },
+        "invented_material": {
+          "$ref": "#/$defs/element"
+        },
+        "examiner": {
+          "$ref": "#/$defs/element"
+        },
+        "observation_tooling": {
+          "$ref": "#/$defs/element"
+        }
+      }
+    },
+    "agreed_activity": {
+      "type": "object",
+      "required": [
+        "agreement",
+        "bindings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "agreement": {
+          "$ref": "#/$defs/element"
+        },
+        "bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        }
+      }
+    },
+    "external_contributions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/contribution"
+      }
+    }
+  },
+  "$defs": {
+    "date": {
+      "type": "object",
+      "required": [
+        "value",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+        },
+        "source": {
+          "enum": [
+            "observed_clock",
+            "record_timestamp",
+            "stated_by_person"
+          ]
+        }
+      }
+    },
+    "element": {
+      "type": "object",
+      "required": [
+        "source",
+        "standing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standing": {
+          "enum": [
+            "observed",
+            "host_stated",
+            "app_stated",
+            "not_supplied"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "standing": {
+                "const": "not_supplied"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "value"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ],
+      "description": "LHQ CI-1: a value with its source and standing; nothing filled from a definition, pin or handoff. 'not_supplied' carries no value."
+    },
+    "binding": {
+      "type": "object",
+      "required": [
+        "slot",
+        "state"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "slot": {
+          "enum": [
+            "OP-READ",
+            "OP-RESULTS",
+            "OP-GEOM",
+            "OP-ATTR",
+            "OP-LOW",
+            "OP-UNDO",
+            "OP-EXAMINE",
+            "OP-HOSTCHECK",
+            "OP-SOLVE",
+            "ACT-ACCEPT",
+            "ACT-REJECT",
+            "ACT-CHECK",
+            "ACT-GRANT",
+            "WF",
+            "WF-22"
+          ]
+        },
+        "state": {
+          "enum": [
+            "bound",
+            "unbound"
+          ]
+        },
+        "operation_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missing_input": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "bound"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "operation_identity",
+              "edition"
+            ],
+            "not": {
+              "required": [
+                "missing_input"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unbound"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "missing_input"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_identity"
+                  ]
+                },
+                {
+                  "required": [
+                    "edition"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "description": "LHQ §2.1 BR-1/BR-2: a bound slot names the candidate's own operation identity and edition, never a fixture label; an unbound slot names the missing input."
+    },
+    "contribution": {
+      "type": "object",
+      "required": [
+        "id",
+        "contribution",
+        "standing",
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^HC-[0-9]+$"
+        },
+        "contribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standing": {
+          "enum": [
+            "prepared",
+            "relayed",
+            "answered",
+            "committed",
+            "delivered",
+            "adopted",
+            "examined"
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "description": "CA §7.2 ladder, consumed unchanged; one standing, claimed only with its evidence."
+    }
+  }
+}

@@ -1,29 +1,33 @@
 {
-  "packageId": "PKG-2",
+  "format": "chirality.decision-package",
+  "formatVersion": "0.1",
+  "packageId": "pkg:fx-u1:PKG-2",
   "actKind": "A16",
   "subject": [
     "reviewer for stage 2 of undertaking FX-U1"
   ],
-  "purpose": "choose who reviews stage 2 (reserved to the person by the FX-U1 brief, item 5; invented)",
+  "purpose": "choose who reviews stage 2 (invented)",
   "scope": "undertaking FX-U1 (invented)",
+  "reservedBy": [
+    {
+      "ref": "brief FX-U1, item 5 (invented)",
+      "statement": "the stage-2 reviewer is chosen by the person"
+    }
+  ],
   "alternatives": [
     {
       "id": "ALT-1",
-      "statement": "The standing reviewer"
+      "statement": "The standing reviewer",
+      "consequences": [
+        "Continuity with stage 1 findings"
+      ]
     },
     {
       "id": "ALT-2",
-      "statement": "A fresh reviewer of another model family"
-    }
-  ],
-  "consequences": [
-    {
-      "alternative": "ALT-1",
-      "statement": "Continuity with stage 1 findings"
-    },
-    {
-      "alternative": "ALT-2",
-      "statement": "More independence; slower start"
+      "statement": "A fresh reviewer of another model family",
+      "consequences": [
+        "More independence; slower start"
+      ]
     }
   ]
 }

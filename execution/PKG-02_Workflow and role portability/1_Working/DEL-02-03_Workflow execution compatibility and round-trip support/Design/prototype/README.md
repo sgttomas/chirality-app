@@ -23,13 +23,17 @@ nothing uses the network.
 ```sh
 cd "…/DEL-02-03_…/Design/prototype"
 PYTHONDONTWRITEBYTECODE=1 python3 run_all.py            # check only
-PYTHONDONTWRITEBYTECODE=1 python3 run_all.py --write-examples   # regenerate the four example files
+PYTHONDONTWRITEBYTECODE=1 python3 run_all.py --write-examples   # regenerate the seven example files
 ```
 
 Exit status 0 means every expected result held. The recorded run (command,
 date and output) is in the node's return file `WAVE_B/B2.md`; the run after
 the EXEC-v0.7 delegation update is in `APP-V4-DESIGN-PASS-3-20261001/F/F-B.md`
 ("Round 2"); the R21-1 repair in `APP-V4-DESIGN-PASS-3-20261001/F/RV21-B.md`.
+
+**Schema 0.7 (pass 4, R23-18; run `APP-V4-DESIGN-PASS-4-20261003`, owner O-A).** `run_all.py` also writes and checks
+`checkpoint-record-entries.example.decision-package.valid.json` (a decision-package `act_request` and an A16
+`act_lapsed`) and INV-EXEC-8…10. Before the change: 114 checks held; after: 118, 0 failures. **R23-24 repair:** `run_all.py` also writes and checks `decision-package-file.example.valid.json` and `.invalid.json` (INV-PKG-1…6) against `$defs/decisionPackageFile`, and checks the file → `act_request` mapping (`request_from_file`); 126 checks, 0 failures.
 
 ## Limits
 

@@ -1,6 +1,7 @@
 # Record Semantics
-- Contribution: DEL-04-03/RS-v0.9 (supersedes RS-v0.8, last changed at `891242377f` and unchanged at `ac9a68a7f2`, sha256 b25cc90e9e252f50f30fcaed7faf230ec7bbf4689dcc2cd90deb35c7dcf7f47b, schema `RS_RECORD.schema.json` sha256 b63a7e421b8858543c7bf58ba5e6c52cf3052a5d47cfd61f4eb0f498a8faa0bc; RS-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, sha256 1ccefbb2948d3c500b3692638a3d4e0c6c9da9a29f9b3e7ea6e8185173dbece9; RS-v0.6, last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, sha256 96b1aeeb120be597c4f35eea13f6a60ce20783e555c918521aacee38c5bcf666; RS-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 2939eb092839a5d6984c984a2aedcb6308f1776276314a79fa1e8edc67c36398; RS-v0.4 sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199 at `cc58211c5`)
+- Contribution: DEL-04-03/RS-v0.10 (supersedes RS-v0.9, last changed at `61e7a0afec`, sha256 a91882e74064495c5758110deae4cbc7280f3b2a12d0df8592f5238d1afd16e5; RS-v0.9 superseded RS-v0.8, last changed at `891242377f` and unchanged at `ac9a68a7f2`, sha256 b25cc90e9e252f50f30fcaed7faf230ec7bbf4689dcc2cd90deb35c7dcf7f47b, schema `RS_RECORD.schema.json` sha256 b63a7e421b8858543c7bf58ba5e6c52cf3052a5d47cfd61f4eb0f498a8faa0bc; RS-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, sha256 1ccefbb2948d3c500b3692638a3d4e0c6c9da9a29f9b3e7ea6e8185173dbece9; RS-v0.6, last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, sha256 96b1aeeb120be597c4f35eea13f6a60ce20783e555c918521aacee38c5bcf666; RS-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 2939eb092839a5d6984c984a2aedcb6308f1776276314a79fa1e8edc67c36398; RS-v0.4 sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199 at `cc58211c5`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
+- **v0.10 change (R23-8, R23-18, R23-21; run `APP-V4-DESIGN-PASS-4-20261003`, owner O-A):** A16 *decide*: §6.1 rows (Act kind, Act class, Bound subject, Bound content, Relations), §6.2 HA-11 (with R23-25), §13.3 R9 row, §13.6 decision packages (package file and record, with their mapping, R23-24); `RS_RECORD.schema.json` (A16, act class "person's act (V4-PM-04)", A16-only `alternativeChosen`; in place in format 0.1), INV-RS-25…28 and an A16 act-log entry. The package's `act_request` body is DEL-02-03's CE-4 (schema 0.7). **Re-pin (R23-5):** ScopeOfWork.md sha256 b8b58d674e3ac2d86c53005951ca7182dcdeb810964901191afe14cec07afc66 (SCA-V4-003). Blocks read: G-0403-01…06. Bearing: G-0403-01 (CLM-004: "PKG-06 decisions consume this format"; the act request comes from `DEL-02-03`) and G-0403-04 (REQ-003: actor identity, *identity not verified*); G-0403-02, -03, -05 and -06 do not bear on these rows.
 - Phase (R8-1; R9-1): in the current phase (Phase 1) declared checkpoints are **plan guidance**. The record keeps arrivals, acts and lapses as **observation**, records an act only when the person performed it, and records no hold, re-hold or hold-support value (element R8). **In force in every phase:** the act is requested; it is recorded as done only when the person performs it; the reserved acts bind. **Phased to the governance layer:** holding the run until the act (PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001; §1). Hold support, re-hold and *action during hold* are kept as the **governance-phase definition (retained)**.
 - Network destinations (R8-13; DECISION-5): element **R15** records, for a host's agent, each destination contacted (destination, category, and the grant or list entry that allowed it), each destination grant (scope, time, source) and each destination requested; a decline and a boundary refusal are recorded too. Recording a **decline** is required: this deliverable's ScopeOfWork CLM-004, as revised by SCA-V4-001, names "a host agent's network-destination events (destination contacted, destination grant, destination declined) from `DEL-05-01`" among what the format receives (SETTLED by CLM-004; integrator ruling R16-1, which corrects R12-10's first bullet). Recording a **boundary refusal**, or any refusal the loop makes without asking the person, stays **PROPOSED**: no accepted text names it (R16-1; R12-10). The decline is still reported to the agent as "destination not allowed by the person" (V4-EXM-23). An outside process is recorded with its declared destinations and, when it is not sandboxed, the evidence limit "process network not observed" (R11). V4-HOST-02 is cited from the PRD as amended by SCA-V4-001, which applies DECISION-5 (D16). R15 is within the ScopeOfWork inventory (REQ-002, CLM-002) and V4-HI-70 as amended. From v0.8 (node B5) R15's elements follow the one destination flow of DEL-05-01/LOOP-v0.8 §5.3 (DF-1…DF-10): a request carries its call, ends in one of the DF-6 states (`destination_request_closed` for *not granted* and *unanswered at end*), a refusal names its stage, a model-service contact its class local or cloud, and an MCP server its stateless evidence with the R11 limit "stateless revision declared, not verified".
 - Record format (Wave B; R12-1…R12-3): a **PROPOSED** format, `RS_RECORD.schema.json` beside this file, with valid and invalid example instances and writer and reader sequences with their failure behaviour (§13, §14), backed by a local prototype in `prototype/` that writes records and reads them back (§15). **RS format 0.1 is the only record container (R14-1):** the bodies of the checkpoint entry kinds are DEL-02-03's (EXEC-v0.6 CE-1…CE-19 in `checkpoint-record-entries.schema.json`), referenced by relative path from RS's entry kinds (§13.3), and LOOP's checkpoint events map to the same kinds (§13.3.1). Nothing in it is accepted, and no placement, path, identity algorithm or canonicalization is chosen (OI-013, OI-014; DEL-03-01 TBD-003; R12-2).
@@ -516,19 +517,19 @@ operations (proposals, applications, undo) are never flagged or annotated
 | Element | Meaning | Required |
 |---|---|---|
 | Act identity | Identity of this record | Yes |
-| Act kind | A4, A5, A6, A7, A10, A12, A13, A15, or A11 when the person is the proposer (ACT §2.4). Never A1/A2 (R7 entries), A9 (carried by recording mode) or A14 (R13 only). For A12, its subclass: operation-class grant or network-destination grant (ACT §2.7) | Yes |
-| Act class | As applicable: "reserved to the person" for A4, A6, A7, A12, A13 (D2; disabling A13 INTEGRATION) and for A5/A10 where the active autonomy requires a proposal; for acts through a catalog operation, that operation's class from the DEL-04-01 policy-class record, including *no policy basis* with reason; for A15, "the person's act (V4-WF-02)" (R12-5; not a D2 reserved act) | As applicable |
+| Act kind | A4, A5, A6, A7, A10, A12, A13, A15, A16 (*decide*, R23-8; pass 4), or A11 when the person is the proposer (ACT §2.4). Never A1/A2 (R7 entries), A9 (carried by recording mode) or A14 (R13 only). For A12, its subclass: operation-class grant or network-destination grant (ACT §2.7) | Yes |
+| Act class | As applicable: "reserved to the person" for A4, A6, A7, A12, A13 (D2; disabling A13 INTEGRATION) and for A5/A10 where the active autonomy requires a proposal; for acts through a catalog operation, that operation's class from the DEL-04-01 policy-class record, including *no policy basis* with reason; for A15, "the person's act (V4-WF-02)" (R12-5; not a D2 reserved act); for A16, "the person's act (V4-PM-04)" (R23-8; not a D2 reserved act; whether a decision is reserved is set by the workflow or instrument the package cites) | As applicable |
 | Governing policy reference | Policy-class record and policy revision identity (DEL-04-01 §8.1); DECISION-1 for D2/D3 | With act class |
 | Decision actor | The person who performed the act. For acts the App captures, the person as the App observes them: the name the person set in the App, the operating-system account, and the Codex account when Codex reports one, marked **identity not verified** (SETTLED by DECISION-K1 K1-4; EXEC CAP-8; U-28 closed). A verified identity is a governance-phase matter. **The Codex account (v0.9; R18-1 C-10):** the reported email of the ChatGPT account of the Codex home that runs the conversation, or "ChatGPT account (no email reported)"; the plan type is not recorded; an API-key account identifies no person and gives none; supplied by DEL-01-05 (ACCESS-v0.2 §8, I-6) to the act control (AAC-v0.2 §7). HOSTING's `actorRef` is a string derived from the same three values | Yes |
 | Recorder | Capturing surface, App, host facility, or agent | Yes |
 | Recording mode (sub-element of A9) | *direct capture* or *faithful recording* (cites capture evidence) | Yes |
-| Bound subject | Change item(s) (A5/A10); host row/object (A4/A6/A7); App file; setting content (A12/A13); a workflow revision (A15) | Yes |
-| Bound content c₀ with method m₀ | A5/A10: change-item content identity; A4/A6/A7 on host content: subject content identity; App files: file content identity; A12/A13: the setting content (classes, grant values, scope); A15: the revision identity (its content identity, with method; R12-5) | Yes, or "not obtainable" → lapse permanently *unknown* |
+| Bound subject | Change item(s) (A5/A10); host row/object (A4/A6/A7); App file; setting content (A12/A13); a workflow revision (A15); one decision package, recorded as an R16 `act_request` with alternatives and consequences (A16; §13.6) | Yes |
+| Bound content c₀ with method m₀ | A5/A10: change-item content identity; A4/A6/A7 on host content: subject content identity; App files: file content identity; A12/A13: the setting content (classes, grant values, scope); A15: the revision identity (its content identity, with method; R12-5); A16: the package file's content identity as its `act_request` records it (an App file, so L-1 applies) | Yes, or "not obtainable" → lapse permanently *unknown* |
 | Scope | Change-item identities; row/object identities; setting scope | Yes |
 | Purpose | What the act was for; at a checkpoint, the arrival's declared purpose it answers | Yes |
 | Capture evidence references | From the capturing surface (host act facility; App interface per EXEC CAP-1…CAP-9; control surface for A12), each with resolution status. For the App interface the capture evidence is DEL-01-04's object (`aac.capture-evidence.schema.json`, AAC-v0.2 §5.2), cited by its `cap:` identity and resolved through the act control's capture store (§9); RS copies none of it (v0.9). SWBPIPE exposes none (SQ-01, 2026-09-28; U-11) | At least one; without it the record is non-conformant |
 | Evidence limits | What the evidence does not show (e.g. for App-captured acts, **identity not verified**: the actor is named from the App name, the operating-system account and any Codex account reported, not from a verified identity; EXEC CAP-8; DECISION-K1 K1-4) | Yes |
-| Relations | Run, operation entry, arrival answered (if any; an earlier act counted at a later arrival is cited by it with its capture time, L-13; several acts answering one arrival each name it, L-7), workflow, decision record; for A12: **control effect** — established ⟨settings version⟩ · pending · refused ⟨reason⟩ · unconfirmed (R4-6); **superseded by ⟨act⟩** (L-0); **after run end** where captured after the run's run-ended event; the **act request** it answers, where recorded (R16); for A15 (v0.9; R17-11; R18-1 C-01), the **reviewed draft** {draft as WR ID-3's string — `draft:<location>:<name>@<content identity>`, or `entry:…` for a library entry reviewed in place (WR-v0.2 §4.7) — content identity} and the **prior revision** (RS `workflowTuple`, or none for a first revision in its slot), required; or, for one act registering several library entries (DECISION-L L-4), **registered entries**, each {subject, reviewed draft, prior revision}, in the order of the bound subjects and contents. WD's *derived-from* (the parent workflow identity) is not an act relation; it stays in R2 (R17-11). These relations are A15's only | As applicable; no required prior act |
+| Relations | Run, operation entry, arrival answered (if any; an earlier act counted at a later arrival is cited by it with its capture time, L-13; several acts answering one arrival each name it, L-7), workflow, decision record; for A12: **control effect** — established ⟨settings version⟩ · pending · refused ⟨reason⟩ · unconfirmed (R4-6); **superseded by ⟨act⟩** (L-0); **after run end** where captured after the run's run-ended event; the **act request** it answers, where recorded (R16); for A15 (v0.9; R17-11; R18-1 C-01), the **reviewed draft** {draft as WR ID-3's string — `draft:<location>:<name>@<content identity>`, or `entry:…` for a library entry reviewed in place (WR-v0.2 §4.7) — content identity} and the **prior revision** (RS `workflowTuple`, or none for a first revision in its slot), required; or, for one act registering several library entries (DECISION-L L-4), **registered entries**, each {subject, reviewed draft, prior revision}, in the order of the bound subjects and contents. WD's *derived-from* (the parent workflow identity) is not an act relation; it stays in R2 (R17-11). These relations are A15's only. For A16 (pass 4; R23-8), the **act request** it decides (`requestRef`, the package's `act_request` entry) and the **alternative chosen** (`alternativeChosen`), both required; a reader rule checks that the alternative is one the package names; `alternativeChosen` is A16's only | As applicable; no required prior act |
 | Order | Capture time as evidenced, or "not supplied by host" where the host records none (never a time of the App's own; R14-4; V18-4 m-6); request relation to an arrival where the capturing surface records one | Yes |
 | Lapse evaluation | Latest state with compared c₀/c₁ and m₀/m₁ (§7); derived. Not evaluated for A12/A13 | Derived |
 
@@ -583,6 +584,22 @@ operations (proposals, applications, undo) are never flagged or annotated
   outcome is reported beside the act (AAC AK-f; WR RB-8), and an A15 whose
   registration did not complete stays recorded and had no effect. No
   checkpoint may require A15 in this increment (ACT §4.1).
+- **HA-11 A16 decide (R23-8, R23-18; v0.10; record elements PROPOSED).**
+  Written only from capture evidence of the person's choice at **DEL-01-04's
+  App act control** (AAC-v0.3 §1.2), composed from one decision package: an
+  `act_request` with alternatives and consequences (§13.6). Bound subject: the
+  package; bound content: the package file's content identity; relations:
+  the **act request** it decides and the **alternative chosen**, which must be
+  one the package names (a reader rule). The decision actor is the person; an
+  agent never performs it, and a package, an agent's recommendation or a chat
+  statement is not evidence of it (HA-1; CAP-7). A package naming another kind
+  (A4–A7, A10, A12, A13, A15) is decided by that kind, not A16. No act-declined
+  event exists for A16. A changed package lapses the act under L-1 and L-6
+  (an App file); a revised package is a new request needing a new A16. A
+  later A16 on the same package is a new decision that supersedes the
+  earlier for current standing (as L-0 for A12; R23-25); both stay recorded.
+  A correction of a mis-recorded A16 is a new entry naming it (OF-5), not a
+  new decision.
 
 ## 7. Content binding and lapse comparison rule
 
@@ -1027,7 +1044,7 @@ write to their own logs; the reader joins them (§14.2 R-8).
 | R6 | `settings_version` (body: DEL-04-02's settings-in, §8) |
 | R7 | `operation_entry` (format 0.1 carries the core of §5: operation, author type and identity with *verified*, channel, route, outcome, settings at route and at application, proposal, related evidence, human-act reference, *reverses*, observer, last observed state, *continued past*; the other §5 elements are carried as evidence references until a later minor version) |
 | R8 | `checkpoint_listed`, `declaration_finding`, `checkpoint_arrival`, `act_counted`, `act_not_counted`, `item_decision`, `arrival_declined`, `control_relation`, `continued_past`, `observation_lost`, `observation_recovered`, `arrival_replaced`, `act_after_run_end`, `disposition_change` (annotations, among them **"prior act not counted"** with its reason, the only accepted spelling), `run_resumed`, `run_ended` — each body is EXEC's CE body (table below; R14-1) |
-| R9, §6 | `human_act` (A4, A5, A6, A7, A10, A11, A12 with subclass, A13, A15), `act_declined`, `act_lapsed` (EXEC's CE-10 body, with the lapse state; for an act outside a run, without arrival) |
+| R9, §6 | `human_act` (A4, A5, A6, A7, A10, A11, A12 with subclass, A13, A15, A16), `act_declined`, `act_lapsed` (EXEC's CE-10 body, with the lapse state; for an act outside a run, without arrival) |
 | R10 | `examination_findings` |
 | R11 | `evidence_limit` (EXEC's CE-19 is its "record write failed" form) |
 | R12 | the entry header (§13.2) |
@@ -1178,6 +1195,35 @@ agent's destination request is an R15 element (`destination_requested`).
 - **Never the act.** A request satisfies nothing, is never shown as the act,
   and creates no A12 (HA-1, HA-5). Under the governance-phase option SP-6F a
   recorded request relation is what orders an act after an arrival (L-13).
+- **Decision packages (pass 4; R23-8, R23-24; PROPOSED).** A decision
+  package (V4-PM-04: "naming the exact act requested, with alternatives and
+  consequences") has two parts:
+  - **The package file** the agent writes in the project (an App file). Its
+    shape is DEL-02-03 `checkpoint-record-entries.schema.json`
+    `$defs/decisionPackageFile`: package id, the act kind requested,
+    subject, purpose, scope, the basis that reserves the decision
+    (`reservedBy`), and the alternatives, each with its consequences. It
+    holds nothing the recorder supplies and no hash of itself (R23-24, which
+    supersedes R23-18 item 3).
+  - **The `act_request` record** (CE-4, form "decision package file"),
+    which the recorder writes on identifying the file. It is never
+    identified from message text.
+
+  **Mapping, file → record (R23-24):**
+  - Copied from the file: `actKind`, `subject`, `purpose` and `scope`.
+  - `alternatives`: each file alternative's {id, statement}, in file order.
+  - `consequences`: one {alternative, statement} for each consequence
+    statement of each alternative, in file order.
+  - Supplied by the recorder: `requester`, `form`, `association`, `time`,
+    and `evidence` {content identity, the file's path, the file's content
+    identity}.
+  - `packageId` and `reservedBy` stay in the file and are read through the
+    evidence.
+
+  DEL-02-03's `prototype/run_all.py` (`request_from_file`) implements the
+  mapping and checks it on its examples. The package is never the decision:
+  the person's act (A16, or the named kind) is captured at that kind's
+  surface and cites the request (§6.1 Relations; HA-11).
 
 ## 14. Writer and reader sequences, with failure behaviour (RS 7; PROPOSED)
 

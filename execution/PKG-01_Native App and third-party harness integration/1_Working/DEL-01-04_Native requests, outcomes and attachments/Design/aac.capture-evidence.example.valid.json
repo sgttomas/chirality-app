@@ -1,5 +1,5 @@
 {
-  "description": "Valid (invented): (1) one A15 act composed from one WR a15_descriptor (a new revision of supports-adjust), registered; (2) one A15 act over two library entries registered in place, composed from one WR a15_multi_descriptor (L-4; R21-3); recorded at capture; the workspace then registered the first entry and reported the second not completed, each beside the act.",
+  "description": "Valid (invented): (1) one A15 act composed from one WR a15_descriptor (a new revision of supports-adjust), registered; (2) one A15 act over two library entries registered in place, composed from one WR a15_multi_descriptor (L-4; R21-3); recorded at capture; the workspace then registered the first entry and reported the second not completed, each beside the act. (3) AAC-v0.3 (pass 4, R23-18): the person's A16 on that package, choosing ALT-2; the record cites the request and the chosen alternative.",
   "instances": [
     {
       "format": "chirality.aac.capture-evidence",
@@ -140,6 +140,46 @@
         }
       ],
       "recordId": "rec:app-interface:0012",
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    },
+    {
+      "format": "chirality.aac.capture-evidence",
+      "formatVersion": "0.3",
+      "captureId": "cap:decide-pkg-1",
+      "offerId": "offer:pkg-1",
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+      },
+      "choice": "act",
+      "actKind": "A16",
+      "actor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "identityVerified": false
+      },
+      "boundSubject": [
+        "decision package rec:app:coord:0001"
+      ],
+      "boundContent": [
+        {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      ],
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "capturedAt": "t4",
+      "surface": "App interface",
+      "inputSource": "host-native-confirmation",
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "alternativeChosen": "ALT-2",
+      "recordId": "rec:app:coord:0003",
       "evidenceLimits": [
         "identity not verified"
       ]

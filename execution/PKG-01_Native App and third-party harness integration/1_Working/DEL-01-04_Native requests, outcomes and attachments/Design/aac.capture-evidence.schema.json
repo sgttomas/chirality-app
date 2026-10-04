@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3",
   "title": "App act control capture evidence (PROPOSED, DEL-01-04/AAC-v0.2 §5.2; schema 0.3 at RV21)",
-  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6). The capture-evidence object EXEC CAP-3 names: {act identity, actor, act kind, bound content identity with method designation, scope, purpose, time, capturing surface 'App interface', arrival reference}. Produced on the capture side only from the person's native confirmation of a presented offer (CAP-4; R17-5 PROPOSED); DEL-04-03's human_act or act_declined record cites it by 'captureId' (RS §6.1; RS §9). The actor is named from what the App observes, never verified (DECISION-K1 K1-4; EXEC CAP-8); 'codexAccount' takes exactly RS's two forms, the reported email or 'ChatGPT account (no email reported)', and no plan type is recorded (R18-1 C-10; RS $defs/person; V21-B m-11). An A15 capture names the one DEL-02-02 descriptor it was composed from (R21-3) and lists its entries (DECISION-L L-4), each with the revision, the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content) and the prior revision (RS workflowTuple or null) (R17-11; R18-1 C-01), and, once DEL-02-02 reports it, that entry's registration outcome beside the act, never part of it (AAC AK-f). 'seal' is SEAL-2's optional provenance element (AAC §6.3). Schema 0.3 (RV21; R21-3, V21-B m-11).",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6). The capture-evidence object EXEC CAP-3 names: {act identity, actor, act kind, bound content identity with method designation, scope, purpose, time, capturing surface 'App interface', arrival reference}. Produced on the capture side only from the person's native confirmation of a presented offer (CAP-4; R17-5 PROPOSED); DEL-04-03's human_act or act_declined record cites it by 'captureId' (RS §6.1; RS §9). The actor is named from what the App observes, never verified (DECISION-K1 K1-4; EXEC CAP-8); 'codexAccount' takes exactly RS's two forms, the reported email or 'ChatGPT account (no email reported)', and no plan type is recorded (R18-1 C-10; RS $defs/person; V21-B m-11). An A15 capture names the one DEL-02-02 descriptor it was composed from (R21-3) and lists its entries (DECISION-L L-4), each with the revision, the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content) and the prior revision (RS workflowTuple or null) (R17-11; R18-1 C-01), and, once DEL-02-02 reports it, that entry's registration outcome beside the act, never part of it (AAC AK-f). 'seal' is SEAL-2's optional provenance element (AAC §6.3). Schema 0.3 (RV21; R21-3, V21-B m-11). AAC-v0.3 rows (pass 4, R23-18; run APP-V4-DESIGN-PASS-4-20261003, owner O-A): A16 'decide' with the alternative chosen (alternativeChosen) and its request; additive, taken in place in schema 0.3 as the RV21 changes were.",
   "type": "object",
   "required": [
     "format",
@@ -146,7 +146,8 @@
         "A4",
         "A6",
         "A7",
-        "A15"
+        "A15",
+        "A16"
       ]
     },
     "actor": {
@@ -371,6 +372,11 @@
     },
     "seal": {
       "$ref": "#/$defs/contentIdentity"
+    },
+    "alternativeChosen": {
+      "description": "A16 (R23-8): the identity of the alternative the person chose.",
+      "type": "string",
+      "minLength": 1
     }
   },
   "allOf": [
@@ -528,6 +534,48 @@
               }
             }
           }
+        }
+      ]
+    },
+    {
+      "description": "A16 (R23-8) names its request and the alternative chosen; alternativeChosen is A16's only.",
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "not": {
+                    "const": "A16"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "requestRef",
+                "alternativeChosen"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "const": "A16"
+                }
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "alternativeChosen"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

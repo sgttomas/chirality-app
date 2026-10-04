@@ -1,9 +1,11 @@
 # App act control
 
-- Contribution: DEL-01-04/AAC-v0.2 (supersedes AAC-v0.1, committed at
+- Contribution: DEL-01-04/AAC-v0.3 (supersedes AAC-v0.2, last changed at
+  `31d65b0be3`, sha256 062ce28c8a4ec0bc79fc6b6c421245057a59815df14b88fa779b61eeb98be7d7;
+  AAC-v0.2 superseded AAC-v0.1, committed at
   `63a6e0fa47`, sha256 7e98118c774fcd9c3e60f04e7def51b3a11325995ae343426fba892ea439e181).
   Companion: [NATIVE_INTERACTION_RECEIVING.md](NATIVE_INTERACTION_RECEIVING.md)
-  (DEL-01-04/NIR-v0.2), whose header records the basis, the inputs (round 1
+  (DEL-01-04/NIR-v0.3), whose header records the basis, the inputs (round 1
   and round 2) and their sha256; they are not repeated here.
 - **Standing: PROPOSED until SCA-V4-003 carries SC2-01-04-1** (R17-6). The
   obligation is not in DEL-01-04's ScopeOfWork (sha256 0cdb44e2…, NIR L-1);
@@ -11,6 +13,7 @@
   the owner's pass-3 direction and DECISION-K3 (K-8) start its design now. This
   file amends SC2-01-04-1 for K-8 (A15, DEL-02-02 as consumer): proposal
   SC3-01-04-1 in the return file `D/D3.md`.
+- **v0.3 change (R23-8, R23-18, R23-21; run `APP-V4-DESIGN-PASS-4-20261003`, owner O-A):** A16 *decide* on a decision package: §1.2 row, §2 AI-9 (the package as a runtime value), and both §5 schemas with their examples (A16, the alternatives, `alternativeChosen`; additive, in place in schema 0.3); §5.1 names the offer digest's serialization (`aac-offer-digest/0.1`). **Re-pin (R23-5):** DEL-01-04 ScopeOfWork.md now has sha256 8434cc47ec28e1397e7dae548183543567f0b5fcfdefaebc0b44bc1f709aacf3 (SCA-V4-003 applied SC3-01-04-1, so the act control's obligation is now REQ-008/OUT-005/AC-008/VER-008, and the "Standing" bullet above is historical). Blocks read: G-0104-01…14. Bearing: G-0104-04, -09, -10, -12 and -14 (OUT-005, REQ-008, AC-008, VER-008 and the matrix row: "one act kind at a time on App content", "App files and outputs"; a decision package is an App file, so A16 falls within them), G-0104-08 (REQ-006: acts owned elsewhere) and G-0104-13 (AX-005); the others do not bear on this row.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: two PROPOSED schemas with a valid and an invalid
   example each (§5), and the act-control part of the prototype in
@@ -92,6 +95,7 @@ Rules this file adds (PROPOSED unless labelled):
 | A6 | "approve (engineering approval)" | **Yes**, on App files | Yes | The accountable person | As A4 |
 | A7 | "rely (professional reliance)" | **Yes**, on App files | Yes | The accountable professional; recorded as the person's own statement, with an evidence limit (CAP-8) | As A4 |
 | A15 | "register workflow revision" (from WR's `a15_descriptor`); "register workflow revisions" (from WR's `a15_multi_descriptor`, L-4; R21-3) | **Yes** (K-8); one act is composed from **one** DEL-02-02 descriptor: one reviewed draft, or **two or more library entries registered in place** (L-4 as clarified; WR §4.7) | **No**: ACT §2.3 defines no act-declined event for A15; the person closes the control | The person | Per entry: the revision the descriptor names (WR RB-4, ME-3), bound by that entry's reviewed content identity; relations per entry: the **reviewed content** (WR ID-3 string, `draft:` for a reviewed draft or `entry:` for a library entry reviewed in place, and its content) and, for a new revision, the **prior revision** (RS `workflowTuple`; none for an entry registered in place) (R17-11; C-01). WD's *derived-from* is not this act's relation. Shipped workflows are registered by the release and entries byte-equal to a shipped revision are recognized by DEL-02-02 (L-4); neither is offered here. Several drafts are several acts (AK-d) |
+| A16 | "decide" (ACT §2.1; R23-8; pass 4) | **Yes**, on one **decision package**: an App file the agent wrote, recorded as an R16 `act_request` with alternatives and consequences (RS §13.6). The package reaches the control as a **runtime value** when the person opens the control from DEL-06-02's decision view (R23-2: no register row from DEL-06-02); one package per act (AK-d) | **No**: ACT §2.1 defines no act-declined event for A16; the person closes the control or chooses an alternative the package offers | The person | The package, bound by its file content identity (AI-1; AK-c: a package changed after the offer captures nothing); the **alternative chosen**, one the package names; relation to its `act_request` entry (RS §6.1). The offer carries the alternatives with their consequences and the capture carries `alternativeChosen` (§5 schemas, AAC-v0.3 rows) |
 | A12 | "set grant" | Not offered: no setting the App itself establishes exists in this increment (CAP-1; ACT §2.6). The App's Codex settings are the user's own (D3) and model choice is not A12 (ACT §2.7) | (Yes, when one exists) | The person | Setting content |
 | A5, A10 | "accept" / "rejected the item" | Not offered: no App-content proposal exists in this increment; host proposals use the host's act facility | — | — | — |
 | A11 | — | Not offered: the proposer's act on a host proposal | — | — | — |
@@ -116,6 +120,7 @@ row, not a restructure.
 | AI-6 | Report of the capture {A15 record identity, capture-evidence reference, descriptor identity, bound content}; DEL-02-02 then registers exactly those bytes and reports the outcome | The control → DEL-02-02 (K-8; WR §7, G-0) | A15, after capture and record | §4.2 |
 | AI-7 | RS entries `human_act`, `act_declined` | The control → DEL-04-03's writer (DEP-01-04-012, held) | After capture, for every kind including A15 (AK-f; R18-1 C-22) | RS §14: late write, "record write failed" |
 | AI-8 | The act record, observed by the checkpoint recorder | DEL-04-03 record → DEL-02-03 (AE-2: "Direct capture through the App act control") | When the act answers or counts at an arrival | DEL-02-03's §2.6 A-7, A-8 |
+| AI-9 | A16's decision package as a **runtime value** (R23-2; no register row): the package file reference and content identity, its `act_request` record identity, act kind, scope, purpose, and the alternatives with their consequences | DEL-06-02's decision view → the control (DECISION_VIEW §5) | Only when the person opens the control from a pending package row; nothing else opens it (AK-a, AK-b) | Package file absent or changed since the request → not offered, or AC-6 stale and nothing captured (AK-c); no alternatives → not offered |
 
 ---
 
@@ -227,6 +232,45 @@ them a prior revision as a free string, reviewed content not in ID-3 form, an
 A15 with no entries, several entries with the singular wording, an
 `a15_descriptor` with two entries, a `draft:` entry under the multi
 descriptor, no descriptor, and 0.2's per-entry descriptor).
+
+**AAC-v0.3 additions to the offer.** A16 (§1.2): one package as `subject`,
+its `requestRef`, its `alternatives`, each with its consequences, the wording
+"decide" and no decline. Examples: the fourth valid instance and INV-OF-17…19.
+
+**Offer digest (AAC-v0.3; PROPOSED; from the isolated reader's finding in
+run `APP-V4-DESIGN-PASS-4-20261003`, E/RR-E, and RV E1-R4).** Method
+designation `aac-offer-digest/0.1`. `offerDigest` is the sha-256, in
+lowercase hex, of the UTF-8 bytes of the offer **without** its `offerDigest`
+member, serialized as JSON as follows:
+
+- **Objects.** Members are sorted by key in code-point order. The offer's keys
+  are all ASCII schema names, so code-point and UTF-16 order agree.
+- **Separators.** `,` and `:`, with no whitespace outside strings. Arrays keep
+  their order.
+- **Strings.** `"` and `\` are escaped. U+0008, U+0009, U+000A, U+000C and
+  U+000D are written as `\b`, `\t`, `\n`, `\f` and `\r`. Other characters
+  below U+0020 are written as `\u00xx` with lowercase hex. **Every other
+  character is written as itself**, including non-ASCII, U+007F, and U+2028
+  and U+2029; none is `\u`-escaped.
+- **Numbers.** Only integers occur in an offer (the schema has no
+  non-integer number). They are written in decimal, with `-` for a negative
+  value and no `+`, leading zeros, fraction or exponent.
+- **Literals.** `true`, `false` and `null`.
+- **Non-integer numbers.** The method is not defined over a non-integer
+  number. An offer containing one is not offered.
+
+This is the prototype's `nir_model.canonical()`. It is not claimed to be RFC
+8785, and no equivalence with it was checked. Any reader can recompute the
+digest from the offer file alone.
+
+The A16 example carries ü, ≈ and U+2028 in a consequence. The run folder's
+`E/run_e.py` recomputes that digest with an implementation written from this
+text (not Python's `json`), and gets the same value; it also checks integer
+serialization on the A4 example's `arrivalOrdinal`.
+
+Until a canonicalization is selected for the project (DEL-03-01 TBD-003; RS
+U-04), this is the AAC's own TEST VALUE method. The earlier examples' digests
+stay labelled "illustration" and are not recomputable.
 
 ### 5.2 Capture evidence — [`aac.capture-evidence.schema.json`](aac.capture-evidence.schema.json)
 

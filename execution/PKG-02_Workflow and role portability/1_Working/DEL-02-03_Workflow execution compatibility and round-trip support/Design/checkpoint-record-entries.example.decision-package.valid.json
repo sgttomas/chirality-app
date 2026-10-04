@@ -1,0 +1,73 @@
+[
+  {
+    "kind": "act_request",
+    "observedAt": "T200",
+    "body": {
+      "requester": {
+        "kind": "agent",
+        "identity": "thread:fx-u1-manager"
+      },
+      "form": "decision package file",
+      "actKind": "A16",
+      "subject": [
+        "route for stage 2 of undertaking FX-U1"
+      ],
+      "purpose": "choose how stage 2 of FX-U1 proceeds",
+      "scope": "undertaking FX-U1",
+      "association": "not at a checkpoint",
+      "evidence": {
+        "kind": "content identity",
+        "ref": "project/decisions/stage-2-route.json",
+        "claimedIdentity": "sha256:3ea08ff575698e769784e0c4788a21c01be81020ad0a3c0534114f5c87895fbe",
+        "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+        "resolutionAtWrite": "resolved"
+      },
+      "time": "T200",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now"
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns"
+        }
+      ],
+      "consequences": [
+        {
+          "alternative": "ALT-1",
+          "statement": "Starts today; a changed fact reopens parts"
+        },
+        {
+          "alternative": "ALT-2",
+          "statement": "Starts later; no rework from a changed fact"
+        }
+      ]
+    }
+  },
+  {
+    "kind": "act_lapsed",
+    "observedAt": "T202",
+    "body": {
+      "act": {
+        "recordId": "rec:app:coord:0003",
+        "actKind": "A16",
+        "capturedAt": "T201",
+        "capturingSurface": "app_act_control"
+      },
+      "state": "lapsed",
+      "referents": [
+        "decision package rec:app:coord:0001"
+      ],
+      "c0": {
+        "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+        "value": "sha256:3ea08ff575698e769784e0c4788a21c01be81020ad0a3c0534114f5c87895fbe"
+      },
+      "c1": {
+        "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+        "value": "sha256:changed (TEST VALUE)"
+      },
+      "time": "T202"
+    }
+  }
+]

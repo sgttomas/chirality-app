@@ -312,6 +312,82 @@ def run_ch():
     return r
 
 
+def package_file():
+    """R23-24 (pass 4): the decision package FILE an agent writes (schema $defs/decisionPackageFile). It holds what the
+    person decides on and nothing the recorder supplies, and no hash of itself. Invented subject matter."""
+    return {"format": "chirality.decision-package", "formatVersion": "0.1", "packageId": "pkg:fx-u1:stage-2-route",
+            "actKind": "A16", "subject": ["route for stage 2 of undertaking FX-U1"],
+            "purpose": "choose how stage 2 of FX-U1 proceeds",
+            "scope": "undertaking FX-U1",
+            "reservedBy": [{"ref": "brief FX-U1, item 4", "statement": "the stage-2 route is decided by the person"}],
+            "alternatives": [
+                {"id": "ALT-1", "statement": "Start stage 2 now",
+                 "consequences": ["Starts today; a changed fact reopens parts"]},
+                {"id": "ALT-2", "statement": "Hold stage 2 until the version check returns",
+                 "consequences": ["Starts later; no rework from a changed fact"]}]}
+
+
+def file_bytes(doc):
+    return (json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def request_from_file(pkg, path, identity, requester, time, association="not at a checkpoint"):
+    """R23-24 mapping, file -> CE-4 act_request body (stated in RS-v0.10 §13.6). From the file: actKind, subject,
+    purpose, scope, alternatives {id, statement} and one consequence entry per statement. From the recorder: requester,
+    form, association, time, and evidence naming the file by path and content identity. packageId and reservedBy stay in
+    the file and are read through the evidence; they are not copied."""
+    body = {"requester": requester, "form": "decision package file", "actKind": pkg["actKind"],
+            "subject": list(pkg["subject"]), "purpose": pkg["purpose"]}
+    if "scope" in pkg:
+        body["scope"] = pkg["scope"]
+    body.update({"association": association,
+                 "evidence": {"kind": "content identity", "ref": path, "claimedIdentity": identity,
+                              "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+                              "resolutionAtWrite": "resolved"},
+                 "time": time,
+                 "alternatives": [{"id": a["id"], "statement": a["statement"]} for a in pkg["alternatives"]],
+                 "consequences": [{"alternative": a["id"], "statement": c}
+                                  for a in pkg["alternatives"] for c in a["consequences"]]})
+    return body
+
+
+def decision_package_outputs():
+    """Schema 0.7 (pass 4, R23-18, R23-24): a decision package (V4-PM-04; R23-8) as recorder outputs: the act_request
+    the recorder writes on identifying the package file (PR-1...PR-5; mapping above) and the act_lapsed the writer records
+    when an A16 is lapsed by a change to that file (PR-13). Invented subject matter; not a checkpoint."""
+    import hashlib
+    ident = "sha256:" + hashlib.sha256(file_bytes(package_file())).hexdigest()
+    req = {"kind": "act_request", "observedAt": "T200",
+           "body": request_from_file(package_file(), "project/decisions/stage-2-route.json", ident,
+                                     {"kind": "agent", "identity": "thread:fx-u1-manager"}, "T200")}
+    method = req["body"]["evidence"]["method"]
+    lapsed = {"kind": "act_lapsed", "observedAt": "T202", "body": {
+        "act": {"recordId": "rec:app:coord:0003", "actKind": "A16", "capturedAt": "T201",
+                "capturingSurface": "app_act_control"},
+        "state": "lapsed", "referents": ["decision package rec:app:coord:0001"],
+        "c0": {"method": method, "value": ident}, "c1": {"method": method, "value": "sha256:changed (TEST VALUE)"},
+        "time": "T202"}}
+    return [req, lapsed]
+
+
+def invalid_package_files():
+    """R23-24: package files that must fail."""
+    f = package_file()
+    writer = copy.deepcopy(f); writer["evidence"] = {"kind": "content identity", "ref": "x", "resolutionAtWrite": "resolved"}
+    selfhash = copy.deepcopy(f); selfhash["contentIdentity"] = "sha256:..."
+    noreserve = copy.deepcopy(f); del noreserve["reservedBy"]
+    nocons = copy.deepcopy(f); nocons["alternatives"][0]["consequences"] = []
+    onealt = copy.deepcopy(f); onealt["alternatives"] = onealt["alternatives"][:1]
+    req_as_file = decision_package_outputs()[0]["body"]
+    return [
+        {"case": "INV-PKG-1", "reason": "a recorder-supplied element (evidence) in the file (R23-24 item 1)", "instance": writer},
+        {"case": "INV-PKG-2", "reason": "a hash of the file inside the file (R23-24 item 1)", "instance": selfhash},
+        {"case": "INV-PKG-3", "reason": "no basis that reserves the decision (R23-24 item 1)", "instance": noreserve},
+        {"case": "INV-PKG-4", "reason": "an alternative without a consequence (V4-PM-04)", "instance": nocons},
+        {"case": "INV-PKG-5", "reason": "one alternative (two or more)", "instance": onealt},
+        {"case": "INV-PKG-6", "reason": "the act_request body offered as the file (R23-18 item 3, superseded)", "instance": req_as_file},
+    ]
+
 def invalid_report(valid):
     bad = copy.deepcopy(valid)
     bad["checkpoints"][0]["hold_support"] = {"value": "not_enforceable", "hs_row": "HS-5"}  # PH-3
@@ -342,6 +418,19 @@ def invalid_entries(valid):
         {"case": "INV-EXEC-5", "reason": "a request identified from agent message text (RC-5; R14-2)", "instance": req},
         {"case": "INV-EXEC-6", "reason": "no 'action during hold' body in the current phase (PH-2)", "instance": hold},
         {"case": "INV-EXEC-7", "reason": "run_ended spelling 'run_owner' (R14-1: 'run owner')", "instance": ended},
+    ] + invalid_package_entries()
+
+
+def invalid_package_entries():
+    """Schema 0.7 (pass 4, R23-18): decision-package outputs that must fail."""
+    req = decision_package_outputs()[0]
+    no_cons = copy.deepcopy(req); del no_cons["body"]["consequences"]
+    other_form = copy.deepcopy(req); other_form["body"]["form"] = "supplier person-input request"
+    one_alt = copy.deepcopy(req); one_alt["body"]["alternatives"] = one_alt["body"]["alternatives"][:1]
+    return [
+        {"case": "INV-EXEC-8", "reason": "a decision package without consequences (PR-5; R23-8)", "instance": no_cons},
+        {"case": "INV-EXEC-9", "reason": "alternatives on a request that is not a decision package file (PR-5)", "instance": other_form},
+        {"case": "INV-EXEC-10", "reason": "a decision package with one alternative (PR-3: two or more)", "instance": one_alt},
     ]
 
 
@@ -352,6 +441,9 @@ def examples(reports, rec, write):
         "compatibility-report.example.invalid.json": invalid_report(reports["MT-1"][0]),
         "checkpoint-record-entries.example.valid.json": rec.outputs,
         "checkpoint-record-entries.example.invalid.json": invalid_entries(rec.outputs),
+        "checkpoint-record-entries.example.decision-package.valid.json": decision_package_outputs(),
+        "decision-package-file.example.valid.json": package_file(),
+        "decision-package-file.example.invalid.json": invalid_package_files(),
     }
     for fname, doc in ex.items():
         path = os.path.join(DESIGN, fname)
@@ -360,6 +452,22 @@ def examples(reports, rec, write):
                 json.dump(doc, fh, indent=2, ensure_ascii=False)
                 fh.write("\n")
         on_disk = json.load(open(path))
+        if fname.startswith("decision-package-file"):
+            pkg_schema = ENTRIES_SCHEMA["$defs"]["decisionPackageFile"]
+            if ".valid." in fname:
+                errs = validate(on_disk, pkg_schema, ENTRIES_SCHEMA)
+                expect("%s validates and equals the regenerated instance" % fname, not errs and on_disk == doc, "; ".join(errs[:5]))
+                req = decision_package_outputs()[0]["body"]
+                again = request_from_file(on_disk, req["evidence"]["ref"], req["evidence"]["claimedIdentity"],
+                                          req["requester"], req["time"])
+                expect("R23-24 mapping: the act_request rebuilt from the package file equals the recorded one, and the "
+                       "recorded identity is the file's bytes", again == req and
+                       req["evidence"]["claimedIdentity"] == "sha256:" + __import__("hashlib").sha256(file_bytes(on_disk)).hexdigest())
+            else:
+                for c in on_disk:
+                    errs = validate(c["instance"], pkg_schema, ENTRIES_SCHEMA)
+                    expect("%s %s rejected (%s)" % (fname, c["case"], c["reason"]), bool(errs))
+            continue
         if fname.startswith("compatibility"):
             errs = validate(on_disk, REPORT_SCHEMA)
             if ".valid." in fname:

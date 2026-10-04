@@ -1,5 +1,5 @@
 {
-  "description": "Valid (invented): (1) an A4 offer on an App file answering a recorded arrival, opened by the person from the arrival's row (SD-3; R18-5); (2) an A15 offer composed from one WR a15_descriptor: a new revision of supports-adjust following rev-4, bound to the reviewed draft's bytes; (3) one A15 act over two library entries registered in place, composed from one WR a15_multi_descriptor (DECISION-L L-4; R21-3): 'entry:' strings, no prior revision, the plural wording; each entry bound to its own reviewed bytes.",
+  "description": "Valid (invented): (1) an A4 offer on an App file answering a recorded arrival, opened by the person from the arrival's row (SD-3; R18-5); (2) an A15 offer composed from one WR a15_descriptor: a new revision of supports-adjust following rev-4, bound to the reviewed draft's bytes; (3) one A15 act over two library entries registered in place, composed from one WR a15_multi_descriptor (DECISION-L L-4; R21-3): 'entry:' strings, no prior revision, the plural wording; each entry bound to its own reviewed bytes. (4) AAC-v0.3 (pass 4, R23-18): an A16 'decide' offer on one decision package (an App file recorded as an act_request), showing its two alternatives with their consequences; no decline. The A16 instance carries non-ASCII text (\u00fc, \u2248, U+2028) in its alternatives' consequences, and its offerDigest is aac-offer-digest/0.1 over those characters as themselves (RV E1-R4).",
   "instances": [
     {
       "format": "chirality.aac.offer",
@@ -135,6 +135,50 @@
       "offerDigest": {
         "method": "illustration: sha-256 over the canonical offer",
         "value": "4c4c...e8"
+      }
+    },
+    {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:pkg-1",
+      "actKind": "A16",
+      "wording": "decide",
+      "subject": {
+        "class": "App file",
+        "ref": "project/decisions/PKG-1.json",
+        "contentIdentity": {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      },
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "composedAt": "t3",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now on the current supplier facts",
+          "consequences": [
+            "Stage 2 starts today; any changed supplier fact reopens the affected parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns, then start",
+          "consequences": [
+            "Stage 2 starts after the check (Pr\u00fcfung); no rework from a changed fact; \u2248 one day later\u2028(invented)"
+          ]
+        }
+      ],
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
       }
     }
   ]

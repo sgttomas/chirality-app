@@ -158,3 +158,58 @@ N-1 stands on REQ-003, which forbids manufacturing acts, and on V4-EXM-10/11/12,
 - The change-impact schema beyond what the prototype exercises.
 - O-B's DEL-01-06 K-4 facts in `O-B.md`, which belong to a later unit.
 - `SURVEY/S1-B.md` beyond its hash.
+
+## Repair confirmation (2026-10-03)
+
+- **Repaired unit:** DEL-09-01 EXP-v0.2.
+  - `EXAMINATION_PROTOCOL.md` `fc5b8230ec2ab81a9307bd58a573752194a859afbc28eda6bce1a12ee332a20d`.
+  - All 14 files match the hashes O-B lists under "U1 repair" in `OWNERS/O-B.md` (`shasum -a 256`).
+- **Basis.** Rulings R23-17, R23-19, R23-20 and R23-21, cited by ID.
+- **Checks rerun.**
+  - `check_exp.py` gives **TOTAL 77, FAIL 0**.
+  - My original probes (`probe_exp.py`) rerun unchanged:
+    - P1: refused by the schema (it is now EXP-INV-09);
+    - P2: refused, and EXP-R3 also fires;
+    - P5: refused;
+    - P6: refused;
+    - P7: refused, and EXP-R4 still fires.
+- **Adapted probes.** I accept O-B's reading of P3 and P4:
+  - Under R23-19 item 3, an applicable part that is not run must keep the case from passing.
+  - P4 left `reported_as_independent: true`.
+
+  The adapted probes are in `$TMPDIR/rv/probe_exp2.py`. They reuse the prototype's functions and write nothing in the unit:
+  - **P3a:** EXP-EX-08 (four parts pass; P22-G under `parts_not_applicable` with `declared_in`) is valid, with no rule violation → `pass`.
+  - **P3b:** a declaration without a `sha256:` digest is refused by the schema.
+  - **P3c:** a declared not-applicable part that is also run → EXP-R1 fires.
+  - **P3d:** an applicable `not-run` part with `outcome: pass` → EXP-R1 fires.
+  - **P4a:** an honest `not_separate` review with `reported_as_independent: false` is valid, with no violation.
+  - **P4b:** the same review with `true` → EXP-R6 fires.
+  - **P8:** `blocked` without `blocked_by` is refused.
+- **Pins.**
+  - 17 of the 19 distinct 64-hex values match current files.
+  - `dc6b6a0c…` is the superseded v0.1 hash, cited as history.
+  - `062ce28c…` is AAC-v0.2, the version relied on. It equals the `HEAD` bytes. `git diff HEAD` shows that AAC-v0.3 adds only the header, the A16 row and AI-9. NA-3 (line 287) and VC-AAC-03 are unchanged, so the pin conforms to R23-21 item 3.
+
+### Verdict: **CONFIRMED — READY** (no BLOCKING or MAJOR open)
+
+| Finding | Status | Confirmed against |
+|---|---|---|
+| EXP-R-A MAJOR | **Repaired** (R23-19) | §3.1 and the `parts_not_applicable` schema element (part, reason, `declared_in` with the case-definition digest). EXP-R1 aggregates applicable parts only. Probes P3a–P3d behave as R23-19 items 1–3 require. "Before the run" cannot be checked mechanically; the case-definition digest lets a reviewer check it, which is adequate |
+| EXP-R-B MAJOR | **Repaired** (R23-20) | §3.1 meanings now carry the INTEGRATION label, and the SETTLED label is gone. §6.1 adds PLANNED and "every planned case gets a record". F-1a and F-1b added. `blocked_by` is required (P8). Before a candidate is named there is no subject, so the journey lists the case instead (F-1). This is consistent with R23-20 item 1 ("planned for the candidate") |
+| EXP-R-C MAJOR | **Repaired** | A schema conditional applies to `native_packaged` results other than `not-run` (EXP-R2). P1 is EXP-INV-09 and is refused. EXP-EX-04 is now `not-run` with the package as its missing input, which matches R23-20 |
+| EXP-R-D MAJOR | **Repaired** (R23-17) | §8.3 EXP-DC-RUNNER (DC-R1…R5) and EXP-DC-N2 (DC-N1…N5) each have content and an admitting record, which later results cite (EXP-R2, schema). U-EXP-3 is decided (§8.2 form layout, §8.4 path convention, no service). U-EXP-2 and U-EXP-4 are restated or closed per R23-17. U-EXP-1 is restated per R23-17 item 2; see the note below |
+| EXP-R-E MINOR | **Repaired** | §3.5 has one rule table EXP-R1…R9 with what enforces each. EXP-R2 is defined. The prototype checks that the table lists each rule once |
+| EXP-R-F MINOR | **Repaired** | `reported_as_independent` is required. EXP-R6 fires only when it is true and separation fails (P4a, P4b). F-6 is reworded |
+| EXP-R-G MINOR | **Repaired** | `other` is removed (P5 refused). `review_kind` distinguishes `v4_ops_34` (preference required) from `additional_person`, which never replaces the V4-OPS-34 review (EXP-RX-04 valid) |
+| EXP-R-H MINOR | **Repaired** | The schema forbids `case.scenario` on `rehearsal` and `definition_check` records. The prototype's EXP-R3 covers every outcome except `not-run` (P2 refused) |
+| EXP-R-I MINOR | **Repaired** | §6.1: held arcs place no case in HELD (DAG-004 reading rule 3). Packaged smoke is AWAITING INPUT for the package. §10 M2 is reworded |
+| EXP-R-J MINOR | **Repaired** | Rulings are cited by ID. The AAC pin is kept as the relied-on version, with the v0.3 diff checked (above) |
+| EXP-R-K MINOR | **Repaired** | Native routes require `webview` (WKWebView, WebKit version and OS version). §8.1 gives the reason. Covered by EXP-INV-13 |
+| EXP-R-L NOTE | No change needed | — |
+| EXP-R-M NOTE | No change needed | — |
+
+**Note for O-B's next touch.** U-EXP-1 (§13) says "HELP_HUMAN names both when VC returns". R23-22, appended after this repair, now settles both points:
+- the qualification pin is the newest version to have passed a version-advance check when a candidate is built;
+- 0.160.0 is recorded as checked and design-compatible, while 0.158.0 stays the definition pin.
+
+U-EXP-1 can cite R23-22 and close. This is not a finding against the repair.

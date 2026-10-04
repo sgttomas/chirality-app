@@ -1,0 +1,26 @@
+[
+ {
+  "why": "criterion disposition without its decision",
+  "record": {
+   "record_kind": "exam_change_impact",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-CII-01",
+   "change": {
+    "kind": "criterion_disposition",
+    "description": "d",
+    "evidence": "e"
+   },
+   "from": "0.158.0",
+   "to": "0.160.0",
+   "affected": [
+    {
+     "case_id": "X-01",
+     "prior_result": "EXP-EX-02",
+     "reason": "replays a 0.158.0 recording"
+    }
+   ],
+   "unaffected_basis": "Reliance map EXP §6.2: cases with codex_pin not_applicable rely on no Codex fact",
+   "date": "2026-10-03"
+  }
+ }
+]

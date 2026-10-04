@@ -173,3 +173,60 @@ Spot checks against the data files agreed:
 - O-C's identifier spot-check script. I did not rerun it; I read the cited sections directly instead.
 - LHQ-U2 material, which does not exist yet.
 - Whether FX-PIPE-01 r-numbering stays consistent once L-LHQ-2's third item is applied (revision of T12 and T14). This is a minor fixture detail for the C owner at adoption.
+
+## Repair confirmation (2026-10-03)
+
+- **Repaired unit.** `LOCAL_HOST_QUALIFICATION.md` sha256 `2f648e5bb09d3727fad991fa84e6d3392d3a2a739ed3c16ad2b228cbcbfa1457`, which matches O-C's reply in `OWNERS/O-C.md`.
+- **Basis.** Rulings R23-19, R23-20 and R23-21. Read from `R23_RESOLUTIONS.md`, which is now append-only and cited by ID.
+- **Method.**
+  - I reconstructed the frozen bytes from my first read (the reconstruction hashes to `2668d955…`, the frozen value) and diffed them against the repaired file.
+  - I read every changed section. Unchanged sections were not re-reviewed.
+  - Pins: I recomputed every 64-hex value in the repaired file over the project tree. 17 match their files.
+  - The two that do not match are ACT `4ef8c042…` and RS `a91882e7…`. `git show cec590c5c3:…` reproduces both hashes. `git diff cec590c5c3` shows O-A's v0.10 changes to them are additive A16 rows and lists, leaving the A5/A10/A12 rows and the §6/§7/R11/R15 content this file relies on unchanged. Keeping those pins therefore conforms to R23-21 item 3.
+
+### Verdict: **CONFIRMED — READY** (no BLOCKING or MAJOR open)
+
+Two new items arise from the repairs: LHQ-R15 (MINOR) and LHQ-R16 (NOTE). Neither blocks.
+
+| Finding | Status | Confirmed against |
+|---|---|---|
+| LHQ-R1 MAJOR | **Repaired** | §5.0 places every requirement V4-EXM-20…23 verify. P20-E covers 20-2, 20-4, 20-4a (same error identity and text, E-location-occupied, from both actors), 20-4b (C T8 unavailability parity) and 20-10, citing P §2. Its criterion row names V4-PAR-01…04, V4-HI-10, V4-HI-20 and V4-HOST-03 |
+| LHQ-R2 MAJOR | **Repaired** | The §5.4 completeness rule now covers P23-A…P23-D, and P23-E as far as its traffic is used. LF-9 follows it. "A part with a failed observation is *failed* whatever the capture's completeness" is sound: an observed disallowed contact is positive evidence |
+| LHQ-R3 MAJOR | **Repaired** | `WF-22` → WD-EX E1d `label-with-grant` ⟨rev-D1⟩. I checked this against EXAMPLES.md §E1d: `CP-grant` is reached before dispatch of OP-C9 with ⟨set-2⟩'s content, and E1c's `CP-check` is reached on OP-C9's *applied (receipt)*. Steps 22-1 and 22-3 now match those arrivals. Run 2 (E1) carries OP-C4. The L-2 (a) citation is LHQ-R16 |
+| LHQ-R4 MAJOR | **Repaired** | BR-3 requires two classes on a candidate. Scope separation is labelled "fixture stand-in" and cannot pass P22-B. LF-16 and U-02 are in UNRESOLVED; the stated owner is close to ACT's own U-02 row ("DEL-04-01 with the host policy owner"). 22-6 cites ACT FX-20 for the stand-in |
+| LHQ-R5 MINOR | **Repaired** | Rulings are cited by ID (R23-21 item 1). R23-15 is cited for the "added stimuli" and R23-16 for L-LHQ-1/2. F-1…F-3 are closed |
+| LHQ-R6 MINOR | **Repaired** | §6.1 lists the unchanged, restated and not-applicable rows. CAF-6, CAF-7 and CAF-34 are excluded with reasons. CAF-11, CAF-15 and CAF-32 now name the loop as reporter. LF-14 is added. I checked the row partition: CAF-1…39 are each in exactly one list |
+| LHQ-R7 MINOR | **Repaired** | 20-11 is the lost acknowledgement of 20-10's application. The solve is 20-12, after observation. P20-A excludes 20-11 and takes 20-10 directly or as recovered |
+| LHQ-R8 MINOR | **Repaired** | Stimuli come from the person's request and are served by examiner-run test endpoints, with no third party. 23-3 has two concurrent calls and a later second need. 23-2's entry is "other APIs", not MCP. LF-15 records an unproduced stimulus as *not run*, never *failed* |
+| LHQ-R9 MINOR | **Repaired** | 23-9 compares the host process's own contacts. Unsandboxed outside-process traffic goes under 23-7 (NW-16) |
+| LHQ-R10 MINOR | **Repaired** | 21-1 expects *unavailable* (C T8) or historical results. 21-2 requires the referent's standing. 21-7 names T2's A4, lapsed by T14, with T6 as the unrelated-edit control (C T6 and T14 agree) |
+| LHQ-R11 MINOR | **Repaired** | The LHQ-20 precondition allows BR-4. BR-4 states LHQ-22's needs |
+| LHQ-R12 NOTE | **Adopted** | The §5 lead and 20-9 now separate capture (host act facility) from recording (host run recording, RS §3) |
+| LHQ-R13 NOTE | No action needed | — |
+| LHQ-R14 MINOR (R23-19, R23-20) | **Adopted**; one residue is LHQ-R15 | LR-4 follows R23-19 items 1–3: declared before the run with a reason, left out of aggregation, and an applicable part not run means no pass. P22-G and P23-E state their declarations. An undeclared outside process makes the case *inconclusive*. LR-3, LF-1, LF-2 and CI-3 use R23-20's definitions, with a record for every planned case |
+
+### New items from the repair
+
+- **LHQ-R15 — MINOR — two failure rows still conflict with R23-20 (§6.1 LF-10, LF-5).**
+  - **LF-10.** When the person does not grant the capture privilege, LF-10 records LHQ-23 as *not run*. Under R23-20 the capture was attempted at its start (the privilege is asked for when the capture runs, R23-14) and a stated precondition stopped it, which is item 2's *blocked*, with its cause recorded.
+  - **LF-5.** When the person is not available, LF-5 records the step as *not run*. When the step was reached and the act requested, this is likewise a dependency stopping an attempted step.
+  - **Consequence.** The same event gets different labels in LHQ and EXP v0.2. This is a small residue of LHQ-R14's adoption.
+  - **Repair.** Relabel both: *blocked* when attempted, *not run* only when never attempted.
+- **LHQ-R16 — NOTE — two citations are wider than their sources.**
+  - §5.0 maps V4-HI-21…25 to 20-3 and 20-5…20-10. V4-HI-22 (direct application under granted autonomy) is examined in LHQ-22 (22-2, P22-A), not in LHQ-20.
+  - §5.3 cites DECISION-L L-2 (a) for chaining two workflow runs in a host loop conversation. L-2 (`APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md`) is the owner's choice for App conversations. Using it for the host's loop is an inference and should be marked as one.
+
+## Second repair confirmation: LHQ-R15 and LHQ-R16 (2026-10-03)
+
+**Bytes reviewed.** `LOCAL_HOST_QUALIFICATION.md` sha256 `430539276f6232f1b052346e29b6587376b8b902ab91716d7dc19cdea8166a71`, recomputed with `shasum -a 256`. It matches O-C's reply. I read only the changed rows (§5.0, §5.3 "Workflows", LF-5, LF-10, the header pin line and the changes table).
+
+### Verdict: **CONFIRMED — READY**. LHQ-U1 has no open finding.
+
+| Finding | Status | Confirmed against |
+|---|---|---|
+| LHQ-R15 MINOR | **Repaired** | LF-5 (L278): the step is *blocked* ("person not available") when it was reached and the act requested, and *not run* only when the case was never attempted; dependent parts are *not run*, "blocked by ‹step›". LF-10 (L283): LHQ-23 is *blocked* at 23-0 with its cause, "attempted at its start and a stated precondition stopped it (R23-20 item 2; R23-14 item 1)". Both now follow R23-20 |
+| LHQ-R16 NOTE | **Adopted** | §5.0 lists V4-HI-21 and V4-HI-23…25 under LHQ-20, and V4-HI-22 under LHQ-22 (22-2, P22-A). §5.3 marks applying L-2 (a) to a host loop as "this file's reading, not a ruling on hosts" |
+
+**Pins.** The header now pins EXEC, like ACT and RS, at its committed bytes (`69e6e79a…`, commit `cec590c5c3`), which equal its HEAD bytes. This is correct under R23-21 item 3, because only EXEC's L3 status line changed.
+
+**Wording slip (no finding).** The header attributes that one-line EXEC change to "R23-18". It was made under R23-23 item 2.

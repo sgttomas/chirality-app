@@ -4,8 +4,8 @@
   "captureId": "cap:decide-pkg-1",
   "offerId": "offer:pkg-1",
   "offerDigest": {
-    "method": "TEST VALUE: sha-256 over the offer without offerDigest",
-    "value": "sha256:4637bed55e38d6bff5259487af158fb588899c3d32ad26b885b63e802b2c4ef4"
+    "method": "aac-offer-digest/0.1",
+    "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
   },
   "choice": "act",
   "actKind": "A16",
@@ -20,11 +20,11 @@
   "boundContent": [
     {
       "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
-      "value": "sha256:cf885b17f0062c03e3c5a443aca6e78a38bcfba627392d9d1bdd90c6a5e066d6"
+      "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
     }
   ],
   "scope": "undertaking FX-U1 (invented)",
-  "purpose": "choose how stage 2 of FX-U1 proceeds (reserved to the person by the FX-U1 brief, item 4; invented)",
+  "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
   "capturedAt": "t4",
   "surface": "App interface",
   "inputSource": "host-native-confirmation",

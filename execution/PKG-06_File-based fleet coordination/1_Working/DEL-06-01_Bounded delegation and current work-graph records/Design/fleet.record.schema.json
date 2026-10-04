@@ -1,0 +1,1211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-06-01:fleet-record:0.1",
+  "title": "Fleet coordination record (DEL-06-01 FR-v0.1) — PROPOSED",
+  "description": "PROPOSED format of FLEET_RECORDS.md (FR-v0.1, run APP-V4-DESIGN-PASS-4-20261003, owner O-A). One record kind per file or log line: a bounded brief (V4-PM-01), an undertaking work graph revision and the selector naming the current one (V4-PM-02), and append-only coordination log entries that keep planned, dispatched, observed, returned, reviewed and integrated facts apart, each with its recorder and evidence (REQ-003). A record states what it records; it never establishes an executing child, a return, a review, an integration or a human act it does not cite (FR §2). Names are Chirality's own; no supplier wire field is selected; supplier names appear only as quoted evidence. No placement, path or identity method is selected (OI-013, OI-014; RS U-04).",
+  "$ref": "#/$defs/record",
+  "$defs": {
+    "recordId": {
+      "type": "string",
+      "pattern": "^fl:[A-Za-z0-9._:/-]+$"
+    },
+    "nonempty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contentIdentity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "method",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "notObtainable",
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "notObtainable": {
+              "const": true
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "ref": {
+      "description": "A reference to a file, record or supplier item, never a copy (V4-REC-04; RS OF-3).",
+      "type": "object",
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "file",
+            "fleet record",
+            "RS record",
+            "supplier item",
+            "supplier thread",
+            "commit",
+            "external"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentIdentity": {
+          "$ref": "#/$defs/contentIdentity"
+        }
+      }
+    },
+    "actor": {
+      "description": "Who did or recorded something. A person is named as RS names one (identity not verified, K1-4).",
+      "type": "object",
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "agent",
+            "person",
+            "App",
+            "external"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "HELP_HUMAN",
+            "HELPS_HUMANS",
+            "WORKING_ITEMS",
+            "TASK",
+            "none",
+            "not known"
+          ]
+        },
+        "identityVerified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "limit": {
+      "description": "A limit the brief states, with how it is (or is not) enforced (REQ-001; V4-ROLE-03; K-10). 'enforced-*' names the mechanism; a declaration grants nothing the host does not.",
+      "type": "object",
+      "required": [
+        "statement",
+        "standing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ROLE limit account id where the limit comes from it (e.g. L-TASK-1, L-ALL-1)"
+        },
+        "standing": {
+          "enum": [
+            "stated-not-enforced",
+            "enforced-by-supplier",
+            "enforced-by-host",
+            "unknown"
+          ]
+        },
+        "mechanism": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/ref"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "standing": {
+              "enum": [
+                "stated-not-enforced",
+                "unknown"
+              ]
+            }
+          },
+          "not": {
+            "required": [
+              "mechanism"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "standing": {
+              "enum": [
+                "enforced-by-supplier",
+                "enforced-by-host"
+              ]
+            }
+          },
+          "required": [
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    "header": {
+      "type": "object",
+      "required": [
+        "format",
+        "formatVersion",
+        "recordId",
+        "kind",
+        "undertaking",
+        "recorder",
+        "writtenAt",
+        "body"
+      ],
+      "properties": {
+        "format": {
+          "const": "chirality.fleet.record"
+        },
+        "formatVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "recordId": {
+          "$ref": "#/$defs/recordId"
+        },
+        "kind": {
+          "enum": [
+            "brief",
+            "work_graph",
+            "current_graph",
+            "dispatch_observed",
+            "child_observed",
+            "observation_ended",
+            "return_recorded",
+            "review_recorded",
+            "integration_recorded",
+            "basis_changed",
+            "related_conversation",
+            "external_result"
+          ]
+        },
+        "undertaking": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recorder": {
+          "$ref": "#/$defs/actor"
+        },
+        "writtenAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corrects": {
+          "$ref": "#/$defs/recordId"
+        },
+        "correctionReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "record": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/header"
+        },
+        {
+          "anyOf": [
+            {
+              "not": {
+                "required": [
+                  "corrects"
+                ]
+              }
+            },
+            {
+              "required": [
+                "corrects",
+                "correctionReason"
+              ]
+            }
+          ]
+        }
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/brief"
+        },
+        {
+          "$ref": "#/$defs/workGraph"
+        },
+        {
+          "$ref": "#/$defs/currentGraph"
+        },
+        {
+          "$ref": "#/$defs/dispatchObserved"
+        },
+        {
+          "$ref": "#/$defs/childObserved"
+        },
+        {
+          "$ref": "#/$defs/observationEnded"
+        },
+        {
+          "$ref": "#/$defs/returnRecorded"
+        },
+        {
+          "$ref": "#/$defs/reviewRecorded"
+        },
+        {
+          "$ref": "#/$defs/integrationRecorded"
+        },
+        {
+          "$ref": "#/$defs/basisChanged"
+        },
+        {
+          "$ref": "#/$defs/relatedConversation"
+        },
+        {
+          "$ref": "#/$defs/externalResult"
+        }
+      ]
+    },
+    "brief": {
+      "description": "FR §3.1 (REQ-001; V4-PM-01): purpose, basis, context, authority, tools, write scope, expected return; a prepared brief is not a dispatch.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "brief"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "briefId",
+            "workItem",
+            "purpose",
+            "basis",
+            "context",
+            "authority",
+            "tools",
+            "writeScope",
+            "expectedReturn",
+            "preparedBy",
+            "delegateRole",
+            "limits"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "briefId": {
+              "type": "string",
+              "pattern": "^brief:[A-Za-z0-9._-]+$"
+            },
+            "workItem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "purpose": {
+              "type": "string",
+              "minLength": 1
+            },
+            "basis": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "context": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "authority": {
+              "type": "object",
+              "required": [
+                "mayDecide",
+                "escalate"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "mayDecide": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "escalate": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "reservedToPerson": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "tool",
+                  "limit"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "limit": {
+                    "$ref": "#/$defs/limit"
+                  }
+                }
+              }
+            },
+            "writeScope": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": [
+                  "target",
+                  "limit"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "limit": {
+                    "$ref": "#/$defs/limit"
+                  }
+                }
+              }
+            },
+            "expectedReturn": {
+              "type": "object",
+              "required": [
+                "description",
+                "form",
+                "returnPath"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "form": {
+                  "enum": [
+                    "file",
+                    "message",
+                    "file and message"
+                  ]
+                },
+                "returnPath": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "artifacts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "preparedBy": {
+              "$ref": "#/$defs/actor"
+            },
+            "delegateRole": {
+              "enum": [
+                "HELP_HUMAN",
+                "HELPS_HUMANS",
+                "WORKING_ITEMS",
+                "TASK",
+                "none"
+              ]
+            },
+            "limits": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/limit"
+              }
+            },
+            "supersedes": {
+              "type": "string",
+              "pattern": "^brief:[A-Za-z0-9._-]+$"
+            }
+          }
+        }
+      }
+    },
+    "workItem": {
+      "type": "object",
+      "required": [
+        "itemId",
+        "outcome",
+        "owner",
+        "needs",
+        "selected"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "$ref": "#/$defs/actor"
+        },
+        "brief": {
+          "type": "string",
+          "pattern": "^brief:[A-Za-z0-9._-]+$"
+        },
+        "writeScope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "needs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/need"
+          }
+        },
+        "selected": {
+          "type": "boolean",
+          "description": "Selected work in this revision. Never an executing state (REQ-002)."
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "next": {
+          "type": "string",
+          "minLength": 1
+        },
+        "check": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "need": {
+      "description": "A prerequisite: another item's integrated result, a decision on a package (an RS act_request, R23-8) or an identified input.",
+      "type": "object",
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "item",
+            "decision",
+            "input"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "workGraph": {
+      "description": "FR §3.2 (REQ-002; V4-PM-02): one revision of an undertaking's work graph. Revisions are never edited; a new revision supersedes. Not the project DAG (DEL-10-04).",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "work_graph"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "revision",
+            "items",
+            "projectDagRef"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "supersedes": {
+              "$ref": "#/$defs/recordId"
+            },
+            "basis": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "projectDagRef": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The project DAG this graph's route reads, or 'none'; the graph does not restate it"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/workItem"
+              }
+            }
+          }
+        }
+      }
+    },
+    "currentGraph": {
+      "description": "FR §3.2: the one selector naming the current revision of an undertaking's graph (REQ-002). Each change is a new selector entry; the latest in written order holds.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "current_graph"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "graph",
+            "graphContent"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "graph": {
+              "$ref": "#/$defs/recordId"
+            },
+            "graphContent": {
+              "$ref": "#/$defs/contentIdentity"
+            }
+          }
+        }
+      }
+    },
+    "observation": {
+      "description": "Where an observed fact came from (V4-EXE-03): the supplier item or read, with the pin it was read at.",
+      "type": "object",
+      "required": [
+        "source",
+        "at",
+        "pin"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standing": {
+          "enum": [
+            "observed",
+            "observed through an adapter, not stock behaviour",
+            "inference"
+          ]
+        }
+      }
+    },
+    "dispatchObserved": {
+      "description": "FR §4 (REQ-001, REQ-003; R23-9): a native Codex child observed to start from a spawn, with its parent, and how it was associated with a brief. Written by the App writer from DEL-01-03's delegation export and the spawn item; never from a brief alone.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "dispatch_observed"
+        },
+        "recorder": {
+          "properties": {
+            "kind": {
+              "const": "App"
+            }
+          }
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "mechanism",
+            "childThread",
+            "parentThread",
+            "parentSource",
+            "spawnItem",
+            "association",
+            "observation"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "mechanism": {
+              "const": "Codex native subagent"
+            },
+            "childThread": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parentThread": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "parentSource": {
+              "type": "string",
+              "minLength": 1
+            },
+            "agentRole": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "spawnItem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "spawnPromptContent": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "association": {
+              "type": "object",
+              "required": [
+                "state"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "brief reference in spawn prompt",
+                    "brief reference in spawn prompt; brief changed since",
+                    "no brief reference"
+                  ]
+                },
+                "brief": {
+                  "type": "string",
+                  "pattern": "^brief:[A-Za-z0-9._-]+$"
+                },
+                "briefContent": {
+                  "$ref": "#/$defs/contentIdentity"
+                }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "state": {
+                      "const": "no brief reference"
+                    }
+                  },
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "brief"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "briefContent"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "brief reference in spawn prompt",
+                        "brief reference in spawn prompt; brief changed since"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "brief",
+                    "briefContent"
+                  ]
+                }
+              ]
+            },
+            "delegatingRoleLimit": {
+              "$ref": "#/$defs/limit"
+            },
+            "observation": {
+              "$ref": "#/$defs/observation"
+            }
+          }
+        }
+      }
+    },
+    "childObserved": {
+      "description": "FR §4: the last observed status of a child, as the supplier reports it; never a return, review or integration (NPTD DR-2).",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "child_observed"
+        },
+        "recorder": {
+          "properties": {
+            "kind": {
+              "const": "App"
+            }
+          }
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "childThread",
+            "status",
+            "observation"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "childThread": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A supplier value unchanged, as NPTD's export carries it"
+            },
+            "observation": {
+              "$ref": "#/$defs/observation"
+            }
+          }
+        }
+      }
+    },
+    "observationEnded": {
+      "description": "FR §5: observation of a child or of the App's Codex process ended (RECOVERY DEF-5/6/7, DEL-01-03 observationEnded). Nothing about the child's outcome follows.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "observation_ended"
+        },
+        "recorder": {
+          "properties": {
+            "kind": {
+              "const": "App"
+            }
+          }
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "childThread",
+            "cause",
+            "lastObserved"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "childThread": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cause": {
+              "enum": [
+                "Codex process stopped",
+                "Codex process exited unexpectedly",
+                "App quit",
+                "App relaunch",
+                "cause not observed"
+              ]
+            },
+            "lastObserved": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "evidence": {
+              "$ref": "#/$defs/ref"
+            }
+          }
+        }
+      }
+    },
+    "returnRecorded": {
+      "description": "FR §4 (REQ-003; V4-PM-03): an executor's return received for a work item, with what was returned and where it is. Recorded by whoever received it, citing evidence. A child's completion is not a return.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "return_recorded"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "workItem",
+            "returnedBy",
+            "returned",
+            "evidence"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "workItem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "brief": {
+              "type": "string",
+              "pattern": "^brief:[A-Za-z0-9._-]+$"
+            },
+            "returnedBy": {
+              "$ref": "#/$defs/actor"
+            },
+            "returned": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "limits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "reviewRecorded": {
+      "description": "FR §4: an examination of a return (an A3 by an agent, or the person's own review) with its findings; not checking (A4), acceptance (A5) or approval (A6), which are RS human-act records.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "review_recorded"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "workItem",
+            "returnRef",
+            "reviewer",
+            "verdict",
+            "findings"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "workItem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "returnRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "reviewer": {
+              "$ref": "#/$defs/actor"
+            },
+            "verdict": {
+              "enum": [
+                "no blocking findings",
+                "findings to repair",
+                "not concluded"
+              ]
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "reviewedContent": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            }
+          }
+        }
+      }
+    },
+    "integrationRecorded": {
+      "description": "FR §4: a manager's integration of a reviewed return into the undertaking's result, with its evidence (for example a commit). Integration by the person cites the person's act record where one exists; it is never inferred.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "integration_recorded"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "workItem",
+            "returnRef",
+            "integrator",
+            "evidence"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "workItem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "returnRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "reviewRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "integrator": {
+              "$ref": "#/$defs/actor"
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            }
+          }
+        }
+      }
+    },
+    "basisChanged": {
+      "description": "FR §5 (AC-004): a basis input changed; names the affected items. It reopens nothing by itself.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "basis_changed"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "changed",
+            "affectedItems"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "changed": {
+              "$ref": "#/$defs/ref"
+            },
+            "previous": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "affectedItems": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "relatedConversation": {
+      "description": "FR §4 (R23-9 item 2; L-2): a conversation the person started with 'Continue as' or a fork. Not a delegation.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "related_conversation"
+        },
+        "recorder": {
+          "properties": {
+            "kind": {
+              "const": "App"
+            }
+          }
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "thread",
+            "relation",
+            "source"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "thread": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation": {
+              "enum": [
+                "continued from",
+                "forked from"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1
+            },
+            "workItem": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "externalResult": {
+      "description": "FR §4 (R23-9 item 3): work done outside the App appears as an owner and a result, from files. No dispatch or execution is claimed.",
+      "type": "object",
+      "required": [
+        "kind",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "const": "external_result"
+        },
+        "body": {
+          "type": "object",
+          "required": [
+            "workItem",
+            "owner",
+            "result"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "workItem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "owner": {
+              "$ref": "#/$defs/actor"
+            },
+            "result": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/ref"
+              }
+            },
+            "mechanism": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The actual mechanism as the files state it (for example a harness-native descendant under D-GOV-35), or 'not stated'"
+            }
+          }
+        }
+      }
+    }
+  }
+}

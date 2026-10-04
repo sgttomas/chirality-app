@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-01-04:aac:offer:0.3",
   "title": "App act control offer (PROPOSED, DEL-01-04/AAC-v0.2 §5.1; schema 0.3 at RV21)",
-  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6); the act control is PROPOSED until SCA-V4-003 carries SC2-01-04-1 as amended (SC3-01-04-1). One offer presents one act kind (EXEC CAP-2). For A4, A6, A7 it presents one subject whose content identity is fixed when the offer is composed. For A15 it is composed from exactly one of DEL-02-02's descriptors (R21-3): an `a15_descriptor` (WR RB-4; one reviewed draft, wording 'register workflow revision') or an `a15_multi_descriptor` (WR §4.7 ME-3; DECISION-L L-4: several library entries registered in place in one act, wording 'register workflow revisions'); the entries are listed inside the one descriptor, each with its own bound bytes (K-8), and the person's confirmation is accepted only while every entry still has those bytes and the descriptor is current. Each entry names its subject by the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content identity) and the prior revision (RS workflowTuple or null), the persisted form R18-1 C-01 gives RS; 'derived-from' stays WD's parent-workflow relation and is not carried. The offer is composed on the capture side from authoritative sources, never from agent text (R17-5, PROPOSED). Wording follows ACT §9 and WR (plural for L-4). Decline only where ACT §2.3 defines an act-declined event. Schema 0.3 (RV21; R21-3): one descriptor per act, 'entry:' accepted, the plural wording; 0.2 had one descriptor per entry.",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6); the act control is PROPOSED until SCA-V4-003 carries SC2-01-04-1 as amended (SC3-01-04-1). One offer presents one act kind (EXEC CAP-2). For A4, A6, A7 it presents one subject whose content identity is fixed when the offer is composed. For A15 it is composed from exactly one of DEL-02-02's descriptors (R21-3): an `a15_descriptor` (WR RB-4; one reviewed draft, wording 'register workflow revision') or an `a15_multi_descriptor` (WR §4.7 ME-3; DECISION-L L-4: several library entries registered in place in one act, wording 'register workflow revisions'); the entries are listed inside the one descriptor, each with its own bound bytes (K-8), and the person's confirmation is accepted only while every entry still has those bytes and the descriptor is current. Each entry names its subject by the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content identity) and the prior revision (RS workflowTuple or null), the persisted form R18-1 C-01 gives RS; 'derived-from' stays WD's parent-workflow relation and is not carried. The offer is composed on the capture side from authoritative sources, never from agent text (R17-5, PROPOSED). Wording follows ACT §9 and WR (plural for L-4). Decline only where ACT §2.3 defines an act-declined event. Schema 0.3 (RV21; R21-3): one descriptor per act, 'entry:' accepted, the plural wording; 0.2 had one descriptor per entry. AAC-v0.3 rows (pass 4, R23-18; run APP-V4-DESIGN-PASS-4-20261003, owner O-A): A16 'decide' on one decision package, with its alternatives and their consequences shown; additive, taken in place in schema 0.3 as the RV21 changes were.",
   "type": "object",
   "required": [
     "format",
@@ -128,7 +128,8 @@
         "A4",
         "A6",
         "A7",
-        "A15"
+        "A15",
+        "A16"
       ]
     },
     "wording": {
@@ -137,7 +138,8 @@
         "approve (engineering approval)",
         "rely (professional reliance)",
         "register workflow revision",
-        "register workflow revisions"
+        "register workflow revisions",
+        "decide"
       ]
     },
     "subject": {
@@ -285,6 +287,37 @@
     },
     "offerDigest": {
       "$ref": "#/$defs/contentIdentity"
+    },
+    "alternatives": {
+      "description": "A16 (R23-8): the package's alternatives as shown, each with its consequences.",
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statement",
+          "consequences"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consequences": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
     }
   },
   "allOf": [
@@ -542,6 +575,77 @@
               "const": "register workflow revisions"
             }
           }
+        }
+      ]
+    },
+    {
+      "description": "A16 (R23-8): one package as subject, its request, its alternatives; wording 'decide'; no decline. Alternatives belong to A16 only.",
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "not": {
+                    "const": "A16"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "subject",
+                "requestRef",
+                "alternatives"
+              ],
+              "properties": {
+                "wording": {
+                  "const": "decide"
+                },
+                "declineAvailable": {
+                  "const": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "const": "A16"
+                }
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "alternatives"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "wording": {
+                  "not": {
+                    "const": "decide"
+                  }
+                }
+              }
+            },
+            {
+              "properties": {
+                "actKind": {
+                  "const": "A16"
+                }
+              }
+            }
+          ]
         }
       ]
     }

@@ -1,8 +1,18 @@
 # Native requests, outcomes and attachments — receiving and interaction design
 
-- Contribution: DEL-01-04/NIR-v0.2 (supersedes NIR-v0.1, committed at
+- Contribution: DEL-01-04/NIR-v0.3 (supersedes NIR-v0.2, last changed at
+  `e510aa84fb`, sha256 49e180907d39db3d5e6c7fedfaadf9d964aba57b328d84cca1f58fb1aec38ca0;
+  NIR-v0.2 superseded NIR-v0.1, committed at
   `63a6e0fa47`, sha256 96765105cec82d16ed3fb53c87daaf5a0ebeef30ae5600772822a850bae0db3c).
-  Companion: [APP_ACT_CONTROL.md](APP_ACT_CONTROL.md) (DEL-01-04/AAC-v0.2),
+  **v0.3 change (R23-22; run `APP-V4-DESIGN-PASS-4-20261003`, owner O-A):**
+  §5.1's `Turn.error` source line holds at both pins (0.158.0 and 0.160.0,
+  VERSION_ADVANCE Δ3), and TO-4 keeps an interrupted turn that carries an
+  error interrupted. **Re-pin (R23-5):** DEL-01-04 ScopeOfWork.md sha256
+  8434cc47ec28e1397e7dae548183543567f0b5fcfdefaebc0b44bc1f709aacf3
+  (SCA-V4-003); blocks read: G-0104-01…14; bearing on this change: G-0104-06
+  (REQ-002: only observed events; an interrupted turn is never shown as an
+  end) and G-0104-03 (OUT-002: turn and outcome presentation).
+  Companion: [APP_ACT_CONTROL.md](APP_ACT_CONTROL.md) (DEL-01-04/AAC-v0.3),
   which designs the App act control.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: three PROPOSED schemas with a valid and an invalid
@@ -394,7 +404,11 @@ values RS records as the person: the Codex account is the reported email, or
 ### 5.1 Turn outcome states (TO)
 
 Sources: `TurnStatus` = `completed` · `interrupted` · `failed` · `inProgress`;
-`Turn.error` only when failed; `thread/status/changed` with active flags
+`Turn.error` on a failed turn, and possibly on an interrupted one (generated
+description at 0.158.0 "Only populated when the Turn's status is failed", at
+0.160.0 "Error associated with a failed or interrupted turn"; no interrupted
+turn observed at either pin carried one, VERSION_ADVANCE Δ3); the status, not
+the error, decides the state (TO-4); `thread/status/changed` with active flags
 `waitingOnApproval`, `waitingOnUserInput` (`observed-in-generated-types`), and
 DEL-01-02's recovered state (IF-2).
 
@@ -404,7 +418,7 @@ DEL-01-02's recovered state (IF-2).
 | TO-1 | "In progress" | `inProgress` observed while observation is live | — |
 | TO-2 | "In progress: Codex waits for your tool-permission answer" / "…for your answer to a question" | Active flag `waitingOnApproval` / `waitingOnUserInput` | "Waiting for the person" as a state of a workflow run, or any checkpoint hold wording (SD-4). The flag is the supplier's report about its own turn |
 | TO-3 | "Completed" | `completed` observed | Any statement about descendants (§5.5) |
-| TO-4 | "Interrupted (‹cause›)": "interrupted by you" (the person's interrupt, R17-3 op 1), "interrupted by quit" (K-4), "interrupted by Stop Codex" (C-12; cause *codex-stop*), "interrupted after your `cancel` tool-permission answer", or "cause not observed" | `interrupted` observed; the cause only where DEL-01-02's record or this App's own answer shows it | "Stopped" (App v3 used it, §10); a run end |
+| TO-4 | "Interrupted (‹cause›)": "interrupted by you" (the person's interrupt, R17-3 op 1), "interrupted by quit" (K-4), "interrupted by Stop Codex" (C-12; cause *codex-stop*), "interrupted after your `cancel` tool-permission answer", or "cause not observed" | `interrupted` observed; the cause only where DEL-01-02's record or this App's own answer shows it. An interrupted turn that carries `Turn.error` (possible at 0.160.0, Δ3) is still TO-4: Codex's message is shown beside the label as "Codex reported: ‹message›", never as the cause and never as TO-5 (v0.3) | "Stopped" (App v3 used it, §10); a run end; "Failed" for an interrupted turn |
 | TO-5 | "Failed: ‹supplier's message›" | `failed` with `Turn.error` | A cause of the App's own |
 | TO-6 | "Outcome unknown: observation was lost before Codex reported an end" | Observation lost (supplier exit, connection loss) with no terminal status observed, or DEL-01-02 cannot settle it after recovery | Completed, interrupted or failed by inference |
 | TO-7 | "Interrupted by quit; resume?" | After relaunch, for turns K-4 recorded "interrupted by quit"; the resume offer is DEL-01-02's | An automatic resume |
