@@ -774,3 +774,236 @@ The rows for P1–P17 except P10 are as in §18. Rows P10, P18, P19 and P20 are 
 | `external_dispatch_record.schema.json` and RS's R-entry for external dispatch (M-X2) | Only the register row and RS §10.1 were read |
 | Whether `RS_RECORD.schema.json` and `AS_SETTINGS_IN.schema.json` can drop the cross-`$id` without loss | Schema structure inspected for `$ref`s only |
 | The boundary kinds DEP-04-02-008 (I/V) and DEP-05-01-019 (I/V) | Both quotes are VER sentences. RVG's precedence (quote for content, Statement or SourceRef for point of need) gives I. Neither affects closure in the move set of §20.6 |
+
+## 21. 2026-10-04 repair (RVG-C2, GC-1, GC-2)
+
+**Standing.** This section repairs §1–§20 under review RVG-C2 (`reviews/RVG-C2.md`, sha256 `48db63309c3f057169f2b37390e95a210ae406f2faa0dee6df520d174a155dba`, commit `a0b44aa744`, verdict REPAIR). It also applies HELP_HUMAN's rulings GC-1 and GC-2 (`GC_RULINGS.md`, sha256 `dd92df3686755f340321b8a1b0a57919660221b8d0ad324e9254f0db19a4ed9a`).
+
+Nothing above is deleted. Where this section and an earlier one differ, **this section supersedes** it. The superseded parts are:
+
+| Superseded | By |
+|---|---|
+| §1: the IV-S condition ("`dependency-extract` must accept …") | GC-1 |
+| §1 and §16: RT's "Condition: Q-5 holds" | §21.2 |
+| §4 and §20.7: P4's move and its "decomposition change" reading | §21.4 |
+| §10: P11's re-target | §21.3 |
+| §20.1: P10's move | §21.5 |
+| §9, §12, §13, §20.3: the IV-S parts of P9, P15, P17 and P19 | §21.1 |
+| §3: P3's residual | §21.6 |
+| The registry moves of §11, §20.2, §20.4 and §20.5 | §21.6 |
+| The counts of §18 and §20.7, and the closure table of §20.6 | §21.7 and §21.8 |
+
+The artefact verdicts and every closure number computed so far stand; RVG reproduced them.
+
+**Kinds and script.** Kinds are G1 r2's throughout. The closure script is the one used in §20.6, with the repaired move set below.
+
+### 21.1 M1 — the IV-S pairs re-tested against GC-1
+
+**The test (GC-1).** A slot inversion removes the contract input only when both conditions hold:
+- **(a) the reference is opaque:** "The consumer's Design uses no field, state value or identity scheme that the supplier defines";
+- **(b) conformance is checked outside the consumer's definition:** by the supplier or a third party, or the consumer's own check is recorded as V.
+
+Where (a) fails, the move is IV-O, decomposition or merge, unless the consumer's Design is reworded. A rewording is a design change by that deliverable's design agent, and it is reviewed.
+
+| Pair (row) | (a) today | (b) | Rewording that would make (a) hold, with owner | Result |
+|---|---|---|---|---|
+| P1 (DEP-02-02-013) | Holds. WR's intake is the built view plus a capture report holding WR's own descriptor identity, a capture-evidence reference, and a record identity from a third party (DEL-04-03) | V residual (WR-VC-01), recorded | None needed | **IV-S holds.** V residual under O-1 |
+| P8 (DEP-02-02-015) | Holds. WR shows EXEC's report "labelled"; "nothing is gated by it (CC-3)" | V residual (REQ-005 joined journey) | None needed | **IV-S holds.** V residual under O-1 |
+| P9 (DEP-02-02-017) | **Fails.** WR §7: "the ledger cites it by record identity". RB-4a writes RS's `relations.reviewedDraft` and `priorRevision`. The row receives "the record kind for the registration act (A15)" | Would hold: the act control's writer (DEL-01-04) maps to RS's form, and RS validates | **WR-v0.2 §4.3 RB-4a, §7 (DEL-04-03 row) and §8 ledger** — DEL-02-02's design agent. The ledger holds an opaque reference returned in the act control's capture report. The statement of RS's relation names leaves WR; RB-4a already says "the act control's writer maps it" | Design rewording, plus S1 on DEP-02-02-017's Statement ("record kind"). Act meaning stays on the admitted DEP-02-02-016 (§21.2) |
+| P10 (DEP-02-03-026) | **Fails.** EXEC §2.5 evaluates reached-when on X with ADAPTER's semantics. EXEC §9.1: "using ADAPTER §4.1 NM-1/NM-2, §4.5 and OC-9" | — | None at design level without moving the evaluation. See §21.5 | **Not IV-S.** Owner-level act (§21.5) |
+| P15 (DEP-03-01-031) | **Fails.** C §6.2 is rule-bearing on RS's lapse vocabulary, for example rule 4: "When the bound content changes, the act is shown lapsed (S-C8)". It also has a "Must not be strengthened by" column. It carries RS record references | Would hold: RS and the host check the carried values | **C-v0.8 §6.2** — DEL-03-01's design agent. Withdraw the lapse and act-evidence display rules (rule 4 and the column) to their owners: RS §7 states the rules, AS §8 displays them. Make the record references opaque. C's ScopeOfWork CLM-002 already says it "does not define" them, so no ScopeOfWork ownership moves (RVG C2-M1) | Design rewording, plus S1 (§12) |
+| P17 (DEP-03-02-034) | **Fails.** P §3.3 "Standing at drafting" enumerates AS's seven display states. P §4.4's entry condition reads "effective (person-set) with grant value direct" | Would hold: the host route and the record check | **P-v0.8 §3.3 and §4.4** — DEL-03-02's design agent. Remove "Standing at drafting" and "Settings reference" from the change request. They are recorded App-side (RS §5 and settings-in, AS §12.1 "P records both references (P §3.3; RS §5)"), linked by the host request id P already keeps. Restate §4.4's entry as "the host route resolves the treatment *apply directly*" (ACT §5.2 vocabulary, admitted DEP-03-02-017). This revisits integrator rulings R-8 and R2-6, which placed the attribution in P. It also reverses the owner's Q-11 acceptance of the optional consumption sentence, so the owner sees it | Design rewording, plus S1. **Owner decision flagged** (Q-11) |
+| P19 (DEP-05-01-025) | **Fails today.** LOOP §6.2's dispatch record: "Grant in force … for the operation's class its grant value, display state (O-6), scope and policy-class record reference" | Would hold: AS and the host route check, and AS §12.1 already says the loop "relays intent" | **LOOP-v0.9 §6.2, the "Grant in force" element** (and the RP-4 text it cites) — DEL-05-01's design agent. Shrink it to an opaque settings-version reference. LOOP's own allow rule uses only its own DF-3 and DF-6 data. A follow-on line in AS-v0.9 §12.1's DEL-05-01 row (DEL-04-02's design agent) says only the reference is carried | Design rewording, plus S1 |
+| P4, identity part (DEP-03-02-027; RVG did not test it) | **Fails.** P §3.3 enumerates WD's tuple "{kind, origin, source root, name, revision}". `proposal.schema.json` limits `origin` to WD §6.1's values | Would hold: the record (RS) carries the tuple; RS already consumes it (DEP-04-03-034) | **P-v0.8 §3.3 "Workflow identity" and `proposal.schema.json`** — DEL-03-02's design agent. Carry an opaque workflow-run reference, which REQ-003's "workflow-run attribution" still satisfies. Resolve the tuple through the record, linked by the host request id, as P §3.3 already does for SWBPIPE. This revisits R-9's placement of the tuple in P | Design rewording, plus S1 on DEL-03-02 CLM-003. The governance-phase L residual remains (§21.4) |
+
+**M1 result.**
+- **Hold today:** P1 and P8 (IV-S).
+- **Close by a named design rewording:** P4's identity part, P9, P15, P17 and P19.
+- **Cannot close at design level:** P10 (§21.5).
+- **Consequence if the rewordings are not made.** P4, P9, P15, P17 and P19 keep I rows, and P10 is unmoved. The repaired move set then leaves, under O-4, a 10-member component with 6 rows. See §21.8, scenario A0.
+
+### 21.2 M2 — the re-targets without "Q-5"
+
+**What Q-5 decided (GC-2).** The owner's Q-5 accepted "the App act control in DEL-01-04, with REQ-008 as adjusted and the drafted OUT-005, AC-008 and VER-008, as worded" (`APP-V4-SCA003-20261002/OWNER_DECISIONS.md` l.53). It does **not** decide that DEL-04-01 gains no supplier. §1, §16 and §20.7 were wrong to rely on it.
+
+**What the re-targets add.** They add **no new arc**. Each consumer already consumes DEL-04-01 through an admitted row:
+- DEP-02-01-018 for P5;
+- DEP-02-02-016 for P9;
+- DEP-03-02-017 for P17.
+
+The P11 re-target is withdrawn (§21.3). I checked: all of these arcs are admitted, and DEL-04-01 has 20 admitted consumers.
+
+**ACT §5.1's inputs** (ACT-POLICY-v0.11 §5.1 "Inputs (semantic)"):
+
+| Input | ACT's text | Kind under G1 r2's K-3 ("E only where the consumer, or a third party, defines the format") |
+|---|---|---|
+| *grant state* from DEL-04-02 | "**effective (person-set)** · **effective (policy default)** · requested by agent (A8) · set by person, not yet confirmed · unconfirmed · not set · refused (reason)… \| DEL-04-02 (R-8; R2-6)". §5.3 is rule-bearing on these states | **I.** ACT names DEL-04-02 as the supplier, and the states are AS §3's. Restating them is not defining them. G1 r2's §2b reads A3 as E, because "ACT lists their value sets itself". I disagree for this input: a list attributed to its supplier is a restatement |
+| *checkpoint state* from DEL-02-01, DEL-02-03 and DEL-05-01 | "Whether a declared checkpoint applies, the act it requires, and any governing checkpoint constraint \| DEL-02-01; DEL-02-03; DEL-05-01; P §3.3" | **Boundary, I by default.** The act codes are ACT's own. "Whether a declared checkpoint applies" uses WD's declaration and EXEC's or LOOP's arrival. It is E only if ACT §5.3 rule 2 reads nothing but an arrival named in ACT's own act vocabulary |
+| *operation identity and class* from DEL-03-01 | "The catalog operation and its host-named class \| DEL-03-01" | **I.** It uses the catalog identity scheme |
+
+**What the SCC becomes if these inputs are registered as I.** Computed over all admitted and held arcs, with the repaired move set of §21.8 scenario C:
+
+| Inputs registered as I | O-4 | O-1 |
+|---|---|---|
+| None (today) | SCC-002 acyclic | 12 members, 6 rows |
+| Grant state only (DEL-04-01 → DEL-04-02) | **12 members**, including DEL-04-01, DEL-01-02 and DEL-01-03. The minimum closing set is that one new row | 15 members, 7 rows |
+| Checkpoint state only (three rows) | 11 members; the minimum closing set is the three new rows | 15 members, 9 rows |
+| All five ACT §5.1 inputs | 12 members; the minimum closing set is the five new rows | 15 members, 11 rows |
+
+**Plainly.**
+1. Re-targets P5 and P9, and P17's citation of ACT §5.2, work only while ACT §5.1's inputs stay unregistered, or are classed E.
+2. The same holds for the acyclicity of the whole admitted layer into DEL-04-01. Twenty deliverables consume it.
+3. If those inputs are registered as I, they become the cycle-closing rows themselves, and each needs its own move. Inverting them would need ACT §5.3 to stop being rule-bearing on AS's states (GC-1 (a)). That is an ownership question: the alternatives are IV-O, decomposition of DEL-04-01, merge, or cut.
+4. **Owner question.** Should DEL-04-01's semantic inputs (ACT §5.1) be registered, and on what basis? This is open (GC-2). G2 lists it as ambiguous item A3.
+
+### 21.3 M3 — P11 as a plain invert (supersedes §10's move)
+
+**Source.** EXEC-v0.7 §4.10, headed "A12 refused by the control … — ADOPTED (R4-6)", owns the A12 control relation and its arrival effects:
+- "**established ⟨settings version⟩** … Counts …";
+- "**pending** … **waiting**";
+- "**refused ⟨reason⟩** … **waiting**; the refused A12 does not satisfy";
+- "confirmation observation lost (*unconfirmed*) | **unknown** until observed".
+
+SP-7 adds: "For A12: the control relation is **established** (§4.10)". ACT §2.5's table is headed "(R4-6; EXEC §4.10 AR-1…AR-4)", so ACT restates EXEC; it is not the source. §10 had the order backwards (RVG C2-M3).
+
+**Move.** DEP-02-03-029 with its mirror DEP-04-02-023: **IV**.
+- EXEC needs nothing from DEL-04-02 to record A12 checkpoints. Its own §4.10 and SP-6/SP-7 decide them.
+- AS's display labels in §4.10 ("display *effective*, person-set"; "*set by person, not yet confirmed*") become citations, or are dropped. That is EXEC-v0.7 §4.10 and the §9.1 DEL-04-02 row, by DEL-02-03's design agent.
+- AS-v0.9 §12.1's DEL-02-03 row is withdrawn, by DEL-04-02's design agent.
+
+**ScopeOfWork.**
+- **S1**, two sentences: DEL-02-03 CLM-002's consumption clause ("`DEL-04-02`'s grant display states …, for recording A12 checkpoints"), and DEL-04-02 CLM-002's receivers list.
+- No ownership moves. DEL-02-03 CLM-002 keeps "`DEL-04-02` owns grant display states", which stays true.
+- No reliance on DEL-04-01.
+
+**Anchor.** EXEC-v0.7 §4.10, §4.5 SP-6, SP-7. Closure is unchanged.
+
+### 21.4 M4 — P4 restated (supersedes §4's move and §20.7's P4 entry)
+
+- **Identity part (DEP-03-02-027).** The rewording of P §3.3 (§21.1) makes GC-1 (a) hold. What remains on the arc DEL-03-02 → DEL-02-01 is the governance-phase constraint derivation, an L residual ("In Phase 1 the App carries none", P §3.3). The mirror DEP-02-01-033 needs S1 in DEL-02-01 CLM-002's receivers list.
+- **Under O-3 and O-4:** the residual leaves with its kind, and P4 closes by the design rewording.
+- **Under O-1 and O-2:** P4 needs **one owner act**. Any of these closes it:
+  - **CUT** of the arc's governance-phase residual (doctrine §2 rule 3, SR-4; it covers mirror DEP-02-01-033). This is the smallest. Computed: with P10 also acted on, O-2 then leaves P13 only;
+  - DEC of DEL-02-01, as in §4;
+  - IV-O, moving WD §4.3.6–§4.3.7;
+  - MRG.
+
+  A re-target of the residual to ACT §4.4 ("Acceptance-checkpoint constraint (DERIVED …)") is conceivable but is subject to §21.2.
+- **Without the P §3.3 rewording:** DEP-03-02-027 stays I, and P4 needs an owner act under **every** option. Computed: O-4 then leaves P4, 2 members, 1 row.
+- **Correction of §18 and §20.7.** G1's decomposition flag is **not** "confirmed". P4 needs one owner act under O-1 or O-2, and the smallest is a cut. Decomposition is one alternative among four.
+
+### 21.5 M5 — P10 is an owner-level act (supersedes §20.1's move)
+
+**Evidence.**
+- EXEC §2.5 is the App-run reached-when evaluation, placed in EXEC by binding resolution R12-4 (EXEC Changes l.113).
+- On X it uses ADAPTER's native-path semantics (EXEC §9.1).
+- ADAPTER's `checkpoint_observation.schema.json` says: "The adapter observes and reports; it evaluates no reached-when, disposition or hold."
+- A citation that EXEC's own evaluation rules use is still a requirement of ADAPTER's definition (GC-1 (a)).
+
+**Moves**, each needing an owner-level act:
+
+| Move | Content | Note |
+|---|---|---|
+| IV-O at Design level | Move X-path reached-when evaluation from EXEC §2.5 to ADAPTER §7.7 | Reverses R12-4 and ADAPTER's stated boundary. It is consistent with DEL-02-03 CLM-002 ("`DEL-03-03` owns external-channel receiving"), so it is not a ScopeOfWork S2. It needs whoever holds R12-4's authority, and the owner if contested |
+| DEC | Split EXEC's X-path evaluation into its own unit | Decomposition change through `scope-change` |
+| CUT, MRG | — | Owner |
+
+**Effect.** O-4 closure depends on P10. Without a P10 act, O-4 leaves 4 members and 1 row (DEP-02-03-026). The IV-S count falls to six: P1, P8, and P4's identity part, P9, P15 and P19 after rewording.
+
+### 21.6 Minor findings
+
+- **C2-m1 (P3 residual).** WD-v0.9 relies on EXEC beyond DEP-02-01-026. §4.3.4 has "**Run end and continuation (R4-4; EXEC §4.9; PROPOSED (W7))**", §6.4 is headed "confirmed by DEL-02-03 EXEC §6.2", and WD names EXEC on 56 lines (RVG).
+  - Required rewording: re-anchor these to the integrator rulings that adopted them (R4-4, R-9, R2-20, …), by DEL-02-01's design agent.
+  - Otherwise P3 keeps an I residual. Computed: O-4 then leaves 5 members and 1 row (DEP-02-01-026). The residual of CSV M-02 is corrected below.
+- **C2-m2 (registry form).** P12, P18, P20 and M-X2 hold only in **registry form**:
+  - RS §13.3 becomes a kind registry into which DEL-02-03, DEL-04-02, DEL-05-01 and DEL-03-03 register their kinds and body schemas;
+  - each body is validated against the registering supplier's schema, which satisfies GC-1 (b);
+  - RS's enumerated kinds stop listing supplier events.
+  
+  Rewordings:
+  - RS-v0.10 §13.3 and `RS_RECORD.schema.json`, by DEL-04-03's design agent;
+  - EXEC R14-1 and `checkpoint-record-entries.schema.json`, by DEL-02-03's;
+  - AS §6 and `AS_SETTINGS_IN.schema.json`, by DEL-04-02's;
+  - LOOP §5.3 DF-8, by DEL-05-01's.
+
+  If RS's reader keeps body validation, each leaves a V residual on its arc. Computed: O-1 then rises from 6 to 9 rows (P12, P18, P20 back), and O-2…O-4 are unchanged.
+- **C2-m3 (P9 format part).** Covered by §21.1's P9 rewording: the A15 record kind is RS format, and WR stops naming it.
+- **C2-m4.** Already closed by §20.
+
+### 21.7 Summary (supersedes the move and effect columns of §18 and §20.7 where they differ)
+
+| Pair | Move after repair | Who | Conditions |
+|---|---|---|---|
+| P1 | IV-S DEP-02-02-013; V residual | Design (none needed) + S1 | — |
+| P3 | IV DEP-02-01-026 | DEL-02-01 design agent (WD §4.3.4, §6.4 re-anchoring) + S1 | C2-m1 rewording |
+| P4 | Rewording of P §3.3 identity, then the L residual. O-1/O-2: owner **CUT** (or DEC, IV-O, MRG) | DEL-03-02 design agent; owner under O-1/O-2 | Without the rewording, owner act under all options |
+| P5 | RT DEP-02-01-019 to DEL-04-01 | Register owner (G1-m5) + S1 | ACT §5.1 unregistered or E (§21.2) |
+| P6, P7, P21 | IV | S1 | — |
+| P8 | IV-S DEP-02-02-015; V residual | Design (none needed) + S1 | — |
+| P9 | RT (act meaning) + IV-S after WR rewording | DEL-02-02 design agent + S1 | ACT §5.1 (§21.2) |
+| P10 | **IV-O (R12-4), DEC, CUT or MRG** | **Owner-level** | Required for O-4 closure |
+| P11 | **IV** DEP-02-03-029 (EXEC §4.10) | DEL-02-03 and DEL-04-02 design agents + S1 | — |
+| P12, P18, P20 (+ M-X2) | IV, registry form | DEL-04-03 design agent, with DEL-02-03, DEL-04-02, DEL-05-01 and DEL-03-03 + S1 | C2-m2; V residuals under O-1 if RS validates bodies |
+| P15 | IV-S after C §6.2 rewording | DEL-03-01 design agent + S1 | — |
+| P17 | IV-S after P §3.3/§4.4 rewording | DEL-03-02 design agent + S1; owner sees the Q-11 reversal | ACT §5.1 (§21.2) |
+| P19 | IV-S after LOOP §6.2 rewording | DEL-05-01 design agent (+ AS §12.1 line) + S1 | — |
+
+### 21.8 Closure, repaired move set (G1 r2 kinds)
+
+**Model.** As §20.6.
+- **Always applied:** the IV and RT moves of P3, P5, P6, P7, P11, P12, P18, P20, P21 and M-X2. P1 and P8 leave V residuals.
+- **"Rewordings"** adds P9, P15, P17 and P19, and P4's identity part with its L residual.
+
+| Scenario | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| A0: today, no rewordings, no owner acts | 12 members, 12 rows | 10 members, 7 rows | 10, 7 | **10 members, 6 rows**: P4, P9, P10, P15, P17, P19 |
+| A: all design rewordings, no owner act | 12, 8: P1, P2, P4, P8, P10, P13, P14, P16 | P4 (2/1); P10 and P13 (4/2) | P10 and P13 (4/2) | **P10 only (4/1)** |
+| B: A + owner act on P10 | 12, 7: P1, P2, P4, P8, P13, P14, P16 | P4; P13 | P13 | **acyclic** |
+| C: B + owner cut of P4's residual | 12, 6: P1, P2, P8, P13, P14, P16 | P13 | P13 | **acyclic** |
+| D: C, with P1 and P8's V residuals not entered | 12, 4: P2, P13, P14, P16 | P13 | P13 | acyclic |
+| C, P3 not re-anchored (C2-m1) | 12, 7 (+P3) | P3 and P13 (6/2) | P3 and P13 | 5 members, 1 row (P3) |
+| C, registry moves with V residuals (C2-m2) | 12, 9 (+P12, P18, P20) | P13 | P13 | acyclic |
+| C, ACT §5.1 grant state registered as I | 15, 7 | — | — | 12 members, 1 row (the new row) |
+
+### 21.9 Bottom line for SCC-002
+
+Every move below also needs S1 ScopeOfWork wording, applied by `scope-of-work` under an amendment (SCA) the owner accepts. No S1 wording moves ScopeOfWork-assigned ownership.
+
+**1. Pairs closed by design rewordings alone.** 15 of the 17 I–I pairs, every pair except P4 and P10. P4 also belongs here under O-3 and O-4:
+- **No Design change needed:** P1, P8 (IV-S with a V residual), and P6, P7, P21 (IV).
+- **After a named Design rewording:**
+  - P3 (WD §4.3.4, §6.4 re-anchoring);
+  - P11 (EXEC §4.10 citations; AS §12.1);
+  - P12, P18, P20 (RS registry form);
+  - P9 (WR RB-4a, §7, §8);
+  - P15 (C §6.2);
+  - P17 (P §3.3, §4.4; the owner sees the Q-11 reversal);
+  - P19 (LOOP §6.2).
+- **Re-target:** P5 (register-owner caveat G1-m5).
+- **Condition.** P5, P9 and P17 hold only while ACT §5.1's inputs stay unregistered or are classed E, and so does the acyclicity of the admitted layer generally (§21.2).
+
+**2. Needing an owner act.**
+- **P10, under every option:** IV-O reversing R12-4 (Design-level), DEC of EXEC's X-path evaluation, CUT or MRG.
+- **P4, under O-1 and O-2:** CUT of the governance-phase residual, or DEC, IV-O or MRG. Under O-3 and O-4 it is in group 1, given the P §3.3 rewording.
+- **The ACT §5.1 registration question.** If the inputs are registered as I, their five rows become cycle-closing and need their own owner-level move.
+- **Non-I–I rows:**
+  - P13 (DEP-02-03-022, E/L) under O-1…O-3: owner cut, or confirmation by its register owner;
+  - P2, P14 and P16 under O-1: V and V/L cuts;
+  - the V residuals of P1 and P8 under O-1.
+
+**3. What remains under each option**, after the group-1 rewordings and the owner acts on P10 and P4 (scenario C):
+- **O-4:** acyclic. P4 needs no act here, given its rewording. P10 needs one.
+- **O-3:** P13 only (1 row).
+- **O-2:** P13 only, with the P4 cut. Without it, P4 and P13.
+- **O-1:** 6 rows: P1 and P8 (V residuals), P2, P13, P14 and P16. Owner cuts or decomposition decide them.
+
+**No evidence of a broad decomposition.** At most one decomposition is needed: for P10, and only if the owner prefers it to the alternatives. The structural premise now rests on two owner acts (P10, and P4 under O-1/O-2), one owner question (ACT §5.1), and about a dozen reviewed Design rewordings across 11 Design files.
+
+### 21.10 Not established (repair)
+
+| Item | Why |
+|---|---|
+| Whether the integrator rulings R-8, R2-6, R-9, R12-4 and R14-1 allow the rewordings | Read as cited only. Revisiting them is for their authority |
+| Whether ACT §5.3 rule 2 reads anything beyond ACT's own act vocabulary | It decides whether checkpoint state is I or E (§21.2) |
+| Whether REQ-003's "carry … workflow-run attribution" is met by an opaque run reference | My reading is that it is. The P §3.3 rewording depends on it |
+| Design passages beyond those quoted for each rewording | Each rewording is a design-agent task, with its own review |
