@@ -1226,3 +1226,15 @@ My recomputation reproduces RVG's Addendum B figures exactly. G1 r2/r3 kinds, he
 ### 23.3 SCC-001 has no E residual
 
 SCC-CASE-001's IV of DEP-01-01-024 (that case's §1.6) leaves no runtime flow to DEL-01-01. The sign-in and substitution evidence stays with DEL-01-05 (DEL-01-05 REQ-007; ACCESS §12). Its closure table stands.
+
+## 24. 2026-10-04 correction of §23.3 (RVG2-CASE-001 C1-M1)
+
+§23.3's claim that SCC-001's move leaves no runtime flow is **withdrawn**, and so is "Its closure table stands". This section supersedes §23.3.
+
+**The flow.** HOSTING-BOUNDARY-v0.9 §8.3 still receives two runtime values from DEL-01-05: the requested provider and model (ACCESS §1 I-3), and the destination class (I-4). HOSTING's VC-26, which serves VER-005, takes the class from DEL-01-05's configuration. So the arc DEL-01-01 → DEL-01-05 keeps an E residual, with V.
+
+**Consequence for SCC-001** (SCC-CASE-001 §6.1). SCC-001 is acyclic under O-4. Under O-1…O-3 it stays a 2-cycle until the owner makes a per-edge cut of that arc.
+
+**Consequence for this case.**
+- SCC-002's own figures in §22 and §23 are unaffected, because SCC-001 is a separate component.
+- If N08 is registered as I, it merges the two. Under O-2 it gives 13 members and 8 rows; under O-3, 12 members and 7 rows (SCC-CASE-001 §6.2).

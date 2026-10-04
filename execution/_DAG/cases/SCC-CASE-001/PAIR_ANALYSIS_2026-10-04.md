@@ -163,3 +163,99 @@
 | Whether DEL-01-01's register owner (`dependency-extract`) re-extracts no row once VER-005 is reworded as a pointer | The proposed wording names DEL-01-05's evidence as outside the verification. A plain withdrawal of the clause leaves no doubt |
 | The admitted-layer kinds | Taken from G1 r3 Appendix A as given; not re-derived |
 | The DAG-004 observation in `Case_Datasheet.md` | The datasheet shows no DAG-002…DAG-004 successor observation. The membership is unchanged by my check: two members, two held rows. A case evidence update is not part of this brief |
+
+## 6. 2026-10-04 repair (RVG2-CASE-001; GC-5)
+
+**Standing.** This section responds to RVG2's review (`reviews/RVG2-CASE-001.md`, sha256 `684b874bf00dd3eb7d82aefc16d808a96d9b2a572d2cafcc4b3edc75e63dfec9`, commit `0d338dd7b1`, verdict REPAIR). It applies ruling GC-5 (`GC_RULINGS.md`, sha256 `7fcbb551ea4605f77eb09d70ff3b57549d01f07e2b7992be04feb8beade9c65b`).
+
+It is append-only and supersedes:
+- §1.3's sentence "No HOSTING section or verification case uses sign-in or substitution evidence from DEL-01-05";
+- §1.6;
+- §2;
+- §3's readings 2 and 3, and the "none" cells of its table;
+- §4.
+
+The rows, quotes, kinds, the ownership claim and the DAG-004 baseline stand, as RVG2 confirms.
+
+### 6.1 C1-M1 — the residual on DEL-01-01 → DEL-01-05
+
+**What HOSTING-BOUNDARY-v0.9 still takes from DEL-01-05.** These uses are independent of VER-005's clause.
+
+| Use | Design text | Kind |
+|---|---|---|
+| Requested provider and model, carried per thread and turn | §8.3: "the provider and model the App **requested** (carried from the person's choice through DEL-01-05; at 0.158.0 `modelProvider` and model on thread start/resume …)". ACCESS §1 I-3: "Conversation start: explicit `modelProvider` and `model` on `thread/start` … \| DEL-01-05 → DEL-01-01 S-4" | **E.** Runtime values HOSTING carries and records, whose format is the supplier pin's (K-3) |
+| Destination class | §8.3: "The destination **class** (local or cloud) is derived from the provider configuration the person chose (DEL-01-05), not inferred by this boundary." ACCESS I-4: "DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5" | **E.** A per-conversation runtime value whose values are RS R5's (`destinationClass`) |
+| VC-26 live part, verification column VER-005 | Expected "class taken from DEL-01-05's configuration"; status "live start needs credential or local provider" | **V** (K-5) |
+
+**GC-5 item 1.** Each use is a dependency: HOSTING's §8.3 output and its VC-26 verification depend on DEL-01-05's values. **Item 3** does not allow withdrawing the VER-005 clause while these uses stay in the Design.
+
+**Can a rewording remove them? Not on the present sources.**
+- The class route (I-4) could run DEL-01-05 → DEL-04-03 directly. That moves the E flow to a new arc DEL-04-03 → DEL-01-05, and needs S1 in DEL-04-03 CLM-004, which today receives "observed supplier facts (… model and destination …) from `DEL-01-01`".
+- The I-3 carriage cannot be removed. DEL-01-01 is the one that sends `thread/start`, and integrator ruling R5-4 keeps "requested and effective values separate", so HOSTING must receive the requested values.
+- VC-26's live part could run on DEL-01-01's own local-provider configuration, as OBS-1 did. But the class expectation would then move to DEL-01-05's own cases.
+- I do not claim these sources support a complete removal.
+
+**Repair.**
+- **The residual is recorded as E, with V.** It sits on the arc DEL-01-01 → DEL-01-05, alongside DEP-01-01-024.
+- **M-01 is superseded.** The withdrawal of VER-005's clause would only relabel the arc; it would not close it.
+- **GC-5 item 3 instead asks for S1 carry-in.** DEL-01-01's ScopeOfWork should state the depended-on interface: DEL-01-05's provider selection and destination class, carried per turn (§8.3), and DEL-01-05's configuration for VC-26's live start. VER-005's input then stays named.
+- **C1-m1 is answered.** No check is narrowed.
+- **C1-m3 is answered.** No IV is claimed. M-01's withdrawal was a cut-like withdrawal of a test input, not an invert, and it is withdrawn.
+
+**Restated per-option table** (G1 r3 kinds, graph-wide, 212 arcs; N08 not entered):
+
+| Scenario | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| Today (DEP-01-01-024 V/L) | {01-01, 01-05}, 1 row | no component | no component | no component |
+| With the residual recorded as E (with V) | {01-01, 01-05}, 1 row | **{01-01, 01-05}, 1 row** | **{01-01, 01-05}, 1 row** | acyclic |
+| Owner per-edge cut of the arc DEL-01-01 → DEL-01-05 (M-02-R) | acyclic | acyclic | acyclic | acyclic |
+
+**Owner acts per option.**
+
+| Option | Owner act needed |
+|---|---|
+| O-4 | none; the E and V content leaves with the option |
+| O-1, O-2, O-3 | one per-edge cut of the arc DEL-01-01 → DEL-01-05, covering DEP-01-01-024 and the E/V residual. This is CASE-001's R2, widened to the whole arc. No agent move closes it |
+
+DEP-01-05-012 (P) is still not moved.
+
+### 6.2 C1-M2 — N08 against the post-§23 move set
+
+**Model.** N08 is entered as an I row (DEL-01-05 → DEL-04-03), over all 212 arcs, with G1 r3 kinds. "Group 1" is SCC-CASE-002's §22 move set with §23's five E residuals:
+- **B:** without the P4 cut;
+- **C:** with the P4 cut.
+
+Cells give the component containing DEL-01-05 (C1-m2: "no N08 component" means no component containing DEL-01-05, not that the graph is acyclic).
+
+| Scenario | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| N08 + group 1 (B); SCC-001 arc as today (V/L) | 18 members, 14 rows | 6 members, 6 rows: DEL-01-05 + {02-03, 03-03, 04-02, 04-03, 05-01} | 6 / 6 | no N08 component |
+| N08 + group 1 (B); residual recorded as E (§6.1) | 18 / 14 | **13 / 8** (DEL-01-01 pulled back in) | **12 / 7** | no N08 component |
+| N08 + group 1 (B); owner cut of the SCC-001 arc | 13 / 12 | 6 / 6 | 6 / 6 | no N08 component |
+| N08 + group 1 (C) (P4 cut); residual E | 18 / 13 | 12 / 7 | 12 / 7 | no N08 component |
+| N08 + group 1 (C); owner cut of the SCC-001 arc | 13 / 11 | 6 / 6 | 6 / 6 | no N08 component |
+
+Adding P19's E residual (§23) leaves every cell above unchanged. These figures reproduce RVG2's.
+
+**Readings 2 and 3 restated.**
+- **Reading 2 (restated).**
+  - Only under O-4 do SCC-002's moves leave N08 without a cycle.
+  - Under O-2 and O-3, §23's E residuals keep the 5-member component {02-03, 03-03, 04-02, 04-03, 05-01}. DEP-05-01-026 (admitted, I) then closes N08's path back, and N08 joins DEL-01-05 to that component (6 members, 6 rows).
+  - With this case's E residual, DEL-01-01 is pulled in as well.
+- **Reading 3 (restated).**
+  - Under O-1, N08 gives 18 members and 14 rows without the SCC-001 cut, and 13 members and 12 rows with it. The earlier "13 / 7" is withdrawn.
+  - The SCC-001 cut still keeps DEL-01-01 and its neighbours out of an N08 merger, under every option.
+- **N08's own move.** If N08 becomes an I row, it needs its own invert under O-1, O-2 and O-3, not only under O-1. That invert is ACCESS l.910: "DEL-01-05 is the class's source". It is outside this case.
+
+### 6.3 Summary (supersedes §4)
+
+| Pair | Kinds | Artefact? | Move | Residual | Owner acts |
+|---|---|---|---|---|---|
+| P1 01-01 ↔ 01-05 | DEP-01-01-024 V/L; DEP-01-05-012 P | Artefact | No agent move closes it. GC-5 S1 carry-in of HOSTING §8.3's and VC-26's uses into DEL-01-01's ScopeOfWork | E (with V) on DEL-01-01 → DEL-01-05 | O-4: none. O-1…O-3: one per-edge cut of that arc |
+
+### 6.4 Not established (repair)
+
+| Item | Why |
+|---|---|
+| Whether a rerouting of the class (I-4) directly to DEL-04-03 is acceptable to DEL-01-01's and DEL-04-03's design agents | It would move, not remove, the E flow |
+| GC-5 item 4 | This case's "no new row" conclusions stay provisional until the G2b inventory reports |
