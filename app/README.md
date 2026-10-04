@@ -58,7 +58,7 @@ Run these from `app/`:
 export CHIRALITY_CODEX_BIN=<path to the stock codex 0.158.0 vendor binary>
 # optional: the expected sha-256 of that binary; without it the run is the
 # U-06 development case, labelled unverifiable
-export CHIRALITY_CODEX_EXPECTED_SHA256=<hex>
+export CHIRALITY_CODEX_EXPECTED_SHA256=788a818fbb9596869c7a487554507cb8bdca17584b8671112b23f9e225ba35c8
 npm test     # runs the Rust tests, then validates what they wrote with Ajv
 ```
 
@@ -94,6 +94,32 @@ All of these are environment variables. No path is built into the code.
 | `CHIRALITY_CODEX_EXPECTED_SHA256` | The expected distribution identity. If it is absent, the start is refused unless `CHIRALITY_ALLOW_UNVERIFIED=1` |
 | `CHIRALITY_ALLOW_UNVERIFIED` | `1` runs an unverified distribution for development (U-06), labelled as such |
 | `CHIRALITY_WORKSPACE` | The project folder. It holds `project/decisions/*.json`. The App writes `records/coordination.rs.jsonl` and `.chirality/captures/` there |
+
+The stock binary this skeleton was built and tested against is Codex
+0.158.0 (darwin-arm64 vendor binary), sha256 shown above. Where it lives on a
+machine is not recorded here; point `CHIRALITY_CODEX_BIN` at it.
+
+Before starting the App, put the same `config.toml` in the scratch home that
+the tests use, so Codex cannot reach a hosted model service. A scratch home
+without a provider lets Codex open a connection to the default hosted service
+at `thread/start` (see `EVIDENCE.md` N-1 and `CONTRACT_ISSUES.md` CI-8):
+
+```toml
+# $CHIRALITY_CODEX_HOME/config.toml: the same stand-in tests/handshake.rs writes
+model_provider = "skeleton_local"
+model = "skeleton-no-model"
+
+[model_providers.skeleton_local]
+name = "skeleton local (no server running)"
+base_url = "http://127.0.0.1:9/v1"
+wire_api = "responses"
+
+[features]
+plugins = false
+
+[analytics]
+enabled = false
+```
 
 Seed a workspace with the fixture's two package files, then start the App:
 

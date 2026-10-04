@@ -222,3 +222,11 @@ A4 and A6 were not applied, as GC-9 directs.
 - All internal anchors in the AUM resolve, including `#app-v4`.
 - Every reference-style link is defined.
 - Code fences are balanced.
+
+## 10. MR Addendum C fixes (MW, 2026-10-04)
+
+- **C2.** The AUM App v4 entry no longer states "App v4 has no project `AGENTS.md`". It now reads "Read a project `AGENTS.md` if one is established."
+- **C4.** One clause says who carries a cross-group relationship over: the loop constructing or resuming a group's graph reads the other groups' graphs for relationships recorded against its group. It was added in three places:
+  - v8 §4.12 handoff;
+  - the field book HAND OFF block;
+  - AUM §5 step 4.
