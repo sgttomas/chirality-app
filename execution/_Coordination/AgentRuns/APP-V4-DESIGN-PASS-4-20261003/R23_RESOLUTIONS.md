@@ -324,3 +324,19 @@ evidence rules and the owner's earlier decisions already settle them.
      - DOS's record-set standings omit RRM's `definition` standing (not a
        conflict);
      - an optional CA W14 narrative note for DEL-09-06's owner.
+
+## After tranche 1
+
+- **R23-30 Adopting D-GOV-52 in App v4; U-A9. INTEGRATION.** The owner
+  approved A1 and B1 (OWNER_DECISIONS_2.md).
+  1. App v4 adopts the changed Root text. ROLE-v0.2 F-R9 (the
+     instruction-change notice difference) is closed by A1. The Root
+     citations in HOSTING-v0.9 §2/§8.2 and ACCESS-v0.2 §9 now read against
+     B1. Each file is updated at its next revision; no Design file is edited
+     by this ruling.
+  2. **U-A9** ("Whether the person may turn analytics back on for the App"):
+     **yes**. The person can reverse the App's analytics-off session flag in
+     the App. The reversal is the person's act, recorded like any other
+     setting change, and never written to their `config.toml` by the App.
+     This makes B1's "not a veto" fully true. ACCESS carries it at its next
+     revision.
