@@ -1,6 +1,11 @@
 # Owner replacement evidence packet
 
-- **Contribution:** DEL-11-03/RP-v0.3. It supersedes RP-v0.2 (sha256 `80e88983a4822c6d76b257e72cff39166817371cf7e2723afc6541c3f3da1869`, committed at `d43665498d`, read by the isolated reader RR-EUF2 and reviewed by RV3), which superseded RP-v0.1 (`1a06262b…9c8c`, read by RR-EUF1). RP-v0.3 is one repair round covering RV3-EUF1 (EUF1-R1b, R2, R3, R4; Addendum 2 EUF2-R1, R2, N4) and RR-EUF2's points, under R23-43 and R23-44 (O-F.md "EU-F1 — RP-v0.3"). It is the unit **EU-F1**, the tranche-2 early path for PKG-11 and DEL-09-12: one replacement decision package, assembled from the suppliers' dossiers and read, with the decision left pending.
+- **Contribution:** DEL-11-03/RP-v0.4. It supersedes RP-v0.3 (sha256 `164c082c1ef4957acf9edca1040dd4e76e2647a0a1af540d755d992f3a58f9af`, read by RR-EUF3 at 36/36 and found READY by RV3, Addendum 4). Earlier versions: RP-v0.2 (`80e88983…1869`, RR-EUF2) and RP-v0.1 (`1a06262b…9c8c`, RR-EUF1). RP-v0.4 is frozen with DEL-11-01 CA-v0.1 as unit **EU-F2**. It does five things:
+  - adopts DEL-11-01's continuity hand-over;
+  - carries RV3 Addendum 4's three MINOR findings and N9 (the DOS re-pin);
+  - carries the cheap fixes from RR-EUF3's issues (O-F.md "RR-EUF3 judgments");
+  - leaves the EU-F1 early path as passed (R23-49);
+  - adds no reader.
 - **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside this file are two PROPOSED schemas, `rp.packet-manifest.schema.json` and `rp.disposition.schema.json`. The prototype, fixture and consumption check are under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/` (RUN/F). No candidate exists; no replacement witness exists; this fixture is never presented to the owner (a real packet may be: §6.3).
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-006 (§8).
@@ -9,7 +14,8 @@
 - **Basis pins** (`shasum -a 256`, 2026-10-04): `docs/PRD.md` `bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd` (§8 V4-REP-01, §9 OQ-08, OQ-12, §11); `docs/EXAMINATION.md` `471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0` (§2, §7, V4-EXM-10/11/20); `reference/REFERENCES.md` `07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc` (§2, the fallback).
 - **Supplier pins** (committed and unchanged since `d150856784`, except LHQ-v0.2 as stated):
   - DEL-09-02 SQ-v0.2 `STANDALONE_QUALIFICATION.md` `3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391` (§1, §2 O-1, §8), with `sq.dossier.valid.examples.json` `426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db`.
-  - DEL-09-07 DOS-v0.1 `QUALIFICATION_DOSSIER.md` (§1, §4 DH-1/DH-2, §6 DF-5), with `lhq.dossier-manifest.valid.examples.json` as repaired by O-C for EUF1-S1 (DX-1, DX-2; commit `141a6cc8b4`; sha256 `9873df65c9b48172…`, vendored), which holds `DOS-EXAMPLE-INVENTED` (no receipt anywhere) and `DOS-EXAMPLE-INVENTED-POPULATED` (RC-1 in all three places).
+  - DEL-09-07 DOS-v0.1 `QUALIFICATION_DOSSIER.md` (§1, §4 DH-1/DH-2, §6 DF-5, DX-1…DX-3). RP-v0.4 deliberately re-pins `lhq.dossier-manifest.valid.examples.json` to O-C's DX-3 version (commit `aa95aff4e1`; sha256 `dbf8463f45dc2b9c…`, vendored; RV3 N9). In it, `DOS-EXAMPLE-INVENTED` names no run and no receipt and has no DEL-09-11 hand-over, and `DOS-EXAMPLE-INVENTED-POPULATED` keeps RC-1 in all three places. FX-RP1-3 stays pinned to the earlier copy (`9873df65…`) as history.
+  - DEL-11-01 CA-v0.1 (this unit): `ca.continuity-account.schema.json` `$defs/continuity_handoff`, and the built hand-over `RUN/F/ca/records/CA-1.handoff.json`.
   - **Vendored supplier bytes (R23-44).** Every supplier schema and example the checks read is copied into `RUN/F/vendor/` with its source path, sha256 and source commit (`vendor/VENDOR.json`). The checks read the copies; `check_rp.py` V-1 verifies them, and prints a NOTICE (it does not fail) when a live source has moved since vendoring, so that the owner re-pins deliberately (R23-21).
   - DEL-09-07 LHQ-v0.2 (R23-36; committed at `141a6cc8b4`; its schema and examples vendored) `LOCAL_HOST_QUALIFICATION.md` `90f461cbbe98de20cdd19e13be6adb82818fa23ea55166cab04833108df8523e` (§3 CIR, CI-5 with LHQ2-R1: where both are given, the mapping agrees with the element's `value`, so consumers reconcile on the mapping; the OI-013/014 row). RP-v0.2 read the uncommitted `5cd31e09…`; the change adds the agreement rule only, which RP-R3 relies on and nothing else here changes, with `lhq.candidate-identification.schema.json` `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` and `….valid.examples.json` `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4`. RP-v0.1 relied on LHQ-v0.1 (`20361a0b…`); the fixture's CIR record is byte-identical in both versions.
   - DEL-09-01 EXP-v0.2 `EXAMINATION_PROTOCOL.md` `ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93` and `exam.result-record.schema.json` `f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081` (`$defs/candidate_subject`, `$defs/outcome`).
@@ -52,7 +58,7 @@ It leaves out:
 |---|---|---|---|---|---|
 | I-1 | SQ dossier record and its `handoff` (`to: DEL-11-03`) | DEL-09-02 | DEP-11-03-006, admitted | Packet assembly | OUT-001 *not evidenced*; gap named |
 | I-2 | DOS dossier manifest `handoff_del_11_03` and the CIR it cites | DEL-09-07 | DEP-11-03-007, admitted | Packet assembly | OUT-002 *incomplete*; gap named |
-| I-3 | Continuity input (first cut `$defs/continuity_input`) | DEL-11-01 | DEP-11-03-008, held (SCC-006; F-R8: SCC-CASE-007 R1) | Packet assembly | Carried as *not supplied*; gap named |
+| I-3 | Continuity hand-over (DEL-11-01 CA `$defs/continuity_handoff`; from RP-v0.4, replacing the first cut) | DEL-11-01 | DEP-11-03-008, held (SCC-006; F-R8: SCC-CASE-007 R1) | Packet assembly | Carried as *not supplied*; gap named |
 | I-4 | Practitioner standing (first cut `$defs/practitioner_standing`) | DEL-09-12 | DEP-11-03-009, admitted | Packet assembly | Standing *not_supplied*; never a gap for replacement |
 | I-5 | Adoption status | DEL-11-02 | DEP-11-02-015, admitted (supplier's row) | Packet assembly | *not supplied*; gap named |
 | I-6 | v3.0.1 baseline identity | `reference/REFERENCES.md` §2 | DEP-11-03-010 (not topological; was UNKNOWN, F-R2) | Packet assembly | Packet not assembled |
@@ -66,6 +72,8 @@ One manifest per packet version.
 - It names every supplied item by path and sha256, together with the source it was copied from (file, sha256, record id).
 - It states what the rules (§4, §5) derive from those items. Nothing in it is filled from a definition.
 - `evidence_standing` is `illustrative` whenever any supplier input is an example or fixture. An illustrative packet can establish nothing.
+- `fixture` and `candidate.identified` (RP-v0.4; RV3 Addendum 4; RR-EUF3 #1). A packet whose candidate is not identified is refused unless it is a fixture. A fixture's package purpose **opens** with "FIXTURE, NOT FOR THE OWNER: no real candidate is identified", so a placeholder subject can never be put to the owner as a decision (RP-R6; B-45, B-47; A-20).
+- `core_loop.dossier_review.dossier_states_independent` shows the dossier's own claim of independence beside the review's resolved `state`, so the claim is not read as a review (RR-EUF3 #4). `journey.host_contributions` counts the CIR's contributions by LHQ ladder standing; "answered" is not counted as committed, delivered, adopted or examined (RR-EUF3 #3). `comparison_rule` says that no direct measurement of v3.0.1 exists (RR-EUF3 #5).
 - Each supplied item states `produced_by` (who produced its content) and `source_kind`. For `copied_record`, `source` names the supplier file, its sha256 and the record. For `shape_only`, `source` says in words that the item is a first cut by the DEL-11-03 owner pending DEL-11-01's or DEL-09-12's own record, and `shape` names the `$def` it follows (RP-v0.3; RV3 EUF1-R3). `RUN/F/EU-F1.key-grounding.md` marks which key answers rest on these first cuts.
 - The fixture carries its legend (the two RP schemas) inside it, so an input set no longer depends on live Design files (RP-v0.3; the lesson of IS-FX-RP1-1).
 - `terms` defines every code or identifier the package, packet, disposition, excerpts and legend use (for example A16, P20-A, CIR, OI-nnn, DEP-001, DECISION-3, PEC, Domains, 'fallback'), so a person deciding without project context can read them. Codes inside the supplier copies keep their owners' vocabulary; the term "supplier records" says so and defines the few the packet copies (ST-4, U-SQ-5, TT-7). The builder refuses, and `check_rp.py` A-13 fails, any code in those texts with no term (RP-v0.3 widened the scope after RR-EUF2).
@@ -75,9 +83,10 @@ One manifest per packet version.
 - `not_established` always lists the six things the packet never establishes: replacement decision, public release, retirement, professional reliance, consumer adoption and practitioner validation.
 - `gaps` names each missing contribution, its supplier and its point of need. **A gap holds back only the packet's claim of replacement qualification, never putting the packet to the owner** (R23-43). AX-001 says, in its own words: "A packet may accurately report partial or adverse evidence, but cannot claim replacement qualification until both applicable witnesses hold; even then the actual owner act remains separate." So a replacement-condition gap reads "before the packet can claim replacement qualification", quoting those words, and the other gaps read "carried for the owner; not a replacement condition". RP-v0.2's "presentation is not gated: DEL-11-03 AX-001" attributed to AX-001 something it does not say (RV3 EUF2-R1); RP-v0.1's "before the package is presented" invented a presentation gate. A-16 checks the wording. `open_matters` carries P-1, P-5, OI-024, OI-021, DEP-001, OI-016 (App v4) and the OI-013/014 residue, each with its owner.
 
-### 3.3 First-cut inputs
+### 3.3 Inputs from DEL-11-01 and DEL-09-12
 
-- **`continuity_input`** (from DEL-11-01) carries:
+- **Continuity (from RP-v0.4: DEL-11-01's own hand-over, CA-v0.1).** S-4 is a `copied_record` of `CA-1.handoff.json` (standing `owner_record`), validated against DEL-11-01's `$defs/continuity_handoff`. The packet repeats its results (A-21): thesis `matches`, archives `passed` (a real run of `archive_digests.py verify`), and continuing obligations `not_supplied`. The first cut below is **superseded** and kept only so that FX-RP1…FX-RP1-3 stay readable.
+- **`continuity_input` (first cut, RP-v0.1…v0.3)** carried:
   - the thesis identity check: method, expected and observed tree, the commit, and its limits;
   - the fallback identity: source, retained, not re-checked remotely;
   - the archive `verify` result;
@@ -127,7 +136,9 @@ See §5. Results join across the two obligations only when the reconciliation is
 
 ### 4.5 RP-R6 Package file, RP-R7 disposition, RP-R8 integrity
 
-- **RP-R6:** see §6.1. The package validates against DEL-02-03's `$defs/decisionPackageFile`, and the rules there apply.
+- **RP-R6:** see §6.1. The package validates against DEL-02-03's `$defs/decisionPackageFile`, and the rules there apply. RP-v0.4 adds:
+  - with the manifest, an unidentified or illustrative candidate is refused outside a fixture, and a fixture's purpose must open with the fixture notice;
+  - a consequence that rests on App v3's BUILD_AND_RELEASE must keep "manual" and "on request".
 - **RP-R7:** see §6.2.
 - **RP-R8:** every supplied item's sha256 in the manifest equals the file. Each copied supplier record equals its source record at the named source sha256. The manifest's derived values recompute to themselves from the supplied copies.
 
@@ -172,7 +183,7 @@ The `purpose` says plainly where the packet stands (R23-43; RR-EUF2's question a
 
 The package invents no gate and implies no permission. RP-R6 requires the choice sentence (B-36). A-19 requires the qualification claim to match `replacement_evidence.complete`.
 
-`subject[0]` asks "whether, and at what scope", and ALT-OWN-USE's statement says what it replaces: v3.0.1 in the owner's own work only (RP-v0.2; reader issue I-3). `purpose` names the act in words: A16, 'decide', choosing exactly one alternative (reader issue I-1). ALT-PUBLISHED's consequences include an inference, labelled as one: App v3's records (`BUILD_AND_RELEASE.md` §12) say v3.0.x installs check the latest published stable release, so they would be offered v4. Every alternative states "No retirement" (RP-R6). The package holds no recorder element (R23-24).
+`subject[0]` asks "whether, and at what scope", and ALT-OWN-USE's statement says what it replaces: v3.0.1 in the owner's own work only (RP-v0.2; reader issue I-3). `purpose` names the act in words: A16, 'decide', choosing exactly one alternative (reader issue I-1). ALT-PUBLISHED's consequences include an inference, labelled as one. App v3's records (`BUILD_AND_RELEASE.md` §12, excerpted) say "Manual checks read its latest published stable release" and that a newer installer "opens in the system browser on request". So, after the release act, v3.0.x's manual update check would on request open v4's installer or release page. RP-v0.3 had dropped "manual" and "on request" (RV3 Addendum 4). Every alternative states "No retirement" (RP-R6). The package holds no recorder element (R23-24).
 
 ### 6.2 The disposition record (O-2; `rp.disposition.schema.json`; REQ-004, VER-004)
 
@@ -232,7 +243,14 @@ A supplier change makes a new manifest version, and so a new package. An earlier
 | RP-VC-06 Act boundary | VER-006, AC-006 | §1 table; the package never performs or implies an owner act | Review |
 | **EU-F1 consumption check** | REQ-004 (the owner can decide from the files) | An isolated reader given only the input set answers fixed questions; an examiner compares the answers with the frozen key, field by field | RR-EUF1 on IS-FX-RP1-1 (RP-v0.1): 33/33 fields, 11 issues. RR-EUF2 on IS-FX-RP1-2 (RP-v0.2): 33/33, 10 issues. Each issue is judged in O-F.md. IS-FX-RP1-3 (RP-v0.3, Q-1…Q-13) is staged and keyed, not read |
 
-Prototype at freeze (RP-v0.3, fixture FX-RP1-3): `check_rp.py` **65/65**:
+Prototype at freeze (RP-v0.4, fixture FX-RP1-4): `check_rp.py` **70/70**. It adds:
+- A-20: fixture and identification;
+- A-21: the continuity hand-over is DEL-11-01's own;
+- B-45…B-47: the non-fixture refusal, the inference wording, and a real-packet positive control.
+
+The basis excerpts now include DEL-11-03 REQ-006, VER-003 and VER-004, and R23-32 and R23-43, so that every clause the terms say is excerpted is excerpted (RV3 Addendum 4; RR-EUF3 #7). `check_rp.py --fixture FX-RP1 / FX-RP1-2 / FX-RP1-3` gives 8/22, 11/22 and 13/22 of Part A and V-1 under the current rules and the re-pinned vendor copies.
+
+At RP-v0.3 (fixture FX-RP1-3), `check_rp.py` was **65/65**:
 - A-1…A-19: the fixture, including the legend it carries (A-18) and the purpose against completeness (A-19);
 - V-1: vendoring;
 - B-1…B-44: rule cases. Among them, blocked, not-run and inconclusive are never `not_met` (B-4, B-6); only fail is (B-5). An illustrative review is never `present` (B-12). O-C's repaired DOS examples supply the receipt cases (B-13…B-15). Identity semantics are covered by B-24…B-26, and the ALT-PUBLISHED and purpose refusals by B-35 and B-36.
@@ -257,6 +275,14 @@ Prototype at freeze (RP-v0.3, fixture FX-RP1-3): `check_rp.py` **65/65**:
 
 | Version | Change |
 |---|---|
+| RP-v0.4 (2026-10-04) | With DEL-11-01 CA-v0.1 (unit EU-F2):
+- the continuity hand-over adopted (S-4 `owner_record`);
+- RV3 Addendum 4: an illustrative subject refused outside a fixture and announced in a fixture; ALT-PUBLISHED's "manual" and "on request" restored; REQ-006, VER-003 and VER-004 (and R23-32, R23-43) excerpted;
+- N9: DOS examples re-pinned to DX-3;
+- RR-EUF3 cheap fixes: `identified`, `dossier_states_independent`, `host_contributions`, the no-direct-v3.0.1 sentence;
+- manifest format RP-v0.4; fixture FX-RP1-4.
+
+No reader, keys or input sets added (R23-49) |
 | RP-v0.3 (2026-10-04) | One repair round, covering RV3-EUF1 and RR-EUF2:
 - EUF1-R1b: only a resolved `fail` gives `not_met`; blocked, not-run and inconclusive are missing results. `recorded` uses EXP's vocabulary; `status_reason` gives the causes.
 - EUF1-R2: ALT-PUBLISHED does not perform the release, which stays a separate owner act.

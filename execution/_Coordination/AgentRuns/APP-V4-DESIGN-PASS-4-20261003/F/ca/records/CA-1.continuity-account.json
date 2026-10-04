@@ -1,0 +1,393 @@
+{
+  "account_id": "CA-1",
+  "adoption_status": {
+    "ref": "DEL-11-02's adoption account is not yet written; its first real entry (D-GOV-52) concerns Root guidance, not the renewed v4 basis's staged adoption",
+    "status": "not_supplied",
+    "supplier": "DEL-11-02"
+  },
+  "at_commit": "22ed9383a45e788ade4718b9e78053e9ceb72d90",
+  "classes": [
+    {
+      "class_id": "C-1",
+      "current_selector": "REFERENCES.md §2 (release, tag target, desktop source, installer digest)",
+      "identity_check": {
+        "expected": "all five facts hold",
+        "limits": [
+          "the published release and installer digest were not re-checked against the remote (no network); REFERENCES §2 is the record"
+        ],
+        "method": "local git facts: the source commit exists, its frontend/package.json reads 3.0.1, the release-preparation commit is its ancestor, it is an ancestor of the account's commit, and REFERENCES §2 names it and the installer digest",
+        "observed": "package.json version 3.0.1 at 485051eac9",
+        "result": "matches"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc"
+          },
+          "locus": "§2 Fallback release (v3.0.1)",
+          "path": "projects/chirality-app-v4/reference/REFERENCES.md"
+        },
+        {
+          "identity": {
+            "kind": "git_commit",
+            "value": "485051eac923c759238948a54cd7bb094eee4899"
+          },
+          "locus": "desktop application source named by the release notes",
+          "path": "sgttomas/chirality@485051eac923c759238948a54cd7bb094eee4899"
+        }
+      ],
+      "name": "Fallback release Chirality v3.0.1",
+      "owner": "the owner (P-1 replacement; P-5 public release)",
+      "point_of_need": "kept until the owner's replacement act (PRD §8; OD-09); never retired by this account",
+      "recovery_route": "the published release named in REFERENCES §2; its source at the commit above, in this repository's history",
+      "retained": true,
+      "standing": "current_fallback",
+      "what": "The published product that stays in place until the owner decides v4 has replaced it"
+    },
+    {
+      "class_id": "C-2",
+      "current_selector": "the lane's own entry (projects/chirality-app-dev/AGENTS.md) and _Coordination records; v4 citations treat it as historical evidence only",
+      "identity_check": {
+        "limits": [
+          "the lane is active, so its identity changes with each commit; the account records it at one commit and does not freeze it (REQ-005)"
+        ],
+        "method": "git tree id of the lane at the account's commit; commits touching it after the v3.0.1 source",
+        "observed": "tree 3fb53704188b; 225 commits touch it after the v3.0.1 source",
+        "result": "passed"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_tree",
+            "value": "3fb53704188b92c2fa11b177680385db1e31843b"
+          },
+          "path": "projects/chirality-app-dev"
+        },
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "41995dfe123041e1d0235a73e532fddb913f2c2124a9e8ec43857a87d7e5822c"
+          },
+          "path": "projects/chirality-app-dev/AGENTS.md"
+        }
+      ],
+      "name": "App v3 project lane",
+      "owner": "the App v3 loop's owner",
+      "point_of_need": "its own scope; any retirement only by the owner with affected consumers (OI-024)",
+      "recovery_route": "git history of this repository",
+      "retained": true,
+      "standing": "active_lane",
+      "what": "projects/chirality-app-dev: the v3 line's design, code, run records and coordination, still active"
+    },
+    {
+      "class_id": "C-3",
+      "current_selector": "ARCHIVES.md (inventory, access rule, hazard: never run git clean -x or -X in the original checkout)",
+      "identity_check": {
+        "limits": [
+          "runs only where the original checkout is present; worktrees do not carry the archives",
+          "the committed digest file names nothing below the 19 locations (the repository is public)"
+        ],
+        "method": "reference/archives/archive_digests.py verify (read-only; recomputes every recorded location and subtree digest)",
+        "observed": "19 of 19 locations OK; tool exit 0",
+        "result": "passed"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "b791f8390b9423f59d5a7e5fbb43ec57d1c9f119be208c29b041a38c945e41a2"
+          },
+          "path": "projects/chirality-app-v4/reference/archives/ARCHIVES.md"
+        },
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "c73203c2fc13fe35954c75367947324b483f67533c8f2d3b6ab512418c5c9357"
+          },
+          "path": "projects/chirality-app-v4/reference/archives/archive_digests.json"
+        },
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "84ca3b480cba1a176a35c709cb319e904fdcb7babb80a9b8936e4e0d7c5cc816"
+          },
+          "path": "projects/chirality-app-v4/reference/archives/archive_digests.py"
+        }
+      ],
+      "name": "Git-ignored archives in the original checkout (19 locations)",
+      "owner": "the owner (OD-09)",
+      "point_of_need": "kept until the owner decides v4 has replaced the fallback (OD-09)",
+      "recovery_route": "read-only access in the original checkout, as ARCHIVES.md states; no other copy is recorded",
+      "retained": true,
+      "standing": "preserved_evidence",
+      "what": "Earlier App generations, domain corpora, plans, PEC and SWBPIPE planning records kept outside git"
+    },
+    {
+      "class_id": "C-4",
+      "current_selector": "PRD §11 (byte-identical to the named tree; purpose-level citation creates no v4 requirement)",
+      "identity_check": {
+        "expected": "47fc49e96c2931ba18090f1a82d56a49f230b3ee",
+        "limits": [
+          "committed-tree identity at the commit; working bytes are compared separately by check_ca.py",
+          "attribution and nonbinding standing are inspected in CONTINUITY_ACCOUNT.md §4.3, not by this check"
+        ],
+        "method": "git tree id of foundation/thesis at the account's commit compared with the tree PRD §11 names",
+        "observed": "47fc49e96c2931ba18090f1a82d56a49f230b3ee (19 files)",
+        "result": "matches"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_tree",
+            "value": "47fc49e96c2931ba18090f1a82d56a49f230b3ee"
+          },
+          "path": "projects/chirality-app-v4/foundation/thesis"
+        },
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd"
+          },
+          "locus": "§11",
+          "path": "projects/chirality-app-v4/docs/PRD.md"
+        }
+      ],
+      "name": "The complete thesis",
+      "owner": "the owner",
+      "point_of_need": "always (REQ-003); never edited to conform",
+      "recovery_route": "git history; the tree id above",
+      "retained": true,
+      "standing": "preserved_basis",
+      "what": "foundation/thesis, kept unchanged with attribution and its nonbinding standing"
+    },
+    {
+      "class_id": "C-5",
+      "current_selector": "REFERENCES.md §1 and SOURCE_INVENTORY.md",
+      "identity_check": {
+        "limits": [],
+        "method": "the investigation commit exists in this repository",
+        "observed": "git cat-file -t: commit",
+        "result": "passed"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc"
+          },
+          "locus": "§1 Investigation revision",
+          "path": "projects/chirality-app-v4/reference/REFERENCES.md"
+        },
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "4008921d7f826122f20c95861f9a3f15b474f37c4819bea715df60dcc910122a"
+          },
+          "path": "projects/chirality-app-v4/reference/SOURCE_INVENTORY.md"
+        },
+        {
+          "identity": {
+            "kind": "git_commit",
+            "value": "2b0572fe049c8ffaa02d61b7dbbc3ae41bc589f6"
+          },
+          "path": "commit 2b0572fe049c8ffaa02d61b7dbbc3ae41bc589f6"
+        }
+      ],
+      "name": "Investigation revision and source inventory",
+      "owner": "the owner",
+      "point_of_need": "kept with the accepted basis",
+      "recovery_route": "git show <commit>:<path>",
+      "retained": true,
+      "standing": "preserved_basis",
+      "what": "The repository revision the v4 conceptual undertaking read, and what each source can support"
+    },
+    {
+      "class_id": "C-6",
+      "current_selector": "the tag; REFERENCES §4",
+      "identity_check": {
+        "expected": "8007c592…",
+        "limits": [],
+        "method": "the annotated tag resolves to the commit REFERENCES §4 names",
+        "observed": "8007c59270bc83035eac8ec6eab65926cfe8668c",
+        "result": "matches"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_tag_target",
+            "value": "8007c59270bc83035eac8ec6eab65926cfe8668c"
+          },
+          "path": "tag archive/agent-runs-2026-09-25"
+        },
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc"
+          },
+          "locus": "§4",
+          "path": "projects/chirality-app-v4/reference/REFERENCES.md"
+        }
+      ],
+      "name": "Archived agent-run records",
+      "owner": "Root governance owner",
+      "point_of_need": "kept; no retirement proposed",
+      "recovery_route": "git show <tag>:<path>",
+      "retained": true,
+      "standing": "preserved_evidence",
+      "what": "Closed run records moved out of the working tree and held at an annotated tag (D-GOV-45)"
+    },
+    {
+      "class_id": "C-7",
+      "current_selector": "HANDOFF_30_PERCENT.md line 18",
+      "identity_check": {
+        "limits": [
+          "no inventory or digest of this archive exists in the repository; an identity check needs one (open item U-CA-2)"
+        ],
+        "method": "none recorded",
+        "result": "not_checked"
+      },
+      "linked_records": [
+        {
+          "identity": {
+            "kind": "git_blob_sha256",
+            "value": "f95e10b1e34ed13f99f7bc90dcdbc22b232cde4f6bcfd3d2e4d65a48d0e1d373"
+          },
+          "locus": "line 18",
+          "path": "projects/chirality-app-v4/execution/_Coordination/HANDOFF_30_PERCENT.md"
+        },
+        {
+          "identity": {
+            "kind": "outside_repository",
+            "reason": "no digest record exists for it"
+          },
+          "path": "outside the repository"
+        }
+      ],
+      "name": "External read-only archive named at the 30% gate",
+      "owner": "the owner",
+      "point_of_need": "kept until the owner's replacement and retirement decisions",
+      "recovery_route": "read-only access where it lives",
+      "retained": true,
+      "standing": "preserved_evidence",
+      "what": "A read-only archive outside the repository, named in HANDOFF_30_PERCENT.md line 18 (its path is a home path and is not repeated here)"
+    }
+  ],
+  "date": "2026-10-04",
+  "format": "CA-v0.1",
+  "handoff": {
+    "account_id": "CA-1",
+    "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
+    "account_version": 1,
+    "adoption_status": "not_supplied",
+    "archives": {
+      "source": "projects/chirality-app-v4/reference/archives/ARCHIVES.md",
+      "verify": "passed"
+    },
+    "at_commit": "22ed9383a45e788ade4718b9e78053e9ceb72d90",
+    "continuing_obligations": {
+      "owner": "Owner with affected consumers (OI-024)",
+      "point_of_need": "Before each adoption/retirement decision",
+      "status": "not_supplied"
+    },
+    "disposition_ref": null,
+    "fallback_identity": {
+      "remote_rechecked": false,
+      "retained": true,
+      "source": "projects/chirality-app-v4/reference/REFERENCES.md §2"
+    },
+    "format": "CA-v0.1",
+    "record_kind": "continuity_handoff",
+    "replacement_standing": "replacement pending; v3.0.1 retained",
+    "thesis_check": {
+      "expected": "47fc49e96c2931ba18090f1a82d56a49f230b3ee",
+      "limits": [
+        "committed-tree identity at the commit; working bytes are compared separately by check_ca.py",
+        "attribution and nonbinding standing are inspected in CONTINUITY_ACCOUNT.md §4.3, not by this check"
+      ],
+      "method": "git tree id of foundation/thesis at the account's commit compared with the tree PRD §11 names",
+      "observed": "47fc49e96c2931ba18090f1a82d56a49f230b3ee (19 files)",
+      "result": "matches"
+    }
+  },
+  "limits": [
+    "a linked view: it adds standing, selector, recovery route, owner and point of need to existing records and opens no archival audit (AX-003)",
+    "lane obligations are the lane owners' to supply; none is supplied yet",
+    "the archive check depends on the original checkout being present"
+  ],
+  "obligations": [
+    {
+      "continuing_obligations": "not_supplied",
+      "disposition": null,
+      "lane": "App v3 (projects/chirality-app-dev)",
+      "lane_owner": "the App v3 loop's owner",
+      "owner_of_decision": "Owner with affected consumers (OI-024)",
+      "point_of_need": "Before each adoption/retirement decision",
+      "retirement_eligible": false,
+      "retirement_intended": false,
+      "why": "no retirement is intended or proposed, and the lane owner has supplied no continuing-obligation disposition (DEP-006)"
+    },
+    {
+      "continuing_obligations": "not_supplied",
+      "disposition": null,
+      "lane": "Chirality Runtime (projects/chirality-runtime)",
+      "lane_owner": "the Runtime loop's owner",
+      "owner_of_decision": "Owner with affected consumers (OI-024)",
+      "point_of_need": "Before each adoption/retirement decision",
+      "retirement_eligible": false,
+      "retirement_intended": false,
+      "why": "no retirement is intended or proposed, and the lane owner has supplied no continuing-obligation disposition (DEP-006)"
+    },
+    {
+      "continuing_obligations": "not_supplied",
+      "disposition": null,
+      "lane": "SWBPIPE (projects/chirality-piping)",
+      "lane_owner": "the SWBPIPE owner (outside session)",
+      "owner_of_decision": "Owner with affected consumers (OI-024)",
+      "point_of_need": "Before each adoption/retirement decision",
+      "retirement_eligible": false,
+      "retirement_intended": false,
+      "why": "no retirement is intended or proposed, and the lane owner has supplied no continuing-obligation disposition (DEP-006)"
+    },
+    {
+      "continuing_obligations": "not_supplied",
+      "disposition": null,
+      "lane": "Root governance and shared guidance",
+      "lane_owner": "the Root governance owner",
+      "owner_of_decision": "Owner with affected consumers (OI-024)",
+      "point_of_need": "Before each adoption/retirement decision",
+      "retirement_eligible": false,
+      "retirement_intended": false,
+      "why": "no retirement is intended or proposed, and the lane owner has supplied no continuing-obligation disposition (DEP-006)"
+    }
+  ],
+  "owner_acts": [
+    {
+      "act_id": "OD-09",
+      "actor": "the owner",
+      "bears_on": "C-1, C-2, C-3, C-7: all retained",
+      "custody": "the owner's direction as transcribed in DECISIONS.md; no platform timestamp",
+      "exact_text": "Preserve the old projects and archives until I decide v4 has replaced the fallback.",
+      "record_ref": "projects/chirality-app-v4/conceptual/DECISIONS.md row OD-09",
+      "recorder": "the v4 conceptual undertaking's recorder (conceptual/DECISIONS.md)",
+      "subject": "preserve the old projects and archives until the owner decides v4 has replaced the fallback"
+    },
+    {
+      "act_id": "APP-V4-DESIGN-PASS-4-20261003 direction item 2",
+      "actor": "the owner",
+      "bears_on": "C-2, C-4, C-5, C-6: history recoverable from git as recorded",
+      "custody": "the session transcript; recorded by HELP_HUMAN (its effect list reads: '2: git history is not rewritten')",
+      "exact_text": "1 yes, 2 no rewrite, 3 go, 4 A+C",
+      "record_ref": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/OWNER_DECISIONS.md, 'Direction'",
+      "recorder": "HELP_HUMAN",
+      "subject": "git history is not rewritten for the home-path cleanup"
+    }
+  ],
+  "record_kind": "continuity_account",
+  "replacement_standing": {
+    "disposition_ref": null,
+    "fallback": "v3.0.1 retained",
+    "state": "pending"
+  },
+  "version": 1
+}

@@ -17,7 +17,8 @@ Escalate only for:
 
 | Unit | Deliverable | Path (from `projects/chirality-app-v4/execution/`) | sha256 | State |
 |---|---|---|---|---|
-| EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | `…/DEL-11-03_Owner replacement evidence packet/Design/` and `_Coordination/…/F/` | see "EU-F1 — RP-v0.3" | **REFROZEN 2026-10-04 as RP-v0.3**, for HELP_HUMAN to commit (R23-41) before RV3 confirms. History: RP-v0.1 (RR-EUF1, RV3), RP-v0.2 (`d43665498d`; RR-EUF2, RV3 Addendum 2) |
+| EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | RP-v0.1…v0.3 | as recorded below | **PASSED as an early path (R23-49); RP-v0.3 READY (RV3 Addendum 4)** |
+| EU-F2 | DEL-11-01 CA-v0.1 + DEL-11-03 RP-v0.4 | DEL-11-01 `Design/`, DEL-11-03 `Design/`, `F/` (incl. `F/ca/`) | see "EU-F2 — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then for review** |
 
 ## EU-F1 — frozen (RP-v0.1; superseded by the refreeze below, kept as the record RR-EUF1 read)
 
@@ -301,3 +302,88 @@ Fixture identities:
 - No register row.
 - No owner act requested or implied.
 - No check weakened. Checks went from 57 to 65; the ones changed are those that encoded RV3's findings (old B-4, the A-16 wording), replaced by stricter ones.
+
+## RR-EUF3 judgments (R23-49: EU-F1 passed; no fourth reader)
+
+`RR-EUF3/COMPARE.txt`: **36/36 fields**, 8 issues referred. `compare_rp.py --set 3 RR-EUF3/account.json` reproduces 36/36. Each issue is judged on the files:
+
+| # | Issue | Traced to | Judgment | Where fixed |
+|---|---|---|---|---|
+| 1 | No identifiable candidate in the subject; the alternatives read as if one existed | Packet | **Real** (also RV3 Addendum 4, MINOR 1): no rule kept a placeholder subject from reaching the owner | RP-v0.4: `candidate.identified`, `fixture`; refused outside a fixture; a fixture's purpose opens with "FIXTURE, NOT FOR THE OWNER: no real candidate is identified" (B-45, B-47, A-20) |
+| 2 | DOS example: "not run", yet run artefacts in its DEL-09-11 hand-over | Supplier example | O-C's; routed by HELP_HUMAN and fixed by DX-3 | RP-v0.4 re-pins to the DX-3 example (RV3 N9) |
+| 3 | CIR contributions all "answered" read as progress | Supplier vocabulary; packet legibility | Real, minor | `journey.host_contributions` counts by ladder standing (13 answered; 0 committed, delivered, adopted or examined) |
+| 4 | The dossier says independent while its review is unresolved | Packet legibility | Real, minor (RP-v0.3 already showed `named_not_resolved`) | `dossier_review.dossier_states_independent` beside `state` |
+| 5 | No measured v3.0.1 baseline | Basis (F-R2) | By design; the packet now says it | `comparison_rule`: "no direct measurement of v3.0.1 exists" |
+| 6 | Fallback identity and the update inference not re-checked | Packet limits | Not a defect: both are labelled. The inference wording is now faithful to the excerpt (RV3 MINOR 2) | "manual" and "on request" restored; RP-R6 checks them (B-46) |
+| 7 | Cited rules and clauses not supplied; terms claimed DEL-11-03's clauses were excerpted | Packet | **Real** (also RV3 MINOR 3): REQ-006, VER-003 and VER-004 were not excerpted | Excerpts now include REQ-006, VER-003, VER-004, R23-32 (with F-R2/F-R3) and R23-43; the terms are corrected; A-13 now also covers codes in the new excerpts |
+| 8 | Refinement steps J-8/J-9 count as "workflow saving"; reuse rests on J-7 alone | Supplier design (SQ step map, WR TT-7) | Not a packet defect. The packet shows SQ's mapping and the dossier's own reason for uncounted runs. Whether reuse should rest on one counted step is O-B's design, offered as a note | None in DEL-11-03 |
+
+## EU-F2 — frozen (DEL-11-01 CA-v0.1 with DEL-11-03 RP-v0.4)
+
+**Why one unit.** RP-v0.4 adopts CA-v0.1's hand-over in place of the first cut. The interface is checked from both ends: `check_ca.py` K-11, and `check_rp.py` A-7, A-8 and A-21.
+
+**Claims.**
+1. DEL-11-01 is a linked view (F-R6) of seven preservation classes, each linked by git identity at commit `22ed9383a45e788ade4718b9e78053e9ceb72d90`. All checks are **real** except C-7:
+   - C-1 fallback facts: matches;
+   - C-2 App v3 lane: tree `3fb53704…`, active (225 commits after the v3.0.1 source);
+   - C-3 archives: `archive_digests.py verify` 19/19 OK, exit 0;
+   - C-4 thesis: tree equals PRD §11's, working tree clean, VER-003 negatives in memory;
+   - C-5 and C-6: present;
+   - C-7: not checked, because no digest record exists (U-CA-2).
+2. Four DEP-006 lanes (App v3, Runtime, SWBPIPE, Root, checked against DEL-10-03's X-1) carry continuing obligations `not_supplied`. No retirement is intended; none is eligible. RE-1 makes eligibility need intent, supplied obligations and an evidenced disposition. A fallback replacement or an empty record never qualifies.
+3. Two real owner acts are recorded faithfully, each with its exact text found in its record and actor ≠ recorder: OD-09, and this run's direction item 2 ("2 no rewrite").
+4. RP-v0.4:
+   - adopts the CA hand-over (S-4 `owner_record`);
+   - refuses an illustrative subject outside a fixture and announces it in a fixture;
+   - restores "manual" and "on request";
+   - excerpts every clause its terms claim;
+   - re-pins the DOS examples to DX-3;
+   - carries RR-EUF3's cheap fixes.
+
+**Checks run.**
+- `check_ca.py`: **21/21**. K-3 rebuilds at the commit and reproduces the account exactly, with the archive check included. Five schema negatives were each confirmed to fail for their own rule.
+- `check_rp.py`: **70/70**, no drift notice.
+- `--fixture FX-RP1 / FX-RP1-2 / FX-RP1-3`: 8/22, 11/22, 13/22 (earlier fixtures under the current rules and vendor copies, as expected).
+- Both builders are deterministic.
+- `compare_rp.py --set 3 RR-EUF3/account.json`: 36/36.
+- Pins recomputed: CA-v0.1 9/9 match current files. RP-v0.4 has 13 pins: 12 match, and 1 is the superseded RP-v0.3, stated.
+- `git status --ignored`: the first build wrote CA records to `F/ca/out/`, which the root `.gitignore` (`**/out/`) ignores. They were moved to `F/ca/records/`, the scripts and Design text were updated, everything was rebuilt and rechecked, and the status re-run shows nothing ignored (`git check-ignore` on `records/` exits 1).
+- Home paths: none in any record or Design file. The only matches are the refusal regex in `build_ca.py` and `check_ca.py`.
+
+**Files (sha256)** — paths for the R23-41 commit:
+
+| File | sha256 |
+|---|---|
+| `DEL-11-01_…/Design/CONTINUITY_ACCOUNT.md` (CA-v0.1) | `1a4a0ca6b1b6e74fe11e3c41b0c6b3d1316624e41c8aa4adb28f2c7d050f6ab2` |
+| `DEL-11-01_…/Design/ca.continuity-account.schema.json` | `bf9737517d4bae89234e4a5586e49d8a130ba7dc40579bf4e783b9d2637dc886` |
+| `DEL-11-03_…/Design/REPLACEMENT_PACKET.md` (RP-v0.4) | `5bfa93036466e3b894608f595a4f8fda070f6335470bdca6433e939dbcd98271` |
+| `DEL-11-03_…/Design/rp.packet-manifest.schema.json` (RP-v0.4) | `9c80b95dd97bcafc8749893700028ba534153e6d081ab2fee91156d2a225e49d` |
+| `F/rplib.py` | `c834e90b8298b5ef2c7bec7f58d7328d526670ebcd171602bc9d08b69dc96593` |
+| `F/build_fx_rp1.py` | `93545c62d5eded2ee1f57701ea086a22b6018c09e7d4fa4fdf6e4455099d6f5c` |
+| `F/check_rp.py` | `a0ae9335cf8e791560b12135459d545d3cb0b804bc5b1a9974301e009a982bce` |
+| `F/README.md` | `15e045653514e67401194b2f43940961049ff426745de0f428c03582387a3934` |
+| `F/vendor/VENDOR.json` (+ the re-pinned `lhq.dossier-manifest.valid.examples.json` `dbf8463f…`) | `982b7bb975b362ff82e81799420a4be39066f0995c014e37f5652073814b9d3f` |
+| `F/fixtures/FX-RP1-4/MANIFEST.sha256` (11 files) | `ff30d2347b310105d5816b5f9b968b0127856526659fc13c7b5c444d434a0cb2` |
+| `F/ca/build_ca.py` | `eb36d8293f8c814f85d873032ad2c250968e75befbbfd481cfa97fba679fb8e8` |
+| `F/ca/check_ca.py` | `7a04f7525a395f77e763bba60548d99c29206eee43aedda46de5980bc25103be` |
+| `F/ca/vendor/VENDOR.json` (+ `RESPONSIBILITY_ACCOUNT.md` `531b65b7…`) | `3502235f9f2337ffc8db3baf869626cfdbc740c504478ef51d64c752eb2bc415` |
+| `F/ca/records/MANIFEST.sha256` (CA-1 account and hand-over) | `3107f6523e30690b7189744ed03a9473e8291534b771e1c474dbe80eade36e70` |
+
+**Not changed:**
+- FX-RP1, FX-RP1-2 and FX-RP1-3;
+- all three input sets and keys;
+- the reader schemas and briefs;
+- `compare_rp.py` and `stage_is.py`;
+- RP-v0.3's committed bytes, except the DEL-11-03 Design files superseded above.
+
+The re-pin of `F/vendor/lhq.dossier-manifest.valid.examples.json` was deliberate (RV3 N9). FX-RP1-3's A-8 now fails against it, and is recorded as history.
+
+**Limits.**
+- C-3's verify needs the original checkout; elsewhere it is `not_run`, never `changed` (CF-1).
+- C-7 cannot be checked (U-CA-2).
+- The lane obligations wait for their owners (U-CA-1).
+- DEL-10-03's RA is an unfrozen draft, vendored (CF-5).
+- The thesis front-matter attribution reading is left for VER-003's production run (U-CA-5).
+- All DEL-11-03 supplier evidence is still illustrative.
+
+**Next.** DEL-11-02 (the D-GOV-52 adoption trace, consumers from DEL-10-03 X-1), then DEL-09-12. I work on them while EU-F2 waits, and do not freeze another unit until EU-F2 leaves review.

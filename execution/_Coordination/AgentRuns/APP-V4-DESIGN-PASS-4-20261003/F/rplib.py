@@ -1,7 +1,7 @@
 """DEL-11-03 replacement packet rules RP-R1...RP-R9 (prototype for EU-F1; not product code).
 
 Owner O-F, run APP-V4-DESIGN-PASS-4-20261003. Design text: DEL-11-03
-Design/REPLACEMENT_PACKET.md (RP-v0.3). Rulings: R23-32 (F-R1...F-R16), R23-33
+Design/REPLACEMENT_PACKET.md (RP-v0.4). Rulings: R23-32 (F-R1...F-R16), R23-33
 (EXP candidate_subject is the canonical App candidate identity), R23-36 (LHQ-v0.2 CI-5).
 
 Python 3 standard library plus `jsonschema` (Draft 2020-12). Reads only.
@@ -30,6 +30,8 @@ PATHS = {
     "rp_manifest_schema": P11 + "/DEL-11-03_Owner replacement evidence packet/Design/rp.packet-manifest.schema.json",
     "rp_disposition_schema": P11 + "/DEL-11-03_Owner replacement evidence packet/Design/rp.disposition.schema.json",
     "references": "../reference/REFERENCES.md",
+    "ca_schema": P11 + "/DEL-11-01_Preserved history and coexistence account/Design/ca.continuity-account.schema.json",
+    "ca_handoff": "_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/ca/records/CA-1.handoff.json",
 }
 
 
@@ -222,6 +224,7 @@ def core_loop(sq, resolved_exp_records=None, resolved_reviews=None):
         "not_established_because": why,
         "unresolved_steps": unresolved,
         "dossier_review": {"state": rstate, "review_record": ref,
+                           "dossier_states_independent": bool(sq["handoff"]["reported_as_independent"]),
                            "covers": "the standalone scenarios V4-EXM-10/11/12 only (DEL-09-02); the journey has its own review (journey.independent_review)"},
     }
 
@@ -245,6 +248,15 @@ def _receipts(manifest):
     allr = in_handoff + elsewhere
     return {"in_handoff": in_handoff, "elsewhere_in_dossier": elsewhere, "total_distinct": len(allr),
             "unresolvable": sum(1 for r in allr if r["resolution_at_write"] == "unresolvable")}
+
+
+def host_contributions(cir):
+    """The CIR's host contributions by ladder standing (RR-EUF3 #3): 'answered' commits, delivers and adopts nothing."""
+    counts = {}
+    for c in cir.get("external_contributions", []):
+        counts[c.get("standing", "unstated")] = counts.get(c.get("standing", "unstated"), 0) + 1
+    beyond = sum(n for k, n in counts.items() if k in ("committed", "delivered", "adopted", "examined"))  # LHQ ladder
+    return {"by_standing": counts, "committed_delivered_adopted_or_examined": beyond}
 
 
 def journey(manifest, resolved_exp_records=None):
@@ -346,10 +358,11 @@ def replacement_evidence_complete(cl, jr, reconciliation):
 
 ALTERNATIVE_IDS = ["ALT-OWN-USE", "ALT-PUBLISHED", "ALT-DEFER", "ALT-DECLINE"]
 CHOICE_SENTENCE = "Choosing any alternative remains the owner's act, on the evidence as presented"
+FIXTURE_NOTICE = "FIXTURE, NOT FOR THE OWNER: no real candidate is identified"
 REQUIRED_RESERVED_BY = ["docs/PRD.md §8", "docs/EXAMINATION.md §7"]
 
 
-def check_package(pkg, manifest_sha256):
+def check_package(pkg, manifest_sha256, manifest=None):
     errs = errors(def_validator("ce_schema", "decisionPackageFile"), pkg)
     if pkg.get("actKind") != "A16":
         errs.append("RP-R6: actKind must be A16 (decide)")
@@ -367,6 +380,16 @@ def check_package(pkg, manifest_sha256):
             errs.append("RP-R6: %s does not state that it retires nothing" % a.get("id"))
         if a.get("id") == "ALT-PUBLISHED" and "does not perform the public-release act" not in text:
             errs.append("RP-R6: ALT-PUBLISHED does not state that choosing it does not perform the public-release act (RV3 EUF1-R2)")
+    for a in pkg.get("alternatives", []):
+        for c in a.get("consequences", []):
+            if "BUILD_AND_RELEASE" in c and not ("manual" in c and "on request" in c):
+                errs.append("RP-R6: %s's inference from BUILD_AND_RELEASE drops 'manual' or 'on request'" % a.get("id"))
+    if manifest is not None:
+        illustrative = manifest["evidence_standing"] == "illustrative" or not manifest["candidate"].get("identified", False)
+        if illustrative and not manifest.get("fixture", False):
+            errs.append("RP-R6: an illustrative or unidentified candidate is refused in a packet that is not a fixture (REQ-004; R23-43)")
+        if illustrative and not pkg.get("purpose", "").startswith(FIXTURE_NOTICE):
+            errs.append("RP-R6: the purpose does not open with the fixture notice for an unidentified candidate")
     if CHOICE_SENTENCE not in pkg.get("purpose", ""):
         errs.append("RP-R6: purpose does not state that the choice remains the owner's act on the evidence as presented")
     return errs

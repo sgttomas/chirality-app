@@ -1,0 +1,1117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.4",
+  "title": "DEL-11-03 replacement packet manifest (RP-v0.4, PROPOSED)",
+  "description": "The evidence the owner's replacement decision rests on (REPLACEMENT_PACKET.md §3). Every value is derived from the supplied items by the packet rules (RP-R1...RP-R8) or copied from a named source; nothing is filled from a definition. The package file names this manifest by sha256. The packet may be put to the owner at any time; it states plainly what is and is not established and claims replacement qualification only when both witnesses hold (DEL-11-03 AX-001). Two $defs are the first-cut inputs DEL-11-03 expects from DEL-11-01 (continuity_input) and DEL-09-12 (practitioner_standing); their owners' own files supersede them when written.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_kind",
+    "format",
+    "packet_id",
+    "version",
+    "date",
+    "evidence_standing",
+    "basis",
+    "baseline",
+    "candidate",
+    "supplied",
+    "core_loop",
+    "journey",
+    "practitioner",
+    "continuity",
+    "adoption",
+    "replacement_evidence",
+    "gaps",
+    "not_established",
+    "open_matters",
+    "terms",
+    "basis_excerpts",
+    "fixture"
+  ],
+  "properties": {
+    "record_kind": {
+      "const": "rp_packet_manifest"
+    },
+    "format": {
+      "const": "RP-v0.4"
+    },
+    "packet_id": {
+      "type": "string",
+      "pattern": "^RP-[A-Za-z0-9._-]+$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "evidence_standing": {
+      "enum": [
+        "illustrative",
+        "candidate"
+      ],
+      "description": "illustrative: built from schema examples or fixtures; nothing in it can establish an obligation. candidate: built from records of an identified candidate."
+    },
+    "basis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "quote",
+          "source_sha256"
+        ],
+        "properties": {
+          "ref": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "quote": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "source_sha256": {
+            "$ref": "#/$defs/hex64"
+          }
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "source",
+        "source_sha256",
+        "release",
+        "desktop_source",
+        "installer",
+        "remote_rechecked",
+        "reference_limit",
+        "comparison_rule"
+      ],
+      "properties": {
+        "name": {
+          "const": "Chirality v3.0.1"
+        },
+        "source": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/hex64"
+        },
+        "release": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "desktop_source": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "installer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "bytes",
+            "sha256"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "bytes": {
+              "type": "integer"
+            },
+            "sha256": {
+              "$ref": "#/$defs/hex64"
+            }
+          }
+        },
+        "remote_rechecked": {
+          "type": "boolean"
+        },
+        "reference_limit": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "comparison_rule": {
+          "$ref": "#/$defs/nonempty",
+          "description": "How \"at least at v3.0.1’s level\" is judged (EXAMINATION §7)."
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "mappings",
+        "reconciliation",
+        "change_impact_refs",
+        "identified"
+      ],
+      "properties": {
+        "subject": {
+          "type": "object",
+          "description": "EXP candidate_subject (R23-33); validated against DEL-09-01's $defs/candidate_subject by the prototype."
+        },
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "from",
+              "record_id",
+              "result"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "record_id": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "result": {
+                "enum": [
+                  "mapped",
+                  "not_supplied",
+                  "not_mappable_single_string"
+                ]
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "reconciliation": {
+          "enum": [
+            "reconciled",
+            "reconciled_by_applicability",
+            "differ",
+            "not_established"
+          ]
+        },
+        "change_impact_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "identified": {
+          "type": "boolean",
+          "description": "True only when the subject names an identified candidate (evidence_standing candidate). Illustrative examples name none."
+        }
+      }
+    },
+    "supplied": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "role",
+          "path",
+          "sha256",
+          "standing",
+          "source",
+          "produced_by",
+          "source_kind"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "pattern": "^S-[0-9]+$"
+          },
+          "role": {
+            "enum": [
+              "sq_dossier",
+              "lhq_dossier_manifest",
+              "lhq_cir",
+              "continuity_input",
+              "practitioner_standing",
+              "adoption_status"
+            ]
+          },
+          "path": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "sha256": {
+            "$ref": "#/$defs/hex64"
+          },
+          "standing": {
+            "enum": [
+              "illustrative",
+              "candidate",
+              "first_cut_interface",
+              "observed",
+              "owner_record"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path"
+            ],
+            "description": "copied_record: the supplier file the item was copied from, its sha256 and the record id. shape_only: who wrote the item instead of a supplier, in words (no supplier record exists); the item's shape is in `shape`.",
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "sha256": {
+                "$ref": "#/$defs/hex64"
+              },
+              "record_id": {
+                "type": "string"
+              }
+            }
+          },
+          "produced_by": {
+            "$ref": "#/$defs/nonempty",
+            "description": "Who produced the item's content."
+          },
+          "source_kind": {
+            "enum": [
+              "copied_record",
+              "shape_only"
+            ],
+            "description": "copied_record: the item equals a record in a supplier file. shape_only: the item was written by DEL-11-03's owner in the shape `shape` names, pending the supplier's own record."
+          },
+          "shape": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256",
+              "def"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "sha256": {
+                "$ref": "#/$defs/hex64"
+              },
+              "def": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source_kind": {
+                  "const": "copied_record"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "source": {
+                  "required": [
+                    "path",
+                    "sha256",
+                    "record_id"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "source_kind": {
+                  "const": "shape_only"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "shape"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "core_loop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_item",
+        "elements",
+        "uncounted_steps",
+        "outside_core_loop",
+        "interface_errors",
+        "obligation",
+        "established",
+        "not_established_because",
+        "unresolved_steps",
+        "dossier_review"
+      ],
+      "properties": {
+        "source_item": {
+          "type": "string",
+          "pattern": "^S-[0-9]+$"
+        },
+        "elements": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "element",
+              "recorded",
+              "evidence_resolved",
+              "status",
+              "status_reason",
+              "steps",
+              "v3_references"
+            ],
+            "properties": {
+              "element": {
+                "$ref": "#/$defs/element"
+              },
+              "status": {
+                "enum": [
+                  "met",
+                  "not_met",
+                  "not_evidenced"
+                ],
+                "description": "What the evidence supports. met: every counted step passed on a candidate record. not_met: a counted step failed on a candidate record. not_evidenced: otherwise; a blocked, not-run or inconclusive step is a missing result, not a failure."
+              },
+              "steps": {
+                "type": "array"
+              },
+              "v3_references": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "recorded": {
+                "enum": [
+                  "recorded_pass",
+                  "recorded_fail",
+                  "recorded_blocked",
+                  "recorded_not_run",
+                  "recorded_inconclusive",
+                  "not_recorded"
+                ],
+                "description": "What the dossier records for the element's counted steps, in EXP's outcome vocabulary (worst first: fail, blocked, not-run, inconclusive, pass)."
+              },
+              "evidence_resolved": {
+                "type": "boolean",
+                "description": "Every counted step's result resolves to a candidate EXP result record with the same outcome (EXP-R3)."
+              },
+              "status_reason": {
+                "$ref": "#/$defs/nonempty",
+                "description": "Why the status is what it is, with each non-pass step, its outcome and its own stated cause."
+              }
+            }
+          }
+        },
+        "uncounted_steps": {
+          "type": "array"
+        },
+        "outside_core_loop": {
+          "type": "array"
+        },
+        "interface_errors": {
+          "type": "array"
+        },
+        "obligation": {
+          "enum": [
+            "met",
+            "not_met",
+            "not_evidenced"
+          ]
+        },
+        "established": {
+          "type": "boolean"
+        },
+        "not_established_because": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unresolved_steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dossier_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "review_record",
+            "covers",
+            "dossier_states_independent"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "present",
+                "named_not_resolved",
+                "absent"
+              ],
+              "description": "present: the review record resolves to a supplied record. named_not_resolved: the dossier names a review record that is not supplied (for example an illustrative one)."
+            },
+            "review_record": {
+              "type": "string"
+            },
+            "covers": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "dossier_states_independent": {
+              "type": "boolean",
+              "description": "What the dossier's own hand-over claims; shown beside `state` so a claim of independence is not read as a resolved review."
+            }
+          }
+        }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_item",
+        "cir_item",
+        "dossier_id",
+        "dossier_version",
+        "p20a_result_ref",
+        "counts_as_completed_witness",
+        "acceptance_acts",
+        "independent_review",
+        "receipts",
+        "status",
+        "established",
+        "not_established_because",
+        "host_contributions"
+      ],
+      "properties": {
+        "source_item": {
+          "type": "string",
+          "pattern": "^S-[0-9]+$"
+        },
+        "cir_item": {
+          "type": "string",
+          "pattern": "^S-[0-9]+$"
+        },
+        "dossier_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "dossier_version": {
+          "type": "integer"
+        },
+        "p20a_result_ref": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "counts_as_completed_witness": {
+          "type": "boolean"
+        },
+        "acceptance_acts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independent_review": {
+          "enum": [
+            "present",
+            "absent"
+          ]
+        },
+        "receipts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "in_handoff",
+            "elsewhere_in_dossier",
+            "total_distinct",
+            "unresolvable"
+          ],
+          "description": "Every receipt reference in the whole dossier, kept apart by where it appears.",
+          "properties": {
+            "in_handoff": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ref",
+                  "resolution_at_write"
+                ],
+                "properties": {
+                  "ref": {
+                    "$ref": "#/$defs/nonempty"
+                  },
+                  "resolution_at_write": {
+                    "enum": [
+                      "resolved",
+                      "unresolvable",
+                      "not_supplied"
+                    ]
+                  },
+                  "where": {
+                    "enum": [
+                      "host_evidence",
+                      "handoff_del_09_11"
+                    ]
+                  }
+                }
+              }
+            },
+            "elsewhere_in_dossier": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ref",
+                  "resolution_at_write"
+                ],
+                "properties": {
+                  "ref": {
+                    "$ref": "#/$defs/nonempty"
+                  },
+                  "resolution_at_write": {
+                    "enum": [
+                      "resolved",
+                      "unresolvable",
+                      "not_supplied"
+                    ]
+                  },
+                  "where": {
+                    "enum": [
+                      "host_evidence",
+                      "handoff_del_09_11"
+                    ]
+                  }
+                }
+              }
+            },
+            "total_distinct": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolvable": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "status": {
+          "enum": [
+            "completed_witness",
+            "incomplete"
+          ]
+        },
+        "established": {
+          "type": "boolean"
+        },
+        "not_established_because": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "host_contributions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "by_standing",
+            "committed_delivered_adopted_or_examined"
+          ],
+          "description": "The candidate record's host contributions by LHQ ladder standing. 'answered' commits, delivers and adopts nothing.",
+          "properties": {
+            "by_standing": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "committed_delivered_adopted_or_examined": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "practitioner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_item",
+        "standing",
+        "is_replacement_condition"
+      ],
+      "properties": {
+        "source_item": {
+          "type": "string",
+          "pattern": "^S-[0-9]+$"
+        },
+        "standing": {
+          "enum": [
+            "not_agreed",
+            "agreed",
+            "in_use",
+            "ended",
+            "not_supplied"
+          ]
+        },
+        "is_replacement_condition": {
+          "const": false,
+          "description": "R23-32 F-R3; DEL-11-03 REQ-005."
+        }
+      }
+    },
+    "continuity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_item",
+        "thesis_identity",
+        "fallback_retained",
+        "archives_verify",
+        "continuing_obligations",
+        "account"
+      ],
+      "properties": {
+        "source_item": {
+          "type": "string",
+          "pattern": "^S-[0-9]+$"
+        },
+        "thesis_identity": {
+          "enum": [
+            "matches",
+            "differs",
+            "not_checked"
+          ]
+        },
+        "fallback_retained": {
+          "type": "boolean"
+        },
+        "archives_verify": {
+          "enum": [
+            "passed",
+            "changed",
+            "not_run"
+          ]
+        },
+        "continuing_obligations": {
+          "enum": [
+            "supplied",
+            "not_supplied"
+          ]
+        },
+        "account": {
+          "$ref": "#/$defs/nonempty"
+        }
+      }
+    },
+    "adoption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "supplier"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "supplied",
+            "not_supplied"
+          ]
+        },
+        "supplier": {
+          "const": "DEL-11-02"
+        }
+      }
+    },
+    "replacement_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "complete",
+        "not_complete_because",
+        "practitioner_validation_is_condition"
+      ],
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "not_complete_because": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "practitioner_validation_is_condition": {
+          "const": false
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gap_id",
+          "what",
+          "supplier",
+          "point_of_need"
+        ],
+        "properties": {
+          "gap_id": {
+            "type": "string",
+            "pattern": "^G-[A-Z0-9-]+$"
+          },
+          "what": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "supplier": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "point_of_need": {
+            "$ref": "#/$defs/nonempty",
+            "description": "What the gap holds back: the packet's claim of replacement qualification (AX-001), or nothing (carried for the owner). No gap holds back putting the packet to the owner."
+          }
+        }
+      }
+    },
+    "not_established": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "replacement_decision",
+          "public_release",
+          "retirement",
+          "professional_reliance",
+          "consumer_adoption",
+          "practitioner_validation"
+        ]
+      },
+      "description": "Whatever the evidence, this packet never establishes these (DEL-11-03 REQ-005, REQ-006; CLM-003). All six are listed."
+    },
+    "open_matters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "owner",
+          "point_of_need"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "owner": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "point_of_need": {
+            "$ref": "#/$defs/nonempty"
+          }
+        }
+      }
+    },
+    "terms": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Every code or identifier the package, packet, disposition, excerpts and this legend use that a person deciding without project context would need.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "term",
+          "meaning"
+        ],
+        "properties": {
+          "term": {
+            "$ref": "#/$defs/nonempty"
+          },
+          "meaning": {
+            "$ref": "#/$defs/nonempty"
+          }
+        }
+      }
+    },
+    "basis_excerpts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "description": "The exact passages the reserving basis, the comparison rule and the alternatives' consequences rest on, with each source's sha256.",
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex64"
+        }
+      }
+    },
+    "fixture": {
+      "type": "boolean",
+      "description": "True for a prototype fixture, which is never put to the owner. A packet whose candidate is not identified (illustrative evidence) is refused unless it is a fixture, and then its package purpose opens with the fixture notice (RP-R6)."
+    }
+  },
+  "$defs": {
+    "nonempty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "element": {
+      "enum": [
+        "planning",
+        "execution",
+        "workflow saving",
+        "reuse",
+        "approvals",
+        "interruption",
+        "restart"
+      ]
+    },
+    "continuity_input": {
+      "description": "SUPERSEDED at RP-v0.4 by DEL-11-01's own hand-over (ca.continuity-account.schema.json $defs/continuity_handoff). Kept so that earlier fixtures stay readable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_kind",
+        "format",
+        "account_version",
+        "thesis_check",
+        "fallback_identity",
+        "archives",
+        "continuing_obligations",
+        "adoption_status",
+        "replacement_standing"
+      ],
+      "properties": {
+        "record_kind": {
+          "const": "continuity_handoff"
+        },
+        "format": {
+          "enum": [
+            "RP-v0.1-first-cut"
+          ]
+        },
+        "account_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "thesis_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "method",
+            "expected_tree",
+            "observed_tree",
+            "at_commit",
+            "files",
+            "limits"
+          ],
+          "properties": {
+            "result": {
+              "enum": [
+                "matches",
+                "differs",
+                "not_checked"
+              ]
+            },
+            "method": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "expected_tree": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "observed_tree": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "at_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "files": {
+              "type": "integer"
+            },
+            "limits": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fallback_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "source_sha256",
+            "retained",
+            "remote_rechecked"
+          ],
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "source_sha256": {
+              "$ref": "#/$defs/hex64"
+            },
+            "retained": {
+              "type": "boolean"
+            },
+            "remote_rechecked": {
+              "type": "boolean"
+            }
+          }
+        },
+        "archives": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verify",
+            "source"
+          ],
+          "properties": {
+            "verify": {
+              "enum": [
+                "passed",
+                "changed",
+                "not_run"
+              ]
+            },
+            "source": {
+              "$ref": "#/$defs/nonempty"
+            }
+          }
+        },
+        "continuing_obligations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "owner",
+            "point_of_need"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "supplied",
+                "not_supplied"
+              ]
+            },
+            "owner": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "point_of_need": {
+              "$ref": "#/$defs/nonempty"
+            }
+          }
+        },
+        "adoption_status": {
+          "enum": [
+            "supplied",
+            "not_supplied"
+          ]
+        },
+        "replacement_standing": {
+          "const": "replacement pending; v3.0.1 retained"
+        }
+      }
+    },
+    "practitioner_standing": {
+      "description": "FIRST CUT of DEL-09-12 -> DEL-11-03 (DEP-11-03-009). DEL-09-12's own Design supersedes it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_kind",
+        "format",
+        "open_issue",
+        "standing",
+        "agreement_ref",
+        "observations",
+        "limits"
+      ],
+      "properties": {
+        "record_kind": {
+          "const": "practitioner_standing"
+        },
+        "format": {
+          "const": "RP-v0.1-first-cut"
+        },
+        "open_issue": {
+          "const": "OI-016 (App v4)"
+        },
+        "standing": {
+          "enum": [
+            "not_agreed",
+            "agreed",
+            "in_use",
+            "ended"
+          ]
+        },
+        "agreement_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observations": {
+          "type": "array"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "not_agreed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "agreement_ref": {
+            "const": null
+          },
+          "observations": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  }
+}

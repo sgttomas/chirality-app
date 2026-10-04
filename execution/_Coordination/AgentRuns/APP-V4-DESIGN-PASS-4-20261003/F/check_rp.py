@@ -1,13 +1,13 @@
-"""Check an EU-F1 fixture and the replacement packet rules (RP-v0.3). Prototype, not product code.
+"""Check an EU-F1 fixture and the replacement packet rules (RP-v0.4). Prototype, not product code.
 
 Part A: the fixture as written (integrity, schemas, copies equal their vendored sources, rules recomputed,
 thesis identity, terms, excerpts, receipts, points of need, evidence before status, legend, vendoring).
 Part B: rule cases RP-R1...RP-R7, positive and negative, on in-memory variants of supplier records.
 Reads only; writes nothing.
 
-Usage: python3 -B check_rp.py [--fixture FX-RP1-3]
+Usage: python3 -B check_rp.py [--fixture FX-RP1-4]
 
-Run with --fixture FX-RP1 or --fixture FX-RP1-2 to reproduce which current checks the earlier fixtures
+Run with --fixture FX-RP1, FX-RP1-2 or FX-RP1-3 to reproduce which current checks the earlier fixtures
 fail (RV3 N4). Part B does not depend on the fixture.
 """
 
@@ -23,7 +23,7 @@ import build_fx_rp1 as BUILD  # TERMS, CODE_RE, EXCERPTS, reader_texts; importin
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARGS = sys.argv[1:]
-FX_NAME = ARGS[1] if ARGS[:1] == ["--fixture"] else "FX-RP1-3"
+FX_NAME = ARGS[1] if ARGS[:1] == ["--fixture"] else "FX-RP1-4"
 FX = os.path.join(HERE, "fixtures", FX_NAME)
 REPO = os.path.normpath(os.path.join(L.EXEC_ROOT, "..", "..", ".."))
 results, notices = [], []
@@ -77,8 +77,8 @@ def part_a():
     m_sha, p_sha = actual[mp], actual[pp]
     expect("A-2 packet manifest valid against the current rp.packet-manifest.schema.json",
            lambda: not L.errors(L.file_validator("rp_manifest_schema"), m), L.errors(L.file_validator("rp_manifest_schema"), m)[:3])
-    expect("A-3 package valid against DEL-02-03 $defs/decisionPackageFile and RP-R6", lambda: not L.check_package(pkg, m_sha),
-           L.check_package(pkg, m_sha))
+    expect("A-3 package valid against DEL-02-03 $defs/decisionPackageFile and RP-R6 (with the manifest)", lambda: not L.check_package(pkg, m_sha, m),
+           L.check_package(pkg, m_sha, m))
     expect("A-4 disposition valid against rp.disposition.schema.json and RP-R7", lambda: not L.check_disposition(disp, pkg, p_sha))
     expect("A-5 candidate subject valid against DEL-09-01 EXP $defs/candidate_subject (R23-33)",
            lambda: not L.errors(L.def_validator("exp_result_schema", "candidate_subject"), m["candidate"]["subject"]))
@@ -87,10 +87,12 @@ def part_a():
            lambda: all(actual.get(s["path"]) == s["sha256"] for s in m["supplied"]))
     own = {"sq_dossier": lambda: L.file_validator("sq_schema"), "lhq_dossier_manifest": lambda: L.file_validator("lhq_manifest_schema"),
            "lhq_cir": lambda: L.file_validator("lhq_cir_schema"),
-           "continuity_input": lambda: L.def_validator("rp_manifest_schema", "continuity_input"),
+           "continuity_input_first_cut": lambda: L.def_validator("rp_manifest_schema", "continuity_input"),
+           "continuity_input": lambda: L.def_validator("ca_schema", "continuity_handoff"),
            "practitioner_standing": lambda: L.def_validator("rp_manifest_schema", "practitioner_standing")}
     expect("A-7 every supplied item is valid against its owner's schema (vendored) or the first-cut $def",
-           lambda: not [s["item_id"] for s in m["supplied"] if L.errors(own[s["role"]](), fx(s["path"]))])
+           lambda: not [s["item_id"] for s in m["supplied"]
+                        if L.errors(own[s["role"] + ("_first_cut" if s["role"] == "continuity_input" and s["source_kind"] == "shape_only" else "")](), fx(s["path"]))])
 
     def copies_equal():
         for s in m["supplied"]:
@@ -99,7 +101,7 @@ def part_a():
             key = [k for k, v in L.PATHS.items() if v == s["source"]["path"]][0]
             src = L.load(key)
             idf = "dossier_id" if s["role"] == "lhq_dossier_manifest" else "record_id"
-            rec = [r for r in src if r.get(idf) == s["source"]["record_id"]]
+            rec = [r for r in src if r.get(idf) == s["source"]["record_id"]] if isinstance(src, list) else [src]
             if not (rec and rec[0] == fx(s["path"]) and L.sha256_file(L.abspath(key)) == s["source"]["sha256"]):
                 return False
         return True
@@ -110,15 +112,22 @@ def part_a():
         cl, jr = L.core_loop(sq), L.journey(dos)
         subj, why = L.map_cir_candidate(cir)
         rec = L.reconcile(L.map_sq_candidate(sq["candidate"]), subj, why)
-        return (dict(cl, source_item="S-1") == m["core_loop"] and dict(jr, source_item="S-2", cir_item="S-3") == m["journey"]
+        jr = dict(jr, source_item="S-2", cir_item="S-3")
+        if "host_contributions" in m["journey"]:
+            jr["host_contributions"] = L.host_contributions(cir)
+        return (dict(cl, source_item="S-1") == m["core_loop"] and jr == m["journey"]
                 and rec == m["candidate"]["reconciliation"] and L.replacement_evidence_complete(cl, jr, rec) == m["replacement_evidence"])
     expect("A-9 RP-R1...RP-R4 recomputed from the supplied copies equal the manifest", recompute)
 
     def thesis():
-        cont = fx(sup["S-4"]["path"])["thesis_check"]
-        tree = subprocess.run(["git", "-C", REPO, "rev-parse", cont["at_commit"] + ":projects/chirality-app-v4/foundation/thesis"],
+        h = fx(sup["S-4"]["path"])
+        cont = h["thesis_check"]
+        at = cont.get("at_commit") or h["at_commit"]  # first cut (RP-v0.1-3) or DEL-11-01's CA hand-over (RP-v0.4)
+        expected = cont.get("expected_tree") or cont["expected"]
+        observed = (cont.get("observed_tree") or cont["observed"]).split()[0]
+        tree = subprocess.run(["git", "-C", REPO, "rev-parse", at + ":projects/chirality-app-v4/foundation/thesis"],
                               capture_output=True, text=True).stdout.strip()
-        return tree == cont["expected_tree"] == cont["observed_tree"]
+        return tree == expected == observed == "47fc49e96c2931ba18090f1a82d56a49f230b3ee"
     expect("A-10 thesis tree at the recorded commit equals docs/PRD.md §11's tree", thesis)
     expect("A-11 all six never-established items are listed; disposition not_presented; no decision element",
            lambda: set(m["not_established"]) == {"replacement_decision", "public_release", "retirement", "professional_reliance",
@@ -176,6 +185,12 @@ def part_a():
     expect("A-19 the package states the choice as the owner's act on the evidence as presented, and claims qualification only if complete (R23-43)",
            lambda: L.CHOICE_SENTENCE in pkg["purpose"]
            and (("it claims replacement qualification" in pkg["purpose"]) == m["replacement_evidence"]["complete"]))
+    expect("A-20 an unidentified, illustrative candidate is only ever in a fixture, and the purpose opens with the fixture notice (RV3 Addendum 4)",
+           lambda: m["fixture"] is True and m["candidate"]["identified"] is False and pkg["purpose"].startswith(L.FIXTURE_NOTICE))
+    expect("A-21 the continuity input is DEL-11-01's own CA hand-over, not a first cut, and the packet repeats its results",
+           lambda: sup["S-4"]["source_kind"] == "copied_record" and sup["S-4"]["standing"] == "owner_record"
+           and m["continuity"]["thesis_identity"] == fx(sup["S-4"]["path"])["thesis_check"]["result"]
+           and m["continuity"]["archives_verify"] == fx(sup["S-4"]["path"])["archives"]["verify"])
     return {"m": m, "pkg": pkg, "disp": disp, "m_sha": m_sha, "p_sha": p_sha}
 
 
@@ -339,6 +354,24 @@ def part_b(ctx):
     expect("B-36 a purpose without 'the owner's act, on the evidence as presented' is refused (R23-43)",
            any("evidence as presented" in e for e in L.check_package(v, m_sha)))
 
+    m = ctx["m"]
+    v = copy.deepcopy(m)
+    v["fixture"] = False
+    expect("B-45 the same illustrative packet presented as a real one (not a fixture) is refused (RV3 Addendum 4)",
+           any("refused in a packet that is not a fixture" in e for e in L.check_package(pkg, m_sha, v)))
+    v = copy.deepcopy(pkg)
+    pub = [a for a in v["alternatives"] if a["id"] == "ALT-PUBLISHED"][0]
+    pub["consequences"] = [c.replace("manual update check", "update check").replace("on request ", "") for c in pub["consequences"]]
+    expect("B-46 ALT-PUBLISHED's inference without 'manual' and 'on request' is refused (RV3 Addendum 4)",
+           any("drops 'manual' or 'on request'" in e for e in L.check_package(v, m_sha, m)))
+    real = copy.deepcopy(m)
+    real.update({"fixture": False, "evidence_standing": "candidate"})
+    real["candidate"]["identified"] = True
+    v = copy.deepcopy(pkg)
+    v["purpose"] = v["purpose"][v["purpose"].index("The owner decides"):]
+    expect("B-47 positive control: an identified candidate in a real packet needs no fixture notice",
+           not [e for e in L.check_package(v, m_sha, real) if "fixture" in e])
+
     # Disposition (RP-R7)
     dec = copy.deepcopy(disp)
     dec.pop("not_presented_because")
@@ -377,7 +410,7 @@ def main():
     print("fixture %s" % FX_NAME)
     ctx = part_a()
     vendoring()
-    if FX_NAME == "FX-RP1-3":
+    if FX_NAME == "FX-RP1-4":
         part_b(ctx)
     for name, ok, detail in results:
         print(("HOLDS " if ok else "FAILS ") + name + ("" if ok or not detail else "  -> %s" % (detail,)))

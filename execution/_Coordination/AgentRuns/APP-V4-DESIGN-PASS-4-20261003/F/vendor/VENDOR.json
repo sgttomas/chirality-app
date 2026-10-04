@@ -1,6 +1,6 @@
 {
   "rule": "R23-44: exact supplier bytes this unit relies on, copied at vendoring; checks read these copies and report (not fail on) later movement of the live source.",
-  "date": "2026-10-04",
+  "date": "2026-10-04 (DOS examples re-pinned for RP-v0.4)",
   "files": [
     {
       "key": "sq_examples",
@@ -22,9 +22,14 @@
       "key": "lhq_manifest_examples",
       "vendored": "vendor/lhq.dossier-manifest.valid.examples.json",
       "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/lhq.dossier-manifest.valid.examples.json",
-      "sha256": "9873df65c9b481728d0043b0db8ea109ada5f4fdec0d8e2dc9cf2ef292068a6f",
-      "source_commit": "141a6cc8b4488c77cadf5ac3707f2235957653a7",
-      "source_clean_at_vendoring": true
+      "sha256": "dbf8463f45dc2b9cad657fbe81a614d761f7cc8002a21e6e65bf58139730b666",
+      "source_commit": "aa95aff4e1186f0bab3cc244408a4e47a08ffd9c",
+      "source_clean_at_vendoring": true,
+      "repinned": {
+        "date": "2026-10-04",
+        "from_sha256": "9873df65c9b481728d0043b0db8ea109ada5f4fdec0d8e2dc9cf2ef292068a6f",
+        "why": "O-C's DX-3: DOS-EXAMPLE-INVENTED names no run (no DEL-09-11 hand-over); RP-v0.4 re-pins deliberately (RV3 N9). FX-RP1-3 stays pinned to the old copy as history."
+      }
     },
     {
       "key": "lhq_manifest_schema",

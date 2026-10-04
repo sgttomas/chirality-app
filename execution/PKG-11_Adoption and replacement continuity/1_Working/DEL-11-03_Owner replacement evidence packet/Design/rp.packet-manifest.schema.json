@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.3",
-  "title": "DEL-11-03 replacement packet manifest (RP-v0.3, PROPOSED)",
+  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.4",
+  "title": "DEL-11-03 replacement packet manifest (RP-v0.4, PROPOSED)",
   "description": "The evidence the owner's replacement decision rests on (REPLACEMENT_PACKET.md §3). Every value is derived from the supplied items by the packet rules (RP-R1...RP-R8) or copied from a named source; nothing is filled from a definition. The package file names this manifest by sha256. The packet may be put to the owner at any time; it states plainly what is and is not established and claims replacement qualification only when both witnesses hold (DEL-11-03 AX-001). Two $defs are the first-cut inputs DEL-11-03 expects from DEL-11-01 (continuity_input) and DEL-09-12 (practitioner_standing); their owners' own files supersede them when written.",
   "type": "object",
   "additionalProperties": false,
@@ -26,14 +26,15 @@
     "not_established",
     "open_matters",
     "terms",
-    "basis_excerpts"
+    "basis_excerpts",
+    "fixture"
   ],
   "properties": {
     "record_kind": {
       "const": "rp_packet_manifest"
     },
     "format": {
-      "const": "RP-v0.3"
+      "const": "RP-v0.4"
     },
     "packet_id": {
       "type": "string",
@@ -147,7 +148,8 @@
         "subject",
         "mappings",
         "reconciliation",
-        "change_impact_refs"
+        "change_impact_refs",
+        "identified"
       ],
       "properties": {
         "subject": {
@@ -198,6 +200,10 @@
           "items": {
             "$ref": "#/$defs/nonempty"
           }
+        },
+        "identified": {
+          "type": "boolean",
+          "description": "True only when the subject names an identified candidate (evidence_standing candidate). Illustrative examples name none."
         }
       }
     },
@@ -243,7 +249,8 @@
               "illustrative",
               "candidate",
               "first_cut_interface",
-              "observed"
+              "observed",
+              "owner_record"
             ]
           },
           "source": {
@@ -451,7 +458,8 @@
           "required": [
             "state",
             "review_record",
-            "covers"
+            "covers",
+            "dossier_states_independent"
           ],
           "properties": {
             "state": {
@@ -467,6 +475,10 @@
             },
             "covers": {
               "$ref": "#/$defs/nonempty"
+            },
+            "dossier_states_independent": {
+              "type": "boolean",
+              "description": "What the dossier's own hand-over claims; shown beside `state` so a claim of independence is not read as a resolved review."
             }
           }
         }
@@ -487,7 +499,8 @@
         "receipts",
         "status",
         "established",
-        "not_established_because"
+        "not_established_because",
+        "host_contributions"
       ],
       "properties": {
         "source_item": {
@@ -613,6 +626,28 @@
           "items": {
             "type": "string"
           }
+        },
+        "host_contributions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "by_standing",
+            "committed_delivered_adopted_or_examined"
+          ],
+          "description": "The candidate record's host contributions by LHQ ladder standing. 'answered' commits, delivers and adopts nothing.",
+          "properties": {
+            "by_standing": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "committed_delivered_adopted_or_examined": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
@@ -652,7 +687,8 @@
         "thesis_identity",
         "fallback_retained",
         "archives_verify",
-        "continuing_obligations"
+        "continuing_obligations",
+        "account"
       ],
       "properties": {
         "source_item": {
@@ -681,6 +717,9 @@
             "supplied",
             "not_supplied"
           ]
+        },
+        "account": {
+          "$ref": "#/$defs/nonempty"
         }
       }
     },
@@ -831,6 +870,10 @@
           "$ref": "#/$defs/hex64"
         }
       }
+    },
+    "fixture": {
+      "type": "boolean",
+      "description": "True for a prototype fixture, which is never put to the owner. A packet whose candidate is not identified (illustrative evidence) is refused unless it is a fixture, and then its package purpose opens with the fixture notice (RP-R6)."
     }
   },
   "$defs": {
@@ -854,7 +897,7 @@
       ]
     },
     "continuity_input": {
-      "description": "FIRST CUT of DEL-11-01 -> DEL-11-03 (DEP-11-03-008, held SCC-006; R23-32 F-R8). DEL-11-01's own Design supersedes it.",
+      "description": "SUPERSEDED at RP-v0.4 by DEL-11-01's own hand-over (ca.continuity-account.schema.json $defs/continuity_handoff). Kept so that earlier fixtures stay readable.",
       "type": "object",
       "additionalProperties": false,
       "required": [

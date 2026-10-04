@@ -1,0 +1,659 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-11-01:continuity-account:0.1",
+  "title": "DEL-11-01 continuity account (CA-v0.1, PROPOSED)",
+  "description": "A linked view over existing preservation records (CONTINUITY_ACCOUNT.md; F-R6, F-R7). Each class links its primary records by identity at one commit; it adds only standing, current selector, recovery route, owner and point of need. It retires, migrates, freezes or deletes nothing (REQ-005).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_kind",
+    "format",
+    "account_id",
+    "version",
+    "date",
+    "at_commit",
+    "classes",
+    "obligations",
+    "owner_acts",
+    "adoption_status",
+    "replacement_standing",
+    "handoff",
+    "limits"
+  ],
+  "properties": {
+    "record_kind": {
+      "const": "continuity_account"
+    },
+    "format": {
+      "const": "CA-v0.1"
+    },
+    "account_id": {
+      "type": "string",
+      "pattern": "^CA-[A-Za-z0-9._-]+$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "at_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "class_id",
+          "name",
+          "what",
+          "linked_records",
+          "identity_check",
+          "current_selector",
+          "standing",
+          "recovery_route",
+          "retained",
+          "owner",
+          "point_of_need"
+        ],
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "pattern": "^C-[0-9]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "what": {
+            "type": "string",
+            "minLength": 1
+          },
+          "linked_records": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "identity"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "identity": {
+                  "description": "How the linked record is identified at the account's commit: a git object id (tree or blob), a file sha256, or a stated reason it has none.",
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "git_tree"
+                        },
+                        "value": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{40}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "git_blob_sha256"
+                        },
+                        "value": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "git_commit"
+                        },
+                        "value": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{40}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "git_tag_target"
+                        },
+                        "value": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{40}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "reason"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "outside_repository"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  ]
+                },
+                "locus": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "identity_check": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "result",
+              "limits"
+            ],
+            "properties": {
+              "method": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result": {
+                "enum": [
+                  "matches",
+                  "differs",
+                  "passed",
+                  "changed",
+                  "not_run",
+                  "not_checked"
+                ]
+              },
+              "expected": {
+                "type": "string"
+              },
+              "observed": {
+                "type": "string"
+              },
+              "limits": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "current_selector": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standing": {
+            "enum": [
+              "historical",
+              "current_fallback",
+              "active_lane",
+              "preserved_basis",
+              "preserved_evidence"
+            ],
+            "description": "What the material is for now. None of these is v4 authority (CLM-001); an active lane keeps its own scope."
+          },
+          "recovery_route": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retained": {
+            "const": true,
+            "description": "REQ-001: kept until the owner's replacement decision and any later retirement decision of its own (OD-09)."
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "point_of_need": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "obligations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lane",
+          "lane_owner",
+          "retirement_intended",
+          "continuing_obligations",
+          "disposition",
+          "retirement_eligible",
+          "why",
+          "owner_of_decision",
+          "point_of_need"
+        ],
+        "properties": {
+          "lane": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lane_owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retirement_intended": {
+            "type": "boolean"
+          },
+          "continuing_obligations": {
+            "enum": [
+              "supplied",
+              "not_supplied"
+            ]
+          },
+          "disposition": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "retirement_eligible": {
+            "type": "boolean",
+            "description": "True only with retirement intended, continuing obligations supplied, and an evidenced disposition by the accountable owner. A fallback replacement alone never makes it true (REQ-004; VER-005)."
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner_of_decision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "point_of_need": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "retirement_eligible": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "retirement_intended": {
+                  "const": true
+                },
+                "continuing_obligations": {
+                  "const": "supplied"
+                },
+                "disposition": {
+                  "type": "object",
+                  "required": [
+                    "by",
+                    "record_ref",
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "owner_acts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "act_id",
+          "actor",
+          "recorder",
+          "subject",
+          "record_ref",
+          "exact_text",
+          "custody",
+          "bears_on"
+        ],
+        "properties": {
+          "act_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor": {
+            "const": "the owner"
+          },
+          "recorder": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1
+          },
+          "record_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exact_text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "custody": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bears_on": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "not": {
+          "properties": {
+            "recorder": {
+              "const": "the owner"
+            }
+          },
+          "required": [
+            "recorder"
+          ]
+        }
+      }
+    },
+    "adoption_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "supplier"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "supplied",
+            "not_supplied"
+          ]
+        },
+        "supplier": {
+          "const": "DEL-11-02"
+        },
+        "ref": {
+          "type": "string"
+        }
+      }
+    },
+    "replacement_standing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "fallback",
+        "disposition_ref"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "pending",
+            "decided"
+          ]
+        },
+        "fallback": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "pending"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fallback": {
+                "const": "v3.0.1 retained"
+              },
+              "disposition_ref": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "handoff": {
+      "$ref": "#/$defs/continuity_handoff"
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "continuity_handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_kind",
+        "format",
+        "account_id",
+        "account_version",
+        "at_commit",
+        "account_sha256_note",
+        "thesis_check",
+        "fallback_identity",
+        "archives",
+        "continuing_obligations",
+        "adoption_status",
+        "replacement_standing"
+      ],
+      "properties": {
+        "record_kind": {
+          "const": "continuity_handoff"
+        },
+        "format": {
+          "const": "CA-v0.1"
+        },
+        "account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "account_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "account_sha256_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thesis_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "result",
+            "limits"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "result": {
+              "enum": [
+                "matches",
+                "differs",
+                "passed",
+                "changed",
+                "not_run",
+                "not_checked"
+              ]
+            },
+            "expected": {
+              "type": "string"
+            },
+            "observed": {
+              "type": "string"
+            },
+            "limits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "fallback_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "retained",
+            "remote_rechecked"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "retained": {
+              "const": true
+            },
+            "remote_rechecked": {
+              "type": "boolean"
+            }
+          }
+        },
+        "archives": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verify",
+            "source"
+          ],
+          "properties": {
+            "verify": {
+              "enum": [
+                "passed",
+                "changed",
+                "not_run"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "continuing_obligations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "owner",
+            "point_of_need"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "supplied",
+                "not_supplied"
+              ]
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "point_of_need": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "adoption_status": {
+          "enum": [
+            "supplied",
+            "not_supplied"
+          ]
+        },
+        "replacement_standing": {
+          "enum": [
+            "replacement pending; v3.0.1 retained",
+            "replacement decided; see disposition"
+          ]
+        },
+        "disposition_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "The commit the account's identity checks were made at."
+        }
+      },
+      "description": "DEL-11-01 -> DEL-11-03 (DEP-11-03-008; SCC-006 under SCC-CASE-007 R1, F-R8). It supersedes DEL-11-03's first-cut $defs/continuity_input; DEL-11-03 adopts it at its next revision (RP-v0.4)."
+    }
+  }
+}
