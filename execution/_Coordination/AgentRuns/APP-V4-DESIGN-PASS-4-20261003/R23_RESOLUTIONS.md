@@ -667,3 +667,23 @@ evidence rules and the owner's earlier decisions already settle them.
      repaired by PR-7: a record-tier claim whose citation does not resolve
      is `unknown`. This is the same lesson as tranche 1's checker that only
      agreed with its author's accounts.
+
+- **R23-46 Briefs recorded verbatim (RV3 UC1-R1; P-E7). DERIVED** from SPEC
+  §9.8, which requires the run record to hold the launch briefs themselves,
+  written by its maintainer.
+  1. **This run kept summaries only.** HELP_HUMAN's DISPATCH rows
+     summarised the briefs, and owners transcribed theirs. A summary loses
+     fences and prohibitions.
+  2. **The gap is now closed.** HELP_HUMAN has extracted every brief sent in
+     this run (99) verbatim from the session transcript into
+     [BRIEFS_AS_SENT.md](BRIEFS_AS_SENT.md), with home paths redacted.
+     From here on, each brief is appended there at dispatch.
+  3. **Owners' own records** stay as labelled transcriptions and
+     cross-checks, not as the run's record of what was supplied.
+  4. **UC.** UC's G-1 convention is restated to this. VER-002's second case
+     is re-marked partial.
+- **R23-47 Capability account wording (RV3 note).** DISPATCH's account said
+  write and network limits "are instruction-only". The supportable standing
+  is "not observed to be host-enforced; unknown". The host reports that its
+  Bash tool runs sandboxed unless that is disabled; this was not probed. The
+  line is corrected.

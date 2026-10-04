@@ -336,3 +336,80 @@ On RP-v0.2's bytes:
 - v3.0.1 remains the fallback in every undecided state.
 
 The only qualifications are EUF1-R2 and EUF2-R1.
+
+---
+
+# Addendum 3 — confirming O-C's repairs at `141a6cc8b4` (EUF1-S1, LHQ2-R1), 2026-10-04
+
+- **Subject:** commit `141a6cc8b4` ("DEL-09-07 LHQ-v0.2 + DOS DX rules (EUF1-S1, LHQ2-R1)"). The working tree of DEL-09-07 `Design/` is clean against it (`git status` empty).
+- **Hashes.** Every file in `O-C.md`'s hash table was re-hashed and matches, including:
+  - `QUALIFICATION_DOSSIER.md` `687032c0…8465`;
+  - `LOCAL_HOST_QUALIFICATION.md` `90f461cb…523e`;
+  - `dos_check.py` `07bc7791…2903`;
+  - `cir_check.py` `6f32a951…2bad`;
+  - the unchanged CIR schema `3fb8f586…` and the unchanged `top_check.py` `cf128073…`.
+
+  The two prototype hashes embedded in the DOS and LHQ texts equal the files.
+
+## Verdict: **both repairs confirmed**
+
+There are no BLOCKING, MAJOR or MINOR findings, and 2 NOTEs.
+- LHQ2-R1 is closed.
+- O-F's EUF1-S1 is closed on the supplier side.
+- LHQ-v0.2 at `90f461cb…` stays **READY**. This supersedes my confirmation of `5cd31e09…`.
+
+LHQ2-R2 (DOS's pinned CIR schema) stays held for the closeout, as directed.
+
+## What I reran
+
+| Check | Input | Result |
+|---|---|---|
+| `dos_check.py` | dossier valid examples | exit 0: `DOS-EXAMPLE-INVENTED` OK, `DOS-EXAMPLE-INVENTED-POPULATED` OK |
+| `dos_check.py` | `dx-violations` | exit 1. Each of the three fails for its own rule: the old example (DX-1 and DX-2), resolution differs (DX-1), missing from DEL-11-03 (DX-2) |
+| `dos_check.py` | dossier invalid examples | exit 0 (none carries a DX inconsistency any longer) |
+| `cir_check.py` | CIR valid examples | exit 0 (both OK) |
+| `cir_check.py` | `ci5-violations` | exit 1. Both fail: the revision mismatch and the build-identity mismatch |
+| `cir_check.py` | CIR invalid examples | exit 0 (does not trip on them) |
+| `top_check.py` | traffic valid examples | exit 0 (4 of 5 contacts compared) |
+| `top_check.py` | `cb1-violations` | exit 1. Both MIS-TAGGED |
+
+**Schemas: my own `jsonschema` Draft 2020-12 run.** All three pass `check_schema`.
+
+| File | Items | Errors each |
+|---|---|---|
+| dossier valid | 2 | 0 |
+| dossier invalid | 7 | 1 |
+| dossier `dx-violations` | 3 | 0 (schema-valid, as intended) |
+| CIR valid | 2 | 0 |
+| CIR invalid | 5 | 1 |
+| CIR `ci5-violations` | 2 | 0 |
+| traffic valid | 1 | 0 |
+| traffic invalid | 12 | 1 each, except one with 2 (see note) |
+| traffic `cb1-violations` | 2 | 0 |
+
+CIR `$defs/app_candidate_subject` still equals EXP-v0.2's `candidate_subject.app_candidate` (Python equality).
+
+## Substance
+
+- **EUF1-S1.**
+  - The record set:
+    - `DOS-EXAMPLE-INVENTED` names no receipt anywhere: the index, the DEL-11-03 hand-over and the DEL-09-11 hand-over are all empty.
+    - `DOS-EXAMPLE-INVENTED-POPULATED` lists RC-1 in all three places, *unresolvable* each time. Its LHQ-20 result is `inconclusive`, and a limitation states why RC-1 cannot be resolved.
+  - **DX-1 and DX-2** state what DOS §1 already required and make it checkable.
+  - **For O-F's RP-v0.3:**
+    - the rebuilt fixture's copy of `DOS-EXAMPLE-INVENTED` loses the RC-1 clause and the `receipts_in_dossier_missing_from_handoff` reason (EUF2-R2);
+    - the populated example gives EUF1-D2's receipt rule a real-file positive case;
+    - under DX-2 a DOS-conformant dossier can no longer omit a receipt from the DEL-11-03 hand-over, so RP-R2's check becomes a defence in depth (keep it).
+- **LHQ2-R1.** CI-5 now reads: "When both `value` and `app_candidate_subject` are given, they describe the same build, and a disagreement is a CIR defect for the examiner. The mapping is what consumers reconcile on …". Both violation records are schema-valid and rejected by `cir_check`. That is exactly the gap I demonstrated: the schema accepted a contradicting mapping.
+
+## Notes
+
+- **N6.** `cir_check` is a substring test.
+  - A mapping whose `revision` is a shorter prefix of the one `value` names passes. Tested: `abc` against a value containing `abc1234` gives OK.
+  - The text says "Passing it is necessary, not sufficient", which is accurate.
+  - If CIRs come to carry full revision hashes, a token or whole-word match would be tighter. No repair is required now.
+- **N7.** One traffic-observation invalid example gives 2 errors under `jsonschema`. That file has not changed since `d150856784` (tranche 1) and is not part of this change. It is recorded only so that "fails only for its stated rule", which O-C claims for the dossier invalid examples, is not read as covering the traffic file.
+
+## Not run
+
+DEL-01-01's subset validator (O-C reports it agrees). I ran `jsonschema` only.

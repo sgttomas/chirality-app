@@ -1,4 +1,4 @@
-# Work graph — App v4 design pass 4 (remaining deliverables), tranche 1
+# Work graph — App v4 design pass 4 (remaining deliverables), tranches 1 and 2
 
 Method: `chirality-root:bundled:workflow:construct-local-work-graph`, under
 `loop/LOOP_INIT.md`. Coordination: `bundled:chirality-root/coordinated-knowledge-work`

@@ -348,3 +348,61 @@ The root cause O-E names (§3, PN-1: "a hash check does not detect a stale readi
   - the seed carry/port row against `DIRECTION.md` "Settled treatment applied".
 - The PR #1037 merge, via `git log --merges --ancestry-path`.
 - Not read: `RUN/RR-EB1/*`. I passed `SUPPLIED.sha256` to O-E's checker by path only.
+
+---
+
+# Addendum 2 — EB-v0.3 (frozen with UC-v0.1; committed `d0e88a52f1`), 2026-10-04
+
+- **Subject.** Re-hashed:
+  - `EXECUTION_BASIS.md` `e9f7e9a6…04ee` (git blob at `d0e88a52f1` equal);
+  - `eb1/EB1_COMPARISON.md` `af3f2d6c…c216`;
+  - `prototype/eb1_check.py` `712c6f8f…bff`;
+  - the key, brief, manifest and `make_input_set.py`, unchanged.
+
+  The working tree is clean for DEL-10-01.
+- **Method.** Word diff of EB-v0.2 (`d43665498d`) against EB-v0.3 (`d0e88a52f1`). I compared each changed row with its record.
+- **Reader's result read first (P-E6).** I read `RR-EB1/account.json` (`018ebe7b…`) and `EB1_COMPARISON.md` §§1–6 before confirming.
+
+## Verdict on EB-v0.3: **READY**
+
+All nine residuals are **resolved**: R6, R7, R8, R9, R12, R13, R14, EB2-R1 and EB2-R2. Two NOTEs remain.
+
+| Finding | Resolved by | Checked against |
+|---|---|---|
+| EB1-R6, EB2-R1 (LOOP_INIT) | B-19, the §6 row and §9, and the comparison's dated §6 | The tranche manifest `APP-V4-LOOP-ENTRY-20260928.yaml` (see below) |
+| EB1-R7 (limits) | B-3, B-4, B-8, B-9 and B-10 each quote a stated limit | Group1 and Group2 `DECISION.md`; each SCA group-3 "It does not authorize" list. Quotes and paraphrases match |
+| EB1-R8 (writers) | B-2 "written by WORKING_ITEMS"; B-6 "The record does not name its writer." | `DIRECTION.md` l.33; `_COORDINATION.md` |
+| EB1-R9 (omissions, order) | B-7 carries the hold, quoted exactly with its double space. DAG-002 is placed between B-8 and B-9, published before SCA-V4-002's act; DAG-003 is placed after B-9. §5 names the first-increment steering | DAG-001 `ACCEPTANCE_RECORD.md` l.17–21. Git: `6dca88de70` at 10:54 and `a254be1606` at 22:22, against `851ec3d88` at 20:01 (-0600). `APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` DECISION-1: "Which scope should this first 60% undertaking take? (Wave 1 is already running …)" → "A: App/host spine (Recommended)", recorder HELP_HUMAN |
+| EB1-R12 (DAG timing) | "constructed and examined before the gate, and accepted in the act that completed it (B-7)" | M §1.7; DAG-001 record |
+| EB1-R13 (SCA words) | B-8 and B-9 quote "Accept (Recommended)" | Both group-3 records |
+| EB1-R14 (R23 range) | "R23 rulings (R23-1 onward; the file is append-only)" | — |
+| EB2-R2 (R23-38.5) | §3.3 item 5: no retroactive bindings; my grep fact; the byte-identical observation; §9 row dropped | R23-38.5 |
+
+**B-19 states exactly what the manifest records, and what no record shows.** The manifest `m2_gate` records:
+- the authorization text, quoted exactly: "Owner copied init/ and loop/ from chirality-app-dev, reset receipts, and requested: Revise the documents accordingly for the new project folder.";
+- `authorized_by: Ryan`;
+- `integration_owner: Codex HELP_HUMAN /root`;
+- `merge_gate: owner-authorized-pr`;
+- `self_merge: true`.
+
+B-19 reproduces each of these. It is committed in `afc65e2b22` and merged by PR #1037 (`6e18505e38`). LOOP_INIT's bytes have not changed since; its only commit is `afc65e2b22`, and its blob and working bytes are both `3790159b…`.
+
+The negative cell, "Not stated by any record: that the owner reviewed or approved the resulting text", matches R23-42.1 and my own reading. "Listed last; it predates B-8" is correct: `afc65e2b22` is 2026-09-28 00:13 -0600, after B-7's recording at 05:57 UTC on 2026-09-28 (23:57 -0600 on 2026-09-27) and before B-8.
+
+**Comparison §6 and KF-5…KF-7.** I checked these against the reader's actual answers, and the claim "no effect on the score" holds:
+- **K8.2:** the reader answered "None is recorded as awaiting the owner … open matters, not presented departures", standing `inferred`.
+- **K3.1:** the reader named the recorder `/root`.
+- **K4c.2:** the reader cited the manifest's `m2_gate` and noted that the manifest does not name its own writer.
+- **K2.2:** the reader gave "Directed by the owner (…); HELP_HUMAN selected the source-qualified identity and recorded it with its hash".
+
+The D-5 correction traces the miss correctly, to the index and the input-set design. The reader's `unknown` stays correct for IS-EB1-1.
+
+## Checks
+
+- `eb1_check.py --post-dispatch RUN/RR-EB1/SUPPLIED.sha256`: **PASS 125, FAIL 0**, as claimed.
+- Default mode now gives PASS 120, FAIL 3: M-2 on the account, on R23, and now also on the pass-4 `WORK_GRAPH.md`, which HELP_HUMAN updated for PN-8. This is all drift since the read, as intended.
+
+## Notes
+
+- **N-a.** §8 VER-002 says default-mode M-2 reports "the account and R23". It now also reports the work graph. Phrase it as "the input-set items changed since the read" so that later runs are not misread.
+- **N-b.** B-19's recorder cell lists the manifest's fields but does not say that the manifest names no writer of its own. B-16's row does say this of the D-GOV-52 manifest. For consistency with §2's own rule, add "the manifest does not name its own writer".

@@ -91,7 +91,7 @@ verified afterwards by `git status`.
 | Field | Pass 4 |
 |---|---|
 | Mechanism | HELP_HUMAN (Claude Code session) dispatches harness-native descendants via the Agent tool (D-GOV-35), agent type `type2-opus-high` (Claude Opus 5.5); continued by SendMessage |
-| Host capability | The host does not restrict reads; separation of readers rests on briefs and their own reports. Write and network limits were not observed to be host-enforced; they are instruction-only |
+| Host capability | The host does not restrict reads; separation of readers rests on briefs and their own reports. Write and network limits were not observed to be host-enforced: unknown. The host reports that its Bash tool runs sandboxed unless disabled; not probed (R23-47) |
 | Instruction-only limits | BRIEFS common rules; each owner's write area in its assignment message (transcribed into its OWNERS file, UC G-1) |
 | How fences are checked | `git status` after returns; owners' hash checks at freeze; HELP_HUMAN's path-limited commit at each freeze (R23-41) with inputs inside the commit or already in git (R23-44) |
 | Shared resources | One worktree, branch `claude/app-v4-design-pass-4-t2` (tranche 1: `claude/app-v4-design-pass-4`); the git stash is shared with other worktrees; several owners write concurrently; run files are working bytes until committed (PN-1, PN-4) |
@@ -102,3 +102,4 @@ Practice from UC P-E6: a reviewer of a unit that also has a cold reader receives
 | O-E | Froze EB-v0.3 + UC-v0.1 (DEL-10-02). P-E5 taken (capability account above), PN-8 taken (graph updated), P-E6 taken; P-E4 not taken (UC §5 holds the notes; linked from the graph). Committed by path; to RV3 |
 | RV3 | O-C's EUF1-S1 and LHQ2-R1 CONFIRMED (Addendum 3; 2 NOTE). DEL-09-07 READY at LHQ `90f461cb…`, DOS `687032c0…` |
 | O-D | RR-EUD1 scored 45/46 + 1 referred → met (R23-45.1); comparison checker written against the real account + sensitivity test 9/9. RV2 repairs R1…R7 done; OD-F1 (unresolved citation) → PR-7. run_d 297/297. P-H1b: next-turn input carries no trace → App-origin reads usable for App views (R23-45.2). Committed by path (DEL-08-02 draft excluded); to RV2. O-A re-pins FV-10 vendored inputs |
+| RV3 | EB-v0.3 READY (2 notes). UC-v0.1 REPAIR (UC1-R1 MAJOR → R23-46: BRIEFS_AS_SENT.md, 99 briefs verbatim; UC1-R2…R4 MINOR). DISPATCH capability line corrected (R23-47); graph title fixed |
