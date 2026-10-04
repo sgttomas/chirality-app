@@ -171,3 +171,23 @@ HELP_HUMAN asked two questions: whether the 90% handoff should serve as a
 owner replied:
 
 > I don't want to create a new type of record that needs to be updated to maintain current state.  The handoff is ephemeral.  The present forms of governance presumed sufficient until shown otherwise.  No don't pin to editions. No to both.
+
+## What LOOP_INIT is, and what an agent reads at entry (owner, exact, 2026-10-04)
+
+HELP_HUMAN set out the character of each document from LOOP_INIT's point of
+view:
+- instructions govern;
+- explanations inform;
+- records state;
+- the steer directs.
+
+LOOP_INIT is the single place that binds the project to the general layers.
+Each of its sentences must be specific to the project, must instruct, and
+must not be stated anywhere else.
+
+HELP_HUMAN also raised one question: whether the agent's first map should be
+the Agent User Manual's headings, with the Field Book after it.
+
+The owner replied:
+
+> Your suggestion about presenting just the Agent User Manual's headings and the Field Book is excellent and accepted.  Also your understanding of what the LOOP_INIT is (and the other documents for that matter) is also good and accepted as a basis for you to audit and edit them as needed - doing so from the perspective of the LOOP_INIT - not expecting a wholesale review and revision.  But don't leave matters until later if you find them in the course of your work and they ought to be resolved, take care of it in this session at the appropriate sequence.
