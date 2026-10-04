@@ -1,0 +1,70 @@
+{
+  "rule": "R23-44: exact supplier bytes this unit relies on, copied at vendoring; checks read these copies and report (not fail on) later movement of the live source.",
+  "date": "2026-10-04",
+  "files": [
+    {
+      "key": "sq_examples",
+      "vendored": "vendor/sq.dossier.valid.examples.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.valid.examples.json",
+      "sha256": "426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db",
+      "source_commit": "d15085678441876bd24fbf4982bb41d04ea0e9b5",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "sq_schema",
+      "vendored": "vendor/sq.dossier.schema.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.schema.json",
+      "sha256": "16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6",
+      "source_commit": "d15085678441876bd24fbf4982bb41d04ea0e9b5",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "lhq_manifest_examples",
+      "vendored": "vendor/lhq.dossier-manifest.valid.examples.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/lhq.dossier-manifest.valid.examples.json",
+      "sha256": "9873df65c9b481728d0043b0db8ea109ada5f4fdec0d8e2dc9cf2ef292068a6f",
+      "source_commit": "141a6cc8b4488c77cadf5ac3707f2235957653a7",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "lhq_manifest_schema",
+      "vendored": "vendor/lhq.dossier-manifest.schema.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/lhq.dossier-manifest.schema.json",
+      "sha256": "88cd994821c25422507ca45a901e4cd8ed5c31d847ecdbbd8475ad1ebd7d7e88",
+      "source_commit": "09ca67d0942fbffb7a995abe177a869de8216921",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "lhq_cir_examples",
+      "vendored": "vendor/lhq.candidate-identification.valid.examples.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/lhq.candidate-identification.valid.examples.json",
+      "sha256": "c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4",
+      "source_commit": "141a6cc8b4488c77cadf5ac3707f2235957653a7",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "lhq_cir_schema",
+      "vendored": "vendor/lhq.candidate-identification.schema.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/lhq.candidate-identification.schema.json",
+      "sha256": "3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5",
+      "source_commit": "141a6cc8b4488c77cadf5ac3707f2235957653a7",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "exp_result_schema",
+      "vendored": "vendor/exam.result-record.schema.json",
+      "source": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+      "sha256": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081",
+      "source_commit": "09ca67d0942fbffb7a995abe177a869de8216921",
+      "source_clean_at_vendoring": true
+    },
+    {
+      "key": "ce_schema",
+      "vendored": "vendor/checkpoint-record-entries.schema.json",
+      "source": "PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/checkpoint-record-entries.schema.json",
+      "sha256": "a5271857c8bf71f67077fc52760a35d41ee0c30f8bd6d487a93d3c882308b45c",
+      "source_commit": "09ca67d0942fbffb7a995abe177a869de8216921",
+      "source_clean_at_vendoring": true
+    }
+  ]
+}

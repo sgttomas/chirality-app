@@ -5,7 +5,9 @@ Usage:
   python3 -B compare_rp.py [--set N] <account.json>   # compare a reader's account
 
 --set 1 (default): IS-FX-RP1-1, fixture FX-RP1, key EU-F1.answer-key.json (frozen 2026-10-04; read by RR-EUF1).
---set 2: IS-FX-RP1-2, fixture FX-RP1-2, key EU-F1-2.answer-key.json (RP-v0.2).
+--set 2: IS-FX-RP1-2, fixture FX-RP1-2, key EU-F1-2.answer-key.json (RP-v0.2; read by RR-EUF2).
+--set 3: IS-FX-RP1-3, fixture FX-RP1-3, key EU-F1-3.answer-key.json (RP-v0.3).
+Each set's account is validated against that set's own account schema (RP-v0.2's tool always used set 1's).
 
 Fields compare exactly (set fields as sets). Statements and issues are never scored automatically:
 they are printed as REFERRED for the examiner to read for contradictions with the records.
@@ -21,7 +23,10 @@ import glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SETS = {"1": ("IS-FX-RP1-1", "FX-RP1", "EU-F1.answer-key.json"),
-        "2": ("IS-FX-RP1-2", "FX-RP1-2", "EU-F1-2.answer-key.json")}
+        "2": ("IS-FX-RP1-2", "FX-RP1-2", "EU-F1-2.answer-key.json"),
+        "3": ("IS-FX-RP1-3", "FX-RP1-3", "EU-F1-3.answer-key.json")}
+SCHEMAS = {"1": "rp.reader-account.schema.json", "2": "rp.reader-account.v2.schema.json", "3": "rp.reader-account.v3.schema.json"}
+SET = "1"
 IS_ID, FX_NAME, KEY = SETS["1"]
 FX = os.path.join(HERE, "fixtures", FX_NAME)
 
@@ -64,14 +69,21 @@ def self_check(key):
          and e["Q-11"]["adoption_status"] == m["adoption"]["status"]),
         ("Q-12", e["Q-12"]["evidence_standing"] == m["evidence_standing"]),
     ]
+    if "Q-13" in e:
+        checks.append(("Q-13", e["Q-13"]["claims_replacement_qualification"] == m["replacement_evidence"]["complete"]
+                       and "remains the owner's act, on the evidence as presented" in pkg["purpose"]))
+        pub = [a for a in pkg["alternatives"] if a["id"] == "ALT-PUBLISHED"][0]
+        checks.append(("Q-7 ALT-PUBLISHED release", e["Q-7"]["ALT-PUBLISHED"]["requires_separate_release_act"]
+                       and not e["Q-7"]["ALT-PUBLISHED"]["performs_public_release_act"]
+                       and any("does not perform the public-release act" in c for c in pub["consequences"])))
     for name, ok in checks:
         print(("HOLDS " if ok else "FAILS ") + "key agrees with fixture: " + name)
     return all(ok for _, ok in checks)
 
 
 def compare(key, account):
-    errs = sorted(err.message for err in Draft202012Validator(load(os.path.join(HERE, "rp.reader-account.schema.json"))).iter_errors(account))
-    print(("HOLDS " if not errs else "FAILS ") + "account valid against rp.reader-account.schema.json" + ("" if not errs else " -> %s" % errs))
+    errs = sorted(err.message for err in Draft202012Validator(load(os.path.join(HERE, SCHEMAS[SET]))).iter_errors(account))
+    print(("HOLDS " if not errs else "FAILS ") + "account valid against " + SCHEMAS[SET] + ("" if not errs else " -> %s" % errs))
     inset = open(os.path.join(HERE, IS_ID + ".input-set.sha256"), "rb").read()
     import hashlib
     ok_set = account.get("input_set", {}).get("sha256") == hashlib.sha256(inset).hexdigest()
@@ -95,10 +107,11 @@ def compare(key, account):
 
 
 def main():
-    global IS_ID, FX_NAME, KEY, FX
+    global IS_ID, FX_NAME, KEY, FX, SET
     args = sys.argv[1:]
     if args[:1] == ["--set"]:
-        IS_ID, FX_NAME, KEY = SETS[args[1]]
+        SET = args[1]
+        IS_ID, FX_NAME, KEY = SETS[SET]
         FX = os.path.join(HERE, "fixtures", FX_NAME)
         args = args[2:]
     print("set %s: %s, fixture %s, key %s" % (IS_ID[-1], IS_ID, FX_NAME, KEY))

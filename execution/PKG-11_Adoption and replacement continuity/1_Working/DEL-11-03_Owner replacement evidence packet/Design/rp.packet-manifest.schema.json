@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.2",
-  "title": "DEL-11-03 replacement packet manifest (RP-v0.2, PROPOSED)",
-  "description": "The evidence the owner's replacement decision rests on (REPLACEMENT_PACKET.md §3). Every value is derived from the supplied items by rules RP-R1...RP-R5 or copied from a named source; nothing is filled from a definition. The package file names this manifest by sha256 (RP-R6). Two $defs are the first-cut inputs DEL-11-03 expects from DEL-11-01 (continuity_input) and DEL-09-12 (practitioner_standing); their owners' own files supersede them when written.",
+  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.3",
+  "title": "DEL-11-03 replacement packet manifest (RP-v0.3, PROPOSED)",
+  "description": "The evidence the owner's replacement decision rests on (REPLACEMENT_PACKET.md §3). Every value is derived from the supplied items by the packet rules (RP-R1...RP-R8) or copied from a named source; nothing is filled from a definition. The package file names this manifest by sha256. The packet may be put to the owner at any time; it states plainly what is and is not established and claims replacement qualification only when both witnesses hold (DEL-11-03 AX-001). Two $defs are the first-cut inputs DEL-11-03 expects from DEL-11-01 (continuity_input) and DEL-09-12 (practitioner_standing); their owners' own files supersede them when written.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -33,7 +33,7 @@
       "const": "rp_packet_manifest"
     },
     "format": {
-      "const": "RP-v0.2"
+      "const": "RP-v0.3"
     },
     "packet_id": {
       "type": "string",
@@ -136,7 +136,7 @@
         },
         "comparison_rule": {
           "$ref": "#/$defs/nonempty",
-          "description": "How \"at least at v3.0.1’s level\" is judged (F-R2; reader issue I-8)."
+          "description": "How \"at least at v3.0.1’s level\" is judged (EXAMINATION §7)."
         }
       }
     },
@@ -250,9 +250,9 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "path",
-              "sha256"
+              "path"
             ],
+            "description": "copied_record: the supplier file the item was copied from, its sha256 and the record id. shape_only: who wrote the item instead of a supplier, in words (no supplier record exists); the item's shape is in `shape`.",
             "properties": {
               "path": {
                 "$ref": "#/$defs/nonempty"
@@ -267,16 +267,72 @@
           },
           "produced_by": {
             "$ref": "#/$defs/nonempty",
-            "description": "Who produced the item’s content (reader issue I-9)."
+            "description": "Who produced the item's content."
           },
           "source_kind": {
             "enum": [
               "copied_record",
               "shape_only"
             ],
-            "description": "copied_record: the item equals a record in the source file. shape_only: the source gives only the item’s shape; its content is produced_by’s."
+            "description": "copied_record: the item equals a record in a supplier file. shape_only: the item was written by DEL-11-03's owner in the shape `shape` names, pending the supplier's own record."
+          },
+          "shape": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256",
+              "def"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "sha256": {
+                "$ref": "#/$defs/hex64"
+              },
+              "def": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source_kind": {
+                  "const": "copied_record"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "source": {
+                  "required": [
+                    "path",
+                    "sha256",
+                    "record_id"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "source_kind": {
+                  "const": "shape_only"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "shape"
+              ]
+            }
+          }
+        ]
       }
     },
     "core_loop": {
@@ -311,6 +367,7 @@
               "recorded",
               "evidence_resolved",
               "status",
+              "status_reason",
               "steps",
               "v3_references"
             ],
@@ -324,7 +381,7 @@
                   "not_met",
                   "not_evidenced"
                 ],
-                "description": "What the evidence supports: met or not_met only when evidence_resolved; otherwise not_evidenced, whatever is recorded (RP-R1 as repaired; finding EUF1-D1)."
+                "description": "What the evidence supports. met: every counted step passed on a candidate record. not_met: a counted step failed on a candidate record. not_evidenced: otherwise; a blocked, not-run or inconclusive step is a missing result, not a failure."
               },
               "steps": {
                 "type": "array"
@@ -338,14 +395,21 @@
               "recorded": {
                 "enum": [
                   "recorded_pass",
-                  "recorded_not_pass",
+                  "recorded_fail",
+                  "recorded_blocked",
+                  "recorded_not_run",
+                  "recorded_inconclusive",
                   "not_recorded"
                 ],
-                "description": "What the dossier records for the element’s counted steps."
+                "description": "What the dossier records for the element's counted steps, in EXP's outcome vocabulary (worst first: fail, blocked, not-run, inconclusive, pass)."
               },
               "evidence_resolved": {
                 "type": "boolean",
-                "description": "Every counted step’s result resolves to a candidate EXP record with the same outcome (EXP-R3)."
+                "description": "Every counted step's result resolves to a candidate EXP result record with the same outcome (EXP-R3)."
+              },
+              "status_reason": {
+                "$ref": "#/$defs/nonempty",
+                "description": "Why the status is what it is, with each non-pass step, its outcome and its own stated cause."
               }
             }
           }
@@ -393,8 +457,10 @@
             "state": {
               "enum": [
                 "present",
+                "named_not_resolved",
                 "absent"
-              ]
+              ],
+              "description": "present: the review record resolves to a supplied record. named_not_resolved: the dossier names a review record that is not supplied (for example an illustrative one)."
             },
             "review_record": {
               "type": "string"
@@ -463,7 +529,7 @@
             "total_distinct",
             "unresolvable"
           ],
-          "description": "Every receipt reference in the whole dossier, kept apart by where it appears (RP-v0.2; finding EUF1-D2).",
+          "description": "Every receipt reference in the whole dossier, kept apart by where it appears.",
           "properties": {
             "in_handoff": {
               "type": "array",
@@ -683,7 +749,8 @@
             "$ref": "#/$defs/nonempty"
           },
           "point_of_need": {
-            "$ref": "#/$defs/nonempty"
+            "$ref": "#/$defs/nonempty",
+            "description": "What the gap holds back: the packet's claim of replacement qualification (AX-001), or nothing (carried for the owner). No gap holds back putting the packet to the owner."
           }
         }
       }
@@ -730,7 +797,7 @@
     "terms": {
       "type": "array",
       "minItems": 1,
-      "description": "Every code or identifier the package and packet use that a person deciding without project context would need (RP-v0.2; reader issue I-1, I-6).",
+      "description": "Every code or identifier the package, packet, disposition, excerpts and this legend use that a person deciding without project context would need.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -755,7 +822,7 @@
         "path",
         "sha256"
       ],
-      "description": "The exact passages the reserving basis, the comparison rule and the alternatives’ consequences rest on, with each source’s sha256 (RP-v0.2; reader issue I-7).",
+      "description": "The exact passages the reserving basis, the comparison rule and the alternatives' consequences rest on, with each source's sha256.",
       "properties": {
         "path": {
           "$ref": "#/$defs/nonempty"

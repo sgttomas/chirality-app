@@ -1,7 +1,7 @@
 # Owner replacement evidence packet
 
-- **Contribution:** DEL-11-03/RP-v0.2. It supersedes RP-v0.1 (sha256 `1a06262bcf516972c745cf954e8b07d1b697b9f0732d9bd22020e4e372069c8c`, frozen as EU-F1 and read by the isolated reader RR-EUF1), repaired for that reader's findings (O-F.md "EU-F1 — reader result"). It is the unit **EU-F1**, the tranche-2 early path for PKG-11 and DEL-09-12: one replacement decision package, assembled from the suppliers' dossiers and read, with the decision left pending.
-- **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside this file are two PROPOSED schemas, `rp.packet-manifest.schema.json` and `rp.disposition.schema.json`. The prototype, fixture and consumption check are under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/` (RUN/F). No candidate exists; no replacement witness exists; nothing is presented to the owner.
+- **Contribution:** DEL-11-03/RP-v0.3. It supersedes RP-v0.2 (sha256 `80e88983a4822c6d76b257e72cff39166817371cf7e2723afc6541c3f3da1869`, committed at `d43665498d`, read by the isolated reader RR-EUF2 and reviewed by RV3), which superseded RP-v0.1 (`1a06262b…9c8c`, read by RR-EUF1). RP-v0.3 is one repair round covering RV3-EUF1 (EUF1-R1b, R2, R3, R4; Addendum 2 EUF2-R1, R2, N4) and RR-EUF2's points, under R23-43 and R23-44 (O-F.md "EU-F1 — RP-v0.3"). It is the unit **EU-F1**, the tranche-2 early path for PKG-11 and DEL-09-12: one replacement decision package, assembled from the suppliers' dossiers and read, with the decision left pending.
+- **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside this file are two PROPOSED schemas, `rp.packet-manifest.schema.json` and `rp.disposition.schema.json`. The prototype, fixture and consumption check are under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/` (RUN/F). No candidate exists; no replacement witness exists; this fixture is never presented to the owner (a real packet may be: §6.3).
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-006 (§8).
 - **Rulings applied (cited by ID, R23-21):** R23-32 (P-1…P-7 are the person's acts at their own points of need; F-R1…F-R16 as S2-F proposed them), R23-33 (EXP's `candidate_subject` is the canonical App candidate identity), R23-36 (LHQ-v0.2 CI-5 adds the CIR mapping), R23-24 (package file shape), R23-19/R23-20 (outcome labels), R23-11 (overtaken wording carried).
@@ -9,8 +9,9 @@
 - **Basis pins** (`shasum -a 256`, 2026-10-04): `docs/PRD.md` `bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd` (§8 V4-REP-01, §9 OQ-08, OQ-12, §11); `docs/EXAMINATION.md` `471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0` (§2, §7, V4-EXM-10/11/20); `reference/REFERENCES.md` `07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc` (§2, the fallback).
 - **Supplier pins** (committed and unchanged since `d150856784`, except LHQ-v0.2 as stated):
   - DEL-09-02 SQ-v0.2 `STANDALONE_QUALIFICATION.md` `3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391` (§1, §2 O-1, §8), with `sq.dossier.valid.examples.json` `426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db`.
-  - DEL-09-07 DOS-v0.1 `QUALIFICATION_DOSSIER.md` `b2ffba7135652c9e5d2ebaece3d1b002a4aef6f394f9f876dc2b3600cdde0ccd` (§1, §4 DH-1/DH-2, §6 DF-5), with `lhq.dossier-manifest.valid.examples.json` `4d659926675a5c7e4bad32a627a7aef738fd0c9fb5aa606abe9314271784f9bd`.
-  - DEL-09-07 LHQ-v0.2 (R23-36; O-C's working bytes, not yet committed) `LOCAL_HOST_QUALIFICATION.md` `5cd31e097a8faae46298202d854b9bb9cba27e8355c31fef997310b49c15f07b` (§3 CIR, CI-5; the OI-013/014 row), with `lhq.candidate-identification.schema.json` `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` and `….valid.examples.json` `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4`. RP-v0.1 relied on LHQ-v0.1 (`20361a0b…`); the fixture's CIR record is byte-identical in both versions.
+  - DEL-09-07 DOS-v0.1 `QUALIFICATION_DOSSIER.md` (§1, §4 DH-1/DH-2, §6 DF-5), with `lhq.dossier-manifest.valid.examples.json` as repaired by O-C for EUF1-S1 (DX-1, DX-2; commit `141a6cc8b4`; sha256 `9873df65c9b48172…`, vendored), which holds `DOS-EXAMPLE-INVENTED` (no receipt anywhere) and `DOS-EXAMPLE-INVENTED-POPULATED` (RC-1 in all three places).
+  - **Vendored supplier bytes (R23-44).** Every supplier schema and example the checks read is copied into `RUN/F/vendor/` with its source path, sha256 and source commit (`vendor/VENDOR.json`). The checks read the copies; `check_rp.py` V-1 verifies them, and prints a NOTICE (it does not fail) when a live source has moved since vendoring, so that the owner re-pins deliberately (R23-21).
+  - DEL-09-07 LHQ-v0.2 (R23-36; committed at `141a6cc8b4`; its schema and examples vendored) `LOCAL_HOST_QUALIFICATION.md` `90f461cbbe98de20cdd19e13be6adb82818fa23ea55166cab04833108df8523e` (§3 CIR, CI-5 with LHQ2-R1: where both are given, the mapping agrees with the element's `value`, so consumers reconcile on the mapping; the OI-013/014 row). RP-v0.2 read the uncommitted `5cd31e09…`; the change adds the agreement rule only, which RP-R3 relies on and nothing else here changes, with `lhq.candidate-identification.schema.json` `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` and `….valid.examples.json` `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4`. RP-v0.1 relied on LHQ-v0.1 (`20361a0b…`); the fixture's CIR record is byte-identical in both versions.
   - DEL-09-01 EXP-v0.2 `EXAMINATION_PROTOCOL.md` `ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93` and `exam.result-record.schema.json` `f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081` (`$defs/candidate_subject`, `$defs/outcome`).
   - DEL-02-03 `checkpoint-record-entries.schema.json` proposed-0.7 `a5271857c8bf71f67077fc52760a35d41ee0c30f8bd6d487a93d3c882308b45c` (`$defs/decisionPackageFile`, used read-only).
 - **Labels.** *States* means a file says it; *inference* marks this file's own reading; PROPOSED marks rules this file introduces.
@@ -56,7 +57,7 @@ It leaves out:
 | I-5 | Adoption status | DEL-11-02 | DEP-11-02-015, admitted (supplier's row) | Packet assembly | *not supplied*; gap named |
 | I-6 | v3.0.1 baseline identity | `reference/REFERENCES.md` §2 | DEP-11-03-010 (not topological; was UNKNOWN, F-R2) | Packet assembly | Packet not assembled |
 | I-7 | EXP result records the dossiers cite; EXP change-impact records | DEL-09-01 records (EXP-v0.2) | through I-1/I-2 | Establishing an obligation | Obligation *not established* |
-| O-1 | Package file (R23-24 shape) | The owner, when presented | DEP-11-03-014 (not topological) | When both witnesses exist | — |
+| O-1 | Package file (R23-24 shape) | The owner, when presented | DEP-11-03-014 (not topological) | **Any time** (R23-43). It states plainly what is and is not established, and claims replacement qualification only when both witnesses hold | — |
 | O-2 | Disposition record | DEL-11-01 and affected consumers | DEP-11-03-015 (held), DEP-11-03-016 | After an attributable owner act | Disposition stays as recorded (§6.2) |
 
 ## 3. The packet manifest (`rp.packet-manifest.schema.json`)
@@ -65,13 +66,14 @@ One manifest per packet version.
 - It names every supplied item by path and sha256, together with the source it was copied from (file, sha256, record id).
 - It states what the rules (§4, §5) derive from those items. Nothing in it is filled from a definition.
 - `evidence_standing` is `illustrative` whenever any supplier input is an example or fixture. An illustrative packet can establish nothing.
-- Each supplied item states `produced_by` (who produced its content) and `source_kind`: `copied_record` (it equals a record in the named source file) or `shape_only` (the named source gives only its shape). The first-cut continuity and practitioner inputs are `shape_only`, produced by DEL-11-03's builder standing in for DEL-11-01 and DEL-09-12 (RP-v0.2; reader issue I-9).
-- `terms` defines every code or identifier the package, packet and disposition use (for example A16, P20-A, CIR, OI-nnn, DEP-001, DECISION-3), so a person deciding without project context can read them. The prototype refuses a packet that uses a code with no term (A-13; reader issues I-1, I-6).
+- Each supplied item states `produced_by` (who produced its content) and `source_kind`. For `copied_record`, `source` names the supplier file, its sha256 and the record. For `shape_only`, `source` says in words that the item is a first cut by the DEL-11-03 owner pending DEL-11-01's or DEL-09-12's own record, and `shape` names the `$def` it follows (RP-v0.3; RV3 EUF1-R3). `RUN/F/EU-F1.key-grounding.md` marks which key answers rest on these first cuts.
+- The fixture carries its legend (the two RP schemas) inside it, so an input set no longer depends on live Design files (RP-v0.3; the lesson of IS-FX-RP1-1).
+- `terms` defines every code or identifier the package, packet, disposition, excerpts and legend use (for example A16, P20-A, CIR, OI-nnn, DEP-001, DECISION-3, PEC, Domains, 'fallback'), so a person deciding without project context can read them. Codes inside the supplier copies keep their owners' vocabulary; the term "supplier records" says so and defines the few the packet copies (ST-4, U-SQ-5, TT-7). The builder refuses, and `check_rp.py` A-13 fails, any code in those texts with no term (RP-v0.3 widened the scope after RR-EUF2).
 - `basis_excerpts` names a file of the exact passages the decision rests on, each with its source sha256: PRD §8, EXAMINATION §7, DEL-11-03 CLM-001, CLM-003, REQ-004, REQ-005 and AX-001, REFERENCES §2, and App v3's BUILD_AND_RELEASE §12, which underlies ALT-PUBLISHED's inference (reader issue I-7).
 - `basis` quotes the reserving texts with their source sha256. The builder checks each quote against the current bytes.
 - `baseline` is REFERENCES §2. `remote_rechecked` stays false until someone re-reads the published release. `comparison_rule` states how "at least at v3.0.1's level" is judged: by V4-EXM-10 and V4-EXM-11 passing on the candidate (EXAMINATION §7; F-R2; reader issue I-8). The baseline also carries the v3 reference limit: SQ's `v3_reference` values cite v3.0.0-era journeys (`266c121bb` is not an ancestor of the v3.0.1 source). They are context only.
 - `not_established` always lists the six things the packet never establishes: replacement decision, public release, retirement, professional reliance, consumer adoption and practitioner validation.
-- `gaps` names each missing contribution, its supplier and its point of need. A gap never gates presentation: AX-001 lets a packet "accurately report partial or adverse evidence". Its point of need is "before the replacement evidence can be complete", or "carried for the owner; not a replacement condition" (RP-v0.2; RP-v0.1 wrote "before the package is presented", reader issue I-10). `open_matters` carries P-1, P-5, OI-024, OI-021, DEP-001, OI-016 (App v4) and the OI-013/014 residue, each with its owner.
+- `gaps` names each missing contribution, its supplier and its point of need. **A gap holds back only the packet's claim of replacement qualification, never putting the packet to the owner** (R23-43). AX-001 says, in its own words: "A packet may accurately report partial or adverse evidence, but cannot claim replacement qualification until both applicable witnesses hold; even then the actual owner act remains separate." So a replacement-condition gap reads "before the packet can claim replacement qualification", quoting those words, and the other gaps read "carried for the owner; not a replacement condition". RP-v0.2's "presentation is not gated: DEL-11-03 AX-001" attributed to AX-001 something it does not say (RV3 EUF2-R1); RP-v0.1's "before the package is presented" invented a presentation gate. A-16 checks the wording. `open_matters` carries P-1, P-5, OI-024, OI-021, DEP-001, OI-016 (App v4) and the OI-013/014 residue, each with its owner.
 
 ### 3.3 First-cut inputs
 
@@ -92,12 +94,16 @@ One manifest per packet version.
 - Only V4-EXM-10 and V4-EXM-11 count. Other scenarios (V4-EXM-12) are listed as *outside the core loop*.
 - A V4-EXM-10/11 step whose element is outside the list is an interface error. The obligation is then never established.
 - An uncounted step (for example J-8R) is shown and changes no element.
-- Each element carries two facts, kept apart (RP-v0.2; finding EUF1-D1):
-  - `recorded`, what the dossier records for its counted steps: `recorded_pass` (all recorded pass), `recorded_not_pass` (one recorded with another outcome), or `not_recorded`;
-  - `status`, what the evidence supports. An element is `met` or `not_met` only when `evidence_resolved` is true. That means every counted step's `result_record` resolves to a supplied EXP result record with `run_basis: candidate` and the same outcome (EXP-R3). Otherwise its status is `not_evidenced`, whatever the dossier records.
+- Each element carries two facts, kept apart:
+  - `recorded`, what the dossier records for its counted steps, in EXP's outcome vocabulary, worst first: `recorded_fail`, `recorded_blocked`, `recorded_not_run`, `recorded_inconclusive`, `recorded_pass`; or `not_recorded`;
+  - `status`, what the evidence supports, with `status_reason` naming each non-pass step, its outcome and the step's own stated cause:
+    - `met` only when every counted step resolves to a supplied EXP result record with `run_basis: candidate` and outcome `pass` (EXP-R3);
+    - `not_met` only when a counted step resolves to a candidate record with outcome **`fail`**;
+    - otherwise `not_evidenced`. A `blocked`, `not-run` or `inconclusive` step is a **missing result, not a failure** (SQ-R4; R23-20). It never yields `not_met`, whether or not it is resolved (RV3 EUF1-R1b, fixed in RP-v0.3; RP-v0.2 read any non-pass as `not_met`).
+  - Example: S11-6 is recorded `blocked` because stimulus ST-4 was not produced ("route cannot delegate; no recording (U-SQ-5)", the record's own cause), an input gap. Restart is `recorded_blocked` and `not_evidenced`, and its gap says "a missing result, not a failure".
 - The obligation is `met` only if all seven are `met`; `not_met` if any is `not_met`; otherwise `not_evidenced`.
 - **Established** requires all of: obligation `met`; the dossier `handed_over` and `reported_as_independent` (SQ-R8); and no unresolved step.
-- `dossier_review` reports the standalone dossier's own independent review separately from the journey's, and names what each covers (reader issue I-5).
+- `dossier_review` reports the standalone dossier's own independent review separately from the journey's, and names what each covers. Its state is `present` only when the named review record resolves to a supplied record; a review the dossier names but nobody supplied (an illustrative one) is `named_not_resolved`, and it holds back "established" (RP-v0.3; RR-EUF2's point that an illustrative review read as present).
 - RP-v0.1 derived `met` from what the dossier records alone. It showed six elements "met" on illustrative records, a claim EXP-R3 does not allow even in a fixture.
 
 ### 4.2 RP-R2 Journey obligation (REQ-002, VER-002; DOS §4 DH-1 as written)
@@ -135,7 +141,7 @@ See §5. Results join across the two obligations only when the reconciliation is
 | The same element without `app_candidate_subject` | `{value, source, standing}`: one string | Cannot be split without inventing a convention | Not mappable (B-24) |
 
 Reconciliation values:
-- `reconciled`: both map, and their `app_candidate` objects are equal;
+- `reconciled`: both map, and their identities are equal **by EXP's identity semantics**: `revision`, `build_identity`, `packaged` (absent means `false`), and `package_record` when packaged. This is not a literal object comparison, so a CIR that omits `packaged` does not give a false `differ` against SQ's explicit `false` (RP-v0.3; RV3 EUF1-R4; B-24…B-26);
 - `differ`: both map but differ, with no change-impact record. Results are not joined;
 - `reconciled_by_applicability`: they differ and an EXP change-impact record is named (V4-EXM-03; F-R1);
 - `not_established`: either side is not supplied or not mappable.
@@ -151,12 +157,20 @@ The packet's subject is the SQ-mapped `candidate_subject`. When the CIR maps, it
 - `reservedBy` cites PRD §8 V4-REP-01 and EXAMINATION §7 with their exact statements. `scope` is "the v3.0.1 fallback only".
 - Exactly four alternatives, in this order:
 
-| ID | Statement (short) | v3.0.1 remains the fallback | Also a release act | Retires anything |
-|---|---|---|---|---|
-| ALT-OWN-USE | The owner's own work moves to the candidate; v3.0.1 stays published | yes | no | no |
-| ALT-PUBLISHED | The candidate replaces v3.0.1 as the published product | no | **yes** (OQ-08, decided separately) | no |
-| ALT-DEFER | Decide again when the named gaps close | yes | no | no |
-| ALT-DECLINE | This candidate does not replace v3.0.1 | yes | no | no |
+| ID | Statement (short) | Performs the public-release act | Needs it as a separate owner act | v3.0.1 remains the fallback without a further act | Retires anything |
+|---|---|---|---|---|---|
+| ALT-OWN-USE | The owner's own work moves to the candidate; v3.0.1 stays the published product and the fallback | no | no | yes | no |
+| ALT-PUBLISHED | The candidate is to replace v3.0.1 as the published product, once the owner also performs the separate public-release act | **no** | **yes** (P-5; PRD OQ-08; CLM-003) | **yes**: until that act, v3.0.1 remains the published product and the fallback | no |
+| ALT-DEFER | Decide again when the named gaps close | no | no | yes | no |
+| ALT-DECLINE | This candidate does not replace v3.0.1 | no | no | yes | no |
+
+RP-v0.3 states what choosing ALT-PUBLISHED does (RV3 EUF1-R2). Choosing it does not perform the release, and the release stays the owner's separate act (P-5). RP-R6 refuses an ALT-PUBLISHED that does not say so (B-35). "Fallback" is defined in the packet's terms: the published product that stays in place until the owner decides v4 has replaced it. Which App the owner personally uses is not the fallback.
+
+The `purpose` says plainly where the packet stands (R23-43; RR-EUF2's question about choosing on incomplete evidence):
+- "V4-REP-01 states when v4 may replace v3.0.1; the packet states what is and is not established". Here it adds "the two witnesses are not shown to hold, so it does not claim replacement qualification".
+- "Choosing any alternative remains the owner's act, on the evidence as presented; this package neither forbids nor recommends a choice."
+
+The package invents no gate and implies no permission. RP-R6 requires the choice sentence (B-36). A-19 requires the qualification claim to match `replacement_evidence.complete`.
 
 `subject[0]` asks "whether, and at what scope", and ALT-OWN-USE's statement says what it replaces: v3.0.1 in the owner's own work only (RP-v0.2; reader issue I-3). `purpose` names the act in words: A16, 'decide', choosing exactly one alternative (reader issue I-1). ALT-PUBLISHED's consequences include an inference, labelled as one: App v3's records (`BUILD_AND_RELEASE.md` §12) say v3.0.x installs check the latest published stable release, so they would be offered v4. Every alternative states "No retirement" (RP-R6). The package holds no recorder element (R23-24).
 
@@ -189,7 +203,7 @@ RP-R7:
 2. Build the manifest (RP-R1…R5, R8).
 3. Write the package (RP-R6).
 4. Write the disposition as `not_presented`.
-5. When both witnesses are established and the coordinator presents the package: `presented_no_decision`.
+5. When the coordinator puts the package to the owner: `presented_no_decision`. This may be at any time (R23-43). The packet states what is and is not established, and claims replacement qualification only when both witnesses hold. The owner's act stays separate and is the owner's to make on the evidence as presented.
 6. When the owner acts: `decided`, recorded as in §6.2.
 7. Return the disposition to DEL-11-01 and the affected consumers.
 
@@ -199,7 +213,7 @@ A supplier change makes a new manifest version, and so a new package. An earlier
 
 | # | What fails | Record left | Next |
 |---|---|---|---|
-| RF-1 | A supplier handoff is missing | Gap with supplier and point of need; obligation *not evidenced* | Packet kept; not presented |
+| RF-1 | A supplier handoff is missing | Gap with supplier and point of need; obligation *not evidenced* | Packet kept and may still be put to the owner, stating the gap; no claim of replacement qualification (R23-43) |
 | RF-2 | A step's result record does not resolve to a candidate EXP record | `not_established_because` names it | Returned to DEL-09-02 or DEL-09-07 |
 | RF-3 | Candidates differ, or one side is not mappable | Reconciliation `differ` or `not_established`; obligations not joined | Change-impact record (DEL-09-01 form) or the CIR row (RQ-LHQ-1) |
 | RF-4 | A supplier record changes after assembly | RP-R8 fails; new manifest version; a new package | The old package and its disposition become history; a decided disposition on it lapses |
@@ -216,31 +230,45 @@ A supplier change makes a new manifest version, and so a new package. An earlier
 | RP-VC-04 Disposition | VER-004, AC-004 | RP-R7; fabricated decision, actor = recorder, unknown alternative, lapsed package, undecided record dropping v3.0.1 | Rules run (B-33…B-40) on invented records; no owner act requested |
 | RP-VC-05 Continuity and open matters | VER-005, AC-005 | First-cut continuity input carried; P-1/P-5/OI-024/OI-021/DEP-001/OI-016 (App v4) carried; no PEC or Domains gate | Fixture FX-RP1-2 (A-11, A-12, A-14) |
 | RP-VC-06 Act boundary | VER-006, AC-006 | §1 table; the package never performs or implies an owner act | Review |
-| **EU-F1 consumption check** | REQ-004 (the owner can decide from the files) | An isolated reader given only IS-FX-RP1-1 answers Q-1…Q-12 (`READER_BRIEF.md`). An examiner compares the answers with the frozen key, field by field | RR-EUF1 on IS-FX-RP1-1 (RP-v0.1): 33/33 fields, 11 issues, judged in O-F.md; IS-FX-RP1-2 is ready with its own key, should a second reader be wanted |
+| **EU-F1 consumption check** | REQ-004 (the owner can decide from the files) | An isolated reader given only the input set answers fixed questions; an examiner compares the answers with the frozen key, field by field | RR-EUF1 on IS-FX-RP1-1 (RP-v0.1): 33/33 fields, 11 issues. RR-EUF2 on IS-FX-RP1-2 (RP-v0.2): 33/33, 10 issues. Each issue is judged in O-F.md. IS-FX-RP1-3 (RP-v0.3, Q-1…Q-13) is staged and keyed, not read |
 
-Prototype at freeze (RP-v0.2, fixture FX-RP1-2): `check_rp.py` 57/57.
-- A-1…A-17 cover the fixture: integrity, schemas, copies, recomputation, thesis identity, terms, excerpts, receipts, points of need and evidence-before-status.
-- B-1…B-40 are 40 rule cases.
-- A-13, A-15, A-16 and A-17 fail on the RP-v0.1 fixture, as they should; this was checked.
+Prototype at freeze (RP-v0.3, fixture FX-RP1-3): `check_rp.py` **65/65**:
+- A-1…A-19: the fixture, including the legend it carries (A-18) and the purpose against completeness (A-19);
+- V-1: vendoring;
+- B-1…B-44: rule cases. Among them, blocked, not-run and inconclusive are never `not_met` (B-4, B-6); only fail is (B-5). An illustrative review is never `present` (B-12). O-C's repaired DOS examples supply the receipt cases (B-13…B-15). Identity semantics are covered by B-24…B-26, and the ALT-PUBLISHED and purpose refusals by B-35 and B-36.
 
-The consumption check on RP-v0.1: RR-EUF1's account held 33/33 fields against the frozen key, with 11 issues referred. Each issue is judged in O-F.md. `compare_rp.py --set 2 --self-check` holds 16/16 for the IS-FX-RP1-2 key. The builder is deterministic.
+`check_rp.py --fixture FX-RP1` and `--fixture FX-RP1-2` reproduce which current checks the earlier fixtures fail (RV3 N4): 9/20 and 12/20 of Part A and V-1.
+
+`compare_rp.py` validates each set's account against that set's own schema. RP-v0.2's tool always used set 1's schema, which is why it reported RR-EUF2's valid account as invalid. Self-checks: set 3 18/18 (16 plus Q-13 and the ALT-PUBLISHED release check). The builder is deterministic.
 
 ## 9. Open matters
 
 | Item | Owner | Point of need | Effect here |
 |---|---|---|---|
-| RQ-LHQ-1: closed by R23-36. LHQ-v0.2 CI-5 adds `app_candidate_subject`. It is O-C's working bytes, not yet committed | — | — | Reconciliation works on a CIR that supplies it (B-18…B-23) |
-| DOS example inconsistency: the dossier's DEL-09-11 handoff names RC-1, while its host evidence index and its DEL-11-03 handoff are empty (finding EUF1-S1) | O-C | At DOS's next revision | RP-R2 now detects it (B-15); no effect on DOS's rules |
+| RQ-LHQ-1: closed by R23-36 (LHQ-v0.2 CI-5, committed `141a6cc8b4`) | — | — | Reconciliation works on a CIR that supplies it (B-19…B-26) |
+| EUF1-S1 (DOS example receipts): closed by O-C (DX-1, DX-2) | — | — | FX-RP1-3 uses the repaired example; B-13…B-15 use both examples |
 | SQ dossier's `core_loop_element` is a free string | O-B (optional) | — | RP-R1's closed list catches drift (RF-5); no row requested |
-| P-1 replacing v3.0.1; P-5 public release | The owner | Their own points of need | Prepared only |
+| P-1 replacing v3.0.1; P-5 public release | The owner | P-1: the owner's act whenever the owner takes it, on the evidence as presented; the packet may be put to the owner at any time (R23-43). P-5: before public release | Prepared only; never performed or implied |
 | OI-021, DEP-001, host joins (DECISION-3) | Owner via the SWB session; SWBPIPE | Before V4-EXM-20 can run | OUT-002 stays incomplete |
 | OI-013/014 residue (App candidate's role in V4-EXM-20) | Shared contract owner with the SWB owner | Before the CIR's App element is fixed for CA/E | Carried |
-| Remote re-check of REFERENCES §2 | DEL-11-03 coordinator | When a package is prepared for presentation | `remote_rechecked: false` until then |
+| Remote re-check of REFERENCES §2 | DEL-11-03 coordinator | When a real package is prepared for the owner | `remote_rechecked: false` until then |
 
 ## 10. Changes
 
 | Version | Change |
 |---|---|
+| RP-v0.3 (2026-10-04) | One repair round, covering RV3-EUF1 and RR-EUF2:
+- EUF1-R1b: only a resolved `fail` gives `not_met`; blocked, not-run and inconclusive are missing results. `recorded` uses EXP's vocabulary; `status_reason` gives the causes.
+- EUF1-R2: ALT-PUBLISHED does not perform the release, which stays a separate owner act.
+- EUF1-R3: `source` and `shape` for first cuts, and `EU-F1.key-grounding.md`.
+- EUF1-R4: reconciliation by EXP identity semantics.
+- EUF2-R1 under R23-43: presentation at any time, a claim only when both witnesses hold, AX-001 quoted in its own words. Restated in §2 O-1, §3, §6.3 step 5, RF-1 and P-1.
+- EUF2-R2: fixture FX-RP1-3 on O-C's repaired DOS example, under a new input set.
+- N4: `check_rp.py --fixture`.
+- R23-44: supplier bytes vendored; legend inside the fixture.
+- RR-EUF2: the purpose states the qualification claim and the choice sentence; 'fallback' and the other codes the reader met are defined; an illustrative review is `named_not_resolved`; uncounted steps carry the dossier's reason.
+- `compare_rp.py` validates each set's account against that set's own schema.
+- Manifest format `RP-v0.3`; the disposition schema is unchanged. FX-RP1, FX-RP1-2, their input sets and keys are kept unchanged |
 | RP-v0.2 (2026-10-04) | Repaired for RR-EUF1:
 - EUF1-D1: RP-R1 separates `recorded` from `status`, and status needs resolved candidate evidence.
 - EUF1-D2: RP-R2 carries every receipt in the dossier.

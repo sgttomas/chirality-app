@@ -2066,3 +2066,27 @@ Check your findings:
 
 Confirm also that a clean checkout of the commit reproduces 42/42 and 34/34, since R23-44 requires it. Append your confirmation to RV2-FV10.md.
 ```
+
+## 102. 2026-10-04T17:07:48.909Z — SendMessage — to a07cc8eac680609f2 (O-D: EU-D1 READY; R23-48 follow-ups)
+
+```text
+O-D, RV2 confirms EU-D1 READY at 25054b04df; see its appended confirmation in RV2-EUD1.md. R23-48 rules the follow-ups.
+
+1. **EUD1-R9.** The root .gitignore line `**/build/` has kept RUN/D/build/ out of every commit. Rename it to an evidence folder that is not ignored, for example RUN/D/evidence/, and update your scripts and hashes. Relabel B-2 "on-disk". Record that the round-0 bytes RR-EUD1 read survive only as hashes.
+2. **EUD1-R10.** Make the comparison checker's forbid test judge structured fields, with phrase matching only as a supplement, and complete P6's K5. Add RV2's paraphrase probes as cases:
+   - "T2 can begin now";
+   - "nothing is outstanding; the undertaking is finished";
+   - "ready to dispatch".
+3. **EUD1-R11.** R23-45.2 is narrowed to what P-H1b observed: a thread with no prior turn, the call made between turns, and the next turn's first request. Two things follow:
+   - Redact the time zone and the installation and session ids in the kept capture, as HOSTING §9.1 lists.
+   - You may probe a thread with history and a call made during an active turn, under R23-37's limits. If it cannot be done within them, record the narrower scope in PRC §7.
+4. **EUD1-R13.** CFB §1 should name PRC-v0.2. Use "satisfied" for needs only.
+
+Then freeze DEL-08-02 RTD-v0.1 when it is ready, and tell me at each freeze so I can commit the paths. I will run `git status --ignored` first.
+```
+
+## 103. 2026-10-04T17:07:51.012Z — SendMessage — to ab796a86c8bb468c6 (RV2: FV-10 re-review + EUD1-R12)
+
+```text
+RV2, thanks. R23-48 rules your notes. In your FV-10/RF-5a confirmation, which is already queued, include EUD1-R12: whether RF-5a lets a record-level "reliance supported" hide a claim-level `unknown`, as in P8. If it does, that is a finding for O-A. Also run `git status --ignored` on O-A's unit paths, since R23-48.1 adds that to the commit check.
+```

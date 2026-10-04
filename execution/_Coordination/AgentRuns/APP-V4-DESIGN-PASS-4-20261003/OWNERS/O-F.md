@@ -17,7 +17,7 @@ Escalate only for:
 
 | Unit | Deliverable | Path (from `projects/chirality-app-v4/execution/`) | sha256 | State |
 |---|---|---|---|---|
-| EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | `…/DEL-11-03_Owner replacement evidence packet/Design/REPLACEMENT_PACKET.md`, two schemas, and `_Coordination/…/F/` | see "EU-F1 — refrozen as RP-v0.2" | **REFROZEN 2026-10-04 as RP-v0.2 for RV3** after reader RR-EUF1 (33/33 fields; 2 defects confirmed and repaired) |
+| EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | `…/DEL-11-03_Owner replacement evidence packet/Design/` and `_Coordination/…/F/` | see "EU-F1 — RP-v0.3" | **REFROZEN 2026-10-04 as RP-v0.3**, for HELP_HUMAN to commit (R23-41) before RV3 confirms. History: RP-v0.1 (RR-EUF1, RV3), RP-v0.2 (`d43665498d`; RR-EUF2, RV3 Addendum 2) |
 
 ## EU-F1 — frozen (RP-v0.1; superseded by the refreeze below, kept as the record RR-EUF1 read)
 
@@ -189,3 +189,115 @@ Fixture identities:
 **Findings for other owners (routed by HELP_HUMAN; not edited by O-F).**
 - **EUF1-S1, to O-C:** DOS's example `DOS-EXAMPLE-INVENTED` is internally inconsistent. Its `handoff_del_09_11.receipt_refs` names RC-1, while `host_evidence` and `handoff_del_11_03.receipts` are empty, and DOS §1 says the index lists every receipt the results cite. Inference: either the index and the DEL-11-03 handoff should list RC-1, or the DEL-09-11 handoff should not.
 - No escalation: no earlier Design file was restructured, no register row was added, no owner act was requested or implied, and no check was weakened. The check set grew from 44 to 57; nothing was removed except the cases RP-v0.1's defective rule encoded, which were replaced by stricter ones.
+
+## RV3-EUF1 checked against RP-v0.2 — repair held (R23-41)
+
+`reviews/RV3-EUF1.md` reviewed RP-v0.1 and returned REPAIR (1 MAJOR, 3 MINOR, 3 NOTE). RP-v0.2 is committed at `d43665498d`. I checked it against git: every DEL-11-03 `Design/` file and every `F/` file is tracked, and the working tree is clean. RP-v0.2 is the unit under review, so **nothing in it is edited** until the second reader (RR-EUF2) returns. These notes are not part of the unit.
+
+Each finding was tested against RP-v0.2's own committed code and fixture (a read-only script run from `F/`):
+
+| Finding | State in RP-v0.2 | Evidence | Repair planned for RP-v0.3 |
+|---|---|---|---|
+| **EUF1-R1** (MAJOR), first half: `met` from records alone | **Fixed** by EUF1-D1 | FX-RP1-2: all seven elements `not_evidenced`; A-17, B-1 | None further |
+| **EUF1-R1**, second half: `blocked` merged into `not_met` | **Still open** | With S11-6's record resolved to a candidate record, RP-v0.2 gives restart `recorded_not_pass` / `not_met` and the obligation `not_met`. B-4 encodes this. S11-6 is `blocked` by an input gap (SQ U-SQ-6, SF-8), not a candidate defect | `recorded` keeps the step outcomes in EXP's vocabulary (`pass`, `fail`, `blocked`, `not-run`, `inconclusive`). An element is `not_met` only on a resolved `fail`. A resolved `blocked`, `not-run` or `inconclusive` step makes it `not_evidenced`, with the outcome and its cause shown. Gap text says "blocked by an input gap" apart from a failure. B-4 is replaced by a blocked case (→ `not_evidenced`) and a fail case (→ `not_met`) |
+| **EUF1-R2** (MINOR): does choosing ALT-PUBLISHED perform the release? | **Still open** | The package's first consequence still reads, unconditionally, "v3.0.1 is no longer the fallback for the published product" | The statement and consequences say that choosing ALT-PUBLISHED does **not** perform the public-release act (P-5, OQ-08), which stays a separate owner act, and that until it is performed v3.0.1 remains the published product and fallback. RP-R6 checks the wording. A future key would ask `performs_release_act` and `requires_separate_release_act`, not the ambiguous `also_a_public_release_act` |
+| **EUF1-R3** (MINOR): key answers resting on O-F's first-cut inputs | **Partly addressed** | RP-v0.2 added `produced_by` and `source_kind: shape_only` for S-4/S-5. But `source.path` still names the schema `$def`, and neither key marks its grounding (EU-F1-2 `why` covers only Q-3, Q-6, Q-7) | `source` relabelled "first cut by the DEL-11-03 owner pending DEL-11-01 / DEL-09-12" (shape cited separately). The frozen keys are not edited: a new `F/EU-F1.key-grounding.md` marks each answer of both keys as grounded in a supplier record, a packet derivation, or O-F's first-cut input. Q-9 and Q-11 are first-cut; Q-12 partly |
+| **EUF1-R4** (MINOR): literal comparison gives a false `differ` | **Still open** | A CIR `app_candidate_subject {revision r1, build_identity b1}` against SQ `{r1, b1}` gives `differ` | Compare by EXP identity semantics: absent `packaged` means `false`; compare `revision`, `build_identity`, `packaged`, and `package_record` when packaged. New B-cases: omitted versus explicit `false` → reconciled; packaged versus not → differ; different `package_record` → differ |
+| N1 (A-8 after LHQ-v0.2) | Resolved in RP-v0.2 | The rebuild recorded the new source sha; A-8 holds | — |
+| N2, N3 | Observations | — | — |
+
+The one repair round, after RR-EUF2, covers these plus whatever the second reader's account shows. It is refrozen as RP-v0.3 with a new fixture and input-set id, and FX-RP1, FX-RP1-2 and both keys are kept unchanged.
+
+## EU-F1 — RR-EUF2 result
+
+**Account:** `RR-EUF2/account.json` (`0d53d0890106e712…`). `DISPATCH_RECORD.md` is `8c1e443e…`; `SUPPLIED.sha256` is `93d9a224…`.
+
+**Score.** `python3 -B F/compare_rp.py --set 2 RR-EUF2/account.json`: **33/33 fields held**, 12 statements and 10 issues referred.
+- The account is valid against the v2 account schema (checked with `jsonschema` directly).
+- The tool's first line read "FAILS account valid against rp.reader-account.schema.json". **That was a defect in my tool, not in the account**: RP-v0.2's `compare_rp.py` validated every set against set 1's schema. It is repaired in RP-v0.3, and each set now uses its own schema.
+
+**Statements.** None of the 12 contradicts the records.
+- The Q-3 statement reads restart's "not-pass (S11-6 blocked)" correctly, without calling it a failure.
+- The Q-7 statement repeats RP-v0.2's ALT-PUBLISHED wording, which RV3 EUF1-R2 found unclear; it is repaired below.
+
+**Issues, judged on the evidence.**
+
+| # | Reader's issue | Traced to | Judgment | RP-v0.3 |
+|---|---|---|---|---|
+| 1 | Brief file name | Dispatch prompt | HELP_HUMAN's slip; no change needed. The v2 schema's description also says `READER_BRIEF.md` | The v3 schema names `READER_BRIEF.v3.md` |
+| 2 | Choosing a replacing alternative on incomplete evidence: permitted? | Package | **Real gap.** The files did not say | Resolved under R23-43. The purpose states that V4-REP-01 says when v4 may replace v3.0.1, that the packet says what is and is not established, that here the two witnesses are not shown to hold, so it claims no qualification, and: "Choosing any alternative remains the owner's act, on the evidence as presented; this package neither forbids nor recommends a choice." P-1's point of need is restated. No gate is invented and no permission implied. RP-R6 (B-36) and A-19 hold it |
+| 3 | Scope of "fallback" under ALT-OWN-USE | Package | **Real ambiguity** | `terms` defines "fallback": the published product that stays in place until the owner decides v4 has replaced it; which App the owner personally uses is not the fallback. ALT-OWN-USE's statement points to that term |
+| 4 | Restart: not-pass shown as not_evidenced, like the six passes | Packet legibility | The reader read it correctly (blocked is not a failure). The status alone hid the adverse record | `recorded` now uses EXP's vocabulary (`recorded_blocked`), and `status_reason` gives "S11-6 recorded blocked (ST-4 not produced: route cannot delegate; no recording (U-SQ-5)): a missing result, not a failure". Blocked is never merged into not_met (EUF1-R1b) |
+| 5 | An illustrative "independent review" read as present | **Packet rule** | **Real defect (EUF2-D1)**, of the same kind as EUF1-D1: `dossier_review.state` was `present` because the dossier named a review record, though nothing resolved it | State is `present` only when the review record resolves; otherwise `named_not_resolved`, which holds back "established" (B-12) |
+| 6 | Continuity input produced by the packet builder | Packet provenance | A disclosed limit, also RV3 EUF1-R3 | `source` says "none: first cut by the DEL-11-03 owner, pending DEL-11-01's own record"; `shape` names the `$def`; `EU-F1.key-grounding.md` |
+| 7 | Fallback identity and the ALT-PUBLISHED consequence rest on unchecked or inferred facts | Packet | Not a defect: each is already labelled (`remote_rechecked: false`; "inference"; the v3 reference limit) | None |
+| 8 | Undefined codes | Packet scope and legend | **Real, partly.** Some codes the person deciding meets were outside the term check: the legend's descriptions (RP-R1, R23-33, F-R4…), the excerpts (D-11, U2, PEC, Domains, OD-09, D-APP-131, SOW-113, S1…) and copied causes (ST-4, U-SQ-5, TT-7). Codes inside supplier copies (DEP-09-07-011, LHQ §7 …) are the suppliers' own vocabulary | The term check now covers the package, packet, disposition, excerpts and legend; internal finding ids are removed from the legend; a "supplier records" term explains supplier vocabulary and defines the copied ones; "answered" is defined |
+| 9 | The CIR lists host contributions as "answered" while no candidate exists | Supplier record | Not a packet defect; a legibility risk | Term "answered": nothing committed, delivered or adopted by that (DEP-001; DECISION-3) |
+| 10 | Uncounted reuse runs and WR TT-7 | Packet | **Real, minor**: the packet dropped the dossier's own reason | Uncounted steps carry `dossier_reason` (B-9); TT-7 and WR are defined |
+
+**The reader:** no misreading. **The key (EU-F1-2):** fair, as RV3 also judged. Its Q-7 inherits EUF1-R2 (the key grounding records this).
+
+**Observation for HELP_HUMAN.** RV3 and your message cite U-SQ-6 as S11-6's blocking cause. The record itself (SQ-EX-05, S11-6) cites **U-SQ-5**: ST-4 was not produced, "route cannot delegate; no recording (U-SQ-5)". U-SQ-6 concerns ST-5, which in this record was produced by replay. RP-v0.3 copies the record's cause. The conclusion, an input gap and not a candidate defect, is the same.
+
+## EU-F1 — RP-v0.3 (refrozen; one repair round, covering RV3-EUF1 and RR-EUF2)
+
+**Findings addressed, each checked in the files:**
+
+| Finding | Repair | Held by |
+|---|---|---|
+| RV3 EUF1-R1b (blocked merged into not_met) | `not_met` only on a resolved `fail`; blocked, not-run and inconclusive are `not_evidenced`, with outcome and cause | B-4, B-5, B-6, A-17 |
+| RV3 EUF1-R2 (ALT-PUBLISHED) | "Choosing this alternative does not perform the public-release act; publishing remains a separate owner act (P-5; PRD OQ-08; DEL-11-03 CLM-003)"; "Until the owner performs that act, v3.0.1 remains the published product and the fallback" | RP-R6, B-35; key 3 Q-7 |
+| RV3 EUF1-R3 (first-cut grounding) | `source` and `shape` for first cuts; `EU-F1.key-grounding.md` (keys unchanged) | A-2, A-7 |
+| RV3 EUF1-R4 (literal comparison) | `identity_key`: revision, build_identity, packaged (absent means false), package_record when packaged | B-24, B-25, B-26 |
+| RV3 EUF2-R1 under R23-43 | Gaps: "before the packet can claim replacement qualification (AX-001: a packet \"cannot claim replacement qualification until both applicable witnesses hold\"); it does not hold back putting the packet to the owner". Restated in §2 O-1, §3, §6.3 step 5, RF-1, P-1 and the purpose | A-16, A-19, B-36 |
+| RV3 EUF2-R2 (DOS example moved) | FX-RP1-3 is built on O-C's repaired `DOS-EXAMPLE-INVENTED` (no receipts). B-13…B-15 use `DOS-EXAMPLE-INVENTED-POPULATED` and the repaired example from the vendored file | A-8, A-15, B-13…B-15 |
+| RV3 N4 (`--fixture` ignored) | `check_rp.py --fixture NAME`: FX-RP1 gives 9/20 and FX-RP1-2 gives 12/20 of Part A and V-1. That reproduces my RP-v0.2 claim (A-13, A-15, A-16, A-17 fail on FX-RP1) and shows what the RP-v0.2 fixture now fails (A-8, A-16, A-19 …) | reproduced |
+| R23-44 | Supplier bytes vendored in `F/vendor/` with source commit; legend inside the fixture; drift reported as a NOTICE | V-1, A-18 |
+| RR-EUF2 #2, 3, 4, 5, 8, 9, 10 | As in the table above | B-9, B-12, A-13 |
+| My tool defect (compare schema per set) | `compare_rp.py` uses each set's own schema | set 2 RR-EUF2 account now HOLDS |
+
+**Files at refreeze** (sha256). These are the unit's paths for the R23-41 commit.
+
+| File | sha256 |
+|---|---|
+| `PKG-11_…/DEL-11-03_…/Design/REPLACEMENT_PACKET.md` (RP-v0.3) | `164c082c1ef4957acf9edca1040dd4e76e2647a0a1af540d755d992f3a58f9af` |
+| `…/Design/rp.packet-manifest.schema.json` (RP-v0.3) | `20de252d9b766d43c365a236c8e17c6f1d35ae4acbfc24a4cfdf5e2a2c768b64` |
+| `…/Design/rp.disposition.schema.json` (unchanged) | `d5a69bc24d9ca346f4210c1a2ad9dee1407c6fb9f96af650f003258badbc99cf` |
+| `F/rplib.py` | `89fc8e64fa17730cd767c04a12a5c4fa18e36efc53e1b1f7009deb7e66fff04d` |
+| `F/build_fx_rp1.py` | `4bdad3a782ceadca7669273d30fa2f98bc83224a77044a46e49036c840fac59c` |
+| `F/check_rp.py` | `11104deddfb00b92ded78b1296a1be948ba8b7c6cf76e0a083523c3dd010a076` |
+| `F/compare_rp.py` | `208903ab35b949274788b1d6969603cf9302d37c12782b66b8a15a9a80fe9416` |
+| `F/stage_is.py` | `5845d0294ead9319ee911cac43d1dada6e1f55efd2a679a09ed714cd00f02a0c` |
+| `F/README.md` | `ef6cf1f4d6800b1094c92a7e1474a2a1727be30bd1fd038c916355221f5adfd2` |
+| `F/EU-F1.key-grounding.md` | `7158f256e08b2051f2315f69fe9bdc78c351120c512166e6b066e84f0b5e5709` |
+| `F/vendor/VENDOR.json` (+ 8 vendored files listed in it) | `4d9e41587d9af16c51a27ae9b3d9f4edb74b66c6e29248c36cb305f5006b8dea` |
+| `F/fixtures/FX-RP1-3/MANIFEST.sha256` (11 files, legend included) | `ca5c86654fbdaf52f9428edb69c2cd9313cc0dfb5f0657b68da4c79b2639452a` |
+| `F/IS-FX-RP1-3.input-set.sha256` (14 files) | `537d8b8173fb6843917af323b66cf1ea83bdc52125d5ebd35cd5a894259f83a7` |
+| `F/READER_BRIEF.v3.md`, `F/rp.reader-account.v3.schema.json` | `9167cc57…0bbce0e`, `e163fff3…3d7c9b` |
+| **`F/EU-F1-3.answer-key.json`** (withheld; written before any reader) | **`808737109f876cc2d22e41c11ba3a6ce72ba038ca33a8ff06cdaa4ef6f33caff`** |
+| Unchanged history: `EU-F1.answer-key.json`, `EU-F1-2.answer-key.json`, `fixtures/FX-RP1/`, `fixtures/FX-RP1-2/`, input sets 1 and 2 | as committed at `d43665498d` |
+
+Fixture identities:
+- package `pkg:app-v4:replacement:FX-RP1-3`, sha256 `47ee064a…5b361d`;
+- manifest `RP-FX-RP1` v3, sha256 `a3274e75…cdb31`;
+- disposition `RPD-FX-RP1-3`, `not_presented`.
+
+**Checks at refreeze.**
+- `check_rp.py`: **65/65**, with no NOTICE (every live supplier file equals its vendored copy).
+- The builder is deterministic (two builds, `cmp` equal), and it refuses a code without a term.
+- `compare_rp.py --set 3 --self-check`: 18/18. `--set 2 RR-EUF2/account.json`: 33/33, schema HOLDS. `--set 1 RR-EUF1/account.json`: 33/33.
+- `stage_is.py --set 3`: 14 files staged, every hash matching.
+- 13 pins in RP-v0.3. Eleven match current files. Two are superseded versions, stated as such: RP-v0.2 `80e88983…` and LHQ `5cd31e09…`. LHQ is re-pinned to its committed `90f461cb…`, which adds only LHQ2-R1.
+- No home path in any written file (grep).
+- Nothing in RP-v0.2's committed bytes or the earlier fixtures and keys was changed (`git status` shows only the RP-v0.3 paths).
+
+**Limits.**
+- All supplier evidence is illustrative.
+- Input sets 1 and 2 cannot be restaged (their legend was live), which is why set 3 carries its own.
+- IS-FX-RP1-3 is staged and keyed but not read. A third reader is HELP_HUMAN's call; RV3's confirmation may suffice. Q-13 and the new Q-7 fields would test R23-43 and EUF1-R2 directly.
+
+**No escalation.**
+- No earlier Design file restructured.
+- No register row.
+- No owner act requested or implied.
+- No check weakened. Checks went from 57 to 65; the ones changed are those that encoded RV3's findings (old B-4, the A-16 wording), replaced by stricter ones.

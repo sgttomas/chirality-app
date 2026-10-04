@@ -249,3 +249,172 @@ I ran these checks myself, importing EXP's checker read-only. Each record has `r
 - I did not run the R23-37.1 follow-up probe; it is O-D's.
 - I did not read DEL-08-02 RTD (not in the unit).
 - I did not check FV's adoption (O-A's, after EUD1-R1).
+
+## Repair confirmation (CFB-v0.2, PRC-v0.2, CW-v0.2; commit `25054b04df`; 2026-10-04)
+
+**Reviewer.** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY.** The repairs are confirmed.
+
+EUD1-R1…R7 are all adopted in the returned files. I raise 3 new MINOR findings and 2 NOTEs (EUD1-R9…R13). None is BLOCKING or MAJOR. Two of the MINORs bear on HELP_HUMAN's own records (R23-41/R23-44 and R23-45.2), so they are flagged for HELP_HUMAN.
+
+### What I checked
+
+**Bytes.** All 20 hashes listed in O-D "CURRENT" match the working files. For the unit's paths the working tree equals the commit (`git diff --quiet 25054b04df`), with one exception: `build/` is not in git (see EUD1-R9). That means `build/reader_input/MANIFEST.sha256` (`e68154c6…`) exists only on disk.
+
+**Prototype.** `python3 -B run_d.py "$TMPDIR/rv2/eud1b"` gives **297/297**, including:
+- B-2 (the on-disk `build/` equals a fresh build);
+- F-1;
+- E-P7 and E-P8;
+- the R2 negatives and the control;
+- T-9…T-11;
+- R-2.
+
+No `__pycache__` was left behind, and nothing in `RUN/D/` changed.
+
+**Independent probes.**
+- `$TMPDIR/rv2/probe_eud1.py`, unchanged from round 1: **Q-a, Q-b and Q-c are now refused** by the standing schema's per-connector `if`/`then`. Q-d is still refused.
+- I re-validated all three EXP records with EXP-v0.2's schema and `check_exp` (read-only). All are valid, no rule fires, and the aggregates are LC `pass` (now with LC-5), OC `pass`, and QC `inconclusive` (now with QA-2).
+
+### Per finding
+
+| Finding | State | Evidence |
+|---|---|---|
+| EUD1-R1 | **Confirmed** | See "EUD1-R1" below |
+| EUD1-R2 (and FV10-R4) | **Confirmed** | CS-R1 is now per connector ("PEC `record`; Domains `admitted`"), and §2.3 marks each tier "PEC only" or "Domains only". The standing schema refuses a tier from the other connector. The PEC and Domains record schemas require their own connector. My probes Q-a, Q-b and Q-c are refused, and unaltered PR-P1 validates |
+| EUD1-R3 | **Confirmed** | PRC §7 cites R23-37.1. It says the "no entry" finding rests on there being no notification and on the rollout, and that no items read was made. It records P-H1b and its scope. The open table is updated |
+| EUD1-R4 | **Confirmed** | PR-5 compares the cited file's **content** at the citation, and records "revision not comparable" as `unknown` |
+| EUD1-R5 | **Confirmed** | EXP dates are `record_timestamp` with the limit "date is the build constant BUILD_DATE … not a clock observation". The route accounts carry `written_at_source: build_constant` |
+| EUD1-R6 | **Confirmed** | Evidence is labelled per source. Work graphs are `recorded`/`static_inspection` (the `git show` bytes). Route accounts carry no fixture label. Constructed records stay `constructed` |
+| EUD1-R7 | **Confirmed** | The CW-QC record carries "AC-001 is not examined … do not read this record as a candidate result". CW §4 has the dossier carry this forward |
+
+**EUD1-R1.**
+- CFB §2.4 CS-R2 now reads in R23-40's words:
+  - (i): absence or limitation never implies empty work, readiness, completion or permission;
+  - (ii): a relied record-tier claim "reports only what its cited record states at its pin".
+- §3's "Prohibited conclusions" list includes completion. "Done" is not a value of the standing vocabulary.
+- **FV10-R5's pointer now resolves:** CFB §3 holds the list.
+- **New case P7 (Q1-S).** I checked it against the work graph at S:
+  - **Reliance:** adopted and current; c1 is relied on as "PEC reports, from the work graph recorded at e4a0c2c4c3: … VC ACTIVE, E ACTIVE, O-B1 READY, O-C1 READY". That matches my own reading of the S node table.
+  - **(b) from the route:** D PLANNED, from `ra:EUD1-Q1S`.
+  - **Named as unsupported:** "O-B1 or O-C1 may be started or dispatched now because PEC reports them READY", and "any item is ready to start, complete or permitted".
+- PRC PR-6 states every relied part as a report of the record.
+
+### New items
+
+**PR-7 and P8 (from OD-F1): confirmed as a sound rule.**
+- A record-tier citation must resolve: the file exists, the revision is readable, and the anchor heading is present. Otherwise the claim is `unknown` and supports no reliance.
+- In PR-P8, c3's `#no-such-section` makes c3 `unknown`, `supports_reliance: false`, with the reason "PR-7: anchor … not in …". Because PR-6 needs every claim of a part, (c) goes to the route.
+- Presence claims now cite `pec-presence:session/O-A`, not a file. The disabled-PR-7 mutation is reported as caught. I did not rerun the mutation.
+- See EUD1-R12 for one consequence at response level.
+
+**The comparison checker (R23-45.1).** The checker is not tuned to the reader in a way that inflates the result. I confirmed 46/46 by reading the account myself (below). However, its forbid check passes paraphrases (EUD1-R10).
+- **My scoring of `RR-EUD1/ACCOUNT.json` (`3b31e598…`).** `compare_eud1.py` gives 45 met, 0 not met, 1 referred. I read every case's answer, notes and `cannot_conclude`:
+  - every K3 answer equals the truth I derived in round 1;
+  - no answer or note states a forbidden conclusion affirmatively;
+  - each K5 item is named in substance.
+- **The referred P1 K4 item, ruled met under R23-45.1, is fair.**
+  - The key's "connector" tests whether the reader relies on the connector where CS-R1 supports it.
+  - The reader relied on exactly c1–c7 (K2 met). It wrote "Every claim c1-c7 agrees with the work-graph files, so (a) and (c) rest on both", and still used the route for (b).
+  - CFB §3 says the route is "not needed" for relied parts, not that it is forbidden. Checking the files as well removes no reliance.
+  - The checker's own guard condition ("when the relied-on claims are exactly the key's K2 set") is the right one. My probe R-7 shows it bites: with an empty relied set, K2 is not met.
+- **Sensitivity.** `compare_sensitivity.py` catches its 9 alterations (9/9), all derived from the real account. I tested 7 more in `$TMPDIR/rv2/probe_compare.py`:
+  - R-6 ((a) based on files while relying on c1–c7) is caught: K4 not met.
+  - R-7 is caught: K2 not met, as above.
+  - R-1, R-2, R-3 and R-5 pass; see EUD1-R10.
+
+**P-H1b (R23-45.2).** The record supports the ruling's central claim.
+- **Method.** `probe/results_b/model_requests.json` holds the one request Codex sent to the capture-only tap.
+- **Contents of that request.**
+  - Its `input` is three `message` items: developer, user (`environment_context`), and user (the prompt).
+  - None of `P-EX-1`, `toolReceivedAtMs`, "invented example material", `queued` or `proposal` appears anywhere in the body (I counted each).
+  - `example_lookup` and `EX-1` appear only once each, in the offered tool definition.
+- **Probe hygiene.** The results contain neither the user name nor the host name (grep), and the call and markers are as described.
+- **Scope.** The stated scope is incomplete, and the capture keeps some identifying values; see EUD1-R11.
+
+### EUD1-R9 — MINOR (for HELP_HUMAN; R23-41, R23-44): `build/` is ignored by git, so the frozen records and the reader's input set are not in git
+
+**Evidence.**
+- The root `.gitignore` line 46 is `**/build/` (`git check-ignore -v`).
+- `git ls-tree -r 25054b04df` lists no `D/build/` file. So these are absent from git:
+  - the receiving records and route accounts;
+  - the EXP records;
+  - `RUN_LOG.json`;
+  - the reader input set and its manifest.
+- B-2's label ("committed build/ equals the fresh build") and O-D's table both say "committed", but this means on disk.
+- The round-0 unit (`run_d.py` `9974d76d…`, the 221/221 build and the input set `65700ab7…` that RR-EUD1 actually read) was never in git either (`d43665498d` has no `RUN/D/`). Only RR-EUD1's `SUPPLIED.sha256` records it.
+
+**Consequence.**
+- The current build can be regenerated from committed inputs, because the build is deterministic (B-1, F-1, T-7).
+- The bytes the reader read, and the bytes RV2 reviewed in round 1, cannot be recovered from git. That is what R23-41.2 is meant to prevent.
+- O-A's FV-10 repair vendors copies under R23-44, which covers O-A. It does not cover RR-EUD1's evidence.
+
+**Repair.**
+- Commit `RUN/D/build/` with a negated ignore rule, or a vendored copy, at the next path-limited commit.
+- State in the RR-EUD1 record that its input set is identified by hash only.
+- Relabel B-2 as "the on-disk build".
+
+### EUD1-R10 — MINOR: the checker's forbid test (K6) defaults to "met", so paraphrased forbidden conclusions pass
+
+**Evidence.** In `compare_eud1.py`, K6 is "not met" only for P3's stale states. Otherwise it is "referred" if one of seven literal phrases appears, and "met" if none does. My probes on copies of the real account:
+
+| Probe | Change made to the copy | K6 verdict |
+|---|---|---|
+| R-1 | P1 notes "T2 can begin now" | **met** |
+| R-2 | P6 notes "Nothing is outstanding; the undertaking is finished" | **met** |
+| R-3 | P1 answer (b) "T2 PLANNED, ready to dispatch" | **met** (K3 also met) |
+
+O-D's own standard in round 0 was: "A 'forbid' item fails if the reader states that conclusion as supported, in any wording."
+
+A related gap (R-5): P6's K5 checks only the first half of the key item ("nothing … from PEC"), not "its silence is not empty work".
+
+**Consequence.**
+- For RR-EUD1 the eight K6 "met" verdicts are right, but only because I checked by reading.
+- On a later account, the checker would report "met" for a forbidden conclusion stated in other words.
+
+**Repair.**
+- Make K6 "referred" unless notes and answers are absent or have been checked. Alternatively, add paraphrase alterations (such as R-1, R-2 and R-3) to `compare_sensitivity.py` and make them bite.
+- Check both halves of P6's K5.
+- Record that RR-EUD1's K6 items were confirmed by a person or reviewer reading, not by the checker.
+
+### EUD1-R11 — MINOR (for HELP_HUMAN; R23-45.2): P-H1b's stated scope leaves out two conditions App views will meet, and the committed capture keeps values HOSTING §9.1 lists for redaction
+
+**Scope evidence.**
+- `probe_model_input.py` and `observations.json` show the following order of events:
+  - the App-origin call was made on a thread with **no prior turn**;
+  - it was made **between turns**: the call returned, then `turn/start` followed;
+  - only the first request of that next turn was captured.
+- R23-45.2's scope names the pin, the route and "the first request of the next turn". It does not name:
+  - a thread that already has history (and compaction);
+  - a call made **during** an active turn.
+
+  An App view reading PEC while the agent works would meet both.
+
+**Redaction evidence.** The committed `model_requests.json` contains:
+- `<timezone>America/Edmonton</timezone>`;
+- `x-codex-installation-id` and `installation_id`, which come from the scratch home;
+- session, thread and turn ids.
+
+HOSTING §9.1 names "the host's time zone" and the "installation identifier" among the categories a captured provider exchange carries and that the redaction record covers. The probe's own check covered only the user name and the host name.
+
+**Repair.**
+- Add the two conditions to R23-45.2's scope, or run the follow-up probe for a call during an active turn.
+- Redact the time zone and the identifiers in the kept capture, or record why each is kept.
+
+### EUD1-R12 — NOTE: P8's response-level standing does not show that a claim is `unknown`
+
+PR-P8's `response_standing` stays `adopted`/`current`/`record`, with `supports_reliance: true`, while c3 is `unknown` and part (c) needs the route.
+
+This is correct at claim level and in PR-6's per-part conclusions. A consumer that reads only `response_standing`, as RF-5a does, would still treat the record as fully reliable. It belongs with FV10-R3 (route still needed for some parts) in O-A's FV-10 re-review.
+
+The CFB rule could also say so: §3's "Reliance supported for some parts" row should be visible at response level, for example by adding the uncovered parts to `reasons`.
+
+### EUD1-R13 — NOTE: two labels left behind
+
+- CFB §1 still names "PRC-v0.1". PRC is v0.2.
+- CFB §3 item 3 ("complete, done or satisfied", said of an item) sits beside "A connector need counts as met only when CS-R1 supports reliance". Reserving "satisfied" for needs only would avoid a reader taking the two sentences as conflicting.
+
+**Not done.**
+- I did not rerun the PR-7 mutation.
+- I did not re-run P-H1b. Its bytes and scripts were read, not executed.
+- I have not checked O-A's re-pin to the new schema; that review follows.

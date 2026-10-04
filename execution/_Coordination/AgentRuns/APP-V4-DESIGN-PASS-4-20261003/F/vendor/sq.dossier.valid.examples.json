@@ -1,0 +1,3431 @@
+[
+ {
+  "record_kind": "sq_dossier",
+  "format": "SQ-v0.2",
+  "record_id": "SQ-EX-01",
+  "support_revision": "EXP-v0.2",
+  "case_definition": {
+   "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+   "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+   "declared_on": "2026-10-03"
+  },
+  "candidate": {
+   "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "codex_pin": "0.158.0"
+  },
+  "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+  "examiner": {
+   "identity": "independent candidate examiner (ILLUSTRATIVE)",
+   "separation": "separate_session_no_authoring"
+  },
+  "scenarios": [
+   {
+    "scenario": "V4-EXM-10",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "J-1",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-01"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       }
+      ],
+      "core_loop_element": "planning",
+      "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-2",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       }
+      ],
+      "core_loop_element": "execution",
+      "v3_reference": "J02, J04 (real tool use)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-3",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-14"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (workflow created)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-4",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-09"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-5",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-6",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-07"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-16"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-37"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (saved to the project library)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-7",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-06"
+       },
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-18"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-40"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J05, J07 (selected in a fresh chat)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-8",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (refined workflow)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-8R",
+      "state": "awaiting_input",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-9",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (three cycles, refined)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "J-9R",
+      "state": "awaiting_input",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     }
+    ]
+   },
+   {
+    "scenario": "V4-EXM-11",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "S11-1",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-02"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "S11-2",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-05"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "none recorded",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "S11-3",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (denied write left no file)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "S11-4",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-28"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-07"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (renewed approval created one line)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "S11-5",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-06"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-11"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "none recorded",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "S11-6",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-04"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-09"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-10"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "J08 (same chat continued)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     }
+    ]
+   },
+   {
+    "scenario": "V4-EXM-12",
+    "run_ref": "RUN-B",
+    "steps": [
+     {
+      "step": "M12-1",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A01"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "v3: ChatGPT sign-in only",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "M12-2",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A02"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-15"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none (v3 had no API-key mode)",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "M12-3",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A03"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "M12-4",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-12"
+       },
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A12"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "M12-5",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A04"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     },
+     {
+      "step": "M12-6",
+      "state": "awaiting_input",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A13"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "missing_input": "identified App candidate (DEP-09-02-022)"
+     }
+    ],
+    "access_modes": [
+     {
+      "kind": "chatgpt_account",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv A"
+     },
+     {
+      "kind": "api_key",
+      "home": "H-key",
+      "conversation_ref": "ILLUSTRATIVE conv B"
+     },
+     {
+      "kind": "local_provider",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv C"
+     }
+    ]
+   }
+  ],
+  "handoff": {
+   "to": "DEL-11-03",
+   "supplies": [
+    "scenario_outcomes",
+    "evidence_limits",
+    "input_gaps",
+    "v3_comparison_inputs",
+    "core_loop_mapping",
+    "affected_rechecks"
+   ],
+   "not_claimed": [
+    "joined_host_witness",
+    "replacement",
+    "public_release",
+    "retirement",
+    "professional_reliance",
+    "practitioner_validation"
+   ],
+   "handed_over": false,
+   "reported_as_independent": false
+  },
+  "currency": {
+   "state": "current"
+  },
+  "date": "2026-10-03"
+ },
+ {
+  "record_kind": "sq_dossier",
+  "format": "SQ-v0.2",
+  "record_id": "SQ-EX-02",
+  "support_revision": "EXP-v0.2",
+  "case_definition": {
+   "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+   "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+   "declared_on": "2026-10-03"
+  },
+  "candidate": {
+   "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "codex_pin": "0.160.0"
+  },
+  "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+  "examiner": {
+   "identity": "independent candidate examiner (ILLUSTRATIVE)",
+   "separation": "separate_session_no_authoring"
+  },
+  "scenarios": [
+   {
+    "scenario": "V4-EXM-10",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "J-1",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-01"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       }
+      ],
+      "core_loop_element": "planning",
+      "v3_reference": "J04 (plan revised from 90 to 60 minutes)"
+     },
+     {
+      "step": "J-2",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       }
+      ],
+      "core_loop_element": "execution",
+      "v3_reference": "J02, J04 (real tool use)"
+     },
+     {
+      "step": "J-3",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-14"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (workflow created)"
+     },
+     {
+      "step": "J-4",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-09"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "none recorded (v3 had no draft-trial distinction)"
+     },
+     {
+      "step": "J-5",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05"
+     },
+     {
+      "step": "J-6",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-07"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-16"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-37"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (saved to the project library)"
+     },
+     {
+      "step": "J-7",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-06"
+       },
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-18"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-40"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J05, J07 (selected in a fresh chat)"
+     },
+     {
+      "step": "J-8",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (refined workflow)"
+     },
+     {
+      "step": "J-8R",
+      "state": "planned",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated"
+     },
+     {
+      "step": "J-9",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (three cycles, refined)"
+     },
+     {
+      "step": "J-9R",
+      "state": "planned",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated"
+     }
+    ]
+   },
+   {
+    "scenario": "V4-EXM-11",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "S11-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-02"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+      "result_record": "EXP-EX-05 part 'stop a turn'",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE child observed active at stop"
+       }
+      ]
+     },
+     {
+      "step": "S11-2",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-05"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "none recorded"
+     },
+     {
+      "step": "S11-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (denied write left no file)",
+      "result_record": "EXP-EX-05 part 'deny/grant'",
+      "outcome": "blocked"
+     },
+     {
+      "step": "S11-4",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-28"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-07"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (renewed approval created one line)"
+     },
+     {
+      "step": "S11-5",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-06"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-11"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "none recorded"
+     },
+     {
+      "step": "S11-6",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-04"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-09"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-10"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "J08 (same chat continued)"
+     }
+    ]
+   },
+   {
+    "scenario": "V4-EXM-12",
+    "run_ref": "RUN-B",
+    "steps": [
+     {
+      "step": "M12-1",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A01"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "v3: ChatGPT sign-in only"
+     },
+     {
+      "step": "M12-2",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A02"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-15"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none (v3 had no API-key mode)"
+     },
+     {
+      "step": "M12-3",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A03"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none"
+     },
+     {
+      "step": "M12-4",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-12"
+       },
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A12"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none"
+     },
+     {
+      "step": "M12-5",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A04"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none"
+     },
+     {
+      "step": "M12-6",
+      "state": "planned",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A13"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none"
+     }
+    ],
+    "access_modes": [
+     {
+      "kind": "chatgpt_account",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv A"
+     },
+     {
+      "kind": "api_key",
+      "home": "H-key",
+      "conversation_ref": "ILLUSTRATIVE conv B"
+     },
+     {
+      "kind": "local_provider",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv C"
+     }
+    ]
+   }
+  ],
+  "handoff": {
+   "to": "DEL-11-03",
+   "supplies": [
+    "scenario_outcomes",
+    "evidence_limits",
+    "input_gaps",
+    "v3_comparison_inputs",
+    "core_loop_mapping",
+    "affected_rechecks"
+   ],
+   "not_claimed": [
+    "joined_host_witness",
+    "replacement",
+    "public_release",
+    "retirement",
+    "professional_reliance",
+    "practitioner_validation"
+   ],
+   "handed_over": false,
+   "reported_as_independent": false
+  },
+  "currency": {
+   "state": "current"
+  },
+  "date": "2026-10-03",
+  "examination_opened": "2026-10-03"
+ },
+ {
+  "record_kind": "sq_dossier",
+  "format": "SQ-v0.2",
+  "record_id": "SQ-EX-03",
+  "support_revision": "EXP-v0.2",
+  "case_definition": {
+   "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+   "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+   "declared_on": "2026-10-03"
+  },
+  "candidate": {
+   "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "codex_pin": "0.158.0"
+  },
+  "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+  "examiner": {
+   "identity": "independent candidate examiner (ILLUSTRATIVE)",
+   "separation": "separate_session_no_authoring",
+   "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+  },
+  "scenarios": [
+   {
+    "scenario": "V4-EXM-10",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "J-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-01"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       }
+      ],
+      "core_loop_element": "planning",
+      "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+      "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       }
+      ],
+      "core_loop_element": "execution",
+      "v3_reference": "J02, J04 (real tool use)",
+      "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-14"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (workflow created)",
+      "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-09"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+      "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05",
+      "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-2",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-2"
+       }
+      ]
+     },
+     {
+      "step": "J-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-07"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-16"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-37"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (saved to the project library)",
+      "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-3",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-3"
+       }
+      ]
+     },
+     {
+      "step": "J-7",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-06"
+       },
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-18"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-40"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J05, J07 (selected in a fresh chat)",
+      "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-2",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-2"
+       }
+      ]
+     },
+     {
+      "step": "J-8",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (refined workflow)",
+      "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-1",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-1"
+       },
+       {
+        "id": "ST-3",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-3"
+       }
+      ]
+     },
+     {
+      "step": "J-8R",
+      "state": "recorded",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+      "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-9",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (three cycles, refined)",
+      "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-9R",
+      "state": "recorded",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+      "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+      "outcome": "pass"
+     }
+    ],
+    "outcome": "pass"
+   },
+   {
+    "scenario": "V4-EXM-11",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "S11-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-02"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+      "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-4"
+       }
+      ]
+     },
+     {
+      "step": "S11-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-05"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "none recorded",
+      "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (denied write left no file)",
+      "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-28"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-07"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (renewed approval created one line)",
+      "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-06"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-11"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "none recorded",
+      "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-04"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-09"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-10"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "J08 (same chat continued)",
+      "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-4"
+       },
+       {
+        "id": "ST-5",
+        "produced": "replay",
+        "evidence": "ILLUSTRATIVE ST-5"
+       }
+      ]
+     }
+    ],
+    "outcome": "pass"
+   },
+   {
+    "scenario": "V4-EXM-12",
+    "run_ref": "RUN-B",
+    "steps": [
+     {
+      "step": "M12-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A01"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "v3: ChatGPT sign-in only",
+      "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A02"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-15"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none (v3 had no API-key mode)",
+      "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A03"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-12"
+       },
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A12"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A04"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A13"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     }
+    ],
+    "access_modes": [
+     {
+      "kind": "chatgpt_account",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv A"
+     },
+     {
+      "kind": "api_key",
+      "home": "H-key",
+      "conversation_ref": "ILLUSTRATIVE conv B"
+     },
+     {
+      "kind": "local_provider",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv C"
+     }
+    ],
+    "outcome": "pass"
+   }
+  ],
+  "handoff": {
+   "to": "DEL-11-03",
+   "supplies": [
+    "scenario_outcomes",
+    "evidence_limits",
+    "input_gaps",
+    "v3_comparison_inputs",
+    "core_loop_mapping",
+    "affected_rechecks"
+   ],
+   "not_claimed": [
+    "joined_host_witness",
+    "replacement",
+    "public_release",
+    "retirement",
+    "professional_reliance",
+    "practitioner_validation"
+   ],
+   "handed_over": true,
+   "reported_as_independent": true
+  },
+  "currency": {
+   "state": "current"
+  },
+  "date": "2026-10-03",
+  "examination_opened": "2026-10-03"
+ },
+ {
+  "record_kind": "sq_dossier",
+  "format": "SQ-v0.2",
+  "record_id": "SQ-EX-04",
+  "support_revision": "EXP-v0.2",
+  "case_definition": {
+   "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+   "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+   "declared_on": "2026-10-03"
+  },
+  "candidate": {
+   "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "codex_pin": "0.158.0"
+  },
+  "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+  "examiner": {
+   "identity": "independent candidate examiner (ILLUSTRATIVE)",
+   "separation": "separate_session_no_authoring",
+   "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+  },
+  "scenarios": [
+   {
+    "scenario": "V4-EXM-10",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "J-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-01"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       }
+      ],
+      "core_loop_element": "planning",
+      "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+      "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       }
+      ],
+      "core_loop_element": "execution",
+      "v3_reference": "J02, J04 (real tool use)",
+      "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-14"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (workflow created)",
+      "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-09"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+      "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05",
+      "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-2",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-2"
+       }
+      ]
+     },
+     {
+      "step": "J-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-07"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-16"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-37"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (saved to the project library)",
+      "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-3",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-3"
+       }
+      ]
+     },
+     {
+      "step": "J-7",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-06"
+       },
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-18"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-40"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J05, J07 (selected in a fresh chat)",
+      "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-2",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-2"
+       }
+      ]
+     },
+     {
+      "step": "J-8",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (refined workflow)",
+      "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-1",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-1"
+       },
+       {
+        "id": "ST-3",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-3"
+       }
+      ]
+     },
+     {
+      "step": "J-8R",
+      "state": "recorded",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+      "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+      "outcome": "fail"
+     },
+     {
+      "step": "J-9",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (three cycles, refined)",
+      "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-9R",
+      "state": "recorded",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+      "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+      "outcome": "pass"
+     }
+    ],
+    "outcome": "pass"
+   },
+   {
+    "scenario": "V4-EXM-11",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "S11-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-02"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+      "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-4"
+       }
+      ]
+     },
+     {
+      "step": "S11-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-05"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "none recorded",
+      "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (denied write left no file)",
+      "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-28"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-07"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (renewed approval created one line)",
+      "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-06"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-11"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "none recorded",
+      "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-04"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-09"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-10"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "J08 (same chat continued)",
+      "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-4"
+       },
+       {
+        "id": "ST-5",
+        "produced": "replay",
+        "evidence": "ILLUSTRATIVE ST-5"
+       }
+      ]
+     }
+    ],
+    "outcome": "pass"
+   },
+   {
+    "scenario": "V4-EXM-12",
+    "run_ref": "RUN-B",
+    "steps": [
+     {
+      "step": "M12-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A01"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "v3: ChatGPT sign-in only",
+      "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A02"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-15"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none (v3 had no API-key mode)",
+      "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A03"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-12"
+       },
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A12"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A04"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A13"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     }
+    ],
+    "access_modes": [
+     {
+      "kind": "chatgpt_account",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv A"
+     },
+     {
+      "kind": "api_key",
+      "home": "H-key",
+      "conversation_ref": "ILLUSTRATIVE conv B"
+     },
+     {
+      "kind": "local_provider",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv C"
+     }
+    ],
+    "outcome": "pass"
+   }
+  ],
+  "handoff": {
+   "to": "DEL-11-03",
+   "supplies": [
+    "scenario_outcomes",
+    "evidence_limits",
+    "input_gaps",
+    "v3_comparison_inputs",
+    "core_loop_mapping",
+    "affected_rechecks"
+   ],
+   "not_claimed": [
+    "joined_host_witness",
+    "replacement",
+    "public_release",
+    "retirement",
+    "professional_reliance",
+    "practitioner_validation"
+   ],
+   "handed_over": true,
+   "reported_as_independent": true
+  },
+  "currency": {
+   "state": "current"
+  },
+  "date": "2026-10-03",
+  "examination_opened": "2026-10-03"
+ },
+ {
+  "record_kind": "sq_dossier",
+  "format": "SQ-v0.2",
+  "record_id": "SQ-EX-05",
+  "support_revision": "EXP-v0.2",
+  "case_definition": {
+   "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+   "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+   "declared_on": "2026-10-03"
+  },
+  "candidate": {
+   "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+   "codex_pin": "0.158.0"
+  },
+  "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+  "examiner": {
+   "identity": "independent candidate examiner (ILLUSTRATIVE)",
+   "separation": "separate_session_no_authoring",
+   "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+  },
+  "scenarios": [
+   {
+    "scenario": "V4-EXM-10",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "J-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-01"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       }
+      ],
+      "core_loop_element": "planning",
+      "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+      "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       }
+      ],
+      "core_loop_element": "execution",
+      "v3_reference": "J02, J04 (real tool use)",
+      "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-02"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-14"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (workflow created)",
+      "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-09"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+      "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05",
+      "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-2",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-2"
+       }
+      ]
+     },
+     {
+      "step": "J-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-07"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-03"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-16"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-37"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-05"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J05 (saved to the project library)",
+      "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-3",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-3"
+       }
+      ]
+     },
+     {
+      "step": "J-7",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-06"
+       },
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-18"
+       },
+       {
+        "deliverable": "DEL-04-03",
+        "file": "RECORD_SEMANTICS.md",
+        "case_id": "VC-40"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J05, J07 (selected in a fresh chat)",
+      "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-2",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-2"
+       }
+      ]
+     },
+     {
+      "step": "J-8",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-03"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (refined workflow)",
+      "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-1",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-1"
+       },
+       {
+        "id": "ST-3",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-3"
+       }
+      ]
+     },
+     {
+      "step": "J-8R",
+      "state": "recorded",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+      "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-9",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-01"
+       },
+       {
+        "deliverable": "DEL-02-02",
+        "file": "WORKSPACE_AND_REGISTRATION.md",
+        "case_id": "WR-VC-12"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-08"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "APP_ACT_CONTROL.md",
+        "case_id": "VC-AAC-13"
+       }
+      ],
+      "core_loop_element": "workflow saving",
+      "v3_reference": "J07 (three cycles, refined)",
+      "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "J-9R",
+      "state": "recorded",
+      "counts": false,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-02-03",
+        "file": "EXECUTION_COMPATIBILITY.md",
+        "case_id": "VC-E-17"
+       }
+      ],
+      "core_loop_element": "reuse",
+      "v3_reference": "J07",
+      "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+      "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+      "outcome": "pass"
+     }
+    ],
+    "outcome": "pass"
+   },
+   {
+    "scenario": "V4-EXM-11",
+    "run_ref": "RUN-A",
+    "steps": [
+     {
+      "step": "S11-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-02"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-10"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+      "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+      "outcome": "pass",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "native",
+        "evidence": "ILLUSTRATIVE ST-4"
+       }
+      ]
+     },
+     {
+      "step": "S11-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-01"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-05"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "interruption",
+      "v3_reference": "none recorded",
+      "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (denied write left no file)",
+      "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-03"
+       },
+       {
+        "deliverable": "DEL-02-01",
+        "file": "WORKFLOW_DECLARATION.md",
+        "case_id": "VC-28"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-07"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "approvals",
+      "v3_reference": "J09 (renewed approval created one line)",
+      "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-06"
+       },
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-11"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "none recorded",
+      "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "S11-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-04"
+       },
+       {
+        "deliverable": "DEL-01-03",
+        "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "case_id": "NV-04"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-14"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-09"
+       },
+       {
+        "deliverable": "DEL-01-01",
+        "file": "HOSTING_BOUNDARY.md",
+        "case_id": "X-10"
+       }
+      ],
+      "core_loop_element": "restart",
+      "v3_reference": "J08 (same chat continued)",
+      "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+      "outcome": "blocked",
+      "stimuli": [
+       {
+        "id": "ST-4",
+        "produced": "not_produced",
+        "cause": "route cannot delegate; no recording (U-SQ-5)"
+       },
+       {
+        "id": "ST-5",
+        "produced": "replay",
+        "evidence": "ILLUSTRATIVE X-09-form capture"
+       }
+      ]
+     }
+    ],
+    "outcome": "blocked"
+   },
+   {
+    "scenario": "V4-EXM-12",
+    "run_ref": "RUN-B",
+    "steps": [
+     {
+      "step": "M12-1",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A01"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "v3: ChatGPT sign-in only",
+      "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-2",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A02"
+       },
+       {
+        "deliverable": "DEL-01-02",
+        "file": "EXECUTION_AND_RECOVERY.md",
+        "case_id": "VC-R-15"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none (v3 had no API-key mode)",
+      "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-3",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A03"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-4",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-04",
+        "file": "NATIVE_INTERACTION_RECEIVING.md",
+        "case_id": "VC-NIR-12"
+       },
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A12"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-5",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A04"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     },
+     {
+      "step": "M12-6",
+      "state": "recorded",
+      "counts": true,
+      "supplier_cases": [
+       {
+        "deliverable": "DEL-01-05",
+        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "case_id": "VC-A13"
+       }
+      ],
+      "core_loop_element": "model access",
+      "v3_reference": "none",
+      "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+      "outcome": "pass"
+     }
+    ],
+    "access_modes": [
+     {
+      "kind": "chatgpt_account",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv A"
+     },
+     {
+      "kind": "api_key",
+      "home": "H-key",
+      "conversation_ref": "ILLUSTRATIVE conv B"
+     },
+     {
+      "kind": "local_provider",
+      "home": "H-acct",
+      "conversation_ref": "ILLUSTRATIVE conv C"
+     }
+    ],
+    "outcome": "pass"
+   }
+  ],
+  "handoff": {
+   "to": "DEL-11-03",
+   "supplies": [
+    "scenario_outcomes",
+    "evidence_limits",
+    "input_gaps",
+    "v3_comparison_inputs",
+    "core_loop_mapping",
+    "affected_rechecks"
+   ],
+   "not_claimed": [
+    "joined_host_witness",
+    "replacement",
+    "public_release",
+    "retirement",
+    "professional_reliance",
+    "practitioner_validation"
+   ],
+   "handed_over": true,
+   "reported_as_independent": true
+  },
+  "currency": {
+   "state": "current"
+  },
+  "date": "2026-10-03",
+  "examination_opened": "2026-10-03"
+ }
+]

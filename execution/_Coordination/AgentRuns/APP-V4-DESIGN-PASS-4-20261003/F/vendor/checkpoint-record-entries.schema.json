@@ -1,0 +1,1407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7",
+  "title": "Checkpoint entry bodies (EXEC-v0.6 §2.4.5; PROPOSED; R14-1)",
+  "description": "PROPOSED schema (R12-1, R12-2) as ruled by R14-1: RS format 0.1 is the only record container, and this schema defines no container. It defines the BODIES of the checkpoint entry kinds CE-1…CE-19 (EXEC §2.4.2), which RS's entry kinds reference by relative path (RS §13.3); the root validates one recorder output {kind, observedAt, body}, before the RS writer adds the RS header. A human act is cited by its RS §6 record identity, never copied or created here (RS HA-1, HA-2). Current phase only: no hold, hold-support value, re-hold or 'action during hold' body exists (PH-2, PH-3, PH-8). Names are Chirality's own; no wire field, transport, hash, canonicalization or persistence is selected (OI-013, OI-014, TBD-003, TBD-004). Schema 0.7 (pass 4, R23-18/R23-21; run APP-V4-DESIGN-PASS-4-20261003, owner O-A): actRequest gains A16, the form 'decision package file', the elements alternatives and consequences with the rule tying them to that form (a decision package, V4-PM-04; R23-8), and actRef gains A16 so an A16's lapse can be recorded; additive only. Pass-4 repair (R23-24, RV E1-R1): $defs/decisionPackageFile defines the package file the agent writes; it is not the CE-4 body (R23-18 item 3 superseded).",
+  "$ref": "#/$defs/recorderOutput",
+  "$defs": {
+    "nonempty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordId": {
+      "description": "An RS record identity (RS §13.2).",
+      "type": "string",
+      "pattern": "^rec:[A-Za-z0-9._:-]+$"
+    },
+    "arrivalRef": {
+      "description": "An arrival: checkpoint name and arrival ordinal (EXEC §4.1). Checkpoint identity is {workflow identity of the run (RS run_opened), checkpoint}.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint",
+        "arrivalOrdinal"
+      ],
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "arrivalOrdinal": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "contentIdentity": {
+      "description": "Same shape as RS's content identity (RS §13.4): {method, value, scope}, or 'not obtainable' with a reason; a host that does not supply an identity gives reason 'not supplied by host' (R14-8 N-21; RS L-3: lapse unknown (unavailable)).",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "value"
+          ],
+          "properties": {
+            "method": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "value": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "scope": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "notObtainable",
+            "reason"
+          ],
+          "properties": {
+            "notObtainable": {
+              "const": true
+            },
+            "reason": {
+              "$ref": "#/$defs/nonempty"
+            }
+          }
+        }
+      ]
+    },
+    "referent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "content"
+      ],
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "content": {
+          "$ref": "#/$defs/contentIdentity"
+        }
+      }
+    },
+    "actRef": {
+      "description": "Citation of an RS §6 human-act record by its RS record identity, with its kind, evidenced capture time and capturing surface. The record itself (decision actor, recorder, capture-evidence references, 'identity not verified') stays in RS §6 and is never written here (RS HA-1, HA-2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recordId",
+        "actKind",
+        "capturedAt",
+        "capturingSurface"
+      ],
+      "properties": {
+        "recordId": {
+          "$ref": "#/$defs/recordId"
+        },
+        "actKind": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A10",
+            "A11",
+            "A12",
+            "A13",
+            "A15",
+            "A16"
+          ]
+        },
+        "capturedAt": {
+          "description": "The evidenced capture time, or 'not supplied by host' (R14-4); K1-2 cites the earlier act with its time where one exists.",
+          "type": "string",
+          "minLength": 1
+        },
+        "capturingSurface": {
+          "description": "WD §4.3.1 expected-act-evidence tokens (V18-2 m-5).",
+          "enum": [
+            "host_act_facility",
+            "app_act_control",
+            "grant_control"
+          ]
+        }
+      }
+    },
+    "evidenceRef": {
+      "description": "Same shape as RS §9's evidence reference: a reference, never a copy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "resolutionAtWrite"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "receipt",
+            "content identity",
+            "origin mark",
+            "capture evidence",
+            "commit",
+            "supplier settlement",
+            "compatibility report",
+            "carriage manifest",
+            "conversation item",
+            "host record",
+            "loop event"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "claimedIdentity": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "resolutionAtWrite": {
+          "enum": [
+            "resolved",
+            "unresolvable",
+            "not supplied"
+          ]
+        }
+      }
+    },
+    "evidencedTime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "source": {
+          "enum": [
+            "supplier_item_time",
+            "host_outcome_time",
+            "host_act_time",
+            "app_observation_time",
+            "loop_event_time"
+          ]
+        }
+      }
+    },
+    "checkpointListed": {
+      "description": "CE-1 → RS checkpoint_listed: a declared checkpoint listed as plan guidance at run start, with whether the recorder can evaluate its reached-when on this surface (§2.5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint",
+        "requiredAct",
+        "reachedWhenKind",
+        "subjectClass",
+        "purpose",
+        "scope",
+        "evaluability"
+      ],
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "requiredAct": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A12"
+          ]
+        },
+        "reachedWhenKind": {
+          "description": "WD §4.3.1 tokens (V18-2 m-5).",
+          "enum": [
+            "before_dispatch",
+            "output_produced",
+            "host_outcome"
+          ]
+        },
+        "subjectClass": {
+          "$ref": "#/$defs/subjectClass"
+        },
+        "governed": {
+          "type": "boolean"
+        },
+        "freshActRequired": {
+          "description": "WD §4.3.1 FA-1…FA-5: shown with the checkpoint; in the current phase the record still applies SP-6 (FA-2).",
+          "type": "boolean"
+        },
+        "onSubjectAbsent": {
+          "description": "WD §4.3.1 'on subject absent' path, as guidance (stop · return to a named stage · proceed on a stated branch); it changes no disposition (EXEC §4.7; CH-24).",
+          "enum": [
+            "stop",
+            "return to stage",
+            "proceed on branch"
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "scope": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "evaluability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evaluable",
+                "evaluable with limit",
+                "not evaluable"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "subjectClass": {
+      "enum": [
+        "change items of a named proposal",
+        "named output",
+        "objects a named output concerns",
+        "objects changed by a named outcome",
+        "targets of the held call",
+        "grant setting"
+      ]
+    },
+    "declarationFinding": {
+      "description": "CE-2 → RS declaration_finding: invalid or not established declaration (§4.14); no arrival is ever created for it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint",
+        "finding",
+        "code"
+      ],
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "finding": {
+          "enum": [
+            "invalid",
+            "not established"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^FB-[0-9]+$"
+        }
+      }
+    },
+    "checkpointArrival": {
+      "description": "CE-3 → RS checkpoint_arrival: reached-when observed (§2.5; LOOP §2.3 'Checkpoint reached'), with the observation that met it, bound subject, purpose and scope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint",
+        "requiredAct",
+        "subjectClass",
+        "arrivalOrdinal",
+        "event",
+        "referents",
+        "purpose",
+        "scope"
+      ],
+      "properties": {
+        "checkpoint": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "requiredAct": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A12"
+          ]
+        },
+        "subjectClass": {
+          "$ref": "#/$defs/subjectClass"
+        },
+        "governed": {
+          "type": "boolean"
+        },
+        "arrivalOrdinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "ref",
+            "evidencedTime"
+          ],
+          "properties": {
+            "source": {
+              "enum": [
+                "native_item",
+                "host_outcome_via_tool_result",
+                "host_read",
+                "app_file_observation",
+                "loop_event"
+              ]
+            },
+            "ref": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "evidencedTime": {
+              "$ref": "#/$defs/evidencedTime"
+            }
+          }
+        },
+        "referents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/referent"
+          }
+        },
+        "purpose": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "scope": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "limits": {
+          "description": "Arrival-scoped limits (for example 'arrival observed at call start; dispatch order not established'); run-level evidence limits are RS R11 entries.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "requestObservation": {
+          "description": "RS R8/R16: 'request recorded' names the act_request entry; written 'not yet observed' at the arrival; the reader shows 'request not identified' when no act_request names the arrival (an explicit absence, never a defect).",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "requestRef"
+              ],
+              "properties": {
+                "state": {
+                  "const": "request recorded"
+                },
+                "requestRef": {
+                  "$ref": "#/$defs/recordId"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "request not identified",
+                    "not yet observed"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "actRequest": {
+      "description": "CE-4 → RS act_request (R16; R14-2): the agent's request for a person's act, recorded only from a structured observation. Kind, subject and purpose are recorded as the request names them, else 'not named by the request'; nothing is taken from the arrival. A request is never the act (RS HA-1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requester",
+        "form",
+        "actKind",
+        "subject",
+        "purpose",
+        "association",
+        "evidence",
+        "time"
+      ],
+      "properties": {
+        "requester": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "agent",
+                "not established (MCP server or agent)"
+              ]
+            },
+            "identity": {
+              "type": "string"
+            }
+          }
+        },
+        "form": {
+          "description": "How the request was observed (EXEC RC-5; RS §13.6). Never agent message text (RC-5; RW-1).",
+          "enum": [
+            "supplier person-input request",
+            "MCP elicitation",
+            "host-recorded request",
+            "host-loop A8 event",
+            "A8 issued after a not-permitted outcome",
+            "decision package file"
+          ]
+        },
+        "actKind": {
+          "oneOf": [
+            {
+              "enum": [
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A10",
+                "A12",
+                "A13",
+                "A15",
+                "A16"
+              ]
+            },
+            {
+              "const": "not named by the request"
+            }
+          ]
+        },
+        "subject": {
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/nonempty"
+              }
+            },
+            {
+              "const": "not named by the request"
+            }
+          ]
+        },
+        "purpose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/nonempty"
+            },
+            {
+              "const": "not named by the request"
+            }
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "association": {
+          "description": "RC-5: associated with the one current arrival; otherwise 'arrival association not established'; 'not at a checkpoint' for an A8 outside any arrival.",
+          "enum": [
+            "associated with the current arrival",
+            "arrival association not established",
+            "not at a checkpoint"
+          ]
+        },
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "time": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "alternatives": {
+          "description": "Decision package (V4-PM-04; R23-8): the alternatives, two or more, each with an identity unique within the package and a statement. From the package file (R23-24): each file alternative {id, statement} in the file's order.",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "statement"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        },
+        "consequences": {
+          "description": "Decision package (V4-PM-04; R23-8): the stated consequences, each tied to one alternative by its identity. From the package file (R23-24): one entry {alternative: id, statement} per consequence statement of each file alternative, in file order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "alternative",
+              "statement"
+            ],
+            "properties": {
+              "alternative": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "description": "PR-5 (pass 4, R23-18): a decision package file carries alternatives and consequences; they appear on no other request (R23-8). Written with anyOf, const, enum and false so that EXEC's subset checker reads it.",
+          "required": [
+            "form",
+            "alternatives",
+            "consequences"
+          ],
+          "properties": {
+            "form": {
+              "const": "decision package file"
+            }
+          }
+        },
+        {
+          "properties": {
+            "form": {
+              "enum": [
+                "supplier person-input request",
+                "MCP elicitation",
+                "host-recorded request",
+                "host-loop A8 event",
+                "A8 issued after a not-permitted outcome"
+              ]
+            },
+            "alternatives": false,
+            "consequences": false
+          }
+        }
+      ]
+    },
+    "actCounted": {
+      "description": "CE-5 → RS act_counted: an act that answers the arrival for the referents it covers (SP-1…SP-8); 'earlier act' cites an act captured before the arrival (SP-6; K1-2). Several for one arrival are a joint answer (JA-1; K1-3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "act",
+        "relation",
+        "referents"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "act": {
+          "$ref": "#/$defs/actRef"
+        },
+        "relation": {
+          "enum": [
+            "after arrival",
+            "earlier act"
+          ]
+        },
+        "referents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        }
+      }
+    },
+    "actNotCounted": {
+      "description": "CE-6 → RS act_not_counted: an act on the arrival's subject that does not answer it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "act",
+        "reason",
+        "capturedBeforeArrival"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "act": {
+          "$ref": "#/$defs/actRef"
+        },
+        "reason": {
+          "description": "RS L-13 reasons (R12-10). Captured before the arrival, the disposition shows 'prior act not counted' with the reason; on other content, 'act on other content' (SB-2). 'captured before arrival (governance-phase option)' and 'act order unknown' belong to SP-6F only.",
+          "enum": [
+            "content no longer current",
+            "another act kind",
+            "act on other content"
+          ]
+        },
+        "capturedBeforeArrival": {
+          "type": "boolean"
+        }
+      }
+    },
+    "itemDecision": {
+      "description": "CE-7 → RS item_decision: per-item state of an A5 arrival (MX-1…MX-8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "item",
+        "decision"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "item": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "decision": {
+          "enum": [
+            "A5",
+            "A10",
+            "undecided",
+            "left",
+            "unknown"
+          ]
+        },
+        "act": {
+          "$ref": "#/$defs/actRef"
+        },
+        "leftCause": {
+          "description": "P §4.3 item-left cause, kept (R14-8 N-21; ADAPTER CO-4).",
+          "enum": [
+            "refused — stale",
+            "refused — invalid",
+            "refused — not permitted",
+            "withdrawn",
+            "cleared by the person, no decision record"
+          ]
+        },
+        "leftTime": {
+          "description": "P §4.3 item_left time, where the host gives one; absent otherwise, never a time of the App's own (RX; ADAPTER CO-4 left_time).",
+          "$ref": "#/$defs/nonempty"
+        },
+        "afterDecision": {
+          "description": "MX-7, MX-8: an item with A5 later not applied (P PT-15, PT-16; ADAPTER CO-10).",
+          "enum": [
+            "not applied: refused — stale",
+            "not applied: application error",
+            "not applied: outcome unknown"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "arrivalDeclined": {
+      "description": "CE-8 → RS arrival_declined: the arrival is answered by an act-declined event (R2-5), which is its own RS act_declined record.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "declinedEventRef"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "declinedEventRef": {
+          "$ref": "#/$defs/recordId"
+        }
+      }
+    },
+    "controlRelation": {
+      "description": "CE-9 → RS control_relation: the control's relation on an A12 (§4.10; R4-6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "act",
+        "relation"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "act": {
+          "$ref": "#/$defs/actRef"
+        },
+        "relation": {
+          "enum": [
+            "established",
+            "pending",
+            "refused",
+            "unconfirmed"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "actLapsed": {
+      "description": "CE-10 → RS act_lapsed: act-lapsed event per referent (R2-19; RS L-6), with the lapse state; for a checkpoint, the arrival and when it was observed relative to the resume point and run end. Outside a run (RS act log) arrival and when are absent.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "act",
+        "state",
+        "referents",
+        "c0",
+        "c1",
+        "time"
+      ],
+      "properties": {
+        "act": {
+          "$ref": "#/$defs/actRef"
+        },
+        "state": {
+          "enum": [
+            "lapsed",
+            "lapsed (subject absent)",
+            "partially lapsed",
+            "unknown (incomparable)",
+            "unknown (unavailable)",
+            "matches c0 again after observed lapse"
+          ]
+        },
+        "referents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "c0": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "c1": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            {
+              "const": "subject absent"
+            }
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "when": {
+          "enum": [
+            "before resume",
+            "after resume",
+            "after run end"
+          ]
+        }
+      }
+    },
+    "runResumed": {
+      "description": "CE-11 → RS run_resumed: resume point (HD-5), both phases.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "firstActionRef",
+        "time"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "firstActionRef": {
+          "description": "The first run action (RC-9): an RS record identity where the action has its own entry (an operation entry), else the native item reference.",
+          "type": "string",
+          "minLength": 1
+        },
+        "time": {
+          "$ref": "#/$defs/nonempty"
+        }
+      }
+    },
+    "continuedPast": {
+      "description": "CE-12 → RS continued_past: the optional annotation 'continued past ‹checkpoint› before ‹act›' on an App-side run action that has no RS entry of its own (PH-7). A host operation carries it on its operation entry instead (RS §5). Information, never a defect; never on the person's own operation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "actionRef",
+        "actKind"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "actionRef": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "actKind": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A12"
+          ]
+        },
+        "turnInitiator": {
+          "enum": [
+            "person-directed",
+            "agent",
+            "App rule"
+          ]
+        }
+      }
+    },
+    "observationLost": {
+      "description": "CE-13 → RS observation_lost (LOOP §2.3 'Run interrupted'). Not a run end.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "cause",
+        "deciding"
+      ],
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "cause": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "deciding": {
+          "description": "Whether the lost observation decides an arrival (AW-12, AE-6); only a deciding loss makes an arrival unknown (V18-3 m-3).",
+          "type": "boolean"
+        },
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        }
+      }
+    },
+    "observationRecovered": {
+      "description": "CE-14 → RS observation_recovered (LOOP §2.3 'observation recovered'): recovered observations are recorded with their own evidenced time; nothing is back-filled (RP-1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope"
+      ],
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        }
+      }
+    },
+    "arrivalReplaced": {
+      "description": "CE-15 → RS arrival_replaced: MX-6.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "byOrdinal"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "byOrdinal": {
+          "type": "integer",
+          "minimum": 2
+        }
+      }
+    },
+    "actAfterRunEnd": {
+      "description": "CE-16 → RS act_after_run_end: RE-2 post-end act, shown against the ended arrival's subject; changes no disposition.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "act"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "act": {
+          "$ref": "#/$defs/actRef"
+        }
+      }
+    },
+    "runEnded": {
+      "description": "CE-17 → RS run_ended (R2-5; RE-4; RS §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stoppedBy",
+        "cause",
+        "waitingArrivals"
+      ],
+      "properties": {
+        "stoppedBy": {
+          "enum": [
+            "the person",
+            "run owner",
+            "observed end"
+          ]
+        },
+        "cause": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "waitingArrivals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/arrivalRef"
+          }
+        }
+      }
+    },
+    "dispositionChange": {
+      "description": "CE-18 → RS disposition_change: the arrival's record label after a change (derived and rebuildable, §4.12). In the current phase 'waiting' means 'reached; act not yet recorded', never 'the run is held' (PH-6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival",
+        "disposition"
+      ],
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "disposition": {
+          "description": "The six shared dispositions in WD §4.3.4's spelling.",
+          "enum": [
+            "waiting",
+            "performed",
+            "resolved negatively",
+            "lapsed",
+            "not reached",
+            "unknown"
+          ]
+        },
+        "performanceOrdinal": {
+          "description": "Starts at 1 with the first performance; absent before it.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "answeredBy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/recordId"
+          }
+        },
+        "annotations": {
+          "description": "RS's structured annotation objects (RS §13.3); RS's schema constrains each one.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label"
+            ]
+          }
+        }
+      }
+    },
+    "recordWriteFailed": {
+      "description": "CE-19 → RS evidence_limit 'record write failed' (R14-1): written after the late entries (RS §14.1 W-2), naming the interval and cause. A constrained instance of RS's evidence-limit body.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "detail"
+      ],
+      "properties": {
+        "label": {
+          "const": "record write failed"
+        },
+        "detail": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "subjectRef": {
+          "type": "string"
+        }
+      }
+    },
+    "recorderOutput": {
+      "description": "One output of the App's current-phase recorder: the RS entry kind, the observed time and a CE body. It carries no record header: the RS writer adds recordId, seq, recorder, context, format and run (RS §13.2) and appends it as an RS entry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "observedAt",
+        "body"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "checkpoint_listed",
+            "declaration_finding",
+            "checkpoint_arrival",
+            "act_request",
+            "act_counted",
+            "act_not_counted",
+            "item_decision",
+            "arrival_declined",
+            "control_relation",
+            "act_lapsed",
+            "run_resumed",
+            "continued_past",
+            "observation_lost",
+            "observation_recovered",
+            "arrival_replaced",
+            "act_after_run_end",
+            "run_ended",
+            "disposition_change",
+            "evidence_limit"
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "body": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "checkpoint_listed"
+            },
+            "body": {
+              "$ref": "#/$defs/checkpointListed"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "declaration_finding"
+            },
+            "body": {
+              "$ref": "#/$defs/declarationFinding"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "checkpoint_arrival"
+            },
+            "body": {
+              "$ref": "#/$defs/checkpointArrival"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_request"
+            },
+            "body": {
+              "$ref": "#/$defs/actRequest"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_counted"
+            },
+            "body": {
+              "$ref": "#/$defs/actCounted"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_not_counted"
+            },
+            "body": {
+              "$ref": "#/$defs/actNotCounted"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "item_decision"
+            },
+            "body": {
+              "$ref": "#/$defs/itemDecision"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "arrival_declined"
+            },
+            "body": {
+              "$ref": "#/$defs/arrivalDeclined"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "control_relation"
+            },
+            "body": {
+              "$ref": "#/$defs/controlRelation"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_lapsed"
+            },
+            "body": {
+              "$ref": "#/$defs/actLapsed"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "run_resumed"
+            },
+            "body": {
+              "$ref": "#/$defs/runResumed"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "continued_past"
+            },
+            "body": {
+              "$ref": "#/$defs/continuedPast"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "observation_lost"
+            },
+            "body": {
+              "$ref": "#/$defs/observationLost"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "observation_recovered"
+            },
+            "body": {
+              "$ref": "#/$defs/observationRecovered"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "arrival_replaced"
+            },
+            "body": {
+              "$ref": "#/$defs/arrivalReplaced"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_after_run_end"
+            },
+            "body": {
+              "$ref": "#/$defs/actAfterRunEnd"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "run_ended"
+            },
+            "body": {
+              "$ref": "#/$defs/runEnded"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "disposition_change"
+            },
+            "body": {
+              "$ref": "#/$defs/dispositionChange"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "evidence_limit"
+            },
+            "body": {
+              "$ref": "#/$defs/recordWriteFailed"
+            }
+          }
+        }
+      ]
+    },
+    "decisionPackageFile": {
+      "description": "R23-24 (pass 4; supersedes R23-18 item 3): the decision package FILE an agent writes in the project, which the person decides on (V4-PM-04). It names the act requested, its subject, purpose and scope, the basis that reserves the decision, and the alternatives, each with its consequences. It holds no element the recorder supplies (requester, form, association, time, evidence) and no hash of itself. The recorder identifies it (form 'decision package file') and writes an act_request (CE-4) whose evidence names this file by path and content identity; the mapping is stated in RS-v0.10 §13.6 and in the descriptions of actRequest's alternatives and consequences. Not a record of any act; the person's decision is the act it names (A16 or an existing kind).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "formatVersion",
+        "packageId",
+        "actKind",
+        "subject",
+        "purpose",
+        "reservedBy",
+        "alternatives"
+      ],
+      "properties": {
+        "format": {
+          "const": "chirality.decision-package"
+        },
+        "formatVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "packageId": {
+          "type": "string",
+          "pattern": "^pkg:[A-Za-z0-9._:-]+$",
+          "description": "The package's identity within the project, chosen by its author; never a hash of the file"
+        },
+        "actKind": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A10",
+            "A12",
+            "A13",
+            "A15",
+            "A16"
+          ],
+          "description": "The exact act requested (V4-PM-04). A16 for a reserved coordination decision; otherwise the existing kind, decided by that kind (ACT §2.1)"
+        },
+        "subject": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "purpose": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "reservedBy": {
+          "type": "array",
+          "minItems": 1,
+          "description": "The basis that reserves this decision to the person: the governing workflow, brief item or accepted instrument the package cites (R23-8 item 3; R23-24)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ref",
+              "statement"
+            ],
+            "properties": {
+              "ref": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "statement",
+              "consequences"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "statement": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "consequences": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonempty"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

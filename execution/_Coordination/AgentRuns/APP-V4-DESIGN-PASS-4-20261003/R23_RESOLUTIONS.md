@@ -687,3 +687,33 @@ evidence rules and the owner's earlier decisions already settle them.
   is "not observed to be host-enforced; unknown". The host reports that its
   Bash tool runs sandboxed unless that is disabled; this was not probed. The
   line is corrected.
+
+- **R23-48 EU-D1 confirmation notes (RV2). INTEGRATION.**
+  1. **EUD1-R9: run evidence hidden by `.gitignore`.** The root `.gitignore`
+     line `**/build/` excluded `D/build/` (frozen records, EXP records,
+     RUN_LOG, reader input set) from every commit. HELP_HUMAN's path-limited
+     commits did not notice, and R23-44's check missed ignored paths. That
+     is now part of the check: before each path-limited commit, HELP_HUMAN
+     runs `git status --ignored` on the unit's paths. Only `D/build/` is
+     affected.
+     - O-D renames it to an evidence folder that is not ignored, and
+       relabels B-2 "on-disk".
+     - The round-0 bytes RR-EUD1 read (input set `65700ab7…`) survive only as
+       hashes. That is recorded, not reconstructed.
+  2. **EUD1-R10.** The comparison checker's forbid test must not pass
+     paraphrases. O-D makes K6 judge structured fields, with phrase
+     matching only as a supplement, and completes P6's K5. RV2's paraphrase
+     probes become cases.
+  3. **EUD1-R11. R23-45.2 is narrowed to what P-H1b observed:** an
+     App-origin call on a thread with no prior turn, made between turns,
+     with the next turn's first request captured.
+     - App views may use App-origin reads only in that situation, until a
+       probe observes a thread with history and a call made during an
+       active turn.
+     - O-D may run that probe under the same limits. If a model is needed,
+       R23-37's LM Studio terms apply.
+     - The kept capture also carried the time zone and installation and
+       session ids. These are redacted as HOSTING §9.1 lists.
+  4. **EUD1-R12 goes to O-A.** RF-5a reads the record-level standing, so a
+     claim-level `unknown` (P8) must not be hidden by a record that still
+     says reliance is supported. **EUD1-R13** goes to O-D.
