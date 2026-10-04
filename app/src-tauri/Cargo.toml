@@ -1,0 +1,25 @@
+[package]
+name = "chirality-app-v4"
+version = "0.0.0-skeleton"
+description = "Chirality App v4 walking skeleton (APP-V4-GRAPH-CLOSURE-20261004)"
+edition = "2021"
+publish = false
+
+[lib]
+name = "chirality_app_v4_lib"
+crate-type = ["rlib", "staticlib", "cdylib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+libc = "0.2"
+
+# Hashing the 240 MB supplier binary (HOSTING §7.2) is slow unoptimized.
+[profile.dev.package.sha2]
+opt-level = 3
