@@ -69,3 +69,41 @@ So the return is version feedback in its timing, but not content DEL-11-01 can r
 **REPAIR.** Rows, kinds, the O-3 correction, the arithmetic and the GC-4 entry hold. The central premise does not: DEP-11-03-015 carries disposition content (decision on a named alternative, bound subject, lapse, fallback standing) that DEL-11-01 cannot take from the owner's act record. M-01 therefore either leaves an L/E residual (C7-M1) or narrows DEL-11-01's account (C7-M2). Under O-1/O-2 the closing act is the owner cut M-02; under O-3/O-4 nothing is needed.
 
 **Counts.** BLOCKING 0, MAJOR 2, MINOR 2, NOTE 3.
+
+---
+
+## Addendum A — review of the §9 repair (2026-10-04)
+
+- **Subject:** HEAD `c4043012dd`, by O-F.
+  - `PAIR_ANALYSIS_2026-10-04.md`, sha256 `869256fc41449875d0a069db3dae5c8028a12c1a1c4ca773213798d12a58259a`. Append-only: the diff from `cfce008835` deletes no line and adds §9 (96 lines).
+  - `MOVES_PROPOSED_2026-10-04.csv`, sha256 `f594358a1206752b81203061bb81183523cd805ab6e1fe82eab3d3c2bb384f3b`. Append-only, with rows M-01R and M-02R.
+  - The commit changes no PKG-11 file, register or ScopeOfWork (checked with `git diff --stat`).
+- **Also read:** `workflows/project-dag/resources/graph-version.md` SR-6; the case's `Ruling_Register.csv` (CP1-20260928 only).
+
+### A.1 Disposition of the findings
+
+| Finding | §9 | Status |
+|---|---|---|
+| C7-M1, the residual | §9.1 restates the four content items as I gave them and keeps DEP-11-03-015 as L/E. M-02R is the closing act under O-1 and O-2. The per-reading table reproduces from my code: L gives a cycle under O-1 and O-2; E under O-1…O-3; I under every option; any reading with the cut gives none | **Resolved** |
+| C7-M2, the narrowing | M-01 is withdrawn in full (S1 clause, CA and RP rewordings). CA-v0.4 §5 stays as designed. §9.2 says plainly that trading a check for a closed cycle is the owner's call | **Resolved** |
+| C7-m1, S1 clause placement | Withdrawn with M-01 | Resolved |
+| C7-m2, the "IV" label | M-01R records MoveCode `WD`, status `WITHDRAWN` | Resolved |
+| Notes n1–n3 | Dispositioned in §9.5 | — |
+
+**Owner acts per option (§9.3) are now correct.** O-1 and O-2 need one cut (M-02R), or a merge group or version-node decomposition instead. O-3 and O-4 need none while the row is read as L. Each act is attributed to the owner. No agent move is presented as closing the component.
+
+**GC-4 (§9.4).** I agree: F-R8's text ("SCC-006 is treated by SCC-CASE-007 R1 for design", R23_RESOLUTIONS l.413) needs no amendment for a cut. A cut is a graph ruling under SR-4, and the Designs keep R1's sequence.
+
+### A.2 New observations on the repair
+
+| ID | Severity | Finding | Evidence | Consequence |
+|---|---|---|---|---|
+| C7A-m1 | MINOR | §9.5 and M-02R's MirrorRowsCovered have the mirror relation reversed. SR-6 picks "the consumer register's `UPSTREAM` row" as the arc's representative. If the proposed DEL-11-01 CLM-002 sentence were extracted, its UPSTREAM row would represent the arc, and DEP-11-03-015 (DOWNSTREAM, supplier's register) would become its `MIRROR` | `graph-version.md` l.62 (SR-6); compare DEP-11-01-011, the mirror of DEP-11-03-008 | No effect on closure: the arc is the same, and a cut covers all its rows (K-7). But if the owner rules M-02R after that sentence is applied, the ruling must name the new UPSTREAM row as representative and DEP-11-03-015 as mirror. Correct the wording when the sentence is applied |
+| C7A-n1 | NOTE | The GC-5 consumer sentence is correctly framed as a proposal applied by `scope-of-work` under an owner-accepted amendment, not as a move. It is right on substance: CA §5's use of the disposition is a GC-5 item-1 dependency, and stating it removes a source of graph change when G2b reports. If applied, it is a register row change, so S2-F's F-R8 gloss "no row change" (l.382) would no longer hold literally. The ruling text itself is unaffected (A.1, GC-4) | §9.5; S2-F l.382 | List it with the amendment items so the owner sees it |
+| C7A-n2 | NOTE | Self-review. The repair restores O-F's own CA §5 rather than defending the narrowing, and records the method error in §9.2. I found no remaining softening | §9.2 | — |
+
+### A.3 Verdict
+
+**READY.** Both MAJOR findings and both MINOR findings are resolved. The component's closure now rests on an owner act that is named as such: the cut M-02R under O-1 and O-2, or the owner's class choice under O-3 and O-4. C7A-m1 is a wording correction to make when the GC-5 sentence is applied. It does not affect closure.
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 1, NOTE 2.
