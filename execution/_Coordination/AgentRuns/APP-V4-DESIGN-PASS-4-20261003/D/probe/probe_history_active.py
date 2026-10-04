@@ -28,8 +28,14 @@ Sequence:
 Every request is searched for every marker. The prompts are invented and
 contain none of them.
 
+Revision for RV2 EUD1-R15 (R23-52 item 1): `--call-b-key EX-1` makes call B
+succeed (P-H1d). Each successful call's result carries its own
+`toolReceivedAtMs` value, recorded as that call's own marker, so a trace in
+a later request can be attributed to call A or call B; the shared result
+texts are searched as well. The default (`EX-ERR`) reproduces P-H1c.
+
 Usage: probe_history_active.py --binary PATH --double PATH --tap PATH --model KEY --out DIR
-                               [--root /tmp/cvx-eud1c] [--ctx 24576] [--cleanup]
+                               [--root /tmp/cvx-eud1c] [--ctx 24576] [--call-b-key EX-ERR|EX-1] [--cleanup]
 """
 import argparse
 import json
@@ -130,6 +136,7 @@ class Probe3(P1.Probe):
                                                      "arguments": {"key": "EX-1"}}, timeout=60)
             t_ret = P1.ms()
             done1 = self.wait_method("turn/completed", n0, 600)
+            obs["call_A_own_marker"] = str((((ra or {}).get("result") or {}).get("structuredContent") or {}).get("toolReceivedAtMs", ""))
             obs["call_A"] = {"returned": bool(ra and "result" in ra), "markers_in_result": [m for m in MARKERS_A if m in json.dumps(ra)],
                              "t1_turn_started_ms": started, "call_sent_ms": t_call, "call_returned_ms": t_ret, "t1_turn_completed_ms": done1,
                              "during_active_turn": bool(started is not None and done1 is not None and started <= t_call and t_ret <= done1)}
@@ -142,8 +149,11 @@ class Probe3(P1.Probe):
                 return obs
             # call B between turns, then T3
             rb = self.request("mcpServer/tool/call", {"server": "double", "threadId": tid, "tool": "example_lookup",
-                                                     "arguments": {"key": "EX-ERR"}}, timeout=60)
-            obs["call_B"] = {"returned": bool(rb and ("result" in rb)), "markers_in_result": [m for m in MARKERS_B if m in json.dumps(rb)],
+                                                     "arguments": {"key": self.a.call_b_key}}, timeout=60)
+            res_b = (rb or {}).get("result") or {}
+            obs["call_B_own_marker"] = str((res_b.get("structuredContent") or {}).get("toolReceivedAtMs", ""))
+            obs["call_B"] = {"key": self.a.call_b_key, "returned": bool(rb and ("result" in rb)), "is_error": res_b.get("isError"),
+                             "markers_in_result": [m for m in MARKERS_A + MARKERS_B if m in json.dumps(rb)],
                              "sent_after_t2_completed": obs["t2_completed_ms"] is not None}
             time.sleep(1.0)
             n3 = self.turn(tid, "T3")
@@ -164,7 +174,7 @@ class Probe3(P1.Probe):
         return obs
 
 
-def analyse(tap_log, frames):
+def analyse(tap_log, frames, own=()):
     reqs = [json.loads(l) for l in open(tap_log)] if os.path.exists(tap_log) else []
     out = []
     for q in reqs:
@@ -179,6 +189,7 @@ def analyse(tap_log, frames):
                     "input_item_types": [i.get("type", "message") + (":" + i.get("role") if i.get("role") else "") for i in (inp or []) if isinstance(i, dict)],
                     "markers_A_in_body": [m for m in MARKERS_A if m in text],
                     "markers_B_in_body": [m for m in MARKERS_B if m in text],
+                    "own_markers_in_body": [m for m in own if m and m in text],
                     "tool_call_items_in_input": [i.get("type") for i in (inp or []) if isinstance(i, dict) and ("call" in str(i.get("type")) or "output" in str(i.get("type")))]})
     return out, reqs
 
@@ -192,6 +203,7 @@ def main():
     ap.add_argument("--ctx", type=int, default=24576)
     ap.add_argument("--out", required=True)
     ap.add_argument("--root", default="/tmp/cvx-eud1c")
+    ap.add_argument("--call-b-key", default="EX-ERR", choices=["EX-ERR", "EX-1"])
     ap.add_argument("--cleanup", action="store_true")
     a = ap.parse_args()
     if shutil.which("codex") and os.path.realpath(shutil.which("codex")) == os.path.realpath(a.binary):
@@ -216,9 +228,9 @@ def main():
         except subprocess.TimeoutExpired:
             tap.kill()
     obs["stop_reason"] = p.stop_reason
-    per, reqs = analyse(tap_log, p.frames)
+    per, reqs = analyse(tap_log, p.frames, (obs.get("call_A_own_marker"), obs.get("call_B_own_marker")))
     obs["model_requests"] = per
-    obs["any_marker_in_any_request"] = any(r["markers_A_in_body"] or r["markers_B_in_body"] for r in per)
+    obs["any_marker_in_any_request"] = any(r["markers_A_in_body"] or r["markers_B_in_body"] or r["own_markers_in_body"] for r in per)
     host = socket.gethostname()
     user = os.environ.get("USER", "\0")
     needles = [os.path.expanduser("~"), host, host.split(".")[0], user, user.capitalize()]

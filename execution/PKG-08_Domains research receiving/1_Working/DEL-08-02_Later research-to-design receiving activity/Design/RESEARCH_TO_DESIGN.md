@@ -1,7 +1,10 @@
 # Research to design candidate: method, act requirements and later witness
 
-- **Contribution:** DEL-08-02/RTD-v0.1 (new; **frozen** 2026-10-04, after
-  RV2 confirmed EU-D1 READY at `25054b04df`). Owner O-D, run
+- **Contribution:** DEL-08-02/RTD-v0.2. It supersedes RTD-v0.1 (sha256
+  `586c4a3e340359c1fbc96ae0f631a6289f8697c1dd5c64283fafc508decb8a93`, READY
+  by RV2, RV2-RTD1), repaired for RTD1-R1 (R23-52 item 4): suppliers are
+  pinned by sha256 below, and `prototype/check_rtd.py` checks the pins
+  before use. RTD1-R2 and RTD1-R3 are carried as notes (§12). Owner O-D, run
   `APP-V4-DESIGN-PASS-4-20261003`. Drafted in parallel with EU-D1 (R23-34
   item 10). Serves:
   - OUT-001: the method and the contribution account (§2, §3, §6);
@@ -22,19 +25,26 @@
     joins deferred); DECISION-4 (Phase 1: checkpoints are plan guidance).
   - Rulings: R23-34 items 4, 5, 6, 8; R23-27 (declared stimuli); R23-19,
     R23-20.
-- **Suppliers read:**
-  - ACT-POLICY-v0.10 §2.1, including the alias exclusion "Design-candidate
-    approval … is a separate act in a later increment. It is **not** A6", and
-    F-2;
-  - RS-v0.10 OF-1…OF-9 and L-rules;
-  - WD-v0.9 §4.2.1 and §4.3.1 ("design-candidate approval … is a separate
-    later-increment act and cannot be required here");
-  - DRC-v0.1 (DEL-08-01) and CFB-v0.2 (DEL-07-02), at the hashes in
-    `OWNERS/O-D.md`.
+- **Suppliers, pinned by sha256 (RTD1-R1; R23-21, R23-44).** Relied text is
+  quoted where it matters.
+
+  | Supplier | File | sha256 | Relied on |
+  |---|---|---|---|
+  | ACT-POLICY-v0.11 (DEL-04-01) | `ACT_AND_POLICY_CONTRACT.md` | `597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2` | §2.1 and its alias exclusion "Design-candidate approval … is a separate act in a later increment. It is **not** A6"; §14 F-2. v0.10 (`1bf0ce8e…25c1`), read at the draft, carried the same text; v0.11 added a DEL-10-03 receiver row and a claim-connector check (checked by grep at this pin) |
+  | RS-v0.10 (DEL-04-03) | `RECORD_SEMANTICS.md` | `2e7afb1bb8b872c0ba30a514a034b1aa7174e63ee782505438c95d7cd78430ff` | OF-1…OF-9; L-rules |
+  | WD-v0.9 (DEL-02-01) | `WORKFLOW_DECLARATION.md` | `262c9e5417cf67b56cf7c3678128ad406e8b4e2fda7057a07bebf04254ab2f31` | §4.2.1; §4.3.1 ("design-candidate approval … cannot be required here") |
+  | DRC-v0.1 (DEL-08-01) | `DOMAINS_RECEIVING.md` | `7bfa7fc496667652340573e7b50bc3fe94edfc4490e8b83d29a1feea2b558243` | §2–§4, §7 |
+  | CFB-v0.2 (DEL-07-02) | `CONNECTOR_FALLBACK.md` | `69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16` | §2 (CS-R1 per connector) |
+  | Standing schema (DEL-07-02) | `connector.standing.schema.json` | `bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719` | `$defs/standing` |
+  | EU-D1 Domains records | `RUN/D/evidence/records/DR-DM-1.json` | `075f0aadb9decb4885b6a908eaf9a5ecfb287905110cda70216e7b9a7b823c5d` | r1, r2 standings |
+  | EU-D1 Domains records | `RUN/D/evidence/records/DR-DM-2.json` | `277def89778328e65ba0d0df7328755f0c2e60d835ae5a087e19faeafe616db7` | absent standing |
+
+  All are O-D's own files except ACT, RS and WD, which are read only.
 - **Schema:** `research.context-account.schema.json` (PROPOSED).
 - **Check:** `prototype/check_rtd.py`. It consumes EU-D1's frozen Domains
-  receiving records (`RUN/D/evidence/records/DR-DM-1.json`, `DR-DM-2.json`)
-  and DEL-07-02's standing schema, read-only.
+  receiving records and DEL-07-02's standing schema, read-only, and refuses
+  to run if any of the files it reads, or DRC and CFB, differ from the pins
+  above (check P-0).
 
 ## 1. Boundary (REQ-007)
 
@@ -202,7 +212,7 @@ adoption). This file follows the current decisions (R23-7).
 
 | VER | Design |
 |---|---|
-| VER-001 | Trace a context account from receiving records through evidence, inferences and gaps to the candidate. RC-1…RC-6 are checked by `prototype/check_rtd.py`, over EU-D1's frozen Domains records (DM-1, DM-2): 18/18 at freeze |
+| VER-001 | Trace a context account from receiving records through evidence, inferences and gaps to the candidate. RC-1…RC-6 are checked by `prototype/check_rtd.py`, over EU-D1's frozen Domains records (DM-1, DM-2), after the pin check: 19/19 at freeze. This is a rehearsal, not the verification (RTD1-R3) |
 | VER-002 | Inspect §6 and §7 against HOST §8.1, OPS §6 and DEP-003; the owners as stated; no smuggled UI, provider or host choice |
 | VER-003 | §8 RD-1 on joined candidates (later) |
 | VER-004 | §8 RD-2…RD-4; rehearsal on EU-D1's Domains cases. At freeze, `check_rtd.py`'s RCA-1 (from DM-1: stale and unadmitted → `limited`) and RCA-2 (from DM-2: absent → `held`) rehearse RD-2…RD-4's account rules; the live parts need the inputs in §6 |
@@ -214,4 +224,14 @@ adoption). This file follows the current decisions (R23-7).
 |---|---|---|
 | Shared rows for the candidate decision (ACT, RS, CE, GUIDE, WD closed list) | DEL-04-01, DEL-04-03, DEL-02-03, DEL-03-04, DEL-02-01 owners | When the Domains-enabled increment is selected |
 | Domains tool class in workflow declarations | Domains-enabled increment (R23-34 item 5) | Before the research workflow is declared |
+| RTD1-R2 (note): when the decline in CA-4 gets its shared row, record it as ACT §2.3's act-declined event for this kind, not as a second act kind (as A16 and AAC do) | The act owners | When the shared rows are added |
+| RTD1-R3 (note): VER-001's rehearsal (RCA-1…3 over constructed Domains cases) is not the verification; ScopeOfWork VER-001 says not to substitute a fixture for an admitted source contract. A future dossier carries this wording | O-D, in the dossier | When the dossier is written |
 | Answers to HQ-1…HQ-6 | SWBPIPE owner via the person | When host joins resume |
+
+## Changes
+
+| Finding (ruling) | Change | Where |
+|---|---|---|
+| RV2 RTD1-R1 (R23-52 item 4) | RTD-v0.2: suppliers pinned by sha256; the check verifies them before use (P-0) | Header; `prototype/check_rtd.py` |
+| RV2 RTD1-R2, RTD1-R3 (notes) | Carried as open notes | §12 |
+

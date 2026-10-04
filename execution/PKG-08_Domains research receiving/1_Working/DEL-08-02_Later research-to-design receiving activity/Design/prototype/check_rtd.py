@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DEL-08-02 RTD-v0.1 check: the research context account schema, its rules
+"""DEL-08-02 RTD-v0.2 check: the research context account schema, its rules
 RC-1…RC-4, and its consumption of DEL-08-01's receiving records.
 
 Design prototype (owner O-D). Not product code. Needs Python 3 and
@@ -43,6 +43,28 @@ STANDING = os.path.join(EXEC, "PKG-07_PEC receiving and connector fallback", "1_
                         "DEL-07-02_Connector limitation and source-file recovery paths", "Design", "connector.standing.schema.json")
 EVID = os.path.join(EXEC, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "D", "evidence", "records")
 RESULTS = []
+DRC = os.path.join(EXEC, "PKG-08_Domains research receiving", "1_Working",
+                   "DEL-08-01_Domains query, admission and freshness contract", "Design", "DOMAINS_RECEIVING.md")
+CFB = os.path.join(os.path.dirname(STANDING), "CONNECTOR_FALLBACK.md")
+# RTD1-R1 (R23-52 item 4): the bytes this check and RTD-v0.2 rely on
+PINS = {
+    STANDING: "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
+    os.path.join(EVID, "DR-DM-1.json"): "075f0aadb9decb4885b6a908eaf9a5ecfb287905110cda70216e7b9a7b823c5d",
+    os.path.join(EVID, "DR-DM-2.json"): "277def89778328e65ba0d0df7328755f0c2e60d835ae5a087e19faeafe616db7",
+    DRC: "7bfa7fc496667652340573e7b50bc3fe94edfc4490e8b83d29a1feea2b558243",
+    CFB: "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16",
+}
+
+
+def pins_hold():
+    import hashlib
+    bad = []
+    for p, want in PINS.items():
+        with open(p, "rb") as f:
+            got = hashlib.sha256(f.read()).hexdigest()
+        if got != want:
+            bad.append(f"{os.path.basename(p)}: {got[:12]}… != pinned {want[:12]}…")
+    return bad
 
 
 def check(cid, ok, detail=""):
@@ -149,6 +171,12 @@ def rules(acc, standings):
 
 
 def main():
+    bad = pins_hold()
+    check("P-0 supplier pins hold (RTD1-R1)", not bad, "; ".join(bad))
+    if bad:
+        for cid, ok, d in RESULTS:
+            print(("PASS " if ok else "FAIL ") + cid + (f"  [{d}]" if d and not ok else ""))
+        sys.exit(1)
     std = jl(STANDING)
     sch = jl(os.path.join(DESIGN, "research.context-account.schema.json"))
     for s in (std, sch):

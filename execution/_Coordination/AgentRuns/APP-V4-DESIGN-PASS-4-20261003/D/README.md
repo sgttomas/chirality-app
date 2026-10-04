@@ -27,3 +27,18 @@ python3 -B run_d.py "$TMPDIR/eud1" --freeze  # rewrites evidence/ (owner only)
 
 Needs Python 3 with `jsonschema` (Draft 2020-12, `referencing`). It reads
 DEL-09-01's EXP schema and `check_exp.py` without changing them.
+
+## Comparison method and its limit (RV2 EUD1-R14; R23-52 item 2)
+
+`compare_eud1.py` scores a reader's account against the frozen key, item by
+item: met, not met or referred. Structured fields (standing, relied claims,
+answers, bases, booleans, the forbidden kinds named in `cannot_conclude`)
+are judged mechanically. Free text is judged only by a fixed paraphrase
+lexicon, which cannot reach "in any wording" and is not grown further.
+Therefore **a "met" on a case whose free text is non-empty is flagged
+`examiner_reading_required`** and counted separately in the tally. It
+needs an examiner's reading before it is relied on, as a "referred" item
+does. For RR-EUD1, the eight flagged K6 items were read by RV2 (RV2-EUD1,
+repair confirmation). `compare_sensitivity.py` shows that the flag is raised
+for paraphrases the lexicon misses (RV2's N-2, N-6).
+

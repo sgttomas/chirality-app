@@ -776,3 +776,12 @@ evidence rules and the owner's earlier decisions already settle them.
   4. **RTD1-R1.** RTD pins its supplier records and schema by sha256 and
      checks them before use (R23-44). RTD1-R2 and RTD1-R3 are carried as
      notes for the shared-row increment and the later dossier.
+
+- **R23-53 Situation 2 after P-H1d. INTEGRATION.** P-H1d observed a
+  successful App-origin call between turns on a thread with history (call
+  B), and a call made while a model request was in flight (call A). None of
+  the next three model requests carried a trace of either call. R23-52.1's
+  "(error result only)" condition is lifted, and R23-50's situation 2
+  stands for both error and success results, at Codex 0.158.0 on the
+  probed route. Because this widens reliance, RV2 confirms the P-H1d record
+  before the pre-merge review treats it as settled.

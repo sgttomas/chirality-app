@@ -25,7 +25,8 @@ The selected receiving consumer is the App ("The App is the first intended
 PEC consumer", V4-EXM-30). The coordination question is DEL-07-01's Q1
 (PRC-v0.1 §2). Domains' research question QD (DRC-v0.1 §5) carries the
 original absent-PEC/stale-Domains combination. Standing is read in DEL-07-02's
-vocabulary (CFB-v0.1 §2).
+vocabulary (CFB-v0.2 §2; DEL-07-02 `CONNECTOR_FALLBACK.md` at sha256
+`69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16`, R23-52 item 3).
 
 ## 2. Cases
 
@@ -114,4 +115,4 @@ and file hashes.
 | RV2 EUD1-R5 | Record dates labelled as the build constant | §4 |
 | RV2 EUD1-R6 | Per-source fixture standing in evidence | §4 |
 | RV2 EUD1-R7 | CW-QC's rehearsal limit carried into the dossier | §4, §5 |
-
+| RV2 EUD1-R16 (R23-52 item 3; in place) | §1 cites CFB-v0.2 by sha256 (was the stale label CFB-v0.1) | §1 |

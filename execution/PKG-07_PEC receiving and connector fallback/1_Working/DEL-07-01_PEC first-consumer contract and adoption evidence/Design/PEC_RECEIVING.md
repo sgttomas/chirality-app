@@ -1,6 +1,10 @@
 # PEC first-consumer receiving contract
 
-- **Contribution:** DEL-07-01/PRC-v0.3. It supersedes PRC-v0.2 (sha256
+- **Contribution:** DEL-07-01/PRC-v0.4. It supersedes PRC-v0.3 (sha256
+  `7c829352725ee646c1b5a7969d98a2a582d2b0e2ee89dec7565f2ffd295173aa`, READY
+  by RV2) for R23-52 only: §7's situation 2 now rests on a successful call
+  (probe P-H1d), and CFB is pinned by sha256 (EUD1-R16). PRC-v0.3
+  superseded PRC-v0.2 (sha256
   `f587604c41b3d39bc1702a6a236270bf3fc31c5dc7bcecde7ebaf1b290e7bdd4`, which
   RV2 confirmed READY at `25054b04df`) for R23-48 item 3 only: §7's scope
   is narrowed to what P-H1b observed and widened by what P-H1c observed.
@@ -25,6 +29,11 @@
   REQ-001, REQ-015, TBD-003/004/006 (`aecc513161c1e8a5`). Rulings: R23-34
   items 1, 2, 3, 7; R23-22.
 - **Pin basis:** 0.158.0 (HOSTING-v0.9 §6.8 surfaces; §4.1).
+- **CFB** (cited as "CFB" throughout): DEL-07-02 `CONNECTOR_FALLBACK.md`,
+  CFB-v0.2 at sha256
+  `69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16`
+  (R23-52 item 3: the label covers several byte states; no rule differs
+  among them).
 - **Schema:** `pec.receiving-record.schema.json` (references DEL-07-02's
   `connector.standing.schema.json`).
 
@@ -170,16 +179,30 @@ double; scratch homes under `/tmp`, removed; no sign-in, no download):
   - **T2** then ran on the thread, which now had history. Its request
     carried T1's prompt, reasoning and assistant message, and the new
     prompt: six items.
-  - **Call B** (key EX-ERR) was made between T2 and **T3**. T3's request
-    carried nine items.
+  - **Call B** (key EX-ERR, so its result was the double's **error**) was
+    made between T2 and **T3**. T3's request carried nine items.
   - **No request carried any marker of call A or call B**, and no request
     held a tool-call or tool-output item. Codex emitted no item
     notification for either call.
   - Codex warned that the model's metadata was not found and used fallback
     metadata. That is a property of this route, not of the call.
+- **P-H1d, the same sequence with call B successful** (RV2 EUD1-R15;
+  R23-52 item 1; `RUN/D/probe/results_d/`). The limits, model and route
+  were the same as P-H1c. The model was unloaded and the server stopped
+  afterwards; the scratch home `/tmp/cvx-eud1d` was removed.
+  - Call A (key EX-1) was made while T1's request was in flight (turn
+    started 7.52 s, call 7.60 s, turn completed 54.9 s).
+  - Call B (key EX-1, `isError: false`) was made between T2 and T3 on the
+    thread with history.
+  - Each call's own `toolReceivedAtMs` value was searched as that call's
+    own marker, together with the shared result texts.
+  - **No marker of either call appeared in any of the three requests**
+    (T1: 3 items; T2: 6; T3: 9), and no request held a tool-call or
+    tool-output item.
 - **Situations now observed, at 0.158.0 on one custom Responses route:**
   1. no prior turn, call between turns (P-H1b);
-  2. a thread with history, call between turns (P-H1c, T3);
+  2. a thread with history, call between turns, with an error result
+     (P-H1c, T3) and with a successful result (P-H1d, T3);
   3. a call while a turn's model request is in flight, followed by later
      turns (P-H1c, T2 and T3).
 
@@ -256,4 +279,5 @@ The sources are this run's real work graph at commits `e4a0c2c4c3` (S) and
 | RV2 EUD1-R4 | PR-5 compares content at the citation, not revision identifiers; an unreadable citation revision is `unknown` | §4 PR-3, PR-5 |
 | OD-F1 (owner, from RR-EUD1) | PR-7: a record-tier citation must resolve, or the claim is `unknown`. Presence facts cite PEC's presence record. Case P8 added; claims renumbered (presence c9 → c8) | §4 PR-4, PR-7, §9 |
 | R23-48 item 3 (RV2 EUD1-R11) | PRC-v0.3: §7 states P-H1b's narrow scope; records P-H1c (a thread with history; a call while a turn's request is in flight); lists the situations observed and those not observed. Kept captures are redacted by HOSTING §9.1's categories (`RUN/D/probe/redact.py`) | §7, §10 |
+| R23-52 items 1, 3 (RV2 EUD1-R15, R16) | PRC-v0.4: §7 records P-H1d, so situation 2 rests on a successful call as well as an error result. CFB is pinned by sha256 in the header | Header, §7 |
 

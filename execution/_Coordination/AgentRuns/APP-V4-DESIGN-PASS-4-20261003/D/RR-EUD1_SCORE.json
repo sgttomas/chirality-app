@@ -34,7 +34,8 @@
       "case": "P1",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "P2",
@@ -70,7 +71,8 @@
       "case": "P2",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "P3",
@@ -106,7 +108,8 @@
       "case": "P3",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "P4",
@@ -142,7 +145,8 @@
       "case": "P4",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "P5",
@@ -178,7 +182,8 @@
       "case": "P5",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "P6",
@@ -214,7 +219,8 @@
       "case": "P6",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "DM-1",
@@ -244,7 +250,8 @@
       "case": "DM-1",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "DM-2",
@@ -268,7 +275,8 @@
       "case": "DM-2",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude",
+      "examiner_reading_required": true
     },
     {
       "case": "INDEPENDENCE",
@@ -280,6 +288,7 @@
   "tally": {
     "met": 46,
     "not met": 0,
-    "referred": 0
+    "referred": 0,
+    "met_needing_examiner_reading": 8
   }
 }

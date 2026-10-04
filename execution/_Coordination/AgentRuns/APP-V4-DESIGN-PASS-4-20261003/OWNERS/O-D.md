@@ -6,9 +6,130 @@ Basis: R23-34 (H-1, H-2, H-3, H-6…H-9 ruled as proposed; H-4, H-5 not), the
 coordinator's start message of 2026-10-04. Read-only git; no network. Paths
 are relative to `projects/chirality-app-v4/execution`. `RUN` = the run folder.
 
-## CURRENT — R23-48 follow-ups done; DEL-08-02 RTD-v0.1 FROZEN (2026-10-04)
+## CURRENT — R23-52 items done; FROZEN for commit (2026-10-04)
 
-This section is authoritative. Everything below it is history.
+This section is authoritative. Everything below it is history. RV2
+confirmed the R23-48 follow-ups and RTD-v0.1 READY (RV2-EUD1.md,
+RV2-RTD1.md). R23-52's items are below. The pre-merge review covers them.
+
+### EUD1-R15: situation 2 with a successful call (R23-52 item 1)
+
+**P-H1d** ran under the same limits as P-H1c:
+- the scratch Codex 0.158.0 binary, and a scratch home at `/tmp/cvx-eud1d`,
+  removed afterwards;
+- DEL-01-01's MCP double; no sign-in, no download;
+- `qwen/qwen3.5-9b`, already present, loaded in LM Studio with a 24576
+  context and parallel 1;
+- the server checked as listening on `127.0.0.1:1234` only;
+- the socket guard and the memory-pressure stop, neither of which fired.
+
+Afterwards the model was unloaded and the server stopped (port 1234 closed;
+no probe process left). LM Studio's background service was running before
+and was left as found.
+
+The probe script now takes `--call-b-key EX-1` (`probe_history_active.py`
+`4cba4923…8711`). Each successful call's own `toolReceivedAtMs` value is
+searched as that call's marker, so a trace could be attributed to call A or
+call B.
+
+**Observed** (`D/probe/results_d/`, redacted by HOSTING §9.1; no user name,
+host name, time zone or raw id left):
+- Call A was made while T1's request was in flight (turn started 7.52 s,
+  call 7.60 s, turn completed 54.9 s).
+- Call B was made between T2 and T3 on the thread with history, and it
+  succeeded (`isError: false`).
+- **None of the three requests carried any marker of either call.** T1's
+  had 3 items, T2's 6 and T3's 9. No request held a tool-call or
+  tool-output item.
+
+So **situation 2 now rests on both an error result (P-H1c) and a successful
+result (P-H1d).** PRC-v0.4 §7 records this.
+
+**For HELP_HUMAN:** with a success observed, R23-52 item 1's narrowing
+("(error result only)") is met. I read R23-50's situation 2 as restored in
+full. This restores the scope R23-50 first gave, so a ruling line may be
+wanted. RV2 has not reviewed P-H1d.
+
+### EUD1-R14: the checker's limit stated (R23-52 item 2)
+
+- No lexicon growth.
+- `compare_eud1.py` (`c1901acc…ee08`) flags every K6 "met" whose case has
+  non-empty free text with `examiner_reading_required: true`, and counts
+  those separately in the tally. Its docstring and `D/README.md` ("Comparison
+  method and its limit") state the rule.
+- **RR-EUD1: 46/46 met, 8 of them flagged.** Those eight were read by RV2.
+- `compare_sensitivity.py` (`d1812a26…95c7`): 19/19, plus the control.
+  RV2's N-2 and N-6 are cases showing the flag is raised; the checker does
+  not catch them.
+- Score file: `D/RR-EUD1_SCORE.json` (`ed461eb5…0495`).
+
+### EUD1-R16: CFB cited by hash (R23-52 item 3)
+
+- CFB's final bytes are
+  `69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16`. These
+  are label changes only, in place, and the version stays CFB-v0.2.
+  - The header says to cite CFB by hash.
+  - §1 now names PRC's rules (PR-1…PR-7, unchanged since PRC-v0.2) rather
+    than a PRC version label. Otherwise CFB would have to change at every
+    PRC §7 revision.
+- PRC-v0.4, DRC (in place) and CW (in place) pin CFB by that hash. RTD-v0.2
+  pins it in its supplier table.
+
+### RTD1-R1: RTD-v0.2 (R23-52 item 4)
+
+- The supplier table pins by sha256:
+  - ACT-POLICY-**v0.11** (`597f13bd…f5f2`). This is new since the draft; the
+    relied §2.1 alias exclusion and F-2 are unchanged (checked by grep);
+  - RS-v0.10;
+  - WD-v0.9;
+  - DRC;
+  - CFB;
+  - the standing schema;
+  - DR-DM-1 and DR-DM-2.
+- `check_rtd.py` (`e2231509…de71`) refuses to run unless the five O-D pins
+  it reads hold (P-0). A deliberately wrong pin was tested and made it fail.
+  Result: **19/19**.
+- RTD1-R2 and RTD1-R3 are carried as notes in §12.
+
+### Frozen files (for commit)
+
+| File | sha256 |
+|---|---|
+| DEL-07-02 `Design/CONNECTOR_FALLBACK.md` (CFB-v0.2, final bytes) | 69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16 |
+| DEL-07-01 `Design/PEC_RECEIVING.md` (**PRC-v0.4**) | 4abb2c05736ee7cb7f6e67cb387bda7d6aaf3e27348bd0f319765d5e5c433c3e |
+| DEL-08-01 `Design/DOMAINS_RECEIVING.md` (DRC-v0.1, CFB pin in place) | 7bfa7fc496667652340573e7b50bc3fe94edfc4490e8b83d29a1feea2b558243 |
+| DEL-09-10 `Design/CONNECTOR_WITNESS.md` (CW-v0.2, CFB pin in place) | ff942ae6fa895c24fe368f422df6c8c6df793cde35a5bc86f755d53d9d82b6b1 |
+| DEL-08-02 `Design/RESEARCH_TO_DESIGN.md` (**RTD-v0.2**) | 3143ee65fbfd1b4dd856aaef8bd516ec84ed2f37e771941fbf43485851a9f059 |
+| DEL-08-02 `Design/research.context-account.schema.json` | af3b1c156d7620624f619696844faa93616a388ae70b3152167601ba32d9c946 (unchanged) |
+| DEL-08-02 `Design/prototype/check_rtd.py` | e223150952c5142226440260556d7f80238c363ded984e61a81e902b1e2cde71 |
+| `D/evidence/reader_input/MANIFEST.sha256` (rebuilt for CFB's bytes; records unchanged) | 0ec2ed26e65592a85b21bef476732d4d721f2723fc0b84ae29ed30ef001a6dec |
+| `D/README.md` | e54737c959705be546eb770321d859dc12e8fcecfb47c0980554414e1689d459 |
+| `D/compare_eud1.py` | c1901accf877b6f96b2222a2bc27a6fab2e252ef956f41dfea82a36daa5cee08 |
+| `D/compare_sensitivity.py` | d1812a2654fbb7fe74fa19bdb64636d98b7c9e1a86fda69b0ff8c388e7fa95c7 |
+| `D/RR-EUD1_SCORE.json` | ed461eb52c6d18ac6a968ded4d9a4d5316b5a00f190aa5c3e1a15a78aaa90495 |
+| `D/probe/probe_history_active.py` | 4cba4923bb0ddd09a31b00a8d40e451ced5ec21aa6ebca168079059d1eea8711 |
+| `D/probe/results_d/model_requests.json` | c1726fbddd97bc7f47b86cee57a606a0e6d92c1660deffda773eb7ce3c39e010 |
+| `D/probe/results_d/observations.json` | 4c109e6f9e353fa1209d5015bfdc48e975aee7dcd31846369216113f91d156dd |
+
+**Checks at freeze:**
+- `run_d.py`: 296/296 with `--freeze`, then 297/297 including B-2 (on-disk).
+- `check_rtd.py`: 19/19.
+- Comparison checker: 46/46 met, 8 flagged for examiner reading; sensitivity
+  19/19.
+- `git status --ignored` on my paths shows nothing ignored.
+
+### Open, with owners (current)
+
+| Matter | Owner | Point of need |
+|---|---|---|
+| Situation 2 restored by P-H1d (a ruling line, if wanted) | HELP_HUMAN | When convenient |
+| App-origin reads in a later request of the same turn, or after compaction | O-D, by a further probe if an App view needs it | Before such reliance |
+| HOSTING §6.8 receiver row; the -32601 note | DEL-01-01's owner | Their next revision |
+| EUD1-R12 | O-A | FV-10 re-review |
+| `outside_coverage` has no case; IA-1, IA-3; CW-RB, CW-BD | O-D | Next unit |
+| RTD1-R2, RTD1-R3 | Act owners; O-D's dossier | As in RTD §12 |
+
+## History — R23-48 follow-ups and RTD-v0.1 freeze (superseded by CURRENT above)
 
 EU-D1 was confirmed READY by RV2 at `25054b04df`. The changes below follow
 R23-48 and do not reopen it. Each change says which reviewed file it

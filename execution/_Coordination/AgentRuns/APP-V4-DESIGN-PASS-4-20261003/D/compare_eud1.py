@@ -42,6 +42,16 @@ Readings applied (stated so that a reviewer can challenge them):
      negator it is REFERRED (negation is not parsed further).
   Otherwise met. RR-EUD1's eight K6 "met" verdicts were also confirmed by
   RV2's reading (RV2-EUD1, repair confirmation), not by this checker alone.
+  **Limit (RV2 EUD1-R14; R23-52 item 2).** The lexicon cannot reach "in any
+  wording" and is not grown further. A K6 "met" on a case whose free text
+  (notes, source statement) is non-empty therefore carries
+  `examiner_reading_required: true`, and the tally counts those items
+  separately. Such a "met" is established for the structured fields only;
+  the free text needs an examiner's reading before the verdict is relied
+  on, as a "referred" item does. Known paraphrases the lexicon misses (RV2's
+  N-2 "There is nothing left to do here.", N-6 "PEC permits dispatching
+  T2.") are sensitivity cases that show the flag is raised, not that the
+  checker catches them.
 - K7/K8 (Domains): exact boolean; the source statement must name 2.4 m and
   rev-B, and some text must say rev-B's admission is not established.
 - K9 independence: met if the answer starts 'No' and says the standing
@@ -137,8 +147,8 @@ def has_groups(texts, groups):
 def score(acc, key):
     out = []
 
-    def item(case, kid, verdict, why):
-        out.append({"case": case, "item": kid, "verdict": verdict, "why": why})
+    def item(case, kid, verdict, why, **extra):
+        out.append(dict({"case": case, "item": kid, "verdict": verdict, "why": why}, **extra))
 
     truth = key["q1_truth"]
     t_a = [node_state(x) for x in truth["a_rab_nodes_at_R"]]
@@ -215,7 +225,8 @@ def score(acc, key):
             missing = [k for k, terms in KINDS.items() if not any(any(t in x for t in terms) for x in low)]
             if missing:
                 verdict, why = "referred", f"cannot_conclude does not name {missing}; the reader may have concluded it"
-        item(c, "K6", verdict, why)
+        has_free = any((x or "").strip() for x in (r.get("notes"), r.get("what_the_source_states_now")))
+        item(c, "K6", verdict, why, examiner_reading_required=bool(verdict == "met" and has_free))
     ind = (cases.get("independence") or "").lower()
     if ind.startswith("no") and "does not change" in ind:
         v = "met"
@@ -232,9 +243,12 @@ def main():
     key = json.load(open(sys.argv[2]))
     res = score(acc, key)
     tally = {v: sum(1 for r in res if r["verdict"] == v) for v in ("met", "not met", "referred")}
+    tally["met_needing_examiner_reading"] = sum(1 for r in res if r.get("examiner_reading_required"))
     for r in res:
-        print(f"{r['case']:12} {r['item']:3} {r['verdict']:9} {r['why']}")
-    print(f"\n{tally['met']} met, {tally['not met']} not met, {tally['referred']} referred, of {len(res)}")
+        flag = " [free text: examiner reading required]" if r.get("examiner_reading_required") else ""
+        print(f"{r['case']:12} {r['item']:3} {r['verdict']:9} {r['why']}{flag}")
+    print(f"\n{tally['met']} met ({tally['met_needing_examiner_reading']} of them on free text needing an examiner's reading), "
+          f"{tally['not met']} not met, {tally['referred']} referred, of {len(res)}")
     if "--out" in sys.argv:
         with open(sys.argv[sys.argv.index("--out") + 1], "w") as f:
             json.dump({"items": res, "tally": tally}, f, indent=2)

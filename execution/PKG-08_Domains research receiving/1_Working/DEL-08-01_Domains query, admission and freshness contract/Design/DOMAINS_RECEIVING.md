@@ -16,6 +16,10 @@
   own points of need).
 - **Schema:** `domains.receiving-record.schema.json` (references DEL-07-02's
   `connector.standing.schema.json`).
+- **CFB** (cited as "CFB" throughout): DEL-07-02 `CONNECTOR_FALLBACK.md`,
+  CFB-v0.2 at sha256 `69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16`. Pinned in place (R23-52 item 3; RV2 EUD1-R16):
+  the label covers several byte states, and no rule differs among them.
+  Nothing else in this file changed; the version label stays DRC-v0.1.
 
 ## 1. Boundary (REQ-008)
 

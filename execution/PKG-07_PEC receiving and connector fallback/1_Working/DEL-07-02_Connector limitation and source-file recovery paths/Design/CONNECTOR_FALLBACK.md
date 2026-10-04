@@ -1,6 +1,6 @@
 # Connector standing and the source-file route
 
-- **Contribution:** DEL-07-02/CFB-v0.2 (with two label corrections in place for RV2 EUD1-R13, R23-48; no rule changed). It supersedes CFB-v0.1 (sha256
+- **Contribution:** DEL-07-02/CFB-v0.2 (with label corrections in place for RV2 EUD1-R13 and R16, R23-48 and R23-52; no rule changed). Because the label CFB-v0.2 now covers several byte states, cite this file by sha256 (R23-52 item 3). It supersedes CFB-v0.1 (sha256
   `ae49d6543f92c38c3c3772c39e4fa4ebfdb53f33bedae3f0f75339dd88be33c8`, the
   EU-D1 freeze RV2 reviewed), repaired for RV2-EUD1 under R23-40 (EUD1-R1,
   R1 item 2, R2, R5) and R23-37 item 3; see "Changes". Owner O-D, run
@@ -27,7 +27,7 @@ A connector (PEC, later Domains) may be qualified and current, limited, or
 absent. This file gives one way to say which, a rule for when its material
 may be relied on, the conclusions nothing about a connector can establish,
 and the route that answers the same question from ordinary project files.
-Connector-specific derivation is DEL-07-01's (PEC, PRC-v0.3) and DEL-08-01's
+Connector-specific derivation is DEL-07-01's (PEC: `PEC_RECEIVING.md`, rules PR-1…PR-7, unchanged since PRC-v0.2) and DEL-08-01's
 (Domains, DRC-v0.1). They use this vocabulary; they do not redefine it.
 
 ## 2. The standing vocabulary (frozen at EU-D1; R23-34 item 1; repaired at v0.2)
@@ -220,3 +220,4 @@ deliverable, never the reverse.
 | RV2 EUD1-R5 | `connector.route-account.schema.json` gains `written_at_source` (`observed_clock` or `build_constant`) | §4 (schema) |
 | OD-F1 (owner) | Presence facts cite PEC's presence record, never a file | §2.3 |
 | RV2 EUD1-R13 (R23-48 item 4; in place, label only) | §1 names PRC-v0.3 (its PR rules are those of v0.2; v0.3 changed only §7). "Satisfied" is reserved for needs: §3 item 3 says "complete or done" of items, and the need sentence uses "satisfied" | §1, §2.4, §3 |
+| RV2 EUD1-R16 (R23-52 item 3; in place, label only) | §1 names PRC's rules (PR-1…PR-7, unchanged since PRC-v0.2) instead of a PRC version label, so that PRC's later §7 revisions do not change this file. The header says to cite this file by sha256 | Header, §1 |

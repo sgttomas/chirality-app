@@ -33,6 +33,9 @@ CASES = [
     ("readiness not named in P2 cannot_conclude", lambda a: a["cases"]["P2"].update(cannot_conclude=[x for x in a["cases"]["P2"]["cannot_conclude"] if "ready" not in x.lower()]), {("P2", "K6"): "referred"}),
     ("P5 notes negated 'not ready to dispatch'", lambda a: a["cases"]["P5"].update(notes="Nothing here is ready to dispatch, and nothing can be dispatched."), {("P5", "K6"): "referred"}),
     ("P4 notes 'it is not ready to start'", lambda a: a["cases"]["P4"].update(notes="T2 is not ready to start."), {("P4", "K6"): "referred"}),
+    # RV2 EUD1-R14 paraphrases the lexicon misses: the verdict stays 'met', and the flag must be raised
+    ("RV2 N-2: P6 notes 'There is nothing left to do here.' -> flagged", lambda a: a["cases"]["P6"].update(notes="There is nothing left to do here."), {("P6", "K6"): ("met", True)}),
+    ("RV2 N-6: P1 notes 'PEC permits dispatching T2.' -> flagged", lambda a: a["cases"]["P1"].update(notes="PEC permits dispatching T2."), {("P1", "K6"): ("met", True)}),
     ("DM-1 notes 'the spacing is 3.0 m'", lambda a: a["cases"]["DM-1"].update(notes="So the spacing is 3.0 m."), {("DM-1", "K6"): "not met"}),
 ]
 # control: the unaltered real account keeps every K6 'met'
@@ -42,8 +45,10 @@ bad = 0
 for name, f, expect in CASES:
     a = copy.deepcopy(acc)
     f(a)
-    got = {(r["case"], r["item"]): r["verdict"] for r in C.score(a, key)}
-    ok = all(got[k] == v for k, v in expect.items())
+    sc = C.score(a, key)
+    got = {(r["case"], r["item"]): r["verdict"] for r in sc}
+    flg = {(r["case"], r["item"]): bool(r.get("examiner_reading_required")) for r in sc}
+    ok = all((got[k], flg[k]) == v if isinstance(v, tuple) else got[k] == v for k, v in expect.items())
     bad += not ok
     print(("BITES  " if ok else "MISSED ") + name)
 print(("CONTROL ok" if CONTROL_OK else "CONTROL FAILED") + ": the unaltered account keeps every K6 'met'")

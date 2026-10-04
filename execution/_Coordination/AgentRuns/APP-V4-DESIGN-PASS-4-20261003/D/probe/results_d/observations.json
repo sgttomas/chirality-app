@@ -1,0 +1,142 @@
+{
+  "call_A_own_marker": "1791134637996",
+  "call_A": {
+    "returned": true,
+    "markers_in_result": [
+      "P-EX-1",
+      "toolReceivedAtMs",
+      "invented example material"
+    ],
+    "t1_turn_started_ms": 7517,
+    "call_sent_ms": 7596,
+    "call_returned_ms": 7604,
+    "t1_turn_completed_ms": 54867,
+    "during_active_turn": true
+  },
+  "t2_completed_ms": 59279,
+  "call_B_own_marker": "1791134689727",
+  "call_B": {
+    "key": "EX-1",
+    "returned": true,
+    "is_error": false,
+    "markers_in_result": [
+      "P-EX-1",
+      "toolReceivedAtMs",
+      "invented example material"
+    ],
+    "sent_after_t2_completed": true
+  },
+  "t3_completed_ms": 65215,
+  "notifications": [
+    "remoteControl/status/changed",
+    "thread/started",
+    "mcpServer/startupStatus/updated",
+    "mcpServer/startupStatus/updated",
+    "warning",
+    "thread/status/changed",
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/completed",
+    "thread/tokenUsage/updated",
+    "account/rateLimits/updated",
+    "thread/status/changed",
+    "turn/completed",
+    "warning",
+    "thread/status/changed",
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/completed",
+    "thread/tokenUsage/updated",
+    "account/rateLimits/updated",
+    "thread/status/changed",
+    "turn/completed",
+    "warning",
+    "thread/status/changed",
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/completed",
+    "item/started",
+    "item/completed",
+    "thread/tokenUsage/updated",
+    "account/rateLimits/updated",
+    "thread/status/changed",
+    "turn/completed"
+  ],
+  "stop_reason": null,
+  "model_requests": [
+    {
+      "path": "/v1/responses",
+      "status": 200,
+      "prompts_in_input": [
+        "T1"
+      ],
+      "input_items": 3,
+      "input_item_types": [
+        "message:developer",
+        "message:user",
+        "message:user"
+      ],
+      "markers_A_in_body": [],
+      "markers_B_in_body": [],
+      "own_markers_in_body": [],
+      "tool_call_items_in_input": []
+    },
+    {
+      "path": "/v1/responses",
+      "status": 200,
+      "prompts_in_input": [
+        "T1",
+        "T2"
+      ],
+      "input_items": 6,
+      "input_item_types": [
+        "message:developer",
+        "message:user",
+        "message:user",
+        "reasoning",
+        "message:assistant",
+        "message:user"
+      ],
+      "markers_A_in_body": [],
+      "markers_B_in_body": [],
+      "own_markers_in_body": [],
+      "tool_call_items_in_input": []
+    },
+    {
+      "path": "/v1/responses",
+      "status": 200,
+      "prompts_in_input": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "input_items": 9,
+      "input_item_types": [
+        "message:developer",
+        "message:user",
+        "message:user",
+        "reasoning",
+        "message:assistant",
+        "message:user",
+        "reasoning",
+        "message:assistant",
+        "message:user"
+      ],
+      "markers_A_in_body": [],
+      "markers_B_in_body": [],
+      "own_markers_in_body": [],
+      "tool_call_items_in_input": []
+    }
+  ],
+  "any_marker_in_any_request": false
+}
