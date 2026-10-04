@@ -27,19 +27,28 @@ The dossier is a set of files linked by one **dossier manifest**. Evidence is li
 | Limitations | Every limit from the results and observations, in its owner's vocabulary (RS R11, TOP, EXP) | Kept with the result it limits |
 | Handoffs | §4 to DEL-11-03; §5 to DEL-09-11 | — |
 
-**Cross-reference rules (EUF1-S1; checked by `prototype/dos_check.py`, sha256 07bc7791d517ade2f56c3d8c97548025e15fcdb47e8dd6cd323027549e6f2903).** A schema cannot compare one part of the manifest with another, so these are checked by script:
+**Cross-reference rules (EUF1-S1; RR-EUF3, R23-49; checked by `prototype/dos_check.py`, sha256 bf20d8fca2623c6fb1d4036ba4b59074dd32ed8dbb8345e298ce6a98ecfe84b1).** A schema cannot compare one part of the manifest with another, or with the EXP records it cites, so these are checked by script:
 
 - **DX-1** Every receipt named in either hand-over (§4 `receipts`, §5 `receipt_refs`) is listed in the host-evidence index as a `host_receipt`, with the same resolution status at write.
 - **DX-2** When both hand-overs are present, they carry the same receipt set, because both concern the one LHQ-20 journey.
+- **DX-3** A not-run case names no run. Only LHQ-20 has hand-overs. When every EXP result the manifest cites for LHQ-20 has outcome `not-run`:
+  - there is no DEL-09-11 hand-over, because its required journey, run authors and record set would name a run;
+  - the DEL-11-03 hand-over names no acceptance act and no receipt, and does not count as the completed witness.
 
-The manifest examples now satisfy both:
-- `DOS-EXAMPLE-INVENTED` (no case run) names no receipt anywhere.
-- `DOS-EXAMPLE-INVENTED-POPULATED` lists RC-1, *unresolvable*, in the index and in both hand-overs.
+  The script reads the outcomes from EXP result records passed with `--outcomes`. When an outcome is not supplied, it reports DX-3 as not checked rather than passing it.
 
-`lhq.dossier-manifest.dx-violations.examples.json` holds three schema-valid violations, and `dos_check.py` reports each one:
-- the earlier example, which named RC-1 only in the DEL-09-11 hand-over;
+The manifest examples satisfy all three:
+- `DOS-EXAMPLE-INVENTED` (no case run) names no receipt and no run, and has no DEL-09-11 hand-over.
+- `DOS-EXAMPLE-INVENTED-POPULATED` (only LHQ-20 run, inconclusive) lists RC-1, *unresolvable*, in the index and in both hand-overs.
+
+Their outcomes are in `lhq.dossier-manifest.exp-outcomes.examples.json` (sha256 15d9ae2d1a1698a13a75d18c7fbc1c614d84f4b9969c1bf99a5cf26abd2880b8): invented stubs carrying only `record_id` and `outcome`, not EXP records.
+
+`lhq.dossier-manifest.dx-violations.examples.json` holds five schema-valid violations, and `dos_check.py` reports each one:
+- the EUF1-S1 example, which named RC-1 only in the DEL-09-11 hand-over and also named a run for a not-run LHQ-20;
 - a resolution that differs from the index;
-- a receipt missing from the DEL-11-03 hand-over.
+- a receipt missing from the DEL-11-03 hand-over;
+- a not-run LHQ-20 with a DEL-09-11 hand-over (the example before RR-EUF3);
+- a not-run LHQ-20 whose DEL-11-03 hand-over names an acceptance act and a receipt.
 
 ## 2. Applicability map (CI-4; V4-EXM-03, V4-EXM-05)
 
@@ -147,4 +156,5 @@ DEL-09-11 consumes "the actual identified V4-EXM-20 host-run evidence and host r
 | U2-R4 (MINOR) applicability map narrower than EXP | The map is derived from the elements each record carries (EXP §6.2 rule 2). The model row reopens all four cases. A case-definition row is added, and an operation-binding change is reported as `case_definition`. The schema's change kinds equal EXP-v0.2's (checked by script) |
 | U2-R12 (NOTE, from the confirmation) | The duplicate `operation_binding` value is removed from the schema's `applicability.changed` enum |
 | EUF1-S1 (O-F, via the coordinator; tranche 2) | The example's DEL-09-11 hand-over named RC-1 while the index and the DEL-11-03 hand-over were empty. DOS §1 already required the index to list every cited receipt, but nothing checked it. The not-run example now names no receipt. A second, populated example lists RC-1 (*unresolvable*) in all three places. The new rules DX-1 and DX-2 are checked by `prototype/dos_check.py`, with three violation examples. The schema-invalid examples, derived from the old example, no longer carry the inconsistency, so each fails only for its stated rule |
+| RR-EUF3 (R23-49; tranche 2) | `DOS-EXAMPLE-INVENTED` recorded LHQ-20 as not run, yet its DEL-09-11 hand-over named a journey run, its record set and its run authors. That hand-over is removed, and a limitation says why. New rule DX-3 (a not-run case names no run) is checked by `dos_check.py --outcomes`. Two violation examples and an outcome-stub file are added. The populated example and the schema-invalid examples now cite the run (inconclusive) LHQ-20 result, so their limitation and withheld labels no longer say that no case has run, and each fails only for its stated rule. The schema is unchanged |
 

@@ -251,3 +251,74 @@ Vendor PR-P8 (O-D's frozen bytes) and add both probe variants as cases.
 - **RF-5b cannot see a torn record.** RF-5b recognises a connector record named as a plain input only if the record parses. A torn connector record used as a plain input still reads by presence. Declaring the need is the contract, and INV-FL-9 and RF-5b cover the readable case. Recorded only.
 
 **Not done.** I did not re-read DEL-04-03's or E's checks; this unit does not change them.
+
+## Repair confirmation, FV10-R7 and FV10-R8 (commit `22ed9383a4`; 2026-10-04)
+
+**Reviewer.** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY.** FV10-R7 and FV10-R8 are confirmed.
+
+There are no open findings. One NOTE (FV10-R9) records a limit. PR-P8 is confirmed only against `VENDOR.json` and an independent rebuild; the confirmation against O-D's committed bytes is still to come (see "PR-P8 caveat").
+
+### What I checked
+
+**Bytes.**
+- All 13 files in O-A "CURRENT" match: the 8 changed files, `VENDOR.json` `d02ffe5d…` and the five vendored inputs.
+- For PKG-06, the working tree equals the commit.
+- `git status --short --ignored` on PKG-06 prints nothing, so nothing is ignored or left out (R23-48.1).
+- `git ls-files` lists all six vendored files, including `PR-P8.json`.
+
+**Clean extract (R23-44).**
+- I extracted the tree read-only with `git archive 22ed9383a4 projects/chirality-app-v4 | tar -x`.
+- `run_fleet.py` gives **45/45** and `run_views.py` gives **36/36**.
+- No `__pycache__` was left in the working tree.
+
+### FV10-R7: confirmed
+
+- When a record supports reliance, RF-5a now reads every claim's own standing.
+- A record-tier or admitted-tier claim that does not support reliance is listed in `unreliedClaims`, with its condition and basis. So is a claim whose tier is `unknown`, and a claim whose standing is unreadable or nonconformant.
+- With `route.needed` false, any such claim makes the need *unknown*.
+- Presence-advisory claims go to `advisoryClaims`, worded as "advisory only", and are not counted as gaps.
+
+I probed the committed `fleet_store` on the vendored PR-P8 (`$TMPDIR/rv2/probe_p8b.py`):
+
+| Variant | Result |
+|---|---|
+| As vendored (`route.needed` true) | *satisfied*: "claim(s) not relied: c3 unknown: PR-7: anchor #no-such-section … ; advisory only: c8 presence advisory; … the source-file route ra:EUD1-Q1 is still needed for the rest" |
+| `route.needed` false | *unknown*, with c3 listed |
+| c3's tier `unknown`, no route | *unknown* ("c3 current: tier not stated") |
+| c3's standing broken, no route | *unknown* ("c3 standing not readable or nonconformant") |
+
+The cases cover both variants:
+- `run_fleet` P8a and P8b: "PR-P8 with route.needed true: satisfied, naming claim c3 unknown … c8 advisory" and "route.needed false: … the need is unknown".
+- FV C13 and C14: "names claim c3 unknown and the route" and "unknown, never a bare 'reliance supported'".
+
+### FV10-R8: confirmed
+
+- **`VENDOR.json` is pinned.** `fleet_store.VENDOR_SHA256` = `d02ffe5d…`, which equals the file. `vendored()` checks it before reading the pins. A case edits a vendored file together with its entry and is refused.
+- **The schema label reads CFB-v0.2.** The `connector` description in `fleet.record.schema.json` now says "DEL-07-02 CFB-v0.2 §2".
+- **RF-5b states the contract.** FR RF-5b now says that the declaration is the contract. A torn record named as a plain input "reads by presence, as any plain input does". INV-FL-9 refuses `connector` on a plain input.
+
+### PR-P8 caveat
+
+- `VENDOR.json` records `PR-P8.json` with sha256 `174e1291…`. Its source is O-D's `D/evidence/records/PR-P8.json`, with the note "not yet in git when copied, so re-pin if O-D's committed bytes differ".
+- The vendored file equals that record.
+- O-D's on-disk `D/evidence/records/PR-P8.json` is also `174e1291…`.
+- `git ls-files` shows that `D/evidence/` is not yet in git.
+- **Independent check.** I regenerated the records with O-D's `run_d.py` into scratch (`$TMPDIR/rv2/eud1c`). O-D's `eud1.py`, `make_fixture.py` and fixtures are unmodified from git. The rebuilt `PR-P8.json` is `174e1291…`, the same bytes.
+  - O-D's folder is mid-edit: other files there are modified, and that run gave 296/297. That state belongs to O-D's next unit and does not bear on PR-P8.
+- **Still open:** the comparison with O-D's committed PR-P8, once the EUD1-R9 move is committed. If the bytes differ, O-A re-pins.
+
+### FV10-R9 — NOTE: two limits RF-5a cannot cover, recorded only
+
+**A claim that is missing from the record.**
+- If c3 is removed from PR-P8 and `route.needed` is false, the need reads *satisfied* (probe `p8-noc3-noroute`).
+- RF-5a cannot know which claims a part needed. That account is the record's own (PRC PR-6).
+- An incomplete claim set is caught by the record's producer and by `route.needed`, not by the consumer.
+
+**A claim tagged with the other connector.**
+- RF-5a validates claim standings against the standing schema only. It does not check the record schema, which requires every standing to name the record's connector.
+- So a claim inside a PEC record with `connector: domains`, `admitted` and reliance would be counted as relied.
+- O-D's PEC record schema refuses such a record. Validating against it, or comparing each claim's `connector` with the declared one, would close the gap.
+
+**Not done.** I did not compare PR-P8 with O-D's committed bytes, because they do not exist yet.

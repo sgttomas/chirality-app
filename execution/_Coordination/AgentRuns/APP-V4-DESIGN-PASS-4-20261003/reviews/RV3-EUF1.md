@@ -413,3 +413,76 @@ CIR `$defs/app_candidate_subject` still equals EXP-v0.2's `candidate_subject.app
 ## Not run
 
 DEL-01-01's subset validator (O-C reports it agrees). I ran `jsonschema` only.
+
+---
+
+# Addendum 4 — RP-v0.3 (refrozen; committed `741d55094d`), with RR-EUF3's result, 2026-10-04
+
+- **Subject** (`O-F.md` "EU-F1 — RP-v0.3"). All files were re-hashed and match:
+  - `REPLACEMENT_PACKET.md` `164c082c…f9af`;
+  - `rp.packet-manifest.schema.json` `20de252d…8b64`;
+  - `rp.disposition.schema.json` `d5a69bc2…` (unchanged);
+  - `F/rplib.py` `89fc8e64…`, `build_fx_rp1.py` `4bdad3a7…`, `check_rp.py` `11104ded…`, `compare_rp.py` `208903ab…`, `stage_is.py` `5845d029…`;
+  - `EU-F1.key-grounding.md` `7158f256…`, `vendor/VENDOR.json` `4d9e4158…`;
+  - FX-RP1-3 `MANIFEST.sha256` `ca5c8665…` (all 11 files `OK`);
+  - `IS-FX-RP1-3.input-set.sha256` `537d8b81…`;
+  - key `EU-F1-3.answer-key.json` `80873710…`.
+
+  The working tree is clean for the unit's paths, and `git status --ignored` lists none of them (R23-48.1).
+- **Reader's result read before confirming (P-E6).** `RR-EUF3/account.json` (`862be3c5…`), `COMPARE.txt` (`6daa6976…`), `DISPATCH_RECORD.md`, and R23-49.
+
+## Verdict on RP-v0.3: **READY**
+
+Every finding of mine is resolved. RR-EUF3's eight referred issues are legibility points except three:
+- one supplier-example defect, which goes to O-C as R23-49 says;
+- two small defects in the packet's own text;
+- one latent rule gap.
+
+Each of the three is MINOR and none blocks the unit; they belong in O-F's next unit (R23-49.2).
+
+## My findings, confirmed
+
+| Finding | State | How I checked |
+|---|---|---|
+| EUF1-R1b (blocked folded into `not_met`) | **Resolved** | I called `rplib.core_loop` with every counted result resolved to a candidate record, varying S11-6's outcome. `fail` gives restart `recorded_fail`/`not_met` and obligation `not_met`. `blocked`, `not-run` and `inconclusive` give `recorded_blocked`, `recorded_not_run` and `recorded_inconclusive`, each with status `not_evidenced`. `pass` gives `met`. Unresolved results give `not_evidenced` |
+| EUF1-R2 (ALT-PUBLISHED) | **Resolved** | The package consequence reads "Choosing this alternative does not perform the public-release act; publishing remains a separate owner act (P-5; PRD OQ-08; DEL-11-03 CLM-003)" and "Until the owner performs that act, v3.0.1 remains the published product and the fallback". RP-R6 refuses an ALT-PUBLISHED without that wording (B-35). Key Q-7 now asks the unambiguous questions |
+| EUF1-R3 (first-cut grounding) | **Resolved** | `source_kind`/`shape` on S-4 and S-5. `EU-F1.key-grounding.md` marks Q-9 and Q-11 as first cut (O-F) |
+| EUF1-R4 (literal identity comparison) | **Resolved** | `identity_key` probes: an omitted `packaged` against SQ's explicit false gives `reconciled`; packaged true against unpackaged gives `differ`; explicit false gives `reconciled` |
+| EUF2-R1 under R23-43 | **Resolved** | Gaps read "before the packet can claim replacement qualification (AX-001: a packet \"cannot claim replacement qualification until both applicable witnesses hold\"); it does not hold back putting the packet to the owner", with AX-001 quoted in its own words. §2 O-1, §6.3 step 5, RF-1, P-1 and the purpose all match. A-16, A-19 and B-36 hold it |
+| EUF2-R2 (DOS example moved) | **Resolved** | FX-RP1-3's DOS copy is O-C's repaired `DOS-EXAMPLE-INVENTED`, with no receipts. B-13…B-15 use the repaired and the populated examples |
+| N4 (`--fixture` ignored) | **Resolved** | `check_rp.py --fixture FX-RP1` gives 9/20 and `--fixture FX-RP1-2` gives 12/20, as O-F states. The failures name the checks the old fixtures cannot meet |
+
+**Correction to my EUF1-R1 (O-F's observation; your slip carried into it).** In SQ-EX-05, S11-6 is `blocked` because stimulus ST-4 was `not_produced`, with cause "route cannot delegate; no recording (U-SQ-5)". ST-5 was produced by replay. I cited SQ's general U-SQ-6 row instead of the record's own cause. The conclusion, an input gap and not a candidate defect, stands. RP-v0.3 copies the record's cause, which is correct.
+
+## Other things checked
+
+- **EUF2-D1 (an illustrative review read as present): confirmed repaired.**
+  - `dossier_review.state` is `present` only when the named record is among the supplied reviews; otherwise it is `named_not_resolved`, which holds back "established". This is how FX-RP1-3 reads.
+  - *Note:* "resolves" means the record's id is supplied. Nothing checks the review's subject or its separation. Name that as a limit, or check it once real review records exist.
+- **Vendored supplier bytes (R23-44): all 8 hold.** Each file in `F/vendor/` equals the sha256 in `VENDOR.json`, the blob at its stated source commit, and the live source today. `check_rp.py` V-1 reports drift as a NOTICE and none is reported.
+- **Checks rerun.**
+  - `check_rp.py`: 65/65, with no NOTICE.
+  - `compare_rp.py --set 3 --self-check`: 18/18.
+- **Key EU-F1-3.** I formed my own answers to Q-1…Q-13 from FX-RP1-3 and the v3 brief and schema first. Comparing field by field (set fields as sets) gives **0 differences**.
+  - Q-13's "any time" is stated inside the input set: in the legend's manifest description, P-1's point of need and the R23-43 term. A reader can therefore reach it from the files.
+  - The key is fair and grounded as the grounding file states.
+
+## RR-EUF3: 36/36 fields; which referred issues are defects
+
+I read the account's statements against the files and found no contradiction. The reader got the three points that matter right: presentation at any time with no qualification claimed, ALT-PUBLISHED's separate release act, and blocked as a missing result.
+
+| # | Issue | Judgment |
+|---|---|---|
+| 1 | No identifiable candidate in the subject | Legibility in the fixture. **There is also a latent rule gap (MINOR, O-F).** Under R23-43 a real packet may be put to the owner at any time, and REQ-004 requires it to "identify the exact proposed fallback-replacement scope and candidate". `check_package` has no rule that refuses a placeholder candidate, or `evidence_standing: illustrative`, in a packet that is not a fixture. Add one, for example by refusing presentation (`presented_no_decision`) of a package whose subject is a placeholder or whose packet is illustrative |
+| 2 | Not-run dossier names a journey run | **A defect in the supplier example (O-C), as R23-49.2 rules.** `DOS-EXAMPLE-INVENTED` has all four cases with `not-run-example` results and the limitation "no case has run", yet `handoff_del_09_11` names `journey_run_ref: LHQ-20-EXAMPLE-RUN`, a record set and run authors. DX-1 and DX-2 cover receipts only, so `dos_check` does not catch this. A DX-3-style check (a not-run journey case carries no run reference) would |
+| 3 | CIR contributions "answered" | Legibility. The term defines it, and the CA §7.2 ladder is the supplier's vocabulary |
+| 4 | Dossier says independent; review unresolved | Legibility. The packet already handles this correctly (`named_not_resolved`; not established) |
+| 5 | No measured v3.0.1 baseline | Legibility, by design: F-R2 and `comparison_rule` (EXAMINATION §7) |
+| 6 | Fallback and the ALT-PUBLISHED inference not re-checked | Mostly legibility, since both are labelled. **One small wording defect (MINOR, O-F).** The excerpt says "Manual checks read its latest published stable release … opens in the system browser on request". The consequence says v3.0.x installs "check the latest published stable release, so they would be offered v4", which drops "manual" and "on request". Restate it as "a v3.0.x install's manual update check would find v4". The excerpt's "does not assert the latest remote release" concerns the record's knowledge of the current release; it does not contradict the mechanism |
+| 7 | Cited clauses not supplied | Mostly legibility. **One false statement in the packet (MINOR, O-F).** The term for "CLM-001, CLM-003, REQ-004, REQ-005, REQ-006, AX-001, VER-003, VER-004" says "those of DEL-11-03 are excerpted". `basis-excerpts.md` holds only CLM-001, CLM-003, REQ-004, REQ-005 and AX-001; REQ-006, VER-003 and VER-004 are not excerpted. Either excerpt them or say which ones are |
+| 8 | Refinement steps counted as workflow saving | Legibility for the packet. The mapping is SQ's step map (O-B's), carried by RP-R1 one for one. Whether "reuse" should rest on J-7 alone is a question for SQ's owner at its next revision, not a packet defect |
+
+## Not run
+
+- `stage_is.py --set 3` (the reader's `SUPPLIED.sha256` has 14 entries, and O-F reports every hash matched).
+- The builder's determinism.

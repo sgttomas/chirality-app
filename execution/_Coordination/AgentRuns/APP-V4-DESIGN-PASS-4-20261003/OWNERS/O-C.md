@@ -502,3 +502,82 @@ CIR `$defs/app_candidate_subject` still equals EXP-v0.2's definition (compared b
 **Pin note.** RV3 confirmed LHQ-v0.2 READY at `5cd31e09…`. The LHQ2-R1 repair moves the file to `90f461cb…`, so RV3's confirmation of LHQ2-R1 should be made against the new hash.
 
 **Not done.** No other file was written. No git writes and no network.
+
+## Tranche 2: RR-EUF3 item (R23-49): a not-run case names no run
+
+**Finding.** RR-EUF3 found that `DOS-EXAMPLE-INVENTED` records LHQ-20 as not run (`EXP-LHQ-20-not-run-example`), yet its DEL-09-11 hand-over named a journey run (`LHQ-20-EXAMPLE-RUN`), a record set with placeholder hashes, and run authors. DX-1 and DX-2 did not cover this, because they only compare receipts.
+
+**Example repair.**
+- `DOS-EXAMPLE-INVENTED` no longer has a DEL-09-11 hand-over. The hand-over is optional in the schema, and its required fields would name a run. A limitation now states why. Its DEL-11-03 hand-over already named no run: no acts, no receipts, not the witness.
+- `DOS-EXAMPLE-INVENTED-POPULATED` has LHQ-20 run (inconclusive). Two of its labels still said otherwise and are fixed:
+  - its limitation said "no case has run" and now says only LHQ-20 has run;
+  - its withheld item named the other dossier's case results and now names its own.
+- The schema-invalid examples carry a DEL-09-11 hand-over, and two count as the witness. They now cite the run (inconclusive) LHQ-20 result, with the same label fixes. Each still fails `jsonschema` with exactly one error, for its stated rule.
+- The two derived DX violation examples get the same label fixes.
+
+**Check added.** DX-3 is a new rule in `prototype/dos_check.py`, stated in DOS §1, with a changes row. When every EXP result cited for LHQ-20 is `not-run`:
+- there is no DEL-09-11 hand-over;
+- the DEL-11-03 hand-over has no acceptance act and no receipt, and does not count as the completed witness.
+
+The script reads outcomes from EXP result records passed with `--outcomes`. When an outcome is not supplied, it says "DX-3 not checked"; it never passes the rule silently.
+
+**New and updated example files.**
+- `lhq.dossier-manifest.exp-outcomes.examples.json` (new) holds invented outcome stubs for the example refs. Each carries only `record_id` and `outcome`; the stubs are not EXP records.
+- `dx-violations` gains two violations:
+  - `DX-VIOL-not-run-names-run`: the example as it stood before this repair;
+  - `DX-VIOL-not-run-11-03-names-acts`: a not-run LHQ-20 whose DEL-11-03 hand-over names an act and a receipt. That receipt is indexed, so DX-3 is the only rule it breaks.
+- The first violation example (EUF1-S1) is now noted as breaking DX-3 as well.
+- The dossier schema is unchanged.
+
+### Checks rerun
+
+Schemas were checked with `jsonschema` 4.26 and DEL-01-01's subset validator.
+
+| Schema | Valid examples (errors) | Invalid examples (rejected) | Violation examples (schema-valid) |
+|---|---|---|---|
+| dossier | 2 (0) | 7 (all) | 5 DX (all) |
+| CIR | 2 (0) | 5 (all) | 2 CI-5 (all) |
+| traffic | 1 (0) | 12 (all) | 2 CB-1 (all) |
+
+Prototype checks, run with the outcome stubs where they apply:
+
+| Check | Exit 0 (passes) | Exit 1 (reports a violation) |
+|---|---|---|
+| `dos_check --outcomes` | valid examples; schema-invalid examples (no DX finding) | all 5 DX violations |
+| `cir_check` | valid examples | CI-5 violations |
+| `top_check` | valid examples | CB-1 violations |
+
+The `dos_check` and outcome-file hashes quoted in DOS were checked by grep.
+
+### Hashes
+
+| File (DEL-09-07 `Design/`) | Before (after EUF1-S1) | After |
+|---|---|---|
+| `QUALIFICATION_DOSSIER.md` | `687032c0036cc83ef4d82170112f209ad5d6e99a161267a8b82e3cb8ef1e8465` | `8c4f4fa1593a22bdce93ff59c647785b0e81c72627a5aa4b07d253c4f13f6d7d` |
+| `lhq.dossier-manifest.valid.examples.json` | `9873df65c9b481728d0043b0db8ea109ada5f4fdec0d8e2dc9cf2ef292068a6f` | `dbf8463f45dc2b9cad657fbe81a614d761f7cc8002a21e6e65bf58139730b666` |
+| `lhq.dossier-manifest.invalid.examples.json` | `d0d28015b59f2f0d3dfdfec910a43017c7724408fe5c90630b7880e392543bd9` | `571e7ddb9db6a303efe4646e1d3462d5bd127f3370f9e13b6612bcc23f809d73` |
+| `lhq.dossier-manifest.dx-violations.examples.json` | `de54af74203bc763230be2f00b9c33ced8159c7873f5cae9749417dfdd1652a3` | `8a183339a8880359f2f7f3ccb1dac4a03ecab51865fafe02fedba2b11e16e0f9` |
+| `lhq.dossier-manifest.exp-outcomes.examples.json` | new | `15d9ae2d1a1698a13a75d18c7fbc1c614d84f4b9969c1bf99a5cf26abd2880b8` |
+| `prototype/dos_check.py` | `07bc7791d517ade2f56c3d8c97548025e15fcdb47e8dd6cd323027549e6f2903` | `bf20d8fca2623c6fb1d4036ba4b59074dd32ed8dbb8345e298ce6a98ecfe84b1` |
+| `lhq.dossier-manifest.schema.json` | `88cd994821c25422507ca45a901e4cd8ed5c31d847ecdbbd8475ad1ebd7d7e88` | unchanged |
+
+These files are unchanged since LHQ2-R1:
+
+| File | sha256 |
+|---|---|
+| `LOCAL_HOST_QUALIFICATION.md` | `90f461cb…523e` |
+| `prototype/cir_check.py` | `6f32a951…2bad` |
+| CIR schema | `3fb8f586…` |
+| CIR valid examples | `c7684ee5…` |
+| CIR invalid examples | `b823d54b…` |
+| `…ci5-violations` | `e8102cb7…` |
+| traffic schema | `b7401e1f…` |
+| `top_check.py` | `cf128073…` |
+
+**For O-F, not edited (their files are data to me).** O-F's packet holds copies of the old `DOS-EXAMPLE-INVENTED`, which still has the DEL-09-11 hand-over and RC-1:
+- `F/fixtures/FX-RP1/supplied/`, `FX-RP1-2/supplied/` and `FX-RP1-3/supplied/`, each with `lhq-dossier-manifest.DOS-EXAMPLE-INVENTED.json`;
+- `F/vendor/lhq.dossier-manifest.valid.examples.json`.
+
+Any fixture that relies on that example's hand-over to DEL-09-11 should take `DOS-EXAMPLE-INVENTED-POPULATED` instead.
+
+**Frozen.** All DEL-09-07 files listed above are frozen at these hashes for the coordinator to commit and for RV3 to confirm. No git writes and no network.
