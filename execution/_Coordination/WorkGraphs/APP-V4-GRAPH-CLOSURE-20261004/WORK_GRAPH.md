@@ -120,7 +120,7 @@ The contract core is treated as one merged unit under change control. Its contra
 
 | ID / outcome | Write scope | Needs | Check | State |
 |---|---|---|---|---|
-| B0 Merge page: the core's member list under the build objective, and the remaining small cuts (one page, for the record) | Run folder | G2b, RVG-G2b | RVG | PENDING |
+| B0 Merge page | — | — | — | DROPPED. Owner: "the graph will never stop changing in minute details, but that's the job of the work graphs to resolve that level of detail. The DAG is supposed to direct work towards completion." DAG-004 continues to direct work; detailed ordering, including within the coupled core, moves to local work graphs |
 | B1 Walking skeleton, steps 1–4 | `projects/chirality-app-v4/app/` | Frozen contracts; local Codex 0.158.0; offline build caches | Automated tests; code review | ACTIVE |
 | B2 Contract issues from B1 through change control | Owners' Design files, by change | B1 | RV | PENDING |
-| B3 Fan-out plan along the contract boundaries | Work graph | B1 working | — | PENDING |
+| B3 Fan-out: local work graphs (construct-local-work-graph) per build undertaking, directed by DAG-004 | Work graphs | B1 working | — | PENDING |

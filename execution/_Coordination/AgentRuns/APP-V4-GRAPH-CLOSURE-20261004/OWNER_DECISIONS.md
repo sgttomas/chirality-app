@@ -51,3 +51,10 @@ HELP_HUMAN asked for a yes to the merge with change control and to starting
 the skeleton. The owner replied:
 
 > Yes you can take this approach and monitor its effectiveness in actually delivering the required content.
+
+## What the DAG and the 60% gate are for (owner, exact, 2026-10-04)
+
+HELP_HUMAN had redirected the work graph toward the walking skeleton, with
+a one-page merge member list still pending (B0). The owner wrote:
+
+> the graph will never stop changing in minute details, but that's the job of the work graphs to resolve that level of detail.  The DAG is supposed to direct work towards completion.  The 60% gate marks an arbitrary point where the LOOP_INIT.md instructions to create a local work graph takes prominence.
