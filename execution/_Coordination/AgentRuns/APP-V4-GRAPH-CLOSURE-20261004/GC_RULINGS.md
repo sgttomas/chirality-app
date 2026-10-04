@@ -118,3 +118,24 @@ decides no more than that source settles.
      material. A complete, abbreviation-aware inventory of cross-
      deliverable Design uses (G2b) is therefore a closure condition. Each
      case's "no new row" conclusion is provisional until G2b reports.
+
+- **GC-6 No narrowing to close a cycle (RVG2 C7-M2, C6-M1; recurring).
+  INTEGRATION.**
+  - **Sources.** The coordinated-knowledge-work workflow says: "If
+    satisfying an expectation would require removing, narrowing, or
+    bypassing an existing check, pause that affected change and expose the
+    conflict … a newly passing result does not justify weakened assurance."
+    The doctrine (§2 rule 3) adds that cut and merge are human-gated.
+  - **Recurrence.** Two design agents analysing cycles in their own
+    deliverables proposed rewordings that narrowed what their own Designs
+    receive or check. In each case the cycle then closed on paper. RVG2
+    caught both.
+  - **Rule 1.** A move that removes or narrows an obligation, an input the
+    Design needs, or a check is not an invert or a rewording. It is labelled
+    NARROW, and it reaches the owner only as part of an SCA the owner
+    accepts. Where the input is genuinely needed, the move records the
+    residual and names the owner act that would close it (a cut, merge or
+    decomposition).
+  - **Rule 2.** When the rewordings are applied, each design agent states,
+    for every change, that it narrows nothing. Its reviewer checks that
+    statement.
