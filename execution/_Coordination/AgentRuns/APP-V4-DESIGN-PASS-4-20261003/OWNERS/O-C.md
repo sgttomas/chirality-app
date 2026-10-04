@@ -389,3 +389,116 @@ The earlier freeze came before HELP_HUMAN's ordering note. Since then:
 | `lhq.traffic-observation.schema.json` | `b7401e1f1e0e1b010bba2c2ac3c3c32a0f281db0e10a40ea19ef8a9bea4eab95` |
 | invalid examples | `0a651f0f5e97a8d1f5fbb629b15b108dbc72054d211b435e27f9812e681e0fe0` |
 | `TRAFFIC_OBSERVATION_PLAN.md` | `5d147be4c0b441b34017933c84a195b905c24f01d2764e4fc669e36aef6d0324` |
+
+## Tranche 2: RQ-LHQ-1 under R23-36 (2026-10-04), for RV3
+
+**Change.**
+- LHQ is now **LHQ-v0.2**. It supersedes LHQ-v0.1 at `20361a0be76904d4b8ac745f055755cd27455d13d7625a559de1b44ff386e8f8`, the version committed at `d150856784`.
+- §3 gains rule **CI-5** and a pointer from the App candidate row. The CIR may carry an optional `app_candidate_subject` with `revision`, `build_identity`, `packaged`, and `package_record` when packaged. This is exactly EXP-v0.2's `candidate_subject.app_candidate` (`exam.result-record.schema.json` `f7871c96…1f9`); the CIR maps to EXP's identity and does not define it (R23-33).
+- It is present only while the App candidate element is supplied; the schema refuses it when the element is *not supplied*.
+- Nothing else changed. The record format label stays `LHQ-v0.1`: the change is additive (R23-21, AAC/RS precedent).
+
+**Additivity.**
+- The original valid example is unchanged and still validates.
+- All three earlier invalid examples are still rejected, each with one error.
+- New examples: one valid example with the mapping (packaged, with its package record), and two invalid examples — a mapping while the candidate is *not supplied*, and packaged without a package record. Each invalid example is rejected with one error under both `jsonschema` and DEL-01-01's subset validator.
+
+**Checks.**
+- All three DEL-09-07 schemas pass `check_schema`, and every valid and invalid example behaves as expected under both validators.
+- The schema's `$defs/app_candidate_subject` equals EXP-v0.2's definition (compared by script).
+- The new example's mapping validates as an EXP `candidate_subject` against EXP's own schema.
+- `top_check.py` rerun, unchanged at `cf128073…5139`: the valid example passes (4 of 5 contacts compared), and both CB-1 violation examples are reported mis-tagged.
+
+**Dependents.** TOP and DOS pin LHQ-v0.1 at `20361a0b…`, the committed bytes. Neither relies on CI-5, so under R23-21 item 3 their pins stay and are not edited. They are listed for the closeout's stale-pin script (R23-21 item 4).
+
+| File (DEL-09-07 `Design/`) | Before | After |
+|---|---|---|
+| `LOCAL_HOST_QUALIFICATION.md` | `20361a0be76904d4b8ac745f055755cd27455d13d7625a559de1b44ff386e8f8` | `5cd31e097a8faae46298202d854b9bb9cba27e8355c31fef997310b49c15f07b` |
+| `lhq.candidate-identification.schema.json` | `194f8419ab5e72d070ac5b0cef44338a53b5547230f9d1ea73a6214de57c50dd` | `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` |
+| `lhq.candidate-identification.valid.examples.json` | `dcb9f4a047d279588ec9aab9df125a506443b205e11bb4935867807b4c8f474a` | `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4` |
+| `lhq.candidate-identification.invalid.examples.json` | `c501cab667524bdbb322a9e411349f78da28f45b09bd70e8e9c6119992348a79` | `b823d54b4627f25e543b88d7d5c06d0560124274005c0072ac3cbc694749ceed` |
+| `prototype/top_check.py` | `cf128073437772b3f14f2d7f5c42b2043087f19a1f4a9b82ba487a839b135139` | unchanged |
+
+## Tranche 2: EUF1-S1 (DOS example consistency) and LHQ2-R1 (RV3; R23-42 item 3)
+
+### EUF1-S1
+
+**Finding.** DOS's example dossier named receipt RC-1 in its DEL-09-11 hand-over, while its host-evidence index and its DEL-11-03 hand-over were empty.
+
+**Rule.** DOS §1 already required the index to list every receipt the results cite, with its resolution at write. The prose rule allowed the inconsistency only because nothing checked it.
+
+**Example fix.** `DOS-EXAMPLE-INVENTED` ran no case, so it now names no receipt anywhere. A second example, `DOS-EXAMPLE-INVENTED-POPULATED`, shows the consistent form:
+- RC-1 is listed *unresolvable* in the index and in both hand-overs;
+- LHQ-20's result is `inconclusive`;
+- a limitation states why RC-1 cannot be resolved.
+
+**Check added.** DOS §1 now states DX-1 and DX-2:
+- **DX-1:** every hand-over receipt is in the index, with the same resolution.
+- **DX-2:** both hand-overs carry the same receipt set.
+
+`prototype/dos_check.py` (new) enforces both. `lhq.dossier-manifest.dx-violations.examples.json` (new) holds three schema-valid violations:
+- the old example;
+- a resolution that differs from the index;
+- a receipt missing from the DEL-11-03 hand-over.
+
+The schema-invalid examples, which were derived from the old example, no longer carry the inconsistency, so each fails only for its stated rule. The DOS changes table has an EUF1-S1 row. The dossier schema is unchanged.
+
+### LHQ2-R1
+
+**Rule.** CI-5 now states three things:
+- `app_candidate_subject` and the element's `value` describe the same build where both are given;
+- a disagreement is a CIR defect for the examiner;
+- consumers reconcile on the mapping.
+
+**Check added.** A schema cannot express this rule. `prototype/cir_check.py` (new) checks the mechanical part: the mapping's `revision` and `build_identity` must each occur in `value`. It ignores the example marker " (invented)". Passing it is necessary, not sufficient.
+
+**Invalid example.** `lhq.candidate-identification.ci5-violations.examples.json` (new) holds two schema-valid records that `cir_check` rejects:
+- RV3's tested case, a different `revision`;
+- a different `build_identity`.
+
+They sit in their own file, not in the schema-invalid file, because the schema accepts them.
+
+**Scope.** The change is a repair in place under LHQ-v0.2, with a changes row. The CIR schema and its valid and invalid example files are unchanged. LHQ2-R2, DOS's pinned CIR schema, is held for the closeout as directed and was not touched.
+
+### Checks rerun
+
+All three DEL-09-07 schemas were checked with `jsonschema` 4.26 (Draft 2020-12) and with DEL-01-01's subset validator.
+
+| Schema | Valid examples (errors) | Invalid examples (rejected) | Violation examples (schema-valid) |
+|---|---|---|---|
+| dossier | 2 (0) | 7 (all) | 3 DX (all) |
+| CIR | 2 (0) | 5 (all) | 2 CI-5 (all) |
+| traffic | 1 (0) | 12 (all) | 2 CB-1 (all) |
+
+The prototype checks give the expected exit codes:
+
+| Check | Exit 0 (passes) | Exit 1 (reports a violation) |
+|---|---|---|
+| `dos_check` | valid examples | DX violations |
+| `cir_check` | valid examples; the schema-invalid file does not trip it | CI-5 violations |
+| `top_check` | valid examples | CB-1 violations |
+
+CIR `$defs/app_candidate_subject` still equals EXP-v0.2's definition (compared by script). EXP is still at `f7871c96…2081`. Each prototype hash embedded in the DOS and LHQ texts was grepped and matches the file.
+
+### Hashes
+
+| File (DEL-09-07 `Design/`) | Before | After |
+|---|---|---|
+| `QUALIFICATION_DOSSIER.md` | `b2ffba7135652c9e5d2ebaece3d1b002a4aef6f394f9f876dc2b3600cdde0ccd` | `687032c0036cc83ef4d82170112f209ad5d6e99a161267a8b82e3cb8ef1e8465` |
+| `lhq.dossier-manifest.valid.examples.json` | `4d659926675a5c7e4bad32a627a7aef738fd0c9fb5aa606abe9314271784f9bd` | `9873df65c9b481728d0043b0db8ea109ada5f4fdec0d8e2dc9cf2ef292068a6f` |
+| `lhq.dossier-manifest.invalid.examples.json` | `8dce976dab589b46f10045aaa3f8672fe291a16658f0b43500dcc8a558721294` | `d0d28015b59f2f0d3dfdfec910a43017c7724408fe5c90630b7880e392543bd9` |
+| `lhq.dossier-manifest.dx-violations.examples.json` | new | `de54af74203bc763230be2f00b9c33ced8159c7873f5cae9749417dfdd1652a3` |
+| `prototype/dos_check.py` | new | `07bc7791d517ade2f56c3d8c97548025e15fcdb47e8dd6cd323027549e6f2903` |
+| `lhq.dossier-manifest.schema.json` | `88cd994821c25422507ca45a901e4cd8ed5c31d847ecdbbd8475ad1ebd7d7e88` | unchanged |
+| `LOCAL_HOST_QUALIFICATION.md` | `5cd31e097a8faae46298202d854b9bb9cba27e8355c31fef997310b49c15f07b` | `90f461cbbe98de20cdd19e13be6adb82818fa23ea55166cab04833108df8523e` |
+| `lhq.candidate-identification.ci5-violations.examples.json` | new | `e8102cb7b8386bb3eab7e2f73702057bc2043fac99c00887e567299c70200aa4` |
+| `prototype/cir_check.py` | new | `6f32a9511acc505b074cc6983589c790900832f36dfc5fa8669850bbffbd2bad` |
+| `lhq.candidate-identification.schema.json` | `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` | unchanged |
+| `lhq.candidate-identification.valid.examples.json` | `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4` | unchanged |
+| `lhq.candidate-identification.invalid.examples.json` | `b823d54b4627f25e543b88d7d5c06d0560124274005c0072ac3cbc694749ceed` | unchanged |
+| `lhq.traffic-observation.schema.json` | `b7401e1f1e0e1b010bba2c2ac3c3c32a0f281db0e10a40ea19ef8a9bea4eab95` | unchanged |
+| `prototype/top_check.py` | `cf128073437772b3f14f2d7f5c42b2043087f19a1f4a9b82ba487a839b135139` | unchanged |
+
+**Pin note.** RV3 confirmed LHQ-v0.2 READY at `5cd31e09…`. The LHQ2-R1 repair moves the file to `90f461cb…`, so RV3's confirmation of LHQ2-R1 should be made against the new hash.
+
+**Not done.** No other file was written. No git writes and no network.

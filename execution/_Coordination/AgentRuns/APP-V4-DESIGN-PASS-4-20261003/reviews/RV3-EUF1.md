@@ -226,3 +226,113 @@ The `allOf`/`if`/`not` guard is the form DEL-02-03's subset checker could not re
 - The `$defs` equality test against EXP.
 - Reconciliation exercised through O-F's current `rplib` functions.
 - Not run: `top_check.py`; DEL-01-01's subset validator.
+
+---
+
+# Addendum 2 — RP-v0.2 (refrozen after RR-EUF1), 2026-10-04
+
+- **Subject** (`O-F.md` "EU-F1 — refrozen as RP-v0.2"). All files were re-hashed and match:
+  - `REPLACEMENT_PACKET.md` `80e88983…1869`;
+  - `rp.packet-manifest.schema.json` `7dd6dee7…70f6`;
+  - `rp.disposition.schema.json` `d5a69bc2…` (unchanged);
+  - `F/rplib.py` `2589ccf0…`, `build_fx_rp1.py` `532219a3…`, `check_rp.py` `e2886b4d…`, `compare_rp.py` `2d76e4f3…`, `stage_is.py` `120d9eae…`;
+  - `FX-RP1-2/MANIFEST.sha256` `534cd210…` (all 9 files `OK`);
+  - `IS-FX-RP1-2.input-set.sha256` `e1fd19df…`;
+  - the brief, account schema and key v2.
+- **Key handling.** I formed my own expected answers to Q-1…Q-12 from the fixture and the rules before opening `EU-F1-2.answer-key.json` (`52eaf68e…`).
+- **Checks.**
+  - `check_rp.py`: 57/57 at first.
+  - `compare_rp.py --set 2 --self-check`: 16/16.
+  - All eight `basis-excerpts.md` blocks are byte-exact against their sources, at the line ranges and sha256 values stated.
+- **Not read:** `RUN/RR-EUF1/` and anything belonging to the second reader.
+
+## Verdict on RP-v0.2: **REPAIR**
+
+There is 1 MAJOR finding: a new one, about when the packet may be put to the owner. There are also 4 MINOR findings (three carried over, one new) and 2 NOTEs.
+
+The two rule defects O-F names are genuinely fixed:
+- EUF1-D1 (RP-R1);
+- EUF1-D2 (RP-R2 receipts).
+
+So are the legibility repairs:
+- `terms`, including A16 matching ACT-v0.10 §2.1's row;
+- `basis_excerpts`;
+- `comparison_rule`, a faithful paraphrase of EXAMINATION §7;
+- `produced_by` and `source_kind`;
+- `dossier_review`;
+- the subject's "whether, and at what scope", and the ALT-OWN-USE statement.
+
+## Status of the RP-v0.1 findings
+
+| Finding | At RP-v0.2 |
+|---|---|
+| EUF1-R1 MAJOR (RP-R1) | **Half resolved, so downgraded to MINOR (EUF1-R1b).** `status` now requires resolved candidate evidence, `recorded` is kept apart, and the fixture shows all seven elements and the obligation as `not_evidenced`. **Not resolved:** with resolved evidence, `rplib.core_loop` still maps any recorded outcome other than pass to `not_met`. A candidate EXP record that is `blocked`, `not-run` or `inconclusive` therefore reads as a failure (`recorded_not_pass → not_met`). R23-20 and SQ-R4 keep those outcomes apart from `fail`. Repair: `not_met` only when some counted step is `fail`; otherwise `not_evidenced`, with the outcome shown. Add a B-case |
+| EUF1-R2 MINOR (ALT-PUBLISHED) | **Not resolved.** The wording is unchanged: "also a public-release act, which the owner decides separately", while the first consequence still reads, unconditionally, "v3.0.1 is no longer the fallback for the published product". Key Q-7 still encodes it |
+| EUF1-R3 MINOR (first-cut grounding) | **Resolved.** S-4 and S-5 are `source_kind: shape_only`, with `produced_by` naming DEL-11-03's builder standing in for DEL-11-01/DEL-09-12 |
+| EUF1-R4 MINOR (`packaged` omitted → false `differ`) | **Not resolved.** `rplib.py` is byte-identical to what I tested (`2589ccf0…`). The B-18…B-24 cases use O-C's packaged example, so they do not exercise the case |
+
+## New findings
+
+### EUF2-R1 — MAJOR — the packet now states two contradictory conditions for presenting the reserved decision, and cites AX-001 for one that AX-001 does not state (§3 `gaps` bullet; fixture `gaps[].point_of_need`; against §2 O-1, §6.3 step 5, §7 RF-1, `open_matters` P-1)
+
+- **Claim.**
+  - §3: "A gap never gates presentation: AX-001 lets a packet 'accurately report partial or adverse evidence'".
+  - Each fixture gap: "(presentation is not gated: DEL-11-03 AX-001)".
+- **Evidence.**
+  - AX-001 (byte-exact in the packet's own `basis-excerpts.md`): "A packet may accurately report partial or adverse evidence, but cannot claim replacement qualification until both applicable witnesses hold". It does not speak to presentation.
+  - EXAMINATION §7, also excerpted: "The evidence presented for that decision is: V4-EXM-10 and V4-EXM-11 passed … and V4-EXM-20 passed".
+  - The design itself keeps the gate in several places:
+    - §2 O-1, point of need "When both witnesses exist";
+    - §6.3 step 5, "When both witnesses are established and the coordinator presents the package";
+    - RF-1, "Packet kept; not presented";
+    - the manifest's P-1, "when both witnesses exist; an act, not a question now".
+- **Consequence.**
+  - The person deciding, and the second reader, are told both that the decision is not put to the owner before both witnesses exist, and that gaps never gate presentation.
+  - The second statement is an inference attributed to a contract clause.
+  - It bears on the act boundary (whether the owner may be asked now) and on what ALT-DEFER and ALT-DECLINE mean with gaps open.
+  - RP-v0.1 was consistent here. The I-10 repair over-corrected: the reader's point concerned only a fixture that is never presented.
+- **Repair.** Pick one condition and state it everywhere. Mark the choice DERIVED from EXAMINATION §7, or ask HELP_HUMAN for a one-line ruling if presenting a gapped packet, for example for DEFER or DECLINE, is wanted. If the gate stays, a gap's point of need can read "before the package is presented to the owner (EXAMINATION §7); this fixture is never presented". Drop the AX-001 attribution in either case.
+
+### EUF2-R2 — MINOR — FX-RP1-2 is already out of date: O-C's EUF1-S1 repair changed `DOS-EXAMPLE-INVENTED` (A-8 fails; G-J-WITNESS's RC-1 clause rests on the superseded example)
+
+- **Evidence.**
+  - On rerunning `check_rp.py` after 10:55, the result is 56/57, with A-8 failing.
+  - Source `lhq.dossier-manifest.valid.examples.json`: `4d659926…` at refreeze, now `9873df65…`.
+  - O-C's DOS change (DX-1, DX-2): "`DOS-EXAMPLE-INVENTED` (no case run) names no receipt anywhere". The fixture copy still has RC-1 in `handoff_del_09_11.receipt_refs`. Hence:
+    - the manifest's `receipts_in_dossier_missing_from_handoff`;
+    - G-J-WITNESS's clause "the dossier names a host receipt (RC-1 (invented)) that its hand-over to DEL-11-03 does not list".
+- **Consequence.**
+  - RP-R8 and RF-4 are working as designed. The second reader's account stays valid evidence for IS-FX-RP1-2.
+  - The next fixture build drops that reason. G-J-WITNESS remains for its other four reasons, so the key's Q-4 and Q-6 fields are unaffected.
+  - EUF1-D2's positive case now has a supplier counterpart in O-C's `DOS-EXAMPLE-INVENTED-POPULATED`. That record lists RC-1 in all three places, and it can replace the in-memory case.
+- **Repair.** Rebuild after EUF2-R1 under a new input-set id; add a B-case on the populated example. FX-RP1-2 and IS-FX-RP1-2 stay as history.
+
+## The key (EU-F1-2)
+
+My independent expectations match every field of `EU-F1-2.answer-key.json`:
+- Q-1, Q-2 and Q-4…Q-12 exactly;
+- Q-3: all seven elements and the obligation `not_evidenced`, `established: false`, outside scenarios `V4-EXM-12`.
+
+The key is fair and grounded:
+- the core-loop fields follow from SQ-EX-05 under the repaired RP-R1;
+- the journey fields from the DOS copy;
+- the candidate fields from the SQ and CIR copies;
+- Q-9 and Q-11 now visibly rest on `shape_only` inputs.
+
+It does not depend on the packet's own inferences. It inherits EUF1-R2 at Q-7 ALT-PUBLISHED. No question tests EUF1-D2 (receipts); A-15 covers it mechanically. KEY-F1 on the first key is correct: that key's Q-3 encoded the defect my EUF1-R1 described.
+
+## Notes
+
+- **N4.** `check_rp.py` has no option to select a fixture: `--fixture` is ignored, and the default fixture runs. So I could not reproduce O-F's claim that A-13, A-15, A-16 and A-17 fail on FX-RP1. I did not check it.
+- **N5.** The v2 reader-account schema differs from v1 only in `$id`, description and the input-set constant (diff). The brief differs only in the input-set name and schema name. This confirms the comparison is like for like.
+
+## Act boundary, again
+
+On RP-v0.2's bytes:
+- the disposition is `not_presented` with no decision element;
+- `limits` says no owner act exists or is implied;
+- the package `purpose` says it is not for presentation to the owner;
+- every alternative states "No retirement";
+- v3.0.1 remains the fallback in every undecided state.
+
+The only qualifications are EUF1-R2 and EUF2-R1.

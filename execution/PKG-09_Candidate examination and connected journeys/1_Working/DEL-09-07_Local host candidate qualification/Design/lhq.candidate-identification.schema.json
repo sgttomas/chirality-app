@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-09-07:candidate-identification:0.1",
   "title": "Candidate-identification record (DEL-09-07 LHQ-v0.1 §3; PROPOSED)",
-  "description": "One record before any LHQ case runs; cited by every EXP result record of DEL-09-07 through subject.identification_record. Semantic labels only; no host or supplier wire field is selected. Rules a schema cannot express (CI-2 source history is not deployment evidence; CI-3 blocking; CI-4 reopening via EXP change-impact) are stated in LHQ §3.",
+  "description": "One record before any LHQ case runs; cited by every EXP result record of DEL-09-07 through subject.identification_record. Semantic labels only; no host or supplier wire field is selected. Rules a schema cannot express (CI-2 source history is not deployment evidence; CI-3 blocking; CI-4 reopening via EXP change-impact) are stated in LHQ §3. LHQ-v0.2 (R23-36) adds the optional app_candidate_subject mapping (CI-5); the record format label stays LHQ-v0.1 because the change is additive (R23-21; AAC/RS precedent).",
   "type": "object",
   "required": [
     "record_kind",
@@ -111,6 +111,10 @@
       "items": {
         "$ref": "#/$defs/contribution"
       }
+    },
+    "app_candidate_subject": {
+      "$ref": "#/$defs/app_candidate_subject",
+      "description": "R23-33, R23-36 (LHQ-v0.2 §3 CI-5): optional. Maps the CIR's app_candidate element to EXP-v0.2's canonical candidate_subject.app_candidate (revision, build_identity, packaged, package_record). $defs/app_candidate_subject is a copy of EXP-v0.2's definition (exam.result-record.schema.json sha256 f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081), checked equal by script; it maps, it does not define (R23-33 item 2)."
     }
   },
   "$defs": {
@@ -318,6 +322,75 @@
         }
       },
       "description": "CA §7.2 ladder, consumed unchanged; one standing, claimed only with its evidence."
+    },
+    "app_candidate_subject": {
+      "type": "object",
+      "required": [
+        "revision",
+        "build_identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packaged": {
+          "type": "boolean",
+          "description": "True when the build is a DEL-01-06 package; then 'package_record' is required."
+        },
+        "package_record": {
+          "type": "string",
+          "minLength": 1,
+          "description": "DEL-01-06 OUT-002 identity record reference (SCC-003 milestone M2)."
+        }
+      },
+      "if": {
+        "properties": {
+          "packaged": {
+            "const": true
+          }
+        },
+        "required": [
+          "packaged"
+        ]
+      },
+      "then": {
+        "required": [
+          "package_record"
+        ]
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "description": "CI-5: the mapping is present only when the App candidate element is supplied.",
+      "if": {
+        "required": [
+          "app_candidate_subject"
+        ]
+      },
+      "then": {
+        "properties": {
+          "elements": {
+            "properties": {
+              "app_candidate": {
+                "properties": {
+                  "standing": {
+                    "not": {
+                      "const": "not_supplied"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

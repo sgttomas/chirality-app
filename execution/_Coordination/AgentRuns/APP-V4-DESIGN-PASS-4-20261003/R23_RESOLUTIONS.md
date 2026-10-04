@@ -613,3 +613,35 @@ evidence rules and the owner's earlier decisions already settle them.
   4. **LHQ2-R2.** DOS's pinned CIR schema goes to its owner at the
      closeout. It is not re-pinned by script, because mapped CIRs fail the
      v0.1 schema.
+
+- **R23-43 When the replacement packet may be put to the owner (RV3
+  EUF2-R1). DERIVED** from EXAMINATION §7 and DEL-11-03 AX-001.
+  1. EXAMINATION §7 names the evidence presented for the replacement
+     decision (V4-EXM-10/11 and V4-EXM-20 passed on the candidate). AX-001
+     lets a packet "accurately report partial or adverse evidence", but it
+     "cannot claim replacement qualification until both applicable
+     witnesses hold".
+  2. **There is one condition, and it is on the claim, not on presentation.**
+     The packet may be put to the owner at any time and states plainly what
+     is and is not established. It claims replacement qualification only
+     when both witnesses hold. The owner's act stays separate and is the
+     owner's to make on the evidence as presented. No gate on presentation
+     is invented, and no permission is implied.
+  3. DEL-11-03 §2 O-1, §6.3 step 5, RF-1 and P-1 are restated to this, and
+     "presentation is not gated" cites AX-001's own words.
+
+- **R23-44 Cross-owner inputs a frozen unit depends on (RV2 FV10-R2).
+  INTEGRATION.**
+  1. **What went wrong.** HELP_HUMAN's path-limited commit `d43665498d` took
+     FV-10 and RF-5a but not the DEL-07-02 schema and O-D's example records
+     they read. Those were left out because O-D was mid-repair. The unit was
+     therefore not reproducible from git, and it read inputs that were live
+     and unpinned.
+  2. **A unit that depends on another owner's in-progress files pins
+     copies.** It vendors the exact bytes it relies on into its own
+     prototype fixtures, records their sha256 and source, and checks the
+     hashes before use. When the supplier refreezes, the dependent owner
+     re-pins deliberately (R23-21).
+  3. **R23-41 is extended.** Before a path-limited commit, HELP_HUMAN checks
+     that every input the unit's checks read is either inside the commit or
+     already in git.

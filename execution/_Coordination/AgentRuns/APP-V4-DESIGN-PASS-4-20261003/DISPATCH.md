@@ -82,3 +82,6 @@ verified afterwards by `git status`.
 | RV3 | EB-v0.2 READY (EB2-R1/R2 MINOR → O-E); EU-F1 v0.1 REPAIR (EUF1-R1 MAJOR, largely what O-F's RP-v0.2 repairs; R2–R4 → O-F); LHQ-v0.2 READY (LHQ2-R1 → O-C). Process issue: unit edited under review → R23-41 (path-limited commit at each freeze). R23-42 |
 | O-A | FV-10 wording restated to R23-40 (run_views 31/31). FV-10 + RF-5a → RV2 |
 | RR-EUF2 | Second reader returned (`RR-EUF2/account.json` `0d53d089…`; valid; all 13 OK). Did not read 'blocked' as not_met; raised whether an alternative may be chosen on incomplete evidence. (The brief file is READER_BRIEF.v2.md; HELP_HUMAN's prompt named the old file.) To O-F for the combined RP-v0.3 repair |
+| RV3 | RP-v0.2 REPAIR (EUF2-R1 MAJOR: two presentation conditions → R23-43; EUF1-R1 half-open, R2, R4 open; EUF2-R2 fixture stale after O-C's DOS fix). Key EU-F1-2 judged fair. To O-F for RP-v0.3 |
+| RV2 | FV-10 + RF-5a REPAIR (FV10-R1 MAJOR: torn/standing-less connector record falls back to presence → declare connector needs; FV10-R2 MAJOR: inputs not committed or pinned → R23-44, HELP_HUMAN's commit error; FV10-R3 MINOR). To O-A |
+| O-C | EUF1-S1 (DOS DX-1/DX-2, dos_check) and LHQ2-R1 (CI-5 value agreement, cir_check) done; all DEL-09-07 checks pass. Committed by path (R23-41); to RV3 |

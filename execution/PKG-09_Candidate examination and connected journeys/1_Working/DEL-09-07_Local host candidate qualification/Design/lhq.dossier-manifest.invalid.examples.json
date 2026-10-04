@@ -146,12 +146,7 @@
             "standing": "not_authority"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",
@@ -310,12 +305,7 @@
             "standing": "not_authority"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",
@@ -474,12 +464,7 @@
             "standing": "not_authority"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",
@@ -638,12 +623,7 @@
             "standing": "not_authority"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",
@@ -803,12 +783,7 @@
             "standing": "not_authority"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",
@@ -967,12 +942,7 @@
             "standing": "not_authority"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",
@@ -1136,12 +1106,7 @@
             "standing": "derived_view"
           }
         ],
-        "receipt_refs": [
-          {
-            "ref": "RC-1 (invented)",
-            "resolution_at_write": "unresolvable"
-          }
-        ],
+        "receipt_refs": [],
         "withheld": [
           {
             "identity": "K-7 (invented)",

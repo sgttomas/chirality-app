@@ -1,6 +1,6 @@
 # Local host candidate qualification — cases, candidate record and host gap sheet
 
-- Contribution: DEL-09-07/LHQ-v0.1 (first Design file of this deliverable)
+- Contribution: DEL-09-07/LHQ-v0.2 (supersedes LHQ-v0.1, sha256 20361a0be76904d4b8ac745f055755cd27455d13d7625a559de1b44ff386e8f8, confirmed READY by RV). **v0.2 change (R23-33, R23-36; run `APP-V4-DESIGN-PASS-4-20261003`, tranche 2, owner O-C):** §3 gains rule CI-5 and the optional CIR element `app_candidate_subject`, mapping `app_candidate` to EXP-v0.2's `candidate_subject.app_candidate`. Additive: nothing else changed
 - Status: DRAFT DEFINITION — proposed, unsupplied, not run, not accepted. No case below has run; every outcome is *not run*. Frozen as LHQ-U1 at sha256 2668d955…0ecc; repaired in place for review RV-LHQ-U1 (`reviews/RV-LHQ-U1.md` in the run folder); see "Changes at repair" at the end.
 - Run and node: `APP-V4-DESIGN-PASS-4-20261003`, owner O-C (Type 2 TASK, Claude Opus 5.5, high effort), unit LHQ-U1, written 2026-10-03.
 - Serves: OUT-001 (the four coordinated cases; §5), the identification and responsibility parts of OUT-002 (§3, §4, §8). The rest of OUT-002 (the V4-EXM-23 observation method, the dossier and its handoffs to DEL-11-03 and DEL-09-11) is unit LHQ-U2, in later files beside this one. REQ-001…REQ-009; designed verification for VER-001…VER-008 (last section).
@@ -77,7 +77,7 @@ One **candidate-identification record (CIR)** is written before any case runs. E
 | Element | Content | Source and standing |
 |---|---|---|
 | CIR identity and date | Record identity; date of identification | Examiner |
-| App candidate | Build identity, source revision, package digest (DEL-01-06's packaged candidate when one exists) | App build evidence; *not supplied* until an App candidate exists |
+| App candidate | Build identity, source revision, package digest (DEL-01-06's packaged candidate when one exists) | App build evidence; *not supplied* until an App candidate exists. When supplied, its mapping to EXP's canonical form is `app_candidate_subject` (CI-5) |
 | App's Codex version actually used | The supplier version the App candidate ran, read from the App's own record, with the pin basis (0.158.0 or 0.160.0, R23-3) | Observed in the App's record; never assumed from the pin |
 | Host candidate | Source revision and merge commit, build identity, build features and launch configuration | Host evidence by SWBPIPE's own scheme (SQ-27 (a): commit and merge SHA, CI run ids, DEC-025 sweep, native witness records with SHA256SUMS; data) |
 | Host loop | Identity and version of the minimal loop the host runs; its model-interface basis | Host evidence; DEP-05-01-024 (UNKNOWN) |
@@ -97,6 +97,7 @@ One **candidate-identification record (CIR)** is written before any case runs. E
 - **CI-2** Original host source history is not current deployment evidence (REQ-001; HOST §11). A source revision identifies a candidate only with the build and configuration actually run.
 - **CI-3** A case whose needed element is *not supplied* is *blocked* at its first step that needs it when it is attempted, and *not run* when it is not attempted (R23-20; §6.2 LR-3). Every planned case gets a record.
 - **CI-4** Any change to the App candidate, the host candidate, the local model server or the adopted policy writes a new CIR. Every case result bound to the old CIR keeps its outcome for that candidate only (V4-EXM-03); the affected cases reopen without weaker criteria (V4-EXM-05). Which cases a change reopens is the dossier's applicability map (LHQ-U2).
+- **CI-5 One candidate identity (R23-33, R23-36; LHQ-v0.2).** EXP's `candidate_subject` (DEL-09-01) is the canonical identity of an App candidate; the CIR maps to it and does not define it. When the App candidate element is supplied, the CIR may carry `app_candidate_subject`: `revision`, `build_identity`, `packaged` and, when packaged, `package_record` (a DEL-01-06 OUT-002 record). It has exactly the shape of EXP-v0.2's `candidate_subject.app_candidate` (`exam.result-record.schema.json` sha256 f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081; the copy in the CIR schema is checked equal by script). It is the object every EXP result record of these cases carries as `subject.app_candidate`, so a consumer such as DEL-11-03 can reconcile one candidate across obligations without splitting the free-text `value`. It is optional, absent while the element is *not supplied*, and refused by the schema if present then. It changes nothing in `value`, `source` or `standing`. Records written before v0.2 stay valid. **Agreement (LHQ2-R1, R23-42 item 3).** When both `value` and `app_candidate_subject` are given, they describe the same build, and a disagreement is a CIR defect for the examiner. The mapping is what consumers reconcile on, so it must not name a build other than the one `value` names. A schema cannot check this. `prototype/cir_check.py` (sha256 6f32a9511acc505b074cc6983589c790900832f36dfc5fa8669850bbffbd2bad) checks the mechanical part: the mapping's `revision` and `build_identity` must each occur in `value`. Passing it is necessary, not sufficient. `lhq.candidate-identification.ci5-violations.examples.json` holds two schema-valid records that it rejects.
 
 ## 4. External-contribution ladder (REQ-001; AC-008; VER-008)
 
@@ -404,3 +405,9 @@ Common blockers against SWBPIPE now, applying to every case (CA §2.6 B-1, B-3, 
 | RV-LHQ-U1 confirmation wording slip | The header now attributes the one-line EXEC change to R23-23 item 2 |
 | R23-21 | Rulings cited by ID; the R23 file hash removed; ACT and RS keep their relied-on pins (no A16 reliance) |
 
+## Changes at LHQ-v0.2 (R23-36; O-F's RQ-LHQ-1)
+
+| Item | Change |
+|---|---|
+| RQ-LHQ-1 | §3 adds CI-5 and the App candidate row's pointer to it. The CIR schema adds the optional `app_candidate_subject` (a checked copy of EXP-v0.2's definition) and a rule that it appears only while the App candidate is supplied. The schema adds one valid example with the mapping, and two invalid examples: a mapping without a supplied candidate, and packaged without a package record. The record format label stays `LHQ-v0.1`: the change is additive, and no earlier record or example becomes invalid |
+| LHQ2-R1 (MINOR, RV3; R23-42 item 3; in place, label unchanged) | CI-5 now requires `app_candidate_subject` to agree with the App candidate element's `value` where both are given. A disagreement is a CIR defect, and consumers reconcile on the mapping. Added: `prototype/cir_check.py` and two schema-valid violation examples (`…ci5-violations.examples.json`). The schema and its example files are unchanged |

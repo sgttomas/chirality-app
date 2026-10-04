@@ -27,6 +27,20 @@ The dossier is a set of files linked by one **dossier manifest**. Evidence is li
 | Limitations | Every limit from the results and observations, in its owner's vocabulary (RS R11, TOP, EXP) | Kept with the result it limits |
 | Handoffs | §4 to DEL-11-03; §5 to DEL-09-11 | — |
 
+**Cross-reference rules (EUF1-S1; checked by `prototype/dos_check.py`, sha256 07bc7791d517ade2f56c3d8c97548025e15fcdb47e8dd6cd323027549e6f2903).** A schema cannot compare one part of the manifest with another, so these are checked by script:
+
+- **DX-1** Every receipt named in either hand-over (§4 `receipts`, §5 `receipt_refs`) is listed in the host-evidence index as a `host_receipt`, with the same resolution status at write.
+- **DX-2** When both hand-overs are present, they carry the same receipt set, because both concern the one LHQ-20 journey.
+
+The manifest examples now satisfy both:
+- `DOS-EXAMPLE-INVENTED` (no case run) names no receipt anywhere.
+- `DOS-EXAMPLE-INVENTED-POPULATED` lists RC-1, *unresolvable*, in the index and in both hand-overs.
+
+`lhq.dossier-manifest.dx-violations.examples.json` holds three schema-valid violations, and `dos_check.py` reports each one:
+- the earlier example, which named RC-1 only in the DEL-09-11 hand-over;
+- a resolution that differs from the index;
+- a receipt missing from the DEL-11-03 hand-over.
+
 ## 2. Applicability map (CI-4; V4-EXM-03, V4-EXM-05)
 
 When something a result relied on changes, an EXP change-impact record reopens the affected cases. Earlier results stay attached to their own subject as historical. This table is DEL-09-07's reliance map: EXP's "reliance map used" (`unaffected_basis`). The rows are derived from the elements each EXP record carries (EXP §6.2 rule 2): a case is reopened when the changed thing appears in its record.
@@ -132,3 +146,5 @@ DEL-09-11 consumes "the actual identified V4-EXM-20 host-run evidence and host r
 | U2-R3 (MINOR) EXP-v0.1 pinned, v0.2 relied on | EXP-v0.2 is adopted and pinned (R23-21 item 3). D-F1 and D-F2 are closed by v0.2 (`host_profile`; `case_definition`). The "EXP-v0.1 in progress" row is removed from UNRESOLVED |
 | U2-R4 (MINOR) applicability map narrower than EXP | The map is derived from the elements each record carries (EXP §6.2 rule 2). The model row reopens all four cases. A case-definition row is added, and an operation-binding change is reported as `case_definition`. The schema's change kinds equal EXP-v0.2's (checked by script) |
 | U2-R12 (NOTE, from the confirmation) | The duplicate `operation_binding` value is removed from the schema's `applicability.changed` enum |
+| EUF1-S1 (O-F, via the coordinator; tranche 2) | The example's DEL-09-11 hand-over named RC-1 while the index and the DEL-11-03 hand-over were empty. DOS §1 already required the index to list every cited receipt, but nothing checked it. The not-run example now names no receipt. A second, populated example lists RC-1 (*unresolvable*) in all three places. The new rules DX-1 and DX-2 are checked by `prototype/dos_check.py`, with three violation examples. The schema-invalid examples, derived from the old example, no longer carry the inconsistency, so each fails only for its stated rule |
+
