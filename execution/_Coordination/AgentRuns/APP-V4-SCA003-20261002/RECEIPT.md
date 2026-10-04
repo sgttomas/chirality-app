@@ -41,8 +41,8 @@ All are recorded with the owner's exact text in
 ## Checks
 
 - **Pre-change baseline:** 0 / 35 / 93.
-- **Post-change audit:** 0 / 52 / 77. The WARNING rise is attributed to the
-  Q-13 act.
+- **Post-change audit:** 0 / 52 / 77. Of the 17 more WARNINGs, 16 come from
+  the Q-13 act and one (COV-129) cleared at acceptance.
 - **Post-acceptance validation:** PASS 39/39.
 - **Independent reviews:**
   - V23 returned HOLD; after repair RP1, the recheck V23b returned READY FOR
@@ -50,9 +50,11 @@ All are recorded with the owner's exact text in
   - V24 returned READY FOR GROUP 3 after M-1.
   - V25 returned READY FOR CHECKPOINT C, with an independent placement check
     of 567/567 rows.
+- **Final review:** V26 MERGE.
 - **Closure audit:** CLOSED_WITH_OBSERVATIONS (0 CRITICAL, 0 MAJOR, 2 MINOR,
   8 OBSERVATION).
-- **Write fences:** verified after each writing executor (DISPATCH).
+- **Write fences:** recorded in DISPATCH for P3, P1 and AK1; review V26
+  checked every commit's writes against its stage's area.
 
 ## Limits and carried obligations
 
@@ -65,7 +67,8 @@ All are recorded with the owner's exact text in
   - Q-14 (R-02-4);
   - three basis items.
 - **For a later amendment or the register owners:**
-  - DEL-09-02 still reads OI-009 as open (closure audit ASC-ISS-002);
+  - DEL-09-02 still reads OI-009 as open (closure audit ASC-ISS-002;
+    HELP_HUMAN proposes carrying it to the next amendment, for the owner);
   - five mirror rows were not extracted;
   - V25 m-1 (DEL-05-01 → DEL-01-05 is represented by an information-only
     row);

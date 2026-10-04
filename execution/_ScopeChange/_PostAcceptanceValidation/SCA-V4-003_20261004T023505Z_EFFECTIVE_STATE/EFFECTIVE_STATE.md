@@ -23,8 +23,9 @@ Since group-3 acceptance (DECISION-2):
     APP-V4-BASIS-ALIGN-20260928 DECISION-8);
   - DEL-09-02 (outside this amendment) still reads OI-009 as open in its
     ScopeOfWork TBD-002 and register row DEP-09-02-027 (closure audit
-    ASC-ISS-002); its ScopeOfWork can change only by a later amendment, so
-    the item is carried to the next one. The authoritative status reads
+    ASC-ISS-002); its ScopeOfWork can change only by a later amendment;
+    HELP_HUMAN proposes carrying the item to the next one (a proposal put to
+    the owner, not an owner decision; review V26 m-1). The authoritative status reads
     through `Open_Issues.csv` and the active supersession map.
 
 Closure verdict of the amendment record: OPEN_PENDING_DERIVATIVE_CLOSURE, for
