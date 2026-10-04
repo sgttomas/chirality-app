@@ -58,3 +58,31 @@ HELP_HUMAN had redirected the work graph toward the walking skeleton, with
 a one-page merge member list still pending (B0). The owner wrote:
 
 > the graph will never stop changing in minute details, but that's the job of the work graphs to resolve that level of detail.  The DAG is supposed to direct work towards completion.  The 60% gate marks an arbitrary point where the LOOP_INIT.md instructions to create a local work graph takes prominence.
+
+## The 60% gate (owner, exact, 2026-10-04)
+
+The owner asked for HELP_HUMAN's judgment:
+
+> You're in a better place than me to judge the gestalt passing through the 60% gate.  I do suspect we're close to that point but it's impossible for me to verify fully.  I can only ask you about the state of maturity and if there's now a clear path to completion at the DAG level such that we can bring this session to a close and implement the development loops via local work graphs that traverse part of the DAG (or several parts) to bring to the deliverables to completion (which means your intended approach is a valid decision to start grouping items together and solving them rather than trying to define away dependencies).
+
+HELP_HUMAN's assessment, which is recorded in the session transcript:
+- all 41 deliverables have reviewed Design files;
+- the 83 dependencies that lie inside cycles all fall within five working
+  groups, A–E;
+- between the groups, dependencies run one way, A → {B, C} → D → E,
+  except for one sequencing dependency (09-09 needs 09-01) that does not
+  form a cycle.
+
+Residual risks are contained within single groups: the SWBPIPE host
+joins, placement OI-013/014, DEL-04-01's reach, and roughly 60
+design-level dependencies not yet registered. HELP_HUMAN said that
+LOOP_INIT reserves the 60% assessment to the owner, and asked for a yes.
+
+The owner wrote:
+
+> I am accepting the 60% gate cleared.
+
+**Effect.** Under LOOP_INIT the 60% position is passed. DAG-004 directs
+the work. Development continues through local work graphs, each taking one
+group or several. Completion of individual deliverables, acceptance and
+release remain separate.
