@@ -145,3 +145,15 @@ HELP_HUMAN named four risks and proposed a narrower form:
 The owner replied:
 
 > Then make the necessary revisions to the texts.  It's probably better to leave some things underdefined and seek human judgment in the moment than take your limited experience too far and overconstrain things in the future leading to a problem that builds and isn't recognized.
+
+## Regrouping after the independent check (owner, exact, 2026-10-04)
+
+RVG's SURVEY/GROUP_SORT.md reproduced the grouping test and found two
+exceptions. HELP_HUMAN recommended two moves:
+- DEL-09-12 to group E, because D57 (09-12 uses 10-02) is a real need
+  that runs against the order;
+- DEL-09-10 to group D, so that B and C run in parallel (DEP-09-01-027).
+
+The owner replied:
+
+> Yes to both moves.  Record that then let's discuss the LOOP_INIT further.

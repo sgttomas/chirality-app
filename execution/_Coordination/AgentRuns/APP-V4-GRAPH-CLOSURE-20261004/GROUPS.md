@@ -16,9 +16,9 @@ reversed.
 |---|---|---|
 | A | Runtime and contract core | DEL-01-01, 01-02, 01-03, 01-04, 01-05, 02-01, 02-02, 02-03, 02-04, 03-01, 03-02, 03-03, 04-01, 04-02, 04-03, 05-01, 05-02, 09-09 |
 | B | Packaging and qualification | DEL-01-06, 09-01, 09-02 |
-| C | Connectors and research | DEL-07-01, 07-02, 08-01, 08-02, 09-10 |
-| D | Fleet, journeys and witnesses | DEL-03-04, 06-01, 06-02, 09-05, 09-06, 09-07, 09-11, 09-12 |
-| E | Practice and continuity | DEL-10-01, 10-02, 10-03, 10-04, 11-01, 11-02, 11-03 |
+| C | Connectors and research | DEL-07-01, 07-02, 08-01, 08-02 |
+| D | Fleet, journeys and witnesses | DEL-03-04, 06-01, 06-02, 09-05, 09-06, 09-07, 09-10, 09-11 |
+| E | Practice and continuity | DEL-09-12, 10-01, 10-02, 10-03, 10-04, 11-01, 11-02, 11-03 |
 
 **Group order (suppliers first): A → {B, C} → D → E.** HELP_HUMAN's own
 check found that:
@@ -27,6 +27,24 @@ check found that:
   DEL-09-09 → DEL-09-01 (A uses B), which forms no deliverable cycle.
 
 The independent reproduction is in `SURVEY/GROUP_SORT.md`.
+
+**Regrouped 2026-10-04 (owner: "Yes to both moves.").** DEL-09-12 moved from
+D to E, and DEL-09-10 moved from C to D, as GROUP_SORT recommended. The
+membership above shows the result. With these moves:
+- every held row stays within a group;
+- every cross-group admitted arc follows the order, except DEP-09-09-012
+  (A uses B's examination protocol). That arc is a real need and forms no
+  cycle on DAG-004.
+
+There are also three reading choices for the design agents to reword:
+- D07: EXEC → CA §8.2, per R10-11;
+- D49: XT cites DEL-09-06 OUT-004;
+- U08: RS drops the CAF-24 citation.
+
+Two items stay recorded:
+- U10, an optional rehearsal running from B to C;
+- under objective O-1, the A–B cycle through DEP-09-09-012, which the P16
+  cut removes.
 
 **Recording relationships found later.** See GC-7. Within a group, the
 group's work graph records them. Across groups, they go in the shared list
