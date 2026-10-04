@@ -1,4 +1,4 @@
-"""Build DEL-11-02's adoption account AA-1 (AA-v0.1) from git at one commit. Prototype, not product code.
+"""Build DEL-11-02's adoption account AA-1 (AA-v0.2) from git at one commit. Prototype, not product code.
 
 Design: DEL-11-02 Design/ADOPTION_ACCOUNT.md. Rulings: R23-30, R23-32 (F-R9, F-R10, F-R11, F-R16), R23-44.
 Every fact cites evidence read from git at the commit (read-only: show, grep, rev-list, ls-tree); a rebuild
@@ -47,7 +47,8 @@ def exists(at, path):
 
 
 def grep_files(at, needle, lane):
-    out = subprocess.run(["git", "-C", REPO, "grep", "-l", "-F", needle, at, "--", lane], capture_output=True, text=True).stdout
+    specs = lane if isinstance(lane, list) else [lane]
+    out = subprocess.run(["git", "-C", REPO, "grep", "-l", "-F", needle, at, "--"] + specs, capture_output=True, text=True).stdout
     return sorted(l.split(":", 1)[1] for l in out.splitlines() if l)
 
 
@@ -87,14 +88,16 @@ def build(at):
              "PIPING": "projects/chirality-piping", "PEC": "projects/pec"}
 
     acts = [
-        {"act_id": "A-1", "kind": "human_act", "actor": "the owner", "recorder": "HELP_HUMAN", "recorder_stated_by_record": True,
+        {"act_id": "A-1", "kind": "human_act", "act_class": "change_approval", "recording_mode": "faithful recording",
+         "actor": "the owner", "recorder": "HELP_HUMAN", "recorder_stated_by_record": True,
          "subject": "apply edits A1 and B1 to Root AGENTS.md (D-GOV-52), on the terms HELP_HUMAN stated: notices to App v4 (substantive), App v3 and Runtime (informational), none to Piping or PEC",
          "record_ref": RUN + "/OWNER_DECISIONS_2.md, 'D-GOV-52 application'", "exact_text": "I approve A1 and B1, go ahead",
          "custody": "the session transcript; recorded by HELP_HUMAN (the file's own custody line)"},
-        {"act_id": "AD-1", "kind": "agent_act", "consumer_id": "APP-V4", "actor": "HELP_HUMAN, as App v4's integrator (R23 rulings)", "recorder": "HELP_HUMAN", "recorder_stated_by_record": True,
+        {"act_id": "AD-1", "kind": "agent_act", "act_class": "adoption", "recording_mode": "direct capture",
+         "consumer_id": "APP-V4", "actor": "HELP_HUMAN, as App v4's integrator (R23 rulings)", "recorder": "HELP_HUMAN", "recorder_stated_by_record": True,
          "subject": "App v4 adopts the changed Root text (D-GOV-52)", "record_ref": RUN + "/R23_RESOLUTIONS.md, R23-30",
          "exact_text": "App v4 adopts the changed Root text.",
-         "custody": "the ruling as written in R23_RESOLUTIONS.md ('Integrator: HELP_HUMAN'); a receiving loop's own adoption, not the owner's act (F-R10)"},
+         "custody": "the ruling as written in R23_RESOLUTIONS.md ('Integrator: HELP_HUMAN'): direct capture, the integrator recording its own ruling; a receiving loop's own adoption, not the owner's act (F-R10)"},
     ]
     for a, path in (("A-1", RUN + "/OWNER_DECISIONS_2.md"), ("AD-1", RUN + "/R23_RESOLUTIONS.md")):
         act = [x for x in acts if x["act_id"] == a][0]
@@ -159,16 +162,21 @@ def build(at):
     # RN-2: the App v4 renewed basis, as staged adoption for the DEP-006 consumers (OI-024)
     basis = V4 + "/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md"
     for cid in ("ROOT", "RUNTIME", "APP-V3", "PIPING"):
-        lane = {"ROOT": "AGENTS.md", "RUNTIME": lanes["RUNTIME"], "APP-V3": lanes["APP-V3"], "PIPING": lanes["PIPING"]}[cid]
+        lane = {"ROOT": [".", ":(exclude)" + lanes["APP-V4"]], "RUNTIME": lanes["RUNTIME"], "APP-V3": lanes["APP-V3"], "PIPING": lanes["PIPING"]}[cid]
         hits = grep_files(at, "APP-V4-BASIS-20260926", lane)
+        scope = ("the whole repository outside %s (Root's governance, workflows and every other lane)" % lanes["APP-V4"]) if cid == "ROOT" else lane
+        searches = [{"kind": "absence_search", "ref": "git grep -F 'APP-V4-BASIS-20260926' %s -- %s" % (at[:10], " ".join("'%s'" % x for x in lane) if isinstance(lane, list) else lane),
+                     "note": "scope: %s; %d file(s) mention it" % (scope, len(hits))}]
+        if cid == "ROOT":
+            searches.append({"kind": "absence_search", "ref": "reviews/RV3-AA1.md, AA1-R3",
+                             "note": "a second search, by RV3 (not O-F): the same id over the whole repository outside projects/chirality-app-v4 at 122c5abcf5 found nothing"})
         rows.append({"renewal_id": "RN-2", "consumer_id": cid,
                      "facts": {"prepared_notice": F("not_established", [], "no adoption notice for the renewed v4 basis has been prepared"),
                                "delivered": F("not_established", []),
                                "published": F("established", [ev_file(at, basis, "the accepted App v4 basis is in this repository; publication is not adoption (V4-OPS-14)")]),
                                "resolved": F("not_applicable", []), "supplied": F("not_applicable", []), "provider_adopted": F("not_applicable", []),
                                "observed_behavior": F("not_applicable", []),
-                               "consumer_adopted": F("not_established", [{"kind": "absence_search", "ref": "git grep -F 'APP-V4-BASIS-20260926' %s -- %s" % (at[:10], lane),
-                                                                         "note": "%d file(s) mention it" % len(hits)}],
+                               "consumer_adopted": F("not_established", searches,
                                                      "no first adopter is identified; that is the owner's decision with affected consumers (OI-024; P-4)")},
                      "adoption_point": None, "open": {"owner": "Owner with affected consumers (OI-024)", "point_of_need": "Before each adoption/retirement decision"}})
 
@@ -199,13 +207,13 @@ def build(at):
         {"consumer_id": "PIPING", "name": "SWBPIPE", "lane": lanes["PIPING"], "in_dep006": True, "owner": "the SWBPIPE owner (outside session)"},
         {"consumer_id": "PEC", "name": "PEC", "lane": lanes["PEC"], "in_dep006": False, "owner": "the PEC loop's owner"},
     ]
-    status = {"record_kind": "adoption_status", "format": "AA-v0.1", "account_id": "AA-1", "account_version": 1, "at_commit": at,
+    status = {"record_kind": "adoption_status", "format": "AA-v0.2", "account_id": "AA-1", "account_version": 2, "at_commit": at,
               "renewed_basis": {"consumers_adopted": [], "consumers_not_recorded": ["ROOT", "RUNTIME", "APP-V3", "PIPING"],
                                 "owner": "Owner with affected consumers (OI-024)", "point_of_need": "Before each adoption/retirement decision"},
               "instruction_changes": [{"renewal_id": "RN-1", "adopted_by": ["APP-V4"], "not_recorded": ["APP-V3", "RUNTIME"], "no_notice": ["PIPING", "PEC"]}],
-              "statement": "No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; App v3 and Runtime received a notice and recorded no decision; Piping and PEC received none by design."}
+              "statement": "No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown); no notice was routed to Piping or PEC, by design."}
     return {
-        "record_kind": "adoption_account", "format": "AA-v0.1", "account_id": "AA-1", "version": 1, "date": DATE, "at_commit": at,
+        "record_kind": "adoption_account", "format": "AA-v0.2", "account_id": "AA-1", "version": 2, "date": DATE, "at_commit": at,
         "renewals": [
             {"renewal_id": "RN-1", "kind": "instruction_change", "what": "D-GOV-52: Root AGENTS.md instruction-change timing (A1) and App-process settings (B1)",
              "source": {"path": "AGENTS.md", "before_sha256": BEFORE, "after_sha256": AFTER, "at": TRANCHE_COMMIT}, "change_record": TRANCHE, "approval_act": "A-1"},

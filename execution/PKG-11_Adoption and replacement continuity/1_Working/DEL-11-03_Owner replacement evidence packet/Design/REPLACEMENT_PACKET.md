@@ -1,11 +1,14 @@
 # Owner replacement evidence packet
 
-- **Contribution:** DEL-11-03/RP-v0.5. It supersedes RP-v0.4 (sha256 `5bfa93036466e3b894608f595a4f8fda070f6335470bdca6433e939dbcd98271`, unit EU-F2, READY in RV3-EUF1.md Addendum 6). It is part of unit **EU-F3**, with DEL-11-01 CA-v0.2 and DEL-11-02 AA-v0.1. RP-v0.5 does three things:
-  - repairs EUF4-R1: `evidence_standing` and `candidate.identified` are derived, not declared, and a fixture package is never presented or decided;
-  - carries DEL-11-02's adoption status as supplied item S-6;
-  - takes CA-1 v2.
+- **Contribution:** DEL-11-03/RP-v0.6. It supersedes RP-v0.5 (sha256 `f928cd0274d14a41ad693b8d073bf9a7a286f5fc7a0ff71fc6be082292107644`, unit EU-F3, commit `b2fbfdbac8`). It is part of unit **EU-F3R**, with DEL-11-01 CA-v0.3 and DEL-11-02 AA-v0.2, and follows RV3's review RV3-AA1. RP-v0.6 does four things:
+  - carries AA-v0.2's corrected adoption statement as S-6 ("a notice was delivered to …", not "received"; AA1-R2) and takes CA-1 v3;
+  - renames the supplied-item standing `owner_record` to `deliverable_record` and defines it in the terms, because owner-facing packets reserve "owner" for the person (RV3 N2);
+  - states that the placeholder test in `candidate.identified` is keyword-based (§3; RV3 N3);
+  - breaks each fixture rule the checker claims, on the real fixture in memory (C-1…C-21; coordinator's audit), and lists what is not enforced (§8).
 
   Earlier versions:
+  - RP-v0.5 `f928cd02…` (EU-F3: EUF4-R1 derived standing and identification; S-6 adoption status; CA-1 v2);
+  - RP-v0.4 `5bfa9303…` (EU-F2, READY in RV3-EUF1.md Addendum 6);
   - RP-v0.3 `164c082c…` (RR-EUF3, 36/36; EU-F1 passed, R23-49);
   - RP-v0.2 `80e88983…` (RR-EUF2);
   - RP-v0.1 `1a06262b…` (RR-EUF1).
@@ -18,7 +21,7 @@
 - **Supplier pins** (committed and unchanged since `d150856784`, except LHQ-v0.2 as stated):
   - DEL-09-02 SQ-v0.2 `STANDALONE_QUALIFICATION.md` `3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391` (§1, §2 O-1, §8), with `sq.dossier.valid.examples.json` `426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db`.
   - DEL-09-07 DOS-v0.1 `QUALIFICATION_DOSSIER.md` (§1, §4 DH-1/DH-2, §6 DF-5, DX-1…DX-3). RP-v0.4 deliberately re-pins `lhq.dossier-manifest.valid.examples.json` to O-C's DX-3 version (commit `aa95aff4e1`; sha256 `dbf8463f45dc2b9c…`, vendored; RV3 N9). In it, `DOS-EXAMPLE-INVENTED` names no run and no receipt and has no DEL-09-11 hand-over, and `DOS-EXAMPLE-INVENTED-POPULATED` keeps RC-1 in all three places. FX-RP1-3 stays pinned to the earlier copy (`9873df65…`) as history.
-  - DEL-11-01 CA-v0.2 and DEL-11-02 AA-v0.1 (this unit): `ca.continuity-account.schema.json` `$defs/continuity_handoff` and `aa.adoption-account.schema.json` `$defs/adoption_status`, with the built hand-overs `RUN/F/ca/records/CA-1.handoff.json` and `RUN/F/aa/records/AA-1.status.json`. The CA hand-over:, and the built hand-over `RUN/F/ca/records/CA-1.handoff.json`.
+  - DEL-11-01 CA-v0.3 and DEL-11-02 AA-v0.2 (this unit): `ca.continuity-account.schema.json` `$defs/continuity_handoff` and `aa.adoption-account.schema.json` `$defs/adoption_status`, with the built hand-overs `RUN/F/ca/records/CA-1.handoff.json` (CA-1 v3) and `RUN/F/aa/records/AA-1.status.json` (AA-1 v2).
   - **Vendored supplier bytes (R23-44).** Every supplier schema and example the checks read is copied into `RUN/F/vendor/` with its source path, sha256 and source commit (`vendor/VENDOR.json`). The checks read the copies; `check_rp.py` V-1 verifies them, and prints a NOTICE (it does not fail) when a live source has moved since vendoring, so that the owner re-pins deliberately (R23-21).
   - DEL-09-07 LHQ-v0.2 (R23-36; committed at `141a6cc8b4`; its schema and examples vendored) `LOCAL_HOST_QUALIFICATION.md` `90f461cbbe98de20cdd19e13be6adb82818fa23ea55166cab04833108df8523e` (§3 CIR, CI-5 with LHQ2-R1: where both are given, the mapping agrees with the element's `value`, so consumers reconcile on the mapping; the OI-013/014 row). RP-v0.2 read the uncommitted `5cd31e09…`; the change adds the agreement rule only, which RP-R3 relies on and nothing else here changes, with `lhq.candidate-identification.schema.json` `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` and `….valid.examples.json` `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4`. RP-v0.1 relied on LHQ-v0.1 (`20361a0b…`); the fixture's CIR record is byte-identical in both versions.
   - DEL-09-01 EXP-v0.2 `EXAMINATION_PROTOCOL.md` `ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93` and `exam.result-record.schema.json` `f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081` (`$defs/candidate_subject`, `$defs/outcome`).
@@ -63,7 +66,7 @@ It leaves out:
 | I-2 | DOS dossier manifest `handoff_del_11_03` and the CIR it cites | DEL-09-07 | DEP-11-03-007, admitted | Packet assembly | OUT-002 *incomplete*; gap named |
 | I-3 | Continuity hand-over (DEL-11-01 CA `$defs/continuity_handoff`; from RP-v0.4, replacing the first cut) | DEL-11-01 | DEP-11-03-008, held (SCC-006; F-R8: SCC-CASE-007 R1) | Packet assembly | Carried as *not supplied*; gap named |
 | I-4 | Practitioner standing (first cut `$defs/practitioner_standing`) | DEL-09-12 | DEP-11-03-009, admitted | Packet assembly | Standing *not_supplied*; never a gap for replacement |
-| I-5 | Adoption status: DEL-11-02's AA `$defs/adoption_status` (S-6, `owner_record`, from RP-v0.5) | DEL-11-02 | DEP-11-02-015, admitted (supplier's row) | Packet assembly | *not supplied*; gap G-ADOPT named |
+| I-5 | Adoption status: DEL-11-02's AA `$defs/adoption_status` (S-6, `deliverable_record`, from RP-v0.5; named `owner_record` until RP-v0.6) | DEL-11-02 | DEP-11-02-015, admitted (supplier's row) | Packet assembly | *not supplied*; gap G-ADOPT named |
 | I-6 | v3.0.1 baseline identity | `reference/REFERENCES.md` §2 | DEP-11-03-010 (not topological; was UNKNOWN, F-R2) | Packet assembly | Packet not assembled |
 | I-7 | EXP result records the dossiers cite; EXP change-impact records | DEL-09-01 records (EXP-v0.2) | through I-1/I-2 | Establishing an obligation | Obligation *not established* |
 | O-1 | Package file (R23-24 shape) | The owner, when presented | DEP-11-03-014 (not topological) | **Any time** (R23-43). It states plainly what is and is not established, and claims replacement qualification only when both witnesses hold | — |
@@ -80,7 +83,7 @@ One manifest per packet version.
   - `evidence_standing` is `illustrative` if any supplied item's own standing is illustrative or a first cut; otherwise `candidate`.
   - `candidate.identified` holds only if all three hold:
     - the subject maps to EXP's `candidate_subject`;
-    - its revision and build carry no placeholder marker (illustrative, invented, example, placeholder);
+    - its revision and build carry no placeholder marker (illustrative, invented, example, placeholder). **This test is keyword-based** (`rplib.PLACEHOLDER_RE`): a placeholder spelled otherwise ("TBD", "xxx") would pass it. In the fixture the other two conditions still hold `identified` false (unresolved steps, illustrative and first-cut items), so this is a stated limit, not a present defect (RV3 N3);
     - every counted core-loop result resolves to a record of an identified candidate.
   - A-9 recomputes both from the supplied copies. RP-R6 refuses a manifest whose declared values differ from the derivation, and decides the fixture refusal on the derived values. RV3's probe is now B-48: notice removed, `fixture: false`, standing "established", `identified: true`, placeholder subject still present. It is refused on both counts.
   - B-47, B-49 and B-50 are the positive and boundary controls.
@@ -96,7 +99,7 @@ One manifest per packet version.
 
 ### 3.3 Inputs from DEL-11-01 and DEL-09-12
 
-- **Continuity (from RP-v0.4: DEL-11-01's own hand-over, CA-v0.1).** S-4 is a `copied_record` of `CA-1.handoff.json` (standing `owner_record`), validated against DEL-11-01's `$defs/continuity_handoff`. The packet repeats its results (A-21): thesis `matches`, archives `passed` (a real run of `archive_digests.py verify`), and continuing obligations `not_supplied`. The first cut below is **superseded** and kept only so that FX-RP1…FX-RP1-3 stay readable.
+- **Continuity (from RP-v0.4: DEL-11-01's own hand-over, CA-v0.1).** S-4 is a `copied_record` of `CA-1.handoff.json` (standing `deliverable_record`: a record built by the deliverable that owns it, not a record of the person; `owner_record` until RP-v0.6), validated against DEL-11-01's `$defs/continuity_handoff`. The packet repeats its results (A-21): thesis `matches`, archives `passed` (a real run of `archive_digests.py verify`), and continuing obligations `not_supplied`. The first cut below is **superseded** and kept only so that FX-RP1…FX-RP1-3 stay readable.
 - **`continuity_input` (first cut, RP-v0.1…v0.3)** carried:
   - the thesis identity check: method, expected and observed tree, the commit, and its limits;
   - the fallback identity: source, retained, not re-checked remotely;
@@ -255,7 +258,23 @@ A supplier change makes a new manifest version, and so a new package. An earlier
 | RP-VC-06 Act boundary | VER-006, AC-006 | §1 table; the package never performs or implies an owner act | Review |
 | **EU-F1 consumption check** | REQ-004 (the owner can decide from the files) | An isolated reader given only the input set answers fixed questions; an examiner compares the answers with the frozen key, field by field | RR-EUF1 on IS-FX-RP1-1 (RP-v0.1): 33/33 fields, 11 issues. RR-EUF2 on IS-FX-RP1-2 (RP-v0.2): 33/33, 10 issues. Each issue is judged in O-F.md. IS-FX-RP1-3 (RP-v0.3, Q-1…Q-13) is staged and keyed, not read |
 
-Prototype at freeze (RP-v0.5, fixture FX-RP1-5): `check_rp.py` **76/76**. It adds:
+Prototype at freeze (RP-v0.6, fixture FX-RP1-6): `check_rp.py` **99/99**. It adds:
+- C-1…C-21: each Part A rule broken on the real fixture in memory (the same `part_a` runs on the edited files; the named check must fail; nothing on disk changes);
+- P-1: S-6 carries AA-v0.2's delivery wording; P-2: `owner_record` gone and `deliverable_record` defined.
+
+`--fixture FX-RP1 … FX-RP1-5` give 8/23, 11/23, 13/23, 16/23 and 16/23 under the current rules: earlier fixtures, as history. FX-RP1-5 fails A-2, A-7, A-8, A-13, A-18, A-21 and A-22 on the format, the renamed standing, the changed terms and legend, and AA-1 v2.
+
+**Claimed rules with a negative case:**
+- Part A (the fixture): A-1 C-1; A-2 C-2; A-3 C-3 (and B-31…B-36, B-45, B-46, B-48); A-4 C-4 (and B-37…B-44, B-51, B-52); A-5 C-5; A-6 C-1, C-6; A-7 C-7; A-8 C-1; A-9 C-8 (and B-48); A-10 C-9; A-11 C-10; A-12 C-11; A-13 C-12; A-14 C-13; A-15 C-14; A-16 C-15; A-17 C-16; A-18 C-17; A-19 C-18; A-20 C-19; A-21 C-20; A-22 C-1, C-21.
+- RP-R1 core loop: B-1, B-3…B-8, B-10, B-12. RP-R2 journey: B-14, B-17, B-18. RP-R3 one candidate: B-21, B-25, B-26, B-27. RP-R4 completeness: B-29, B-30. RP-R6 package: B-31…B-36, B-45, B-46, B-48. RP-R7 disposition: B-38…B-44, B-51, B-52.
+
+**Claimed rules without a negative case, or not enforced:**
+- V-1 (vendored bytes equal their recorded sha256) has no negative: breaking it means editing a vendored file.
+- RP-R5 (practitioner standing never a condition) is shown by B-28's positive case and A-12/C-11; `replacement_evidence_complete` never reads the standing, so no input can make it a condition (by construction, as for CA's N-1).
+- RP-R8 integrity is A-1, A-6, A-8 and B-41 (a lapsed package); a supplier record changing after assembly is detected only when the check is rerun.
+- The placeholder test in `candidate.identified` is keyword-based (§3); a differently spelled placeholder passes it.
+- `produced_by`, the `shape_only` source wording and the `open_matters` list are read by inspection; no check enforces them.
+- RP-VC-06 (the act boundary) is by review.
 - A-9 now recomputes the derived standing and identification;
 - A-22: adoption status is DEL-11-02's own;
 - B-48…B-52: RV3's probe, the derivation controls, and fixture presentation and decision refused.
@@ -294,6 +313,12 @@ At RP-v0.3 (fixture FX-RP1-3), `check_rp.py` was **65/65**:
 
 | Version | Change |
 |---|---|
+| RP-v0.6 (2026-10-04) | Unit EU-F3R, after RV3-AA1:
+- AA1-R2 carried: S-6 is AA-1 v2, whose statement says the notice was delivered, not received; S-4 is CA-1 v3. Version step because the fixture's supplied content and the manifest schema change.
+- RV3 N2: standing `owner_record` renamed `deliverable_record` (schema enum, builder, A-21, A-22, B-47, B-49) and defined in the terms ("standing (supplied item)").
+- RV3 N3: the keyword limit of the placeholder test stated (§3).
+- Coordinator's audit: C-1…C-21 break each Part A rule on the real fixture; covered and uncovered rules listed in §8.
+- Fixture FX-RP1-6; manifest format RP-v0.6. FX-RP1-5 kept unchanged as history |
 | RP-v0.5 (2026-10-04) | Unit EU-F3:
 - EUF4-R1: `evidence_standing` and `candidate.identified` derived (`rplib.derive_standing`) and recomputed in A-9; RP-R6 refuses a declared/derived mismatch; RP-R7 refuses presenting or deciding a fixture; RV3's probe is B-48.
 - S-6: DEL-11-02's AA-1 status (adoption supplied; G-ADOPT not raised).

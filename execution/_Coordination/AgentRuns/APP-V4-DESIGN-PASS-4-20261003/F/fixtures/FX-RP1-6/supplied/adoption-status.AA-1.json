@@ -1,0 +1,35 @@
+{
+  "account_id": "AA-1",
+  "account_version": 2,
+  "at_commit": "122c5abcf516f31ffdb1fdb17d9d5b0f96603154",
+  "format": "AA-v0.2",
+  "instruction_changes": [
+    {
+      "adopted_by": [
+        "APP-V4"
+      ],
+      "no_notice": [
+        "PIPING",
+        "PEC"
+      ],
+      "not_recorded": [
+        "APP-V3",
+        "RUNTIME"
+      ],
+      "renewal_id": "RN-1"
+    }
+  ],
+  "record_kind": "adoption_status",
+  "renewed_basis": {
+    "consumers_adopted": [],
+    "consumers_not_recorded": [
+      "ROOT",
+      "RUNTIME",
+      "APP-V3",
+      "PIPING"
+    ],
+    "owner": "Owner with affected consumers (OI-024)",
+    "point_of_need": "Before each adoption/retirement decision"
+  },
+  "statement": "No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown); no notice was routed to Piping or PEC, by design."
+}

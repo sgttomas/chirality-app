@@ -1,7 +1,7 @@
 {
   "account_id": "CA-1",
   "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
-  "account_version": 2,
+  "account_version": 3,
   "adoption_status": "supplied",
   "archives": {
     "source": "projects/chirality-app-v4/reference/archives/ARCHIVES.md",

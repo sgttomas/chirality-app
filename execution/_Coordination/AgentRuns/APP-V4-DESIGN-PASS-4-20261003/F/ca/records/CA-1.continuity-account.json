@@ -1,7 +1,7 @@
 {
   "account_id": "CA-1",
   "adoption_status": {
-    "ref": "AA-1 v1 at 122c5abcf5: No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; App v3 and Runtime received a notice and recorded no decision; Piping and PEC received none by design.",
+    "ref": "AA-1 v2 at 122c5abcf5: No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown); no notice was routed to Piping or PEC, by design.",
     "status": "supplied",
     "supplier": "DEL-11-02"
   },
@@ -278,7 +278,7 @@
   "handoff": {
     "account_id": "CA-1",
     "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
-    "account_version": 2,
+    "account_version": 3,
     "adoption_status": "supplied",
     "archives": {
       "source": "projects/chirality-app-v4/reference/archives/ARCHIVES.md",
@@ -408,5 +408,5 @@
     "fallback": "v3.0.1 retained",
     "state": "pending"
   },
-  "version": 2
+  "version": 3
 }

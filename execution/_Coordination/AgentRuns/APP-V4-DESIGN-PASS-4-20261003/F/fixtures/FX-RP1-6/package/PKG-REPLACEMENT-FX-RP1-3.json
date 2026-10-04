@@ -1,0 +1,64 @@
+{
+  "actKind": "A16",
+  "alternatives": [
+    {
+      "consequences": [
+        "v3.0.1 remains the published fallback; nothing is published or withdrawn",
+        "No public release: publishing v4 would be a separate owner act (PRD OQ-08)",
+        "No retirement: old projects, archives and active work are kept (OI-024)",
+        "The packet's open gaps still apply to the owner's own use of this candidate"
+      ],
+      "id": "ALT-OWN-USE",
+      "statement": "Replace v3.0.1 in the owner's own work only: the owner uses this candidate instead of v3.0.1 for their own design work. v3.0.1 stays the published product and remains the fallback (as the packet's terms define 'fallback')"
+    },
+    {
+      "consequences": [
+        "Choosing this alternative does not perform the public-release act; publishing remains a separate owner act (P-5; PRD OQ-08; DEL-11-03 CLM-003)",
+        "Until the owner performs that act, v3.0.1 remains the published product and the fallback",
+        "After that act, inference from App v3's records (BUILD_AND_RELEASE.md §12, excerpted in the packet): v3.0.x's manual update check reads the latest published stable release, so on request it would open v4's installer or release page",
+        "No retirement: old projects, archives and active work are kept until their own decisions (OI-024)"
+      ],
+      "id": "ALT-PUBLISHED",
+      "statement": "Replace as the published product: this candidate is to replace v3.0.1 as the product published in sgttomas/chirality-app, once the owner also performs the separate public-release act"
+    },
+    {
+      "consequences": [
+        "v3.0.1 remains the fallback",
+        "No public release",
+        "No retirement: nothing is retired",
+        "The packet is rebuilt as a new version when a supplier closes a gap"
+      ],
+      "id": "ALT-DEFER",
+      "statement": "Defer: decide again when the packet's named gaps are closed"
+    },
+    {
+      "consequences": [
+        "v3.0.1 remains the fallback",
+        "This candidate does not replace it; a later candidate needs its own package",
+        "No public release",
+        "No retirement: nothing is retired"
+      ],
+      "id": "ALT-DECLINE",
+      "statement": "Decline this candidate"
+    }
+  ],
+  "format": "chirality.decision-package",
+  "formatVersion": "0.1",
+  "packageId": "pkg:app-v4:replacement:FX-RP1-6",
+  "purpose": "FIXTURE, NOT FOR THE OWNER: no real candidate is identified; the subject's revision and build are illustrative placeholders, and this fixture is never presented to the owner. The owner decides (act kind A16, 'decide': choose exactly one of the four alternatives below) whether the identified v4 candidate replaces the v3.0.1 fallback, on the evidence in the packet manifest the subject names. V4-REP-01 states when v4 may replace v3.0.1; the packet states what is and is not established, and here the two witnesses are not shown to hold, so it does not claim replacement qualification. Choosing any alternative remains the owner's act, on the evidence as presented; this package neither forbids nor recommends a choice. Fixture FX-RP1-6.",
+  "reservedBy": [
+    {
+      "ref": "docs/PRD.md §8 V4-REP-01",
+      "statement": "The owner decides the replacement; the old projects and archives are kept until then (OD-09)."
+    },
+    {
+      "ref": "docs/EXAMINATION.md §7",
+      "statement": "The owner decides the replacement (V4-REP-01)."
+    }
+  ],
+  "scope": "the v3.0.1 fallback only; old projects, archives, active work and continuing obligations are outside this decision (OI-024)",
+  "subject": [
+    "whether, and at what scope (see the alternatives), App v4 candidate (revision: ILLUSTRATIVE (SQ example; not a real candidate); build: ILLUSTRATIVE (SQ example; not a real candidate)) replaces Chirality v3.0.1, the published fallback",
+    "packet manifest sha256:b7b14721e9d145b37759a8634a1faceb4b4b94b7583927215c62e8dee6bc1dd5"
+  ]
+}

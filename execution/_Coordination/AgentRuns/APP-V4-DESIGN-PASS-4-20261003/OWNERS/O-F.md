@@ -19,7 +19,9 @@ Escalate only for:
 |---|---|---|---|---|
 | EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | RP-v0.1…v0.3 | as recorded below | **PASSED as an early path (R23-49); RP-v0.3 READY (RV3 Addendum 4)** |
 | EU-F2 | DEL-11-01 CA-v0.1 + DEL-11-03 RP-v0.4 | DEL-11-01 `Design/`, DEL-11-03 `Design/`, `F/` (incl. `F/ca/`) | see "EU-F2 — frozen" | **READY** (RV3-CA1.md; RV3-EUF1.md Addendum 6); MINORs carried into EU-F3 |
-| EU-F3 | DEL-11-02 AA-v0.1 + DEL-11-01 CA-v0.2 + DEL-11-03 RP-v0.5 | the three `Design/` folders; `F/` (incl. `F/aa/`, `F/ca/`) | see "EU-F3 — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then for review** |
+| EU-F3 | DEL-11-02 AA-v0.1 + DEL-11-01 CA-v0.2 + DEL-11-03 RP-v0.5 | the three `Design/` folders; `F/` (incl. `F/aa/`, `F/ca/`) | see "EU-F3 — frozen" | Committed `b2fbfdbac8`; **REPAIR** (RV3-AA1: AA1-R1 MAJOR); superseded by EU-F3R |
+| EU-F3R | DEL-11-02 AA-v0.2 + DEL-11-01 CA-v0.3 + DEL-11-03 RP-v0.6 | as EU-F3, plus `F/fixtures/FX-RP1-6/` | see "EU-F3R — frozen" | **FROZEN 2026-10-04 (repair round); for HELP_HUMAN to commit by path, then RV3 to confirm** |
+| EU-F4 | DEL-09-12 PV-v0.2 (PV-v0.1 frozen, never sent for review) | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4 — refrozen" | **FROZEN 2026-10-04; not yet committed or reviewed. Second unit waiting; RV3 takes EU-F3R first** |
 
 ## EU-F1 — frozen (RP-v0.1; superseded by the refreeze below, kept as the record RR-EUF1 read)
 
@@ -461,3 +463,166 @@ The re-pin of `F/vendor/lhq.dossier-manifest.valid.examples.json` was deliberate
 - All DEL-11-03 supplier evidence is still illustrative; the package is a fixture and can never be presented (B-51).
 
 **Next.** DEL-09-12, its own observation record (F-R12, F-R13, F-R14). It will be designed while EU-F3 waits and frozen after.
+
+## EU-F4 — frozen (DEL-09-12 PV-v0.1)
+
+**Claims.**
+1. **F-R12.** DEL-09-12 keeps its own records, in five kinds:
+   - arrangement, observation, disposition;
+   - `method_note`, the hand-over to DEL-10-02;
+   - `practitioner_standing`, the hand-over to DEL-11-03.
+
+   No kind has an outcome, verdict or score field, and the schema is closed (K-7). An observation carries V4-EXM-41's four aims as source-linked observations with `observed` or `not_observed` coverage; "not observed" never carries statements. EXP's `activity: validation` is not used, which is a note for O-B (U-PV-4).
+2. **F-R13.** Routing goes through the real ScopeLedger at the build commit (IN rows by ScopeItemID or SourceRef anchor):
+   - V4-EXE-01 → DEL-01-02;
+   - V4-EXM-41 and SOW-209 → DEL-09-12;
+   - method observations → DEL-10-02;
+   - an unknown anchor → `unresolved`, which is reported and never invented (K-10).
+
+   PV-R3 refuses any other recipient.
+3. **F-R14.** The schema makes `open_issue` the constant "OI-016 (App v4)". A rule refuses an unqualified mention and accepts "SWBPIPE OI-016". Every DEL-09-12 Design file and record passes, except the one deliberate negative example (K-8, K-9).
+4. **The real state** (PV-ARR-1, PV-STANDING-1, built at `b2fbfdbac8`):
+   - `not_agreed`, with no agreement, no period, and **no activity proposed**: activities are the owner's choice (P-2), and none can run before a candidate exists;
+   - both expressions are `blocked`, each with its stated cause. SWBPIPE's cause quotes DECISION-3 ("defer the host joins") and names OI-021;
+   - standing `not_agreed`, 0 observations, `is_replacement_condition: false` (F-R3).
+
+   The builder stops if OI-016 (App v4) or OI-021 is no longer OPEN, or if DECISION-3's text is gone.
+5. **Hand-overs.**
+   - `method_note` has exactly DEL-10-02 UC §5's eleven field groups, read from UC at the commit (K-11). UC §9 states it receives them this way.
+   - `practitioner_standing` carries the values DEL-11-03's first cut reads (K-12). DEL-11-03 adopts it at its next revision (U-PV-3); EU-F3 is under review and is not edited.
+6. **Act boundary.** The agreement is recorded only from the owner's act, in OWNER_DECISIONS form (actor the owner, recorder someone else). A plan or proposal is never agreement. Rule PV-R2 also refuses an agreed arrangement with activities the owner did not select.
+
+**Checks run.**
+- `F/pv/check_pv.py`: **13/13**. That covers 7 valid examples, and 14 invalid ones: 10 refused by the schema and 4 refused by their own rule while passing the schema. I printed each invalid example's refusal reason and confirmed it is the one its `why` names.
+- The builder is deterministic (`cmp`), and K-3 rebuilds exactly at the commit.
+- The six quotes in PRACTITIONER_VALIDATION.md (ScopeOfWork REQ-002 and VER-004, EXAMINATION V4-EXM-40 and V4-EXM-41, Open_Issues) were checked against their sources by script.
+- All 7 pins match current files. The suppliers (ScopeLedger, Open_Issues, UC, EXP, EXAMINATION) are committed and clean, and the prototype reads them from git at the commit, so no vendoring is needed.
+- `git status --ignored` shows nothing ignored.
+- No home paths in the records or Design files (K-13).
+- EU-F3's paths are unchanged against `b2fbfdbac8` (`git diff --stat` is empty).
+
+**Files (sha256)** — paths for the R23-41 commit:
+
+| File | sha256 |
+|---|---|
+| `DEL-09-12_…/Design/PRACTITIONER_VALIDATION.md` (PV-v0.1) | `f917357afd2cc82949d79baf82832b029dbe7985a2e8c7213bd21fef325c0a73` |
+| `DEL-09-12_…/Design/pv.practitioner-validation.schema.json` | `2b7c2b9e8b5fdd1c8ea0dda5b0e5799affd9d7f94f1b6d76175f8956ebd5366f` |
+| `DEL-09-12_…/Design/pv.examples.valid.json` (7) | `82ab49ae1dcdaac5976f730f5a8b6af801ee17f29c1fb826a8746afd175fdc6a` |
+| `DEL-09-12_…/Design/pv.examples.invalid.json` (14) | `c15ccd2601baf1110e25c96b3d2c693ec7427e4327b674d21deb0ad58cc6e67a` |
+| `F/pv/pvlib.py` | `fc82093c2bedb086dc4c21e544f20ace82fc2ae77a05b7bec46a21a68986af36` |
+| `F/pv/check_pv.py` | `9184774ad3c603f81ddefd38e0501acced0753b0713efa93eb530b1b113646af` |
+| `F/pv/records/MANIFEST.sha256` (PV-ARR-1, PV-STANDING-1, BUILT_AT) | `32256269ea3ed1f470793ae01d7a28bfc74f1a72c2befd3cbb63cb62a337b538` |
+
+**Limits.**
+- No real observation, agreement or disposition exists, and none is invented; the examples are illustrative.
+- The ScopeLedger routing is as good as the ledger's SourceRef anchors. A requirement with no IN row is reported `unresolved`.
+- Whether to prepare a proposal before candidates exist is left as an inference in §4 (not now).
+
+**Carried into DEL-11-03's next revision (after RV3 on EU-F3):** adopt `practitioner_standing` (U-PV-3), together with any RV3 findings HELP_HUMAN routes.
+
+## EU-F3R — frozen (repair of EU-F3 for RV3-AA1: DEL-11-02 AA-v0.2, DEL-11-01 CA-v0.3, DEL-11-03 RP-v0.6)
+
+DEL-09-12 was paused at a safe point: EU-F4 had been frozen (PV-v0.1) and not yet reported. This repair round was done first, and the coordinator's checker audit (2026-10-04) was applied to all four deliverables before freezing.
+
+**Repairs.**
+- **AA1-R1 (MAJOR), enforced, not only stated.**
+  - Per-fact evidence whitelist (§3 table), in the schema (`if established then` per fact) and in `check_aa` SR-1. `resolved`/`supplied`/`provider_adopted`/`observed_behavior` take only `candidate_record`/`observation_record` (new kinds; none exists yet). `absence_search` and `design_file_state` establish nothing.
+  - SR-2: `delivered` only by a file inside the receiving lane.
+  - SR-3: `consumer_adopted` only by an `agent_act` of class `adoption`, for that consumer, whose record lies in that consumer's lane; a file beside it must be the act's record. A person's `human_act` never counts (F-R10), even with every other field made right (N-15).
+  - SR-4: the act text contains adopt/adopts/adopted/adoption and no negation (keyword-based; stated as a limit).
+  - Acts gain `act_class` (A-1 `change_approval`, AD-1 `adoption`) and `recording_mode` (A-1 `faithful recording`, AD-1 `direct capture`, RV3 N1).
+  - RV3's five variants, reproduced from RV3-AA1.md as built there, are N-9…N-13; each is refused by the rule named in its line. Variant 4's act cites `R23_RESOLUTIONS.md` and its text "notice delivered; receiving decision not recorded" is in that file, so K-5 passes on it as RV3 found; SR-3 (lane) and SR-4 (text) refuse it.
+- **AA1-R2 (MINOR).** Statement now: "… a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown) …". Carried into CA-1 `adoption_status.ref` and RP S-6/`adoption.statement`. **Version call:** CA and RP each step a version (CA-v0.3, RP-v0.6), because their built content changes (CA-1 v3; fixture FX-RP1-6) and a frozen version id should name one content. CA's record format (CA-v0.1) and schema are unchanged. RP's manifest format steps to RP-v0.6 because the standing enum is renamed (N2).
+- **AA1-R3 (MINOR).** RN-2 Root search: `git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- '.' ':(exclude)projects/chirality-app-v4'` (0 files; rerun by me), with RV3's own search cited second, attributed to RV3 (`reviews/RV3-AA1.md, AA1-R3`).
+- **Notes.** N1 AD-1 named direct capture (record and §1). N2 `owner_record` → `deliverable_record` (RP schema enum and description, builder, A-21, A-22, B-47, B-49), defined in the packet's terms ("standing (supplied item)"). N3 the placeholder test is stated as keyword-based (RP §3; PV §3.2).
+
+**Checker audit (coordinator, 2026-10-04).** Each checker now computes each claimed rule as one function, and each negative breaks the real record (AA-1, CA-1, the FX-RP1-6 fixture, PV-ARR-1/PV-STANDING-1) in memory and runs that same function, naming the rule that must refuse it. A negative no longer re-derives its rule (AA's old N-7 and CA's old N-5/N-9 did). This found one real gap: CA never compared a lane's recorded `retirement_eligible` with RE-1's result (old N-3 passed on the rule function alone); K-14 now does. No check was weakened; old N-3 in AA now names SR-3 (the renumbered "own consumer" rule) instead of SR-4.
+
+**Claimed rules with a negative case (one line each):**
+- AA schema (act required, adoption point, recorder not actor, evidence required, per-fact kinds): N-1, N-19, N-5, N-6, N-8…N-11.
+- AA SR-1 per-fact kinds: N-2, N-8, N-9, N-10, N-11.
+- AA SR-2 delivery by a lane file: N-11, N-17.
+- AA SR-3 own loop's adoption act in its lane: N-1, N-3, N-8, N-12…N-15, N-18.
+- AA SR-4 adoption text: N-12, N-13, N-14, N-16.
+- AA K-2 N-27; K-3 N-28; K-4 N-20, N-21, N-22; K-5 N-4, N-16; K-7 N-23; K-8 N-11, N-24; K-9 N-7, N-26; K-10 N-25; K-11 N-29.
+- CA schema (standing, retention, fallback kept, RE-1 conditions, recorder): N-8, N-6, N-7, N-2, N-3, N-4.
+- CA RE-1 recorded = rule (K-14): N-2, N-3.
+- CA K-2 N-18; K-3 N-19; K-4 N-12, N-13; K-7 N-17; K-9 N-4, N-5, N-9, N-10, N-11; K-10 N-14; K-11 N-15; K-12 N-20; K-13 N-16.
+- RP Part A: A-1 C-1; A-2 C-2; A-3 C-3; A-4 C-4; A-5 C-5; A-6 C-1, C-6; A-7 C-7; A-8 C-1; A-9 C-8, B-48; A-10 C-9; A-11 C-10; A-12 C-11; A-13 C-12; A-14 C-13; A-15 C-14; A-16 C-15; A-17 C-16; A-18 C-17; A-19 C-18; A-20 C-19; A-21 C-20; A-22 C-1, C-21.
+- RP rules: RP-R1 B-1, B-3…B-8, B-10, B-12; RP-R2 B-14, B-17, B-18; RP-R3 B-21, B-25…B-27; RP-R4 B-29, B-30; RP-R6 B-31…B-36, B-45, B-46, B-48; RP-R7 B-38…B-44, B-51, B-52.
+- PV (EU-F4, below): schema N-1, N-3, N-4, N-5, N-6; PV-R2 N-2; K-2 N-12; K-3 N-13; K-4 N-5, N-8; K-7 N-9; K-8 N-6, N-7; K-11 N-10; K-12 N-11; K-13 N-14.
+
+**Claimed rules without a negative case, or not enforced (one line each):**
+- AA SR-4 is keyword-based: "App v3 adopts nothing" would pass.
+- AA `act_class`/`recording_mode` are checked as fields, not against the act's record: a mislabelled record passes SR-3 if its lane and text pass.
+- AA/CA actor-not-recorder is a string comparison; a false recorder name passes.
+- AA `candidate_record`/`observation_record` are accepted by kind only; no check resolves them (none exists).
+- AA K-8 covers RN-1 notices only; K-10 recomputes only `applied` (REQ-004's `checked` and its own evidence are not enforced); packaging states and currency are by inspection; K-7/CA K-10 match consumer names as strings.
+- CA N-1 holds by construction (`retirement_eligible` never reads the replacement disposition); not a refusal.
+- CA K-5 (thesis tree hash) and K-6 (thesis working tree clean): no negative, since breaking them means touching the thesis; K-8 tests the listing detector, which K-5 does not call.
+- CA archive verify (C-3): no negative (the owner's archive is not altered).
+- RP V-1 vendored bytes: no negative (would edit a vendored file).
+- RP RP-R5: by construction (`replacement_evidence_complete` never reads the standing); B-28 and C-11 only.
+- RP RP-R8: detected only when the check reruns (A-1, A-6, A-8, B-41).
+- RP placeholder test is keyword-based ("TBD", "xxx" pass).
+- RP `produced_by`, `shape_only` wording, `open_matters`: by inspection.
+- PV-R1 and PV-R3: no real observation or disposition exists; refused only on invalid examples 11, 13, 14 (K-10 runs routing on the real ledger).
+- PV placeholder test is keyword-based (as RP's).
+- Act boundaries (AA §1, CA VER-007, RP RP-VC-06, PV VER-006): by review.
+
+**Checks run.**
+- `aa/check_aa.py` **43/43**; `ca/check_ca.py` **36/36** (with archives; no drift NOTICE); `check_rp.py` **99/99**; `pv/check_pv.py` **27/27**.
+- History: `check_rp.py --fixture FX-RP1 … FX-RP1-5` give 8/23, 11/23, 13/23, 16/23, 16/23. FX-RP1-5 fails A-2, A-7, A-8, A-13, A-18, A-21, A-22 (format, renamed standing, terms, legend, AA-1 v2), as expected.
+- All four builders run twice: identical bytes for every record and fixture file.
+- `git status --ignored` on the unit paths: nothing ignored. FX-RP1…FX-RP1-5, `F/vendor/`, `F/ca/vendor/`, the CA schema and the RP disposition schema are unchanged against `b2fbfdbac8`.
+- Home paths: none, except the refusal regexes and the split synthetic string in the negative tests.
+- Pins rechecked: Root `AGENTS.md` `f96feb19…`, tranche manifest `559dcf43…`, export manifest `8e532540…`, RA-v0.2 `811c868c…`, the three ScopeOfWork pins (`2d962646…`, `272f7622…`, `01773543…`). Superseded versions named: AA-v0.1 `583637e3…`, CA-v0.2 `ecde63b4…`, RP-v0.5 `f928cd02…`, each hashed from `git show b2fbfdbac8:…`.
+
+**Files (sha256)** — paths for the R23-41 commit (from `projects/chirality-app-v4/execution/`):
+
+| File | sha256 |
+|---|---|
+| `PKG-11_…/DEL-11-02_…/Design/ADOPTION_ACCOUNT.md` (AA-v0.2) | `3d4ba2ec9fbd614a1e36c897aca45b7f4ed33cb859cb506f6af833d4639edba3` |
+| `PKG-11_…/DEL-11-02_…/Design/aa.adoption-account.schema.json` (0.2) | `70b5d215c86574192792d42a267c2fb367cc37b731073caa0da3509337e52c3f` |
+| `PKG-11_…/DEL-11-01_…/Design/CONTINUITY_ACCOUNT.md` (CA-v0.3) | `8f47aa080b4767f2d4c6f44bfc2ead12e53ca982060bcd19242851eb9fde0a87` |
+| `PKG-11_…/DEL-11-03_…/Design/REPLACEMENT_PACKET.md` (RP-v0.6) | `71eb2881ea605252876f4553932a3fc9e889b1743a2e27263e079b80783d805a` |
+| `PKG-11_…/DEL-11-03_…/Design/rp.packet-manifest.schema.json` (RP-v0.6) | `5b2a4b2a6f698039ffb62b6d1366aa429830b18057e6878ef24f3f02d80a0a63` |
+| `RUN/F/aa/build_aa.py` | `4ee20957286d70a31c6625281e515cbd53d603f4d08b9d5b4e27345be4e62e54` |
+| `RUN/F/aa/check_aa.py` | `2a531ad435ca2c437aedc0c8728b67c4dc6c28713ac83c98e2cc2f22d3cab906` |
+| `RUN/F/aa/records/MANIFEST.sha256` (AA-1 v2) | `6e9fd68a72e069dfadb01904af3e4323a2910444bb472ded2863ba193ac8952d` |
+| `RUN/F/ca/build_ca.py` | `00269f5ad9617bed1e32054cd7f5996ec8f7c6f7336d55705c7930a57aeb0687` |
+| `RUN/F/ca/check_ca.py` | `74f9b9c0ed052b92f2d675b07b5b236d4e807a11edee3b1d10f8cc655ab21308` |
+| `RUN/F/ca/records/MANIFEST.sha256` (CA-1 v3) | `c7e7d62d80f16d5f2328acf2893e6853c35d96856d28cf60d6ef5e00fa6e3ba7` |
+| `RUN/F/rplib.py` | `61ec11af20c4ca139ff9785ac6227971cf3aca03244167d6dbe7a851e7a44819` |
+| `RUN/F/build_fx_rp1.py` | `ee3d0c0d2ec9a28764f3aa9f1f28306155f3e63a093cc9d2bd47148c7262d56a` |
+| `RUN/F/check_rp.py` | `9e2a8575ef71d7a99bb0ed51fc9e3be80cc4c0338f44c3ac58e924b0b9130d45` |
+| `RUN/F/fixtures/FX-RP1-6/MANIFEST.sha256` (12 files; new folder) | `19050b1266523c49dc1b5928725db385dafdde2a3142c59351e5a537c7bca65a` |
+| `RUN/F/README.md` | `409efe9797259aa0be33c5db89d3d1d1677893b3560c25562bcc960dcea98e3f` |
+
+Unchanged and not to be re-committed: `ca.continuity-account.schema.json` (`b575dd4e…`), `rp.disposition.schema.json` (`d5a69bc2…`), `F/ca/vendor/` (`VENDOR.json` `f608edcf…`), `F/vendor/`, FX-RP1…FX-RP1-5, input sets, keys, reader briefs, `compare_rp.py`, `stage_is.py`.
+
+**Limits.**
+- The separation is now enforced for the kinds of evidence and the act's class, consumer, lane and wording; it still cannot read meaning (the keyword limit) or verify a label against its record.
+- Two units now wait (EU-F4 and EU-F3R), against the one-waiting rule. EU-F4 was frozen before the repair request arrived; EU-F3R is the coordinator's priority, so RV3 takes it first.
+- U-PV-3 (DEL-11-03 adopting `practitioner_standing`) is not folded into RP-v0.6, which is a repair round; it stays carried to DEL-11-03's next revision.
+
+## EU-F4 — refrozen (DEL-09-12 PV-v0.2), before any review
+
+PV-v0.1 (`f917357a…`, record above) was frozen and not yet reported. PV-v0.2 applies the coordinator's checker audit and nothing else, limited to what DEL-09-12's own design question needs (no new rule, no new record kind):
+- `check_pv.py`: K-4, K-7, K-11, K-12 and K-2 are functions of the records (or schema text); N-1…N-14 break the real PV-ARR-1/PV-STANDING-1 (or, for F-R12 and UC §5, the schema text) in memory and name the refusing rule. Per-kind refusals are checked against the kind's own `$def`, not the top-level `oneOf`, so a refusal names its reason.
+- PRACTITIONER_VALIDATION.md §8: count 27/27 and the covered/uncovered lists (in the EU-F3R lists above); §3.2 states the placeholder test's keyword limit; U-PV-3 and the O-3 note now name RP-v0.6.
+- Records, schema, examples and `pvlib.py` unchanged; `records/MANIFEST.sha256` still `32256269…` after a rebuild at `b2fbfdbac8`.
+
+**Files (sha256)** — paths for the R23-41 commit:
+
+| File | sha256 |
+|---|---|
+| `PKG-09_…/DEL-09-12_…/Design/PRACTITIONER_VALIDATION.md` (PV-v0.2) | `2240ab360eeb5e5f5ac5c6375e7bfe20b7805bb9943d517a5b980ce75e0708f4` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.practitioner-validation.schema.json` | `2b7c2b9e8b5fdd1c8ea0dda5b0e5799affd9d7f94f1b6d76175f8956ebd5366f` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.examples.valid.json` (7) | `82ab49ae1dcdaac5976f730f5a8b6af801ee17f29c1fb826a8746afd175fdc6a` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.examples.invalid.json` (14) | `c15ccd2601baf1110e25c96b3d2c693ec7427e4327b674d21deb0ad58cc6e67a` |
+| `RUN/F/pv/pvlib.py` | `fc82093c2bedb086dc4c21e544f20ace82fc2ae77a05b7bec46a21a68986af36` |
+| `RUN/F/pv/check_pv.py` | `628e63d306d85531a1a85e5ea11e78e12995e1553ca0054dde77b71f592317d4` |
+| `RUN/F/pv/records/MANIFEST.sha256` | `32256269ea3ed1f470793ae01d7a28bfc74f1a72c2befd3cbb63cb62a337b538` |
+
+**Next.** Resume DEL-09-12 (its review findings, when routed), and DEL-11-03's adoption of `practitioner_standing` (U-PV-3) at its next revision.

@@ -1,7 +1,7 @@
 # Consumer-specific renewed-basis adoption
 
-- **Contribution:** DEL-11-02/AA-v0.1, the first Design file of DEL-11-02. Frozen as part of unit **EU-F3**, together with DEL-11-01 CA-v0.2 and DEL-11-03 RP-v0.5, which consume its status hand-over.
-- **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it is the PROPOSED schema `aa.adoption-account.schema.json`. The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/aa/` (RUN/F/aa): `build_aa.py`, `check_aa.py`, and the built account `records/AA-1.adoption-account.json` with its status hand-over `records/AA-1.status.json`. Its one instruction-change entry (D-GOV-52) is **real**: every fact cites evidence read from git at commit `122c5abcf516f31ffdb1fdb17d9d5b0f96603154`.
+- **Contribution:** DEL-11-02/AA-v0.2, the repair of AA-v0.1 for RV3's review RV3-AA1 (AA1-R1 MAJOR; AA1-R2, AA1-R3 MINOR; notes N1–N3). Frozen as unit **EU-F3R**, together with DEL-11-01 CA-v0.3 and DEL-11-03 RP-v0.6, which consume its status hand-over. AA-v0.1 (unit EU-F3, commit `b2fbfdbac8`) stays in git as history.
+- **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it is the PROPOSED schema `aa.adoption-account.schema.json`. The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/aa/` (RUN/F/aa): `build_aa.py`, `check_aa.py`, and the built account `records/AA-1.adoption-account.json` with its status hand-over `records/AA-1.status.json`. Its one instruction-change entry (D-GOV-52) is **real**: every fact cites evidence read from git at commit `122c5abcf516f31ffdb1fdb17d9d5b0f96603154` (unchanged from AA-v0.1; the repair changes the rules, the act fields, the Root search and the status wording, not the commit read).
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-007; designed cases for VER-001…VER-006 (§7).
 - **Rulings (cited by ID):**
@@ -43,8 +43,8 @@ It adds no distribution mechanism (F-R9). Its outputs are linked views of those 
 
 | Act | Who | Here |
 |---|---|---|
-| Approving a Root instruction change | The owner. This run's OWNER_DECISIONS.md: HELP_HUMAN "brings the owner only acts the governing texts reserve to the person, such as applying an instruction change"; Root `AGENTS.md`: "Instruction changes require their own authorized scope and tranche manifest" | Recorded as human act A-1 for D-GOV-52, faithfully: actor the owner, recorder HELP_HUMAN |
-| Adopting a changed instruction in a loop | That receiving loop (F-R10; Root `AGENTS.md`: "each receiving loop decides its adoption") | App v4's adoption is agent act AD-1 (R23-30). For other loops, only what their own records show |
+| Approving a Root instruction change | The owner. This run's OWNER_DECISIONS.md: HELP_HUMAN "brings the owner only acts the governing texts reserve to the person, such as applying an instruction change"; Root `AGENTS.md`: "Instruction changes require their own authorized scope and tranche manifest" | Recorded as human act A-1 for D-GOV-52 (`act_class` change_approval), by faithful recording: actor the owner, recorder HELP_HUMAN |
+| Adopting a changed instruction in a loop | That receiving loop (F-R10; Root `AGENTS.md`: "each receiving loop decides its adoption") | App v4's adoption is agent act AD-1 (R23-30; `act_class` adoption), by **direct capture**: HELP_HUMAN, App v4's integrator, recorded its own ruling, so actor and recorder are the same agent (RV3 N1). For other loops, only what their own records show |
 | Staged adoption of the renewed v4 basis; first adopters; retirement | The owner with affected consumers (OI-024; P-4) | Rows carried as *not established*, with that owner and point of need |
 | Shared responsibility allocation | DEL-10-03 | X-1 consumed (§2) |
 | Changing a Design file to follow an adoption | That file's owner | Traced, not done (§5) |
@@ -68,13 +68,28 @@ A fact's state is `established`, `not_established`, `unknown` or `not_applicable
 - `manifest_statement` (with its quote checked);
 - `act` (an act id in the account);
 - `absence_search` (the exact `git grep` and its count);
-- `design_file_state`.
+- `design_file_state`;
+- `candidate_record` and `observation_record` (PROPOSED in AA-v0.2): a record of a built candidate or of observed behaviour. None exists yet; the kinds are reserved so that the candidate-side facts have an evidence kind of their own.
 
-**Separation rules (PROPOSED, checked by `check_aa.py` K-6):**
-- **SR-1:** `resolved`, `supplied`, `provider_adopted`, `observed_behavior` or `consumer_adopted` is never established by a manifest statement or a commit alone.
-- **SR-2:** none of those is established only by the publication evidence.
-- **SR-3:** `consumer_adopted` is established only by a recorded act. The schema also requires the `act` evidence kind and an adoption point.
-- **SR-4:** an adoption act counts only for the consumer it names (`consumer_id`). App v4's adoption is never another loop's.
+**Acts.** Each act carries `act_class` (`adoption`, `change_approval` or `other`) and `recording_mode` (`direct capture`: the actor recorded it; `faithful recording`: someone else recorded it from the actor's words). A-1 is a change approval, faithfully recorded; AD-1 is an adoption, directly captured.
+
+**Evidence each fact accepts (PROPOSED; schema `$defs` per fact and `check_aa.py` SR-1).** Evidence for one fact never establishes another. When a fact is `established`, every evidence item must be of a kind its row allows:
+
+| Fact | Evidence kinds accepted when established |
+|---|---|
+| `prepared_notice` | `manifest_statement` (the tranche manifest's routing) |
+| `delivered` | `file_at_commit`, the notice file **inside the receiving lane** (SR-2) |
+| `published` | `file_at_commit` (the change bytes), `git_commit` |
+| `resolved`, `supplied`, `provider_adopted`, `observed_behavior` | `candidate_record`, `observation_record` only: never a notice, a manifest statement, a commit, publication bytes or an absence search |
+| `consumer_adopted` | `act` (required, SR-3), and optionally `file_at_commit` naming that act's own record |
+
+`absence_search` and `design_file_state` never establish a fact; they support `not_established` and `unknown`.
+
+**Separation rules (PROPOSED, checked by `check_aa.py` K-6; each with negative cases, §7):**
+- **SR-1:** an established fact's evidence is only of the kinds its row above accepts.
+- **SR-2:** `delivered` is shown only by a file inside the receiving consumer's lane. A routing statement, or a file in another lane, is not delivery.
+- **SR-3:** `consumer_adopted` rests only on an adoption act of that consumer's own loop: the cited act is an `agent_act` (never a person's `human_act`, F-R10), its `act_class` is `adoption`, its `consumer_id` is the row's consumer, and its record lies inside that consumer's lane. A file cited beside it must be that act's record. App v4's adoption is never another loop's, and the owner's approval of a change is never any loop's adoption. The schema also requires the `act` evidence kind and an adoption point.
+- **SR-4:** the act's exact text states an adoption: it contains "adopt", "adopts", "adopted" or "adoption", and no negation ("not", "no", "never", "without"). A status statement such as F-R16's "notice delivered; receiving decision not recorded" is not an adoption. This test is **keyword-based**: it cannot read meaning, so a text such as "App v3 adopts nothing" would pass it (§7, not enforced).
 
 `unknown` stays unknown. It is never filled from a manifest's rationale. For example, "Piping and PEC … read Root AGENTS.md live" is the tranche's statement about a supply route, not an observation, and not an adoption.
 
@@ -85,7 +100,7 @@ A fact's state is `established`, `not_established`, `unknown` or `not_applicable
 | Consumer | Notice prepared / delivered | Published | Resolved, supplied, provider, behaviour | Consumer adopted |
 |---|---|---|---|---|
 | App v4 | established / established (notice `a643415c…` in its `_Coordination`) | established (Root bytes at `7bd2283dbc`) | **not established**: no App build or candidate yet | **established**: AD-1, R23-30 "App v4 adopts the changed Root text." Adoption point R23-30. Its Design files follow at their next revision (§5) |
-| App v3 | established / established (notice `5f4fb4d9…`) | established | unknown | **not established**: "notice delivered; receiving decision not recorded" (F-R16). `git grep D-GOV-52` finds only the notice; 0 commits touch the lane after the tranche. The notice's "This loop: … No adoption work is expected" was written by the sending tranche, not by the loop |
+| App v3 | established / established (notice `5f4fb4d9…` in its `_Coordination`; delivered, not shown read) | established | unknown | **not established**: "notice delivered; receiving decision not recorded" (F-R16). `git grep D-GOV-52` finds only the notice; 0 commits touch the lane after the tranche. The notice's "This loop: … No adoption work is expected" was written by the sending tranche, not by the loop |
 | Runtime | established / established (byte-identical to App v3's) | established | unknown | **not established**, as for App v3. The shared text speaks of "the v3 idle-boundary path and RB-SETTINGS" (F-R16) |
 | Piping | not applicable / not applicable: no notice routed; the manifest's rationale is quoted | established | unknown (the "reads live" statement is not observed) | **not established**: no record; 3 commits touch the lane after the tranche, and none mentions D-GOV-52 |
 | PEC | not applicable / not applicable | established | unknown | **not established**; PEC is not a DEP-006 consumer |
@@ -93,7 +108,7 @@ A fact's state is `established`, `not_established`, `unknown` or `not_applicable
 **RN-2: the renewed App v4 basis** (APP-V4-BASIS-20260926), in staged adoption by the DEP-006 consumers Root, Runtime, App v3 and Piping. For each:
 - `published`: established. The basis is in this repository, and publication is not adoption (V4-OPS-14).
 - No notice has been prepared.
-- `consumer_adopted`: not established; `git grep` of the basis id finds nothing in any of the four lanes.
+- `consumer_adopted`: not established; `git grep -F 'APP-V4-BASIS-20260926'` at the commit finds nothing in any of the four lanes. For Runtime, App v3 and Piping the search covers their project folder. For Root it covers the whole repository outside `projects/chirality-app-v4` (Root's `AGENTS.md`, `docs/`, `workflows/` and every other lane), widened in AA-v0.2 from `AGENTS.md` alone (AA1-R3). RV3 ran the same whole-repository search independently and found nothing; the record cites it as a second search, attributed to RV3.
 - `open`: "Owner with affected consumers (OI-024)", "Before each adoption/retirement decision". First adopters are the owner's decision (P-4).
 
 **Packaging and tool paths (OUT-002; REQ-003):**
@@ -118,10 +133,12 @@ The states are `proposed`, `pending_next_revision`, `applied`, `checked` and `no
 
 `records/AA-1.status.json` (`$defs/adoption_status`) carries:
 - for the renewed basis, no consumer adopted; four not recorded; owner and point of need from OI-024;
-- for RN-1, adopted by App v4; not recorded by App v3 or Runtime; no notice to Piping or PEC;
-- one plain statement.
+- for RN-1, adopted by App v4; a notice delivered to App v3's and Runtime's coordination folders, with no receiving decision recorded; no notice to Piping or PEC;
+- one plain statement: "No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown); no notice was routed to Piping or PEC, by design."
 
-DEL-11-01's CA-v0.2 records it as `supplied`, and DEL-11-03's RP-v0.5 carries it as S-6.
+AA-v0.1's statement said App v3 and Runtime "received a notice". The evidence shows a file in their folders, which is delivery, not receipt (AA1-R2; F-R16's wording). The correction is carried into DEL-11-01 CA-v0.3 and DEL-11-03 RP-v0.6 S-6.
+
+DEL-11-01's CA-v0.3 records it as `supplied`, and DEL-11-03's RP-v0.6 carries it as S-6.
 
 **Sequence.**
 1. A renewal is recorded when its change record exists (a tranche manifest, or an owner act for the basis).
@@ -129,18 +146,36 @@ DEL-11-01's CA-v0.2 records it as `supplied`, and DEL-11-03's RP-v0.5 carries it
 3. The account is checked (`check_aa.py`) and its status handed over.
 4. A consumer's later record (an adoption ruling, a declined adoption, a Design revision) makes a new account version. Earlier versions stay as history.
 
-## 7. Verification (designed; `check_aa.py` 19/19 at freeze)
+## 7. Verification (designed; `check_aa.py` 43/43 at freeze)
+
+`check_aa.py` computes every rule this file claims as a function of the account (`rule_errors`). Each negative case N-1…N-29 breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it; a negative never re-derives its rule. P-1…P-3 are positive controls for the repair.
 
 | VER | Case | Held by |
 |---|---|---|
-| VER-001 | Coverage of consumers and scopes against X-1 and DEP-006; App-only acceptance never supplies another consumer | K-7, K-8, N-3 |
-| VER-002 | Notice without adoption (App v3, Runtime); publication without supply (App v4); App v4's adoption without any other loop's; a human approval faithfully recorded (A-1) and an agent adoption (AD-1); fabricated decisions refused | K-4, K-5, K-6, N-1, N-2, N-3, N-4, N-5, N-8 |
-| VER-003 | Instruction identity: Root bytes before and after, at the commit; history preserved (the old bytes remain in git) | K-3, K-4 |
-| VER-004 | Packaging (export manifest) and currency (no reliance, so no comparison) | K-4; §4 |
-| VER-005 | Promise to derivative to state, recomputed | K-10 |
-| VER-006 | Open owners and points of need kept; no invented mechanism or allocation | K-1 (schema `open`), K-9, N-7 |
+| VER-001 | Coverage of consumers and scopes against X-1 and DEP-006; App-only acceptance never supplies another consumer | K-7, K-8, N-3, N-23, N-24 |
+| VER-002 | Notice without adoption (App v3, Runtime); publication without supply (App v4); App v4's adoption without any other loop's; a human approval faithfully recorded (A-1) and an agent adoption directly captured (AD-1); fabricated or misattributed decisions refused | K-4, K-5, K-6, N-1…N-19 |
+| VER-003 | Instruction identity: Root bytes before and after, at the commit; history preserved (the old bytes remain in git) | K-3, K-4, N-20, N-22, N-28 |
+| VER-004 | Packaging (export manifest) and currency (no reliance, so no comparison) | K-4, N-21; §4 |
+| VER-005 | Promise to derivative to state, recomputed | K-10, N-25 |
+| VER-006 | Open owners and points of need kept; no invented mechanism or allocation | K-1 (schema `open`), K-9, N-7, N-26 |
 
-K-5's actor-not-recorder test is a string comparison. It cannot tell whether a named recorder is true, so `recorder_stated_by_record` says whether the record itself names the recorder.
+**Claimed rules with a negative case** (each breaks the real account; the named check refuses it):
+- schema: adoption needs an act (N-1), an adoption point (N-19); a human act's recorder is not its actor (N-5); `established` needs evidence (N-6); the per-fact evidence kinds (N-8…N-11).
+- SR-1 per-fact evidence kinds: N-2, N-8, N-9, N-10, N-11.
+- SR-2 delivery only by a file in the receiving lane: N-11 (a manifest statement), N-17 (another lane's file).
+- SR-3 adoption only by the consumer's own loop's act, in its lane: N-1, N-3, N-8, N-12, N-13, N-14, N-15 (a person's act with every other field made right), N-18 (a file that is not the act's record).
+- SR-4 adoption text: N-12 (F-R16's status statement), N-13, N-14, N-16 (App v4's own act with a negated text).
+- K-2 manifest: N-27. K-3 rebuild: N-28. K-4 evidence: N-20 (sha256), N-21 (quote), N-22 (commit). K-5 act text in its record: N-4, N-16. K-7 coverage: N-23. K-8 routing: N-11, N-24. K-9 status: N-7 (RN-1), N-26 (RN-2). K-10 trace: N-25. K-11 home path: N-29.
+
+**Claimed or implied rules without a negative case, or not enforced:**
+- SR-4 is keyword-based: an act text that says "adopt" without a listed negation passes whatever it means ("App v3 adopts nothing"). Not enforced beyond the keywords.
+- K-5's recorder test is a string comparison. It cannot tell whether a named recorder is true; `recorder_stated_by_record` says whether the record names the recorder. Not enforced.
+- `candidate_record` and `observation_record` evidence is accepted by kind only; no check resolves its content, because none exists yet. Not enforced.
+- `act_class` and `recording_mode` are checked against the act's fields, not against its record: a record could be mislabelled `adoption` and still pass SR-3 if its lane and text pass. SR-4 limits this only by keywords.
+- K-8 checks the RN-1 notices against the one tranche manifest; it does not check RN-2 (no notice exists) or `prepared_notice` against the manifest's text beyond the quote (K-4).
+- K-10 recomputes only `applied`. REQ-004's other states (`proposed`, `checked`) and "each needs its own evidence" are not enforced.
+- Packaging's established / not established states and the currency rule (§4) have no check beyond the packaging quote; they are read by inspection.
+- K-7 matches X-1 consumer names as strings in the vendored RA line.
 
 ## 8. Failure behaviour
 
@@ -165,3 +200,4 @@ K-5's actor-not-recorder test is a string comparison. It cannot tell whether a n
 | Version | Change |
 |---|---|
 | AA-v0.1 (2026-10-04) | First Design file; unit EU-F3 with CA-v0.2 and RP-v0.5 |
+| AA-v0.2 (2026-10-04) | RV3-AA1 repair, unit EU-F3R with CA-v0.3 and RP-v0.6. AA1-R1: per-fact evidence kinds (§3 table; schema and SR-1), delivery only by a lane file (SR-2), adoption only by the consumer's own loop's adoption act in its lane (SR-3), adoption text (SR-4, keyword-based); acts gain `act_class` and `recording_mode`; evidence kinds `candidate_record`, `observation_record` added; RV3's five variants are N-9…N-13. AA1-R2: "received a notice" replaced by delivery wording (F-R16), carried to CA and RP. AA1-R3: Root's RN-2 search covers the whole repository outside App v4, with RV3's search cited as a second one. N1: AD-1 named as direct capture. Coordinator's audit: every claimed rule computed by one function and broken on the real account; covered and uncovered rules listed in §7. Record format AA-v0.2, AA-1 version 2 |

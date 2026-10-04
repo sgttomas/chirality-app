@@ -1,0 +1,19 @@
+{
+  "disposition_id": "RPD-FX-RP1-3",
+  "fallback_status": "v3.0.1 remains the fallback; old projects and archives are kept",
+  "format": "RP-v0.1",
+  "limits": [
+    "fixture; illustrative supplier evidence",
+    "no owner act exists or is implied"
+  ],
+  "not_presented_because": "EU-F1 fixture: prepared for the consumption check only; no owner act is requested (DEL-11-03 VER-004)",
+  "package_file": {
+    "path": "package/PKG-REPLACEMENT-FX-RP1-3.json",
+    "sha256": "a5eaa22d352454ef9eb22fc64327de3bc47b09cf24054745e2ed11b6103d5c48"
+  },
+  "package_id": "pkg:app-v4:replacement:FX-RP1-6",
+  "record_kind": "rp_disposition",
+  "recorded_at": "2026-10-04",
+  "recorder": "DEL-11-03 coordinator (prototype builder)",
+  "state": "not_presented"
+}

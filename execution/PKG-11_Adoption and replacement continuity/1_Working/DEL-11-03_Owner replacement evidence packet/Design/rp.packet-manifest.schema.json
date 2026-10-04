@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.5",
-  "title": "DEL-11-03 replacement packet manifest (RP-v0.5, PROPOSED)",
+  "title": "DEL-11-03 replacement packet manifest (RP-v0.6, PROPOSED)",
   "description": "The evidence the owner's replacement decision rests on (REPLACEMENT_PACKET.md §3). Every value is derived from the supplied items by the packet rules (RP-R1...RP-R8) or copied from a named source; nothing is filled from a definition. The package file names this manifest by sha256. The packet may be put to the owner at any time; it states plainly what is and is not established and claims replacement qualification only when both witnesses hold (DEL-11-03 AX-001). Two $defs are the first-cut inputs DEL-11-03 expects from DEL-11-01 (continuity_input) and DEL-09-12 (practitioner_standing); their owners' own files supersede them when written.",
   "type": "object",
   "additionalProperties": false,
@@ -34,7 +34,7 @@
       "const": "rp_packet_manifest"
     },
     "format": {
-      "const": "RP-v0.5"
+      "const": "RP-v0.6"
     },
     "packet_id": {
       "type": "string",
@@ -245,12 +245,13 @@
             "$ref": "#/$defs/hex64"
           },
           "standing": {
+            "description": "Where the item's content comes from. deliverable_record: a record built by the deliverable that owns it (DEL-11-01, DEL-11-02), not a record of the person; RP-v0.5 called it owner_record (RV3 N2). first_cut_interface: a shape supplied by this packet's builder until the owning deliverable's record exists.",
             "enum": [
               "illustrative",
               "candidate",
               "first_cut_interface",
               "observed",
-              "owner_record"
+              "deliverable_record"
             ]
           },
           "source": {

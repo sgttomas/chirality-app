@@ -1,6 +1,6 @@
 # Preserved history and coexistence account
 
-- **Contribution:** DEL-11-01/CA-v0.2. It supersedes CA-v0.1 (sha256 `1a4a0ca6b1b6e74fe11e3c41b0c6b3d1316624e41c8aa4adb28f2c7d050f6ab2`, unit EU-F2, READY in RV3-CA1.md). It is repaired for RV3's CA1-R1, CA1-R2 and CA1-N1, and it records DEL-11-02's adoption status. It is part of unit **EU-F3**, with DEL-11-02 AA-v0.1 and DEL-11-03 RP-v0.5.
+- **Contribution:** DEL-11-01/CA-v0.3, part of unit **EU-F3R** with DEL-11-02 AA-v0.2 and DEL-11-03 RP-v0.6. It carries AA-v0.2's corrected adoption statement (RV3 AA1-R2: "delivered", not "received") and the coordinator's checker audit (§8); nothing else in the account changes. CA-v0.2 (unit EU-F3, commit `b2fbfdbac8`) stays in git as history. CA-v0.2 superseded CA-v0.1 (sha256 `1a4a0ca6b1b6e74fe11e3c41b0c6b3d1316624e41c8aa4adb28f2c7d050f6ab2`, unit EU-F2, READY in RV3-CA1.md). It is repaired for RV3's CA1-R1, CA1-R2 and CA1-N1, and it records DEL-11-02's adoption status. It is part of unit **EU-F3**, with DEL-11-02 AA-v0.1 and DEL-11-03 RP-v0.5.
 - **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it is the PROPOSED schema `ca.continuity-account.schema.json`. The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/ca/` (RUN/F/ca): `build_ca.py`, `check_ca.py`, and the built account `records/CA-1.continuity-account.json` with its hand-over `records/CA-1.handoff.json`. The account's checks are **real**, run against this repository and the original checkout; only the lane obligations are absent, because their owners have not supplied them.
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-007 (§8).
@@ -137,7 +137,9 @@ A fabricated act whose text is not in its record fails the rule, and an act whos
 | CF-4 | A lane owner supplies obligations | A new row version with a disposition only if evidenced; eligibility only under RE-1 | — |
 | CF-5 | DEL-10-03's consumer list changes after the vendored RA-v0.2 | V-1 prints a NOTICE (live moved since vendoring) | Re-pin deliberately (R23-21), as was done for RA-v0.1 → RA-v0.2 |
 
-## 8. Verification (designed; `check_ca.py` 23/23 at freeze)
+## 8. Verification (designed; `check_ca.py` 36/36 at freeze)
+
+Each rule about the account is one function of the account in `check_ca.py` (`rule_errors`). Each negative case breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it.
 
 | VER | Case | Held by |
 |---|---|---|
@@ -147,8 +149,25 @@ A fabricated act whose text is not in its record fails the rule, and an act whos
 | VER-004 | Named material identities (C-1, C-3, C-5, C-6) with coverage limits (C-7 not checked) | K-4, K-3 (rebuild), C-3 live verify |
 | VER-005 | Obligations to owners; a fallback-only replacement and an empty disposition never establish retirement | K-11, N-1, N-2, N-3 |
 | VER-006 | Two real owner acts faithfully recorded (OD-09 in full; no recorder named where the record names none); fabricated, altered and self-recorded acts refused. K-9's recorder test is a string comparison (limit) | K-9, N-4, N-5, N-9 |
-| — | Adoption status taken from DEL-11-02's AA-1 | K-13 |
+| — | Adoption status taken from DEL-11-02's AA-1 | K-13, N-16, P-1 |
 | VER-007 | One-for-one act boundary (§1) | Review |
+
+**Claimed rules with a negative case:**
+- schema: standing values (N-8), retention (N-6), the v3.0.1 fallback kept while pending (N-7), RE-1's eligibility conditions (N-2, N-3), an act's recorder not its actor (N-4).
+- RE-1, the recorded eligibility equals the rule (K-14): N-2, N-3.
+- K-2 manifest: N-18. K-3 rebuild: N-19. K-4 linked identities: N-12 (sha256), N-13 (commit). K-7 PRD's statement: N-17 (altered text, in memory).
+- K-9 owner acts: N-4, N-5 (fabricated), N-9 (altered behind the placeholder), N-10 (OD-09 short a sentence), N-11 (a recorder the record does not name).
+- K-10 lane coverage: N-14. K-11 hand-over: N-15. K-12 home path: N-20. K-13 adoption status: N-16.
+- K-8 is itself the negative test of VER-003's listing detector (omitted, added, changed).
+
+**Claimed rules without a negative case, or not enforced:**
+- N-1 holds by construction: `retirement_eligible` never reads the replacement disposition, so the case shows the rule's signature, not a refusal.
+- K-5 compares tree hashes (the PRD's, the commit's, HEAD's). It has no negative, because breaking it means changing the thesis, which this unit never touches. K-8 tests the listing detector, which names differences; K-5 does not call it.
+- K-6 (thesis working tree clean) has no negative, for the same reason.
+- The archive verify (C-3, `--archives`) has no negative: it reads the owner's archive, and altering it is outside this unit.
+- K-9's actor-not-recorder test is a string comparison (limit, §5); a false recorder name passes.
+- K-10 matches lane names as strings ("SWBPIPE" for Piping) against the vendored RA line.
+- VER-007 (the act boundary) is by review only.
 
 ## 9. Open matters
 
@@ -164,5 +183,6 @@ A fabricated act whose text is not in its record fails the rule, and an act whos
 
 | Version | Change |
 |---|---|
+| CA-v0.3 (2026-10-04) | AA1-R2 carried: the adoption status is AA-v0.2's statement ("a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded"). Version step because the record's content changes (CA-1 version 3; record format CA-v0.1 unchanged). Coordinator's checker audit: account rules computed by one function each; negatives N-10…N-20 added; RE-1 record-against-rule check K-14 added; covered and uncovered rules listed in §8. Built at `122c5abcf5`. Unit EU-F3R |
 | CA-v0.2 (2026-10-04) | CA1-R1: OD-09's recorder not named where the record names none; custody OPENING_BRIEF.md; K-9's string-comparison limit stated. CA1-R2: OD-09's three sentences, each with its classes. CA1-N1: RA re-pinned to v0.2. DEL-11-02's adoption status recorded (U-CA-4 closed). Built at `122c5abcf5`. Unit EU-F3 |
 | CA-v0.1 (2026-10-04) | First Design file; unit EU-F2 with DEL-11-03 RP-v0.4 |

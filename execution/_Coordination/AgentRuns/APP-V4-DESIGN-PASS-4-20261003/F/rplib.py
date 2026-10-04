@@ -1,7 +1,7 @@
 """DEL-11-03 replacement packet rules RP-R1...RP-R9 (prototype for EU-F1; not product code).
 
 Owner O-F, run APP-V4-DESIGN-PASS-4-20261003. Design text: DEL-11-03
-Design/REPLACEMENT_PACKET.md (RP-v0.5). Rulings: R23-32 (F-R1...F-R16), R23-33
+Design/REPLACEMENT_PACKET.md (RP-v0.6). Rulings: R23-32 (F-R1...F-R16), R23-33
 (EXP candidate_subject is the canonical App candidate identity), R23-36 (LHQ-v0.2 CI-5).
 
 Python 3 standard library plus `jsonschema` (Draft 2020-12). Reads only.

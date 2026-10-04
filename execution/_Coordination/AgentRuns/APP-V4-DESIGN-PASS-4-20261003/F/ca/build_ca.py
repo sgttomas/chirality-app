@@ -1,4 +1,4 @@
-"""Build DEL-11-01's continuity account CA-1 (CA-v0.2) as a linked view at one commit. Prototype, not product code.
+"""Build DEL-11-01's continuity account CA-1 (CA-v0.3) as a linked view at one commit. Prototype, not product code.
 
 Design: DEL-11-01 Design/CONTINUITY_ACCOUNT.md. Rulings: R23-32 (F-R6, F-R7, F-R8), R23-43, R23-44.
 
@@ -239,7 +239,7 @@ def build(at, run_archives):
     ]
     aa_status = json.load(open(AA_STATUS, encoding="utf-8")) if os.path.exists(AA_STATUS) else None
     handoff = {
-        "record_kind": "continuity_handoff", "format": "CA-v0.1", "account_id": "CA-1", "account_version": 2,
+        "record_kind": "continuity_handoff", "format": "CA-v0.1", "account_id": "CA-1", "account_version": 3,
         "at_commit": at,
         "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
         "thesis_check": classes[3]["identity_check"],
@@ -252,7 +252,7 @@ def build(at, run_archives):
         "disposition_ref": None,
     }
     return {
-        "record_kind": "continuity_account", "format": "CA-v0.1", "account_id": "CA-1", "version": 2, "date": DATE,
+        "record_kind": "continuity_account", "format": "CA-v0.1", "account_id": "CA-1", "version": 3, "date": DATE,
         "at_commit": at, "classes": classes, "obligations": obligations, "owner_acts": acts,
         "adoption_status": ({"status": "supplied", "supplier": "DEL-11-02",
                              "ref": "%s v%d at %s: %s" % (aa_status["account_id"], aa_status["account_version"], aa_status["at_commit"][:10], aa_status["statement"])}

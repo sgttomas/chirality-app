@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-11-02:adoption-account:0.1",
-  "title": "DEL-11-02 adoption account (AA-v0.1, PROPOSED)",
+  "$id": "urn:chirality:app-v4:del-11-02:adoption-account:0.2",
+  "title": "DEL-11-02 adoption account (AA-v0.2, PROPOSED)",
   "description": "Per renewal and consumer, eight separately warranted facts, each with its own evidence (ADOPTION_ACCOUNT.md). It records receiving decisions; it never makes one (REQ-007).",
   "type": "object",
   "additionalProperties": false,
@@ -27,7 +27,7 @@
       "const": "adoption_account"
     },
     "format": {
-      "const": "AA-v0.1"
+      "const": "AA-v0.2"
     },
     "account_id": {
       "type": "string",
@@ -263,8 +263,33 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "manifest_statement"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind manifest_statement (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "delivered": {
                 "type": "object",
@@ -343,8 +368,33 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "file_at_commit"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind file_at_commit (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "published": {
                 "type": "object",
@@ -380,7 +430,9 @@
                             "act",
                             "manifest_statement",
                             "absence_search",
-                            "design_file_state"
+                            "design_file_state",
+                            "candidate_record",
+                            "observation_record"
                           ]
                         },
                         "ref": {
@@ -423,8 +475,34 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "file_at_commit",
+                                  "git_commit"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind file_at_commit or git_commit (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "resolved": {
                 "type": "object",
@@ -503,8 +581,34 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "candidate_record",
+                                  "observation_record"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind candidate_record or observation_record (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "supplied": {
                 "type": "object",
@@ -583,8 +687,34 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "candidate_record",
+                                  "observation_record"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind candidate_record or observation_record (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "provider_adopted": {
                 "type": "object",
@@ -663,8 +793,34 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "candidate_record",
+                                  "observation_record"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind candidate_record or observation_record (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "observed_behavior": {
                 "type": "object",
@@ -743,8 +899,34 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "candidate_record",
+                                  "observation_record"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind candidate_record or observation_record (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               },
               "consumer_adopted": {
                 "type": "object",
@@ -823,11 +1005,37 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "state": {
+                          "const": "established"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "act",
+                                  "file_at_commit"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
-                ]
+                ],
+                "description": "Established only by evidence of kind act or file_at_commit (AA-v0.2 whitelist; ADOPTION_ACCOUNT.md §3)."
               }
             },
-            "description": "Eight separately warranted facts (CLM-005; REQ-001). Evidence of one never establishes another."
+            "description": "Eight separately warranted facts (CLM-005; REQ-001). Evidence of one never establishes another. Each fact accepts only its own evidence kinds when established (AA-v0.2)."
           },
           "adoption_point": {
             "type": [
@@ -914,6 +1122,8 @@
         "required": [
           "act_id",
           "kind",
+          "act_class",
+          "recording_mode",
           "actor",
           "recorder",
           "recorder_stated_by_record",
@@ -964,6 +1174,21 @@
             "type": "string",
             "minLength": 1,
             "description": "For an adoption act: the consumer whose adoption it is. A row may cite it only for that consumer."
+          },
+          "act_class": {
+            "enum": [
+              "adoption",
+              "change_approval",
+              "other"
+            ],
+            "description": "What the act is. Only an 'adoption' act by the consumer's own loop can establish consumer_adopted; an approval of the change itself never does (F-R10)."
+          },
+          "recording_mode": {
+            "enum": [
+              "direct capture",
+              "faithful recording"
+            ],
+            "description": "direct capture: the actor records its own act (an agent's ruling); faithful recording: someone else records it (ACT A9)."
           }
         },
         "allOf": [
@@ -1208,7 +1433,7 @@
           "const": "adoption_status"
         },
         "format": {
-          "const": "AA-v0.1"
+          "const": "AA-v0.2"
         },
         "account_id": {
           "type": "string",

@@ -1,18 +1,19 @@
-"""Check an EU-F1 fixture and the replacement packet rules (RP-v0.5). Prototype, not product code.
+"""Check an EU-F1 fixture and the replacement packet rules (RP-v0.6). Prototype, not product code.
 
 Part A: the fixture as written (integrity, schemas, copies equal their vendored sources, rules recomputed,
 thesis identity, terms, excerpts, receipts, points of need, evidence before status, legend, vendoring).
 Part B: rule cases RP-R1...RP-R7, positive and negative, on in-memory variants of supplier records.
 Reads only; writes nothing.
 
-Usage: python3 -B check_rp.py [--fixture FX-RP1-5]
+Usage: python3 -B check_rp.py [--fixture FX-RP1-6]
 
-Run with --fixture FX-RP1 … FX-RP1-4 to reproduce which current checks the earlier fixtures
+Run with --fixture FX-RP1 … FX-RP1-5 to reproduce which current checks the earlier fixtures
 fail (RV3 N4). Part B does not depend on the fixture.
 """
 
 import copy
 import glob
+import hashlib
 import json
 import os
 import subprocess
@@ -23,7 +24,7 @@ import build_fx_rp1 as BUILD  # TERMS, CODE_RE, EXCERPTS, reader_texts; importin
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARGS = sys.argv[1:]
-FX_NAME = ARGS[1] if ARGS[:1] == ["--fixture"] else "FX-RP1-5"
+FX_NAME = ARGS[1] if ARGS[:1] == ["--fixture"] else "FX-RP1-6"
 FX = os.path.join(HERE, "fixtures", FX_NAME)
 REPO = os.path.normpath(os.path.join(L.EXEC_ROOT, "..", "..", ".."))
 results, notices = [], []
@@ -38,7 +39,12 @@ def expect(name, fn, detail=""):
     results.append((name, ok, detail if not ok and detail else err))
 
 
+OVER = {}  # rel path -> object: an in-memory edit of a fixture file, for Part A's negative cases (C-n)
+
+
 def fx(rel):
+    if rel in OVER:
+        return copy.deepcopy(OVER[rel])
     with open(os.path.join(FX, rel), encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -59,7 +65,7 @@ def resolved_for(record, run_basis="candidate"):
     return out
 
 
-def part_a():
+def part_a(sink=expect):
     listed = {}
     for line in open(os.path.join(FX, "MANIFEST.sha256"), encoding="utf-8"):
         h, p = line.rstrip("\n").split("  ", 1)
@@ -70,20 +76,22 @@ def part_a():
             if n != "MANIFEST.sha256":
                 p = os.path.join(root, n)
                 actual[os.path.relpath(p, FX)] = L.sha256_file(p)
-    expect("A-1 every fixture file is listed in MANIFEST.sha256 with its sha256, and nothing else", listed == actual)
+    for rel, obj in OVER.items():  # an edited file no longer has its written sha256
+        actual[rel] = hashlib.sha256((json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")).hexdigest()
+    sink("A-1 every fixture file is listed in MANIFEST.sha256 with its sha256, and nothing else", listed == actual)
 
     mp, pp, dp = one("packet/*.packet-manifest.json"), one("package/*.json"), one("records/*.json")
     m, pkg, disp = fx(mp), fx(pp), fx(dp)
     m_sha, p_sha = actual[mp], actual[pp]
-    expect("A-2 packet manifest valid against the current rp.packet-manifest.schema.json",
+    sink("A-2 packet manifest valid against the current rp.packet-manifest.schema.json",
            lambda: not L.errors(L.file_validator("rp_manifest_schema"), m), L.errors(L.file_validator("rp_manifest_schema"), m)[:3])
-    expect("A-3 package valid against DEL-02-03 $defs/decisionPackageFile and RP-R6 (with the manifest)", lambda: not L.check_package(pkg, m_sha, m),
+    sink("A-3 package valid against DEL-02-03 $defs/decisionPackageFile and RP-R6 (with the manifest)", lambda: not L.check_package(pkg, m_sha, m),
            L.check_package(pkg, m_sha, m))
-    expect("A-4 disposition valid against rp.disposition.schema.json and RP-R7 (with the manifest)", lambda: not L.check_disposition(disp, pkg, p_sha, m))
-    expect("A-5 candidate subject valid against DEL-09-01 EXP $defs/candidate_subject (R23-33)",
+    sink("A-4 disposition valid against rp.disposition.schema.json and RP-R7 (with the manifest)", lambda: not L.check_disposition(disp, pkg, p_sha, m))
+    sink("A-5 candidate subject valid against DEL-09-01 EXP $defs/candidate_subject (R23-33)",
            lambda: not L.errors(L.def_validator("exp_result_schema", "candidate_subject"), m["candidate"]["subject"]))
     sup = {s["item_id"]: s for s in m["supplied"]}
-    expect("A-6 every supplied item's sha256 in the manifest equals the file",
+    sink("A-6 every supplied item's sha256 in the manifest equals the file",
            lambda: all(actual.get(s["path"]) == s["sha256"] for s in m["supplied"]))
     own = {"sq_dossier": lambda: L.file_validator("sq_schema"), "lhq_dossier_manifest": lambda: L.file_validator("lhq_manifest_schema"),
            "lhq_cir": lambda: L.file_validator("lhq_cir_schema"),
@@ -91,7 +99,7 @@ def part_a():
            "continuity_input": lambda: L.def_validator("ca_schema", "continuity_handoff"),
            "adoption_status": lambda: L.def_validator("aa_schema", "adoption_status"),
            "practitioner_standing": lambda: L.def_validator("rp_manifest_schema", "practitioner_standing")}
-    expect("A-7 every supplied item is valid against its owner's schema (vendored) or the first-cut $def",
+    sink("A-7 every supplied item is valid against its owner's schema (vendored) or the first-cut $def",
            lambda: not [s["item_id"] for s in m["supplied"]
                         if L.errors(own[s["role"] + ("_first_cut" if s["role"] == "continuity_input" and s["source_kind"] == "shape_only" else "")](), fx(s["path"]))])
 
@@ -106,7 +114,7 @@ def part_a():
             if not (rec and rec[0] == fx(s["path"]) and L.sha256_file(L.abspath(key)) == s["source"]["sha256"]):
                 return False
         return True
-    expect("A-8 each copied supplier record equals its record in the vendored source, at the sha256 named", copies_equal)
+    sink("A-8 each copied supplier record equals its record in the vendored source, at the sha256 named", copies_equal)
 
     def recompute():
         sq, dos, cir = fx(sup["S-1"]["path"]), fx(sup["S-2"]["path"]), fx(sup["S-3"]["path"])
@@ -120,7 +128,7 @@ def part_a():
         return (dict(cl, source_item="S-1") == m["core_loop"] and jr == m["journey"]
                 and m.get("evidence_standing") == standing and m["candidate"].get("identified", False) == identified
                 and rec == m["candidate"]["reconciliation"] and L.replacement_evidence_complete(cl, jr, rec) == m["replacement_evidence"])
-    expect("A-9 RP-R1...RP-R4, evidence_standing and candidate.identified recomputed from the supplied copies equal the manifest (EUF4-R1)", recompute)
+    sink("A-9 RP-R1...RP-R4, evidence_standing and candidate.identified recomputed from the supplied copies equal the manifest (EUF4-R1)", recompute)
 
     def thesis():
         h = fx(sup["S-4"]["path"])
@@ -131,15 +139,15 @@ def part_a():
         tree = subprocess.run(["git", "-C", REPO, "rev-parse", at + ":projects/chirality-app-v4/foundation/thesis"],
                               capture_output=True, text=True).stdout.strip()
         return tree == expected == observed == "47fc49e96c2931ba18090f1a82d56a49f230b3ee"
-    expect("A-10 thesis tree at the recorded commit equals docs/PRD.md §11's tree", thesis)
-    expect("A-11 all six never-established items are listed; disposition not_presented; no decision element",
+    sink("A-10 thesis tree at the recorded commit equals docs/PRD.md §11's tree", thesis)
+    sink("A-11 all six never-established items are listed; disposition not_presented; no decision element",
            lambda: set(m["not_established"]) == {"replacement_decision", "public_release", "retirement", "professional_reliance",
                                                  "consumer_adoption", "practitioner_validation"}
            and disp["state"] == "not_presented" and "decision" not in disp)
-    expect("A-12 practitioner validation is not a replacement condition and is not listed as a gap",
+    sink("A-12 practitioner validation is not a replacement condition and is not listed as a gap",
            lambda: m["practitioner"]["is_replacement_condition"] is False
            and not any("DEL-09-12" in g["supplier"] or "practitioner" in g["what"].lower() for g in m["gaps"]))
-    expect("A-13 every code in the package, packet, disposition, excerpts and legend has a term in the packet",
+    sink("A-13 every code in the package, packet, disposition, excerpts and legend has a term in the packet",
            lambda: not BUILD.undefined_codes([pkg, m, disp], BUILD.reader_texts(FX)) and m["terms"] == BUILD.TERMS,
            sorted(BUILD.undefined_codes([pkg, m, disp], BUILD.reader_texts(FX))) if os.path.isdir(FX) else "")
 
@@ -151,7 +159,7 @@ def part_a():
             lines = open(path, encoding="utf-8").read().split("\n")[a - 1:b]
             ok = ok and ("sha256 %s" % L.sha256_file(path)) in text and "\n".join(lines) in text
         return ok
-    expect("A-14 basis excerpts: listed sha256 holds; each equals its source lines at the source's current sha256", excerpts)
+    sink("A-14 basis excerpts: listed sha256 holds; each equals its source lines at the source's current sha256", excerpts)
 
     def receipts():
         dos = fx(sup["S-2"]["path"])
@@ -159,7 +167,7 @@ def part_a():
             | {r["ref"] for r in (dos.get("handoff_del_09_11") or {}).get("receipt_refs", [])}
         got = {r["ref"] for r in m["journey"]["receipts"]["in_handoff"] + m["journey"]["receipts"]["elsewhere_in_dossier"]}
         return refs == got and m["journey"]["receipts"]["total_distinct"] == len(refs)
-    expect("A-15 every receipt reference anywhere in the supplied dossier is in the packet, kept apart by where it appears", receipts)
+    sink("A-15 every receipt reference anywhere in the supplied dossier is in the packet, kept apart by where it appears", receipts)
 
     def points():
         for g in m["gaps"]:
@@ -172,7 +180,7 @@ def part_a():
                     "cannot claim replacement qualification until both applicable witnesses hold" not in pn:
                 return False  # cites AX-001 in its own words
         return True
-    expect("A-16 points of need gate only the qualification claim, quoting AX-001's own words; none gates presentation (R23-43)", points)
+    sink("A-16 points of need gate only the qualification claim, quoting AX-001's own words; none gates presentation (R23-43)", points)
 
     def evidence_first():
         for e in m["core_loop"]["elements"]:
@@ -181,20 +189,20 @@ def part_a():
             if e["status"] == "not_met" and not any(s.get("resolved") and s.get("outcome") == "fail" for s in e["steps"]):
                 return False
         return True
-    expect("A-17 met needs every counted step resolved and passed; not_met needs a resolved fail (RP-R1)", evidence_first)
-    expect("A-18 the fixture carries its legend, equal to the current Design schemas",
+    sink("A-17 met needs every counted step resolved and passed; not_met needs a resolved fail (RP-R1)", evidence_first)
+    sink("A-18 the fixture carries its legend, equal to the current Design schemas",
            lambda: all(actual.get("legend/" + n) == L.sha256_file(L.abspath(L.PATHS["rp_manifest_schema"].replace("rp.packet-manifest.schema.json", n)))
                        for n in ("rp.packet-manifest.schema.json", "rp.disposition.schema.json")))
-    expect("A-19 the package states the choice as the owner's act on the evidence as presented, and claims qualification only if complete (R23-43)",
+    sink("A-19 the package states the choice as the owner's act on the evidence as presented, and claims qualification only if complete (R23-43)",
            lambda: L.CHOICE_SENTENCE in pkg["purpose"]
            and (("it claims replacement qualification" in pkg["purpose"]) == m["replacement_evidence"]["complete"]))
-    expect("A-20 an unidentified, illustrative candidate is only ever in a fixture, and the purpose opens with the fixture notice (RV3 Addendum 4)",
+    sink("A-20 an unidentified, illustrative candidate is only ever in a fixture, and the purpose opens with the fixture notice (RV3 Addendum 4)",
            lambda: m["fixture"] is True and m["candidate"]["identified"] is False and pkg["purpose"].startswith(L.FIXTURE_NOTICE))
-    expect("A-22 the adoption status is DEL-11-02's own AA hand-over, and the packet repeats its statement",
-           lambda: sup["S-6"]["source_kind"] == "copied_record" and sup["S-6"]["standing"] == "owner_record"
+    sink("A-22 the adoption status is DEL-11-02's own AA hand-over, and the packet repeats its statement",
+           lambda: sup["S-6"]["source_kind"] == "copied_record" and sup["S-6"]["standing"] == "deliverable_record"
            and m["adoption"]["status"] == "supplied" and m["adoption"]["statement"] == fx(sup["S-6"]["path"])["statement"])
-    expect("A-21 the continuity input is DEL-11-01's own CA hand-over, not a first cut, and the packet repeats its results",
-           lambda: sup["S-4"]["source_kind"] == "copied_record" and sup["S-4"]["standing"] == "owner_record"
+    sink("A-21 the continuity input is DEL-11-01's own CA hand-over, not a first cut, and the packet repeats its results",
+           lambda: sup["S-4"]["source_kind"] == "copied_record" and sup["S-4"]["standing"] == "deliverable_record"
            and m["continuity"]["thesis_identity"] == fx(sup["S-4"]["path"])["thesis_check"]["result"]
            and m["continuity"]["archives_verify"] == fx(sup["S-4"]["path"])["archives"]["verify"])
     return {"m": m, "pkg": pkg, "disp": disp, "m_sha": m_sha, "p_sha": p_sha}
@@ -372,7 +380,7 @@ def part_b(ctx):
            any("drops 'manual' or 'on request'" in e for e in L.check_package(v, m_sha, m)))
     real = copy.deepcopy(m)
     real.update({"fixture": False, "evidence_standing": "candidate"})
-    real["supplied"] = [dict(x, standing="owner_record" if x["standing"] == "first_cut_interface" else
+    real["supplied"] = [dict(x, standing="deliverable_record" if x["standing"] == "first_cut_interface" else
                              ("candidate" if x["standing"] == "illustrative" else x["standing"])) for x in real["supplied"]]
     real["candidate"]["subject"] = {"kind": "candidate", "app_candidate": {"revision": "a1b2c3d", "build_identity": "4.0.0+a1b2c3d", "packaged": False}}
     real["core_loop"] = dict(real["core_loop"], unresolved_steps=[])
@@ -391,7 +399,7 @@ def part_b(ctx):
     expect("B-48 RV3's probe: notice removed, fixture false, standing 'established', identified true, placeholder subject -> refused (EUF4-R1)",
            any("disagrees with what its supplied items and subject derive" in e for e in errs)
            and any("refused in a packet that is not a fixture" in e for e in errs), errs)
-    real_items = [dict(x, standing="owner_record" if x["standing"] == "first_cut_interface" else "candidate") for x in m["supplied"]]
+    real_items = [dict(x, standing="deliverable_record" if x["standing"] == "first_cut_interface" else "candidate") for x in m["supplied"]]
     sd, si = L.derive_standing(real_items, {"app_candidate": {"revision": "a1b2c3d", "build_identity": "4.0.0+a1b2c3d"}}, [])
     expect("B-49 positive control: candidate items, a real-looking subject, every result resolved -> derived candidate and identified",
            (sd, si) == ("candidate", True))
@@ -438,11 +446,68 @@ def part_b(ctx):
     expect("B-44 a decision element on a presented-but-undecided record -> refused", L.check_disposition(v, pkg, p_sha))
 
 
+def part_a_negatives(ctx):
+    """Coordinator's audit (2026-10-04): each Part A rule the Design claims, broken on the real fixture in memory.
+    The same part_a runs on the edited files; the named check must fail. Nothing on disk changes."""
+    m = ctx["m"]
+    mp = one("packet/*.packet-manifest.json")
+    sup = {x["item_id"]: x for x in m["supplied"]}
+
+    def neg(name, edits, *checks):
+        OVER.clear()
+        for rel, fn in edits:
+            obj = fx(rel)
+            fn(obj)
+            OVER[rel] = obj
+        got = []
+
+        def sink(n, fn_, detail=""):  # as expect(): a check that cannot run on the edited files fails
+            try:
+                ok = bool(fn_() if callable(fn_) else fn_)
+            except Exception:
+                ok = False
+            got.append((n.split(" ")[0], ok))
+        part_a(sink)
+        OVER.clear()
+        failed = {n for n, ok in got if not ok}
+        missing = [c for c in checks if c not in failed]
+        expect(name + " [refused by: %s]" % ", ".join(checks), not missing, "not refused by %s" % missing)
+
+    def drop_term(o):
+        o["terms"] = o["terms"][1:]
+    neg("C-1 a supplied copy edited after assembly", [(sup["S-6"]["path"], lambda o: o.update(statement=o["statement"] + " Edited."))], "A-1", "A-6", "A-8", "A-22")
+    neg("C-2 a manifest missing a required field", [(mp, lambda o: o.pop("not_established"))], "A-2")
+    neg("C-3 a package without ALT-PUBLISHED", [(one("package/*.json"), lambda o: o.update(alternatives=[a for a in o["alternatives"] if a["id"] != "ALT-PUBLISHED"]))], "A-3")
+    neg("C-4 a fixture disposition marked decided without the owner's act", [(one("records/*.json"), lambda o: o.update(state="decided"))], "A-4")
+    neg("C-5 a candidate subject of no EXP kind", [(mp, lambda o: o["candidate"].update(subject={"kind": "anything"}))], "A-5")
+    neg("C-6 a supplied item's sha256 in the manifest altered", [(mp, lambda o: o["supplied"][0].update(sha256="0" * 64))], "A-6")
+    neg("C-7 the adoption-status copy invalid against DEL-11-02's $defs/adoption_status", [(sup["S-6"]["path"], lambda o: o.update(format="AA-v9"))], "A-7")
+    neg("C-8 the declared evidence standing differs from the derivation (EUF4-R1)", [(mp, lambda o: o.update(evidence_standing="candidate"))], "A-9")
+    neg("C-9 the continuity copy's thesis tree altered", [(sup["S-4"]["path"], lambda o: o["thesis_check"].update(expected="0" * 40))], "A-10")
+    neg("C-10 'consumer_adoption' dropped from the never-established list", [(mp, lambda o: o.update(not_established=[x for x in o["not_established"] if x != "consumer_adoption"]))], "A-11")
+    neg("C-11 practitioner validation made a replacement condition", [(mp, lambda o: o["practitioner"].update(is_replacement_condition=True))], "A-12")
+    neg("C-12 a term removed from the packet", [(mp, drop_term)], "A-13")
+    neg("C-13 the basis excerpts' sha256 altered in the manifest", [(mp, lambda o: o["basis_excerpts"].update(sha256="0" * 64))], "A-14")
+    neg("C-14 the packet's receipt count differs from the receipts in the dossier", [(mp, lambda o: o["journey"]["receipts"].update(total_distinct=o["journey"]["receipts"]["total_distinct"] + 1))], "A-15")
+    neg("C-15 a gap that gates presentation (RP-v0.2's wording)", [(mp, lambda o: o["gaps"][0].update(point_of_need="presentation is not gated: DEL-11-03 AX-001"))], "A-16")
+    neg("C-16 an element marked met without resolved candidate evidence", [(mp, lambda o: o["core_loop"]["elements"][0].update(status="met"))], "A-17")
+    neg("C-17 the legend's manifest schema edited", [("legend/rp.packet-manifest.schema.json", lambda o: o.update(title="edited"))], "A-18")
+    neg("C-18 a purpose without the choice sentence", [(one("package/*.json"), lambda o: o.update(purpose=o["purpose"].replace(L.CHOICE_SENTENCE, "The owner chooses")))], "A-19")
+    neg("C-19 the fixture marked as a real packet", [(mp, lambda o: o.update(fixture=False))], "A-20")
+    neg("C-20 the continuity input's standing set back to a first cut", [(mp, lambda o: [x.update(standing="first_cut_interface") for x in o["supplied"] if x["item_id"] == "S-4"])], "A-21")
+    neg("C-21 the packet's adoption statement differs from DEL-11-02's", [(mp, lambda o: o["adoption"].update(statement=o["adoption"]["statement"].replace("delivered to", "received by")))], "A-22")
+    expect("P-1 the packet repeats AA-v0.2's delivery wording, not 'received' (AA1-R2)",
+           "received a notice" not in m["adoption"]["statement"] and "a notice was delivered to App v3's and Runtime's coordination folders" in m["adoption"]["statement"])
+    expect("P-2 every supplied item's standing is a defined term; 'owner_record' is gone (RV3 N2)",
+           all(x["standing"] != "owner_record" for x in m["supplied"]) and any("deliverable_record" in t["meaning"] for t in m["terms"]))
+
+
 def main():
     print("fixture %s" % FX_NAME)
     ctx = part_a()
     vendoring()
-    if FX_NAME == "FX-RP1-5":
+    if FX_NAME == "FX-RP1-6":
+        part_a_negatives(ctx)
         part_b(ctx)
     for name, ok, detail in results:
         print(("HOLDS " if ok else "FAILS ") + name + ("" if ok or not detail else "  -> %s" % (detail,)))

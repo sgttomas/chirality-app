@@ -2,6 +2,7 @@
   "account_id": "AA-1",
   "acts": [
     {
+      "act_class": "change_approval",
       "act_id": "A-1",
       "actor": "the owner",
       "custody": "the session transcript; recorded by HELP_HUMAN (the file's own custody line)",
@@ -10,18 +11,21 @@
       "record_ref": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/OWNER_DECISIONS_2.md, 'D-GOV-52 application'",
       "recorder": "HELP_HUMAN",
       "recorder_stated_by_record": true,
+      "recording_mode": "faithful recording",
       "subject": "apply edits A1 and B1 to Root AGENTS.md (D-GOV-52), on the terms HELP_HUMAN stated: notices to App v4 (substantive), App v3 and Runtime (informational), none to Piping or PEC"
     },
     {
+      "act_class": "adoption",
       "act_id": "AD-1",
       "actor": "HELP_HUMAN, as App v4's integrator (R23 rulings)",
       "consumer_id": "APP-V4",
-      "custody": "the ruling as written in R23_RESOLUTIONS.md ('Integrator: HELP_HUMAN'); a receiving loop's own adoption, not the owner's act (F-R10)",
+      "custody": "the ruling as written in R23_RESOLUTIONS.md ('Integrator: HELP_HUMAN'): direct capture, the integrator recording its own ruling; a receiving loop's own adoption, not the owner's act (F-R10)",
       "exact_text": "App v4 adopts the changed Root text.",
       "kind": "agent_act",
       "record_ref": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md, R23-30",
       "recorder": "HELP_HUMAN",
       "recorder_stated_by_record": true,
+      "recording_mode": "direct capture",
       "subject": "App v4 adopts the changed Root text (D-GOV-52)"
     }
   ],
@@ -79,7 +83,7 @@
     }
   ],
   "date": "2026-10-04",
-  "format": "AA-v0.1",
+  "format": "AA-v0.2",
   "limits": [
     "evidence is what git holds at the commit; whether a loop read a notice is not observable here",
     "'unknown' facts stay unknown; they are never filled from the manifest's rationale",
@@ -574,8 +578,13 @@
           "evidence": [
             {
               "kind": "absence_search",
-              "note": "0 file(s) mention it",
-              "ref": "git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- AGENTS.md"
+              "note": "scope: the whole repository outside projects/chirality-app-v4 (Root's governance, workflows and every other lane); 0 file(s) mention it",
+              "ref": "git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- '.' ':(exclude)projects/chirality-app-v4'"
+            },
+            {
+              "kind": "absence_search",
+              "note": "a second search, by RV3 (not O-F): the same id over the whole repository outside projects/chirality-app-v4 at 122c5abcf5 found nothing",
+              "ref": "reviews/RV3-AA1.md, AA1-R3"
             }
           ],
           "note": "no first adopter is identified; that is the owner's decision with affected consumers (OI-024; P-4)",
@@ -632,7 +641,7 @@
           "evidence": [
             {
               "kind": "absence_search",
-              "note": "0 file(s) mention it",
+              "note": "scope: projects/chirality-runtime; 0 file(s) mention it",
               "ref": "git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- projects/chirality-runtime"
             }
           ],
@@ -690,7 +699,7 @@
           "evidence": [
             {
               "kind": "absence_search",
-              "note": "0 file(s) mention it",
+              "note": "scope: projects/chirality-app-dev; 0 file(s) mention it",
               "ref": "git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- projects/chirality-app-dev"
             }
           ],
@@ -748,7 +757,7 @@
           "evidence": [
             {
               "kind": "absence_search",
-              "note": "0 file(s) mention it",
+              "note": "scope: projects/chirality-piping; 0 file(s) mention it",
               "ref": "git grep -F 'APP-V4-BASIS-20260926' 122c5abcf5 -- projects/chirality-piping"
             }
           ],
@@ -801,9 +810,9 @@
   ],
   "status": {
     "account_id": "AA-1",
-    "account_version": 1,
+    "account_version": 2,
     "at_commit": "122c5abcf516f31ffdb1fdb17d9d5b0f96603154",
-    "format": "AA-v0.1",
+    "format": "AA-v0.2",
     "instruction_changes": [
       {
         "adopted_by": [
@@ -832,7 +841,7 @@
       "owner": "Owner with affected consumers (OI-024)",
       "point_of_need": "Before each adoption/retirement decision"
     },
-    "statement": "No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; App v3 and Runtime received a notice and recorded no decision; Piping and PEC received none by design."
+    "statement": "No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded (whether either loop read it is not shown); no notice was routed to Piping or PEC, by design."
   },
-  "version": 1
+  "version": 2
 }
