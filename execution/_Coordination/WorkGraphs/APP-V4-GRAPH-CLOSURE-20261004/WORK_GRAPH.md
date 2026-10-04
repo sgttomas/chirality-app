@@ -85,15 +85,15 @@ Reuse these; build no new tooling unless a named obstruction needs it.
 | ID / outcome | Write scope | Needs | Check | State |
 |---|---|---|---|---|
 | G0 Direction, graph | Run folder; this graph | Owner direction | Committed | COMPLETE |
-| G1 Objective survey: DAG-004 objective and semantics, every SCC's cycle-closing edges by kind, candidate move per edge | `SURVEY/G1.md` | G0 | RV3 on the classifications | ACTIVE |
-| G2 Register currency survey: interfaces in Design files missing from, or contradicting, the registers | `SURVEY/G2.md` | G0 | Counts sampled by HELP_HUMAN | ACTIVE |
-| G3 Checkpoint 1 (basis): objective, semantics, worked classifications | Owner-facing packet | G1, RV3 | Owner | PENDING |
-| G4 Early path: CASE-002 | Case home; members' registers by owner | G2, G3 | Closure rerun; RV | PENDING |
-| G5 Other five cases | Case homes | G4 pattern | Closure rerun; RV | PENDING |
-| G6 Structural matters' effect on arcs | `SURVEY/G6.md` | G1 | RV | PENDING |
-| G7 Admitted-edge interface agreement; role mapping | Owners' Design files | G4/G5 edges | RV | PENDING |
-| G8 Register amendment and DAG-005 assembly, audit, independent review | scope-change; `_DAG/` candidate | G4–G7 | Strict audit; fresh reviewer | PENDING |
-| G9 Checkpoint 2: DAG-005 acceptance (the 60% judgment) | — | G8 | Owner | PENDING |
+| G1 Objective survey: DAG-004 objective and semantics, every SCC's cycle-closing edges by kind, candidate move per edge | `SURVEY/G1.md` | G0 | RV3 on the classifications | COMPLETE (r3, RVG READY) |
+| G2 Register currency survey: interfaces in Design files missing from, or contradicting, the registers | `SURVEY/G2.md` | G0 | Counts sampled by HELP_HUMAN | COMPLETE (RVG READY; G2b follow-up) |
+| G3 Checkpoint 1 (basis): objective, semantics, worked classifications | Owner-facing packet | G1, RV3 | Owner | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
+| G4 Early path: CASE-002 | Case home; members' registers by owner | G2, G3 | Closure rerun; RV | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
+| G5 Other five cases | Case homes | G4 pattern | Closure rerun; RV | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
+| G6 Structural matters' effect on arcs | `SURVEY/G6.md` | G1 | RV | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
+| G7 Admitted-edge interface agreement; role mapping | Owners' Design files | G4/G5 edges | RV | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
+| G8 Register amendment and DAG-005 assembly, audit, independent review | scope-change; `_DAG/` candidate | G4–G7 | Strict audit; fresh reviewer | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
+| G9 Checkpoint 2: DAG-005 acceptance (the 60% judgment) | — | G8 | Owner | SUPERSEDED by the owner's build direction and the 60% gate (OWNER_DECISIONS.md) |
 
 ## Redirection to build (owner, 2026-10-04)
 
@@ -121,6 +121,8 @@ The contract core is treated as one merged unit under change control. Its contra
 | ID / outcome | Write scope | Needs | Check | State |
 |---|---|---|---|---|
 | B0 Merge page | — | — | — | DROPPED. Owner: "the graph will never stop changing in minute details, but that's the job of the work graphs to resolve that level of detail. The DAG is supposed to direct work towards completion." DAG-004 continues to direct work; detailed ordering, including within the coupled core, moves to local work graphs |
-| B1 Walking skeleton, steps 1–4 | `projects/chirality-app-v4/app/` | Frozen contracts; local Codex 0.158.0; offline build caches | Automated tests; code review | ACTIVE |
-| B2 Contract issues from B1 through change control | Owners' Design files, by change | B1 | RV | PENDING |
-| B3 Fan-out: local work graphs (construct-local-work-graph) per build undertaking, directed by DAG-004 | Work graphs | B1 working | — | PENDING |
+| B1 Walking skeleton, steps 1–4 | `projects/chirality-app-v4/app/` | Frozen contracts; local Codex 0.158.0; offline build caches | Automated tests; code review | COMPLETE (4/4 steps; 9 contract issues) |
+| B2 Contract issues from B1 through change control | Owners' Design files, by change | B1 | RV | CARRIED to group A's loop |
+| B3 Fan-out: local work graphs (construct-local-work-graph) per build undertaking, directed by DAG-004 | Work graphs | B1 working | — | CARRIED to the development loops (see HANDOFF.md in the run folder) |
+
+**Closed 2026-10-04.** See [RECEIPT.md](../../AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/RECEIPT.md). The owner's merge hold applies.
