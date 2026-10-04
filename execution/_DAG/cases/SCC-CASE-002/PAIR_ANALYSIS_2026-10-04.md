@@ -440,6 +440,8 @@ A rule-bearing row can be reversed only by moving definitional ownership. A carr
 
 ## 15. Do the moves together make SCC-002 acyclic?
 
+> **2026-10-04 extension.** This section used G1 r1's kinds (sha256 `4e85ac79…`), with RVG's readings as a variant. The recomputation under G1 r2's kinds, with the 17-pair move set, is §20.6, and it supersedes this table for r2.
+
 **Model.**
 - The 71 held arcs, with G1's primary kinds.
 - Variant "RVG": DEL-04-03's received list read as I. Those rows are DEP-04-03-022, -024, -025, -026, -028, -035 and -036.
@@ -497,6 +499,8 @@ The two **neither supersede nor depend on each other**. The drafted update is th
 
 ## 18. Summary
 
+> **2026-10-04 extension.** The table and counts below cover the first 13 pairs. §20.7 gives the summary for all 17 I–I pairs of G1 r2, and it supersedes the counts below.
+
 | Pair | Kind confirmed | Contradiction or artefact | Proposed move | ScopeOfWork effect | Anchor contract |
 |---|---|---|---|---|---|
 | P1 01-04 ↔ 02-02 | I–I (02-02's need is integration) | Artefact | IV-S DEP-02-02-013 (+DEP-01-04-010); V residual | S1 ×2, no ownership move | WR-v0.2 §7, §8, `workspace-registration.schema.json` |
@@ -533,3 +537,240 @@ The two **neither supersede nor depend on each other**. The drafted update is th
 | The split line of the P4 decomposition | A proposal for `scope-change`. No sizing or work-unit files are drafted |
 | P10, P13, P18, P19, P20 under RVG's readings, and DEP-04-02-018 as I | Outside this brief's pairs. Counted in §15 only |
 | Whether the S1 revisions keep every AC and VER intact | Checked against the quoted clauses only (for example DEL-02-01 AC-005). A full trace is `scope-of-work`'s |
+
+## 20. 2026-10-04 extension: G1 r2 and the four added pairs
+
+**Why this section exists.**
+- G1 r2 (`SURVEY/G1.md`, sha256 `8afa6093cbd0f09dccc6ef53e1a0c6fb35efbbe17729f5b0ca0407792ffcfc61`, commit `c0a892137a`) applies the repaired K-3 rule to every row.
+- It finds 17 I–I pairs in SCC-002: the 13 above, plus P10, P18, P19 and P20.
+- This section analyses those four pairs by the method of §1 and recomputes closure under r2's kinds.
+- §1–§19 are unchanged, except for one pointer line at §15 and one at §18.
+- §15's first table and the counts in §18 were computed with G1 r1's kinds.
+
+**Checks.**
+- Under r2, the primary kinds of the 71 SCC-002 held rows are 66 I, 3 V, 1 E and 1 L, parsed from r2's §2.2 table.
+- Without moves, my computation reproduces r2: O-1 gives 13 members and 21 rows; O-2 and O-3 give 12 members and 18 rows; O-4 gives 12 members and 17 rows.
+- All eight rows of the four pairs were read from the live registers. They are quoted below.
+
+### 20.1 P10 — DEL-02-03 ↔ DEL-03-03
+
+**Rows.**
+
+| Row | From → To | EvidenceQuote | Statement (excerpt) | Mirror |
+|---|---|---|---|---|
+| DEP-02-03-026 | 02-03 → 03-03 | "`DEL-03-03`'s observations of checkpoint arrivals and act records on the external channel, which this slice records (REQ-002, REQ-003);" | "…; this slice does not define the external-channel receiving." | — |
+| DEP-03-03-014 | 03-03 → 02-03 | "and App `DEL-02-03`'s checkpoint statement and required-tool check for the current phase and, for the governance phase, its hold machine and hold-support values;" | "in the current phase a checkpoint on this channel is plan guidance and no hold is claimed" | DEP-02-03-032 |
+
+**ScopeOfWork.**
+- DEL-02-03 CLM-002: "`DEL-03-03` owns external-channel receiving, including the governance-phase carriage assurance". The same claim states: "This slice consumes, and does not define: … `DEL-03-03`'s observations of checkpoint arrivals and act records on the external channel".
+- DEL-03-03 CLM-002 says the adapter consumes "App `DEL-02-03`'s checkpoint statement and required-tool check for the current phase".
+
+**Design.**
+- ADAPTER-v0.7 §7.7: "The adapter passes observations CO-1…CO-11 and writes no checkpoint entry."
+- ADAPTER §11 "Provide to | DEL-02-03": "CO-1…CO-11 (§7.7), each naming the EXEC-v0.6 §2.4.2 event it is input to, with `checkpoint_observation.schema.json`".
+- That schema's `exec_event` is described as "The EXEC-v0.6 §2.4.2 event this observation is input to". The schema has no external `$ref`.
+- EXEC-v0.7 §9.1, DEL-03-03 row: "§2.5 covers kinds (a)–(c) on X for both native paths (R12-4), using ADAPTER §4.1 NM-1/NM-2, §4.5 and OC-9".
+
+**Kind.** Confirmed: DEP-02-03-026 is I (the observation format is the supplier's, and EXEC "does not define" it). DEP-03-03-014 is I/L.
+
+**Order.**
+- EXEC §2.4.2's CE events come first. ADAPTER §7.7's CO observations name the CE each feeds. EXEC §2.5's X-path rows come last.
+- ADAPTER's observation contract depends on EXEC's event list. EXEC's events do not depend on ADAPTER.
+- **Projection artefact.**
+
+**Move.**
+- DEP-02-03-026: **IV-S**.
+  - EXEC's recorder inputs are the published interface (§2.4.2 and `checkpoint-record-entries.schema.json`).
+  - ADAPTER's observations conform to them. They already name `exec_event`.
+  - EXEC carries the CO observations by reference.
+- **Condition.** EXEC §2.5's X-path rows read ADAPTER's native-path semantics (NM-1/NM-2, §4.5, OC-9), which makes them rule-bearing. They must become citations of ADAPTER §7.7's CO→CE mapping.
+  - DEL-03-03 owns external-channel receiving, so this is consistent with DEL-02-03 CLM-002.
+  - If EXEC keeps defining the X path from ADAPTER's semantics, the move becomes IV-O.
+- **ScopeOfWork: S1**, one sentence: DEL-02-03 CLM-002's "consumes, and does not define" clause. There is no mirror.
+- No ownership moves.
+- **Anchor.** EXEC-v0.7 §2.4.2, `checkpoint-record-entries.schema.json`; ADAPTER-v0.7 §7.7, `checkpoint_observation.schema.json`.
+
+### 20.2 P18 — DEL-04-02 ↔ DEL-04-03
+
+**Rows.**
+
+| Row | From → To | EvidenceQuote | Statement (excerpt) | Mirror |
+|---|---|---|---|---|
+| DEP-04-02-008 | 04-02 → 04-03 | "including changed-content lapse received from the record owner" (DEL-04-02 VER-004) | "Receive the App DEL-04-03 run-record contribution, including recorded settings, attributable human-act evidence and changed-content lapse, for comparison and evidence-bounded display." | DEP-04-03-014 |
+| DEP-04-03-022 | 04-03 → 04-02 | "settings-in from `DEL-04-02`," | "Receive settings-in from App DEL-04-02 for the run record." | DEP-04-02-009 |
+
+**ScopeOfWork.**
+- DEL-04-02 CLM-002: "App v4 `DEL-04-03` … defines the run/human-act format and produces the App reader/writer and content-change lapse handling. This deliverable consumes those policy and record contributions."
+- DEL-04-03 CLM-004 lists "settings-in from `DEL-04-02`".
+- The mirror DEP-04-02-009 rests on DEL-04-02 REQ-002: "pass/receive the settings needed by the run-record contribution owned in CLM-002".
+
+**Design.**
+- AS-v0.9 §6: "Identical to DEL-04-03/RS-v0.8 §8. A data exchange, not an ordering between human acts and not a second authority."
+- RS-v0.10 §8: "Identical in DEL-04-02/AS-v0.8 §6."
+- `RS_RECORD.schema.json` has `"$ref": "urn:chirality:app-v4:del-04-02:settings-in:0.1#/$defs/settingsVersion"`. This is its only external reference other than EXEC's bodies.
+- AS §8 shows the RS §7 lapse states in its human-act facet.
+
+**Kind.**
+- DEP-04-03-022 is I: RS carries a body it does not define.
+- DEP-04-02-008 is I/V. Its quote sits in VER-004, but its SourceRef includes CLM-002 and its Statement names "display", which is AS's own output. I apply RVG's precedence: the quote decides content, and the Statement or SourceRef decides the point of need. On that reading the kind is I primary. This is a boundary call.
+
+**Order.**
+- AS's settings body comes first, then RS's `settings_version` entry, then the record-out that AS compares and displays.
+- RS §7's lapse states feed AS §8 independently.
+- **Projection artefact.**
+
+**Move.**
+- DEP-04-03-022 with its mirror DEP-04-02-009: **IV**.
+- This is the registry pattern of P12. RS's container defines the `settings_version` kind. AS's `AS_SETTINGS_IN.schema.json` body conforms to it. RS drops its `$id` reference, and body validation becomes a conformance check.
+- §6 and §8 hold one text twice. RS §8 should own the exchange and AS §6 the settings body.
+- **ScopeOfWork: S1**, two sentences: DEL-04-03 CLM-004's receives clause and DEL-04-02 REQ-002's supply sentence.
+- No ownership moves. The settings-in content stays DEL-04-02's, and the format stays DEL-04-03's.
+- **Anchor.** RS-v0.10 §8, §13; AS-v0.9 §6; `AS_SETTINGS_IN.schema.json`.
+
+**Settled: P18 drops with the RS registry move.**
+- In this move set, DEP-04-03-022 closes the pair.
+- G1 lists DEP-04-02-008 as in every minimum set. That holds for the base graph without moves, not for this move set.
+- If DEP-04-02-008 is moved instead (IV-S of the record-out), then under r2 kinds O-4 still leaves a 4-member component that needs DEP-04-03-022 (§20.6, last check). So DEP-04-03-022 is the move. DEP-04-02-008 is not an alternative.
+
+### 20.3 P19 — DEL-04-02 ↔ DEL-05-01
+
+**Rows.**
+
+| Row | From → To | EvidenceQuote | Mirror |
+|---|---|---|---|
+| DEP-04-02-018 | 04-02 → 05-01 | "It also consumes, from App v4 `DEL-05-01`, a host agent's network-destination allow list, in-work destination grants and contacted-destination record, which `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` requires to be shown." | — |
+| DEP-05-01-025 | 05-01 → 04-02 | "`DEL-04-02` owns the autonomy-grant display states and standing exchange, which this deliverable consumes as the grant in force carried on each dispatch;" | DEP-04-02-019 |
+
+**Statement.** DEP-05-01-025's Statement ends "this deliverable does not define those states". Its mirror rests on DEL-04-02 CLM-002: "Its visible autonomy state is received by `DEL-05-01`, …".
+
+**Design.**
+- AS-v0.9 §3.1 states that the in-work grant rules and the request states "*pending · granted · declined · not granted · unanswered at end*, are DEL-05-01/LOOP-v0.8 §5.3 DF-5 and DF-6". AS's display transitions DG-1…DG-6 map those states. This is rule-bearing.
+- AS §12.1, DEL-05-01 row: "**Grant in force per dispatch** (defined here) … The loop carries it on the dispatch record (LOOP §6.2) and relays intent; the host route resolves treatment". This is carry-only.
+- `LOOP_DESTINATION_REQUEST.schema.json` is LOOP's own, with no external `$ref`.
+
+**Kind.** Confirmed: both rows are I. Each consumer states that it does not define what it receives.
+
+**Order.**
+- LOOP §5.3 DF-5 and DF-6 come first, then AS §3.1, §3.2 and §12.1, then LOOP §6.2's dispatch record.
+- **Projection artefact.**
+
+**Move.**
+- DEP-05-01-025 with its mirror DEP-04-02-019: **IV-S**. LOOP's dispatch record carries AS's grant in force by settings-version reference, which it already only "relays".
+- **ScopeOfWork: S1**, two sentences: DEL-05-01 CLM-002 and REQ-006's consumption clause, and DEL-04-02 CLM-002's receivers list.
+- No ownership moves.
+- **Alternative.** DEP-04-02-018 also closes the pair under every option (§20.6). It is rule-bearing on LOOP's DF-6 states, so its only clean form is IV-S of AS's display, which is the same condition.
+- The meaning of a destination grant is ACT §2.7. LOOP already consumes it through the admitted row DEP-05-01-018.
+- **Anchor.** LOOP-v0.9 §5.3, §6.2, `LOOP_DESTINATION_REQUEST.schema.json`; AS-v0.9 §3.1, §12.1.
+
+### 20.4 P20 — DEL-04-03 ↔ DEL-05-01
+
+**Rows.**
+
+| Row | From → To | EvidenceQuote | Statement (excerpt) | Mirror |
+|---|---|---|---|---|
+| DEP-04-03-028 | 04-03 → 05-01 | "a host agent's network-destination events (destination contacted, destination grant, destination declined) from `DEL-05-01` (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`);" | — | — |
+| DEP-05-01-019 | 05-01 → 04-03 | "Review checkpoint/event/evidence examples against adopted workflow, policy and record inputs." (VER-008) | "Receive adopted shared human-act/run-record meanings and format for loop event/checkpoint and record receiving definitions and examples" | DEP-04-03-029 |
+
+**Design.**
+- RS-v0.10 header: "element **R15** records, for a host's agent, each destination contacted …".
+- RS Changes, B5: "R15 joined to the one destination flow … new PROPOSED element **destination request closed** (`destination_request_closed`: *not granted* with reason, or *unanswered at end* with cause; LOOP DF-6)".
+- The entry kinds are RS's, in `RS_RECORD.schema.json` and `RS_RECORD.valid.host-destinations.example.jsonl`. The state values inside them are LOOP's DF-6 values.
+- LOOP-v0.9 §10.4, DEL-04-03 row: "§2.3; E-4; §5.3 DF-8 (entry kinds, including `destination_request_closed`, v0.8)".
+
+**Kind.**
+- DEP-04-03-028 is I: RS does not define the DF-6 states it records.
+- DEP-05-01-019 is I/V. Its quote is VER-008, but its Statement and its SourceRef (CLM-002, REQ-007) name the definitions. This is a boundary call, as RVG noted.
+
+**Order.**
+- LOOP §5.3 DF-5 and DF-6 come first, then RS R15 and its kinds, then LOOP DF-8 and its examples.
+- **Projection artefact.**
+
+**Move.**
+- DEP-04-03-028: **IV**, the registry pattern of P12.
+  - RS's container owns the R15 entry kinds.
+  - LOOP's destination events are emitted as R15 entries.
+  - The DF-6 state values inside `destination_request_closed` are carried by reference (an IV-S element).
+- **ScopeOfWork: S1**, one sentence: DEL-04-03 CLM-004's receives clause. There is no mirror.
+- No ownership moves.
+- **Anchor.** RS-v0.10 §4 R15, §13; LOOP-v0.9 §5.3 DF-6, DF-8.
+
+**Settled: P20 drops with the RS registry move.** DEP-04-03-028 is extension row M-X3 of the first version, now a pair move.
+
+### 20.5 Extension row M-X2 is needed under r2
+
+- DEP-04-03-026 is in no reciprocal pair. It carries "external dispatch entries from `DEL-03-03`", and r2 classes it I.
+- With the 17 pair moves but without it, O-4 leaves the 5-member component {02-03, 03-03, 04-02, 04-03, 05-01}, closed by that one row.
+- The same registry move (M-X2) closes it. No ownership moves, and the ScopeOfWork effect is S1 in DEL-04-03 CLM-004 and DEL-03-03's supply sentence (mirror DEP-03-03-019).
+- I did not read ADAPTER's `external_dispatch_record.schema.json` in detail for this row. That is recorded in §20.8.
+
+### 20.6 Closure under G1 r2's kinds
+
+**Model.**
+- As §15, over the 71 held arcs with r2's primary kinds.
+- O-1 keeps every kind. O-2 drops V, O-3 drops V and L, and O-4 keeps P and I only.
+- r2 applies each option graph-wide. No admitted arc lies inside SCC-002, so the held-only computation is exact for this component.
+- Move set: the 13 pair moves of §2–§14, plus P10 (DEP-02-03-026), P18 (DEP-04-03-022), P19 (DEP-05-01-025), P20 (DEP-04-03-028), plus M-X2 (DEP-04-03-026).
+- Residuals: P1 and P8 leave V. P4 leaves L on DEP-03-02-027.
+
+| Scenario (r2 kinds) | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| No moves | 13 members, 21 rows | 12, 18 | 12, 18 | 12, 17 |
+| 17 pair moves, without M-X2 | 12, 8 | {02-01, 03-02} 1 + 5-member 2 | 5-member 2 | 5-member 1 (DEP-04-03-026) |
+| **17 pair moves + M-X2** | **12 members, 7 rows**: P1, P2, P4, P8, P13, P14, P16 (rows DEP-02-02-013, -02-02-015, -02-01-029, -02-03-027, -02-03-022, -03-01-026, -03-01-030) | **P4 (DEP-02-01-029) and P13 (DEP-02-03-022)**, two 2-member components | **P13 only**: {02-03, 05-01}, DEP-02-03-022 | **acyclic** |
+| + DEC of P4 | 12, 6: P1, P2, P8, P13, P14, P16 | P13 only | P13 only | acyclic |
+| + DEC of P4, with P1 and P8's V residuals not entered as rows | 12, 4: P2, P13, P14, P16 | P13 only | P13 only | acyclic |
+| Check: P19 by DEP-04-02-018 instead | as the bold row | P4; P13 (3 members) | P13 (3 members) | acyclic |
+| Check: P18 by DEP-04-02-008 instead | 12, 8 | P4; 4-member 2 | 4-member 2 | 4-member 1 (DEP-04-03-022): **does not close** |
+
+**Reading.**
+1. **O-4: SCC-002 closes.** It needs the 17 pair moves plus M-X2. None moves definitional ownership.
+2. **O-3: one row remains.** It is P13's DEP-02-03-022, E/L in r2. It stays E because the consumer, DEL-02-03, defines the format. It is the only IMPLICIT/MEDIUM held row. G1 r2's candidate is an owner cut or confirmation by its register owner.
+3. **O-2: as O-3, plus P4.** P4's L residual stays on its arc, so it needs DEC, IV-O or MRG.
+4. **O-1: as O-2, plus five rows.** These are the V residuals of P1 and P8, and the V and V/L rows of P2, P14 and P16. Owner cuts, or a decomposition, decide them.
+5. **P18 and P20 are settled.** Both drop with the RS registry moves (§20.2, §20.4). P18 must close through DEP-04-03-022, not DEP-04-02-008.
+
+### 20.7 Summary for the 17 I–I pairs (G1 r2)
+
+The rows for P1–P17 except P10 are as in §18. Rows P10, P18, P19 and P20 are added.
+
+| Pair | Kind confirmed | Contradiction or artefact | Proposed move | ScopeOfWork effect | Anchor contract |
+|---|---|---|---|---|---|
+| P1 01-04 ↔ 02-02 | I–I | Artefact | IV-S DEP-02-02-013 (+DEP-01-04-010); V residual | S1 ×2, no ownership move | WR-v0.2 §7, §8 |
+| P3 02-01 ↔ 02-03 | I–I (boundary L) | Artefact | IV DEP-02-01-026 (+DEP-02-03-030) | S1 ×2, none | EXEC-v0.7 §2.1, §3.6; WD-v0.9 §4.3.0–§4.3.1 |
+| P4 02-01 ↔ 03-02 | I and I/L | Artefact; two definitional concerns | O-3/O-4: IV-S DEP-03-02-027 (L residual). O-1/O-2: **DEC** of DEL-02-01 (or IV-O, MRG) | S1 ×2 / decomposition change | WD-v0.9 §6.1; P-v0.8 §3.3, §4.3 |
+| P5 02-01 ↔ 04-03 | I–I | Artefact | RT DEP-02-01-019 to DEL-04-01 (+DEP-04-03-037) | S1 ×1, none | ACT-POLICY-v0.11 §2.4, §2.6 |
+| P6 02-01 ↔ 05-01 | I/R and I | Artefact | IV DEP-02-01-020 | S1 ×1, none | WD-v0.9 §4.3, §6, §8, §9 |
+| P7 02-01 ↔ 05-02 | I/R and I | Artefact | IV DEP-02-01-021 | S1 ×1, none | WD-v0.9 §4.2.4, §4.3.4, §6 |
+| P8 02-02 ↔ 02-03 | I–I | Artefact | IV-S DEP-02-02-015 (+DEP-02-03-031); V residual | S1 ×2, none | WR-v0.2 §7, §8, §16 |
+| P9 02-02 ↔ 04-03 | I–I | Artefact | RT + IV-S DEP-02-02-017 (+DEP-04-03-042) | S1 ×2, none | ACT §2.4–§2.5; WR RB-4a |
+| **P10 02-03 ↔ 03-03** | I and I/L | Artefact | IV-S DEP-02-03-026 | S1 ×1, none (IV-O if EXEC keeps defining the X path) | EXEC-v0.7 §2.4.2; ADAPTER-v0.7 §7.7, `checkpoint_observation.schema.json` |
+| P11 02-03 ↔ 04-02 | I and I/L | Artefact | RT DEP-02-03-029 to DEL-04-01 (+DEP-04-02-023) | S1 ×2, none | ACT §2.5; EXEC §4.10 |
+| P12 02-03 ↔ 04-03 | I–I | Artefact | IV DEP-04-03-025 (+DEP-02-03-035), registry | S1 ×2, none | EXEC R14-1; RS §13 |
+| P15 03-01 ↔ 04-03 | I–I | Artefact | IV-S DEP-03-01-031 (+DEP-04-03-039) | S1 ×2, none | C-v0.8 §6.2; RS-v0.10 §6.1, §7 |
+| P17 03-02 ↔ 04-02 | I–I | Artefact | RT + IV-S DEP-03-02-034 (+DEP-04-02-021) | S1 ×2, none; reverses Q-11 optional item | ACT §5.2–§5.3; P-v0.8 §3.3, §4.4 |
+| **P18 04-02 ↔ 04-03** | I/V and I | Artefact | IV DEP-04-03-022 (+DEP-04-02-009), registry (= M-X1) | S1 ×2, none | RS-v0.10 §8, §13; AS-v0.9 §6; `AS_SETTINGS_IN.schema.json` |
+| **P19 04-02 ↔ 05-01** | I–I | Artefact | IV-S DEP-05-01-025 (+DEP-04-02-019); alternative DEP-04-02-018 | S1 ×2, none | LOOP-v0.9 §5.3, §6.2; AS-v0.9 §3.1, §12.1 |
+| **P20 04-03 ↔ 05-01** | I and I/V | Artefact | IV DEP-04-03-028, registry (= M-X3) | S1 ×1, none | RS-v0.10 §4 R15, §13; LOOP-v0.9 §5.3 DF-6, DF-8 |
+| P21 05-01 ↔ 05-02 | I/R and I | Artefact | IV DEP-05-01-020 | S1 ×1, none | LOOP-v0.9 §2.3, §10.5; PANEL-v0.9 §3.11 |
+| Non-pair (r2) | DEP-04-03-026 I | — | IV, registry (M-X2) | S1 ×2, none | RS-v0.10 §13 |
+
+**Counts for the 17 pairs.**
+- **None is a real ordering contradiction.**
+- **16 close by moves that move no definitional ownership**:
+  - IV: P3, P6, P7, P12, P18, P20, P21;
+  - RT: P5, P11;
+  - IV-S: P1, P8, P10, P15, P19;
+  - RT with IV-S: P9, P17.
+- Each needs S1 wording in one or two ScopeOfWorks, through an SCA the owner accepts.
+- Seven depend on `dependency-extract` accepting carriage by reference as not a contract input: P1, P8, P10, P15 and P19, and parts of P9 and P17.
+- Four rely on Q-5: P5, P9, P11 and P17.
+- **One, P4, needs a decomposition change (or IV-O, or merge) under O-1 and O-2.** It closes by IV-S under O-3 and O-4.
+
+### 20.8 Not established (extension)
+
+| Item | Why |
+|---|---|
+| Whether EXEC §2.5's X-path rules can become citations of ADAPTER §7.7 without moving design responsibility | Read at §9.1 and §7.7 level only. If they cannot, P10 is IV-O |
+| `external_dispatch_record.schema.json` and RS's R-entry for external dispatch (M-X2) | Only the register row and RS §10.1 were read |
+| Whether `RS_RECORD.schema.json` and `AS_SETTINGS_IN.schema.json` can drop the cross-`$id` without loss | Schema structure inspected for `$ref`s only |
+| The boundary kinds DEP-04-02-008 (I/V) and DEP-05-01-019 (I/V) | Both quotes are VER sentences. RVG's precedence (quote for content, Statement or SourceRef for point of need) gives I. Neither affects closure in the move set of §20.6 |
