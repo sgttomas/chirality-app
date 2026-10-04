@@ -184,3 +184,39 @@ AA1-R1, AA1-R2, AA1-R3 and notes N1–N3 are **resolved**. There is one new MINO
 
 - **CA2-N1.** As above: no negative breaks K-14 alone. Add an understated-eligibility case.
 - **AA2-N1.** `NEGATION_RE` (`not|no|never|without`) refuses any adoption text containing those words anywhere, including a true adoption such as "App v3 adopts the change without amendment". This is the conservative direction, and the list states SR-4 is keyword-based. It is noted so a real adoption is not wrongly refused later.
+
+---
+
+# Addendum — EU-F3R2: AA-v0.3 and CA-v0.4 (committed `821f236649`), 2026-10-04
+
+- **Subject.** Re-hashed, all as in `O-F.md` "EU-F3R2 — frozen":
+  - `ADOPTION_ACCOUNT.md` `c17c5d8c…`, `CONTINUITY_ACCOUNT.md` `ea171162…`;
+  - `check_aa.py` `2e1fb631…`, `check_ca.py` `42b8fa67…`;
+  - `REPLACEMENT_PACKET.md` `42eef807…`.
+
+  HEAD is `9ba5dfe49c` (EU-F4R on top), and `git diff 821f236649 HEAD` is empty for every EU-F3R2 path.
+- **Checks rerun:** `check_aa` **46/46**; `check_ca` **37/37** (with archives); `check_rp` **99/99**.
+
+## Verdict on EU-F3R2: **READY**
+
+AA2-R1 and CA2-N1 are **resolved**. There is 1 new MINOR finding (AA3-R1), on a case that lies within O-F's declared limit but defeats the delivered/adopted distinction directly.
+
+| Finding | State | How I checked |
+|---|---|---|
+| AA2-R1, construction 1 (App v3 README as `delivered`) | **Resolved.** Rebuilt by me, the result is: "SR-2 APP-V3/RN-1 delivered: the file is not a notice that RN-1's change record routes" | My script on AA-1 v2, calling `check_aa`'s rule functions |
+| AA2-R1, construction 2 (the UPD-133 sentence as App v3's adoption, status updated to match) | **Resolved.** The result is: "SR-3 APP-V3: AD-Z's record entry does not name RN-1 (D-GOV-52, ROOT-DGOV52-APPLICATION-20261004)". The status checks agree | As above |
+| AA2-R1, the unrelated-heading variant | **No unrelated heading exists in App v3's lane.** At `122c5abcf5`, the only App v3 file that names D-GOV-52 is the routed notice itself. The variant therefore reduces to AA3-R1 | `git grep` earlier in this file; the act check needs the text in a real file |
+| CA2-N1 | **Resolved.** My own understated case (every RE-1 condition met, `retirement_eligible: false`) gives, through `check_ca.rule_errors` with the real X-1 and AA status inputs, only `{'RE-1': ['RE-1 App v3 …: recorded False, rule True']}`. The baseline is clean. K-11 no longer refuses it, so N-21 breaks K-14 alone | Script |
+
+### AA3-R1 — MINOR — the routed notice itself passes as App v3's adoption act (SR-3's renewal test; AA §7 uncovered list)
+
+- **Evidence.**
+  - Built on AA-1 v2 in memory: a new `agent_act` (class `adoption`, consumer `APP-V3`). Its record is App v3's routed D-GOV-52 notice (`projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-10-04_ROOT_D-GOV-52_AGENTS_MD_APP_V4_ALIGNMENT.md`). Its exact text is the notice's own sentence "Your loop decides whether to adopt, amend or decline."
+  - App v3's `consumer_adopted` is set to established on that act, with the status updated to match.
+  - Result: schema 0 errors, SR-1…SR-4 none, evidence none, acts none, status none. The sentence lies under the notice's heading, which names D-GOV-52, so the renewal test passes; it contains "adopt" and no negation word, so SR-4 passes.
+- **Consequence.**
+  - The one file that establishes `delivered` can also establish `consumer_adopted` for the same loop. That collapses exactly the distinction F-R16 and this account exist to keep: "notice delivered; receiving decision not recorded".
+  - O-F's declared limit ("an in-lane entry that names the renewal and says 'adopts' passes whatever it decides") covers this in principle. But it does not name the notice: a file written by the *sending* tranche, which by F-R10 can never be the receiving loop's act.
+- **Repair** (one line in SR-3, plus a negative case):
+  - Refuse an adoption act whose record is a notice the renewal's change record routes, or more generally any file the change's own tranche wrote.
+  - Add this construction as N-32.

@@ -622,3 +622,19 @@ My three MINOR findings from Addendum 4 and N9 are resolved, each with one quali
 
   §3 adds my N3 keyword limit; §8 and C-1…C-21 are the coordinator's audit (RV3-AA1 addendum §3).
 - **EUF4-R1** stays resolved: my Addendum 6 probe remains refused (shown in Addendum 7).
+
+---
+
+# Addendum 9 — LHQ2-R2 closeout and RP-v0.6's LHQ pin note (`18d6eae3e4`, `821f236649`), 2026-10-04: **confirmed**
+
+- **The CI-5 line (O-C, in place at `18d6eae3e4`).** LOCAL_HOST_QUALIFICATION.md is now `d59a1ea0…`. CI-5 adds: "**Schema version (LHQ2-R2, R23-42 item 4).** A CIR that carries `app_candidate_subject` validates only under LHQ-v0.2's CIR schema (… `3fb8f586…`). The v0.1 schema (`194f8419…`) rejects it as an additional property. A CIR without the mapping validates under both."
+  - I verified each claim. `git show 09ca67d094:…/lhq.candidate-identification.schema.json` hashes to `194f8419…`, and the current schema is `3fb8f586…`. Under v0.1, the mapped valid example gives 1 error and the unmapped example 0.
+  - The changes row is present, and the schema is unchanged.
+- **DOS pin.** QUALIFICATION_DOSSIER.md (`b4de982f…`) l.7 pins the CIR schema explicitly at `3fb8f586…`, with a note. l.9 re-pins LHQ to `d59a1ea0…`. This was decided by the owner, not by script, as R23-42 item 4 directed.
+- **RP-v0.6 pin note.**
+  - Between `0e0036b685` and `821f236649`, REPLACEMENT_PACKET.md changes only the LHQ supplier-pin line (`90f461cb…` → `d59a1ea0…`, with the note).
+  - `git diff --stat` over FX-RP1-6, `F/vendor/`, `rplib.py`, `check_rp.py` and `build_fx_rp1.py` is empty.
+  - `check_rp.py` gives 99/99.
+  - The vendored CIR schema is already `3fb8f586…`, so nothing the packet builds changes. Keeping the label RP-v0.6 for a pin note is reasonable.
+
+**LHQ2-R2: closed.**
