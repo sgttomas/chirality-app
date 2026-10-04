@@ -1,0 +1,163 @@
+{
+  "reader": "Claude Opus 5.5 (claude-opus-5-5), cold reader dispatched as a Type 2 TASK; session id as it appears in the folder path: a7659cd3-fdee-45df-ac08-f767111a9f26. I read only the 18 files in rr-eud1/in/. All 17 files listed in MANIFEST.sha256 matched it (checked with shasum -a 256 -c).",
+  "method": "I read every supplied file. For Q1 I compared the two work-graph files directly (diff of the two files; the node tables are the only lines that differ). For QD I read ADMISSION.json and the three source files. I then checked each record's standing against CONNECTOR_FALLBACK.md section 2 (CS-R1..CS-R5). Where a record's claim agrees with the files, I say so, but I rely on a PEC claim only where CS-R1 allows it. The PEC and Domains fixture inputs (FX-EUD1 pec/*.json, domains/DM-*.json, pec/ADOPTION_ACCOUNT.json), RUN_LOG.json, the prototype eud1.py and the two JSON schemas are not supplied. So I could not re-derive any standing, check the input sha256 values the records state, or check the performed-duty evidence.",
+  "common_file_answer_Q1": {
+    "a": [],
+    "b": ["T2 (Tranche 2: PKG-07, PKG-08, PKG-10, PKG-11, DEL-09-10, DEL-09-12): PLANNED"],
+    "c": [
+      "VC: ACTIVE -> COMPLETE (R23-22)",
+      "E: ACTIVE -> COMPLETE (RR-E, RR-F)",
+      "O-B1: READY -> COMPLETE",
+      "O-C1: READY -> COMPLETE",
+      "D: PLANNED -> COMPLETE (PR)",
+      "T2: added as PLANNED"
+    ],
+    "how_checked": "Source: sources/WORK_GRAPH@e086dfff32.md, section '## Nodes'. It has 10 node rows: S0, S1, R23, VC, K, E, O-B1, O-C1 and D are COMPLETE, some with a parenthetical reference; T2 is PLANNED. No row is READY, ACTIVE or BLOCKED. I compared it with sources/WORK_GRAPH@e4a0c2c4c3.md: diff shows only the VC, E, O-B1, O-C1 and D rows changed, T2 was added, and no row was removed. D's Check column also changed, from 'RV; pre-merge review' to 'RV, RV2; C1, C2; P1 MERGE'. That is not a state change. I read 'COMPLETE (ref)' as COMPLETE. This matches RA-Q1 facts f-a, f-b and f-c, and the sha256 of each work-graph file equals the hash RA-Q1 records for WG@S and WG@R."
+  },
+  "cases": {
+    "P1": {
+      "standing": {"envelope": "adopted", "condition": "current"},
+      "pec_claims_relied_on": ["pr:EUD1-P1#c1", "pr:EUD1-P1#c2", "pr:EUD1-P1#c3", "pr:EUD1-P1#c4", "pr:EUD1-P1#c5", "pr:EUD1-P1#c6", "pr:EUD1-P1#c7"],
+      "answer": {
+        "a": [],
+        "b": ["T2: PLANNED"],
+        "c": ["VC: ACTIVE -> COMPLETE (R23-22)", "E: ACTIVE -> COMPLETE (RR-E, RR-F)", "O-B1: READY -> COMPLETE", "O-C1: READY -> COMPLETE", "D: PLANNED -> COMPLETE (PR)", "T2: added as PLANNED"]
+      },
+      "basis": {"a": "both", "b": "files", "c": "both"},
+      "cannot_conclude": [
+        "That no work remains: T2 is PLANNED at e086dfff32. Having no READY, ACTIVE or BLOCKED node is not the same as having no work (CS-R2 no_work). PEC's coverage is READY/ACTIVE/BLOCKED only, so c1 says nothing about PLANNED nodes.",
+        "That any node is ready to start: no node is READY. T2 is PLANNED and needs 'Tranche 1 merged'. D reads 'COMPLETE (PR)' and its check mentions 'P1 MERGE', which suggests tranche 1 may be merged but does not establish it. Neither the graph nor any record establishes readiness (CS-R2 ready).",
+        "That anything is permitted: no supplied file grants permission (CS-R2 permitted).",
+        "Anything from claim c9 ('a session for owner O-A was active'): it is presence_advisory and never supports correctness (CS-R2 correct_by_presence). Its cited anchor '#presence' does not occur in either supplied work graph (grep found 0 matches), so I cannot see what it was derived from.",
+        "That PEC's (b) is complete: open nodes in states other than READY/ACTIVE/BLOCKED are outside PEC's declared coverage, so (b) comes from the files only (section 3, 'some parts' row).",
+        "That the adoption is real or correctly derived: the adoption account and the PEC response fixture are not supplied. The record and CONNECTOR_FALLBACK.md both say no PEC release or App adoption exists (simulated: true). The reliance in this case therefore holds only inside the constructed rehearsal.",
+        "That the supplied work-graph files are the committed bytes at e086dfff32 and e4a0c2c4c3: I had no git access. I rely on the task statement that they are real, and on their hashes matching RA-Q1.",
+        "Intermediate states between the two revisions, or any uncommitted or later state: a comparison of two snapshots gives only the net change."
+      ],
+      "notes": "This is the only PEC case where CS-R1 gives reliance. Envelope is adopted, condition is current (pin e086dfff32c0... equals the asked revision; no limitation; fallback signal clear) and the claim tier is record. Every claim c1-c7 agrees with the work-graph files, so (a) and (c) rest on both. Claim numbering skips c8. The route was still needed for (b)."
+    },
+    "P2": {
+      "standing": {"envelope": "not_adopted", "condition": "current"},
+      "pec_claims_relied_on": ["none"],
+      "answer": {
+        "a": [],
+        "b": ["T2: PLANNED"],
+        "c": ["VC: ACTIVE -> COMPLETE (R23-22)", "E: ACTIVE -> COMPLETE (RR-E, RR-F)", "O-B1: READY -> COMPLETE", "O-C1: READY -> COMPLETE", "D: PLANNED -> COMPLETE (PR)", "T2: added as PLANNED"]
+      },
+      "basis": {"a": "files", "b": "files", "c": "files"},
+      "cannot_conclude": [
+        "Anything on PEC's word: release pec-release-EX-2 is unqualified and not adopted, so no claim supports reliance (CS-R1). Its claims happen to agree with the files, but that agreement does not give them reliance.",
+        "That no work remains: T2 is PLANNED (CS-R2 no_work).",
+        "That any node is ready to start: no node is READY, and T2's need 'Tranche 1 merged' is not established as met (CS-R2 ready).",
+        "That anything is permitted (CS-R2 permitted).",
+        "Anything from presence claim c9; its '#presence' anchor is not in the supplied work graph (CS-R2 correct_by_presence).",
+        "That the work-graph files are the committed bytes at the two revisions, or anything about intermediate or uncommitted states (same limits as P1)."
+      ],
+      "notes": "The whole question goes to the files (section 3, 'any other standing' row)."
+    },
+    "P3": {
+      "standing": {"envelope": "adopted", "condition": "stale"},
+      "pec_claims_relied_on": ["none"],
+      "answer": {
+        "a": [],
+        "b": ["T2: PLANNED"],
+        "c": ["VC: ACTIVE -> COMPLETE (R23-22)", "E: ACTIVE -> COMPLETE (RR-E, RR-F)", "O-B1: READY -> COMPLETE", "O-C1: READY -> COMPLETE", "D: PLANNED -> COMPLETE (PR)", "T2: added as PLANNED"]
+      },
+      "basis": {"a": "files", "b": "files", "c": "files"},
+      "cannot_conclude": [
+        "That VC or E is ACTIVE, or that O-B1 or O-C1 is READY, now. P3 c1 states those states correctly for e4a0c2c4c3 (I checked it against WORK_GRAPH@e4a0c2c4c3.md), but the file changed afterwards: the two work-graph files have different sha256 values, and all four nodes are COMPLETE at e086dfff32. Stale material supports no reliance (CS-R1).",
+        "That no work remains: T2 is PLANNED (CS-R2 no_work). The stale response also carries no claim about T2 at all, so its silence about T2 means nothing.",
+        "That any node is ready to start, including O-B1 and O-C1, which were READY only at the earlier revision (CS-R2 ready).",
+        "That anything is permitted (CS-R2 permitted).",
+        "Anything from presence claim c9 (CS-R2 correct_by_presence).",
+        "That the work-graph files are the committed bytes at the two revisions, or anything about intermediate or uncommitted states (same limits as P1)."
+      ],
+      "notes": "P3 is the most likely case to mislead a reader: it is adopted and its claims are accurate, but for the wrong revision."
+    },
+    "P4": {
+      "standing": {"envelope": "adopted", "condition": "partial"},
+      "pec_claims_relied_on": ["none"],
+      "answer": {
+        "a": [],
+        "b": ["T2: PLANNED"],
+        "c": ["VC: ACTIVE -> COMPLETE (R23-22)", "E: ACTIVE -> COMPLETE (RR-E, RR-F)", "O-B1: READY -> COMPLETE", "O-C1: READY -> COMPLETE", "D: PLANNED -> COMPLETE (PR)", "T2: added as PLANNED"]
+      },
+      "basis": {"a": "files", "b": "files", "c": "files"},
+      "cannot_conclude": [
+        "That PEC's statement of open nodes or its change list is complete. The feed states that rows 6-10 (after node K) are unparsed. In the file those rows are E, O-B1, O-C1, D and T2, which hold five of the six changes and the only open node. P4 c1 ('no READY/ACTIVE/BLOCKED among parsed rows') is true of rows 1-5 but covers them only; P4 reports only one change (VC).",
+        "That no work remains: T2 PLANNED is in the unparsed rows (CS-R2 no_work).",
+        "That any node is ready to start (CS-R2 ready).",
+        "That anything is permitted (CS-R2 permitted).",
+        "That the work-graph files are the committed bytes at the two revisions, or anything about intermediate or uncommitted states (same limits as P1)."
+      ],
+      "notes": "P4 has no presence claim, and its record omits correct_by_presence from its unsupported list, but the prohibited list still names all four."
+    },
+    "P5": {
+      "standing": {"envelope": "adopted", "condition": "failing"},
+      "pec_claims_relied_on": ["none"],
+      "answer": {
+        "a": [],
+        "b": ["T2: PLANNED"],
+        "c": ["VC: ACTIVE -> COMPLETE (R23-22)", "E: ACTIVE -> COMPLETE (RR-E, RR-F)", "O-B1: READY -> COMPLETE", "O-C1: READY -> COMPLETE", "D: PLANNED -> COMPLETE (PR)", "T2: added as PLANNED"]
+      },
+      "basis": {"a": "files", "b": "files", "c": "files"},
+      "cannot_conclude": [
+        "Anything on PEC's word: the file-fallback signal is set ('reconcile check failed'), so no claim supports reliance even though c1-c7 match the files (CS-R1).",
+        "That no work remains: T2 is PLANNED (CS-R2 no_work).",
+        "That any node is ready to start (CS-R2 ready).",
+        "That anything is permitted (CS-R2 permitted).",
+        "Anything from presence claim c9 (CS-R2 correct_by_presence).",
+        "That the work-graph files are the committed bytes at the two revisions, or anything about intermediate or uncommitted states (same limits as P1)."
+      ],
+      "notes": "The pin equals the asked revision, but under the section 2.2 ordering 'failing' outranks 'current'."
+    },
+    "P6": {
+      "standing": {"envelope": "unknown", "condition": "absent"},
+      "pec_claims_relied_on": ["none"],
+      "answer": {
+        "a": [],
+        "b": ["T2: PLANNED"],
+        "c": ["VC: ACTIVE -> COMPLETE (R23-22)", "E: ACTIVE -> COMPLETE (RR-E, RR-F)", "O-B1: READY -> COMPLETE", "O-C1: READY -> COMPLETE", "D: PLANNED -> COMPLETE (PR)", "T2: added as PLANNED"]
+      },
+      "basis": {"a": "files", "b": "files", "c": "files"},
+      "cannot_conclude": [
+        "Anything about the work graph from PEC: there was no response and there are no claims.",
+        "That no work remains: PEC's absence establishes nothing, and the files show T2 PLANNED (CS-R2 no_work).",
+        "That any node is ready to start (CS-R2 ready).",
+        "That anything is permitted (CS-R2 permitted).",
+        "Why PEC was absent, or whether it will recover: not stated beyond 'no service answered'.",
+        "That the work-graph files are the committed bytes at the two revisions, or anything about intermediate or uncommitted states (same limits as P1)."
+      ],
+      "notes": "The envelope is unknown rather than not_adopted because with no response there is no release to assess (section 2.1 'unknown')."
+    },
+    "DM-1": {
+      "standing": {"envelope": "adopted", "condition": "stale"},
+      "admitted_current_support_for_3_0_m": false,
+      "what_the_source_states_now": "SRC-1 as supplied (header 'revision: rev-B') states line EX-L1 support spacing 2.4 m, 'revised after the rev-A check'. The only admitted source is SRC-1 at rev-A (ADMISSION.json, basis ADM-1), and that revision stated 3.0 m (SRC-1@rev-A.md). So the 3.0 m support came from the admitted rev-A and does not hold for the source as it stands now. SRC-2 (rev-1, an invented forum post) says 3.0 m but is not admitted. I read all of this from the files; it agrees with RA-QD facts f-1 to f-4.",
+      "cannot_conclude": [
+        "That an admitted source currently supports 3.0 m. r1 (SRC-1) is admitted at rev-A but stale (indexed rev-A, source now rev-B). r2 (SRC-2) is current but located_not_admitted. Neither meets CS-R1.",
+        "That 2.4 m is admitted research context or the correct value: ADM-1 covers rev-A only and no admission of rev-B exists. RA-QD records this as a gap whose responsible party is unallocated.",
+        "That SRC-2 corroborates 3.0 m: a search hit is not an admission (section 2.3).",
+        "What the correct spacing for EX-L1 is: no supplied file establishes it.",
+        "That rev-B is the latest revision of SRC-1, or that SRC-1@rev-A.md is its genuine rev-A: I have only the revision headers, the file names, and hashes that match RA-QD. There is no revision history.",
+        "That the 'adopted' envelope rests on a real basis: ADMISSION.json says it is constructed and that no Domains provider, contract or admission exists. The DM-1 fixture is not supplied, so I could not re-derive the standing.",
+        "no_work, ready, permitted and correct_by_presence: none of these follows from this material (CS-R2)."
+      ],
+      "notes": "Answer: the admitted source is SRC-1, admitted at rev-A, which stated 3.0 m. That support does not hold now, because SRC-1 is at rev-B and states 2.4 m. Basis: Domains record DM-1, which I did not rely on because it is stale, together with the files, which are decisive."
+    },
+    "DM-2": {
+      "standing": {"envelope": "unknown", "condition": "absent"},
+      "admitted_current_support_for_3_0_m": false,
+      "what_the_source_states_now": "Domains gave nothing (query tool unavailable). From the files alone: SRC-1 (rev-B) states 2.4 m. ADMISSION.json admits SRC-1 at rev-A only, and that revision stated 3.0 m. SRC-2 says 3.0 m and is not admitted. So no admitted source currently supports 3.0 m. The basis is files only, not Domains.",
+      "cannot_conclude": [
+        "Any research context from Domains: there was no response and no results, and nothing takes their place.",
+        "That an admitted source currently supports 3.0 m, or that 2.4 m is admitted: the same file facts as DM-1 apply.",
+        "What the correct spacing for EX-L1 is.",
+        "That rev-B is the latest revision of SRC-1, or that the admission basis is real: it is constructed (ADMISSION.json 'standing').",
+        "no_work, ready, permitted and correct_by_presence (CS-R2)."
+      ],
+      "notes": "The record lists contract DQC-EX-1 as established, yet the envelope is unknown because no response was received; I find that consistent with section 2.1."
+    },
+    "independence": "No. In these records PEC's standing does not change Domains' standing, and Domains' does not change PEC's. I checked this by inspection. Each record's standing reasons cite only its own connector's inputs. The PEC records cite the PEC response, the adoption account, the pin, and the work-graph file and its revisions. The Domains records cite the Domains response, contract DQC-EX-1, the admission basis, and the source revisions. A grep found no reference to Domains records or inputs in PR-P1..P6 or RA-Q1, and no reference to PEC records, inputs or work graphs in DR-DM-1/2 or RA-QD. The two route accounts read disjoint sources. The pairings named in CONNECTOR_FALLBACK.md VER-005 show each standing unchanged by its partner: OC-1 is P6 (unknown/absent) with DM-1 (adopted/stale), and IA-2 is P1 (adopted/current) with DM-2 (unknown/absent). I could not run the CS-R4 check itself, which re-derives each standing with the other connector's inputs removed, because the prototype and fixtures are not supplied. My conclusion therefore rests on reading the records, not on re-deriving them."
+  }
+}

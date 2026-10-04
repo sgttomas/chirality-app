@@ -272,6 +272,42 @@ def main():
           and tf["W5"]["needs"][0]["state"] == "unknown",
           "RF-11 (E2-R2) a torn RS line is a limit, not a crash; decision needs it could hold are unknown")
 
+    # RF-5a (R23-39): connector needs read by DEL-07-02's CS-R1, never by presence (equivalents of FV-10 C2, C5, C8).
+    croot = os.path.join(scratch, "FX-FL1-connectors")
+    if os.path.exists(croot):
+        shutil.rmtree(croot)
+    shutil.copytree(root, croot)
+    recs = os.path.join(EXECUTION, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "D", "build", "records")
+    os.makedirs(os.path.join(croot, "connectors"))
+    for name in ("PR-P6", "PR-P3", "PR-P1"):
+        shutil.copyfile(os.path.join(recs, name + ".json"), os.path.join(croot, "connectors", name + ".json"))
+    with open(os.path.join(recs, "PR-P3.json"), encoding="utf-8") as fh:
+        forged = json.load(fh)
+    forged["response_standing"]["supports_reliance"] = True
+    with open(os.path.join(croot, "connectors", "PR-P3-forged.json"), "w", encoding="utf-8") as fh:
+        json.dump(forged, fh)
+    cw = Writer(croot)
+    r2 = Reader(croot, RS_LOG).graphs["fl:graph:FX-U1:r2"][0]
+
+    def cneed(n):
+        return {"kind": "input", "ref": f"connectors/{n}.json"}
+    extra = [item("C2", "stale connector", MGR, needs=[cneed("PR-P3")]), item("C5", "forged standing", MGR, needs=[cneed("PR-P3-forged")]),
+             item("C8a", "absent connector", MGR, needs=[cneed("PR-P6")]), item("C8b", "adopted, current", MGR, needs=[cneed("PR-P1")]),
+             item("C8c", "plain input", MGR, needs=[{"kind": "input", "ref": "inputs/STYLE.md"}])]
+    gp = cw.graph(hdr("fl:graph:FX-U1:r3", "work_graph", MGR, "g3", {"revision": 3, "supersedes": "fl:graph:FX-U1:r2",
+                                                                     "projectDagRef": r2["body"]["projectDagRef"],
+                                                                     "items": r2["body"]["items"] + extra}))
+    cw.log(hdr("fl:log:0019", "current_graph", MGR, "s3", {"graph": "fl:graph:FX-U1:r3", "graphContent": file_identity(gp)}))
+    cf = {f["itemId"]: f["needs"][0] for f in Reader(croot, RS_LOG).item_facts(U)["items"] if f["itemId"] in ("C2", "C5", "C8a", "C8b", "C8c")}
+    check(cf["C2"]["state"] == "outstanding" and cf["C2"].get("connector") and cf["C2"]["route"] == "ra:EUD1-Q1"
+          and "condition stale" in cf["C2"]["why"],
+          "RF-5a C2 an adopted but stale connector record is present yet outstanding (CS-R1), with its route account")
+    check(cf["C5"]["state"] == "unknown" and "does not conform" in cf["C5"]["why"],
+          "RF-5a C5 a stale standing altered to claim reliance is nonconformant to DEL-07-02's schema: unknown, never satisfied")
+    check(cf["C8a"]["state"] == "outstanding" and cf["C8b"]["state"] == "satisfied" and cf["C8c"]["state"] == "satisfied"
+          and cf["C8c"]["why"] == "input present" and not cf["C8c"].get("connector"),
+          "RF-5a C8 presence no longer satisfies a connector need (absent: outstanding; adopted and current: satisfied); a plain input still reads by presence")
+
     print("\n== invalid records (schema) ==")
     disp = next(e for e in rd.log if e["kind"] == "dispatch_observed")
     inv = []

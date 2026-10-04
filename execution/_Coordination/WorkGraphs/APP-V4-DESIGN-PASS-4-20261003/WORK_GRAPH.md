@@ -91,4 +91,6 @@ introduced if integration work starts delaying owner-facing work.
 | O-B1 DEL-09-01 design | DEL-09-01 `Design/` | R23 | RV review | COMPLETE |
 | O-C1 DEL-09-07 design (designable-now set) | DEL-09-07 `Design/` | R23 | RV review | COMPLETE |
 | D Remaining tranche-1 design, review, closeout | Per LOOP_INIT | E | RV, RV2; C1, C2; P1 MERGE | COMPLETE (PR) |
-| T2 Tranche 2 (PKG-07, PKG-08, PKG-10, PKG-11, DEL-09-10, DEL-09-12) | Per LOOP_INIT | Tranche 1 merged | — | PLANNED |
+| T2-S Tranche-2 surveys S2-D, S2-E, S2-F | `SURVEY/S2-*.md` | Tranche 1 merged (PR 1077); owner "Proceed accordingly." | Obligations, joins, who decides, early unit | ACTIVE |
+| T2-E Tranche-2 early paths, one per cluster | Per survey | T2-S; HELP_HUMAN rulings | Actual consumption check per unit | PLANNED |
+| T2-D Tranche-2 design, review, closeout | Per LOOP_INIT | T2-E | Standing reviewers; closeout; pre-merge review | PLANNED |

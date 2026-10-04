@@ -1,0 +1,310 @@
+{
+  "record_kind": "rrm_input_set",
+  "format": "RRM-v0.1",
+  "input_set_id": "IS-EB1-1",
+  "source_journey": {
+    "identity": "App v4 project execution basis as recorded in project files, read cold (DEL-10-01 EB-1)",
+    "run_authors": [
+      {
+        "identity": "The owner (Ryan)",
+        "role": "decision actor in every owner act"
+      },
+      {
+        "identity": "HELP_HUMAN sessions",
+        "role": "relay, recorder, ruling author (R23)"
+      },
+      {
+        "identity": "WORKING_ITEMS instances of the definition and setup runs",
+        "role": "recorders and record writers"
+      },
+      {
+        "identity": "Type 2 nodes AK2 (SCA runs), D2 (SCA-V4-003) and /root (30% closeout)",
+        "role": "record writers from transcriptions"
+      },
+      {
+        "identity": "O-E (Type 2, Claude Opus 5.5)",
+        "role": "author of EXECUTION_BASIS.md"
+      }
+    ],
+    "journey_dates": [
+      {
+        "value": "2026-09-26",
+        "source": "record_timestamp"
+      },
+      {
+        "value": "2026-10-04",
+        "source": "observed_clock"
+      }
+    ]
+  },
+  "items": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Design/EXECUTION_BASIS.md",
+      "sha256": "e24101b210b9ef16347d9747169034b19b1f1ef5971e7cc31039b97cbc013baa",
+      "standing": "project_file",
+      "note": "The account under test (O-E, EB-v0.1). An index: its claims about acts must be confirmed in the records it cites."
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md",
+      "sha256": "0d8e5b2774c26cde277fbb98b394fdc74a4bf6c171f1fea89904d7a6062565e8",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md",
+      "sha256": "72fc5d9c8d8ebb383544be8082f019611a5f9fc4ed8888fe41903b13f528b2e2",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md",
+      "sha256": "78d3aa2e7ac0e70267441161caf2a24e26358537a43fe49bd3ee09226ba32c3b",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP1-20260927T222641Z/DECISION.md",
+      "sha256": "b8ddaab0466ca6fc1600b5f9756abac453bc4d726657d94ddb88fac08ede4dc1",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/DECISION.md",
+      "sha256": "e05df41f16a6d638308562d03f63377e3c4e8fa8d82738ff472c70fcfa7f5045",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+      "sha256": "14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "6ef9c0ba66ee42f6b786540aa3f26b1104a6fd82c4623d00f28d564d493afabb",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+      "sha256": "8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
+      "sha256": "99d0800967fb16fdad18e46838ce2e3a19e0482bd0f863b11100a5049e0ab013",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-001_GROUP-3_2026-09-29/DECISION.md",
+      "sha256": "640f0fe3fbbfd37eca28f1b53ceea0f7751220244658e415102b07f4bdf17d3d",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-002_GROUP-3_2026-09-29/DECISION.md",
+      "sha256": "47f04469bd21fcbe1fb55dcb0c99392fd3c5c7050204e082d1c228770c33846d",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-3_2026-10-03/DECISION.md",
+      "sha256": "b6e90900b32b7ca38c2fc50e49c85619812dace6fee4c10cb5c28e7b6d81af60",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md",
+      "sha256": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_LATEST.md",
+      "sha256": "b9353a41fe9765a3d8e7548fceddc1679e37775611b7665251b6f1cf55d4ca2d",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/ACCEPTANCE_RECORD.md",
+      "sha256": "9a5e197f69e2e74a317a63f7d5b6c69ebd6f35985d1e3bc56bf911e2fc34e1ab",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-004/ACCEPTANCE_RECORD.md",
+      "sha256": "31f039688b49fcf077519476435ed6de3e89923d54cd4846c297d277c46143e3",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-004/HANDOFF_STATE.md",
+      "sha256": "3c374f5e9fa4cfaa479699cddf5191b69bba2e0fe4707cb17acbe27dddc528ba",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/_LATEST.md",
+      "sha256": "25b882c6e82f6623d3e1434b90e9c196a205a5258b7585c945565270289cff09",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/HANDOFF_30_PERCENT.md",
+      "sha256": "f95e10b1e34ed13f99f7bc90dcdbc22b232cde4f6bcfd3d2e4d65a48d0e1d373",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+      "sha256": "9c2d916c277f8ce4b847c9c532822d0566e59517ba9e0a86b650fe0450f3515d",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+      "sha256": "055703d9a7147ab982731b783366b5fde2ef1ba805a9fe60b6c2b742182aa56e",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/OWNER_DECISIONS.md",
+      "sha256": "e4350f61a93edf0d2d4bfc588fcaa17ae23981baa6059617dcc430cda3008cd8",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/OWNER_DECISIONS_2.md",
+      "sha256": "3a861c5236eb823e589b3ab1230e5f54c35ecee1709436deb6a067918fe442d7",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md",
+      "sha256": "d044bb92cf39b9168bd22482751a142ddb89d6ef3aa9f2992d399c7b2549d13f",
+      "standing": "record",
+      "note": "HELP_HUMAN's rulings, not owner acts."
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+      "sha256": "34b2e489e4e9f82bad33f099d6815cd4b98128de83f09fdbc259d1fd9f11f50a",
+      "standing": "record"
+    },
+    {
+      "path": "docs/governance_harness/tranche_manifests/ROOT-DGOV52-APPLICATION-20261004.yaml",
+      "sha256": "559dcf4316d1e0e1e2057c1b9332ed906ec575a988092ee97303c1386ef2d92c",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/NOTICE_2026-10-04_ROOT_D-GOV-52_AGENTS_MD_APP_V4_ALIGNMENT.md",
+      "sha256": "a643415cb3109edf3c28609efef251155f65cf3148bbcad68fd85ce65a77b2a0",
+      "standing": "record"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "3790159b4f60bb4f6861e637519ee625599958f28038acd3821dbbc8694afea6",
+      "standing": "project_file",
+      "note": "The project's loop instruction."
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/OPERATING_METHOD.md",
+      "sha256": "98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd",
+      "standing": "project_file",
+      "note": "Accepted-basis consolidation (post-act; see its status line)."
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md",
+      "sha256": "0aafefb12e9aa728592fb9e5b268ec4c9fba51d61401bb11bef8613e7f095032",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "cf4bd6c237f614ab34234f02694f7ef10b6cc0c77c2cc482d4a9ccb992ea2a55",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "df0297c5d77440df531e0cd38497eefb227ee465e376cbe56c7ba07f9bee0cde",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/project-setup/WORKFLOW.md",
+      "sha256": "7aa4c30a09183b83341937960a637a89eb8da2f8800aa88a12ec8de7ab14dd6d",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": ".agents/skills/preparation/SKILL.md",
+      "sha256": "0662dc88b5c1deff27280480395d355e5b073a3eb5eb9887f1459861ced96d38",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/scope-of-work/WORKFLOW.md",
+      "sha256": "84dadde4c573b1d3d9ecd65e1e1be12efee1a95299b4115806c02e9c9cdebc2b",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/dependency-extract/WORKFLOW.md",
+      "sha256": "e5523ebabccf44337ec531280d4d91be2ce7ff1477bd39568a18bb0c4c9f18c3",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/audit-dep-closure/WORKFLOW.md",
+      "sha256": "b436fa343058795398633410bd9e0abd19a37dc5b2869c14617016df5e63fcb1",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/project-dag/WORKFLOW.md",
+      "sha256": "e5db36606e71e5057f35d848c3a52f0e4aaca1198d3fe9e758f47cc1501a5a0b",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "sha256": "fa04e1347f8594654e81e5c097414f8b6f602560fe15267a374145f43ae3a4c9",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/scope-change/WORKFLOW.md",
+      "sha256": "b5fd144603c70e977a59988cb7dfe94dd710cac28db97a19f35c437399efbca9",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/scc-resolution-case/WORKFLOW.md",
+      "sha256": "66b7aae75c9470710b40e93af206aec525d14d3269f1a139ef38874fc43e8590",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/bounded-reconciliation/WORKFLOW.md",
+      "sha256": "c7798c0ae59860f193d60f007996a215327c54e3e4dbd8eb0e62b57aab0f11bc",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18",
+      "standing": "project_file",
+      "note": "Pinned subject bytes, supplied so the reader can recompute the hash; reading the body is not required."
+    }
+  ],
+  "withheld": [
+    {
+      "identity": "HELP_HUMAN Claude Code session of run APP-V4-DESIGN-PASS-4-20261003 (and the earlier runs' coordinating sessions)",
+      "kind": "harness_session"
+    },
+    {
+      "identity": "The owner's chat with HELP_HUMAN (the channel every owner act was transcribed from)",
+      "kind": "harness_session"
+    },
+    {
+      "identity": "O-E's session (author of EXECUTION_BASIS.md and of the question key)",
+      "kind": "harness_session"
+    },
+    {
+      "identity": "O-E's working context",
+      "kind": "author_memory"
+    },
+    {
+      "identity": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/SURVEY/S2-E.md (O-E's survey)",
+      "kind": "derived_view"
+    },
+    {
+      "identity": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Design/eb1/EB1_QUESTION_KEY.md (the examiner's key)",
+      "kind": "derived_view"
+    },
+    {
+      "identity": "The repository working tree and Git history beyond the supplied files",
+      "kind": "derived_view"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "record_kind": "eu_f1_answer_key",
+  "format": "EU-F1-v0.1",
+  "input_set_id": "IS-FX-RP1-2",
+  "written_by": "O-F, before any reader ran on IS-FX-RP1-2 (RP-v0.2). EU-F1.answer-key.json (IS-FX-RP1-1) is unchanged; its Q-3 items encoded the RP-R1 defect EUF1-D1 (finding KEY-F1).",
+  "compare": "Fields compare exactly; arrays marked as sets compare as sets. Statements and issues are referred to the examiner.",
+  "set_fields": [
+    "Q-3.outside_scenarios",
+    "Q-6.gap_ids",
+    "Q-6.gap_supplier_deliverables",
+    "Q-10.never_established"
+  ],
+  "expected": {
+    "Q-1": {
+      "decider": "the_owner",
+      "package_id": "pkg:app-v4:replacement:FX-RP1-2",
+      "act_kind": "A16"
+    },
+    "Q-2": {
+      "subject_revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+      "joined_journey_app_candidate": "not_supplied",
+      "reconciliation": "not_established"
+    },
+    "Q-3": {
+      "elements": {
+        "planning": "not_evidenced",
+        "execution": "not_evidenced",
+        "workflow saving": "not_evidenced",
+        "reuse": "not_evidenced",
+        "approvals": "not_evidenced",
+        "interruption": "not_evidenced",
+        "restart": "not_evidenced"
+      },
+      "obligation": "not_evidenced",
+      "established": false,
+      "outside_scenarios": [
+        "V4-EXM-12"
+      ]
+    },
+    "Q-4": {
+      "status": "incomplete",
+      "counts_as_completed_witness": false,
+      "acceptance_acts": 0,
+      "independent_review": "absent"
+    },
+    "Q-5": {
+      "replacement_evidence_complete": false
+    },
+    "Q-6": {
+      "gap_ids": [
+        "G-CL-RESTART",
+        "G-CL-EVIDENCE",
+        "G-J-WITNESS",
+        "G-CAND-JOINED",
+        "G-CONT",
+        "G-ADOPT"
+      ],
+      "gap_supplier_deliverables": [
+        "DEL-09-02",
+        "DEL-09-07",
+        "DEL-11-01",
+        "DEL-11-02"
+      ],
+      "practitioner_validation_is_a_gap": false
+    },
+    "Q-7": {
+      "ALT-OWN-USE": {
+        "v3_0_1_remains_fallback": true,
+        "also_a_public_release_act": false,
+        "retires_anything": false
+      },
+      "ALT-PUBLISHED": {
+        "v3_0_1_remains_fallback": false,
+        "also_a_public_release_act": true,
+        "retires_anything": false
+      },
+      "ALT-DEFER": {
+        "v3_0_1_remains_fallback": true,
+        "also_a_public_release_act": false,
+        "retires_anything": false
+      },
+      "ALT-DECLINE": {
+        "v3_0_1_remains_fallback": true,
+        "also_a_public_release_act": false,
+        "retires_anything": false
+      }
+    },
+    "Q-8": {
+      "decision_state": "not_presented",
+      "owner_act_recorded": false,
+      "v3_0_1_status": "remains_fallback"
+    },
+    "Q-9": {
+      "standing": "not_agreed",
+      "is_replacement_condition": false
+    },
+    "Q-10": {
+      "never_established": [
+        "replacement_decision",
+        "public_release",
+        "retirement",
+        "professional_reliance",
+        "consumer_adoption",
+        "practitioner_validation"
+      ]
+    },
+    "Q-11": {
+      "thesis_identity": "matches",
+      "fallback_identity_remote_rechecked": false,
+      "continuing_obligations": "not_supplied",
+      "adoption_status": "not_supplied"
+    },
+    "Q-12": {
+      "evidence_standing": "illustrative"
+    }
+  },
+  "why": {
+    "Q-3": "Every counted step result is unresolved (illustrative), so under RP-R1 as repaired no element is met or not met; the dossier records six elements pass and restart blocked (S11-6), shown as `recorded`.",
+    "Q-6": "Practitioner standing is carried but is not a replacement condition (F-R3), so it is not a gap.",
+    "Q-7": "ALT-OWN-USE keeps v3.0.1 published as the fallback; ALT-PUBLISHED is also a release act (OQ-08); every alternative states 'No retirement'."
+  }
+}

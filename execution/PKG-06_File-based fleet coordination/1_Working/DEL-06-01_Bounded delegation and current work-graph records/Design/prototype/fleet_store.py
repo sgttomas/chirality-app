@@ -1,6 +1,8 @@
 """DEL-06-01 fleet records: writer and reader (FLEET_RECORDS.md FR-v0.1 §6, §7). Prototype, not product code.
 
-Python 3 standard library. Validates with DEL-04-03's subset validator (minischema.py, read-only).
+Python 3 standard library, plus the installed `jsonschema` for RF-5a only (DEL-07-02's standing schema uses
+`if`/`then`, which the subset validator does not read). Validates records with DEL-04-03's subset validator
+(minischema.py, read-only).
 Layout of a fleet folder (PROPOSED for the prototype only; no placement is selected, FR §2 FR-D3):
   briefs/<briefId>.json          one brief per file, never edited (a changed brief is a new brief that supersedes)
   graphs/<undertaking>/r<n>.json  one work-graph revision per file, never edited
@@ -22,6 +24,53 @@ RS_PROTO = os.path.join(EXECUTION, "PKG-04_Human acts, autonomy and run evidence
                         "DEL-04-03_Content-bound decisions and compact run records", "Design", "prototype")
 sys.path.insert(0, RS_PROTO)
 from minischema import Registry, validate  # noqa: E402
+
+STANDING_SCHEMA = os.path.normpath(os.path.join(EXECUTION,
+                                                "PKG-07_PEC receiving and connector fallback", "1_Working",
+                                                "DEL-07-02_Connector limitation and source-file recovery paths",
+                                                "Design", "connector.standing.schema.json"))
+
+
+def _standing_validator():
+    import jsonschema
+    with open(STANDING_SCHEMA, encoding="utf-8") as fh:
+        s = json.load(fh)
+    return jsonschema.Draft202012Validator({"$ref": "#/$defs/standing", "$defs": s["$defs"]})
+
+
+def connector_need(root, ref):
+    """RF-5a (R23-39; same reading as DEL-06-02 FV-10; S-3, R23-34.10, R23-37.4): an input need whose file is a connector receiving record is a connector need.
+    Its state is read from the record's standing as DEL-07-02 defines it, never from the file's presence:
+    satisfied only if the standing supports reliance (CS-R1); 'unknown' stays unknown (CS-R5); otherwise outstanding,
+    with the route account named. Returns None when the file is not a connector record."""
+    path = os.path.join(root, ref)
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            rec = json.load(fh)
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
+    if not isinstance(rec, dict) or "response_standing" not in rec:
+        return None
+    st, rid = rec["response_standing"], rec.get("record_id", ref)
+    route = (rec.get("route") or {}).get("account_ref")
+    errs = sorted(_standing_validator().iter_errors(st), key=str)
+    if errs:
+        return {"state": "unknown", "connector": True, "record": rid, "route": route,
+                "why": f"connector record {rid}: standing does not conform to DEL-07-02's vocabulary "
+                       f"({errs[0].message[:80]}); not used"}
+    facets = f"envelope {st['envelope']}, condition {st['condition']}" + \
+        (f", claim tier {st['claim_tier']}" if "claim_tier" in st else "")
+    reasons = "; ".join(f"{r['facet']} {r['value']}: {r['basis']}" for r in st["reasons"])
+    if st["supports_reliance"]:
+        return {"state": "satisfied", "connector": True, "record": rid, "route": route,
+                "why": f"connector reliance supported ({st['connector']}: {facets}; {rid})"}
+    state = "unknown" if st["condition"] == "unknown" else "outstanding"
+    return {"state": state, "connector": True, "record": rid, "route": route,
+            "why": f"connector {st['connector']} does not support reliance ({facets}; {rid}): {reasons}"
+                   + (f"; the source-file route is {route}" if route else "; no route account named")}
+
 
 METHOD = "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)"
 
@@ -246,6 +295,11 @@ class Reader:
                 elif n["kind"] == "decision":
                     state = self._decision_state(n["ref"])
                 else:
+                    c = connector_need(self.root, n["ref"])
+                    if c:
+                        # RF-5a (R23-39): a connector need is read from its standing (CS-R1, CS-R5), never by presence.
+                        f["needs"].append(dict({"need": n}, **c))
+                        continue
                     p = os.path.join(self.root, n["ref"])
                     state = ("satisfied", "input present") if os.path.exists(p) else ("outstanding", "input not present")
                 f["needs"].append({"need": n, "state": state[0], "why": state[1]})

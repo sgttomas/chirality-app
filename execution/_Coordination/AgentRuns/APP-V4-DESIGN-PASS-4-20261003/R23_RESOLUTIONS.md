@@ -340,3 +340,276 @@ evidence rules and the owner's earlier decisions already settle them.
      setting change, and never written to their `config.toml` by the App.
      This makes B1's "not a veto" fully true. ACCESS carries it at its next
      revision.
+
+## On the tranche-2 surveys
+
+- **R23-31 PKG-10 (S2-E).** The survey's framing correction stands: PKG-10
+  is the App v4 project's own execution controls, not App product features
+  (DEL-10-01…03 are DOC_UPDATE; PKG-06's row; FR-D2). The App's product
+  support for these practices is PKG-06 and PKG-02.
+  1. **E1-1, E2-1, E4-1 (DERIVED).** Outputs live in the existing records:
+     CURRENT_EXECUTION_BASIS, the work graphs and run records, and DAG-001…004
+     with their cases and currency. Each deliverable gets one thin Design
+     file that maps every obligation to its record, checks it and fills
+     gaps. No parallel record set is created.
+  2. **E1-2 (INTEGRATION).** The "project-definition manager", "undertaking
+     manager" and "dependency owner" are HELP_HUMAN in the WORKING_ITEMS
+     function. O-E prepares; HELP_HUMAN writes the coordination records
+     (CURRENT_EXECUTION_BASIS and the like).
+  3. **E1-3 (DERIVED).** Later undertakings rely on recorded pins while the
+     bytes are unchanged. A changed edition gets a deliberate re-pin record
+     before reliance.
+  4. **E2-2, E2-3 (DERIVED).** Practice notes follow a project-local
+     convention in run records, seeded with tranche 1's recorded lessons.
+  5. **E2-4, review independence (DERIVED).** V4-OPS-34 governs "identified
+     candidates": its Codex-reviewer preference and Claude fallback bind
+     product candidate examination (EXP §7, R23-12). For design units, the
+     merge policy's independent review is met by a separate session that did
+     not author the work, with its model identity reported. Pass 4's reviews
+     were Claude Opus 5.5 reviewing Claude Opus 5.5 work. That is recorded
+     honestly, and it is noted as an observation for the 60% discussion,
+     not as a departure. EXP §7 is not generalised (SQ-E4).
+  6. **E2-8 (DERIVED).** Each run's capability and check account is a short
+     section of its DISPATCH or BRIEFS.
+  7. **E3-1 (DERIVED).** DEL-10-03's "affected promises" are bounded to its
+     nine supplier rows plus DEP-006 and OI-013, 014, 018 and 024. It
+     indexes WD §9 and does not restate it (SQ-E2).
+  8. **E3-2 (INTEGRATION).** Unconfirmed shared allocations (WD U-17,
+     OI-014) are for the deliverable owners to confirm. The SWBPIPE half
+     waits for the host joins.
+  9. **E4-5 (DERIVED, as R23-28).** DEL-10-01…04 move to IN_PROGRESS when
+     design starts.
+  10. **SQ-E1 and SQ-E3.** An App read of a user project's DAG is not owned
+      by any deliverable and is not added now. ACT-POLICY's "DEL-10-03 …
+      not mapped in detail" is filled by a row when DEL-10-03 is designed,
+      under R23-21.
+  11. **Not changed.** The absolute home path in
+      `_DAG/cases/SCC-CASE-006/Case_Contract.md` is one of the 191
+      hash-bound files the redaction report left under the owner's "no
+      rewrite" direction.
+
+- **R23-32 PKG-11 and DEL-09-12 (S2-F).** No item is a question for the
+  owner now. P-1…P-7 are the person's acts at their own points of need:
+  - P-1 replacing v3.0.1;
+  - P-2 OI-016 (App v4), the validation period and activities;
+  - P-3 the owner's use and fitness judgment;
+  - P-4 staged adoption and retirement;
+  - P-5 public release;
+  - P-6 consequential method changes;
+  - P-7 OI-021.
+
+  The design prepares each so it can be decided well. F-R1…F-R16 are ruled
+  as S2-F proposed them:
+  1. **F-R1:** the replacement subject is one identified candidate.
+  2. **F-R2:** v3.0.1 is not rerun; the v3 reference limit is stated.
+  3. **F-R3:** practitioner validation is not a replacement condition.
+  4. **F-R4:** the package uses the R23-24 shape. The owner's act is
+     recorded in the project's OWNER_DECISIONS form. Shared schemas are not
+     changed.
+  5. **F-R5:** the alternatives are own use, published replacement (also a
+     release act), defer and decline.
+  6. **F-R6, F-R7:** DEL-11-01 is a linked view over the existing reference,
+     archive and inventory records.
+  7. **F-R8:** SCC-006 is treated by SCC-CASE-007 R1 for design.
+  8. **F-R9, F-R10:** a routine adoption of an instruction change is the
+     receiving loop's act.
+  9. **F-R11:** DEL-11-02's consumers come from DEL-10-03 (R23-31.7).
+  10. **F-R12:** DEL-09-12 keeps its own observation record, not an EXP
+      outcome. This also answers S-F3.
+  11. **F-R13:** observations route to their owning deliverable through the
+      ScopeLedger.
+  12. **F-R14:** always write "OI-016 (App v4)" or "SWBPIPE OI-016".
+  13. **F-R15:** missing consumer-side rows go to the next amendment after
+      the reach script.
+  14. **F-R16:** the App v3 and Runtime notices are recorded as "notice
+      delivered; receiving decision not recorded". Their shared appendix
+      names App v3's RB-SETTINGS register, which is apt for v3 and only
+      loosely so for Runtime. This is recorded, not edited: the notices are
+      in PR 1079.
+- **R23-33 One candidate identity (S2-F S-F1). INTEGRATION.**
+  1. EXP's `candidate_subject` (DEL-09-01, the examination infrastructure)
+     is the canonical identity of an App candidate.
+  2. SQ's `candidate` and the LHQ CIR's `app_candidate` map to it; they do
+     not define it.
+  3. EU-F1 exercises the mapping on real files. Any row it needs in SQ or
+     LHQ is made by its owner (O-B, O-C) under R23-21, and is listed by
+     O-F, not edited by O-F.
+
+- **R23-34 PKG-07, PKG-08 and DEL-09-10 (S2-D).** No item is a question for
+  the owner now. OI-026 (Domains provider allocation), starting the
+  Domains-enabled increment, host-specific reserved additions (OI-021) and
+  any relaxation of V4-HOST-02 are the person's acts at their own points of
+  need.
+  1. **H-3 (DERIVED).** One standing vocabulary, defined in DEL-07-02, with
+     three facets: envelope, condition and claim tier. Only adopted +
+     current + record/admitted supports reliance. DEL-07-01, DEL-08-01,
+     DEL-09-10 and FV use it. It is built under SCC-CASE-005 R1, with no new
+     row.
+  2. **H-2 (DERIVED).** The App's first PEC question is the project-scope
+     orientation within PEC's declared feeds (PEC-ORI-001/002), answered
+     from the method's files. No PEC coverage of `chirality.fleet.record` is
+     assumed.
+  3. **H-1 (INTEGRATION).** PEC is consumed only through the person's own
+     Codex MCP configuration, and the App holds no PEC client, socket or
+     token. App-origin `mcpServer/tool/call` is used only after a local
+     observation settles HOSTING §6.8's "not observed" point. That probe is
+     O-D's, under these limits:
+     - an existing scratch Codex binary (0.158.0 or VC's 0.160.0), never the
+       `codex` on PATH and never `~/.codex`;
+     - a scratch home under a path without the user name (R23-22.4);
+     - DEL-01-01's MCP double, with no network, no sign-in, no model and no
+       download.
+  4. **H-4 (INTEGRATION, not as proposed).** No candidate-approval act row
+     is added to ACT, RS, CE or GUIDE now. ACT §2.1 places design-candidate
+     approval "in a later increment", and its subject depends on host
+     specifics that wait for the joins (S-5). DEL-08-02 states the act's
+     requirements in its own Design file as a PROPOSED definition. The
+     shared rows are added when the Domains-enabled increment is selected.
+  5. **H-5 (INTEGRATION, not as proposed).** WD §4.2.1 keeps its two tool
+     classes. Under H-1, a PEC tool reaches the App as a harness capability
+     (`mcpToolCall`). A Domains tool class is a question for the
+     Domains-enabled increment, and DEL-08-01 notes it. S-4 is not opened.
+  6. **H-6 (DERIVED).** No register rows where reach shows a cycle (S-6).
+     DEL-07-02 reads fleet records as files.
+  7. **H-7 (INTEGRATION).** App adoption is two facts: release-level
+     adoption, recorded by the App receiving owner like the qualification
+     pin (R23-22), and per-installation enablement, which is the person's own
+     configuration. Neither is needed before a qualified PEC release.
+  8. **H-8 (DERIVED, R23-11).** DEL-08-02's overtaken OI-001/002 wording goes
+     to the next amendment. DEP-09-01-027's missing upstream row goes to the
+     register owners. GUIDE M10.1/M10.2 and TBD-007…009 drop "owner-open" at
+     GUIDE's next revision.
+  9. **H-9 (DERIVED, R23-28).** The five deliverables move to IN_PROGRESS.
+  10. **EU-D1.** Accepted as the cluster's early unit. FV's connector
+      waiting cause is O-A's row (S-3), made once EU-D1 freezes the
+      vocabulary; adoption is checked in O-A's returned files. DEL-08-02's
+      method and act design proceeds in parallel.
+
+- **R23-35 Binding an undertaking's basis. DERIVED. Supersedes R23-31.3.**
+  1. `CURRENT_EXECUTION_BASIS.md` says: "a later undertaking or changed
+     source must bind its own applicable basis before reliance". R23-31.3
+     ("rely on recorded pins while the bytes are unchanged") understated
+     that. The isolated reader of EB-1 (RR-EB1) found the tension.
+  2. Each later undertaking writes its own short basis binding before
+     reliance. It may bind by reference to the recorded pins after
+     re-hashing them.
+  3. This run had not done so. HELP_HUMAN has now written
+     [BASIS_BINDING.md](BASIS_BINDING.md): all 9 recorded pins re-hashed and
+     unchanged, plus the two methods this run selected. Tranche 1's reliance
+     was on unchanged bytes, so no result changes; the gap is recorded, not
+     hidden.
+  4. O-E's account and DEL-10-01's later records follow R23-35.
+- **R23-36 RQ-LHQ-1 (O-F, under R23-33). INTEGRATION.** The LHQ CIR gains an
+  additive, optional element that maps `app_candidate` to EXP's
+  `candidate_subject.app_candidate`. O-C makes it in DEL-09-07, with a new
+  version label (R23-21). Until then, EU-F1 correctly reports CIR
+  reconciliation as `not_established`.
+
+- **R23-37 EU-D1's probe and departures (O-D). INTEGRATION.**
+  1. **App-origin `mcpServer/tool/call` at 0.158.0, observed with the MCP
+     double and no model.** The result returned to the App. The server
+     received the thread id in `_meta`. No notification followed, and the
+     rollout kept no trace. That settles thread items and history: "no
+     entry". Whether a later turn's model input includes the call is
+     inferred, not observed. It is not enough for reliance (workflow §1: no
+     expansion on an unproved consequential premise).
+     - PRC §7 keeps App-origin reads unused.
+     - O-D may run one follow-up probe under the same limits plus a local
+       model through LM Studio on loopback, as VC did: an already-present
+       model, no download, no sign-in, the scratch home under /tmp, and
+       LM Studio stopped afterwards.
+     - If the model's input shows no trace of the call, App-origin reads
+       may be used for App views. If it does, they stay unused and HOSTING
+       §6.8 records why.
+  2. **For DEL-01-01's owner (recorded, no edit now).** `thread/items/list`
+     and `thread/read` with turns answered "not supported yet" on a thread
+     with no turn. WR, RECOVERY and NPTD page with `thread/items/list`, so
+     their designs must treat a thread with no turn as having no items, not
+     as an error. This goes to those files' next revision.
+  3. **Departures accepted (within R23-34.1).** The Domains envelope's
+     "adopted" means an identified contract plus an established admission
+     basis. Each facet gains an "unknown" value that is never promoted.
+  4. **FV's connector waiting cause** is routed to O-A, as S-3 and R23-34.10
+     set out.
+
+- **R23-38 EB-1's early path (O-E, RR-EB1). INTEGRATION.**
+  1. **Passed as an early path.** The premise under test was that the
+     project's records carry its execution basis for a reader who arrives
+     cold. The reader matched every critical item from the primary records
+     and contradicted none. The one frozen-key miss (K7.d) was an error in
+     the key: the reader reported the owner's 2026-10-04 act correctly. K3.3
+     was a gap in the brief. Both are recorded in `eb1/EB1_COMPARISON.md`.
+     The key stays frozen as the record of what was asked.
+  2. **The account's errors were real and are repaired** (EB-v0.2). They
+     come from the cause O-E names: a stale reading under a fresh hash. That
+     is a practice note for DEL-10-02 — hash the bytes you actually read,
+     and reread before freezing. No second cold read: the reader already
+     relied on the primary records, and RV3 reviews EB-v0.2's corrections
+     against them.
+  3. **DEL-10-02 and DEL-10-04 may expand.**
+  4. **P-E1 is withdrawn, and P-E2 is not taken.**
+     `CURRENT_EXECUTION_BASIS.md` is bound by hash in 8 records and is not
+     edited. EB's account is the index to each undertaking's binding.
+  5. **P-E3: no retroactive bindings.** No agreed condition requires them
+     (workflow §6). EB records, as an observation, that every method the
+     first increment and passes 2–3 used is byte-identical then and now
+     (checked by O-E with Git).
+
+- **R23-39 Connector needs in DEL-06-01 (O-A's RF-5a). INTEGRATION.**
+  DEL-06-01's reader marks an input need satisfied once its file exists
+  (RF-5), so its facts would call a connector receiving record "satisfied"
+  whatever its standing. That breaks CS-R2 for any reader other than FV.
+  The fix is made now, not at a later revision, because the defect is in a
+  shared fact that other readers consume (workflow §5). O-A adds RF-5a to
+  FR-v0.1: connector needs are read by DEL-07-02's CS-R1, as FV-10 does. It
+  is repaired in place, with a change note and a check in run_fleet.py.
+
+- **R23-40 What a connector may establish (RV2 EUD1-R1, cross-owner).
+  DERIVED** from V4-CON-02, V4-CON-03 and V4-HI-62. This is one disposition
+  for O-D and O-A.
+  1. **CS-R2 is restated.** A connector's absence or limitation never
+     implies empty work, readiness, completion or permission. A relied
+     record-tier claim (adopted + current + record) reports only what its
+     cited record states at its pin. For example, "the work graph at S marks
+     O-B1 READY" is a report of the record, not an App conclusion.
+  2. **"Done"** is not a CS value. The prohibited conclusions are listed in
+     CFB §3 and stated with CS-R5, and FV refers to them there.
+  3. **FV.** FV's own categories derive from project files only (V4-PM-06).
+     A connector need counts as satisfied only when reliance is supported
+     (CS-R1, RF-5a). Satisfying a need is not readiness: an item becomes
+     ready only by FV's file-based rules. FV-10's wording "never makes
+     anything ready" is restated to match. Its behaviour (C1…C8) already
+     does.
+  4. **Routing.** O-D repairs CFB: CS-R2, the "done" pointer, a case where
+     Q1 is asked at S with READY nodes and an adopted, current response, and
+     EUD1-R2…R5. O-A restates FV-10's wording with RF-5a. RV2 confirms
+     both, and checks adoption in the returned files.
+
+- **R23-41 Frozen bytes are kept (RV3 process issue). INTEGRATION.**
+  1. **What happened.** O-F repaired EU-F1 in place while RV3 was reviewing
+     the frozen bytes. HELP_HUMAN had routed the reader's account to O-F
+     without first withdrawing the unit from review. The files were
+     untracked, so the frozen bytes cannot be recovered.
+  2. **The rule from now on.** At each freeze HELP_HUMAN commits only that
+     unit's paths, so a frozen unit is recoverable from git. A path-limited
+     commit does not take in other owners' partial edits. A unit under
+     review is not edited. A repair that has to start sooner withdraws the
+     unit from review, and the reviewer is told.
+  3. **EU-F1.** RV3's review of RP-v0.1 stands as written. RP-v0.2 is the
+     unit now under review, and RV3 confirms against it.
+- **R23-42 RV3's notes on EB and LHQ. INTEGRATION.**
+  1. **EB2-R1.** LOOP_INIT's v4 text has a decision record:
+     `APP-V4-LOOP-ENTRY-20260928.yaml` `m2_gate`. The owner asked for the
+     revision, HELP_HUMAN `/root` wrote it, and it was self-merged under the
+     owner-authorized PR gate. No record shows the owner reviewed the
+     resulting text. EB records exactly that (EB-v0.3, with EB2-R2).
+  2. **DEL-10-02 and DEL-10-04's IN_PROGRESS.** These were moved when
+     PKG-10's design started with DEL-10-01's unit, not when their own design
+     started. R23-31.9 read "when design starts"; the transition is
+     recorded as made at the package's start. Their design is now under way
+     (R23-38.3).
+  3. **LHQ2-R1.** CI-5 requires the mapping to agree with the element's
+     `value` where both are given. O-C makes the change.
+  4. **LHQ2-R2.** DOS's pinned CIR schema goes to its owner at the
+     closeout. It is not re-pinned by script, because mapped CIRs fail the
+     v0.1 schema.

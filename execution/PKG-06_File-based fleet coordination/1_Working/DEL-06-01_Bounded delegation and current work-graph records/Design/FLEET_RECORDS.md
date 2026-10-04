@@ -36,6 +36,10 @@
   - E2-N1: §3.1 marks `enforced-by-host` as FR's own value.
   - E2-N2: FR-D1 gives the HOSTING line.
   - R23-25: the latest decision holds (RF-6).
+- **Change note (2026-10-04; R23-39; in place, same label FR-v0.1).** RF-5a:
+  a connector need is read from its standing under DEL-07-02's CS-R1, not by
+  presence. Unknown and nonconformant standings stay *unknown*, as in
+  DEL-06-02 FV-10. Adds the §5 need row and cases C2, C5 and C8 in §9.
 
 ## 1. What these records are
 
@@ -203,7 +207,7 @@ travels in the spawn:
 | return | returned (by, recorded by) · none | `return_recorded` | a child's `completed`; an agent's message |
 | review | ‹verdict› (by) · none | `review_recorded` on that return | a return |
 | integration | integrated (by, evidence) · none | `integration_recorded` on that return | a review; reconnection |
-| need | satisfied · outstanding · unknown, each with its reason | item: the needed item's integration or external result; decision: an RS `human_act` of the kind the package names, citing it (for A16, a named alternative); input: the file | readiness from a missing feed (V4-HI-62); a decision from a chat message |
+| need | satisfied · outstanding · unknown, each with its reason | item: the needed item's integration or external result; decision: an RS `human_act` of the kind the package names, citing it (for A16, a named alternative); input: the file; a connector input: its standing supports reliance (RF-5a) | readiness from a missing feed (V4-HI-62); a decision from a chat message; a connector record's presence |
 
 DEL-06-02 derives queues and waiting causes from these facts. This file
 derives the facts only.
@@ -225,6 +229,20 @@ derives the facts only.
   record and attach to one return.
 - **RF-5** An item need is satisfied by the needed item's integration or
   external result.
+- **RF-5a Connector needs (R23-39; DEL-07-02 CFB-v0.1 §2, CS-R1, CS-R5).**
+  An input need whose file is a connector receiving record (a JSON record
+  with `response_standing`) is a **connector need**. The reader validates
+  the standing against DEL-07-02's `connector.standing.schema.json` as it
+  is, and reads the need from it, never from the file's presence:
+  - *satisfied* only if the standing supports reliance;
+  - *unknown* if the condition is *unknown* or the standing does not
+    conform;
+  - otherwise *outstanding*, with the facets, each reason and the route
+    account (`ra:…`).
+
+  The fact carries `connector`, the record id and the route reference.
+  Other input needs keep the presence reading. DEL-06-02's FV-10 words these
+  facts and does not re-read them.
 - **RF-6** A decision need is satisfied only by an RS `human_act` of the
   named kind citing the request (for A16, with a named alternative). Without
   the RS records it is *unknown*. Where several such acts exist, the latest
@@ -316,8 +334,15 @@ reads FX-DP1's RS records for decisions.
 | VER-008 | §10 (artifact and owner comparison) |
 | Writer, reader | W-1 refusal, W-2 no overwrite, RF-1 changed graph not used, torn line a limit; RF-10/RF-12 a truncated dispatch line reported unread with its child orphaned; RF-11 a torn RS line a limit with decisions unknown; INV-FL-1…7 |
 
-Result on 2026-10-03, after the RV-E2 repairs: 34/34, including the
-committed-fixture check.
+Result on 2026-10-04, after RF-5a: 37/37, including the committed-fixture
+check. RF-5a's cases run on a scratch copy of FX-FL1 with revision r3 and
+O-D's records (`RUN/D/build/records/PR-P6.json`, `PR-P3.json`, `PR-P1.json`,
+read as they are):
+- C2: an adopted but stale record is outstanding, with its route account;
+- C5: a stale standing altered to claim reliance is nonconformant, so
+  *unknown*;
+- C8: an absent connector is outstanding, an adopted and current one is
+  satisfied, and a plain input still reads by presence.
 
 ## 10. Owner boundary (REQ-006)
 

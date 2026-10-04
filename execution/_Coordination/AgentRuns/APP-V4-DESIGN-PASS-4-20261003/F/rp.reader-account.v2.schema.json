@@ -1,0 +1,840 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:eu-f1:reader-account:0.2",
+  "title": "EU-F1 reader account (prototype)",
+  "description": "An isolated reader's answers to READER_BRIEF.md Q-1...Q-12 about input set IS-FX-RP1-2. Compared field by field with the frozen answer key by compare_rp.py; statements and issues are read by the examiner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_kind",
+    "format",
+    "reader",
+    "input_set",
+    "answers",
+    "issues"
+  ],
+  "properties": {
+    "record_kind": {
+      "const": "eu_f1_reader_account"
+    },
+    "format": {
+      "const": "EU-F1-v0.1"
+    },
+    "reader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "kind",
+        "model_identity",
+        "separation"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "person"
+          ]
+        },
+        "model_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "separation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "input_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_set_id",
+        "sha256",
+        "all_hashes_checked"
+      ],
+      "properties": {
+        "input_set_id": {
+          "const": "IS-FX-RP1-2"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "all_hashes_checked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "answers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Q-1",
+        "Q-2",
+        "Q-3",
+        "Q-4",
+        "Q-5",
+        "Q-6",
+        "Q-7",
+        "Q-8",
+        "Q-9",
+        "Q-10",
+        "Q-11",
+        "Q-12"
+      ],
+      "properties": {
+        "Q-1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decider",
+                "package_id",
+                "act_kind"
+              ],
+              "properties": {
+                "decider": {
+                  "enum": [
+                    "the_owner",
+                    "the_coordinator",
+                    "the_examiner",
+                    "affected_consumers",
+                    "not_stated"
+                  ]
+                },
+                "package_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "act_kind": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-2": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "subject_revision",
+                "joined_journey_app_candidate",
+                "reconciliation"
+              ],
+              "properties": {
+                "subject_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "joined_journey_app_candidate": {
+                  "enum": [
+                    "same_as_subject",
+                    "different",
+                    "not_supplied",
+                    "not_mappable"
+                  ]
+                },
+                "reconciliation": {
+                  "enum": [
+                    "reconciled",
+                    "reconciled_by_applicability",
+                    "differ",
+                    "not_established"
+                  ]
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-3": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "elements",
+                "obligation",
+                "established",
+                "outside_scenarios"
+              ],
+              "properties": {
+                "elements": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "planning",
+                    "execution",
+                    "workflow saving",
+                    "reuse",
+                    "approvals",
+                    "interruption",
+                    "restart"
+                  ],
+                  "properties": {
+                    "planning": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    },
+                    "execution": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    },
+                    "workflow saving": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    },
+                    "reuse": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    },
+                    "approvals": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    },
+                    "interruption": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    },
+                    "restart": {
+                      "enum": [
+                        "met",
+                        "not_met",
+                        "not_evidenced"
+                      ]
+                    }
+                  }
+                },
+                "obligation": {
+                  "enum": [
+                    "met",
+                    "not_met",
+                    "not_evidenced"
+                  ]
+                },
+                "established": {
+                  "type": "boolean"
+                },
+                "outside_scenarios": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-4": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "counts_as_completed_witness",
+                "acceptance_acts",
+                "independent_review"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "completed_witness",
+                    "incomplete"
+                  ]
+                },
+                "counts_as_completed_witness": {
+                  "type": "boolean"
+                },
+                "acceptance_acts": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "independent_review": {
+                  "enum": [
+                    "present",
+                    "absent"
+                  ]
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-5": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "replacement_evidence_complete"
+              ],
+              "properties": {
+                "replacement_evidence_complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-6": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "gap_ids",
+                "gap_supplier_deliverables",
+                "practitioner_validation_is_a_gap"
+              ],
+              "properties": {
+                "gap_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "gap_supplier_deliverables": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^DEL-[0-9]{2}-[0-9]{2}$"
+                  },
+                  "uniqueItems": true
+                },
+                "practitioner_validation_is_a_gap": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-7": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ALT-OWN-USE",
+                "ALT-PUBLISHED",
+                "ALT-DEFER",
+                "ALT-DECLINE"
+              ],
+              "properties": {
+                "ALT-OWN-USE": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "v3_0_1_remains_fallback",
+                    "also_a_public_release_act",
+                    "retires_anything"
+                  ],
+                  "properties": {
+                    "v3_0_1_remains_fallback": {
+                      "type": "boolean"
+                    },
+                    "also_a_public_release_act": {
+                      "type": "boolean"
+                    },
+                    "retires_anything": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "ALT-PUBLISHED": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "v3_0_1_remains_fallback",
+                    "also_a_public_release_act",
+                    "retires_anything"
+                  ],
+                  "properties": {
+                    "v3_0_1_remains_fallback": {
+                      "type": "boolean"
+                    },
+                    "also_a_public_release_act": {
+                      "type": "boolean"
+                    },
+                    "retires_anything": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "ALT-DEFER": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "v3_0_1_remains_fallback",
+                    "also_a_public_release_act",
+                    "retires_anything"
+                  ],
+                  "properties": {
+                    "v3_0_1_remains_fallback": {
+                      "type": "boolean"
+                    },
+                    "also_a_public_release_act": {
+                      "type": "boolean"
+                    },
+                    "retires_anything": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "ALT-DECLINE": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "v3_0_1_remains_fallback",
+                    "also_a_public_release_act",
+                    "retires_anything"
+                  ],
+                  "properties": {
+                    "v3_0_1_remains_fallback": {
+                      "type": "boolean"
+                    },
+                    "also_a_public_release_act": {
+                      "type": "boolean"
+                    },
+                    "retires_anything": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-8": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision_state",
+                "owner_act_recorded",
+                "v3_0_1_status"
+              ],
+              "properties": {
+                "decision_state": {
+                  "enum": [
+                    "not_presented",
+                    "presented_no_decision",
+                    "decided"
+                  ]
+                },
+                "owner_act_recorded": {
+                  "type": "boolean"
+                },
+                "v3_0_1_status": {
+                  "enum": [
+                    "remains_fallback",
+                    "replaced",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-9": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "standing",
+                "is_replacement_condition"
+              ],
+              "properties": {
+                "standing": {
+                  "enum": [
+                    "not_agreed",
+                    "agreed",
+                    "in_use",
+                    "ended",
+                    "not_supplied"
+                  ]
+                },
+                "is_replacement_condition": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-10": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "never_established"
+              ],
+              "properties": {
+                "never_established": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "enum": [
+                      "replacement_decision",
+                      "public_release",
+                      "retirement",
+                      "professional_reliance",
+                      "consumer_adoption",
+                      "practitioner_validation"
+                    ]
+                  }
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-11": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "thesis_identity",
+                "fallback_identity_remote_rechecked",
+                "continuing_obligations",
+                "adoption_status"
+              ],
+              "properties": {
+                "thesis_identity": {
+                  "enum": [
+                    "matches",
+                    "differs",
+                    "not_checked"
+                  ]
+                },
+                "fallback_identity_remote_rechecked": {
+                  "type": "boolean"
+                },
+                "continuing_obligations": {
+                  "enum": [
+                    "supplied",
+                    "not_supplied"
+                  ]
+                },
+                "adoption_status": {
+                  "enum": [
+                    "supplied",
+                    "not_supplied"
+                  ]
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "Q-12": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fields",
+            "statement",
+            "sources"
+          ],
+          "properties": {
+            "fields": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_standing"
+              ],
+              "properties": {
+                "evidence_standing": {
+                  "enum": [
+                    "illustrative",
+                    "candidate"
+                  ]
+                }
+              }
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "about",
+          "statement",
+          "sources"
+        ],
+        "properties": {
+          "about": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,7 +4,105 @@ Owner O-A: Type 2 TASK, Claude Opus 5.5, high effort, standing assignment
 from HELP_HUMAN (run `APP-V4-DESIGN-PASS-4-20261003`). Read-only git; no
 network. Paths are relative to `projects/chirality-app-v4/execution`.
 
-## CURRENT — E-1 READY (RV confirmed); E-2 refrozen after RV-E2 (2026-10-03)
+## CURRENT — FV-10 with RF-5a (R23-39), frozen for RV2 (2026-10-04)
+
+This section supersedes the FV-10 section below. The two units are reviewed
+together.
+
+- **RF-5a (DEL-06-01 FR-v0.1, repaired in place with a change note).**
+  - The connector reading (`connector_need`) moved from DEL-06-02's prototype
+    into DEL-06-01's reader. A connector need is *satisfied* only when its
+    standing supports reliance (CS-R1). It is *unknown* when the condition is
+    unknown (CS-R5) or the standing is nonconformant. It is otherwise
+    *outstanding*, with the facets, reasons and the route account.
+  - Other input needs keep the presence reading.
+  - FR §5 gains the need row and §6 gains RF-5a.
+- **FV-10 (FV-v0.1).** It now words DEL-06-01's facts and does no reading of
+  its own. C8 was adjusted:
+  - before: DEL-06-01 says "satisfied" and FV overrides it;
+  - now: DEL-06-01's facts give the same states FV shows (absent and stale
+    outstanding, adopted and current satisfied, nonconformant and unknown
+    *unknown*), with no override.
+- **Cases in `run_fleet.py`, on a scratch FX-FL1 with revision r3 and O-D's
+  records, read as they are:**
+  - C2: adopted but stale → outstanding, with `ra:EUD1-Q1`;
+  - C5: a stale standing altered to claim reliance → nonconformant,
+    *unknown*;
+  - C8: absent → outstanding; adopted and current → satisfied; a plain input
+    still reads by presence.
+- **Checks.** `run_fleet.py` gives 37/37 (34 before). `run_views.py` gives
+  31/31. FX-FL1 is unchanged (`0489bc61…`), as is the schema.
+- **R23-40 (wording only).** FV-10's CS-R2 bullet is restated:
+  - FV's categories derive from project files only;
+  - a connector need is satisfied only under CS-R1 / RF-5a;
+  - satisfying a need is not readiness (evidence: C3 and C4);
+  - absence or limitation never implies empty work, readiness, completion
+    or permission;
+  - a relied record-tier claim reports only what its record states;
+  - "done" points to CFB §3, with CS-R5.
+
+  The change note says so. Behaviour is unchanged: `run_views.py` gives
+  31/31, and only C7's label changed.
+- **Write fence.** Only the six files below and this note.
+
+| File | sha256 |
+|---|---|
+| DEL-06-01 `Design/FLEET_RECORDS.md` (FR-v0.1 + RF-5a) | c328ebfc3bbb1bd5c2efa789691be8fdc1e8f1b8f1f744448a3c0daae7d10e97 |
+| DEL-06-01 `Design/prototype/fleet_store.py` | 75c07f4489a02c39aa8b8f06b6d55ce607e409b06759485343fc9cdf9f5c04d4 |
+| DEL-06-01 `Design/prototype/run_fleet.py` | efb37ed4629d93f005f797032872263eca30a58e937688feaf1c29919a4f7190 |
+| DEL-06-02 `Design/FLEET_VIEWS.md` (FV-v0.1 + FV-10, CS-R2 wording per R23-40) | eb0c6734bae5c108530215972bb1a91fd22fe1bbe876751d8c2998d8ed65d788 |
+| DEL-06-02 `Design/prototype/fleet_views.py` | a187fd4f7c3ea4718b04e069c4742f789bdbc95fe0e4ab7184ab0f023da7c427 |
+| DEL-06-02 `Design/prototype/run_views.py` (C7 label only) | 9c39d9bba42d2a5c666d4a0a7e5efdc970f4296f0f7dfb562dc61b8ad4fa27dc |
+
+## Tranche-2 item: FV's connector waiting cause (FV-10), frozen for review (2026-10-04)
+
+E-1 and E-2 are READY (RV). This unit changes only DEL-06-02's FV files.
+
+- **What.** FV-10, the connector waiting cause (S-3; R23-34.10, R23-37.4),
+  added as a row. FV keeps the label FV-v0.1, repaired in place with a
+  change note.
+- **Inputs, read as they are.** DEL-07-02 CFB-v0.1 §2 and
+  `connector.standing.schema.json` `589f2c5da8a9b4bc…` (frozen at EU-D1).
+  Each receiving record's `response_standing` and `route.account_ref`.
+- **Rules applied:**
+  - satisfied only if the standing supports reliance (CS-R1);
+  - *unknown* if the condition is unknown (CS-R5) or the standing is
+    nonconformant;
+  - otherwise outstanding, with every reason and the route account;
+  - a connector, or its absence, never makes anything *ready*, *done* or
+    permitted (CS-R2), and connector rows change no other row.
+- **Cases** (`run_views.py`, scratch copy of FX-FL1 with revision r3 and O-D's
+  `RUN/D/build/records/PR-P6.json`, `PR-P3.json`, `PR-P1.json`):
+  - C1: absent → waits, with the route ra:EUD1-Q1;
+  - C2: adopted but stale → waits;
+  - **C3: adopted and current, yet still waiting for W2** (another cause);
+  - C4: adopted and current alone → ready (qualified by thr-cx);
+  - C5: a stale standing altered to claim reliance → nonconformant, *unknown*;
+  - C6: condition unknown → *unknown*;
+  - C7: no other row changes;
+  - C8: DEL-06-01's presence reading is not used.
+- **Checks.**
+  - `run_views.py` gives 31/31 (23 before).
+  - `run_fleet.py` still gives 34/34; DEL-06-01 is unchanged.
+  - The standing check uses the installed `jsonschema`, because DEL-07-02's
+    schema uses `if`/`then`, which DEL-04-03's subset validator does not
+    read. This is noted in `fleet_views.py`.
+- **Raised, not changed** (DEL-06-01, READY; outside this instruction).
+  DEL-06-01's RF-5 reads every input need by presence, so its facts call a
+  connector record "satisfied". FV-10 overrides that, but another consumer
+  of DEL-06-01's facts would not. I propose RF-5a in DEL-06-01's next
+  revision: read connector needs by CS-R1, as FV-10 does. It is recorded in
+  FV §8.
+- **Write fence.** Only the three FV files and this note. O-D's records and
+  DEL-07-02's files were read, not written.
+
+| File | sha256 |
+|---|---|
+| DEL-06-02 `Design/FLEET_VIEWS.md` (FV-v0.1 + FV-10) | 095b1fc1e9034eef0328ababd1ed113cc9efd67788e9c0d48258d48e5450cf8a |
+| DEL-06-02 `Design/prototype/fleet_views.py` | 581ed6c50ccb13765b52be517f430a0b5cab9ceaa17b40e8b5ba5c183f17b0f2 |
+| DEL-06-02 `Design/prototype/run_views.py` | 7b207a22c515def08e322fe90ee1f405f1be2b680731cb91db441434ee6bf523 |
+
+## E-1 READY; E-2 refrozen after RV-E2 (2026-10-03; RV confirmed READY with E2-R4). FV hashes there are superseded by the section above
 
 This section is authoritative. Hash tables in the sections below it are
 history. The E-1 table in the next section stands as RV confirmed it, except

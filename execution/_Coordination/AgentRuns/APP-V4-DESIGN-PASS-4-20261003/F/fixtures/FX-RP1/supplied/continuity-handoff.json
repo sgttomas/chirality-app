@@ -1,0 +1,34 @@
+{
+  "account_version": 1,
+  "adoption_status": "not_supplied",
+  "archives": {
+    "source": "projects/chirality-app-v4/reference/archives/ARCHIVES.md",
+    "verify": "not_run"
+  },
+  "continuing_obligations": {
+    "owner": "Owner with affected consumers (OI-024)",
+    "point_of_need": "Before each adoption/retirement decision",
+    "status": "not_supplied"
+  },
+  "fallback_identity": {
+    "remote_rechecked": false,
+    "retained": true,
+    "source": "projects/chirality-app-v4/reference/REFERENCES.md §2",
+    "source_sha256": "07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc"
+  },
+  "format": "RP-v0.1-first-cut",
+  "record_kind": "continuity_handoff",
+  "replacement_standing": "replacement pending; v3.0.1 retained",
+  "thesis_check": {
+    "at_commit": "d2929fd62b3dfea6a56090b81d0c8248be97a4c0",
+    "expected_tree": "47fc49e96c2931ba18090f1a82d56a49f230b3ee",
+    "files": 19,
+    "limits": [
+      "committed-tree identity at the named commit; working bytes are not compared by this record",
+      "attribution and nonbinding standing not yet inspected (DEL-11-01 VER-003)"
+    ],
+    "method": "git rev-parse <commit>:projects/chirality-app-v4/foundation/thesis compared with the tree docs/PRD.md §11 names",
+    "observed_tree": "47fc49e96c2931ba18090f1a82d56a49f230b3ee",
+    "result": "matches"
+  }
+}

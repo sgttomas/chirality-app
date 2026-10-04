@@ -1,0 +1,64 @@
+{
+  "actKind": "A16",
+  "alternatives": [
+    {
+      "consequences": [
+        "v3.0.1 remains the published fallback; nothing is published or withdrawn",
+        "No public release: publishing v4 would be a separate owner act (PRD OQ-08)",
+        "No retirement: old projects, archives and active work are kept (OI-024)",
+        "The packet's open gaps still apply to the owner's own use of this candidate"
+      ],
+      "id": "ALT-OWN-USE",
+      "statement": "Replace for the owner's own work only: the owner moves their own design work to this candidate, while v3.0.1 stays published and remains the fallback"
+    },
+    {
+      "consequences": [
+        "v3.0.1 is no longer the fallback for the published product",
+        "This is also a public-release act, which the owner decides separately (PRD OQ-08; DEL-11-03 CLM-003)",
+        "Inference from App v3's records (BUILD_AND_RELEASE.md §12): v3.0.x installs check the latest published stable release, so they would be offered v4",
+        "No retirement: old projects, archives and active work are kept until their own decisions (OI-024)"
+      ],
+      "id": "ALT-PUBLISHED",
+      "statement": "Replace as the published product: this candidate replaces v3.0.1 as the product published in sgttomas/chirality-app"
+    },
+    {
+      "consequences": [
+        "v3.0.1 remains the fallback",
+        "No public release",
+        "No retirement: nothing is retired",
+        "The packet is rebuilt as a new version when a supplier closes a gap"
+      ],
+      "id": "ALT-DEFER",
+      "statement": "Defer: decide again when the packet's named gaps are closed"
+    },
+    {
+      "consequences": [
+        "v3.0.1 remains the fallback",
+        "This candidate does not replace it; a later candidate needs its own package",
+        "No public release",
+        "No retirement: nothing is retired"
+      ],
+      "id": "ALT-DECLINE",
+      "statement": "Decline this candidate"
+    }
+  ],
+  "format": "chirality.decision-package",
+  "formatVersion": "0.1",
+  "packageId": "pkg:app-v4:replacement:FX-RP1",
+  "purpose": "decide whether the identified v4 candidate replaces the v3.0.1 fallback, on the evidence in the packet manifest (FIXTURE FX-RP1 for EU-F1: illustrative evidence; not for presentation to the owner)",
+  "reservedBy": [
+    {
+      "ref": "docs/PRD.md §8 V4-REP-01",
+      "statement": "The owner decides the replacement; the old projects and archives are kept until then (OD-09)."
+    },
+    {
+      "ref": "docs/EXAMINATION.md §7",
+      "statement": "The owner decides the replacement (V4-REP-01)."
+    }
+  ],
+  "scope": "the v3.0.1 fallback only; old projects, archives, active work and continuing obligations are outside this decision (OI-024)",
+  "subject": [
+    "whether App v4 candidate (revision: ILLUSTRATIVE (SQ example; not a real candidate); build: ILLUSTRATIVE (SQ example; not a real candidate)) replaces the Chirality v3.0.1 fallback",
+    "packet manifest sha256:c6c62225e08fb9dc96dd4c450c3749142d19329c813d6999af7796b4fc3b9213"
+  ]
+}

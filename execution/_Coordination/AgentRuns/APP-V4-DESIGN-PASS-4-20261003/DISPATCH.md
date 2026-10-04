@@ -61,3 +61,23 @@ verified afterwards by `git status`.
 | C2 | GUIDE-v0.7 (A16; pin check 25/25), ACCESS §13 row + SoW re-pin, VERSION_ADVANCE §7.1 note; all counts held. Remaining cascade TOP/DOS→LHQ and RRM→DOS re-pinned by HELP_HUMAN with a script (mechanical). Pre-existing pins to older committed GUIDE/ACCESS versions (RELAY, ADAPTER, LOOP) predate this pass; noted for the pre-merge review |
 | RV2 | O-B's last minors CONFIRMED at d150856784 (closeout changed only pins, verified by reversing them). PKG and SQ READY; SQ-R-O optional NOTE carried (ST-5 capture method) |
 | P1 | Pre-merge review of `d150856784`: MERGE (0 BLOCKING, 0 MAJOR, 2 MINOR, 5 NOTE). P1-F1: EXP's U-EXP-1 closure (`fc5b8230…` → `1371ddb2…`, no rule/schema/example change, 77/0) is confirmed by P1 itself. P1-F2: TOP §7's comparison with RS grant/decline times on instants — carried to DEL-09-07's next revision, not changed in the reviewed candidate. P1-N2: the three cascade pin lines marked "C1/C2 re-pin" were made by HELP_HUMAN (C2 row above) |
+| S2 | Tranche 2 started on owner "Proceed accordingly." (OWNER_DECISIONS_2.md). Surveys S2-D, S2-E, S2-F dispatched; their agents become owners O-D, O-E, O-F |
+| S2-E | Returned: `SURVEY/S2-E.md` (105 items; PKG-10 is the project's own execution controls; no owner question now). Ruled R23-31. DEL-10-01…04 → IN_PROGRESS. O-E started on early unit EB-1 |
+| S2-F | Returned: `SURVEY/S2-F.md` (87 core items; P-1…P-7 are later acts, no owner question now). Ruled R23-32, R23-33. DEL-11-01…03 and DEL-09-12 → IN_PROGRESS. O-F started on early unit EU-F1 |
+| S0 | Owner: same-session review acceptable for design units (OWNER_DECISIONS_2.md); confirms R23-31.5 |
+| S2-D | Returned: `SURVEY/S2-D.md` (123 items; four later owner acts, none now). Ruled R23-34 (H-4 and H-5 not as proposed). Five deliverables → IN_PROGRESS. O-D started on EU-D1 and the H-1 side probe |
+| O-E | Froze EB-1 (DEL-10-01 EXECUTION_BASIS.md `e24101b2…`; input set IS-EB1-1, 44 items; question key frozen, 45 items, 23 critical; eb1_check 94/0) |
+| RR-EB1 | Isolated reader dispatched with exactly the 46 files in `RR-EB1/SUPPLIED.sha256` (verify-dir PASS 138/0); key withheld |
+| RV3 | Standing reviewer for tranche 2 started (fresh `type2-opus-high`) on EB-1, for correctness against primary records, in parallel with the reader (usability) |
+| RR-EB1 | Reader returned (`RR-EB1/account.json` `018ebe7b…`; 44/44 items matched; read nothing outside the set by its report). It found a real tension with R23-31.3 → R23-35 and `BASIS_BINDING.md` (9/9 pins unchanged). Account to O-E for scoring against the frozen key |
+| O-F | Froze EU-F1 (DEL-11-03 REPLACEMENT_PACKET.md `1a06262b…`; fixture FX-RP1; check_rp 44/44; key withheld). RQ-LHQ-1 → R23-36, routed to O-C |
+| RR-EUF1 | Isolated reader dispatched on EU-F1 with exactly the 14 files in `RR-EUF1/SUPPLIED.sha256` (key withheld). EU-F1 queued to RV3 after EB-1 |
+| O-C | RQ-LHQ-1 done (R23-36): LHQ-v0.2 `5cd31e09…`, optional `app_candidate_subject` equal to EXP-v0.2's shape, additive. Queued to RV3 with EU-F1 |
+| RR-EUF1 | Reader returned (`RR-EUF1/account.json` `b7570e01…`; schema-valid; all files matched; 11 issues raised, incl. core-loop elements shown 'met' over unresolved steps). To O-F for compare_rp and tracing |
+| O-D | Froze EU-D1 (CFB/PRC/DRC/CWT; run_d 221/221; key withheld). Vocabulary frozen. Probe: no thread item, no history, model context unobserved → R23-37 (reads stay unused; follow-up with local model allowed). FV connector cause → O-A. EU-D1 → RV2 (review capacity); reader dispatched |
+| O-E | RR-EB1 scored: 22/23 critical vs frozen key (K7.d a key error), 23/23 by records; EB-v0.2 repaired; eb1_check post-dispatch 119/0. Ruled R23-38: early path passed; DEL-10-02/04 may expand; no second reader. EB-v0.2 to RV3 |
+| RR-EUD1 | Reader returned (`RR-EUD1/ACCOUNT.json` `3b31e598…`; all manifest items OK — the reader's '17' is a miscount; the folder holds the 18 items plus the manifest). Relied on PEC only for P1 (a,c); never concluded no-work/ready/permitted; flagged c9's missing `#presence` anchor. To O-D for the comparison checker and key scoring |
+| O-A | FV-10 connector waiting cause added (run_views 31/31; run_fleet 34/34). RF-5a gap in DEL-06-01 → R23-39, fix now. FV-10 + RF-5a → RV2 |
+| RV2 | EU-D1 REPAIR (1 MAJOR EUD1-R1 cross-owner, 4 MINOR, 3 NOTE). Ruled R23-40 (CS-R2 restated; FV wording). Routed to O-D and O-A |
+| RV3 | EB-v0.2 READY (EB2-R1/R2 MINOR → O-E); EU-F1 v0.1 REPAIR (EUF1-R1 MAJOR, largely what O-F's RP-v0.2 repairs; R2–R4 → O-F); LHQ-v0.2 READY (LHQ2-R1 → O-C). Process issue: unit edited under review → R23-41 (path-limited commit at each freeze). R23-42 |
+| O-A | FV-10 wording restated to R23-40 (run_views 31/31). FV-10 + RF-5a → RV2 |

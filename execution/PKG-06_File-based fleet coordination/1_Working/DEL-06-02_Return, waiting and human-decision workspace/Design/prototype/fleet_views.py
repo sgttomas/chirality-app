@@ -1,7 +1,8 @@
 """DEL-06-02 return-review queue and waiting views (FLEET_VIEWS.md FV-v0.1 §3, §4). Prototype, not product code.
 
-Python 3 standard library. Consumes DEL-06-01's reader (fleet_store.Reader, FR-v0.1 §6; DEP-06-02-008)
-and nothing else; derives rows from its facts and writes nothing (FV-9). Each row carries the source
+Python 3 standard library. Consumes DEL-06-01's reader (fleet_store.Reader, FR-v0.1 §6; DEP-06-02-008), whose
+facts carry connector needs read by RF-5a from DEL-07-02's standing records (CFB-v0.1 §2; DEP-07-02-015);
+FV-10 words them. Derives rows and writes nothing (FV-9). Each row carries the source
 records it rests on, so a person can open the evidence behind every statement (V4-PM-06).
 """
 
@@ -14,7 +15,6 @@ DEL_06_01_PROTO = os.path.join(DESIGN, "..", "..", "DEL-06-01_Bounded delegation
                                "Design", "prototype")
 sys.path.insert(0, os.path.normpath(DEL_06_01_PROTO))
 from fleet_store import Reader  # noqa: E402
-
 
 def owner_label(o):
     who = o.get("identity", "owner not named")
@@ -54,8 +54,8 @@ def queue(facts, reader):
     return rows
 
 
-def waiting(facts):
-    """FV-4...FV-8: every selected, not-done item with the cause its records evidence, or an explicit gap."""
+def waiting(facts, root=None):
+    """FV-4...FV-8, FV-10: every selected, not-done item with the cause its records evidence, or an explicit gap."""
     rows = []
     for f in facts["items"]:
         if not f["selected"]:
@@ -75,10 +75,19 @@ def waiting(facts):
                     causes.append(f"waits for {n['need']['ref']} ({n['why']})")
                 elif k == "decision":
                     causes.append(f"waits for the person's decision: {n['why']}")
+                elif n.get("connector"):
+                    causes.append(f"waits on {n['why']}")
+                    sources.append(n["record"])
                 else:
                     causes.append(f"waits for input {n['need']['ref']} ({n['why']})")
             for n in unknown:
                 causes.append(f"cause not established: {n['need']['kind']} {n['need']['ref']} ({n['why']})")
+                if n.get("connector"):
+                    sources.append(n["record"])
+            for n in f["needs"]:
+                if n["state"] == "satisfied" and n.get("connector"):
+                    causes.append(n["why"])
+                    sources.append(n["record"])
             for n in f["needs"]:
                 if n["state"] == "satisfied" and n["need"]["kind"] == "decision":
                     # FV-6: the decision is shown as recorded; what the chosen alternative implies is not interpreted here.
@@ -148,5 +157,5 @@ def build(root, rs_records=None):
             "queue": queue(facts, reader),
             # FV-8a: the queue is complete only if every coordination-log line was read and no observation is orphaned.
             "queueComplete": not facts.get("logIncomplete") and not facts.get("orphanChildren") and "items" in facts and bool(facts["items"]),
-            "waiting": waiting(facts),
+            "waiting": waiting(facts, root),
             "notes": facts["notes"], "limits": facts["limits"]}

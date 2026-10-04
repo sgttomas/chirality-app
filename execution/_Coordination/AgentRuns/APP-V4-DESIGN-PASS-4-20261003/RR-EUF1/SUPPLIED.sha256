@@ -1,0 +1,14 @@
+125eb921fbcf1cb47a4bb8b95f4659a51a7e89cf4196660a66a65009a456a314  ./IS-FX-RP1-1.input-set.sha256
+96291b9c74dd499d80cc7506267c241d22843ab92621bb9f726ade872158211b  ./MANIFEST.sha256
+305dac85f95453db8c580678128ca4cbdcd2ae9708a4e942a20194f9f7f671ec  ./READER_BRIEF.md
+d5a69bc24d9ca346f4210c1a2ad9dee1407c6fb9f96af650f003258badbc99cf  ./legend/rp.disposition.schema.json
+456e438079314f2000174a733044bf6d5aff51de586f747c091ae679e6851b6c  ./legend/rp.packet-manifest.schema.json
+7e5e8dbb9094eecf0f4460ae495981cf1b5690b709369ecf6eef094e45e94db8  ./package/PKG-REPLACEMENT-FX-RP1.json
+c6c62225e08fb9dc96dd4c450c3749142d19329c813d6999af7796b4fc3b9213  ./packet/RP-FX-RP1.packet-manifest.json
+45ae761a866b195738398c786f7580116deed99c842fb02343da22fc9f1b6f76  ./records/RPD-FX-RP1.disposition.json
+be7f647185d6f21b312add31f16a5637bd2964c7a81e011c1f2ed8f1f7aa9f5b  ./rp.reader-account.schema.json
+97ba911baec400ae68c59dfd73ff2bfd7e25954abd0c45691bb746b489750e5b  ./supplied/continuity-handoff.json
+9ed9cddc34a3db0255a9216dbf3e38c3d8fb25721e2dedb893188869ee0f3800  ./supplied/lhq-cir.LHQ-CIR-EXAMPLE-STATE-2026-10-03.json
+ecd5999f01f67c0b3af7252c4074d91c3f9c9316ec5b8a8c30eea5cac932d797  ./supplied/lhq-dossier-manifest.DOS-EXAMPLE-INVENTED.json
+b5547e77d8c5311c28424c2e5a04713584d00d20875affdfb3b9f88829375360  ./supplied/practitioner-standing.json
+e9c71982a17b95cdb22428af07cb0faadd5ce1f997ca74de799049f4148634b0  ./supplied/sq-dossier.SQ-EX-05.json

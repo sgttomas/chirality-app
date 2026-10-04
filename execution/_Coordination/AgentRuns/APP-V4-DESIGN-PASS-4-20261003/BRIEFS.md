@@ -80,3 +80,35 @@ End with: the owner choices across your two deliverables, merged and ranked
 by how much design text depends on them; and any structural question that
 could force a later restructuring of a first-increment Design file.
 
+
+## S2 — tranche-2 scoping surveys (three Type 2; their agents become owners O-D, O-E, O-F)
+
+Write one file each: `SURVEY/<ID>.md`. Same six items per deliverable as S1
+(obligations; joins; open contract changes; open items; what exists; design
+scope). Four changes from S1, from tranche 1's lessons:
+
+1. **Rulings.** Bind R23-1…R23-30 (cite by ID). Tranche 1's Design files
+   are now suppliers too: EXP-v0.2, PKG-v0.2, SQ-v0.2, DAC, LHQ/TOP/DOS,
+   RRM, FR-v0.1, DECISION_VIEW, FV-v0.1, and the A16 rows (ACT-POLICY-v0.10,
+   RS-v0.10, AAC-v0.3, GUIDE-v0.7).
+2. **Who decides (owner direction "Scope of owner questions").** For every
+   open item, say whether the governing texts actually reserve it to the
+   person (quote the text). Otherwise give the answer that the established
+   ontology, the contracts' own words and the owner's earlier decisions
+   support, labelled DERIVED or INTEGRATION, for HELP_HUMAN to rule. List
+   as owner items only those that are genuinely reserved.
+3. **External parties.** For PEC, Domains, connectors and practitioners,
+   say what the App can design and evidence now without the other party,
+   and what waits for them. Note any relevant deferral (DECISION-3 defers
+   host joins).
+4. **Early path.** End with one proposed early unit for your cluster. It
+   should be a thin slice that can travel from authoritative input to
+   actual consumption, and it should carry the interface or premise most
+   likely to invalidate dependent work. Say what its consumption check
+   would be.
+
+| ID | Deliverables |
+|---|---|
+| S2-D | DEL-07-01, DEL-07-02, DEL-08-01, DEL-08-02, DEL-09-10 (PEC, connectors, Domains research receiving) |
+| S2-E | DEL-10-01, DEL-10-02, DEL-10-03, DEL-10-04 (project definition and practice) |
+| S2-F | DEL-11-01, DEL-11-02, DEL-11-03, DEL-09-12 (adoption, replacement, practitioner validation) |
