@@ -751,3 +751,12 @@ evidence rules and the owner's earlier decisions already settle them.
   The redaction slip in `results_b` is recorded in that folder's
   `REDACTION.json` and corrected by hand. The script now never reuses a
   marker.
+
+- **R23-51 The reach script. INTEGRATION.** The script that R23-2,
+  R23-34.6 and the owners' escalation conditions call "the reach script" is
+  `PKG-10_…/DEL-10-04_…/Design/prototype/dag_reach.py`, in the version O-E
+  revises after RV3's note so that it prints the DAG version it reads. RV3
+  recomputed the six DAG-004 SCCs from the same 212 arcs (RV3-DA1.md).
+  Before this script was committed, owners ran their own reach scripts over
+  DAG-004. That was disclosed in their returns at the time, and their
+  verdicts agree with this script.

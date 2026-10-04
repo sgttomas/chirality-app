@@ -69,3 +69,47 @@ There are no BLOCKING or MAJOR findings. There are 2 MINOR findings and 2 NOTEs.
 
 - The fidelity of each edge row to its source register (V25 and earlier reviews cover that).
 - The reach computation itself; DA1-R1 concerns only how §5 states it.
+
+---
+
+# Addendum — DA-v0.2 and `prototype/dag_reach.py` (committed `8525b7fa53`), 2026-10-04
+
+- **Subject.** Re-hashed:
+  - `DAG_ACCOUNT.md` `738f8287…13b4`;
+  - `prototype/dag_reach.py` `42e8b0e6…98f6`.
+
+  `git status --ignored` is clean. I compared v0.1 (`68f83d6b20`) with v0.2 by word diff.
+
+## Verdict on DA-v0.2: **READY**
+
+DA1-R1, DA1-R2 and N1 are **resolved**. There is one new MINOR item (DA2-R1) and one note. **The reach script is correct**, as shown by an independent recomputation against DAG-004.
+
+| Item | Resolved by | Checked |
+|---|---|---|
+| DA1-R1 (cycle test) | §5 step 1: "A proposed row C → S (C consumes S's contribution) forms a cycle exactly when S already reaches C over the accepted DAG's admitted and held layers". It names the other two outcomes (arc already exists; new arc with no cycle, still an added-arc departure for currency) and the script | The statement is correct for consumer → supplier arcs |
+| DA1-R2 (recommendations) | §7 adds a "Recommended treatment (datasheet; unruled)" column, saying "The only ruling recorded is CP1-20260928" | Each quote appears verbatim in its `Case_Datasheet.md`: 001 "retaining R3 wherever a required input remains absent"; 003 "coordinate explicit support and candidate-return contributions under existing owners"; 005 "with R3 applied only at a demonstrable missing-input point"; 006 "coordinated contributions, unresolved candidate topology"; 002 R-01/R-03/R-02; 007 R1. But see DA2-R1 for 004 |
+| N1 (where state is read) | "State comes from each case's `Case_Datasheet.md`, written after CP1"; the contracts still read `HUMAN_RULINGS_PENDING` | All seven datasheets carry `EVIDENCE_ACCUMULATING` |
+
+## `dag_reach.py` against DAG-004
+
+- **Self-test.** `--self-test` gives 5/5 as expected, exit 0. It reads DAG-004 through `_DAG/_LATEST.md`; there are 212 arcs over both layers.
+  - DEL-02-04 → DEL-10-03: SCC-forming (exit 2).
+  - DEL-06-01 → DEL-10-02: no cycle.
+  - DEL-10-03 → DEL-02-04: the arc already exists.
+  - Self-arc: cycle.
+  - DEL-10-01 → DEL-10-04: SCC-forming.
+- **Independent recomputation.** My own script read `DependencyEdges.csv` (129 rows: 119 UPSTREAM, 10 DOWNSTREAM representatives) and `CandidateEdges.csv` (83: 81 and 2), reversing DOWNSTREAM rows. It gives the same 212 arcs and the same four reach verdicts.
+- **The arc reading is sound.** Taking strongly connected components over those 212 arcs gives exactly **6 SCCs of sizes 2, 13, 2, 3, 2 and 2**. These are DAG-004's SCC-001…006 with their recorded member counts (handoff table; SCC-002's 13 members). The result could only match if every DOWNSTREAM representative were oriented correctly and the held layer included.
+- **Consequence for the earlier rulings.** R23-2 and R23-34.6 now have a committed reach script whose behaviour matches the accepted graph. I suggest the coordinator cite it by path and hash in the next ruling that relies on "the reach script".
+
+### DA2-R1 — MINOR — the CASE-004 row quotes the datasheet's original treatment section but not its later lineage update (§7)
+
+- **Evidence.** `SCC-CASE-004/Case_Datasheet.md`:
+  - the treatments section (l.68–72) recommends R004-A and calls R004-B "an objective-dependent alternative";
+  - the later section "Refreshed observation and proposed case lineage — ruling pending" (l.22–32) says "R004-A/C and the proposed C/P/return contributions remain useful **local** inquiry for the expanded CASE-002 account. R004-B's conditional pair-view alternative cannot stand as a remedy for the 13-member component".
+- **Consequence.** DA presents R004-B as a live alternative, which the case's own latest text withdraws for the current component.
+- **Repair.** Add to the CASE-004 row: "per the lineage update, R004-A/C remain local inquiry for CASE-002; R004-B cannot stand as a remedy for the 13-member component (ruling pending)".
+
+### Note
+
+`dag_reach.py`'s self-test facts are fixed for DAG-004. Because the script follows `_LATEST.md`, a successor DAG could legitimately change a case. Pin the self-test to DAG-004 (`--dag DAG-004`), or have it print the version its cases were written for.

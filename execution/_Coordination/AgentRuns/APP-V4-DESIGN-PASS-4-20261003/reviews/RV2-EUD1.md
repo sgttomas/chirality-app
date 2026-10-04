@@ -418,3 +418,114 @@ The CFB rule could also say so: §3's "Reliance supported for some parts" row sh
 - I did not rerun the PR-7 mutation.
 - I did not re-run P-H1b. Its bytes and scripts were read, not executed.
 - I have not checked O-A's re-pin to the new schema; that review follows.
+
+## Confirmation by difference: R23-48 follow-ups (commit `8525b7fa53`, branch `claude/app-v4-design-pass-4-t2`; 2026-10-04)
+
+**Reviewer:** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY.** EUD1-R9, R10, R11 and R13 are confirmed
+
+- **Bytes.** All 10 `RUN/D` files and both Design files listed in O-D "CURRENT" match:
+  - PRC-v0.3 `7c829352…`;
+  - CFB `457a9d20…`.
+- **Commit state.** For `RUN/D`, the working tree equals the commit.
+- **Ignored or untracked files.** `git status --short --ignored` on `RUN/D`, PKG-07 and PKG-08 prints nothing.
+- **Content changes.** `git diff 25054b04df 8525b7fa53` over PKG-07, DEL-08-01 and DEL-09-10 shows only PRC and CFB changed. I read both diffs in full. No rule changed outside PRC §7 and §10.
+
+There are two new MINORs (EUD1-R14, R15). EUD1-R15 is for HELP_HUMAN, under R23-50. There is one NOTE (EUD1-R16).
+
+| Finding | State | Evidence |
+|---|---|---|
+| EUD1-R9 | **Confirmed** | See "EUD1-R9" below |
+| EUD1-R10 | **Confirmed** | See "EUD1-R10" below. Residual: EUD1-R14 |
+| EUD1-R11 | **Confirmed** | See "EUD1-R11" below. Scope note: EUD1-R15 |
+| EUD1-R13 | **Confirmed** | CFB §1 names PRC-v0.3. §3 item 3 now reads "complete or done", and "'Satisfied' is said of **needs** only". The change note says "label only". The diff shows no rule change |
+| Pending PR-P8 check (FV10) | **Confirmed** | See "PR-P8" below |
+
+### EUD1-R9
+
+- `D/evidence/` is in git: 38 files are tracked.
+- `git check-ignore` returns nothing for `evidence/records/PR-P8.json`.
+- B-2 now reads "on-disk evidence/ equals the fresh build".
+- `run_d.py` gives **297/297**.
+- The round-0 bytes are recorded as hashes only (`65700ab7…`). That is stated, not reconstructed.
+
+### EUD1-R10
+
+**Score and sensitivity.**
+- `compare_eud1.py` on RR-EUD1 gives **46 met, 0 referred**. R23-45.1 is encoded.
+- `compare_sensitivity.py` gives **17/17**, with a control that keeps every real K6 "met".
+
+**My earlier probes** (`probe_compare.py`), rerun:
+- R-1, R-2 and R-3 → K6 **not met**;
+- R-5 (P6 K5, second half) → **not met**;
+- R-7 → K4 **not met**.
+
+**New paraphrases** (`probe_compare2.py`):
+- "Work on T2 can proceed immediately" → not met;
+- "Everything is finished" → not met;
+- negations are left alone ("T2 cannot start yet" → met), or referred ("Nothing here shows that work is finished").
+
+### EUD1-R11
+
+**Redaction is applied.**
+- In `results/`, `results_b/` and `results_c/` there is:
+  - no UUID-shaped identifier;
+  - no time zone;
+  - no user name or host name (grep).
+- `results_b/REDACTION.json` records the two-pass slip and the hand renumbering to `<ID-6…8>`. Each of those markers occurs once.
+
+**P-H1c's record supports what PRC-v0.3 §7 states** (`results_c/observations.json`, read):
+- Call A was sent at 7.525 s and returned at 7.535 s. T1 started at 7.45 s and completed at 50.622 s.
+- The three captured requests carry 3, 6 and 9 input items. None contains a marker of A or B, and none contains a tool item.
+- Codex emitted no `item/*` notification tied to either call.
+
+**PRC §7 lists what was not observed:**
+- a later request in the same turn;
+- compaction;
+- other pins and routes.
+
+### PR-P8
+
+- `git show 8525b7fa53:` of O-D's `D/evidence/records/PR-P8.json` gives `174e1291…`.
+- That equals O-A's vendored PR-P8 and `VENDOR.json`'s entry.
+- PR-P1, PR-P3 and PR-P6 in O-D's evidence also equal O-A's vendored bytes: `b9cd7cce…`, `fcacb91a…`, `98aa1d8e…`.
+- No re-pin is needed.
+
+### EUD1-R14 — MINOR: K6 still passes some paraphrases, so a "met" on free-text notes is not established by the checker alone
+
+**Evidence.** Two probes (`$TMPDIR/rv2/probe_compare2.py`) on copies of the real account score K6 **met**:
+- N-2: P6 notes "There is nothing left to do here." (empty work).
+- N-6: P1 notes "PEC permits dispatching T2." (permission).
+
+O-D's lexicon catches the phrasings it was given, including my three, but not these. A lexicon cannot reach "in any wording" (R23-48.2).
+
+**Consequence.** For RR-EUD1 nothing changes: its K6 items were confirmed by reading (RV2 round 1). For a later account, a K6 "met" on free-text notes is not established by the checker.
+
+**Repair.**
+- Score K6 as "met (structured fields); notes referred" whenever an account has free-text notes, so that a reader of the score knows a person must read them.
+- Alternatively, keep extending the lexicon from each new account and say that it is open-ended.
+- Add N-2 and N-6 as sensitivity cases.
+
+### EUD1-R15 — MINOR (for HELP_HUMAN, R23-50): the "history, between turns" situation was observed only with an error result
+
+**Evidence.**
+- In `probe_history_active.py` (line 26 and the MARKERS_B list), call B, the one made between T2 and T3 on a thread with history, uses key `EX-ERR`. Its result is the double's error ("Invented example error", "EX-ERR not found").
+- The successful call (A, key EX-1) was made during T1, while the thread had no prior turn.
+- PRC-v0.3 §7 records call B as "key EX-ERR" but does not say that its result was an error.
+
+**Consequence.** R23-50's situation 2 ("a thread with history, with the call made between turns") rests on an error result. That Codex treats a successful result the same way is likely, given calls A and P-H1b, but it was not observed in that situation.
+
+**Repair.** One of:
+- R23-50 and PRC §7 say "(error result)" for situation 2;
+- the next probe makes call B succeed;
+- HELP_HUMAN rules that success and error results are equivalent for this purpose and records why.
+
+### EUD1-R16 — NOTE: CFB-v0.2 now names two byte states
+
+- CFB's label corrections kept the label CFB-v0.2. That label now covers `cf805bb8…` (reviewed at `25054b04df`) and `457a9d20…`.
+- No rule changed, and O-A vendored only the standing schema, which is unchanged (`bf4cef4d…`). So nothing breaks.
+- Pins that cite "CFB-v0.2" by label alone are now ambiguous; citations should give the hash.
+- The `results_c` capture keeps LM Studio's own `msg_…` and `rs_…` response ids. They are not HOSTING §9.1 categories and not personal, so they are recorded only.
+
+**Not done:** I did not run any probe. P-H1c's bytes and script were read, not executed.
