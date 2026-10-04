@@ -149,3 +149,14 @@ becomes pending, the carried obligations: the 5 unextracted mirror rows, the
 DEL-01-03 absolute TargetLocation defect, the Design re-pins,
 `Coverage_Telemetry.json`). Write the candidate only under
 `RUN/DAG_PREP/` (not `_DAG/`); nothing accepted or published.
+
+## V25 — independent review of the DAG-004 candidate (one Type 2, read-only)
+
+As SCA-V4-002's V15: review `RUN/DAG_PREP/` (the DAG-004 candidate,
+CURRENCY and CLOSURE snapshots, REVIEW_PACKET, CHECKPOINT_C, the CASE-002
+draft) against the registers at HEAD, DAG-003, ARC_EFFECT and the
+`project-dag` method. Re-run the assembly and the strict audit on copies;
+verify placement of every ACTIVE EXECUTION row, the 10 links and their
+layers, the representative changes, the mirror maturity findings, the
+owner questions and the carried obligations. Verdict READY FOR CHECKPOINT C
+or HOLD. Write only `reviews/V25.md`.
