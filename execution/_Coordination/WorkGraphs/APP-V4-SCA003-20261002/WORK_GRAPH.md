@@ -17,5 +17,5 @@ undertaking run through `workflows/scope-change`.
 | P3 Pre-change baseline | `BASELINE/` | S0 | Audit run, manifest | COMPLETE — 0/35/93 |
 | P2 Exact ScopeOfWork blocks | `AMENDMENT_PACKET/SOW_REVISIONS_*.md` | P1 | Dry-run clean | COMPLETE — 147 blocks, 19/19 validate; RP1 repairs |
 | V Independent review of the packet | `reviews/` | P1, P2, P3 | No blocking finding | COMPLETE — V23 HOLD, RP1, V23b READY FOR CHECKPOINT |
-| K1 Owner checkpoint: groups 1–2 | OWNER_DECISIONS.md | V | Owner answer recorded | ACTIVE — package presented |
-| AK… Apply, audit, group 3, dependency-extract, DAG currency/DAG-004 | per method | K1 | per method | PLANNED |
+| K1 Owner checkpoint: groups 1–2 | OWNER_DECISIONS.md | V | Owner answer recorded | COMPLETE — DECISION-1 |
+| AK… Apply, audit, group 3, dependency-extract, DAG currency/DAG-004 | per method | K1 | per method | COMPLETE — DECISION-2 (group 3), 19 REVISEs, 20 UPDATEs, DECISION-3 (DAG-004 published), FX, closure audit CLOSED_WITH_OBSERVATIONS, receipt |
