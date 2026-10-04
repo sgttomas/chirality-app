@@ -119,3 +119,41 @@ The repair supersedes parts of §§1–4 above:
 - **Residual-risk wording.** `OWNER_DECISIONS.md` says the residual risks are "contained within single groups". LESSONS §3 places the SWBPIPE joins at A and D. The v8 example follows LESSONS and MR's ruling 2.
 - **Notice to the App v4 loop.** The pinned field book and AUM changed in place. The App v4 loop should be notified (MR MINOR-5).
 - **Separate decision.** Adopting v8 and repointing the remaining v7 links, the README and LOOP_INIT is a separate decision (MR ruling 4).
+
+## 6. GC-7 revision
+
+**Why.** This revision follows the owner's later direction, under "Structure versus detail after 60%" in `OWNER_DECISIONS.md`. That direction includes: "It's probably better to leave some things underdefined and seek human judgment in the moment than take your limited experience too far and overconstrain things in the future leading to a problem that builds and isn't recognized." It also follows ruling GC-7 (`GC_RULINGS.md`) and `GROUPS.md`.
+
+**What changed.** Passages that said every finer edge change is a departure for the human to decide now follow GC-7, lightly:
+- **Record found relationships where those who depend on them will see them.** Within a group, the group's work graph is enough. Across groups, use a shared list that every loop reads. The register is not the only place.
+- **Update registers and ScopeOfWork when wording would otherwise mislead.** The human decides these updates in batches at natural boundaries. SPEC §5.4 still governs the registers.
+- **Ask the human in the moment** about anything that seems to run against the group order, forms a cross-group cycle, changes the deliverable set, would make another group's finished work wrong, or suggests that the grouping is wrong. In doubt, ask.
+- **State the limits of the guidance.** It comes from one project's experience and sets no thresholds or fixed tiers.
+
+No tier names are introduced. v7 is unchanged.
+
+| File | Passage | Change |
+|---|---|---|
+| v8 | §1.7, first and second 60% paragraphs | The sentence calling every added or removed relationship a departure is removed. Successors are carried through the adopted rules, and several can be decided together. Finer relationships point to §4.12. |
+| v8 | Chapter 4 intro | Removed "departures in it are still decided under the project's rules". |
+| v8 | §4.7, "Distinguish…" paragraph | Now reads "Distinguish detail from structural change". Coupling detail is recorded where those who depend on it will see it (§4.12). |
+| v8 | §4.12, opening "Structural change…" paragraph | The departure rules apply when changes reach the registers, decided in batches. |
+| v8 | §4.12, reading of "resolved" | Now "an accepted treatment" (MR's last point). |
+| v8 | §4.12, level table, last row | Recording place: work graph within a group, shared list across groups, register where wording would otherwise mislead. |
+| v8 | §4.12, sentence after the table, and the App v4 "No successor…" sentence | Aligned with the recording practice. |
+| v8 | §4.12 handoff, "Registers updated…" | Replaced by "Found relationships recorded where they will be seen". This brings in the GC-7 points, the in-the-moment triggers, "In doubt, ask", and the one-project, no-threshold statement. The batching and DAG-002…004 detail is removed. |
+| v8 | Figure 4.10 caption, chapter 5 intro | Brought into line, lightly. |
+| Field book | §1, gate framing sentence | Finer relationships are recorded where those who depend on them will see them. |
+| Field book | §1, handoff block | Gains the recording places and batched register updates. Adds a new short block "ASK THE HUMAN AT ONCE" with the triggers, "In doubt, ask" and "From one project's experience; no thresholds". |
+| Field book | §5, step 2 | The departure rule applies when the dependency records change. Finer relationships go in the work graph, or in a shared list across groups. |
+| AUM | §5 `#gate-60`, opening paragraph | The departure clause is replaced by a pointer to step 4. |
+| AUM | §5, step 4 | Rewritten to GC-7. Names `CROSS_GROUP_RELATIONSHIPS.md` via a new `[app-v4-groups]` link to `GROUPS.md`. Keeps SPEC §5.4 and the batching example. Adds the in-the-moment triggers and the limits of the guidance. |
+| AUM | "Rulings worth carrying", Design-uses bullet | The superseded GC-5 item 3 sentence is replaced: GC-7 relaxed carrying each dependency into ScopeOfWork and register to recording it where it will be seen. |
+
+**Words added against the original baselines:**
+
+| File | Words added |
+|---|---|
+| v8 against v7 | +2,902 |
+| Field book | +523 |
+| AUM | +1,772 |
