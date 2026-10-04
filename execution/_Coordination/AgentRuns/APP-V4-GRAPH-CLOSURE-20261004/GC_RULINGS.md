@@ -139,3 +139,31 @@ decides no more than that source settles.
   - **Rule 2.** When the rewordings are applied, each design agent states,
     for every change, that it narrows nothing. Its reviewer checks that
     statement.
+
+- **GC-7 Recording relationships found after 60% (supersedes GC-5 item 3).
+  INTEGRATION.**
+  Source: the owner's directions under "Structure versus detail after 60%"
+  in OWNER_DECISIONS.md, including "better to leave some things
+  underdefined and seek human judgment in the moment".
+  1. GC-5 items 1 and 2 stand: a Design use the consumer needs is a real
+     relationship.
+  2. **What a found relationship must be.** It must be recorded where
+     everyone who depends on it will see it. It need not be added to the
+     ScopeOfWork or register.
+     - Within a group, the group's work graph is enough.
+     - Across groups, record it in the shared list that every development
+       loop reads.
+  3. **Register and ScopeOfWork updates.** These are made when wording would
+     otherwise mislead about what a deliverable must deliver or receive.
+     They are decided by the human in batches, at natural boundaries, under
+     SPEC §5.4's departure rule.
+  4. **When to bring the human in at once.** The human is asked in the
+     moment, not by threshold, about:
+     - a relationship that seems to run against the accepted group order;
+     - one that forms a cycle across groups, or changes the deliverable set;
+     - one that would make another group's finished work wrong;
+     - any sign that the grouping itself is wrong.
+
+     In doubt, ask.
+  5. **No fixed thresholds.** This ruling sets none. It rests on one
+     project's experience and is to be revisited as loops report.

@@ -115,3 +115,33 @@ The SWBPIPE host joins touch two groups, the core (A) and the fleet group
 (LESSONS_60PCT §3; MR-MANUAL ruling 2). Placement OI-013/014 and
 DEL-04-01's reach do lie within group A. The owner's quoted words are
 unchanged.
+
+## Structure versus detail after 60% (owner, exact, 2026-10-04)
+
+The owner proposed:
+
+> Here's a proposal and you can push back and offer something better: the DAG itself doesn't change, the work graphs just fill in details of interconnecting webs.  If one of the edges in the DAG does change then it's necessary to go through that change process as usual.  Thoughts?
+
+HELP_HUMAN refined it by group. A relationship within a group, or across
+groups in the group order, is detail. A relationship that reverses the
+order, forms a cross-group cycle or changes the deliverable set goes
+through the change process. The owner then asked:
+
+> well this maybe requires some nuance.  Maybe it is the case that new edges are acquired but if we stop to reconstruct the DAG every time that will be too much governance and not enough development.  Is there a way to define this clearly or is there a murky zone that once entered the agents need the human decision for when it's done and the next begins?
+
+HELP_HUMAN proposed three tiers: absorb, batch, and stop and decide, with a
+regrouping trigger. The owner asked:
+
+> could this get us into trouble by obscuring something or making declarations that aren't supported so attention is not given to what matters?
+
+HELP_HUMAN named four risks and proposed a narrower form:
+1. Absorb only within a group.
+2. A shared, live list for every cross-group relationship.
+3. Classification by script against the committed group map, sampled by
+   a reviewer; any tier 3 reaches the owner.
+4. Before the handoff, commit the groups, reproduce the grouping test
+   independently, and sort the inventory's 62 dependencies.
+
+The owner replied:
+
+> Then make the necessary revisions to the texts.  It's probably better to leave some things underdefined and seek human judgment in the moment than take your limited experience too far and overconstrain things in the future leading to a problem that builds and isn't recognized.
