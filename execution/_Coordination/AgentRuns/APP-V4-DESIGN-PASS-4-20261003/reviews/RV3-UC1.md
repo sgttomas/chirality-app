@@ -117,3 +117,34 @@ Several parts stand and can be kept:
 - VER-004 beyond UC1-R2's note.
 - VER-005 and VER-007, which are open as declared.
 - DEL-10-03 and DEL-10-04's drafts, which are outside this freeze.
+
+---
+
+# Addendum — UC-v0.2 (refrozen with DA-v0.1 and EB-v0.4; committed `68f83d6b20`), 2026-10-04
+
+- **Subject.** `UNDERTAKING_CONTROLS.md` `da0176cb…b533`, re-hashed. It equals its blob in `68f83d6b20`.
+- **Method.** Word diff of UC-v0.1 (`d0e88a52f1`) against UC-v0.2. I checked each change against R23-46/47 and its records.
+
+## Verdict on UC-v0.2: **READY**
+
+All four findings and all four notes are **resolved**. UC1-R1 is settled by `BRIEFS_AS_SENT.md` (R23-46).
+
+| Finding | Resolved by | Checked against |
+|---|---|---|
+| UC1-R1 MAJOR (G-1) | §3.3 is restated as SETTLED by SPEC §9.8: the launch briefs as sent are the run's record. Owners' records are labelled transcriptions and cross-checks. UC-v0.1's convention is withdrawn. VER-002's unit-brief case is re-marked **partial**, to be completed against the verbatim entries | `RUN/BRIEFS_AS_SENT.md`: 109 entries, verbatim, in send order with time, mechanism and recipient. O-E's are entries 65, 71, 80, 91 and 100, as UC says. The only `/Users/` strings are the placeholder `/Users/<name>` inside brief texts, so the redaction claim holds |
+| UC1-R2 (branch; standing) | Tranche 1 `claude/app-v4-design-pass-4` (PR 1077); tranche 2 `claude/app-v4-design-pass-4-t2`. Write and network limits "not observed to be host-enforced; unknown". Host-reported Bash sandboxing is "not probed". DISPATCH is named the maintained copy | `git branch --show-current`; R23-47 |
+| UC1-R3 (class mixes fit with compliance) | A new `Applied` field. PN-1, PN-7 and PN-8 are reclassed `useful; applied: no`, consistently with PN-2. Only PN-3 is about the guidance itself (`ambiguous`). SPEC §9.8's "second current copy" sentence is added to PN-8 | SPEC §9.8 text (verbatim) |
+| UC1-R4 (PN-1 locus) | U §10 is dropped from PN-1. The F §5.4 quote is now complete ("Preserve the actual inputs, candidate, relevant observations, and limitations"), and the M §5.4 quote is verbatim | F §5.4, M §5.4 |
+| N1–N4 | §7 reads PN-1…PN-9. §5 and §6 hold the notes in §6, by the maintainer's choice (P-E4 not taken). The graph title now reads "tranches 1 and 2", and its T2 nodes are current | `WORK_GRAPH.md` l.1 and its T2 rows |
+
+**New: PN-9.** Its loci check out:
+- SPEC §9.8: "Record … launch briefs …";
+- U §10: "Record actual parentage and mechanism … Retain the actual supplied role, sources …", verbatim with ellipses;
+- F §5.3, the brief fields.
+
+Its disposition, "applied locally by R23-46", matches the record. Stage disposition stays the owner's: §7 asks only about PN-1, PN-2, PN-3, PN-5 and PN-6, and lists PN-4, PN-7, PN-8 and PN-9 for information.
+
+**Still open, as declared:**
+- VER-002's unit-brief case;
+- VER-005 for UC (this addendum provides the reviewer's confirmation it waits on);
+- VER-007 at the stage discussion.

@@ -406,3 +406,18 @@ The D-5 correction traces the miss correctly, to the index and the input-set des
 
 - **N-a.** §8 VER-002 says default-mode M-2 reports "the account and R23". It now also reports the work graph. Phrase it as "the input-set items changed since the read" so that later runs are not misread.
 - **N-b.** B-19's recorder cell lists the manifest's fields but does not say that the manifest names no writer of its own. B-16's row does say this of the D-GOV-52 manifest. For consistency with §2's own rule, add "the manifest does not name its own writer".
+
+---
+
+# Addendum 3 — EB-v0.4 (committed `68f83d6b20`), 2026-10-04
+
+- **Subject.** `EXECUTION_BASIS.md` `b12c55c7…7392`, re-hashed. It equals its blob in `68f83d6b20`.
+- **Diff from EB-v0.3.** By word diff (`d0e88a52f1` against `68f83d6b20`), only the header, the two noted cells and the "Changes" rows differ.
+
+## Verdict on EB-v0.4: **READY**
+
+Both notes from Addendum 2 are **resolved**:
+- **N-b:** B-19's recorder cell now says "**The manifest does not name its own writer.**", as B-16 does.
+- **N-a:** §8 VER-002 now reads "In default mode, M-2 fails on every input-set item changed since the read, which is intended, not a regression".
+
+Nothing else changed.

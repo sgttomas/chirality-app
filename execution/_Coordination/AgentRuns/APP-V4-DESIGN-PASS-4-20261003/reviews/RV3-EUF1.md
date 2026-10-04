@@ -486,3 +486,41 @@ I read the account's statements against the files and found no contradiction. Th
 
 - `stage_is.py --set 3` (the reader's `SUPPLIED.sha256` has 14 entries, and O-F reports every hash matched).
 - The builder's determinism.
+
+---
+
+# Addendum 5 — confirming O-C's DX-3 fix for RR-EUF3's run-artefact point (R23-49; commit `aa95aff4e1`), 2026-10-04
+
+- **Subject.** Re-hashed, all as in `O-C.md` "Tranche 2: RR-EUF3 item (R23-49)":
+  - `QUALIFICATION_DOSSIER.md` `8c4f4fa1…`;
+  - dossier valid examples `dbf8463f…`, invalid `571e7ddb…`, `dx-violations` `8a183339…`, `exp-outcomes` `15d9ae2d…`;
+  - `prototype/dos_check.py` `bf20d8fc…`;
+  - the dossier schema `88cd9948…`, unchanged.
+
+  `git status --ignored` on DEL-09-07 `Design/` is clean.
+
+## Verdict: **confirmed**
+
+There are no BLOCKING, MAJOR or MINOR findings, and 2 NOTEs. The point I graded as a supplier defect in Addendum 4 (item 2) is fixed, and the check I suggested ("a DX-3-style check") exists and works.
+
+- **The examples.**
+  - `DOS-EXAMPLE-INVENTED` no longer has a DEL-09-11 hand-over. A limitation states why: "LHQ-20 not run: no source journey, so no DEL-09-11 hand-over, and the DEL-11-03 hand-over names no run (DX-3)".
+  - `DOS-EXAMPLE-INVENTED-POPULATED` now says "only LHQ-20 has run (outcome inconclusive)". Its withheld item names its own case results.
+- **DX-3** (`dos_check.py --outcomes lhq.dossier-manifest.exp-outcomes.examples.json`):
+
+| Input | Exit | Result |
+|---|---|---|
+| valid examples | 0 | both OK |
+| invalid examples | 0 | no DX finding |
+| `dx-violations` | 1 | all 5 fail for their stated rules. `DX-VIOL-not-run-names-run` gives "names run LHQ-20-EXAMPLE-RUN". `DX-VIOL-not-run-11-03-names-acts` reports acts and receipts under DX-3 only, because its receipt is indexed |
+
+- **Schemas** (my own `jsonschema` 2020-12 run): every example file behaves as O-C's table states.
+  - Dossier: valid 2 × 0; invalid 7 × 1; DX violations 5 × 0.
+  - CIR: 2 × 0; 5 × 1; CI-5 violations 2 × 0.
+  - Traffic: 1 × 0; 12 rejected (one with 2 errors, as noted before); CB-1 violations 2 × 0.
+- **Other checkers.** `cir_check` and `top_check` give exit 0 on the valid examples and exit 1 on their violation files.
+
+## Notes
+
+- **N8 — "not checked" exits 0.** Without `--outcomes`, DX-3 prints "DX-3 not checked: no outcome supplied …" and still exits 0 (tested). The text is honest, but a caller that reads only the exit status would pass the rule silently. A `--require-outcomes` flag, or a distinct exit code for "not checked", would close this.
+- **N9 — knock-on for EU-F1 (R23-44 working as designed).** `check_rp.py` still holds 65/65, and now prints "NOTICE the live supplier file for lhq_manifest_examples has moved since vendoring (9873df65c9b4 -> dbf8463f45dc); re-pin deliberately (R23-21)". RP-v0.3's fixture copy of `DOS-EXAMPLE-INVENTED` keeps the DEL-09-11 hand-over the source has now dropped. The packet does not rely on that hand-over (it has no receipts), so no derived value changes. O-F re-pins deliberately in its next DEL-11 unit.
