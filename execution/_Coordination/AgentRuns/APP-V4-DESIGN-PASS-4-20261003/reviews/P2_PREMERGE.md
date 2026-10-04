@@ -589,3 +589,63 @@ base `75604b3c49`.
   as RV3-UC1 did; I relied on its placeholders.
 - **The inventory's Part A rows.** I checked them only where the statement
   or the RECEIPT relies on them.
+
+# Addendum 1 — repair confirmation at `5e34eb484e` (2026-10-04)
+
+- **Reviewer:** P2 (Claude Opus 5.5, `claude-opus-5-5`), continued by
+  HELP_HUMAN's message.
+- **Candidate:** `5e34eb484e`, one commit on top of `c7f9fe4073`.
+- **Method:**
+  - read-only git;
+  - checks run in the same scratch clone (fetched from the worktree and
+    checked out at `5e34eb484e`), clean before and after;
+  - no network.
+- **Write record:** this addendum only.
+
+## Updated verdict: **MERGE**
+
+- **No open findings above NOTE.** P2-F1 (BLOCKING), P2-F2 and P2-F3
+  (MAJOR), P2-F8 and the RECEIPT part of P2-F7 are repaired and confirmed.
+- **Carried MINORs.** I agree to carry P2-F4…F6 and the DOS/LHQ part of
+  P2-F7 to the continuation's first pass (R23-56.4). One condition: P2-F5's
+  IA labels must be settled before O-D rehearses IA-1/IA-3.
+- **Merge method.** P2-N12 still applies: use a merge commit.
+
+## What changed since `c7f9fe4073`
+
+- **Changed files.** `git diff --stat c7f9fe4073 5e34eb484e` lists exactly
+  11 files:
+  - `BRIEFS_AS_SENT.md`, `DISPATCH.md` and `R23_RESOLUTIONS.md`. All three
+    are pure appends: the old bytes are a byte prefix of the new.
+  - `RECEIPT.md` and `POSITION_60/POSITION_STATEMENT.md`.
+  - The five FX-RP1-6 files.
+  - This file, newly committed. The committed bytes equal my write; the
+    worktree was clean.
+- **Nothing else changed:** no Design file, prototype, schema, governed
+  record or other path.
+- **Hygiene and CI checks:**
+  - no home paths in the added lines;
+  - `validate_run_record_leaks` PASS (250 files);
+  - `validate_conflict_markers` PASS.
+
+## Per finding
+
+| Finding | State | Evidence |
+|---|---|---|
+| P2-F1 BLOCKING | **Repaired** | In the five fixture files, every changed line is a hash field. The changes are: the two `R23_RESOLUTIONS.md` excerpt headers (`f0055836…` → `21b2ccfa…`); `basis_excerpts.sha256` in the packet manifest; the package `subject` packet-manifest hash; the disposition's `package_file.sha256`; and four `MANIFEST.sha256` lines. `21b2ccfa…` equals `R23_RESOLUTIONS.md` at HEAD, so the rebuild came after the R23-56 append. `check_rp.py` at HEAD gives **99/99**, with A-14 holding, and FX-RP1-6 `MANIFEST.sha256` is 12/12 OK. Rebuilding in the documented order (aa, ca, pv, then `build_fx_rp1.py`) reproduces the committed bytes exactly, and the clone stays clean. `check_aa` 47/47, `check_ca` 37/37 and `check_pv` 38/38 are unchanged. R23-56.1 carries the structural fix to RP's next revision |
+| P2-F2 MAJOR | **Repaired** | Statement §B now holds G-15 ("Accept the next register amendment …"; scope-change), G-25 (the person confirms an agent-drafted mapping) and G-23 (whether 60% needs the "before implementation" items, with HELP_HUMAN's recommendation "not", citing R23-54.4). G-25 is gone from §A. R23-54.4 says such items "are sorted … when the implementation increment is planned, not now", so the citation is accurate. The choice stays with the person, and the inventory's wording is quoted |
+| P2-F3 MAJOR | **Repaired** | RECEIPT: "This is design progress toward 60%, not the 60% position (R23-55.1 …)" |
+| P2-F7 (RECEIPT part) | **Repaired** | "Rows across design agents", "Design agents now break …" and "re-pinned by their design agents" |
+| P2-F8 | **Repaired** | "It then took four early units end to end, each read cold by an isolated reader" |
+| P2-F4, F5, F6, F7 (DOS/LHQ part) | **Carried** (R23-56.4) | None changes an interface or a relied claim, so I agree. See the condition on P2-F5 above |
+
+## New notes
+
+- **P2-A1-N1 — the fixture still pins a live, append-only file.** FX-RP1-6
+  still pins all of `R23_RESOLUTIONS.md`. Any further R23 append before
+  RP's next revision breaks A-14 again. That includes one that records this
+  confirmation. Until then, record dispositions in DISPATCH, or rebuild the
+  fixture last.
+- **P2-A1-N2 — G-15 and G-25 have no row in A.** Both §B rows say "Agents
+  draft it in A's pass", but §A has no row for either draft. This is a
+  presentation gap only; the B rows state it.

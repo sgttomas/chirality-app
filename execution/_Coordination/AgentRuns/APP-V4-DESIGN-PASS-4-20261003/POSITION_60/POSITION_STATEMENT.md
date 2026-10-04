@@ -83,6 +83,8 @@ section.
 | G-20 | DEL-10-01 runs VER-004, 005, 007 and 008. Its own file says this comes before the 60% review |
 | G-22 | DEL-02-01's declared chaining |
 | G-29 | SCA-V4-003's derivative closure, plus CASE-002's drafted DAG-004 evidence update (R23-55.3) |
+| G-15, G-25 | Draft the next register amendment and the role-name mapping, for your decisions in B |
+| P2-F4…F7 | The wording and path slips the pre-merge review carried (R23-56.4). Settle P2-F5's IA-1/IA-2 labels before O-D rehearses IA-1 and IA-3 |
 
 ### B. Decisions reserved to you
 
