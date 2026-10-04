@@ -1,0 +1,263 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "id": "1a",
+      "check": "group-3 DECISION.md first line is the accepted heading (check_amendment_reopen.py form)",
+      "result": "PASS",
+      "detail": "# SCA-V4-003 checkpoint group 3 \u2014 accepted audited poststate"
+    },
+    {
+      "id": "1b",
+      "check": "the act text is quoted in DECISION.md and in the DECISION-2 section of OWNER_DECISIONS.md",
+      "result": "PASS",
+      "detail": "I accept the audited result."
+    },
+    {
+      "id": "1c",
+      "check": "OWNER_DECISIONS.md custody hash equals the cited hash and its blob at 84b520742d",
+      "result": "PASS",
+      "detail": "29c0a07b50d695a15bbff52b36d5925725cc7f3e78d0caf997ee9fd3c3b28c2e"
+    },
+    {
+      "id": "1d",
+      "check": "commit 84b520742d changes only OWNER_DECISIONS.md over the presentation commit 388fc730b9",
+      "result": "PASS",
+      "detail": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/OWNER_DECISIONS.md"
+    },
+    {
+      "id": "1e",
+      "check": "group-3 ACCEPTED_MANIFEST.csv binds the presented bytes (every row equals its blob at 84b520742d)",
+      "result": "PASS",
+      "detail": "42 rows; mismatches []"
+    },
+    {
+      "id": "1f",
+      "check": "group-3 folder holds DECISION.md, ACCEPTED_MANIFEST.csv, Handoff_State.md",
+      "result": "PASS",
+      "detail": [
+        "ACCEPTED_MANIFEST.csv",
+        "DECISION.md",
+        "Handoff_State.md"
+      ]
+    },
+    {
+      "id": "1g",
+      "check": "check_amendment_reopen.py (unanchored, read-only) finds the group-3 acceptance and the group-2 register at its bound hash",
+      "result": "PASS",
+      "detail": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-3_2026-10-03; projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-2_2026-10-03/Amendment_Actions.csv; 9b7c2ce8fbf97ec0cf829c5024e03d19b4117c1ca50abaea4ec0b2c340346d1c"
+    },
+    {
+      "id": "2a",
+      "check": "BASIS_AMENDMENT.md is the accepted bytes",
+      "result": "PASS",
+      "detail": "151bc6fffcac482f6f8e77bf3d7b2822ec65f94012e0b66720f14644efbe35bf"
+    },
+    {
+      "id": "2b",
+      "check": "B-01 old block occurs exactly once in the accepted state, the new block zero times",
+      "result": "PASS",
+      "detail": "old 1, new 0"
+    },
+    {
+      "id": "2c",
+      "check": "SOFTWARE_DECOMP.md equals the accepted state + filled B-01, and the expected hash 983199cc...",
+      "result": "PASS",
+      "detail": "983199cc22c84398000612cd95308c840ad011d302fe31ca110a5aa97e64a70d"
+    },
+    {
+      "id": "2d",
+      "check": "SOFTWARE_DECOMP.md carries no unfilled slot and gained exactly two lines",
+      "result": "PASS",
+      "detail": "{\"{ACCEPT_DATE}\": \"2026-10-03\", \"{AMENDMENT_SNAPSHOT}\": \"SCA-V4-003_2026-10-03_1827\", \"{Q5_CLAUSE}\": \", including the App act control in DEL-01-04\", \"{OI018_CLAUSE}\": \" and the OI-018 Consequence pointer\", \"{D021_CLAUSE}\": \"; and a Supersession_Delta row binding the GROUP3 OI-009 Status\", \"{OI009_CLAUSE}\": \"Open_Issues OI-009 Status (RESOLVED_BY_OWNER_DECISION) and Consequence\"}"
+    },
+    {
+      "id": "3a",
+      "check": "pre-act _LATEST.md (blob at 84b520742d) is 2b7938bc... naming SCA-V4-002",
+      "result": "PASS",
+      "detail": "2b7938bc82aa9b08a2bd26d7f2c0169c538edb1e6ae5423d5757def968f0c2e1"
+    },
+    {
+      "id": "3b",
+      "check": "_LATEST.md equals the C-01 text with every slot filled and nothing else",
+      "result": "PASS",
+      "detail": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657"
+    },
+    {
+      "id": "3c",
+      "check": "registered parser _latest_pointer_target resolves the pointer to the accepted snapshot and _pointer_matches is True",
+      "result": "PASS",
+      "detail": "target 'SCA-V4-003_2026-10-03_1827' match True"
+    },
+    {
+      "id": "3d",
+      "check": "first two lines are 'Latest:' and 'Updated:' (SPEC 11.2 form)",
+      "result": "PASS",
+      "detail": "Latest: SCA-V4-003_2026-10-03_1827 / Updated: 2026-10-03"
+    },
+    {
+      "id": "3e",
+      "check": "exactly one '**Active snapshot:**' line, naming the accepted snapshot",
+      "result": "PASS",
+      "detail": [
+        "execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/"
+      ]
+    },
+    {
+      "id": "3f",
+      "check": "every path _LATEST.md names exists",
+      "result": "PASS",
+      "detail": "7 paths; missing []"
+    },
+    {
+      "id": "3g",
+      "check": "no unfilled slot in _LATEST.md",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "4a",
+      "check": "Consolidated_Coverage.csv unchanged (no basis text changed) and no row names SOFTWARE_DECOMP.md",
+      "result": "PASS",
+      "detail": "366773650b588dc995f396be02d7e2690d9738c8d22afb98a85260dfb87313ea; 144 rows"
+    },
+    {
+      "id": "5a",
+      "check": "every changed path since 84b520742d is inside the acceptance-time write boundary",
+      "result": "PASS",
+      "detail": "29 paths; outside []"
+    },
+    {
+      "id": "5b",
+      "check": "no ScopeOfWork, register, _DEPENDENCIES, _DAG, _STATUS, _CONTEXT, Coverage_Telemetry, _LATEST_ACCEPTED or Open_Issues byte changed",
+      "result": "PASS",
+      "detail": []
+    },
+    {
+      "id": "5c",
+      "check": "no SCA-V4-001 or SCA-V4-002 byte changed",
+      "result": "PASS",
+      "detail": []
+    },
+    {
+      "id": "5d-GROUP-1",
+      "check": "GROUP-1 ACCEPTED_MANIFEST.csv rows still match (append-only custody record and, for group 2, the by-design pre-change Open_Issues row excepted)",
+      "result": "PASS",
+      "detail": "11 rows; mismatches ['projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/OWNER_DECISIONS.md']"
+    },
+    {
+      "id": "5d-GROUP-2",
+      "check": "GROUP-2 ACCEPTED_MANIFEST.csv rows still match (append-only custody record and, for group 2, the by-design pre-change Open_Issues row excepted)",
+      "result": "PASS",
+      "detail": "13 rows; mismatches ['projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/OWNER_DECISIONS.md', 'projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv']"
+    },
+    {
+      "id": "5e",
+      "check": "of the 13 artifacts only the three status records changed (F-2..F-4); the other ten equal their presented hashes",
+      "result": "PASS",
+      "detail": [
+        "Decision_Log.md",
+        "Handoff_State.md",
+        "RUN_SUMMARY.md"
+      ]
+    },
+    {
+      "id": "5f",
+      "check": "F-2 changed only the standing lines, added the DECISION-2 row and appended the AK2 section",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "5g",
+      "check": "F-3 and F-4: reproducing the listed status-line replacements on the presented bytes gives the working files",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "6a",
+      "check": "active snapshot holds every required artifact",
+      "result": "PASS",
+      "detail": "13"
+    },
+    {
+      "id": "6b",
+      "check": "exactly three SCA-* amendment snapshot folders exist (two predecessors and the active one), all complete",
+      "result": "PASS",
+      "detail": [
+        "SCA-V4-001_2026-09-28_2155",
+        "SCA-V4-002_2026-09-29_1901",
+        "SCA-V4-003_2026-10-03_1827"
+      ]
+    },
+    {
+      "id": "7a",
+      "check": "audit-decomp rerun (unchanged baseline script): 0 BLOCKER",
+      "result": "PASS",
+      "detail": "0/51/77"
+    },
+    {
+      "id": "7b",
+      "check": "the audit script is byte-identical to BASELINE/audit_checks.py",
+      "result": "PASS",
+      "detail": "8c3bef0676f826692d82261742488dd45148fdb5bb718a9dd9c39e7b903eb0d3"
+    },
+    {
+      "id": "7c",
+      "check": "no 'Historical snapshot residue' finding (COV-129 closed)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "7d",
+      "check": "Check 10 active snapshot and handoff state PASS; active snapshot is SCA-V4-003; registered parser matches",
+      "result": "PASS",
+      "detail": "{\"status\": \"RUN\", \"target\": \"SCA-V4-003_2026-10-03_1827\", \"pointer_matches_active\": true}"
+    },
+    {
+      "id": "7e",
+      "check": "topology unchanged (11 packages, 41 deliverables, 10 objectives, 262 scope items)",
+      "result": "PASS",
+      "detail": "{\"packages\": 11, \"deliverables\": 41, \"objectives\": 10, \"scope_items\": 262, \"ledger_rows\": 262}"
+    },
+    {
+      "id": "7f",
+      "check": "counts equal the recorded simulation (0/51/77)",
+      "result": "PASS",
+      "detail": "simulation 0/51/77"
+    },
+    {
+      "id": "7g",
+      "check": "IssueLog and Matrix byte-identical to the simulation's outputs (scratch copy of AK1-R's run)",
+      "result": "PASS",
+      "detail": "<scratch>/ak1r_sim/out"
+    },
+    {
+      "id": "8",
+      "check": "accumulate_supersession_map.py --check-map on the active snapshot (prior = SCA-V4-002 map, delta = SCA-V4-003)",
+      "result": "PASS",
+      "detail": "Wrote supersession map: <scratch>/Supersession_Map.regen.csv Rows: 30 Findings: 0 total, 0 blocking"
+    },
+    {
+      "id": "9a",
+      "check": "DAG-003 currency: SOURCE_MANIFEST (from the execution root) and MANIFEST all OK",
+      "result": "PASS",
+      "detail": "130 and 37 OK"
+    },
+    {
+      "id": "9b",
+      "check": "no deliverable is ISSUED or CHECKING (the ISSUED-reopen rule does not apply)",
+      "result": "PASS",
+      "detail": "{\"IN_PROGRESS\": 20, \"INITIALIZED\": 21}"
+    }
+  ],
+  "files": {
+    "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md": "983199cc22c84398000612cd95308c840ad011d302fe31ca110a5aa97e64a70d",
+    "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657",
+    "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/Decision_Log.md": "25367610eb3b2c15217ee9c6e998d83ca390de8471623f21d1470ed936e280f6",
+    "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/Handoff_State.md": "775fb93ffebb0114ba70c395ac42b1b4361a4ed8145a2c96d23dbf30813038f8",
+    "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/RUN_SUMMARY.md": "e864fd27d729fad472e4b2d1215424c85870a1500e0ea17387f802730649ccd0",
+    "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-3_2026-10-03/DECISION.md": "b6e90900b32b7ca38c2fc50e49c85619812dace6fee4c10cb5c28e7b6d81af60",
+    "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-3_2026-10-03/ACCEPTED_MANIFEST.csv": "b3651c16fb39a8db6e36ab8a71164a4d46e3664f740bdb31f8d5b4a52deba847",
+    "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-3_2026-10-03/Handoff_State.md": "07a2f0f0728b937deba00c0e4f7f3aca0b937842742c1f1a29d938f578e0fe01"
+  }
+}

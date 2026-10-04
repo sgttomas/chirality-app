@@ -1,0 +1,6 @@
+{
+  "path": "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/Decision_Log.md",
+  "before": "3de6dbb480ecd221a33e0b14e4fa3dc13406049a65fcacfca38c4642a3e4852c",
+  "after": "25367610eb3b2c15217ee9c6e998d83ca390de8471623f21d1470ed936e280f6",
+  "note": "the abbreviation 29c0a07b\u20268c2e was corrected with sed in the output and then in this script, so the script now reproduces the after bytes from the blob at 84b520742d"
+}

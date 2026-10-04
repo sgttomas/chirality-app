@@ -1,4 +1,4 @@
-# Run summary — SCA-V4-003 (CANDIDATE, before group 3)
+# Run summary — SCA-V4-003 (ACCEPTED, active snapshot)
 
 - **Amendment:** SCA-V4-003, the contract proposals of App v4 design passes 2
   and 3. Variant `SOFTWARE`; posture `ACCEPTED_PREDECESSOR`; predecessor
@@ -7,17 +7,17 @@
   - the directions "Proceed as recommended." and "yes, run the closeout.";
   - DECISION-1, groups 1–2, "accept the remaining items as recommended"
     (2026-10-03).
-- Group 3 is not yet presented.
+- DECISION-2, group 3, "I accept the audited result." (2026-10-03).
 - **Decision snapshots:** `checkpoint_snapshots/SCA-V4-003_GROUP-1_2026-10-03/`
   (`3e747b7685`) and `…_GROUP-2_2026-10-03/` (`ec267bdb9f`).
-- **Pointer:** `_ScopeChange/_LATEST.md` still names SCA-V4-002 (unchanged).
+- **Pointer:** `_ScopeChange/_LATEST.md` names this folder (`Latest: SCA-V4-003_2026-10-03_1827`).
 - **Candidate:** committed at `fa16393978`.
 - **Independent review:** `AgentRuns/APP-V4-SCA003-20261002/reviews/V24.md`
   (`64a01f0c4c`), READY FOR GROUP 3 after M-1, with no blocking finding.
   This revision (node AK1-R) makes the M-1 fix and the minors m-1, m-2, m-3,
   m-5 and m-6; see `Handoff_State.md`.
 
-**Closure verdict:** `OPEN_PENDING_DERIVATIVE_CLOSURE` (proposed, for the owner's acceptance at group 3)
+**Closure verdict:** `OPEN_PENDING_DERIVATIVE_CLOSURE`
 
 ## What changed in the candidate
 
@@ -56,10 +56,10 @@ UPDATE and DAG-004.
 
 | Field | Value |
 |---|---|
-| `DecompositionTruthState` | `INCOMPLETE` |
+| `DecompositionTruthState` | `COMPLETE` |
 | `DerivativePackageState` | `INCOMPLETE` |
 | `ContentRemediationState` | `NOT_REQUIRED` |
-| `DownstreamRerunState` | `FROZEN` |
+| `DownstreamRerunState` | `IN_PROGRESS` |
 | `MetadataAlignmentState` | `NOT_REQUIRED` |
 | `AuditState` | `WARNINGS` |
 | `AdjustedAuditState` | `WARNINGS` |

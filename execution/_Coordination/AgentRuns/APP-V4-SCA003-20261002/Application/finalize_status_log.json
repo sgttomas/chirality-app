@@ -1,0 +1,12 @@
+{
+  "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/Handoff_State.md": {
+    "before": "4f3f31b971a8a7c817a32604a22b99697731cd18283f72de4e443d6e099ec167",
+    "after": "775fb93ffebb0114ba70c395ac42b1b4361a4ed8145a2c96d23dbf30813038f8",
+    "replacements": 7
+  },
+  "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827/RUN_SUMMARY.md": {
+    "before": "9478bd5f893d711733a6a9b5bb0b1b5bb41495e66854392654dc27475564e7f2",
+    "after": "e864fd27d729fad472e4b2d1215424c85870a1500e0ea17387f802730649ccd0",
+    "replacements": 6
+  }
+}
