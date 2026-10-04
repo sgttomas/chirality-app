@@ -180,3 +180,99 @@ The last row shows only that either arc closes the 2-cycle (G1's two minimum set
 | Whether the owner accepts an SCA carrying one S1 clause for this pair alone, or batches it with other cases | An owner and HELP_HUMAN question |
 | Independent review of the proposed rewordings | O-F designed both files and wrote this analysis. RVG or another reviewer should test M-01 against GC-1, GC-3 and RVG-C2's condition (c) |
 | Kinds | G1 r3's, not re-decided. DEP-11-03-015's L/E boundary (G1 §5) decides only whether SCC-006 is present under O-3; M-01 removes the row under every reading |
+
+## 9. 2026-10-04 repair (RVG2-CASE-007)
+
+**Standing.** This section repairs §1–§8 under review RVG2-CASE-007 (`E/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/reviews/RVG2-CASE-007.md`, sha256 `c16f98659c2e0101b71f136ad88fa31dd0f49a630aac40ee102e50396b756fce`, at `0d338dd7b1`; verdict REPAIR: 2 MAJOR, 2 MINOR, 3 NOTE). It also applies GC-5 (`GC_RULINGS.md`, sha256 `7fcbb551ea4605f77eb09d70ff3b57549d01f07e2b7992be04feb8beade9c65b`), which postdates §1–§8.
+
+Nothing above is deleted. **Where this section and an earlier one differ, this section supersedes it.**
+
+| Superseded | By |
+|---|---|
+| §2, "Which side can yield": that DEP-11-03-015's content is not DEL-11-03's and the return is carry-only | §9.1 |
+| §3 in full: M-01, its S1 clause, both Design rewordings, its GC-3 table and "Residual: None that sequences" | §9.1, §9.2 (M-01 withdrawn) |
+| §4: the F-R8 amendment | §9.4 (no amendment needed) |
+| §5: M-02 as a fallback | §9.3 (M-02 is the closing act under O-1 and O-2) |
+| §6, the M-01 row; §7 in full | §9.3, §9.5 |
+| §8, first two rows (re-extraction after the S1 clause; the subject "as the record states it") | §9.6 |
+| CSV rows M-01 and M-02 | CSV rows M-01R and M-02R |
+
+What stands: the rows and quotes (§1), the kinds, the O-3 correction (§0), the closure arithmetic, and the projection verdict on timing (CA vN → packet → owner act → CA vN+1). RVG2 confirmed each.
+
+### 9.1 C7-M1 — accepted: the account needs DEL-11-03's disposition content
+
+My §2 claim was wrong. The owner's act record does not carry four things that DEL-11-03's disposition does (RP §6.1, §6.2, RF-4, RF-6; `rp.disposition.schema.json`):
+
+1. **Decision on a named alternative.** Only the disposition says whether the response is a decision, and on which of the package's alternatives (RP-R7; RF-6: "no alternative is ever inferred from the response").
+2. **The bound subject.** The package binds the act to the packet manifest by sha256, and the disposition carries `package_file.sha256`. DEL-11-03 OUT-003 assigns that binding to DEL-11-03 ("Bind the decision subject, evidence standing, owner's actual response and custody"). DEL-11-01 REQ-006 needs the act's "identified subject".
+3. **Lapse.** A changed package lapses a decided disposition (RP-R7, RF-4). An owner record does not change when the package does.
+4. **`fallback_status`.** This is the plain statement of v3.0.1's standing after the record. It is grounded in RP §6.1's "v3.0.1 remains the fallback without a further act" column, and it is what CA's preservation rests on (OD-09: "Preserve the old projects and archives until I decide v4 has replaced the fallback").
+
+So the return is version feedback in its timing, but its content is DEL-11-03's. **DEP-11-03-015 remains a real need of DEL-11-01's next account version.** Under G1 r3 it stays L, needed "after an attributable owner act", with E secondary.
+
+**Residual, computed** (`$TMPDIR` script; Tarjan over all 212 arcs, G1 r3 kinds, only DEP-11-03-015's kind varied):
+
+| Residual read as | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| L (G1 r3 primary; RVG2) | cycle | cycle | none | none |
+| E (secondary) | cycle | cycle | cycle | none |
+| I (only if CA re-applied RP's alternatives and states itself) | cycle | cycle | cycle | cycle |
+| Any reading, with the owner cut M-02 | none | none | none | none |
+
+CA as designed (§9.2) records the disposition's state and reference in its own `replacement_standing` format (`pending` or `decided`, `fallback`, `disposition_ref`). It does not apply RP-R7 or RF-6 itself, so the I reading does not arise. The row stays L/E.
+
+### 9.2 C7-M2 — accepted: the narrowing is withdrawn
+
+**M-01 is withdrawn in full.** That means the DEL-11-03 S1 clause, the CA §2 O-2 and §5 rewordings (including "as the act states; see its record" and "never derived from the package's alternatives"), and the RP §2 O-2, §6.2 and §6.3 rewordings.
+
+**CA's content stays as designed in CA-v0.4 §5.** "When DEL-11-03 returns an attributable disposition, the next account version records it (`decided`, with its reference). Even then the account retires nothing: P-4's acts remain separate." The fallback statement, the identified subject and the disposition reference stay part of DEL-11-01's account. No check is narrowed. The residual is accepted, and closing it is an owner act (§9.3).
+
+**On method.** I proposed narrowing DEL-11-01's own output (OUT-001's retained-fallback record; REQ-006's identified subject) to make a row unnecessary. That traded a check for a closed cycle. That trade is the owner's to make, not an agent's, and RVG2 was right to call it self-softening.
+
+### 9.3 Restated moves and owner acts per option
+
+- **M-02R (closing act under O-1 and O-2):** an owner **cut** of DEP-11-03-015 as version feedback. DAG vN orders CA vN before the packet; the disposition feeds CA vN+1. The row stays a register obligation, read at its point of need ("after an attributable owner act"; HANDOFF_STATE reading rule 2). It has no mirror rows. Recorded in this case's `Ruling_Register.csv` if made.
+- **Alternatives the owner may prefer instead of the cut:**
+  - R2, a graph merge group `{DEL-11-01, DEL-11-03}` (the case's existing alternative);
+  - O-5-style version nodes, a decomposition through `scope-change`.
+
+  Neither is smaller than the cut.
+
+| Option | SCC-006 present? | Owner act needed | Agent moves |
+|---|---|---|---|
+| O-1 | Yes (1 row: DEP-11-03-015, L/E) | **One cut (M-02R)**, or a merge or decomposition instead | None |
+| O-2 | Yes (same) | **One cut (M-02R)**, or a merge or decomposition instead | None |
+| O-3 | No (DEP-11-03-015 out as L) | None. The owner's choice of O-3 is itself the act, class-wide. If DEP-11-03-015 were read as E, one cut | None |
+| O-4 | No | None | None |
+
+### 9.4 GC-4 restated
+
+No integrator ruling needs amending. F-R8 ("SCC-006 is treated by SCC-CASE-007 R1 for design"; S2-F: "no row change") stays true. A cut is a graph ruling under SR-4, not a row or Design change, and the Designs keep R1's sequence. The §4 amendment entry is withdrawn.
+
+### 9.5 Minor findings and notes
+
+| ID | Disposition |
+|---|---|
+| C7-m1 (S1 clause stated DEL-11-01's method in DEL-11-03's ScopeOfWork) | Resolved by withdrawal: no S1 clause is proposed |
+| C7-m2 ("IV" label) | Accepted. M-01 was a withdrawal of the return through an owner-accepted amendment, not an invert: nothing reversed and no contract was interposed. The superseding CSV row M-01R records MoveCode `WD` with status `WITHDRAWN`. §1's IV definition (SCC-CASE-002) did not fit it |
+| C7-n1 (continuing obligations are DEL-11-01's own) | Noted. It does not change the result, because the disposition half still needs the row |
+| C7-n2 (DEP-11-03-016's EvidenceQuote refresh) | Moot: the shared sentence is unchanged |
+| C7-n3 (self-review risk) | Noted. C7-M2 is that risk realised. M-01's withdrawal and §9.2 are the correction |
+
+**GC-5, applied (new since §1–§8).** CA §5's use of the disposition's content is a dependency under GC-5 item 1, because CA's next version needs it to produce its standing. Under item 3 it must either be removed by an accepted move or be stated in the consumer's ScopeOfWork and register.
+- The register already carries it: DEP-11-03-015, the supplier's DOWNSTREAM row on this arc.
+- DEL-11-01's ScopeOfWork does not state it. CLM-002 names only PKG-10 maps and DEL-11-02's adoption status as inputs.
+
+**Proposal, not a move:** an S1 sentence in DEL-11-01 CLM-002, "and records the owner's replacement disposition returned by `DEL-11-03`, after an attributable owner act", with its consumer-side register row as a mirror of DEP-11-03-015.
+- It adds no arc: it sits on the same arc, and an M-02R cut covers it as a mirror (G1 K-7).
+- It is listed so the graph does not change when G2b finds the use (GC-5 item 4).
+- It is applied, if at all, by `scope-of-work` under an owner-accepted amendment.
+
+### 9.6 Not established (repair)
+
+| Item | Why |
+|---|---|
+| Whether the owner prefers the cut, a merge group or version-node decomposition | The owner's choice; §9.3 lists all three |
+| Whether DEL-11-01's ScopeOfWork should carry the consumer-side sentence now or at the next amendment | GC-5 item 3 requires one or the other. The timing is HELP_HUMAN's and the owner's |
+| G2b's inventory for this pair | GC-5 item 4 makes "no new row" provisional. The CA–RP uses I know of are DEP-11-03-008 (with mirror DEP-11-01-011) and DEP-11-03-015 |
+| Independent review of this repair | RVG2 to confirm |
