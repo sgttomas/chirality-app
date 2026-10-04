@@ -135,3 +135,55 @@ No integrator amendment is needed for §2.2.
 - **For HELP_HUMAN:** ACT-M1 (c) is a cross-case question. Rule on Design-to-Design citations (a proposed GC-5), or commission the abbreviation-aware scan.
 
 **Counts.** BLOCKING 0, MAJOR 1, MINOR 3, NOTE 1.
+
+---
+
+## Addendum A — review of the ACT51 repair, §8 (2026-10-04)
+
+- **Subject:** commit `c5ca7ee0c9`.
+  - `ACT51_ANALYSIS_2026-10-04.md`, sha256 `245dde6f5ca3d2d0c43b82eb075d17daba49c18460a1bea4d850eeeb2629aad0`. It is append-only: the diff from `10f4dd3444` deletes nothing.
+  - `ACT51_MOVES_2026-10-04.csv`, sha256 `04f3fe0b3ce200c976aad3a4c72724f3a56817f43901723a5b3e7b0577f5ca19`.
+  - `GC_RULINGS.md`, with GC-5.
+
+### A.1 Checkpoint standing, as repaired: a genuine inversion
+
+| N13 test | Result for the §8.1 definition |
+|---|---|
+| **(i) Own terms** | **Yes.** ACT now reads values it does not compute: *none*, *arrival waiting ⟨act⟩* and *A5 constraint in force*, each with *binding: yes/no*. The executor (the host loop, or DEL-02-03's recorder) or the host route reports them. ACT's own content is §4.1's act list, §4.4's A5 rule and rule 2's treatment effects. `governed` appears only as an attribution of who maps onto *binding*, which is not a dependency (GC-5 item 2) |
+| **(ii) Grounding in basis** | **Yes.** I verified each at source: *waiting* is R-5's word; *binding* rests on R8-1 ("a new optional declaration flag in WD … Phase 1 honours the flag only as guidance. The governance phase enforces it"); the agent's request is R9-1's |
+| **(iii) Change direction** | **Right way.** A change to WD §4.3.7's item rules (R4-7 MX-3…MX-8) changes *when* the executor reports *waiting*, not what ACT means. The suppliers map onto ACT's values through their admitted consumption of ACT (DEP-02-01-018, DEP-02-03-012, DEP-05-01-018), which satisfies GC-1 (b) |
+
+- **The withdrawn condition.** §2.2 had made GC-1 (a) depend on re-anchoring ACT §4.0 and §4.3. §8.1 withdraws that condition, correctly: rule 2 no longer reads §4.3.
+- **§4.3 still counts as exposure** of ACT as a whole, and it sits with G2b.
+- **The A12 precondition** (R4-6 as the anchor in ACT §2.4 and §2.8, with a matching citation in EXEC §4.10) is stated, with design agents named. R4-6's text carries the effects, so this is a real re-anchoring under GC-5 item 2.
+
+### A.2 The other findings
+
+| Finding | §8 | Status |
+|---|---|---|
+| ACT-m2 | R8-11 item 5 withdrawn; R8-1 is the basis (§8.2) | Resolved |
+| ACT-m3 | §1 and §5 now carry the conditions, plus the "provisional until G2b" qualifier (GC-5 item 4) (§8.4) | Resolved |
+| ACT-n1 | Grant standing anchored on R-3 point 3, owner DEL-04-01 (§8.3) | Resolved |
+| REQ-007 (A2) | §8.6 | Resolved, details below |
+| ACT-M1 | §8.5 adopts the re-anchoring test, with R4-7 and R-7 marked as hiding the dependency and the RS, WR and AAC uses marked as not re-anchorable. Disposition deferred to G2b, as HELP_HUMAN directs | **Deferred, honestly recorded.** It is not resolved here, and the "no supplier" claim for DEL-04-01 as a whole is correctly marked provisional |
+
+**REQ-007 (A2), verified.**
+- DEP-04-01-019, -020 and -021 exist in DEL-04-01's register as ACTIVE EXECUTION UPSTREAM rows with **EXTERNAL** targets: the SWBPIPE owner, the person setting scope, and the person performing the act.
+- -021's EvidenceQuote is VER-002's. These rows form no deliverable arc.
+- The kind table for a re-extraction against DEL-01-04 reproduces exactly:
+
+  | Kind | O-1 | O-2 | O-3 | O-4 |
+  |---|---|---|---|---|
+  | V | 15/11 | acyclic | acyclic | acyclic |
+  | L | 15/11 | 14/6 | acyclic | acyclic |
+  | E | 15/11 | 14/6 | 14/6 | acyclic |
+  | I | 15/11 | 14/6 | 14/6 | 13/1 |
+
+- Reading it as V follows G1 r3's X-1 precedent.
+- The proposed S1 clarification names the point of need and moves no ownership.
+
+### A.3 Verdict
+
+**CONFIRMED — READY** for §5.1. With the three rewordings, under their stated conditions, ACT §5.1 needs no owner act under O-1…O-4. "DEL-04-01 gains no supplier" stays provisional on G2b, per GC-5 item 4.
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 0, NOTE 0.
