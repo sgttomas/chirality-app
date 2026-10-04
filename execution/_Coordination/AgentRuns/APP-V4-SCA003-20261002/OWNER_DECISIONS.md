@@ -71,3 +71,27 @@ sheet; "remaining" is read as all seventeen, since none had been answered):
   worded.
 
 Group 3 (the audited poststate) and DAG-004 remain for the owner.
+
+## DECISION-2 — Checkpoint K2: SCA-V4-003 group 3 (owner, exact, 2026-10-03, local time America/Denver, MDT)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after HELP_HUMAN
+presented the audited poststate in chat: the candidate
+`_ScopeChange/SCA-V4-003_2026-10-03_1827/` (Handoff_State.md sha256 prefix
+`4f3f31b971a8a7c8`, committed at `388fc730b9`), its closure verdict
+`OPEN_PENDING_DERIVATIVE_CLOSURE`, the post-change audit (0 BLOCKER, the
+WARNING rise attributed to the Q-13 act), review V24 (READY FOR GROUP 3,
+M-1 fixed at AK1-R) and the open obligations (the 19 REVISEs, the register
+UPDATE, DAG-004, the Design re-pins, `Coverage_Telemetry.json`).
+
+> I accept the audited result.
+
+**Effects:**
+
+- Group 3 is accepted: the audited poststate, its closure verdict
+  `OPEN_PENDING_DERIVATIVE_CLOSURE`, and the open obligations as listed.
+- `{ACCEPT_DATE}` = `2026-10-03` (the owner's local date of the act).
+- The acceptance-time edits F-1…F-4 and H-1…H-3 of the candidate's
+  Handoff_State follow, then the accepted route of Q-3: `scope-of-work`
+  REVISE for the 19 Scopes of Work (`NO_STATUS_TOUCH`), `dependency-extract`
+  UPDATE for the 20 registers, the `project-dag` currency audit and a DAG-004
+  candidate, which returns to the owner.
