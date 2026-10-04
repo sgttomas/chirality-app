@@ -524,3 +524,63 @@ There are no BLOCKING, MAJOR or MINOR findings, and 2 NOTEs. The point I graded 
 
 - **N8 — "not checked" exits 0.** Without `--outcomes`, DX-3 prints "DX-3 not checked: no outcome supplied …" and still exits 0 (tested). The text is honest, but a caller that reads only the exit status would pass the rule silently. A `--require-outcomes` flag, or a distinct exit code for "not checked", would close this.
 - **N9 — knock-on for EU-F1 (R23-44 working as designed).** `check_rp.py` still holds 65/65, and now prints "NOTICE the live supplier file for lhq_manifest_examples has moved since vendoring (9873df65c9b4 -> dbf8463f45dc); re-pin deliberately (R23-21)". RP-v0.3's fixture copy of `DOS-EXAMPLE-INVENTED` keeps the DEL-09-11 hand-over the source has now dropped. The packet does not rely on that hand-over (it has no receipts), so no derived value changes. O-F re-pins deliberately in its next DEL-11 unit.
+
+---
+
+# Addendum 6 — RP-v0.4 (unit EU-F2, with DEL-11-01 CA-v0.1; committed `f324107696`), 2026-10-04
+
+- **Subject.** Re-hashed, all as in `O-F.md` "EU-F2 — frozen":
+  - `REPLACEMENT_PACKET.md` `5bfa9303…8271`;
+  - `rp.packet-manifest.schema.json` `9c80b95d…`;
+  - `F/rplib.py` `c834e90b…`, `build_fx_rp1.py` `93545c62…`, `check_rp.py` `a0ae9335…`, `README.md` `15e04565…`;
+  - `F/vendor/VENDOR.json` `982b7bb9…`;
+  - FX-RP1-4 `MANIFEST.sha256` `ff30d234…` (all 11 files `OK`).
+
+  `git status --ignored` is clean.
+- **Checks.**
+  - `check_rp.py`: **70/70**, with no drift NOTICE.
+  - CA's side, in RV3-CA1: `check_ca.py` 21/21.
+
+## Verdict on RP-v0.4: **READY**
+
+My three MINOR findings from Addendum 4 and N9 are resolved, each with one qualification below. O-F's fixes for RR-EUF3 hold, and DEL-11-01's hand-over feeds the packet correctly. There is 1 new MINOR finding (EUF4-R1), which partly reopens Addendum 4's finding 1.
+
+| Addendum 4 item | At RP-v0.4 | Checked |
+|---|---|---|
+| MINOR 1: no rule kept a placeholder candidate from the owner | **Resolved in form.** `check_package` refuses an illustrative or unidentified candidate outside a fixture (B-45). A fixture's purpose must open with "FIXTURE, NOT FOR THE OWNER: no real candidate is identified" (A-20; FX-RP1-4's purpose does). B-47 is the positive control. See EUF4-R1 for what the rule rests on | `rplib.py` l.385–392 |
+| MINOR 2: "manual" and "on request" | **Resolved.** "After that act, inference from App v3's records (BUILD_AND_RELEASE.md §12, excerpted in the packet): v3.0.x's manual update check reads the latest published stable release, so on request it would open v4's installer or release page". This is faithful to the excerpt ("Manual checks read its latest published stable release … opens in the system browser on request"). RP-R6 refuses a BUILD_AND_RELEASE inference missing either word (B-46) | Package and excerpt text |
+| MINOR 3: false "are excerpted" | **Resolved.** The term now reads "Every DEL-11-03 clause this entry names is excerpted"; CLM-001, CLM-003, REQ-004, REQ-005, REQ-006, VER-003, VER-004 and AX-001 are all in `basis-excerpts.md`. I checked all **12** excerpt blocks byte-exact at their stated lines and sha256. The two R23 excerpts are pinned to an earlier committed blob, which is sound because R23 is append-only | Script over `basis-excerpts.md` and git blobs |
+| N9: DOS examples moved | **Resolved.** `F/vendor` re-pins `lhq.dossier-manifest.valid.examples.json` to `dbf8463f…` (source commit `aa95aff4e1`, DX-3). FX-RP1-4's `DOS-EXAMPLE-INVENTED` has no DEL-09-11 hand-over and carries the DX-3 limitation | Vendor record; fixture copy |
+
+## O-F's fixes for RR-EUF3 (§3, §4, §5)
+
+- **#3 Host contributions.** `journey.host_contributions` reads `{"by_standing": {"answered": 13}, "committed_delivered_adopted_or_examined": 0}`. That equals the CIR copy's 13 external contributions, all `answered`.
+- **#4 Review.** `dossier_review` now carries `dossier_states_independent: true` beside `state: named_not_resolved`. That matches SQ-EX-05's `reported_as_independent: true`, with the review not supplied.
+- **#5 Baseline.** `comparison_rule` adds "so no direct measurement of v3.0.1 exists".
+- **#6, #7.** As in the table above.
+- **#8.** O-F routes it to O-B as a note, with no packet change, which matches my Addendum 4 judgment.
+
+## DEL-11-01's hand-over feeds RP-v0.4 correctly
+
+- S-4 is `supplied/continuity-handoff.CA-1.json` (`850e0421…`), `source_kind: copied_record`, `standing: owner_record`.
+- It is byte-identical (`cmp`) to `F/ca/records/CA-1.handoff.json`.
+- The packet's `continuity` repeats the hand-over's results: `archives_verify: passed`, `thesis_identity: matches`, `continuing_obligations: not_supplied`, `fallback_retained: true`, account "CA-1 v1". A-21 checks this.
+- The first-cut `continuity_input` is gone. The interface is checked from both ends (`check_ca` K-11; `check_rp` A-7, A-8, A-21).
+
+## EUF4-R1 — MINOR — the fixture refusal rests on two fields the builder writes rather than derives (`rplib.check_package`; `build_fx_rp1.py`)
+
+- **Evidence.**
+  - `check_package` treats a packet as illustrative when `manifest["evidence_standing"] == "illustrative" or not manifest["candidate"]["identified"]`.
+  - In `build_fx_rp1.py`, both are written as constants (`"evidence_standing": "illustrative"`; `"identified": False`). Nothing in `check_rp` recomputes them from the supplied items, even though the items carry their own standing (S-1…S-3 `illustrative`) and the subject still reads "ILLUSTRATIVE (SQ example; not a real candidate)".
+  - My probe took FX-RP1-4's own package with the fixture notice removed, and its manifest with `fixture: false`, `evidence_standing: "established"` and `identified: true`. `check_package` returned **no error**, although the subject is still the placeholder.
+- **Consequence.** The refusal protects against an honest builder forgetting the notice, not against a packet that misstates its standing. REQ-004's "identify the exact … candidate" is enforced only by declaration.
+- **Repair.**
+  - Derive `evidence_standing` from the supplied items: illustrative if any supplied item is illustrative or a first cut.
+  - Derive `identified` from the candidate evidence: for example, the SQ candidate maps, its step results resolve to candidate EXP records, and the subject carries no placeholder marker.
+  - Check both in A-9's recomputation.
+  - Also make `check_disposition` refuse `presented_no_decision` or `decided` for a packet whose manifest is a fixture.
+
+## Not run
+
+- The builders' determinism.
+- `--fixture` on FX-RP1…3 (O-F reports 8/22, 11/22 and 13/22, as expected under the current rules).

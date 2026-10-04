@@ -529,3 +529,84 @@ O-D's lexicon catches the phrasings it was given, including my three, but not th
 - The `results_c` capture keeps LM Studio's own `msg_…` and `rs_…` response ids. They are not HOSTING §9.1 categories and not personal, so they are recorded only.
 
 **Not done:** I did not run any probe. P-H1c's bytes and script were read, not executed.
+
+## Confirmation: R23-52 round and P-H1d (commit `8f5c41348a`; 2026-10-04)
+
+**Reviewer:** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY**
+
+EUD1-R14, R15 and R16 are confirmed. The P-H1d record supports R23-53. There are no new findings, and one NOTE (EUD1-R17) records two limits of evidence.
+
+**What I checked:**
+- **Bytes.** All 15 files in O-D "CURRENT" match both the working tree and `git show HEAD:`. For `RUN/D`, PKG-07 and PKG-08, `git status --short --ignored` prints nothing.
+- **Content changes.** `git diff 8525b7fa53 8f5c41348a` over PKG-07, PKG-08 and DEL-09-10 changes only:
+  - PRC (to v0.4: §7 P-H1d, and the CFB pin);
+  - CFB (label lines);
+  - DRC and CW (one CFB pin each, in place);
+  - RTD and `check_rtd.py`.
+
+  I read every hunk.
+- **Prototype.** `run_d.py` gives **297/297**.
+
+### P-H1d (R23-53 relies on it): confirmed
+
+**Call B succeeded, between turns, on a thread with history.** I read `results_d/frames.json`:
+
+| Event | Time |
+|---|---|
+| T2 `turn/completed` | 59 279 ms |
+| Call B `mcpServer/tool/call` sent | 59 312 ms |
+| Call B result received | 59 335 ms |
+| T3 `turn/start` sent | 60 346 ms |
+
+- B's result is the double's success text ("queued", "P-EX-1", "invented example material"), and `observations.json` has `is_error: false`.
+- The thread had T1 and T2 in its history: T3's request carries 9 items.
+- Call A was sent at 7 596 ms. T1 started at 7 517 ms and completed at 54 867 ms, so A was made during an active turn.
+
+**The marker search is sound.** I counted each marker independently in `model_requests.json` and `frames.json`:
+
+| Marker | In the three requests | In the frames (proves it is in the results) |
+|---|---|---|
+| Call A's own `toolReceivedAtMs` value `1791134637996` | 0 | 2 |
+| Call B's own `toolReceivedAtMs` value `1791134689727` | 0 | 2 |
+| `P-EX-1` | 0 | 4 |
+| `toolReceivedAtMs` | 0 | 4 |
+| `invented example material` | 0 | 4 |
+| `queued` | 0 | 4 |
+| `proposal` | 0 | 4 |
+| `metaReceived` | 0 | 4 |
+| `example_lookup` | 3 | — |
+| `EX-1` | 3 | — |
+
+- Both calls used the same key, so the shared texts cannot tell A from B. Each call's own `toolReceivedAtMs` value can, and the probe searches for those values.
+- `example_lookup` and `EX-1` appear once per request only because they are part of the offered tool's definition.
+- The three requests carry 3, 6 and 9 input items, none of them a tool-call or tool-output item.
+
+**Redaction.**
+- `results_d/` contains no UUID-shaped identifier, no time zone, no user name and no host name (grep).
+- `REDACTION.json` records 371 identifier replacements and 3 time-zone replacements.
+- The recorded spawn environment keys are only `CODEX_HOME`, `HOME`, `PATH` and `TMPDIR`.
+
+**Limits.** These match R23-37 and R23-48.3:
+- The script checks that port 1234 listens on loopback only (`loopback_only()`), guards the socket, stops on memory pressure (level 4), and halts if `codexHome` is not the scratch home.
+- The recorded configuration has analytics off, plugins off, `web_search` disabled and a read-only sandbox.
+- The tap runs in pass-through mode to `127.0.0.1:1234`.
+- `events.json` ends with `stop_reason: null`, so no guard fired.
+
+### Per finding
+
+| Finding | State | Evidence |
+|---|---|---|
+| EUD1-R15 | **Confirmed** | PRC-v0.4 §7 now says that P-H1c's call B was an error result, records P-H1d, and lists situation 2 "with an error result (P-H1c, T3) and with a successful result (P-H1d, T3)". The situations not observed are still listed |
+| EUD1-R14 | **Confirmed** | `compare_eud1.py` reports "46 met (8 of them on free text needing an examiner's reading)". `compare_sensitivity.py` gives **19/19** plus the control. My probes (`probe_compare3.py`): N-2 and N-6 → `met` with `examiner_reading_required: true`; the same case with no notes or empty notes → no flag. That is the stated limit |
+| EUD1-R16 | **Confirmed** | CFB's header says to cite it by sha256. §1 names "`PEC_RECEIVING.md`, rules PR-1…PR-7, unchanged since PRC-v0.2" instead of a version label. PRC-v0.4, DRC, CW and RTD-v0.2 all pin CFB at `69c1f10e…`, which equals the file |
+
+### EUD1-R17 — NOTE: two limits of evidence, recorded only
+
+**What P-H1d's record does not contain.**
+- The record shows that the loopback check and the guards ran in the script.
+- It does not hold the `lsof` result, nor any evidence that the model was unloaded, the server stopped and `/tmp/cvx-eud1d` removed afterwards. Those rest on O-D's statement.
+- The model requests carry no timestamps, so "T1 made one request, sent before call A" also rests on the turn timing and O-D's statement. PRC §7 already lists "a later request within the same turn" as not observed.
+
+**Labels in place.** DRC-v0.1 and CW-v0.2 were edited in place to add the CFB pin, keeping their labels. Like CFB-v0.2, each label now covers two byte states. RTD pins DRC by hash; other citations of DRC or CW should do the same.

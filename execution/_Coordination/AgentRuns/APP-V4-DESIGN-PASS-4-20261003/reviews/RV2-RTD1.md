@@ -113,3 +113,34 @@ CA-4's "decision pair: approve or decline" is sound as a requirement. When the s
 - **Not done:**
   - I did not run probes against the schema beyond `check_rtd.py`'s negatives.
   - I did not read DEL-08-02's `Dependencies.csv` rows beyond §9's arcs.
+
+## Repair confirmation: RTD-v0.2 (commit `8f5c41348a`; 2026-10-04)
+
+**Reviewer:** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY.** RTD1-R1 is confirmed
+
+**The supplier table is pinned by sha256.** Every pin equals the current file:
+
+| Supplier | sha256 (prefix) |
+|---|---|
+| ACT-POLICY-v0.11 | `597f13bd…` |
+| RS-v0.10 | `2e7afb1b…` |
+| WD-v0.9 | `262c9e54…` |
+| DRC | `7bfa7fc4…` |
+| CFB | `69c1f10e…` |
+| Standing schema | `bf4cef4d…` |
+| DR-DM-1 | `075f0aad…` |
+| DR-DM-2 | `277def89…` |
+
+- The quoted text is still present in ACT v0.11: "It is **not** A6" (L347) and F-2 (L1952).
+
+**Check before use.**
+- `check_rtd.py` (`e2231509…`) checks the five pins it reads (P-0) before anything else, and gives **19/19**.
+- I confirmed the refusal myself on a clean `git archive 8f5c41348a` extract. Appending one byte to DR-DM-1 gave `FAIL P-0 supplier pins hold … DR-DM-1.json: 80d9d885f7a3… != pinned 075f0aadb9de…` and exit status 1. The unaltered extract gave 19/19.
+
+**Notes carried.** RTD1-R2 and RTD1-R3 are carried as open notes in §12, with their owners.
+
+### RTD1-R4 — NOTE: ACT, RS and WD are pinned in text only
+
+`check_rtd.py` does not read ACT, RS or WD, so their pins are recorded but not verified at run time. That is acceptable for quoted text. Re-checking the quotes against the pins belongs at RTD's next revision.
