@@ -1,0 +1,35 @@
+# Development groups accepted at the 60% gate
+
+The owner accepted the 60% gate on 2026-10-04 (OWNER_DECISIONS.md, "The 60%
+gate"), and with it HELP_HUMAN's grouping approach: "your intended approach
+is a valid decision to start grouping items together and solving them".
+
+These groups are **groupings for development**. They are not a merge ruling
+under the cycle-resolution doctrine. Held rows stay `SCC_UNRESOLVED`, the
+cases stay open, and each loop's work graph orders the parts of its group.
+
+Basis: DAG-004 (`_DAG/DAG-004/DependencyEdges.csv` and
+`CandidateEdges.csv`). Each arc runs consumer → supplier; a DOWNSTREAM row is
+reversed.
+
+| Group | Name | Deliverables |
+|---|---|---|
+| A | Runtime and contract core | DEL-01-01, 01-02, 01-03, 01-04, 01-05, 02-01, 02-02, 02-03, 02-04, 03-01, 03-02, 03-03, 04-01, 04-02, 04-03, 05-01, 05-02, 09-09 |
+| B | Packaging and qualification | DEL-01-06, 09-01, 09-02 |
+| C | Connectors and research | DEL-07-01, 07-02, 08-01, 08-02, 09-10 |
+| D | Fleet, journeys and witnesses | DEL-03-04, 06-01, 06-02, 09-05, 09-06, 09-07, 09-11, 09-12 |
+| E | Practice and continuity | DEL-10-01, 10-02, 10-03, 10-04, 11-01, 11-02, 11-03 |
+
+**Group order (suppliers first): A → {B, C} → D → E.** HELP_HUMAN's own
+check found that:
+- all 83 held rows lie within groups;
+- every arc between groups follows this order, except one admitted arc,
+  DEL-09-09 → DEL-09-01 (A uses B), which forms no deliverable cycle.
+
+The independent reproduction is in `SURVEY/GROUP_SORT.md`.
+
+**Recording relationships found later.** See GC-7. Within a group, the
+group's work graph records them. Across groups, they go in the shared list
+`CROSS_GROUP_RELATIONSHIPS.md` (in the handoff location). Anything that seems
+to run against the order, crosses groups in a cycle, changes the
+deliverable set or makes finished work wrong goes to the human at once.
