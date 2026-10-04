@@ -8,7 +8,7 @@
 - **Boundaries:**
   - writes only to tracked files under `projects/chirality-app-v4/`;
   - read-only git; no network.
-  - Uncommitted, for HELP_HUMAN to commit.
+  - committed by HELP_HUMAN in `63d366c0e7`.
 
 ## Convention
 
@@ -123,6 +123,7 @@ All are under `projects/chirality-app-v4/execution/`.
 
 - **`WAVE_A/A1-G.md`:** this record embeds a copy of the GUIDE pin script. Its `ROOT=` literal now reads `'<repository root>/projects/chirality-app-v4/execution'`. The record shows how the script was written and is not run from the record, so the copy is no longer runnable verbatim. The working copy used for the pin check is outside the repository and is unchanged.
 - **`CURRENCY_APP_V4_ACCEPTANCE_2026-09-28/Tool_Run.json`:** two `cwd` values changed. The file still parses as JSON.
+- **Quoted `~` (all edited records):** a shell does not expand `~` inside quotes, so a quoted command or `cwd` that now reads `~/…` (for example the DEL-09-06 record's schema command and the two `cwd` values above) no longer shows exactly what was run and cannot be replayed as written. As with `A1-G.md`, these are records of what ran, not scripts to run.
 - **`PEC_UPSTREAM_REVIEW_2026-09-27.md`:** it is listed by path, with no hash, under `review_receipts` of `Reviews/APP-V4-GROUP1-20260927/CP1_DRAFT_MANIFEST.json` and of the GROUP1 checkpoint snapshot's copy. A path citation does not bind bytes, so the file was treated as editable.
 
 ## Prototypes
@@ -138,7 +139,7 @@ All are under `projects/chirality-app-v4/execution/`.
 | Check | Result |
 |---|---|
 | **Manifests** | **No new failure from these edits.** All 25 `*.sha256` manifests under `projects/chirality-app-v4` were checked with `shasum -a 256 -c`, each from the base its paths resolve against (repository root, `execution/`, or the manifest's folder): 6,778 entry lines. **Before:** 3,448 OK; 972 FAILED; 2,358 unreadable (almost all are DEL-01-01 generated files deliberately left uncommitted). **After:** identical, except one entry described in the next row. |
-| **Concurrent change** | The one changed entry is `_Coordination/AgentRuns/APP-V4-SCA003-20261002/OWNER_DECISIONS.md` in `ScopeClosure_SCA-V4-003_2026-10-03_2028/INPUT_MANIFEST.sha256`: OK, then FAILED. That file was changed by another session working in the same worktree during this run (13 added lines about owner answers). This node did not touch it, and it holds no home path. Untracked `APP-V4-DESIGN-PASS-4-20261003/` folders also appeared from that session; they were not inventoried. |
+| **Concurrent change** | The one changed entry is `_Coordination/AgentRuns/APP-V4-SCA003-20261002/OWNER_DECISIONS.md` in `ScopeClosure_SCA-V4-003_2026-10-03_2028/INPUT_MANIFEST.sha256`: OK, then FAILED. That file was changed by another session working in the same worktree during this run (13 added lines about owner answers). This node did not touch it, and it holds no home path. HELP_HUMAN reverted that change before this commit (the owner's answers were recorded in the pass-4 run instead), so at `63d366c0e7` the entry is OK again and the closed audit's binding holds. Untracked `APP-V4-DESIGN-PASS-4-20261003/` folders also appeared from that session; they were not inventoried. |
 | **GUIDE pins** | `pins.py` (B8 copy, outside the repository) gives 25/25 before and after. |
 | **DAG-004 currency** | `analyze_dep_closure.py … --include-declared true` was run from the repository root, with output to scratch. Both before and after: `accepted_dag.result` `NO_DEPARTURE_FOUND` against DAG-004, `dag_pending_count` 0. `closure_summary.json` and every CSV output are identical before and after. |
 | **Recount** | 191 files, 845 lines, 889 occurrences remain, all in bound files. |
@@ -353,8 +354,10 @@ These paths also remain in the repository's git history.
 
 ## Owner direction on git history
 
-The owner answered "2 no rewrite" (run `APP-V4-DESIGN-PASS-4-20261003`,
-OWNER_DECISIONS.md): git history is not rewritten. The paths that remain in
+The owner answered "1 yes, 2 no rewrite, 3 go, 4 A+C" in the HELP_HUMAN
+session on 2026-10-03; item 2 means git history is not rewritten. The
+exact text and its custody are recorded in run `APP-V4-DESIGN-PASS-4-20261003`'s
+OWNER_DECISIONS.md, which reaches main in a later commit of that run. The paths that remain in
 the 191 hash-bound files, and in history, stay. A later governed version of
 a binding record may redact its own copy when it is reissued for another
 reason.
