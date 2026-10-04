@@ -29,3 +29,25 @@ The revision had six steps:
 ## Continuation approved (owner, exact, 2026-10-04)
 
 > Good.  And consider the `coordinated-knowledge-work` workflow for additional guidance in your execution and delegation.
+
+## Build-oriented direction (owner, exact, 2026-10-04)
+
+G2b had found 29 more Design-to-Design dependencies, and HELP_HUMAN had said
+that pair-by-pair rewording kept finding more coupling. The owner wrote:
+
+> We're not trying to play games here, we're trying to build software.  What approach is productively and effectively moving in that direction?
+
+HELP_HUMAN proposed four steps:
+1. stop the rewording chase and keep its findings as records;
+2. treat the co-designed contract core as one merged unit under change
+   control, so its contracts are frozen and changed only through named,
+   reviewed and propagated changes;
+3. build a walking skeleton through the core: the App hosting stock Codex,
+   a person's decision through the act control, the record written and
+   validated, and the decision shown in the view;
+4. then fan out along the contract boundaries.
+
+HELP_HUMAN asked for a yes to the merge with change control and to starting
+the skeleton. The owner replied:
+
+> Yes you can take this approach and monitor its effectiveness in actually delivering the required content.
