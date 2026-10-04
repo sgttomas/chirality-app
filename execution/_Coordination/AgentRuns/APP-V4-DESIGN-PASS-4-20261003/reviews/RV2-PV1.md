@@ -203,3 +203,141 @@ Alternatively, list these in §8 as not enforced.
   - I did not rebuild the records (K-3 already does, at the recorded commit).
   - I did not review DEL-11-03's adoption (U-PV-3, carried by direction).
   - No network, no git writes, and no edits to O-F's files.
+
+## Addendum: confirmation of EU-F4R, PV-v0.3 (commit `9ba5dfe49c`; 2026-10-04)
+
+**Reviewer:** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY**
+
+All of PV1-R1…R8 are confirmed. One part of PV1-R6 is left as a NOTE. I raise one new MINOR (PV2-R1) and two NOTEs (PV2-N1, PV2-N2). Nothing is BLOCKING or MAJOR.
+
+### What I checked
+
+- **Bytes.**
+  - All seven hashes in "EU-F4R — frozen" match: `16718ee5…`, `181c0c5b…`, `5e2204d5…`, `e176c374…`, `1c46fba0…`, `e6fdb064…` and `02fa9aab…`.
+  - The DEL-09-12 `Design/` and `F/pv/` paths equal the commit.
+  - `git status --short --ignored` on them prints nothing.
+- **Prototype.** `python3 -B check_pv.py` gives **38/38** (12 valid, 27 invalid). No `__pycache__` was left.
+- **My own probes, rebuilt.** My original script `$TMPDIR/rv2/probe_pv.py` still exists, and I reran it. Against PV-v0.3 its records are now refused, but some are refused only because the candidate and decision shapes changed. I therefore rebuilt my constructions on PV-v0.3's own valid examples, each changing only what the probe tests: `$TMPDIR/rv2/probe_pv2.py`. For each probe I printed the kind's own `$def` errors and the rule errors.
+
+| Probe | Result now | Refused by |
+|---|---|---|
+| A: two `app` expressions | refused | schema (`contains`) |
+| B: an available `app` expression with a null candidate and null material | refused | schema ("None is not of type 'object'"; material enum) |
+| C: actual use under the real PV-ARR-1, with candidate `abc123`/`build-7` and an unselected activity | refused | PV-R4 ("not_agreed …", "not available …") |
+| C2: agreed arrangement and selected activity, but a different candidate | refused | PV-R4 ("candidate is not the arrangement's") |
+| C3: the same with an equal candidate (control) | **passes**, as it should | — |
+| E1: a successor basis decided by "O-F (agent)" | refused | schema ("'the owner' was expected") |
+| E2: a successor basis routed through `owning_deliverable` | refused | schema (decider and actor consts) |
+| E3: a method decided by an agent | refused | schema |
+| E4: a method routed through `owning_deliverable` | refused | schema |
+| E6: a faithful recording whose recorder is the actor | refused | PV-R5 |
+| E9: method decision actor "The owner" (capital) | refused | schema |
+| H: `in_use` with a null `agreement_ref` | refused | schema |
+| R4: a SWBPIPE observation with the App shape only | refused | schema ("'host_candidate' is a required property") |
+| D: `TBD` placeholder in both arrangement and observation | **passes** (disclosed) | — |
+| G: agreement recorder "The owner" | **passes** (disclosed) | — |
+| E7: a feature decision whose recorder differs from its actor only by case | **passes** (disclosed) | — |
+| E8: a method decision recorded by "The owner" | **passes** (disclosed) | — |
+
+- **O-F's copies are faithful.** I compared them with RV2-PV1's text:
+  - invalid 15 is A;
+  - invalid 16 is B;
+  - invalid 17 is H;
+  - invalid 18 is C, with activity `ACT-NOWHERE` (equivalent);
+  - invalid 20 is E exactly: `{state: decided, actor: "O-F (agent)", record_ref: "chat line", scope: "v5.0 basis"}`;
+  - invalid 21 hardens E, so that only the agent actor, recorder and mode are wrong.
+
+  D and G are stated in §8 as passing.
+
+### Per finding
+
+| Finding | State | Evidence |
+|---|---|---|
+| PV1-R1 (MAJOR) | **Confirmed** | See "PV1-R1" below |
+| PV1-R2 | **Confirmed** | `contains` for each of `app` and `swbpipe`, with two items (invalid 15; N-15) |
+| PV1-R3 | **Confirmed** | See "PV1-R3" below |
+| PV1-R4 | **Confirmed** | `app` is `{app_candidate}`; `swbpipe` is `{host_candidate, app_candidate or null}`. A SWBPIPE observation requires `host_candidate` (invalid 19; my R4 probe). `configuration.host_candidate` is removed |
+| PV1-R5 | **Confirmed; the statement is accurate** | See "PV1-R5" below |
+| PV1-R6 | **Confirmed**, with a residual NOTE (PV2-N2) | "Owner" now names the person everywhere it names someone. §7's column is "Decided or done by" |
+| PV1-R7 | **Confirmed** | See "PV1-R7" below |
+| PV1-R8 | Carried | U-PV-4, to DEL-09-01's next revision, as HELP_HUMAN recorded |
+
+**PV1-R1.**
+- `proposed` carries only `proposed_by`, and invalid 27 refuses a decision field on a proposal.
+- `decided` requires `decider`, `actor`, `recorder`, `recorder_stated_by_record`, `recording_mode`, `record_ref` and `scope` (invalid 5 and 24).
+- The decider is fixed by schema `allOf` on `kind` and `proposed_treatment`:
+  - feature or workflow → `owning_deliverable`, with `deliverable`;
+  - method → `owner_at_stage_decision`, actor const "the owner";
+  - successor basis → `owner_with_affected_consumers`, actor const "the owner", with `adoption_ref` required, and `adoption_ref` forbidden on any other treatment.
+- Actor "the owner" forces `faithful recording` and a recorder other than "the owner".
+- PV-R5 adds:
+  - the deliverable is among the recipients and named in `record_ref`;
+  - a method decision is in an OWNER_DECISIONS file;
+  - `adoption_ref` is different from `record_ref`;
+  - faithful recording has recorder ≠ actor;
+  - direct capture has recorder = actor.
+- An unresolved route forces `proposed`.
+- **An agent can never decide a method or a successor basis.** E1–E4 and E9 are refused by the schema whichever decider path is tried.
+- The positive control E5 passes: a feature decided by the owning deliverable, with the person as actor. That is consistent with CLM-003.
+
+**PV1-R3.**
+- PV-R4 fails closed when the arrangement is not supplied (N-23).
+- It refuses:
+  - an arrangement that is not agreed or in use (N-20, N-24);
+  - an expression that is not available;
+  - an unselected activity (N-21);
+  - another candidate (N-22; my C2).
+- P-1 and my C3 are the positive controls.
+- B and H are schema rules (N-16, N-17).
+
+**PV1-R5.** The statement in §2 O-3 is accurate:
+- Every first-cut field is present, with its name, type, const and enum. The first cut's not-agreed conditional (`const: null`, `maxItems: 0`) is matched (`type: null`, `maxItems: 0`).
+- The only differences that make the first cut refuse the record are the ones stated: `format`, plus the added `arrangement_ref` and `is_replacement_condition`, which the closed first cut refuses.
+- PV's other differences only narrow the first cut:
+  - observation-id pattern and `uniqueItems`;
+  - `minLength` on `limits` items;
+  - a required `agreement_ref` past `not_agreed`.
+
+  So a PV record with the stated differences undone validates against the first cut, which K-12 checks.
+- The first-cut `$def` is the same at the build commit `b2fbfdbac8` and at `HEAD` (canonical-JSON sha256 `026a6073…` at both), so K-12 is not stale.
+- RP itself is unchanged this round, as directed.
+
+**PV1-R7.**
+- §8's numbers are right: PV-R1 is invalid 11, PV-R4 is invalid 18, PV-R5 is invalid 22, 25 and 26.
+- Example 2's limit reads "illustrative example of an agreed arrangement; the owner's agreement is INVENTED".
+- The docstring names PV-R1…R5 and PV-v0.3.
+- K-6 checks against each kind's own `$def`.
+- N-2 is schema-valid: it builds a full agreement, period, candidate and material.
+
+### D and G at the 60% level (the coordinator's question)
+
+- **D (keyword placeholder): disclosure is enough at 60%.**
+  - What makes a candidate "identified" is a fact about the candidate records that DEL-09-02 and DEL-09-07 will hold. No string test can establish it.
+  - The implementation rule should be that an `actual_use` candidate resolves to its supplier's identification record: EXP `identification_record` or `package_record`, or the LHQ CIR for the host. That rule would replace the keyword test, not extend it.
+  - PV-R4 already confines the risk: the placeholder has to be in the agreed arrangement too.
+  - See PV2-N1.
+- **G (recorder "The owner"): one part should be enforced now; the rest is properly disclosed.**
+  - A false recorder *name* cannot be refused by any record schema. That belongs to the capture surface at implementation, and the disclosure covers it.
+  - The *reserved token* is different. The schema's one structural owner-act check compares the recorder against the exact string "the owner", and a case or whitespace variant defeats it (G, E8).
+  - Normalising that comparison is cheap and closes exactly the gap the check claims to close. See PV2-R1.
+
+### PV2-R1 — MINOR (new): the owner-recorder check is defeated by a variant spelling of "the owner"
+
+**Evidence.**
+- The agreement's `not: {recorder: const "the owner"}` and the decision's equivalent refuse only the exact lower-case string.
+- My probes G ("The owner", agreement) and E8 ("The owner", method decision) pass `check_pv`.
+- The actor side is a strict const ("the owner"), so a decision or agreement can name the owner as actor and, in all but spelling, as recorder.
+
+**Repair.** Refuse any recorder matching `^\s*the\s+owner\s*$` case-insensitively wherever the actor is "the owner": a `pattern` inside the `not`, or a line in PV-R5 and in the arrangement rule. Add G as a negative case.
+
+### PV2-N1 — NOTE: the identified-candidate rule for implementation
+
+Record in §7 or §8, as an implementation rule, that `actual_use` requires the candidate to resolve to its supplier's identification record (see D above). The keyword test is then a design-time stand-in, not the rule.
+
+### PV2-N2 — NOTE: one residual "owner" for an agent
+
+The header and U-PV-3 call O-F "design owner agent". The header also says "'the owner' is always the person", so the phrase is not ambiguous, but it still puts "owner" on an agent. "Design agent O-F" or "assigned agent O-F" would keep the word for the person, as the coordinator directs.
+
+**Not done:** I did not rebuild the records (K-3 does), and I did not review DEL-11-03's adoption (carried, U-PV-3).
