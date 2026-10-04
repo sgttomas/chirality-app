@@ -31,7 +31,7 @@ G3 in Notes resolves to `projects/chirality-app-v4/execution/_Decomposition/chec
 
 ## Actual read basis
 
-Origins are repository-relative to /Users/ryan/.codex/worktrees/077c/chirality. Full-file hashes identify bytes; they do not claim exhaustive semantic review where selected rows/clauses are stated.
+Origins are repository-relative to ~/.codex/worktrees/077c/chirality. Full-file hashes identify bytes; they do not claim exhaustive semantic review where selected rows/clauses are stated.
 
 | Origin | SHA256 | Read extent |
 | --- | --- | --- |

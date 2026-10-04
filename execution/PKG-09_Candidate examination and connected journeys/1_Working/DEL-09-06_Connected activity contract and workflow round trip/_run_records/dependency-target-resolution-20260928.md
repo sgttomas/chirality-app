@@ -8,8 +8,8 @@
 - This runtime brief specializes the common DEPENDENCY_BRIEF's initial-run filename to this new repair record. The runtime brief is parent-transcribed instruction, not independently authenticated owner evidence.
 - Host filesystem access is broader than the brief. The single-deliverable scope is instruction-enforced, not a claim of a narrower OS sandbox. Actual writes are only the three authorized deliverable-local files.
 - Parameters retained: SCOPE=DEL-09-06; MODE=UPDATE; STRICTNESS=CONSERVATIVE; CONSUMER_CONTEXT=NONE; ARCHITECTURE_BASIS_POLICY=NONE; DOC_ROLE_MAP=DEFAULT; SOURCE_DOCS=ANCHOR_DOC=EXECUTION_DOC_ORDER=ScopeOfWork.md.
-- RUN_ROOT: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution`.
-- DECOMPOSITION_PATH: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md`. Retained configured path; this repair reads accepted companion rows below, not that markdown body.
+- RUN_ROOT: `~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution`.
+- DECOMPOSITION_PATH: `~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md`. Retained configured path; this repair reads accepted companion rows below, not that markdown body.
 
 ## Evidence and semantic resolution
 
@@ -40,7 +40,7 @@ The index changes only target counts (3→4 local Deliverables and 3→2 Package
 
 PASS: 68 deterministic validator invocations, all exit 0; 1 schema, 23 enum and 44 supported-ID calls. A final byte check caught newline normalization; original CRLF CSV line endings were restored, then schema validation and byte-preservation checks were repeated successfully (69 validator calls total). No global validator was run during peer writes.
 
-- Schema command: `python3 tools/validation/validate_dependencies_schema.py "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv"`.
+- Schema command: `python3 tools/validation/validate_dependencies_schema.py "~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv"`.
 - Enum command, one invocation per value below: `python3 tools/validation/validate_enum.py ENUM VALUE`.
   - `DEPENDENCY_CLASS`: `ANCHOR`, `EXECUTION`.
   - `ANCHOR_TYPE`: `IMPLEMENTS_NODE`, `NOT_APPLICABLE`, `TRACES_TO_REQUIREMENT`.

@@ -15,7 +15,7 @@ Product/provider behavior was not exercised by this documentary work. E1/HX01 re
 HELP_HUMAN executed the imported verifier in read-only verify mode and reported exit0:
 
 ```text
-python3 projects/chirality-app-v4/reference/archives/archive_digests.py verify --root /Users/ryan/ai-env/archives/chirality-2026-09-25
+python3 projects/chirality-app-v4/reference/archives/archive_digests.py verify --root ~/ai-env/archives/chirality-2026-09-25
 ```
 
 All19 recorded locations matched;inventory total57,073 files. Reported final output: `All recorded archives unchanged.` This is the bounded recorded-inventory comparison, not a blanket backup or restoration guarantee. The verifier accounts for symlinks by link-target text under its documented rule. No source/archive/clone writes were performed;WORKING_ITEMS did not duplicate the parent's check. The absolute root above records the actual checked location rather than a product dependency.

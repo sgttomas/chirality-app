@@ -10,7 +10,7 @@
         "-c",
         "MANIFEST.sha256"
       ],
-      "cwd": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_DAG/DAG-001",
+      "cwd": "~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_DAG/DAG-001",
       "exit_code": 0
     },
     {
@@ -21,7 +21,7 @@
         "-c",
         "_DAG/DAG-001/SOURCE_MANIFEST.sha256"
       ],
-      "cwd": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution",
+      "cwd": "~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution",
       "exit_code": 0
     }
   ],

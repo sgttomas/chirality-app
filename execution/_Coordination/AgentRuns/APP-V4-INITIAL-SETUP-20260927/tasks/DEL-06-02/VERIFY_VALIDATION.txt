@@ -45,17 +45,17 @@ Input and method SHA256
 
 Candidate and OPEN status match brief: PASS
 
-$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md', '--json']
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md', '--json']
 {
   "format": "SOW_V1",
   "issues": [],
-  "target": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md",
+  "target": "~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md",
   "valid": true
 }
 
 exit=0
 
-$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md']
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md']
 {
   "item_count": 7,
   "items": [
@@ -260,7 +260,7 @@ $ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scop
 
 exit=0
 
-$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md']
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md']
 {
   "item_count": 7,
   "items": [
@@ -467,7 +467,7 @@ exit=0
 
 QA13/18: two independent CLI derivations are byte-identical and exactly match author CHECKLIST.json; seven criteria exactly once in source order, exact text and source hash/line. Each AC links only its corresponding VER. Checklist SHA256 970b2bda569937cea5b9ca4eccaa39606c6e5bb6312ff580886e8485e9348f0e
 
-$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md', '--show-not-checkable']
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md', '--show-not-checkable']
 
 Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
 
@@ -475,7 +475,7 @@ exit=0
 
 Candidate boundary callable report (in memory):
 {
-  "path": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md",
+  "path": "~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md",
   "status": "OK",
   "requirements_checked": 1,
   "requirements_not_checkable": 0,

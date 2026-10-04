@@ -20,14 +20,14 @@ Initial candidate/status and local controls identity
   "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_REFERENCES.md": "359be24980b063e2816abc3b6e591c559156ff36dd1f76583874aa44e48daed9"
 }
 
-$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md', '--json']
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md', '--json']
 {
   "exit": 0,
-  "stdout": "{\n  \"format\": \"SOW_V1\",\n  \"issues\": [],\n  \"target\": \"/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md\",\n  \"valid\": true\n}\n",
+  "stdout": "{\n  \"format\": \"SOW_V1\",\n  \"issues\": [],\n  \"target\": \"~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md\",\n  \"valid\": true\n}\n",
   "stderr": ""
 }
 
-$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md'] twice, stdout retained only in memory
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md'] twice, stdout retained only in memory
 {
   "exit_codes": [
     0,
@@ -47,7 +47,7 @@ $ ['python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.co
   "own_ver_sets_equal_matrix_and_checklist": true
 }
 
-$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md', '--show-not-checkable']
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', '~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md', '--show-not-checkable']
 {
   "exit": 0,
   "stdout": "\nContracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0\n",
@@ -58,7 +58,7 @@ Author boundary JSON compared with actual CLI result
 [
   {
     "findings": [],
-    "path": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md",
+    "path": "~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md",
     "requirements_checked": 1,
     "requirements_not_checkable": 0,
     "requirements_without_cited_claim": 0,

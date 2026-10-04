@@ -89,7 +89,7 @@ Reads the consumed-input table of HOST_INTEGRATION_GUIDE.md (rows '  | **Short**
 resolves each File basename to exactly one path under projects/chirality-app-v4/execution
 (excluding _Coordination), computes `shasum -a 256`, and compares (or, with --write, writes the value)."""
 import re, subprocess, sys, os
-ROOT='/Users/ryan/ai-env/projects/chirality/.claude/worktrees/test-ci-optimization-f6cacd/projects/chirality-app-v4/execution'
+ROOT='<repository root>/projects/chirality-app-v4/execution'
 G=ROOT+'/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/Design/HOST_INTEGRATION_GUIDE.md'
 row=re.compile(r'^(  \| \*\*(?P<short>[A-Z-]+)\*\* \| (?P<ver>.*?) \| `(?P<file>[^`]+)` \| )(?P<sha>[0-9a-f]{64})( \|)$')
 def locate(name):

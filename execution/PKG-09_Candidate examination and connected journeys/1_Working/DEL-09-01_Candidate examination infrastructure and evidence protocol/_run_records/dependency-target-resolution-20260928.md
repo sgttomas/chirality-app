@@ -25,7 +25,7 @@
 
 ## Local checks
 
-- `python3 tools/validation/validate_dependencies_schema.py <own Dependencies.csv>`: VALID: /Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv
+- `python3 tools/validation/validate_dependencies_schema.py <own Dependencies.csv>`: VALID: ~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv
   Columns: 29 (29 required + 0 extension)
   Data rows: 30
 - `python3 tools/validation/validate_enum.py <ENUM> <value>`: PASS for 23 distinct used field/value combinations: {"AnchorType": ["IMPLEMENTS_NODE", "NOT_APPLICABLE", "TRACES_TO_REQUIREMENT"], "Confidence": ["HIGH"], "DependencyClass": ["ANCHOR", "EXECUTION"], "DependencyType": ["CONSTRAINT", "HANDOVER", "OTHER", "PREREQUISITE"], "Direction": ["DOWNSTREAM", "UPSTREAM"], "Explicitness": ["EXPLICIT"], "Origin": ["EXTRACTED"], "SatisfactionStatus": ["NOT_APPLICABLE", "TBD"], "Status": ["ACTIVE"], "TargetType": ["DELIVERABLE", "DOCUMENT", "EXTERNAL", "REQUIREMENT", "UNKNOWN", "WBS_NODE"]}.

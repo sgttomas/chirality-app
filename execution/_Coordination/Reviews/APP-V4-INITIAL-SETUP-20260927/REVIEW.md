@@ -20,7 +20,7 @@ During review, the parent subsequently relayed the actual owner answer “Approv
 
 ## Actual origins and hashes
 
-All paths below resolve from `/Users/ryan/.codex/worktrees/077c/chirality`. Only TASK's role body was loaded. The selected setup descriptor was inspected in the current catalog as `chirality-root:bundled:workflow:project-setup`; no project/user same-name package was found at `.chirality/workflows/project-setup` or `~/.chirality/workflows/project-setup`. Applicable ancestor/project instruction checks found no additional AGENTS.md on these paths. Setup method consultation was targeted to Phase 1.1–2.2; contract consultation covered entry, lifecycle, dependency/validity and output rules. SPEC consultation was §5.3–5.4. The project-dag entry was read only to verify the proposal's stated future checkpoints, not to execute that workflow.
+All paths below resolve from `~/.codex/worktrees/077c/chirality`. Only TASK's role body was loaded. The selected setup descriptor was inspected in the current catalog as `chirality-root:bundled:workflow:project-setup`; no project/user same-name package was found at `.chirality/workflows/project-setup` or `~/.chirality/workflows/project-setup`. Applicable ancestor/project instruction checks found no additional AGENTS.md on these paths. Setup method consultation was targeted to Phase 1.1–2.2; contract consultation covered entry, lifecycle, dependency/validity and output rules. SPEC consultation was §5.3–5.4. The project-dag entry was read only to verify the proposal's stated future checkpoints, not to execute that workflow.
 
 | Instruction or method origin | SHA256 |
 |---|---|
