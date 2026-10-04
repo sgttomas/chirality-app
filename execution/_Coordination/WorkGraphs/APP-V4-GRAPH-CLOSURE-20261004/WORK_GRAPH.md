@@ -94,3 +94,33 @@ Reuse these; build no new tooling unless a named obstruction needs it.
 | G7 Admitted-edge interface agreement; role mapping | Owners' Design files | G4/G5 edges | RV | PENDING |
 | G8 Register amendment and DAG-005 assembly, audit, independent review | scope-change; `_DAG/` candidate | G4–G7 | Strict audit; fresh reviewer | PENDING |
 | G9 Checkpoint 2: DAG-005 acceptance (the 60% judgment) | — | G8 | Owner | PENDING |
+
+## Redirection to build (owner, 2026-10-04)
+
+The owner wrote: "We're not trying to play games here, we're trying to build software." They then approved: "Yes you can take this approach and monitor its effectiveness in actually delivering the required content."
+
+The node states below are revised accordingly. G4–G9 stop where they stand, and their findings remain as records:
+- G1, G2 and G2b;
+- the seven case analyses;
+- rulings GC-1…GC-6.
+
+The contract core is treated as one merged unit under change control. Its contracts are frozen, and any change is named, reviewed and propagated.
+
+**Usable result now.** Running App v4 code for one thin path, built against the frozen contracts:
+1. a Tauri 2 shell whose Rust main process hosts the stock Codex App Server;
+2. a person's decision on a decision package, through the App act control (A16);
+3. the RS record written and validated against `RS_RECORD.schema.json`;
+4. the decision shown in the decision view.
+
+**Effectiveness measures** (reported at each return; supporting work is reported separately from delivery):
+- steps of the path that run as code with automated tests, out of 4;
+- elapsed time from dispatch to the first runnable end-to-end path;
+- contract issues found by implementation, logged in `app/CONTRACT_ISSUES.md` with file and section, and their disposition;
+- share of the return that is code and tests versus records.
+
+| ID / outcome | Write scope | Needs | Check | State |
+|---|---|---|---|---|
+| B0 Merge page: the core's member list under the build objective, and the remaining small cuts (one page, for the record) | Run folder | G2b, RVG-G2b | RVG | PENDING |
+| B1 Walking skeleton, steps 1–4 | `projects/chirality-app-v4/app/` | Frozen contracts; local Codex 0.158.0; offline build caches | Automated tests; code review | ACTIVE |
+| B2 Contract issues from B1 through change control | Owners' Design files, by change | B1 | RV | PENDING |
+| B3 Fan-out plan along the contract boundaries | Work graph | B1 working | — | PENDING |
