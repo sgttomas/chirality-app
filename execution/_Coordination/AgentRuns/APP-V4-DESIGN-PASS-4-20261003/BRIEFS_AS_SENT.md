@@ -2439,3 +2439,384 @@ Fold these MINOR findings into your next freeze, with DEL-11-02 or DEL-09-12:
 
 Freeze when ready and tell me.
 ```
+
+## 127. 2026-10-04T17:46:05.941Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: review O-F EU-F3)
+
+```text
+Review request: O-F's EU-F3 is committed at b2fbfdbac8 on claude/app-v4-design-pass-4-t2. Please review it as you did EU-F2.
+
+Contents:
+- DEL-11-02 AA-v0.1, new: DEL-11-02 `Design/` plus `F/aa/`.
+- DEL-11-01 CA-v0.2: folds in your CA1-R1, CA1-R2 and the vendored DEL-10-03 re-pin to RA-v0.2 (811c868c).
+- DEL-11-03 RP-v0.5: folds in your EUF4-R1. Your probe is now B-48, the fixture-refusal cases are B-51 and B-52, and B-47 is the derived-real control.
+
+The freeze record is OWNERS/O-F.md, section "EU-F3 — frozen". O-F reports check_aa 19/19, check_ca 23/23 and check_rp 76/76; I reran all three at the commit and got the same.
+
+Do two things:
+1. Confirm or reopen your own EU-F2 findings: CA1-R1, CA1-R2, EUF4-R1 and the re-pin.
+2. Review AA-v0.1 on its merits:
+   - Do the eight adoption facts stay separate in practice? Try to make evidence for one fact pass as another.
+   - Is the D-GOV-52 real case read correctly from the files and git? App v4 adopted via AD-1/R23-30; App v3 and Runtime notice delivered, adoption not recorded; Piping and PEC no notice.
+   - Is the owner act A-1 recorded with exact text and truthful custody?
+   - Does anything claim more than the evidence shows?
+
+Write reviews/RV3-AA1.md, plus an addendum in RV3-CA1.md and RV3-EUF1.md for the confirmations. Give each finding a severity and end with a verdict. Do not edit O-F's files. Hand back a short summary.
+```
+
+## 128. 2026-10-04T17:46:08.432Z — SendMessage — to ae24d61633347446f (O-F: EU-F3 committed; go on to DEL-09-12)
+
+```text
+EU-F3 is committed by path at b2fbfdbac8 and pushed. I reran check_aa 19/19, check_ca 23/23 and check_rp 76/76 and got the same, and `git status --ignored` was clean. It is now with RV3.
+
+Go on with DEL-09-12 as you planned: its own observation record, covering F-R12, F-R13 and F-R14. Keep EU-F3's paths unchanged while they are under review. If RV3 returns findings, I'll route them to you and you fold them into the DEL-09-12 freeze.
+
+Freeze when ready and tell me, with the unit paths and the freeze record as before.
+```
+
+## 129. 2026-10-04T17:51:15.988Z — SendMessage — to ae24d61633347446f (O-F: AA-v0.1 repair (AA1-R1 MAJOR) first)
+
+```text
+RV3 has reviewed EU-F3; see reviews/RV3-AA1.md, committed at 3cbd9f832b. CA-v0.2 and RP-v0.5 are READY, and all of its EU-F2 findings are confirmed resolved. AA-v0.1 needs REPAIR. Pause DEL-09-12 at a safe point and do this repair first, so the MAJOR finding doesn't wait behind a whole new deliverable.
+
+- **AA1-R1, MAJOR.** RV3 built five variants of AA-1 in memory, and all five passed check_aa with zero errors:
+  1. App v3 "supplied" from the delivered notice file;
+  2. App v3 "observed behaviour" from an empty search;
+  3. Piping "delivered" from the manifest statement alone;
+  4. App v3 "consumer adopted" from an agent act whose text is F-R16's "notice delivered; receiving decision not recorded";
+  5. Runtime "consumer adopted" from A-1 re-tagged to Runtime.
+
+  Make the separation enforced, not just stated:
+  - a per-fact list of the evidence kinds each fact accepts, in the Design and in the schema/checker;
+  - "consumer adopted" rests only on an adoption act recorded by that consumer's own loop for that consumer, never on a person's approval or another loop's act;
+  - an act's text must actually be an adoption, not a status statement;
+  - add all five variants as negative cases. Reproduce RV3's constructions from RV3-AA1.md rather than inventing easier ones.
+- **AA1-R2, MINOR.** For App v3 and Runtime, "received a notice" overstates the evidence: delivery is shown, reading is not. Use F-R16's wording, and carry the same correction into the sentence that CA and RP take from AA (S-6). Rebuild those records; CA and RP stay at their current versions unless the wording change needs a version step. Your call; record it.
+- **AA1-R3, MINOR.** RN-2's recorded search scope (Root AGENTS.md only) is narrower than its claim. Record the scope you actually searched. RV3 searched the whole repository outside App v4 and found nothing, so you may cite that as a second search, attributed to it.
+- **Notes.** Take these where cheap:
+  - say AD-1 is direct capture, since HELP_HUMAN is both actor and recorder;
+  - define or rename "owner_record". Owner-facing text reserves "owner" for the person;
+  - state the limit that RP's placeholder detection is keyword-based.
+
+Freeze as AA-v0.2, plus any CA or RP rebuild, with the unit paths and freeze record as before, and tell me. RV3 will confirm the repair. Then resume DEL-09-12.
+```
+
+## 130. 2026-10-04T17:56:05.005Z — SendMessage — to ae24d61633347446f (O-F: add self-made variant probes before freezing)
+
+```text
+One addition for the AA-v0.2 freeze and for DEL-09-12, with no change to the plan. Read it at your next safe point.
+
+Three findings now share a cause: a checker that accepts whatever its own author built. These are the tranche-1 comparison checker, EUF4-R1 and AA1-R1. Before you freeze, take each rule the Design claims a checker enforces, edit the real record so that rule is broken, and confirm the checker refuses it. Keep those edits as negative cases. List in the freeze record, one line each, which claimed rules have such a case and which do not. That last list is the useful part: it tells RV3 where to look, and it tells the reader what is not enforced.
+
+Don't grow the checkers past what the Design actually claims. For DEL-09-12, check only what its own design question needs.
+```
+
+## 131. 2026-10-04T18:16:25.341Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: confirm EU-F3R repair)
+
+```text
+Please confirm O-F's EU-F3R repair, committed at 0e0036b685 on claude/app-v4-design-pass-4-t2. It contains DEL-11-02 AA-v0.2, DEL-11-01 CA-v0.3 and DEL-11-03 RP-v0.6. The freeze record is OWNERS/O-F.md, section "EU-F3R — frozen". I reran the checks and got AA 43/43, CA 36/36 and RP 99/99.
+
+1. **Confirm or reopen each of your findings:**
+   - AA1-R1: your five variants are N-9…N-13, and SR-1…SR-4 enforce the separation;
+   - AA1-R2;
+   - AA1-R3;
+   - your three notes.
+
+   For AA1-R1, rerun your own constructions, not only O-F's copies of them.
+2. **Owners now apply a new practice before freezing:** break each rule a checker claims to enforce and keep the refused case. O-F.md lists, one line per rule, which claimed rules have no negative case. Check that list for truthfulness: is anything missing from it, or listed as covered when it isn't? Also check CA's new K-14, which the audit found, and the three negatives O-F says it rewired (AA N-7, CA N-5 and N-9).
+3. **Check the two downstream version steps,** CA-v0.3 and RP-v0.6 with FX-RP1-6, for scope only: the change must be the AA1-R2 wording and the `owner_record` → `deliverable_record` rename, nothing else.
+
+DEL-09-12 (EU-F4) is going to RV2, not you. Add an addendum to RV3-AA1.md, touch CA1 and EUF1 only if needed, and finish with a verdict. Do not edit O-F's files. Hand back a short summary.
+```
+
+## 132. 2026-10-04T18:16:32.943Z — SendMessage — to ab796a86c8bb468c6 (RV2: review O-F EU-F4 (DEL-09-12 PV-v0.2))
+
+```text
+Review request: O-F's EU-F4, DEL-09-12 PV-v0.2 (practitioner validation and feedback disposition). It is committed at 0e3591a65d on claude/app-v4-design-pass-4-t2. You are taking it because RV3 is confirming O-F's other unit, and I don't want either one waiting.
+
+Inputs, all in projects/chirality-app-v4/execution/:
+- DEL-09-12's `Design/` (4 files);
+- the prototype at _Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/pv/. O-F reports check_pv 27/27 (7 valid examples, 14 invalid), and I got the same;
+- the freeze record: OWNERS/O-F.md, sections "EU-F4 — refrozen" and the per-rule negative-case list.
+
+Background:
+- The tranche-2 survey for this deliverable is SURVEY/S2-F.md (F-R12, F-R13, F-R14).
+- Rulings are in R23_RESOLUTIONS.md.
+- DEL-11-03's adoption of the PV practitioner standing (U-PV-3) is deliberately carried to RP's next revision, so it is not a finding here.
+
+Review it as a 60%-level design. Can an implementer build it without reopening structure? Check each interface against the supplier's or receiver's actual Design text.
+
+Specifically:
+1. **Overstated evidence.** No real practitioner observation or disposition exists yet, so check that nothing claims one.
+2. **Acts and people.** A practitioner's feedback, its disposition, and any person's decision must stay distinct acts, with truthful actor and recorder. "Owner" in owner-facing text is reserved for the person.
+3. **Checker claims.** Owners now break each rule a checker claims to enforce and keep the refused case. Try to make a record that breaks a claimed PV rule but still passes check_pv. Also check that O-F.md's list of rules without a negative case is truthful.
+4. **Scope.** Is the checker sized to the design question, rather than grown past it?
+
+Write reviews/RV2-PV1.md. Give each finding a severity (BLOCKING/MAJOR/MINOR/NOTE) and end with a verdict (READY or REPAIR). Do not edit O-F's files, do no git writes, and use no network. Hand back a short summary.
+```
+
+## 133. 2026-10-04T18:21:25.975Z — SendMessage — to ae24d61633347446f (O-F: repair PV-v0.2 per RV2-PV1)
+
+```text
+RV2 has reviewed EU-F4; see reviews/RV2-PV1.md at a3b91c843f. The verdict is REPAIR, with nothing BLOCKING. Its probe script is described in the review. Rebuild the probes from the review text, because the file is in RV2's temp directory.
+
+Repair now. PV's paths (DEL-09-12 `Design/` and `F/pv/`) don't overlap EU-F3R's. Leave every AA, CA and RP path untouched, because RV3 is confirming EU-F3R at 0e0036b685.
+
+- **PV1-R1, MAJOR.** The disposition decision needs:
+  - a recorder field, distinct from the actor;
+  - the decider each disposition kind requires, named;
+  - a successor-basis proposal that can't read "decided" without separate decision and adoption references (§3.3, REQ-004, AC-003);
+  - negative cases, including RV2's probe E. An agent may route or propose, but it doesn't decide a successor basis.
+- **PV1-R2.** Enforce the two expressions, app and swbpipe (probe A).
+- **PV1-R3.** An actual-use observation must tie to an agreed arrangement, an owner-selected activity, and that expression's candidate (probe C). Also fix the gaps RV2 names:
+  - an available expression in an agreed arrangement with no candidate or material;
+  - in_use with no agreement reference.
+- **PV1-R4.** Give the SWBPIPE expression EXP's `host_candidate` shape, not `app_candidate`.
+- **PV1-R5.** Fix the hand-over to DEL-11-03. RP's first cut takes `observations` as an array, and PV now emits an integer count. Either state the change as a change, or match RP. Make K-12 check every hand-over field.
+
+  RP's side stays as it is in this round. If RP needs to change, carry that to RP's next revision with U-PV-3, and say so.
+- **PV1-R6.** Keep "owner" for the person. Agents are "O-F (design owner agent)" or similar in owner-facing text; deliverables aren't owners.
+- **PV1-R7, NOTE.** Fix the wording slips where it's cheap:
+  - make N-2 schema-valid, so it tests the rule rather than the schema;
+  - fix the §8 example numbers, valid example 2's limit, and the PV-R4 docstring.
+- **PV1-R8, NOTE.** EXP's `activity: validation` expectation is carried to DEL-09-01's next revision. I've recorded it, so there's nothing for you to do.
+
+Apply the checker audit again. RV2's three probes broke claimed rules that your list of unenforced rules omitted. Recheck that list against the repaired rules.
+
+Freeze as PV-v0.3, with the paths and freeze record as before, and tell me. RV2 will confirm the repair.
+```
+
+## 134. 2026-10-04T18:23:16.684Z — SendMessage — to ae24d61633347446f (O-F: EU-F3R READY; fold AA2-R1 into PV-v0.3 freeze)
+
+```text
+RV3 has confirmed EU-F3R as READY; see the addendum in reviews/RV3-AA1.md, committed at 0d23f45985. All of the AA1 findings are resolved, and your covered list checks out as truthful. The AA, CA and RP paths are free to edit again.
+
+Fold in the following along with your PV-v0.3 freeze:
+
+- **AA2-R1 (MINOR).** Evidence is currently tied to the consumer's lane, not to the renewal. RV3 got two constructions through every AA check:
+  - App v3 "delivered" evidenced by App v3's README;
+  - an App v3 adoption act whose text is a real but unrelated App v3 sentence ("UPD-133 adopts the stricter live rule…").
+
+  Make delivery rest on the routed notice for that renewal, and make each adoption act name the renewal it adopts. Add both constructions as negative cases. If any part stays unenforced, say so plainly in the uncovered list.
+- **CA2-N1 (note).** Add one negative case that breaks K-14 and nothing else: a schema-valid record with every RE-1 condition met but eligibility recorded as false.
+- **AA2-N1 (note).** The negation list also refuses a genuine "adopts … without amendment". It errs on the safe side and is already covered by your stated keyword limit, so no change is needed.
+
+Keep it small. This is a MINOR finding, so don't extend the checker past these cases. If the AA change alters CA's or RP's built content, step their versions as before. Otherwise leave them alone. Report it as EU-F3R2 alongside PV-v0.3. RV3 will confirm AA2-R1 and RV2 will confirm the PV repair.
+```
+
+## 135. 2026-10-04T18:28:02.833Z — SendMessage — to a59950c21bd9eb15e (O-C: tranche-2 closeout re-pins + LHQ2-R2)
+
+```text
+O-C: tranche-2 closeout items for your deliverables. These are your own pins, checked by you, not re-pinned by script (R23-21 item 4; RV3 asked specifically for LHQ2-R2).
+
+HELP_HUMAN's scan found these Design pins pointing at versions superseded during tranche 2. Base is origin/main 75604b3c49; HEAD is 0d23f45985 or later.
+
+1. **DEL-09-05 DECISION_ATTRIBUTION_CASE.md:**
+   - line 12 pins ACT-POLICY-v0.10 (`1bf0ce8e…`). Current is v0.11 (`597f13bd…`), which adds the §10.3 DEL-10-03 receiver row and the claim-connector check;
+   - line 141 pins FV-v0.1 (`15e25a24…`). Current FLEET_VIEWS.md carries FV-10 and RF-5a/5b.
+2. **DEL-09-11 READER_METHOD.md:**
+   - line 19 pins ACT-POLICY-v0.10;
+   - line 15 pins DOS (`b2ffba71…`). DOS has since gained DX-1…DX-3.
+3. **DEL-09-07:** QUALIFICATION_DOSSIER.md line 9 and TRAFFIC_OBSERVATION_PLAN.md line 7 pin LHQ-v0.1 (`20361a0b…`). Current is LHQ-v0.2 (`90f461cb…`).
+4. **LHQ2-R2, from reviews/RV3-EUF1.md around line 210, and R23-53's neighbour ruling at R23_RESOLUTIONS.md:613.** Add the line RV3 asked for: a CIR carrying `app_candidate_subject` validates only under LHQ-v0.2's schema. Then decide DOS's CIR-schema pin on its merits, as part of item 3.
+
+For each pin:
+- read the cited sections in the current supplier;
+- if they still say what your file relies on, re-pin with a one-line note naming the version step;
+- if they don't, change your text, or keep the old pin with a stated reason.
+
+Then rerun your checks: cir_check, dos_check (including --outcomes), top_check, and the DAC/RRM prototypes. Record the before and after.
+
+Write only in your own Design folders and OWNERS/O-C.md. Don't touch PKG-11, DEL-09-12 or the run's F/ folder; O-F is working there. Freeze when done and tell me the paths and check results.
+```
+
+## 136. 2026-10-04T18:28:06.905Z — SendMessage — to a5d59923b9c8069e8 (O-A: re-pin GUIDE's ACT row to v0.11)
+
+```text
+O-A: one small tranche-2 closeout item. HOST_INTEGRATION_GUIDE.md (DEL-03-04) line 26 still pins ACT-POLICY-v0.10 (`1bf0ce8e…`). You wrote v0.11 (`597f13bd…`), so you know exactly what changed: the §10.3 DEL-10-03 receiver row and the claim-connector check.
+
+- Confirm that the GUIDE row's reliance (the A16 rows adopted at GUIDE-v0.7) is unaffected.
+- Re-pin that one row with a short note naming the version step.
+- Rerun the GUIDE pin check that C2 used in tranche 1 (25/25 then), or its equivalent, and report the result.
+- If any other GUIDE row pins a file that changed in tranche 2, list it but don't change it.
+
+Touch only that row, plus a changes line if the GUIDE keeps one. Record it in OWNERS/O-A.md and tell me when it's done. This is mechanical, and the pre-merge review will cover it.
+```
+
+## 137. 2026-10-04T18:29:01.963Z — Agent — P60 inventory of 41 deliverables (type2-opus-high)
+
+```text
+You are a Chirality Type 2 TASK executor working for HELP_HUMAN (Agent 0), run APP-V4-DESIGN-PASS-4-20261003, in the repository worktree at the current directory, branch claude/app-v4-design-pass-4-t2. You do not delegate.
+
+## Purpose
+The owner, a person, will assess App v4's 60% position. The criterion, from projects/chirality-app-v4/loop/LOOP_INIT.md around lines 133–155, is: "developed design/interfaces and a route to completion for which further structural changes are no longer anticipated." Closing an undertaking or merging a PR does not pass that gate.
+
+HELP_HUMAN will write the owner-facing position statement. Your job is the evidence inventory it rests on: an accurate, source-cited account of where each of the 41 deliverables actually stands. This is a reading and accounting task. You make no design changes and no judgments on the owner's behalf.
+
+## Basis to read (read what you need, not everything)
+- projects/chirality-app-v4/execution/_Coordination/THIRTY_PERCENT_REVIEW.md and HANDOFF_30_PERCENT.md: the precedent for the 30% gate's standing language.
+- The run receipts under projects/chirality-app-v4/execution/_Coordination/AgentRuns/*/RECEIPT.md: FIRST-INCREMENT, DESIGN-PASS-2, -3, -4 (tranche 1), SCA002, SCA003, BASIS-ALIGN and SWBPIPE-INTAKE. Use them to learn which pass designed what and what each carried forward.
+- Each deliverable's folder: PKG-*/1_Working/DEL-*/. That means _STATUS.md, ScopeOfWork.md (obligations), Dependencies.csv, and Design/. Read each Design file's header (contribution/version/supersedes, inputs, open matters) and any open-matters, consumers or changes sections. Read whole Design files only when needed to answer the questions below.
+- projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv (26 rows).
+- The DAG pointer and cases: _DAG/_LATEST.md, _DAG/DAG-004/HANDOFF_STATE.md, _DAG/cases/*/Case_Datasheet.md.
+- The pass-4 run folder (_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/): R23_RESOLUTIONS.md (rulings), DISPATCH.md (unit review outcomes), reviews/, OWNERS/O-*.md (each owner's open and carried items), WORK_GRAPH.md under _Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/.
+
+## In flight right now
+- O-F is repairing DEL-11-02, DEL-11-01, DEL-11-03 and DEL-09-12.
+- O-C is re-pinning DEL-09-05, DEL-09-07 and DEL-09-11.
+- O-A is re-pinning one row in DEL-03-04.
+
+Read those at HEAD, record the version you read, and mark them "closeout pending". HELP_HUMAN will refresh those rows later.
+
+## Output
+Write exactly one file: projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/POSITION_60/INVENTORY.md. Create the folder. Write nothing else anywhere, make no git operations, and use no network.
+
+Part A is one row per deliverable (41 rows), grouped by package, with these columns:
+1. **ID and short name.**
+2. **Design artifacts with current version labels.** Give file names and version labels (e.g. FR-v0.1). Full hashes are not needed.
+3. **Designed in.** Which pass or run.
+4. **Review standing.** For example "READY, RV2 PKG-U2" or "first increment, accepted by …". Cite the record.
+5. **Interfaces.** The main supplier and receiver joins. For each, say whether it was checked against the other side's actual Design text, citing where, or is unchecked or one-sided.
+6. **Evidence standing.** Definition only, fixture/prototype, or observed behavior. Never inflate. A prototype passing its own checks is fixture evidence, not observed product behavior.
+7. **Open matters.** Each with its owner (person vs agent/deliverable — keep "owner" for the person; name agents as agents) and its point of need. Distinguish (a) decisions reserved to the person, (b) items carried to the next ScopeOfWork/register amendment, (c) ordinary design work remaining, and (d) external dependencies (SWBPIPE, PEC, Domains, Codex supplier).
+8. **Structural-change risk.** Does anything recorded suggest that completing this deliverable would need a structural change? That means a new or split/merged deliverable, a changed ScopeOfWork obligation (not just wording), a new register row that forms an SCC, or a DAG successor. Answer "none recorded" or name it with its source. Overtaken ScopeOfWork wording already carried to the next amendment is wording, not structure, unless the record says the obligation itself changes.
+
+Part B covers the project-level picture:
+- the DAG version and currency (DA §5 step 2 was checked 2026-10-04: 128/130, with the 2 being the recorded DEL-01-03 drift);
+- the open SCC cases and their state, including CASE-002's drafted DAG-004 evidence update that is not yet applied;
+- each Open_Issues row: status, owner and point of need, and whether the row's own text shows it is ruled, partly ruled or open;
+- the consolidated list of items carried to the next amendment;
+- external dependencies.
+
+Part C lists the gaps. This is the most important part. Name every place where, on the records, the 60% criterion is not yet evidenced. For example:
+- an interface checked on one side only;
+- a deliverable whose design is thinner than its obligations;
+- an open matter with no named owner or point of need;
+- a recorded structural-change risk.
+
+Give each gap its source. Do not propose fixes beyond one line on what would evidence it.
+
+## Standards
+- Cite file paths, with line or section, for every non-obvious claim. Take identifiers and version labels from the files at writing time.
+- If you can't establish something, write "not established" and say what you looked at. Don't fill gaps by inference.
+- Keep it compact: tables plus short notes, not prose essays. If it gets long, keep Part C complete and compress Part A notes first.
+- No home-directory or absolute paths in the file; use repository-relative paths.
+
+## Return
+Hand back:
+- the file path and its sha256;
+- row counts;
+- the five most consequential Part C gaps, one line each;
+- anything you could not establish.
+```
+
+## 138. 2026-10-04T18:30:20.504Z — SendMessage — to a59950c21bd9eb15e (O-C: correction to ACT v0.11 description)
+
+```text
+A correction to my brief, from O-A's check: ACT-POLICY-v0.11 differs from v0.10 only in its version label, its change note, and the §10.3 DEL-10-03 receiver row, at L1749. The A16 rows are byte-identical. The "claim-connector check" I mentioned was a separate change in DEL-06-01's fleet_store.py, not in ACT. For your DAC:12 and RRM:19 pins, read the diff yourself: `git diff 09ca67d094 0bd6e4b4e9 --` on ACT_AND_POLICY_CONTRACT.md.
+```
+
+## 139. 2026-10-04T18:33:58.111Z — SendMessage — to ae24d61633347446f (O-F: add RP:26 LHQ pin to current freeze)
+
+```text
+One closeout item to add to your current freeze (PV-v0.3 plus EU-F3R2).
+
+REPLACEMENT_PACKET.md line 26 pins LHQ at `90f461cb…`. O-C has changed LHQ in place at 18d6eae3e4; it is now `d59a1ea0…`. The only change is one line in CI-5 (LHQ2-R2): a CIR carrying `app_candidate_subject` validates only under v0.2's CIR schema. The CIR schema and examples you vendored are unchanged.
+
+Read the diff, then either re-pin with a one-line note or keep the pin with a stated reason. Your call. If re-pinning changes RP's built content, step the version as before. Otherwise it's a pin note only.
+```
+
+## 140. 2026-10-04T18:36:33.955Z — SendMessage — to ab796a86c8bb468c6 (RV2: confirm PV-v0.3 repair)
+
+```text
+Please confirm O-F's EU-F4R repair of DEL-09-12, now PV-v0.3, committed at 9ba5dfe49c on claude/app-v4-design-pass-4-t2. The freeze record is OWNERS/O-F.md, section "EU-F4R — frozen". I reran check_pv: 38/38, with 12 valid and 27 invalid examples.
+
+Your probe script was in your temp directory, so O-F rebuilt probes A, B, C, D, E, G and H from your review text. Two things follow from that:
+- rerun your own constructions, not only O-F's copies;
+- check that the copies are faithful.
+
+For each of PV1-R1…R8, confirm or reopen it. Look hardest at:
+- PV1-R1: the decided-record fields, the decider by kind, and an agent never deciding a method or successor basis;
+- PV1-R3: the new PV-R4.
+
+O-F lists D (a "TBD" placeholder) and G (recorder "The owner" with a capital T) as passing but not enforced. Judge whether that disclosure is enough at 60%, or whether either needs enforcing.
+
+For PV1-R5: RP is deliberately unchanged this round. The remaining hand-over differences are stated in §2 O-3 and carried to RP's next revision. Check that the statement is accurate.
+
+Add an addendum to reviews/RV2-PV1.md with a verdict. Do not edit O-F's files. Hand back a short summary.
+```
+
+## 141. 2026-10-04T18:36:39.210Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: confirm AA2-R1, CA2-N1, LHQ2-R2)
+
+```text
+Please confirm three repairs, all at or before 821f236649 on claude/app-v4-design-pass-4-t2.
+
+1. **AA2-R1.** EU-F3R2 makes AA-v0.3:
+   - delivery evidence must be a notice routed by the renewal's own tranche manifest;
+   - an adoption act's record entry must name the renewal;
+   - your two constructions are N-30 and N-31, and AD-1 is the positive control P-4.
+
+   Rerun your own constructions, and try one variant that names D-GOV-52 in an unrelated heading. O-F says the renewal test is textual and lists that.
+2. **CA2-N1.** CA-v0.4's N-21 is meant to break K-14 alone. K-11 now reads the recorded eligibility.
+3. **LHQ2-R2.** O-C added the CI-5 line in LOCAL_HOST_QUALIFICATION.md at 18d6eae3e4. DOS now pins the v0.2 CIR schema explicitly. RP's Design re-pins LHQ to `d59a1ea0…` as a pin note only, and RP-v0.6 is otherwise unchanged.
+
+The freeze record is OWNERS/O-F.md, section "EU-F3R2 — frozen", plus OWNERS/O-C.md, section "Tranche 2 closeout: own pins". I reran AA 46/46, CA 37/37 and RP 99/99.
+
+Add addenda to RV3-AA1.md and RV3-EUF1.md (for LHQ2-R2) with a verdict. Do not edit owners' files. Hand back a short summary.
+```
+
+## 142. 2026-10-04T18:40:00.714Z — SendMessage — to ae24d61633347446f (O-F: final small round AA3-R1, PV2-R1, PV2-N2)
+
+```text
+Both of your units are READY. RV2 confirmed PV1-R1…R8, and RV3 confirmed AA2-R1, CA2-N1 and the LHQ re-pin. Their addenda are in reviews/RV2-PV1.md and RV3-AA1.md, committed at c4577c333a and after. There is one final small round, then you're done for tranche 2.
+
+1. **AA3-R1 (MINOR).** The routed D-GOV-52 notice itself passes as App v3's adoption act. RV3 used its sentence "Your loop decides whether to adopt, amend or decline." Add a one-line SR-3 refusal: an adoption act's record can never be a notice the change routes, because the sending tranche's text is never the receiving loop's act (F-R10). Add RV3's construction as N-32.
+2. **PV2-R1 (MINOR).** Where the actor is the owner, refuse "the owner" as recorder in any case or spacing (e.g. "The owner"). Add RV2's probe G (agreement) and E8 (method decision) as negative cases.
+3. **PV2-N2 (NOTE).** In owner-facing Design text and records, say "design agent O-F" rather than "O-F (design owner agent)". That wording was my suggestion; the fault is mine.
+
+Stop there. I've ruled that after this round there's no further checker hardening in tranche 2. The remaining textual limits stay disclosed in your lists and pass to implementation. Don't extend the checkers beyond these cases.
+
+Step the versions only where built content changes. Freeze, record it in O-F.md, and tell me the paths. RV3 confirms item 1 and RV2 confirms items 2 and 3.
+```
+
+## 143. 2026-10-04T18:44:48.221Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: confirm AA3-R1)
+
+```text
+Please confirm AA3-R1 at 158c0b2859. O-F has changed SR-3 to refuse an adoption act whose record is a notice routed by the renewal's change, and added your construction as N-32. The built AA-1 records should be byte-identical to 821f236649. AA-v0.3 is amended in place with a changes row. check_aa now gives 47/47. The freeze record is in O-F.md, section "EU-F3R3 and EU-F4R2 — frozen".
+
+Rerun your own construction and confirm the refusal comes from SR-3 alone. This is the last checker round for tranche 2, by my ruling in DISPATCH.md, so look only at AA3-R1 and its scope. Add a short addendum to RV3-AA1.md with a verdict.
+```
+
+## 144. 2026-10-04T18:44:50.709Z — SendMessage — to ab796a86c8bb468c6 (RV2: confirm PV2-R1 and PV2-N2)
+
+```text
+Please confirm PV2-R1 and PV2-N2 at 158c0b2859. DEL-09-12 is now PV-v0.4; the record format stays PV-v0.3. check_pv gives 38/38, with 12 valid and 29 invalid examples. Your probe G is invalid 28 and E8 is invalid 29, with doubled spacing added. "Design agent O-F" replaces the earlier wording. Two cases are left as listed limits: another name for the person, and your E7.
+
+This is the last checker round for tranche 2, by my ruling in DISPATCH.md, so look only at these two items and their scope. Add a short addendum to RV2-PV1.md with a verdict.
+```
+
+## 145. 2026-10-04T18:47:20.980Z — SendMessage — to a521e1cc57a7323d9 (P60: refresh closeout-pending rows at 161f8a0d0d)
+
+```text
+Thank you, this is what the owner needs. Please refresh the inventory now that the closeout units have landed. HEAD is 161f8a0d0d; run `git log --oneline 48df7404c7..HEAD` for what changed.
+
+The final versions to check, each from its file header:
+- DEL-11-01 CA-v0.4
+- DEL-11-02 AA-v0.3
+- DEL-11-03 RP-v0.6 (LHQ re-pinned)
+- DEL-09-12 PV-v0.4
+- DEL-09-05, 07 and 11, with O-C's re-pins and the LHQ2-R2 CI-5 line at 18d6eae3e4
+
+Their reviews are all READY with nothing open: RV2-PV1, RV3-AA1, RV3-CA1 and RV3-EUF1, plus the addenda in DISPATCH.md.
+
+Update:
+- the Part A rows for those deliverables;
+- G-28, which should now be resolved, citing the commits;
+- G-12, for PV's final hand-over statement;
+- anything else those commits change.
+
+Two clarifications:
+1. **LHQ line 10.** It keeps its GUIDE-v0.7 pin deliberately. My ruling is in DISPATCH.md (the O-C closeout row).
+2. **G-27.** Leave it open: the pre-merge review hasn't run yet.
+
+Keep everything else as it is. Mark the file's header "read at 161f8a0d0d". Write only that file, and hand back the new sha256 plus a one-line list of what changed.
+```

@@ -1,4 +1,4 @@
-# Receipt — APP-V4-DESIGN-PASS-4-20261003, tranche 1
+# Receipt — APP-V4-DESIGN-PASS-4-20261003, tranches 1 and 2
 
 Design pass 4, tranche 1: eight App v4 deliverables designed to the 60%
 level of `loop/LOOP_INIT.md`, reviewed and integrated. The run used the
@@ -102,3 +102,91 @@ author's constructed accounts.
   under owners' pins. Later checkpoints were taken at quiet points.
 - **Tranche 2** (PKG-07, PKG-08, PKG-10, PKG-11, DEL-09-10, DEL-09-12)
   follows.
+
+# Tranche 2
+
+Thirteen deliverables were designed to the 60% level and reviewed:
+PKG-07, PKG-08, PKG-10, PKG-11, DEL-09-10 and DEL-09-12. Tranche 1's merge
+was PR #1077, and the D-GOV-52 application was PR #1079.
+
+## Owner acts
+
+These are recorded with their exact text in
+[OWNER_DECISIONS_2.md](OWNER_DECISIONS_2.md):
+
+- **D-GOV-52:** "I approve A1 and B1, go ahead".
+- **Tranche 2:** "Proceed accordingly."
+- **Review independence:** "Same-session review is acceptable.  It's a practical concession to making
+  the logistics easier."
+
+No other owner decision was needed. HELP_HUMAN ruled R23-31…R23-55.
+
+## What landed (all IN_PROGRESS; every unit READY with no open finding)
+
+- **PKG-07/08 and DEL-09-10 (O-D):** PEC_RECEIVING PRC-v0.4,
+  CONNECTOR_FALLBACK CFB-v0.2, DOMAINS_RECEIVING DRC-v0.1, CONNECTOR_WITNESS
+  CW-v0.2 and RESEARCH_TO_DESIGN RTD-v0.2. The connector standing
+  vocabulary applies; App-origin reads are allowed in three observed
+  situations (R23-50/53).
+- **PKG-10 (O-E):** EXECUTION_BASIS EB-v0.4, UNDERTAKING_CONTROLS UC-v0.2,
+  RESPONSIBILITY_ACCOUNT RA-v0.2 and DAG_ACCOUNT DA-v0.3, plus the project's
+  first committed reach script, `dag_reach.py` (R23-51).
+- **PKG-11 (O-F):** CONTINUITY_ACCOUNT CA-v0.4, ADOPTION_ACCOUNT AA-v0.3
+  (the D-GOV-52 case is read from git) and REPLACEMENT_PACKET RP-v0.6.
+- **DEL-09-12 (O-F):** PRACTITIONER_VALIDATION PV-v0.4. No real practitioner
+  observation exists, and none is claimed.
+- **Cross-owner rows:**
+  - O-A: FV-10, RF-5a/5b and ACT-POLICY-v0.11.
+  - O-C: LHQ-v0.2 (CI-5, LHQ2-R2), the DOS DX-1…DX-3 rules, and the
+    closeout re-pins in DAC, RRM, DOS and TOP.
+  - GUIDE re-pinned to ACT-POLICY-v0.11.
+
+## Early paths and checks
+
+- **Cold readers.** Three early units were read by isolated readers given
+  only the supplied files: RR-EB1, RR-EUF1/2/3 and RR-EUD1. RR-EB1 found
+  HELP_HUMAN's R23-31.3 understatement, which was corrected by R23-35 and
+  BASIS_BINDING.md.
+- **Standing reviewers.** RV2 and RV3 reviewed every unit. The reviewer who
+  raised a finding confirmed its repair.
+- **Recurring defect.** Three times, a checker accepted records its own
+  author built: EUF4-R1, AA1-R1 and PV1-R1. Owners now break each rule they
+  claim a checker enforces before freezing, and list the rules they cannot
+  break (WORK_GRAPH adjustments, 2026-10-04). Checker hardening stopped
+  after AA3-R1 and PV2-R1. The remaining textual limits are disclosed.
+- **Closeout.**
+  - Stale pins were found by scan and re-pinned by their owners after
+    reading the supplier diffs.
+  - LHQ line 10 keeps its pin by ruling.
+  - DA §5 step 2: 128/130, with both failures the recorded drift.
+  - No ScopeOfWork, register, DAG or Open_Issues file changed.
+
+## The 60% position
+
+[POSITION_60/POSITION_STATEMENT.md](POSITION_60/POSITION_STATEMENT.md)
+answers "not yet" and sorts what remains:
+
+- design-agent work for one bounded pass;
+- a short set of decisions reserved to the owner;
+- the SWBPIPE host joins, which the owner deferred.
+
+The [inventory](POSITION_60/INVENTORY.md) is its cited basis.
+
+## Limits and carried items
+
+- **Nothing is implemented, built, signed or qualified.**
+- **Carried to the next amendment:**
+  - overtaken ScopeOfWork wording;
+  - F-RA1 mirror rows;
+  - DEP-005 text;
+  - DEP-09-01-027;
+  - DEL-04-01 REQ-002;
+  - the bundle-seam rows;
+  - OI-011;
+  - the DEL-01-01 notes;
+  - DEL-11-02's consumer-side row (R22-7);
+  - EXP's `activity: validation` (PV1-R8).
+- **Carried to the continuation:**
+  - CASE-002's DAG-004 evidence update;
+  - U-PV-3;
+  - the P60 Part C gaps.

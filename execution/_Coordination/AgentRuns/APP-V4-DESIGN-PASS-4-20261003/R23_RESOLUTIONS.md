@@ -785,3 +785,38 @@ evidence rules and the owner's earlier decisions already settle them.
   stands for both error and success results, at Codex 0.158.0 on the
   probed route. Because this widens reliance, RV2 confirms the P-H1d record
   before the pre-merge review treats it as settled.
+
+## At the tranche-2 closeout
+
+- **R23-54 Items assigned to "the App implementation owner" (P60 G-24). INTEGRATION.**
+  Sources: DECISION-L L-7, "the App implementation owner is the owner"
+  (`APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md`); and the owner's
+  direction "Scope of owner questions", "You have substantial guidance and
+  freedom to make decisions, particularly when being consistent and
+  coherent in terms of the established ontology, epistemology, praxeology,
+  and axiology" (`OWNER_DECISIONS.md`).
+  1. L-7 stands: the App implementation owner is the person. R23-17 did not
+     cite L-7, and that omission is corrected here.
+  2. An item a Design file assigns to the App implementation owner is the
+     person's to decide when it is a choice among acceptable options with
+     consequences for the person. DEL-01-05 REQ-005's account home is the
+     recorded example.
+  3. When the accepted basis, a fixed choice or a derived standard already
+     settles the item, HELP_HUMAN or the assigned design agent records the
+     settled answer and its source. The person sees it as information in
+     the phase-review package. R23-17's four items are of this kind, and
+     R23-17 stands.
+  4. Items whose point of need is "before implementation" are sorted under
+     items 2 and 3 when the implementation increment is planned, not now.
+
+- **R23-55 What the tranche-2 closeout establishes (P60 inventory). INTEGRATION.**
+  Source: LOOP_INIT, "Closing one undertaking or merging a PR does not pass
+  that gate."
+  1. Tranche 2 closes as design progress: every unit is READY with no open
+     finding, and the closeout pins are current, apart from the ruled
+     exceptions in DISPATCH.md. It does not claim the 60% position.
+  2. The P60 inventory's Part C gaps go into the owner-facing position
+     statement (`POSITION_60/POSITION_STATEMENT.md`), sorted by who closes
+     them: design agents, the person, or outside parties.
+  3. CASE-002's drafted DAG-004 evidence update, carried from SCA-V4-003,
+     is not a tranche-2 condition. It joins the continuation.

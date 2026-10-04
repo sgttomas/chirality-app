@@ -99,10 +99,11 @@ introduced if integration work starts delaying owner-facing work.
 | O-C1 DEL-09-07 design (designable-now set) | DEL-09-07 `Design/` | R23 | RV review | COMPLETE |
 | D Remaining tranche-1 design, review, closeout | Per LOOP_INIT | E | RV, RV2; C1, C2; P1 MERGE | COMPLETE (PR) |
 | T2-S Tranche-2 surveys S2-D, S2-E, S2-F | `SURVEY/S2-*.md` | Tranche 1 merged (PR 1077); owner "Proceed accordingly." | Obligations, joins, who decides, early unit | COMPLETE (R23-31…R23-34) |
-| T2-E1 EB-1 (O-E, DEL-10-01): execution basis read cold | DEL-10-01 `Design/` | T2-S | RR-EB1 scored; RV3 | COMPLETE (R23-38; EB-v0.3 with UC-v0.1 in review) |
-| T2-E2 EU-F1 (O-F, DEL-11-03): replacement packet read cold | DEL-11-03 `Design/`; `F/` | T2-S | RR-EUF1, RR-EUF2; RV3 | REPAIR → RP-v0.3 (R23-41, R23-43) |
-| T2-E3 EU-D1 (O-D, DEL-07-01/02, 08-01, 09-10): connector standing | Their `Design/`; `D/` | T2-S | RR-EUD1; RV2 | REPAIR (R23-37, R23-40) |
-| T2-X FV-10 + RF-5a (O-A, DEL-06-01/02) | PKG-06 `Design/` | T2-E3 vocabulary | RV2 | REPAIR (R23-39, R23-44) |
-| T2-D Tranche-2 remaining design (DEL-10-02…04, 11-01/02, 09-12, 08-02), review, closeout | Per LOOP_INIT | T2-E per cluster | RV2, RV3; closeout; pre-merge review | ACTIVE (DEL-10-02 UC-v0.1 in review; 10-03, 10-04, 08-02 drafting) |
+| T2-E1 EB-1 (O-E, DEL-10-01): execution basis read cold | DEL-10-01 `Design/` | T2-S | RR-EB1 scored; RV3 | COMPLETE (R23-38) |
+| T2-E2 EU-F1 (O-F, DEL-11-03): replacement packet read cold | DEL-11-03 `Design/`; `F/` | T2-S | RR-EUF1, RR-EUF2; RV3 | COMPLETE (R23-49; RP-v0.6) |
+| T2-E3 EU-D1 (O-D, DEL-07-01/02, 08-01, 09-10): connector standing | Their `Design/`; `D/` | T2-S | RR-EUD1; RV2 | COMPLETE (R23-45) |
+| T2-X FV-10 + RF-5a (O-A, DEL-06-01/02) | PKG-06 `Design/` | T2-E3 vocabulary | RV2 | COMPLETE |
+| T2-D Tranche-2 remaining design (DEL-10-02…04, 11-01/02, 09-12, 08-02), review, closeout | Per LOOP_INIT | T2-E per cluster | RV2, RV3; closeout; pre-merge review | ACTIVE: all units READY; closeout done; pre-merge review next (R23-55) |
 
 Tranche-2 owners: O-D (S2-D's agent), O-E (S2-E's), O-F (S2-F's); O-A and O-C for cross-owner rows. Practice notes: DEL-10-02 UC §5 (PN-1…PN-8).
+| P60 Position for the owner | `POSITION_60/` | T2-D units READY | Cited inventory; statement sorted by who closes each gap | COMPLETE (statement; nothing decided) |
