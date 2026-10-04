@@ -1007,3 +1007,149 @@ Every move below also needs S1 ScopeOfWork wording, applied by `scope-of-work` u
 | Whether ACT §5.3 rule 2 reads anything beyond ACT's own act vocabulary | It decides whether checkpoint state is I or E (§21.2) |
 | Whether REQ-003's "carry … workflow-run attribution" is met by an opaque run reference | My reading is that it is. The P §3.3 rewording depends on it |
 | Design passages beyond those quoted for each rewording | Each rewording is a design-agent task, with its own review |
+
+## 22. 2026-10-04 narrow repair (RVG-C2 Addendum A; GC-3, GC-4)
+
+**Standing.** This section makes the narrow text repair asked for by RVG-C2 Addendum A (`reviews/RVG-C2.md`, sha256 `07fdc9ddba00e86cbff92d32283f1af0cfbe084c11c71557850ffe0839e213ea`, commit `56566863e9`). It applies HELP_HUMAN's rulings GC-3 and GC-4 (`GC_RULINGS.md`, sha256 `27265cc9245fd7c2d93096dd8f2978376b51c48daf0e77fc110ced4c7c3318dc`).
+
+It is append-only and supersedes:
+- §21.1's rows for P4 (identity part), P9, P15, P17 and P19;
+- §21.5 (P10);
+- the §21.2 table, which gains one row;
+- §21.7–§21.9, where they differ.
+
+The analysis method is unchanged. The one new computation is the operation-identity row in §22.5.
+
+### 22.1 GC-3 applied to each identifier the rewordings carry
+
+**The test (GC-3 item 1).** A carried identifier counts as an opaque reference when all three hold:
+- it is typed as an uninterpreted string, with no pattern, format, enumeration or structure taken from the supplier;
+- the consumer neither constructs, parses nor validates it against the supplier's scheme, though comparing the whole string for equality is allowed;
+- the consumer's Design names who resolves it: the supplier or a third party.
+
+Each rewording below must say this in its own text (GC-3 item 2).
+
+| Pair | Identifier carried | Typed as | Not parsed? | Resolver named in the rewording | Structure needed? | Result |
+|---|---|---|---|---|---|---|
+| **P4** identity part (P-v0.8 §3.3, §8 "Origin" row, `proposal.schema.json`) | A workflow-run reference, in place of WD's tuple {kind, origin, source root, name, revision} | An uninterpreted string. `proposal.schema.json` drops the `origin` enumeration limited to WD §6.1's values (V18-2 m-9) | P keeps no rule that reads kind, origin or revision. The §3.3 sentences on adapted identity ("An unadapted carried workflow keeps its original origin; …") are WD's rules and are withdrawn from P | The App-side record, DEL-04-03's reader, resolves the run to its workflow tuple, linked by the host request id, as P §3.3 already does for SWBPIPE ("the App records both App-side and links them by the host's request id"). The run identity is issued by DEL-02-03's run starter. Both are third parties to P4's pair | **None in the current phase.** REQ-003 and V4-HI-21 require the "workflow run it came from", not the tuple's parts. P §8's "Origin" row must show the run reference, not a workflow name or revision. The governance-phase constraint derivation still uses WD's checkpoint declaration; that is the L residual (§21.4) | **Passes GC-3**, given the P §8 change and the R-9 amendment (§22.2) |
+| **P9** (WR-v0.2 §4.3 RB-4a, §7 DEL-04-03 row, §8 ledger) | The A15 record identity returned in DEL-01-04's capture report | An uninterpreted string | WR only compares the whole string: "never emits a *registered* transition without a matching ledger line" | DEL-04-03's reader. The act control's writer (DEL-01-04) maps WR's descriptor to RS's form, which RB-4a already assigns ("the act control's writer maps it") | **None.** WR's own checks run on its own descriptor (ID-2), not on the record | **Passes GC-3** |
+| **P15** (C-v0.8 §6.2; `read_result.schema.json` `$defs/act_evidence_ref`) | `act_record_reference`, an RS act-record identity | An uninterpreted string. Today it uses C's `#/$defs/identity`, which is already `{"type": "string", "minLength": 1}`. The rewording states that it is uninterpreted and resolved by DEL-04-03 | C keeps no act or lapse rule. Withdraw rule 4 and the "Must not be strengthened by" column for act evidence (§21.1). **Remove `act_evidence_ref.lapse_state`** from `read_result.schema.json` (a required property today), and remove its row in §6.2 ("Lapse state \| DEL-04-03 §7 vocabulary …") | DEL-04-03's reader, or the host where host-presented (RS L-9) | **None.** `act_kind`'s enumeration is DEL-04-01's A-codes, through the admitted DEP-03-01-024, and stays. That is not the pair's supplier | **Passes GC-3** |
+| **P19** (LOOP-v0.9 §6.2 "Grant in force"; l.2045–2050 O-5; l.210 RP-4) | AS's settings-version identity in force at route decision | An uninterpreted string | LOOP no longer records AS state values. The rewording removes "grant value, display state (O-6), scope and policy-class record reference", and "grant in force: unconfirmed", which is AS's state. LOOP keeps "grant in force: not received", which is its own observation that no reference arrived. O-5's "recorded when they differ" becomes: carried; compared by the record or the display owner (R-3.6 "Record both" is met by RS) | DEL-04-02 (AS §12.1) and the host route, which "resolves treatment" (ACT §5.3) | **None.** LOOP's allow rule uses only its own DF-3 and DF-6 data, and the host-reported treatment uses ACT §5.2's vocabulary (admitted DEP-05-01-018) | **Passes GC-3**, given those three textual removals |
+
+**No rewording needs part of the identifier's structure.** So no row stays I under GC-3 item 3. Two passes are conditional:
+- P4 depends on the P §8 "Origin" row change;
+- P19 depends on LOOP dropping "unconfirmed" and O-5's comparison.
+
+If either change is refused, that row stays I.
+
+### 22.2 Integrator rulings (GC-4)
+
+Amending these rulings is **HELP_HUMAN's act** at application time after checkpoint 1. Each amendment is listed in the owner-facing checkpoint. None is an owner decision.
+
+| Ruling | Amended text | Needed by |
+|---|---|---|
+| **R-9** | "workflow identity is carried everywhere as {kind, origin, source root, name, revision}" | P4's identity rewording (P §3.3, §8, `proposal.schema.json`) |
+| **R14-1** | "Every CE kind gets an RS entry kind" and "RS states the mapping" | The registry form of P12, P18, P20 and M-X2 (§21.6) |
+
+**Corrections to §21.**
+- §21.1 and §21.7 said P17 "revisits integrator rulings R-8 and R2-6", and the CSV said "revisits R-8, R2-6". That is **withdrawn**. GC-4 item 3 holds that R-8, R2-6 and R-3 point 6 already allow P17's rewording: they require the references to be recorded, and RS records them. The owner still sees the Q-11 reversal.
+- §21.10's "Whether the integrator rulings … allow the rewordings" is closed by GC-4.
+
+### 22.3 P10 rewritten (supersedes §21.5 and CSV M-14-R; RVG B-M3)
+
+**Source.**
+- R12-4: "ADAPTER maps each path's observed items to record elements."
+- EXEC §2.5.1's per-path rows restate ADAPTER's mappings: AW-1 uses NM-1, AW-2 uses OM-1, AW-4 uses NM-2, AW-8 uses §4.5, AW-9 uses OC-9, and AW-10 uses §7.7.
+- The reached-when *evaluation*, whether an observed event matches WD §4.3.1's kind, is EXEC's own.
+
+**Move: IV by design rewording. No responsibility moves.**
+- **EXEC.**
+  - EXEC-v0.7 §2.5.1 (AW-1, AW-2, AW-4, AW-8…AW-10) and the §9.1 DEL-03-03 row consume ADAPTER-mapped observations in an input form EXEC defines: *operation call started*, *outcome observed* and *not evaluable*, each carrying ADAPTER's limit label as an uninterpreted string (GC-3) defined by ADAPTER.
+  - EXEC's rows cite no NM, OM or OC semantics.
+  - EXEC keeps the evaluation.
+  - Design agent: **DEL-02-03**.
+- **ADAPTER.**
+  - ADAPTER-v0.7 §4.1, §4.5, §4.6 and §7.7 emit those inputs, mapping each native path per R12-4.
+  - `checkpoint_observation.schema.json`'s `exec_event` already names the EXEC input each observation feeds.
+  - ADAPTER's statement "evaluates no reached-when" still holds.
+  - Design agent: **DEL-03-03**.
+
+**Tests.**
+- GC-1 (a) holds for EXEC once the citations are gone.
+- GC-1 (b): ADAPTER checks its own mapping.
+
+**ScopeOfWork.** S1 in DEL-02-03 CLM-002's "consumes, and does not define" clause. There is no mirror. No ownership moves. DEL-02-03 CLM-002 says "`DEL-03-03` owns external-channel receiving", and R12-4 already allows the move (GC-4 item 3).
+
+**Fallbacks**, only if the rewording is refused: IV-O, DEC, CUT or MRG, as in §21.5.
+
+**Correction.** §21.5's "P10 is an owner-level act" was built on RVG C2-M5, which RVG has withdrawn (B-M3). **P10 joins group 1.**
+
+### 22.4 P15's schema field (RVG B-m1)
+
+P15's rewording removes `act_evidence_ref.lapse_state` from DEL-03-01's `read_result.schema.json`:
+- it is a required property today;
+- it is a string carrying an RS §7 state value.
+
+The same rewording drops `lapse_state` from that `$def`'s `required` list. It also states that `act_record_reference` is an uninterpreted string resolved by DEL-04-03. This is all DEL-03-01's design agent's work (§22.1).
+
+### 22.5 ACT §5.1: the operation-identity row (adds to §21.2's table)
+
+The same computation as §21.2: all admitted and held arcs, with §21.8 scenario C's moves.
+
+| Inputs registered as I | O-4 | O-3 | O-2 | O-1 |
+|---|---|---|---|---|
+| **Operation identity only** (DEL-04-01 → DEL-03-01) | **2-cycle {DEL-03-01, DEL-04-01}, 1 row**, closed with the admitted DEP-03-01-024 | same 2-cycle | same 2-cycle | inside a 15-member component, 7 rows; the 2-cycle is part of it |
+| Grant state only | 12 members, 1 row | — | — | 15 members, 7 rows |
+| Checkpoint state only | 11 members, 3 rows | — | — | 15 members, 9 rows |
+| All five | 12 members, 5 rows | — | — | 15 members, 11 rows |
+
+Even the least contested ACT §5.1 input forms a cycle, under every option. M-Q-ACT's owner question stands. RVG B-n1 agrees that checkpoint state reads I; it is a boundary call.
+
+### 22.6 Bottom line for SCC-002 (supersedes §21.9)
+
+**Group 1 — closed by design rewordings.** Each also needs S1 ScopeOfWork wording through an SCA the owner accepts, plus HELP_HUMAN's amendments of R-9 and R14-1 (GC-4). Each relies on GC-3 for its identifiers.
+- **All 17 I–I pairs under O-3 and O-4:**
+  - P1, P6, P7, P8, P21: no Design change needed beyond S1;
+  - P3: WD §4.3.4, §6.4;
+  - P4: P §3.3, §8, schema; R-9;
+  - P5: re-target; G1-m5;
+  - P9: WR;
+  - **P10: EXEC §2.5.1 and ADAPTER §4.1, §4.5, §4.6, §7.7**;
+  - P11: EXEC §4.10;
+  - P12, P18, P20: RS registry; R14-1;
+  - P15: C §6.2 and `read_result.schema.json`;
+  - P17: P §3.3, §4.4; the owner sees the Q-11 reversal;
+  - P19: LOOP §6.2.
+- **16 pairs under O-1 and O-2.** P4's governance-phase residual stays there (§21.4).
+- **Condition.** P5, P9 and P17, and the admitted layer into DEL-04-01 generally, hold only while ACT §5.1's inputs stay unregistered or are classed E (§21.2, §22.5).
+
+**Group 2 — owner acts.**
+- **P4 under O-1 and O-2:** a cut of the governance-phase residual (smallest), or DEC, IV-O or MRG.
+- **The non-I–I rows:**
+  - P13 (DEP-02-03-022, E/L) under O-1…O-3: a cut, or confirmation by its register owner;
+  - P2, P14 and P16 under O-1: V and V/L cuts;
+  - the V residuals of P1 and P8 under O-1.
+- **M-Q-ACT:** whether ACT §5.1's inputs are registered. If they are registered as I, they become cycle-closing rows; even operation identity alone forms a cycle (§22.5).
+
+**Group 3 — what remains per option** (G1 r2 kinds, closure as computed in §21.8; RVG A.1 reproduces it):
+
+| Option | Group 1 only (scenario B; no owner act on any I–I pair) | Group 1 + P4 cut (scenario C) | C, without P1 and P8's V residuals (D) |
+|---|---|---|---|
+| O-4 | **acyclic** | acyclic | acyclic |
+| O-3 | P13: {DEL-02-03, DEL-05-01}, 1 row | P13 | P13 |
+| O-2 | P4 and P13: two 2-member components, 1 row each | P13 | P13 |
+| O-1 | 12 members, 7 rows: P1, P2, P4, P8, P13, P14, P16 | 12, 6: P1, P2, P8, P13, P14, P16 | 12, 4: P2, P13, P14, P16 |
+
+**Sensitivities, from §21.8:**
+- P3 not re-anchored: O-4 leaves 5 members and 1 row.
+- Registry moves with V residuals: O-1 rises to 9 rows.
+- Any ACT §5.1 input registered as I: §22.5.
+
+**No decomposition is required anywhere.** The fallbacks for P10 and P4 include one, but neither needs it.
+
+### 22.7 Not established (narrow repair)
+
+| Item | Why |
+|---|---|
+| Whether the host's proposal views must show a workflow name or revision (P §8) | REQ-009 does not require it, and V4-HI-21 requires only the run. If an accepted text requires it, P4's identity row stays I (GC-3 item 3) |
+| The exact EXEC input forms in §22.3 | Named from RVG B-M3 and EXEC §2.5.1's row references. The wording is the design agents' |
