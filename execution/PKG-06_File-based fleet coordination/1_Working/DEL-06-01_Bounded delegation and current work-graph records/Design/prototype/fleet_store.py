@@ -25,51 +25,80 @@ RS_PROTO = os.path.join(EXECUTION, "PKG-04_Human acts, autonomy and run evidence
 sys.path.insert(0, RS_PROTO)
 from minischema import Registry, validate  # noqa: E402
 
-STANDING_SCHEMA = os.path.normpath(os.path.join(EXECUTION,
-                                                "PKG-07_PEC receiving and connector fallback", "1_Working",
-                                                "DEL-07-02_Connector limitation and source-file recovery paths",
-                                                "Design", "connector.standing.schema.json"))
+VENDORED = os.path.join(HERE, "fixtures", "vendored", "EU-D1")
+
+
+class VendoredInputChanged(Exception):
+    pass
+
+
+def vendored(name):
+    """R23-44: a vendored input's path, after checking its bytes against VENDOR.json (raises if they differ)."""
+    with open(os.path.join(VENDORED, "VENDOR.json"), encoding="utf-8") as fh:
+        pins = {f["file"]: f["sha256"] for f in json.load(fh)["files"]}
+    path = os.path.join(VENDORED, name)
+    with open(path, "rb") as fh:
+        got = hashlib.sha256(fh.read()).hexdigest()
+    if got != pins[name]:
+        raise VendoredInputChanged(f"{name}: sha256 {got} differs from the pinned {pins[name]}")
+    return path
 
 
 def _standing_validator():
     import jsonschema
-    with open(STANDING_SCHEMA, encoding="utf-8") as fh:
+    with open(vendored("connector.standing.schema.json"), encoding="utf-8") as fh:
         s = json.load(fh)
     return jsonschema.Draft202012Validator({"$ref": "#/$defs/standing", "$defs": s["$defs"]})
 
 
-def connector_need(root, ref):
-    """RF-5a (R23-39; same reading as DEL-06-02 FV-10; S-3, R23-34.10, R23-37.4): an input need whose file is a connector receiving record is a connector need.
-    Its state is read from the record's standing as DEL-07-02 defines it, never from the file's presence:
-    satisfied only if the standing supports reliance (CS-R1); 'unknown' stays unknown (CS-R5); otherwise outstanding,
-    with the route account named. Returns None when the file is not a connector record."""
+def looks_like_connector_record(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            rec = json.load(fh)
+        return isinstance(rec, dict) and "response_standing" in rec
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return False
+
+
+def connector_need(root, need):
+    """RF-5a (R23-39; RV2 FV10-R1, FV10-R3): a DECLARED connector need (kind 'connector', with its connector) is read
+    from its receiving record's standing under DEL-07-02's vocabulary (vendored, R23-44), never by presence:
+    missing record -> outstanding; unreadable, standing-less, nonconformant or other-connector record -> unknown;
+    reliance supported -> satisfied (naming the source-file route where the record says one is still needed);
+    condition unknown -> unknown (CS-R5); otherwise outstanding, with the route account."""
+    ref, declared = need["ref"], need["connector"]
+    base = {"connectorNeed": True, "connector": declared, "record": ref, "route": None}
     path = os.path.join(root, ref)
     if not os.path.isfile(path):
-        return None
+        return dict(base, state="outstanding", why=f"connector {declared}: receiving record {ref} not present")
     try:
         with open(path, encoding="utf-8") as fh:
             rec = json.load(fh)
     except (json.JSONDecodeError, OSError, UnicodeDecodeError):
-        return None
-    if not isinstance(rec, dict) or "response_standing" not in rec:
-        return None
+        return dict(base, state="unknown", why=f"connector {declared}: receiving record {ref} unreadable (torn or not JSON)")
+    if not isinstance(rec, dict) or not isinstance(rec.get("response_standing"), dict):
+        return dict(base, state="unknown", why=f"connector {declared}: receiving record {ref} has no standing")
     st, rid = rec["response_standing"], rec.get("record_id", ref)
-    route = (rec.get("route") or {}).get("account_ref")
+    route = rec.get("route") if isinstance(rec.get("route"), dict) else {}
+    base.update(record=rid, route=route.get("account_ref"))
     errs = sorted(_standing_validator().iter_errors(st), key=str)
     if errs:
-        return {"state": "unknown", "connector": True, "record": rid, "route": route,
-                "why": f"connector record {rid}: standing does not conform to DEL-07-02's vocabulary "
-                       f"({errs[0].message[:80]}); not used"}
+        return dict(base, state="unknown", why=f"connector record {rid}: standing does not conform to DEL-07-02's "
+                                                  f"vocabulary ({errs[0].message[:80]}); not used")
+    if st["connector"] != declared:
+        return dict(base, state="unknown", why=f"connector record {rid} is from {st['connector']}, not the declared {declared}")
     facets = f"envelope {st['envelope']}, condition {st['condition']}" + \
         (f", claim tier {st['claim_tier']}" if "claim_tier" in st else "")
     reasons = "; ".join(f"{r['facet']} {r['value']}: {r['basis']}" for r in st["reasons"])
     if st["supports_reliance"]:
-        return {"state": "satisfied", "connector": True, "record": rid, "route": route,
-                "why": f"connector reliance supported ({st['connector']}: {facets}; {rid})"}
+        part = (f"; reliance covers only the record's covered parts: the source-file route {route.get('account_ref')} "
+                f"is still needed for the rest" if route.get("needed") else "")
+        return dict(base, state="satisfied", why=f"connector reliance supported ({st['connector']}: {facets}; {rid}){part}",
+                    routeNeeded=bool(route.get("needed")))
     state = "unknown" if st["condition"] == "unknown" else "outstanding"
-    return {"state": state, "connector": True, "record": rid, "route": route,
-            "why": f"connector {st['connector']} does not support reliance ({facets}; {rid}): {reasons}"
-                   + (f"; the source-file route is {route}" if route else "; no route account named")}
+    return dict(base, state=state,
+                why=f"connector {st['connector']} does not support reliance ({facets}; {rid}): {reasons}"
+                    + (f"; the source-file route is {route.get('account_ref')}" if route.get("account_ref") else "; no route account named"))
 
 
 METHOD = "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)"
@@ -294,14 +323,18 @@ class Reader:
                         ("outstanding", "not integrated") if other else ("unknown", "item not in the current graph")
                 elif n["kind"] == "decision":
                     state = self._decision_state(n["ref"])
+                elif n["kind"] == "connector":
+                    # RF-5a (R23-39; FV10-R1): a declared connector need, read from its standing, never by presence.
+                    f["needs"].append(dict({"need": n}, **connector_need(self.root, n)))
+                    continue
                 else:
-                    c = connector_need(self.root, n["ref"])
-                    if c:
-                        # RF-5a (R23-39): a connector need is read from its standing (CS-R1, CS-R5), never by presence.
-                        f["needs"].append(dict({"need": n}, **c))
-                        continue
                     p = os.path.join(self.root, n["ref"])
-                    state = ("satisfied", "input present") if os.path.exists(p) else ("outstanding", "input not present")
+                    if os.path.exists(p) and looks_like_connector_record(p):
+                        # RF-5b (FV10-R1): a connector record named as a plain input is not read by presence.
+                        state = ("unknown", f"{n['ref']} is a connector receiving record named as a plain input; "
+                                            f"declare it as a connector need")
+                    else:
+                        state = ("satisfied", "input present") if os.path.exists(p) else ("outstanding", "input not present")
                 f["needs"].append({"need": n, "state": state[0], "why": state[1]})
             # RF-7 basis changes naming this item.
             f["basisChanged"] = [e["recordId"] for e in self.log if e["kind"] == "basis_changed" and iid in e["body"]["affectedItems"]]

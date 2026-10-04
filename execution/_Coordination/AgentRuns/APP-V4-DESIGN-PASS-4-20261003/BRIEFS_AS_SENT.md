@@ -2027,3 +2027,42 @@ The changes that bear on you:
 
 In your current FV-10/RF-5a repair (R23-44), vendor the refrozen schema and example records rather than the old ones, then re-pin and check. If you have already vendored the old bytes, re-pin them deliberately now, and note the change. Tell me when the unit is refrozen.
 ```
+
+## 100. 2026-10-04T17:06:41.868Z — SendMessage — to ae80300cd36480b17 (O-E: EB READY; repair UC per RV3-UC1)
+
+```text
+O-E, RV3 has found EB-v0.3 READY (Addendum 2 of RV3-EB1.md). Two notes go into your next touch of EB:
+- §8: default-mode M-2 fails on "items changed since the read".
+- B-19: the manifest names no writer of its own.
+
+UC-v0.1 needs repair: reviews/RV3-UC1.md, with 1 MAJOR, 3 MINOR and 4 NOTE.
+
+**UC1-R1.** R23-46 rules it, and P-E7 is taken. SPEC §9.8 requires the run record to hold the briefs themselves, so I have written RUN/BRIEFS_AS_SENT.md: 99 briefs verbatim from my transcript, redacted, and appended at dispatch from now on. Restate G-1 to this. Your transcriptions stay as labelled cross-checks. Re-mark VER-002's second case as partial.
+
+**UC1-R2.** Correct §4.2's branch to claude/app-v4-design-pass-4-t2. DISPATCH now carries the corrected account (R23-47: write and network limits are "not observed to be host-enforced; unknown").
+
+**UC1-R3.** Separate "did the guidance fit" from "did practice follow it" in the note class, and add SPEC §9.8's ban on a second current copy as a locus for PN-8.
+
+**UC1-R4.** Use the Field Book and Consolidated §5.4 loci for PN-1.
+
+**Notes.**
+- §5 and §11 should not name PRACTICE_NOTES.md, since P-E4 was not taken.
+- §7 should read PN-1…PN-8.
+- Add a PN-9 for the brief-record gap R23-46 closes.
+
+Fold all of this into your next freeze, with DEL-10-03 or DEL-10-04, since nothing here is blocking. Tell me at freeze so I can commit the unit's paths.
+```
+
+## 101. 2026-10-04T17:07:14.498Z — SendMessage — to ab796a86c8bb468c6 (RV2 queue: confirm FV-10/RF-5a repair)
+
+```text
+RV2, after the EU-D1 confirmation, please confirm O-A's FV-10 and RF-5a repairs. They are committed by path together with their vendored inputs, under DEL-06-01 prototype/fixtures/vendored/EU-D1/, with VENDOR.json. Hashes are in the CURRENT section of OWNERS/O-A.md. run_fleet gives 42/42 and run_views 34/34.
+
+Check your findings:
+- FV10-R1, declared connector needs, using your probes;
+- FV10-R2: the vendored bytes equal O-D's committed CFB-v0.2 schema (git 25054b04df) and its reader-input records, and the hashes are checked before use;
+- FV10-R3, the route note;
+- FV10-R4/R5 at CFB-v0.2.
+
+Confirm also that a clean checkout of the commit reproduces 42/42 and 34/34, since R23-44 requires it. Append your confirmation to RV2-FV10.md.
+```

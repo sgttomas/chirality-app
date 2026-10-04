@@ -553,7 +553,7 @@
       }
     },
     "need": {
-      "description": "A prerequisite: another item's integrated result, a decision on a package (an RS act_request, R23-8) or an identified input.",
+      "description": "A prerequisite: another item's integrated result, a decision on a package (an RS act_request, R23-8) or an identified input. A connector need (kind 'connector'; RF-5a, R23-39; RV2 FV10-R1) names a connector receiving record and the connector it is from; it is read from the record's standing, never by presence.",
       "type": "object",
       "required": [
         "kind",
@@ -565,7 +565,8 @@
           "enum": [
             "item",
             "decision",
-            "input"
+            "input",
+            "connector"
           ]
         },
         "ref": {
@@ -575,8 +576,53 @@
         "condition": {
           "type": "string",
           "minLength": 1
+        },
+        "connector": {
+          "enum": [
+            "pec",
+            "domains"
+          ],
+          "description": "For kind 'connector' only: the connector the record is from (DEL-07-02 CFB-v0.1 §2 connector values)."
         }
-      }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "kind": {
+                  "not": {
+                    "const": "connector"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "connector"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "kind": {
+                  "const": "connector"
+                }
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "connector"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     "workGraph": {
       "description": "FR §3.2 (REQ-002; V4-PM-02): one revision of an undertaking's work graph. Revisions are never edited; a new revision supersedes. Not the project DAG (DEL-10-04).",

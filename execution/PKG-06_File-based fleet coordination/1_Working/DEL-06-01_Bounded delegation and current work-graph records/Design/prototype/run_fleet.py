@@ -272,41 +272,69 @@ def main():
           and tf["W5"]["needs"][0]["state"] == "unknown",
           "RF-11 (E2-R2) a torn RS line is a limit, not a crash; decision needs it could hold are unknown")
 
-    # RF-5a (R23-39): connector needs read by DEL-07-02's CS-R1, never by presence (equivalents of FV-10 C2, C5, C8).
+    # RF-5a (R23-39; RV2 FV10-R1, FV10-R3): declared connector needs, read from vendored inputs (R23-44).
+    import fleet_store
     croot = os.path.join(scratch, "FX-FL1-connectors")
     if os.path.exists(croot):
         shutil.rmtree(croot)
     shutil.copytree(root, croot)
-    recs = os.path.join(EXECUTION, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "D", "build", "records")
     os.makedirs(os.path.join(croot, "connectors"))
     for name in ("PR-P6", "PR-P3", "PR-P1"):
-        shutil.copyfile(os.path.join(recs, name + ".json"), os.path.join(croot, "connectors", name + ".json"))
-    with open(os.path.join(recs, "PR-P3.json"), encoding="utf-8") as fh:
+        shutil.copyfile(fleet_store.vendored(name + ".json"), os.path.join(croot, "connectors", name + ".json"))
+    with open(fleet_store.vendored("PR-P3.json"), encoding="utf-8") as fh:
         forged = json.load(fh)
     forged["response_standing"]["supports_reliance"] = True
     with open(os.path.join(croot, "connectors", "PR-P3-forged.json"), "w", encoding="utf-8") as fh:
         json.dump(forged, fh)
+    with open(fleet_store.vendored("PR-P6.json"), "rb") as fh:
+        p6 = fh.read()
+    with open(os.path.join(croot, "connectors", "PR-P6-half.json"), "wb") as fh:
+        fh.write(p6[: len(p6) // 2])
+    with open(os.path.join(croot, "connectors", "PR-P6-renamed.json"), "wb") as fh:
+        fh.write(p6.replace(b'"response_standing"', b'"standing_v2"'))
     cw = Writer(croot)
     r2 = Reader(croot, RS_LOG).graphs["fl:graph:FX-U1:r2"][0]
 
-    def cneed(n):
-        return {"kind": "input", "ref": f"connectors/{n}.json"}
+    def cneed(n, c="pec"):
+        return {"kind": "connector", "connector": c, "ref": f"connectors/{n}.json"}
     extra = [item("C2", "stale connector", MGR, needs=[cneed("PR-P3")]), item("C5", "forged standing", MGR, needs=[cneed("PR-P3-forged")]),
              item("C8a", "absent connector", MGR, needs=[cneed("PR-P6")]), item("C8b", "adopted, current", MGR, needs=[cneed("PR-P1")]),
-             item("C8c", "plain input", MGR, needs=[{"kind": "input", "ref": "inputs/STYLE.md"}])]
+             item("C8c", "plain input", MGR, needs=[{"kind": "input", "ref": "inputs/STYLE.md"}]),
+             item("H1", "half-truncated", MGR, needs=[cneed("PR-P6-half")]), item("H2", "renamed key", MGR, needs=[cneed("PR-P6-renamed")]),
+             item("H3", "missing", MGR, needs=[cneed("PR-P9")]), item("H4", "undeclared", MGR, needs=[{"kind": "input", "ref": "connectors/PR-P1.json"}])]
     gp = cw.graph(hdr("fl:graph:FX-U1:r3", "work_graph", MGR, "g3", {"revision": 3, "supersedes": "fl:graph:FX-U1:r2",
                                                                      "projectDagRef": r2["body"]["projectDagRef"],
                                                                      "items": r2["body"]["items"] + extra}))
     cw.log(hdr("fl:log:0019", "current_graph", MGR, "s3", {"graph": "fl:graph:FX-U1:r3", "graphContent": file_identity(gp)}))
-    cf = {f["itemId"]: f["needs"][0] for f in Reader(croot, RS_LOG).item_facts(U)["items"] if f["itemId"] in ("C2", "C5", "C8a", "C8b", "C8c")}
-    check(cf["C2"]["state"] == "outstanding" and cf["C2"].get("connector") and cf["C2"]["route"] == "ra:EUD1-Q1"
+    cf = {f["itemId"]: f["needs"][0] for f in Reader(croot, RS_LOG).item_facts(U)["items"] if f["itemId"] in [x["itemId"] for x in extra]}
+    check(cf["C2"]["state"] == "outstanding" and cf["C2"].get("connectorNeed") and cf["C2"]["route"] == "ra:EUD1-Q1"
           and "condition stale" in cf["C2"]["why"],
           "RF-5a C2 an adopted but stale connector record is present yet outstanding (CS-R1), with its route account")
     check(cf["C5"]["state"] == "unknown" and "does not conform" in cf["C5"]["why"],
           "RF-5a C5 a stale standing altered to claim reliance is nonconformant to DEL-07-02's schema: unknown, never satisfied")
     check(cf["C8a"]["state"] == "outstanding" and cf["C8b"]["state"] == "satisfied" and cf["C8c"]["state"] == "satisfied"
-          and cf["C8c"]["why"] == "input present" and not cf["C8c"].get("connector"),
-          "RF-5a C8 presence no longer satisfies a connector need (absent: outstanding; adopted and current: satisfied); a plain input still reads by presence")
+          and cf["C8c"]["why"] == "input present" and not cf["C8c"].get("connectorNeed"),
+          "RF-5a C8 presence never satisfies a connector need (absent: outstanding; adopted and current: satisfied); a plain input still reads by presence")
+    check(cf["C8b"].get("routeNeeded") and "ra:EUD1-Q1 is still needed" in cf["C8b"]["why"],
+          "RF-5a (FV10-R3) a satisfied connector need names the source-file route the record says is still needed")
+    check(cf["H1"]["state"] == "unknown" and cf["H2"]["state"] == "unknown" and cf["H3"]["state"] == "outstanding"
+          and "not present" in cf["H3"]["why"] and cf["H4"]["state"] == "unknown",
+          "RF-5a/RF-5b (FV10-R1) half-truncated or renamed-key record: unknown; missing: outstanding; undeclared connector record as input: unknown")
+    saved = fleet_store.VENDORED
+    tam = os.path.join(scratch, "vendored-tampered")
+    if os.path.exists(tam):
+        shutil.rmtree(tam)
+    shutil.copytree(saved, tam)
+    with open(os.path.join(tam, "connector.standing.schema.json"), "a", encoding="utf-8") as fh:
+        fh.write(" ")
+    fleet_store.VENDORED = tam
+    try:
+        fleet_store.connector_need(croot, cneed("PR-P1")); refused = False
+    except fleet_store.VendoredInputChanged:
+        refused = True
+    finally:
+        fleet_store.VENDORED = saved
+    check(refused, "R23-44 a vendored input whose bytes differ from VENDOR.json is refused before use")
 
     print("\n== invalid records (schema) ==")
     disp = next(e for e in rd.log if e["kind"] == "dispatch_observed")
@@ -318,6 +346,10 @@ def main():
     x = copy.deepcopy(next(e for e in rd.log if e["kind"] == "return_recorded")); x["body"]["evidence"] = []; inv.append(("INV-FL-5 a return without evidence", x))
     x = copy.deepcopy(next(e for e in rd.log if e["kind"] == "related_conversation")); x["body"]["relation"] = "delegated to"; inv.append(("INV-FL-6 a related conversation called a delegation", x))
     x = copy.deepcopy(disp); x["body"]["mechanism"] = "brief written"; inv.append(("INV-FL-7 a dispatch whose mechanism is a written brief", x))
+    g = copy.deepcopy(rd.graphs["fl:graph:FX-U1:r2"][0]); g["body"]["items"][0]["needs"] = [{"kind": "connector", "ref": "connectors/PR-P1.json"}]
+    inv.append(("INV-FL-8 a connector need that does not name its connector (RF-5a)", g))
+    g = copy.deepcopy(rd.graphs["fl:graph:FX-U1:r2"][0]); g["body"]["items"][0]["needs"] = [{"kind": "input", "ref": "x", "connector": "pec"}]
+    inv.append(("INV-FL-9 a connector named on a plain input need (declare kind 'connector')", g))
     for name, inst in inv:
         errs = validate(inst, sch, reg)
         check(errs, f"{name}: invalid as expected -> {errs[0][:90] if errs else 'VALID (unexpected)'}")

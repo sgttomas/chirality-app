@@ -1,7 +1,7 @@
 """DEL-06-02 return-review queue and waiting views (FLEET_VIEWS.md FV-v0.1 §3, §4). Prototype, not product code.
 
 Python 3 standard library. Consumes DEL-06-01's reader (fleet_store.Reader, FR-v0.1 §6; DEP-06-02-008), whose
-facts carry connector needs read by RF-5a from DEL-07-02's standing records (CFB-v0.1 §2; DEP-07-02-015);
+facts carry connector needs read by RF-5a from DEL-07-02's standing records (CFB-v0.2 §2, vendored per R23-44; DEP-07-02-015);
 FV-10 words them. Derives rows and writes nothing (FV-9). Each row carries the source
 records it rests on, so a person can open the evidence behind every statement (V4-PM-06).
 """
@@ -75,17 +75,17 @@ def waiting(facts, root=None):
                     causes.append(f"waits for {n['need']['ref']} ({n['why']})")
                 elif k == "decision":
                     causes.append(f"waits for the person's decision: {n['why']}")
-                elif n.get("connector"):
+                elif n.get("connectorNeed"):
                     causes.append(f"waits on {n['why']}")
                     sources.append(n["record"])
                 else:
                     causes.append(f"waits for input {n['need']['ref']} ({n['why']})")
             for n in unknown:
                 causes.append(f"cause not established: {n['need']['kind']} {n['need']['ref']} ({n['why']})")
-                if n.get("connector"):
+                if n.get("connectorNeed"):
                     sources.append(n["record"])
             for n in f["needs"]:
-                if n["state"] == "satisfied" and n.get("connector"):
+                if n["state"] == "satisfied" and n.get("connectorNeed"):
                     causes.append(n["why"])
                     sources.append(n["record"])
             for n in f["needs"]:

@@ -14,15 +14,14 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from fleet_views import build  # noqa: E402
-from fleet_store import Writer, file_identity  # noqa: E402
+from fleet_store import Writer, file_identity, vendored  # noqa: E402
 
 EXECUTION = os.path.normpath(os.path.join(HERE, "..", "..", "..", "..", ".."))
 FX_FL1 = os.path.normpath(os.path.join(HERE, "..", "..", "..", "DEL-06-01_Bounded delegation and current work-graph records",
                                        "Design", "prototype", "fixtures", "FX-FL1"))
 RS_LOG = os.path.join(EXECUTION, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "E", "fixtures", "FX-DP1",
                       "records", "coordination.rs.jsonl")
-CONNECTOR_RECORDS = os.path.join(EXECUTION, "_Coordination", "AgentRuns", "APP-V4-DESIGN-PASS-4-20261003", "D", "build",
-                                 "records")      # O-D's EU-D1 example records (R23-37.4), read as they are
+# Connector inputs: DEL-06-01 prototype/fixtures/vendored/EU-D1 (R23-44), hash-checked by fleet_store.vendored().
 RESULTS = []
 
 
@@ -172,8 +171,8 @@ def main():
     shutil.copytree(FX_FL1, croot)
     os.makedirs(os.path.join(croot, "connectors"))
     for name in ("PR-P6", "PR-P3", "PR-P1"):
-        shutil.copyfile(os.path.join(CONNECTOR_RECORDS, name + ".json"), os.path.join(croot, "connectors", name + ".json"))
-    with open(os.path.join(CONNECTOR_RECORDS, "PR-P3.json"), encoding="utf-8") as fh:
+        shutil.copyfile(vendored(name + ".json"), os.path.join(croot, "connectors", name + ".json"))
+    with open(vendored("PR-P3.json"), encoding="utf-8") as fh:
         p3 = json.load(fh)
     forged = json.loads(json.dumps(p3)); forged["response_standing"]["supports_reliance"] = True
     with open(os.path.join(croot, "connectors", "PR-P3-forged.json"), "w", encoding="utf-8") as fh:
@@ -186,8 +185,14 @@ def main():
         r2 = json.load(fh)
     mgr = {"kind": "agent", "identity": "thread:fx-u1-manager", "role": "WORKING_ITEMS"}
 
-    def need_c(name):
-        return {"kind": "input", "ref": f"connectors/{name}.json", "condition": "the PEC answer to Q1 (connector)"}
+    def need_c(name, connector="pec"):
+        return {"kind": "connector", "connector": connector, "ref": f"connectors/{name}.json", "condition": "the PEC answer to Q1"}
+    with open(vendored("PR-P6.json"), "rb") as fh:
+        p6 = fh.read()
+    with open(os.path.join(croot, "connectors", "PR-P6-half.json"), "wb") as fh:
+        fh.write(p6[: len(p6) // 2])                                  # RV2 probe: half-truncated
+    with open(os.path.join(croot, "connectors", "PR-P6-renamed.json"), "wb") as fh:
+        fh.write(p6.replace(b'"response_standing"', b'"standing_v2"'))  # RV2 probe: renamed key (format drift)
     extra = [
         {"itemId": "W10", "outcome": "Q1 answered (PEC absent)", "owner": mgr, "needs": [need_c("PR-P6")], "selected": True},
         {"itemId": "W11", "outcome": "Q1 answered (PEC stale)", "owner": mgr, "needs": [need_c("PR-P3")], "selected": True},
@@ -195,7 +200,13 @@ def main():
          "needs": [need_c("PR-P1"), {"kind": "item", "ref": "W2"}], "selected": True},
         {"itemId": "W13", "outcome": "Q1 answered (PEC adopted, current)", "owner": mgr, "needs": [need_c("PR-P1")], "selected": True},
         {"itemId": "W14", "outcome": "Q1 answered (forged standing)", "owner": mgr, "needs": [need_c("PR-P3-forged")], "selected": True},
-        {"itemId": "W15", "outcome": "Q1 answered (condition unknown)", "owner": mgr, "needs": [need_c("PR-P3-unknown")], "selected": True}]
+        {"itemId": "W15", "outcome": "Q1 answered (condition unknown)", "owner": mgr, "needs": [need_c("PR-P3-unknown")], "selected": True},
+        {"itemId": "W16", "outcome": "Q1 (half-truncated record)", "owner": mgr, "needs": [need_c("PR-P6-half")], "selected": True},
+        {"itemId": "W17", "outcome": "Q1 (renamed standing key)", "owner": mgr, "needs": [need_c("PR-P6-renamed")], "selected": True},
+        {"itemId": "W18", "outcome": "Q1 (record missing)", "owner": mgr, "needs": [need_c("PR-P9-missing")], "selected": True},
+        {"itemId": "W19", "outcome": "Q1 (connector record as plain input)", "owner": mgr,
+         "needs": [{"kind": "input", "ref": "connectors/PR-P1.json"}], "selected": True},
+        {"itemId": "W20", "outcome": "Q1 (declared domains, record is pec)", "owner": mgr, "needs": [need_c("PR-P1", "domains")], "selected": True}]
     r3 = {"format": "chirality.fleet.record", "formatVersion": "0.1", "recordId": "fl:graph:FX-U1:r3", "kind": "work_graph",
           "undertaking": "FX-U1", "recorder": mgr, "writtenAt": "g3",
           "body": {"revision": 3, "supersedes": "fl:graph:FX-U1:r2", "projectDagRef": r2["body"]["projectDagRef"],
@@ -215,8 +226,8 @@ def main():
     check(C["W12"]["category"] == "waiting" and any(c.startswith("waits for W2") for c in C["W12"]["causes"])
           and any(c.startswith("connector reliance supported") and "pr:EUD1-P1" in c for c in C["W12"]["causes"]),
           "FV-10 W12 (PR-P1, adopted and current): reliance supported, yet W12 still waits for W2; the connector makes nothing ready")
-    check(C["W13"]["category"] == "ready (qualified)" and any("connector reliance supported" in c for c in C["W13"]["causes"]),
-          "FV-10 W13 (PR-P1 only): ready, its one need met by connector material that supports reliance (CS-R1); still qualified by thr-cx (FV-4a)")
+    check(C["W13"]["category"] == "ready (qualified)" and any("connector reliance supported" in c and "ra:EUD1-Q1 is still needed" in c for c in C["W13"]["causes"]),
+          "FV-10 W13 (PR-P1 only): ready, its one need met by connector material that supports reliance (CS-R1), naming the route still needed for Q1(b) (FV10-R3); still qualified by thr-cx (FV-4a)")
     check(C["W14"]["category"] == "unknown" and any("does not conform" in c for c in C["W14"]["causes"]),
           "FV-10 W14 (PR-P3 altered to claim reliance while stale): nonconformant to DEL-07-02's schema, so unknown, never ready")
     check(C["W15"]["category"] == "unknown" and any("condition unknown" in c for c in C["W15"]["causes"]),
@@ -224,11 +235,19 @@ def main():
     base = {r["item"]: (r["category"], r["causes"]) for r in v["waiting"]}
     check(all(base[i] == (C[i]["category"], C[i]["causes"]) for i in base),
           "FV-10 C7 (CS-R2 as restated by R23-40) adding connector items and records changes no other item's category or causes")
+    check(C["W16"]["category"] == "unknown" and C["W17"]["category"] == "unknown"
+          and any("unreadable" in c for c in C["W16"]["causes"]) and any("has no standing" in c for c in C["W17"]["causes"]),
+          "FV10-R1 RV2's probes: a half-truncated record and a renamed standing key make the need unknown, never satisfied by presence")
+    check(C["W18"]["category"] == "waiting" and any("not present" in c and "connector pec" in c for c in C["W18"]["causes"]),
+          "FV10-R1 a missing record for a declared connector need is outstanding, with the connector named")
+    check(C["W19"]["category"] == "unknown" and any("named as a plain input" in c for c in C["W19"]["causes"])
+          and C["W20"]["category"] == "unknown" and any("not the declared domains" in c for c in C["W20"]["causes"]),
+          "FV10-R1 a connector record named as a plain input, or declared under the wrong connector, is unknown; presence never applies")
     from fleet_store import Reader as _R
     raw = {f["itemId"]: f for f in _R(croot, RS_LOG).item_facts("FX-U1")["items"]}
-    agree = all(raw[i]["needs"][0]["state"] == {"W10": "outstanding", "W11": "outstanding", "W13": "satisfied",
-                                                  "W14": "unknown", "W15": "unknown"}[i] and raw[i]["needs"][0].get("connector")
-                for i in ("W10", "W11", "W13", "W14", "W15"))
+    expect = {"W10": "outstanding", "W11": "outstanding", "W13": "satisfied", "W14": "unknown", "W15": "unknown",
+              "W16": "unknown", "W17": "unknown", "W18": "outstanding", "W20": "unknown"}
+    agree = all(raw[i]["needs"][0]["state"] == s and raw[i]["needs"][0].get("connectorNeed") for i, s in expect.items())
     check(agree and C["W10"]["category"] == "waiting",
           "FV-10 C8 (R23-39) DEL-06-01's facts (RF-5a) now read connector needs by CS-R1; FV-10 words them, no override")
 

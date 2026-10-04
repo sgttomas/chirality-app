@@ -4,7 +4,70 @@ Owner O-A: Type 2 TASK, Claude Opus 5.5, high effort, standing assignment
 from HELP_HUMAN (run `APP-V4-DESIGN-PASS-4-20261003`). Read-only git; no
 network. Paths are relative to `projects/chirality-app-v4/execution`.
 
-## CURRENT — FV-10 with RF-5a (R23-39), frozen for RV2 (2026-10-04)
+## CURRENT — FV-10 + RF-5a refrozen after RV2-FV10 (2026-10-04), with vendored inputs
+
+This section supersedes the FV-10 and RF-5a sections below. Commit the unit
+**with** `DEL-06-01 Design/prototype/fixtures/vendored/EU-D1/` (5 files).
+
+- **FV10-R1 (MAJOR): declared connector needs.**
+  - New need kind `connector` with `connector: pec|domains` in
+    `fleet.record.schema.json`. INV-FL-8 refuses one with no connector;
+    INV-FL-9 refuses `connector` on a plain input.
+  - RF-5a reads a declared need from the record's standing, never by
+    presence:
+    - missing → *outstanding*, with the connector named;
+    - unreadable, standing-less, nonconformant or from another connector →
+      *unknown*, consistent with RF-10 and RF-11.
+  - RF-5b: a connector record named as a plain input is *unknown* ("declare
+    it as a connector need").
+  - RV2's probes are now cases in both checks: a half-truncated record
+    (*unknown*), a renamed standing key (*unknown*) and a missing record
+    (*outstanding*).
+- **FV10-R2 (MAJOR, R23-44): vendored inputs.**
+  - Copied into DEL-06-01 `prototype/fixtures/vendored/EU-D1/`, with
+    `VENDOR.json` recording each file's sha256 and source.
+  - `fleet_store.vendored()` checks each hash before use and refuses changed
+    bytes (`VendoredInputChanged`). A case in `run_fleet.py` tests the
+    refusal.
+  - **Re-pin, noted:** the frozen v0.1 bytes (schema `589f2c5d…`, records
+    `8d0cb89a…`, `4e759148…`, `03dd7244…`) were never committed. They had
+    already been replaced in the working tree when I copied. The vendored
+    bytes are **EU-D1 v0.2 (CFB-v0.2)**:
+    - schema `bf4cef4d…0719`, equal to git `25054b04df`;
+    - PR-P1 `b9cd7cce…`, PR-P3 `fcacb91a…` and PR-P6 `98aa1d8e…`, equal to
+      O-D's frozen reader-input manifest `e68154c6…`.
+
+    C1…C8 behave the same against v0.2. CS-R1 per connector now refuses
+    cross-tier standings (FV10-R4, by O-D's schema).
+- **FV10-R3 (MINOR):** a satisfied need whose record has `route.needed`
+  names the route ("reliance covers only the record's covered parts: the
+  source-file route ra:EUD1-Q1 is still needed for the rest"), and sets
+  `routeNeeded`. Checked on W13 (FV C9) and C8b (`run_fleet.py`).
+- **FV10-R5:** FV-10's "done" pointer now names CFB-v0.2 §3, where O-D's
+  refreeze put the list.
+- **Checks.**
+  - `run_fleet.py` gives 42/42 (37 before: +FV10-R3, the probes,
+    vendored-hash refusal, INV-FL-8 and INV-FL-9).
+  - `run_views.py` gives 34/34 (31 before: +C9…C12).
+  - FX-FL1 is unchanged (`0489bc61…`).
+  - No `__pycache__` left.
+
+| File | sha256 |
+|---|---|
+| DEL-06-01 `Design/FLEET_RECORDS.md` (FR-v0.1, repaired in place) | 823989cd23dc715a8327f993c2d5abfdfc7e27dab7c4b8650136ed0721cc43fb |
+| DEL-06-01 `Design/fleet.record.schema.json` (need kind `connector`) | d3897bbddc99c1a856390e63627153186fd2525118399faa38262d6f2ee9c8e8 |
+| DEL-06-01 `Design/prototype/fleet_store.py` | 42e72011519784b6e984ca16f1fa869e3d8b25c8e5c82bee6538d7f805940bae |
+| DEL-06-01 `Design/prototype/run_fleet.py` | 8df857a9457d2bb3323e4b6326472139fe469677dbf88d170b8d91efee8d6c62 |
+| DEL-06-01 `Design/prototype/fixtures/vendored/EU-D1/VENDOR.json` | 0cba60f44d43ccaa8fa703841127ffe706e1dddd7190c3a59bb82ec463d380e3 |
+| … `vendored/EU-D1/connector.standing.schema.json` | bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719 |
+| … `vendored/EU-D1/PR-P1.json` | b9cd7cce7fbf459d06a26e29ad3f2d6bc94384d3c8f4f4b3dcf359b91ab24689 |
+| … `vendored/EU-D1/PR-P3.json` | fcacb91a8a4e4e981cbe602cefd8283334d89f2d2394ad295ba470eac413acce |
+| … `vendored/EU-D1/PR-P6.json` | 98aa1d8e14dbaff525d9a0462583157fe90aedf7d7a516012ca9deb50bac95e8 |
+| DEL-06-02 `Design/FLEET_VIEWS.md` (FV-v0.1, repaired in place) | ece59b9a997c8d3b9405fa7d4e569ad156167a90634080d47e43810b23727a7f |
+| DEL-06-02 `Design/prototype/fleet_views.py` | 6be29240168e2fff3305277e41dbb3a319c0df4fc1a2b16f727b4fd2fb30a8ec |
+| DEL-06-02 `Design/prototype/run_views.py` | aee27d721b8a2974036e0af42aea8cc245218b2fe708c74c6013108def43ea0c |
+
+## FV-10 with RF-5a (R23-39), first freeze (superseded above)
 
 This section supersedes the FV-10 section below. The two units are reviewed
 together.
