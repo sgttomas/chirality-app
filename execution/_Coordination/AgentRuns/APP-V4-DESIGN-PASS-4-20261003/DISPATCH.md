@@ -85,3 +85,18 @@ verified afterwards by `git status`.
 | RV3 | RP-v0.2 REPAIR (EUF2-R1 MAJOR: two presentation conditions → R23-43; EUF1-R1 half-open, R2, R4 open; EUF2-R2 fixture stale after O-C's DOS fix). Key EU-F1-2 judged fair. To O-F for RP-v0.3 |
 | RV2 | FV-10 + RF-5a REPAIR (FV10-R1 MAJOR: torn/standing-less connector record falls back to presence → declare connector needs; FV10-R2 MAJOR: inputs not committed or pinned → R23-44, HELP_HUMAN's commit error; FV10-R3 MINOR). To O-A |
 | O-C | EUF1-S1 (DOS DX-1/DX-2, dos_check) and LHQ2-R1 (CI-5 value agreement, cir_check) done; all DEL-09-07 checks pass. Committed by path (R23-41); to RV3 |
+
+## Capability and check account (R23-31.6; form from DEL-10-02 UC §4.1, instance §4.2)
+
+| Field | Pass 4 |
+|---|---|
+| Mechanism | HELP_HUMAN (Claude Code session) dispatches harness-native descendants via the Agent tool (D-GOV-35), agent type `type2-opus-high` (Claude Opus 5.5); continued by SendMessage |
+| Host capability | The host does not restrict reads; separation of readers rests on briefs and their own reports. Write and network limits were not observed to be host-enforced; they are instruction-only |
+| Instruction-only limits | BRIEFS common rules; each owner's write area in its assignment message (transcribed into its OWNERS file, UC G-1) |
+| How fences are checked | `git status` after returns; owners' hash checks at freeze; HELP_HUMAN's path-limited commit at each freeze (R23-41) with inputs inside the commit or already in git (R23-44) |
+| Shared resources | One worktree, branch `claude/app-v4-design-pass-4-t2` (tranche 1: `claude/app-v4-design-pass-4`); the git stash is shared with other worktrees; several owners write concurrently; run files are working bytes until committed (PN-1, PN-4) |
+| Review separation | RV, RV2, RV3: fresh instances that did not author their subjects, Claude Opus 5.5, same session — owner-accepted (OWNER_DECISIONS_2.md). Readers RR-E, RR-F, RR-EB1, RR-EUF1, RR-EUF2, RR-EUD1: fresh instances given exactly the supplied files |
+| Unknown or untested | Whether any agent read outside its set beyond its own report; host-level write isolation |
+
+Practice from UC P-E6: a reviewer of a unit that also has a cold reader receives the reader's scored result before confirming (PN-3).
+| O-E | Froze EB-v0.3 + UC-v0.1 (DEL-10-02). P-E5 taken (capability account above), PN-8 taken (graph updated), P-E6 taken; P-E4 not taken (UC §5 holds the notes; linked from the graph). Committed by path; to RV3 |

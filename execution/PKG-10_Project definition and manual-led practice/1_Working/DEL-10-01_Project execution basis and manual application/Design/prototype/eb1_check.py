@@ -13,7 +13,7 @@ Checks:
   P-1  every sha256 in EXECUTION_BASIS.md §3.1/§3.2 equals today's bytes
   P-2  §3.1 rows equal the bytes at Git ffb2b628…; §3.2 rows as the table states
        (coordinated-knowledge-work absent there)
-  P-3  CURRENT_EXECUTION_BASIS.md contains the three manual hashes verbatim
+  P-3  CURRENT_EXECUTION_BASIS.md contains all nine §3.1 hashes verbatim (manuals and methods)
   M-1  the manifest validates against DEL-09-11's rrm.input-set-manifest.schema.json (unchanged)
   M-2  every manifest item's sha256 equals today's bytes
   M-3  the account is in the set as project_file; the key, the survey and S2-E are not items
@@ -100,7 +100,7 @@ def main() -> int:
             ok(blob is not None and sha(blob) == h, f"P-2 {path}: differs at {PIN_COMMIT[:10]}")
     ceb = (r / "projects/chirality-app-v4/execution/_Coordination/CURRENT_EXECUTION_BASIS.md").read_text()
     for section, path, h in rows:
-        if path.startswith("docs/alignment-manual/"):
+        if section == "3.1":  # the three manuals and the six definition-run methods (RV3 N4)
             ok(h in ceb, f"P-3 {path}: hash not in CURRENT_EXECUTION_BASIS")
 
     binding = r / "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/BASIS_BINDING.md"

@@ -89,3 +89,30 @@ own author".
 
 The account goes from EB-v0.1 to EB-v0.2. The repairs are listed in its
 "Changes" section and in `RUN/OWNERS/O-E.md`.
+
+## 6. Corrections after RV3 (dated 2026-10-04; earlier sections left as written)
+
+- **D-5, LOOP_INIT's approver: my trace to "Records" was wrong (RV3 EB2-R1;
+  R23-42.1).** A decision record exists outside the input set:
+  `docs/governance_harness/tranche_manifests/APP-V4-LOOP-ENTRY-20260928.yaml`
+  `m2_gate`. It records:
+  - the owner's request ("Owner copied init/ and loop/ … and requested:
+    Revise the documents accordingly for the new project folder.");
+  - `authorized_by: Ryan`;
+  - integration owner Codex HELP_HUMAN `/root`, self-merged under the
+    owner-authorized PR gate.
+
+  No record shows the owner reviewed the resulting text. The reader's
+  `unknown` stays correct for IS-EB1-1, which did not supply that file. The
+  miss is traced to the **index and the input-set design**, not the
+  records. EB-v0.3 adds it as B-19.
+- **Further key findings** (the key is unchanged; no score effect):
+
+| ID | Item | Finding (from RV3) | Effect on RR-EB1's score |
+|---|---|---|---|
+| KF-5 | K8.2 (critical) | It rests on the index's own inference ("no departure awaits the owner"; OI-019/020 "not triggered"). No primary record states that. Carried amendment wording reaches the owner at the next amendment's checkpoints (R23-11), so naming it would not be a contradiction. It should have been non-critical, or restated from the records | None: the reader answered "none recorded … (inferred)", with sources |
+| KF-6 | K3.1, K4c.2 (critical) | They require elements the question did not ask for (the recorder `/root`; the tranche manifest). These should have been optional | None: the reader gave both |
+| KF-7 | K2.2 (critical) | The pass-4 work graph's header says "(owner's selection …)", while `OWNER_DECISIONS.md` separates the owner's direction from HELP_HUMAN's selection. A reader who reports both wordings should MATCH | None: the reader reported direction and selection |
+
+The totals in §1 stand: literally 22/23 critical, and 23/23 when each
+divergence is decided by the records.

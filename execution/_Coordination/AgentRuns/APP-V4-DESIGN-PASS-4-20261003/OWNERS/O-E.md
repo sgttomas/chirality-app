@@ -253,3 +253,120 @@ It is held unfrozen until RV3 returns on EB-v0.2.
 - P-E4: create `RUN/PRACTICE_NOTES.md` with PN-1…PN-7, linked from the graph;
 - P-E5: put UC §4.2's capability account into DISPATCH;
 - P-E6: give the next reviewer the reader's scored result first (PN-3).
+
+## Drafts held unfrozen behind EB-v0.2's review (2026-10-04)
+
+| Unit | File | sha256 at writing | Content |
+|---|---|---|---|
+| DEL-10-02 UC-v0.1 | `DEL-10-02_…/Design/UNDERTAKING_CONTROLS.md` | `2db908e7aef70d85d9fbe981fe0fe9677c3748655e2a111530c124126cef2f25` | As above |
+| DEL-10-04 DA-v0.1 | `DEL-10-04_…/Design/DAG_ACCOUNT.md` | `7b8c8aba79cd896e07f5382393201803e436acbbf48faece94efa9662813d8ee` | Evidence account over DAG-001…004: versions with owner words, recorders, counts and reviews; obligation-to-evidence map for REQ-001…009; currency procedure (§5); consumers; SCC-CASE-006 (R1) |
+| DEL-10-03 RA-v0.1 | `DEL-10-03_…/Design/RESPONSIBILITY_ACCOUNT.md` | `6a6ff98b9d71ed31e08bd949b04a707470da8ff76552481a7637ce495caff850` | §1 population bound complete (R23-31.7): 9 supplier entries (S-1…S-9), 5 cross-project or open-allocation entries (X-1…X-5), exclusions with reasons, cycle guard. §2–§5 outlined |
+
+**Checks run for DA-v0.1 (by O-E, read-only):**
+- each version's `MANIFEST.sha256` passes `shasum -c` (61, 37, 37 and 37
+  entries);
+- `audit_dag.py --canonical --strict` (`830d0d53…`) exits 0 on DAG-001…004,
+  with 109, 124, 124 and 129 admitted edges and 0 SCCs; output went to scratch
+  only;
+- CSV record counts equal each handoff's stated counts;
+- DAG-004's `SOURCE_MANIFEST` is 128 of 130 OK from `E/`; the 2 failures are
+  the recorded DEL-01-03 drift.
+
+**Pending for EB-v0.3 (applied after RV3 returns on v0.2):**
+- the RV3-EB1 residuals above;
+- R23-38.5's observation in EB §3.3 item 5: no retroactive bindings; every
+  method the first increment and passes 2–3 used is byte-identical then and
+  now, checked by O-E with Git.
+
+**Request to O-A (for later, under R23-21, when RA §2 maps it; R23-31.10):**
+fill ACT-POLICY's consumer row "DEL-10-03 … Not mapped in detail". Not yet
+sent; RA §2 comes first.
+
+## Brief received, 2026-10-04 (G-1)
+
+- **From HELP_HUMAN.** RV3 found EB-v0.2 READY (addendum).
+- **EB-v0.3:** carries EB2-R1 (LOOP_INIT's decision record, as R23-42.1
+  states it) and EB2-R2 (R23-38.5), together with the planned residuals
+  (R6–R9, R12, R13). It is made with the next freeze, not as a separate
+  round.
+- **EB-v0.2:** committed at `d43665498d`.
+- **Next:** continue with DEL-10-02 and DEL-10-04.
+
+## Freeze — UC-v0.1 with EB-v0.3, for RV3 (2026-10-04)
+
+**Paths for HELP_HUMAN's path-limited commit (R23-41).** All under
+`projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/`:
+
+| Path | sha256 |
+|---|---|
+| `DEL-10-01_Project execution basis and manual application/Design/EXECUTION_BASIS.md` (EB-v0.3) | `e9f7e9a6100f805d1bfd992bc681056d3ef68b21c203750d69b1a3def6f904ee` |
+| `…/DEL-10-01_…/Design/eb1/EB1_COMPARISON.md` (§6 dated corrections appended) | `af3f2d6c91ba6872d0ddff39266f1a092790c8bb1c239e5826edb3d93023c216` |
+| `…/DEL-10-01_…/Design/prototype/eb1_check.py` (P-3 widened to 9 hashes) | `712c6f8f4c5f9556939faa9faab6f83a232575fb308eba569891bd46bb829bff` |
+| `DEL-10-02_Proportionate undertaking controls and practice feedback/Design/UNDERTAKING_CONTROLS.md` (UC-v0.1, new) | `e25fbe9b79376863951912fc7e7b20a201568cd591938eca6a20117574ce337f` |
+
+The other EB files are unchanged and committed:
+- the key `0ef83844…`;
+- the brief `3a9d2529…`;
+- the manifest `907709e5…`;
+- `make_input_set.py` `165dd43c…`.
+
+**Not in this freeze (drafts, keep out of the commit).** DEL-10-03
+`Design/RESPONSIBILITY_ACCOUNT.md` and DEL-10-04 `Design/DAG_ACCOUNT.md`.
+
+**R23-44 check.** Every input `eb1_check.py` reads is tracked and clean in
+git:
+- the RRM schema (DEL-09-11);
+- `BASIS_BINDING.md` and `CURRENT_EXECUTION_BASIS.md`;
+- `RR-EB1/SUPPLIED.sha256`;
+- the manifest and all 44 of its items.
+
+UC-v0.1 has no executable check of its own.
+
+**PN-1 applied (re-read before freeze).** I re-hashed every record the two
+units rely on.
+- **Changed since my last read, then re-read:**
+  - `R23_RESOLUTIONS.md` (`31c2261d…`): R23-39…R23-44 read; R23-41, 42 and 44
+    bear on this freeze and are applied;
+  - `reviews/RV3-EB1.md` (`bc3add0d…`): addendum read in full;
+  - `DISPATCH.md` (`984a093f…`): tail read.
+- **Unchanged since my reads:**
+  - `OWNER_DECISIONS.md` `e4350f61…`, `OWNER_DECISIONS_2.md` `3a861c52…`;
+  - `BASIS_BINDING.md` `93160e1d…`, `CURRENT_EXECUTION_BASIS.md` `99d08009…`;
+  - `RECEIPT.md` `a45055e2…`, `BRIEFS.md` `53f8d877…`;
+  - pass-4 `WORK_GRAPH.md` `34b2e489…`.
+
+**Claims.**
+1. **EB-v0.3** repairs every RV3 residual its plan assigned (R6–R9, R12,
+   R13, R14) and EB2-R1/R2. It lists each in "Changes". B-19 states exactly
+   what the LOOP-ENTRY manifest records, and what no record states.
+2. **The comparison's D-5 trace is corrected by a dated §6.** KF-5…KF-7 are
+   recorded as key findings with no score effect. The key is unchanged.
+3. **UC-v0.1** meets OUT-001…003 as conventions over existing records:
+   - the controls map;
+   - the G-1 brief convention;
+   - the capability and check account form, with the pass-4 instance;
+   - the practice-note convention and PN-1…PN-8;
+   - the stage-disposition package;
+   - DAG use;
+   - DEL-09-12 receiving.
+
+   It creates no register and writes no coordination record. Proposals
+   P-E4…P-E6 are HELP_HUMAN's to take.
+
+**Checks run.**
+- `eb1_check.py --post-dispatch RUN/RR-EB1/SUPPLIED.sha256`: **PASS 125,
+  FAIL 0.** That is 119 as before plus 6 from the P-3 widening. Expected
+  drift since the read: the account and R23. In default mode, M-2 reports
+  that drift, by design.
+- `check_boundary_owner_resolution.py` (`22ef57e0…`) on all four PKG-10 SoWs:
+  1 boundary requirement checked each, 0 failing, 0 citing no claim.
+- UC VER-001 walk of the pass-4 graph:
+  - structure holds;
+  - the current position is stale (PN-8).
+- UC VER-002, VER-003 and VER-006 (manual-locus check) are done; see UC §10.
+
+**Open.**
+- UC VER-005 (after RV3's return).
+- UC VER-007 (stage discussion).
+- EB VER-005, VER-007 and O-E's own VER-004 record (M §1.7, U §5).
+- RA §2–§5 and DA §4/§7: drafts, next units.
