@@ -1,0 +1,38 @@
+{
+  "agreement": null,
+  "arrangement_id": "PV-ARR-1",
+  "expressions": [
+    {
+      "activities": [],
+      "availability": {
+        "cause": "no App v4 candidate exists: DEL-09-02's dossier is an illustrative example and nothing is built",
+        "state": "blocked"
+      },
+      "candidate": null,
+      "expression": "app",
+      "material": null
+    },
+    {
+      "activities": [],
+      "availability": {
+        "cause": "no SWBPIPE candidate; the owner deferred the host joins (DECISION-3: 'defer the host joins'); OI-021 is open",
+        "state": "blocked"
+      },
+      "candidate": null,
+      "expression": "swbpipe",
+      "material": null
+    }
+  ],
+  "format": "PV-v0.1",
+  "limits": [
+    "OI-016 (App v4) is open: Owner 'Owner', point of need 'Before practitioner validation in use' (Open_Issues.csv at b2fbfdbac8)",
+    "no activity is proposed here: the activities are the owner's choice (V4-EXM-40), and none can run before a candidate exists",
+    "no observation exists; none is invented"
+  ],
+  "open_issue": "OI-016 (App v4)",
+  "period": null,
+  "prepared_by": "DEL-09-12 coordinator (O-F, prototype)",
+  "record_kind": "pv_arrangement",
+  "state": "not_agreed",
+  "version": 1
+}

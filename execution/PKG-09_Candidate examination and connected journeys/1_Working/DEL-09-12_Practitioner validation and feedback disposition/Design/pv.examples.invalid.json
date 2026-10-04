@@ -1,0 +1,627 @@
+[
+  {
+    "why": "F-R12: an examination outcome on an observation",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_observation",
+      "format": "PV-v0.1",
+      "observation_id": "PV-OBS-EX-1",
+      "standing": "illustrative",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "expression": "app",
+      "candidate": {
+        "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+        "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+      },
+      "configuration": {
+        "codex_pin": "0.158.0",
+        "model": "ILLUSTRATIVE",
+        "model_server": "ILLUSTRATIVE"
+      },
+      "date": "2026-10-04",
+      "activity_id": "ACT-EX-app",
+      "observer": "the owner",
+      "recorder": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "conditions": "ILLUSTRATIVE: a two-hour design session on invented material",
+      "aims": {
+        "confidence_for_attention": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the plan view's result needed a second reading before it could be relied on",
+              "sources": [
+                "ILLUSTRATIVE session record"
+              ]
+            }
+          ]
+        },
+        "workarounds": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the owner copied a path by hand because the view offered no link",
+              "sources": [
+                "ILLUSTRATIVE"
+              ]
+            }
+          ]
+        },
+        "perception_gaps": {
+          "coverage": "not_observed",
+          "observed": []
+        },
+        "records_missing_or_unused": {
+          "coverage": "not_observed",
+          "observed": []
+        }
+      },
+      "limits": [
+        "illustrative: inspects the record definition only (VER-003); no favourable or unfavourable conclusion"
+      ],
+      "outcome": "pass"
+    }
+  },
+  {
+    "why": "F-R12: a numeric score",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_observation",
+      "format": "PV-v0.1",
+      "observation_id": "PV-OBS-EX-1",
+      "standing": "illustrative",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "expression": "app",
+      "candidate": {
+        "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+        "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+      },
+      "configuration": {
+        "codex_pin": "0.158.0",
+        "model": "ILLUSTRATIVE",
+        "model_server": "ILLUSTRATIVE"
+      },
+      "date": "2026-10-04",
+      "activity_id": "ACT-EX-app",
+      "observer": "the owner",
+      "recorder": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "conditions": "ILLUSTRATIVE: a two-hour design session on invented material",
+      "aims": {
+        "confidence_for_attention": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the plan view's result needed a second reading before it could be relied on",
+              "sources": [
+                "ILLUSTRATIVE session record"
+              ]
+            }
+          ]
+        },
+        "workarounds": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the owner copied a path by hand because the view offered no link",
+              "sources": [
+                "ILLUSTRATIVE"
+              ]
+            }
+          ],
+          "score": 4
+        },
+        "perception_gaps": {
+          "coverage": "not_observed",
+          "observed": []
+        },
+        "records_missing_or_unused": {
+          "coverage": "not_observed",
+          "observed": []
+        }
+      },
+      "limits": [
+        "illustrative: inspects the record definition only (VER-003); no favourable or unfavourable conclusion"
+      ]
+    }
+  },
+  {
+    "why": "REQ-001: 'agreed' with no agreement act (a plan is not agreement)",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_arrangement",
+      "format": "PV-v0.1",
+      "arrangement_id": "PV-ARR-91",
+      "version": 1,
+      "open_issue": "OI-016 (App v4)",
+      "state": "agreed",
+      "expressions": [
+        {
+          "expression": "app",
+          "candidate": {
+            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-app",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        },
+        {
+          "expression": "swbpipe",
+          "candidate": {
+            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-swbpipe",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        }
+      ],
+      "period": {
+        "kind": "per_expression",
+        "value": "ILLUSTRATIVE: four weeks each"
+      },
+      "agreement": null,
+      "prepared_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "limits": [
+        "illustrative example of a proposal; not an agreement"
+      ]
+    }
+  },
+  {
+    "why": "an agreement recorded by its own actor",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_arrangement",
+      "format": "PV-v0.1",
+      "arrangement_id": "PV-ARR-91",
+      "version": 1,
+      "open_issue": "OI-016 (App v4)",
+      "state": "agreed",
+      "expressions": [
+        {
+          "expression": "app",
+          "candidate": {
+            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-app",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        },
+        {
+          "expression": "swbpipe",
+          "candidate": {
+            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-swbpipe",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        }
+      ],
+      "period": {
+        "kind": "per_expression",
+        "value": "ILLUSTRATIVE: four weeks each"
+      },
+      "agreement": {
+        "actor": "the owner",
+        "recorder": "the owner",
+        "recorder_stated_by_record": true,
+        "record_ref": "OWNER_DECISIONS_n.md (INVENTED)",
+        "exact_text": "INVENTED",
+        "custody": "INVENTED: the owner's chat message, transcribed by the recorder"
+      },
+      "prepared_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "limits": [
+        "illustrative example of a proposal; not an agreement"
+      ]
+    }
+  },
+  {
+    "why": "a decided disposition without the record of the decision",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.1",
+      "disposition_id": "PV-DSP-EX-1",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "feature",
+      "owning_commitment": {
+        "ref": "V4-EXE-01",
+        "source": "original-seed PRD.md#V4-EXE-01 via _Decomposition/ScopeLedger.csv"
+      },
+      "recipient": [
+        "DEL-01-02"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "proposed_revision",
+      "decision": {
+        "state": "decided",
+        "actor": "the owner"
+      }
+    }
+  },
+  {
+    "why": "a method observation routed away from DEL-10-02",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.1",
+      "disposition_id": "PV-DSP-EX-2",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "method",
+      "owning_commitment": {
+        "ref": "V4-OPS-20",
+        "source": "docs/OPERATING_METHOD.md#V4-OPS-20",
+        "manual_section": "ILLUSTRATIVE: Field Book §n (edition per CURRENT_EXECUTION_BASIS)",
+        "work_graph_node": "ILLUSTRATIVE node"
+      },
+      "recipient": [
+        "DEL-01-02"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "no_change",
+      "decision": {
+        "state": "proposed"
+      }
+    }
+  },
+  {
+    "why": "F-R3: practitioner validation as a replacement condition",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "practitioner_standing",
+      "format": "PV-v0.1",
+      "open_issue": "OI-016 (App v4)",
+      "standing": "in_use",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "agreement_ref": "OWNER_DECISIONS_n.md (INVENTED)",
+      "observations": 1,
+      "is_replacement_condition": true,
+      "limits": [
+        "illustrative"
+      ]
+    }
+  },
+  {
+    "why": "not agreed, yet observations counted",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "practitioner_standing",
+      "format": "PV-v0.1",
+      "open_issue": "OI-016 (App v4)",
+      "standing": "not_agreed",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "agreement_ref": null,
+      "observations": 3,
+      "is_replacement_condition": false,
+      "limits": [
+        "illustrative"
+      ]
+    }
+  },
+  {
+    "why": "an aim marked not observed while listing observations",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_observation",
+      "format": "PV-v0.1",
+      "observation_id": "PV-OBS-EX-1",
+      "standing": "illustrative",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "expression": "app",
+      "candidate": {
+        "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+        "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+      },
+      "configuration": {
+        "codex_pin": "0.158.0",
+        "model": "ILLUSTRATIVE",
+        "model_server": "ILLUSTRATIVE"
+      },
+      "date": "2026-10-04",
+      "activity_id": "ACT-EX-app",
+      "observer": "the owner",
+      "recorder": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "conditions": "ILLUSTRATIVE: a two-hour design session on invented material",
+      "aims": {
+        "confidence_for_attention": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the plan view's result needed a second reading before it could be relied on",
+              "sources": [
+                "ILLUSTRATIVE session record"
+              ]
+            }
+          ]
+        },
+        "workarounds": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the owner copied a path by hand because the view offered no link",
+              "sources": [
+                "ILLUSTRATIVE"
+              ]
+            }
+          ]
+        },
+        "perception_gaps": {
+          "coverage": "not_observed",
+          "observed": [
+            {
+              "statement": "x",
+              "sources": [
+                "y"
+              ]
+            }
+          ]
+        },
+        "records_missing_or_unused": {
+          "coverage": "not_observed",
+          "observed": []
+        }
+      },
+      "limits": [
+        "illustrative: inspects the record definition only (VER-003); no favourable or unfavourable conclusion"
+      ]
+    }
+  },
+  {
+    "why": "F-R14: OI-016 unqualified",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_arrangement",
+      "format": "PV-v0.1",
+      "arrangement_id": "PV-ARR-90",
+      "version": 1,
+      "open_issue": "OI-016",
+      "state": "proposed",
+      "expressions": [
+        {
+          "expression": "app",
+          "candidate": null,
+          "activities": [
+            {
+              "activity_id": "ACT-EX-1",
+              "description": "ILLUSTRATIVE: a design task the owner might choose",
+              "selected_by": "proposed_not_selected"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "not_yet",
+            "cause": "ILLUSTRATIVE: no candidate yet"
+          }
+        },
+        {
+          "expression": "swbpipe",
+          "candidate": null,
+          "activities": [],
+          "material": null,
+          "availability": {
+            "state": "blocked",
+            "cause": "ILLUSTRATIVE: host joins deferred"
+          }
+        }
+      ],
+      "period": null,
+      "agreement": null,
+      "prepared_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "limits": [
+        "illustrative example of a proposal; not an agreement"
+      ]
+    }
+  },
+  {
+    "why": "an illustrative-candidate observation presented as actual use",
+    "refused_by": "rule PV-R1",
+    "record": {
+      "record_kind": "pv_observation",
+      "format": "PV-v0.1",
+      "observation_id": "PV-OBS-EX-1",
+      "standing": "actual_use",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "expression": "app",
+      "candidate": {
+        "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+        "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+      },
+      "configuration": {
+        "codex_pin": "0.158.0",
+        "model": "ILLUSTRATIVE",
+        "model_server": "ILLUSTRATIVE"
+      },
+      "date": "2026-10-04",
+      "activity_id": "ACT-EX-app",
+      "observer": "the owner",
+      "recorder": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "conditions": "ILLUSTRATIVE: a two-hour design session on invented material",
+      "aims": {
+        "confidence_for_attention": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the plan view's result needed a second reading before it could be relied on",
+              "sources": [
+                "ILLUSTRATIVE session record"
+              ]
+            }
+          ]
+        },
+        "workarounds": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the owner copied a path by hand because the view offered no link",
+              "sources": [
+                "ILLUSTRATIVE"
+              ]
+            }
+          ]
+        },
+        "perception_gaps": {
+          "coverage": "not_observed",
+          "observed": []
+        },
+        "records_missing_or_unused": {
+          "coverage": "not_observed",
+          "observed": []
+        }
+      },
+      "limits": [
+        "illustrative: inspects the record definition only (VER-003); no favourable or unfavourable conclusion"
+      ]
+    }
+  },
+  {
+    "why": "an 'agreed' arrangement with an activity the owner did not select",
+    "refused_by": "rule PV-R2",
+    "record": {
+      "record_kind": "pv_arrangement",
+      "format": "PV-v0.1",
+      "arrangement_id": "PV-ARR-91",
+      "version": 1,
+      "open_issue": "OI-016 (App v4)",
+      "state": "agreed",
+      "expressions": [
+        {
+          "expression": "app",
+          "candidate": {
+            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-app",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "proposed_not_selected"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        },
+        {
+          "expression": "swbpipe",
+          "candidate": {
+            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-swbpipe",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        }
+      ],
+      "period": {
+        "kind": "per_expression",
+        "value": "ILLUSTRATIVE: four weeks each"
+      },
+      "agreement": {
+        "actor": "the owner",
+        "recorder": "HELP_HUMAN",
+        "recorder_stated_by_record": true,
+        "record_ref": "OWNER_DECISIONS_n.md (INVENTED)",
+        "exact_text": "INVENTED",
+        "custody": "INVENTED: the owner's chat message, transcribed by the recorder"
+      },
+      "prepared_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "limits": [
+        "illustrative example of a proposal; not an agreement"
+      ]
+    }
+  },
+  {
+    "why": "a recipient other than the ScopeLedger's owner of the commitment",
+    "refused_by": "rule PV-R3",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.1",
+      "disposition_id": "PV-DSP-EX-1",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "feature",
+      "owning_commitment": {
+        "ref": "V4-EXE-01",
+        "source": "original-seed PRD.md#V4-EXE-01 via _Decomposition/ScopeLedger.csv"
+      },
+      "recipient": [
+        "DEL-09-12"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "proposed_revision",
+      "decision": {
+        "state": "proposed"
+      }
+    }
+  },
+  {
+    "why": "a recipient asserted for a commitment the ScopeLedger cannot route (must be 'unresolved')",
+    "refused_by": "rule PV-R3",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.1",
+      "disposition_id": "PV-DSP-EX-1",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "feature",
+      "owning_commitment": {
+        "ref": "V4-NONEXISTENT-99",
+        "source": "original-seed PRD.md#V4-EXE-01 via _Decomposition/ScopeLedger.csv"
+      },
+      "recipient": [
+        "DEL-01-02"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "proposed_revision",
+      "decision": {
+        "state": "proposed"
+      }
+    }
+  }
+]
