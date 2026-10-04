@@ -7,16 +7,17 @@ Drafted by a Type 2 TASK (LI) for HELP_HUMAN, run
 of the current file.
 
 Drafting notes. They are not part of the proposed text.
-- The draft assumes `GROUPS.md` moves to `execution/_Coordination/GROUPS.md`
-  (recommendation in the mapping, "GROUPS.md location"). If it stays in the
-  run folder, use
-  `execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/GROUPS.md`.
-- "The contract core (group A)" is an inference. The owner froze "the
-  co-designed contract core", and GROUPS.md names group A "Runtime and
-  contract core". The B0 member list that would have named the core was
-  dropped. Confirm it before adoption (mapping, item N5).
+- Revised in place to follow HELP_HUMAN's ruling GC-9 (`GC_RULINGS.md`):
+  - change control now covers every deliverable's agreed interfaces, not a
+    "group A" core;
+  - `GROUPS.md` stays in this run's folder, and a later regrouping run
+    updates the pointer;
+  - the decision line now only says where decisions are recorded, because
+    A5 adds the general rule to the Agent User Manual §13.
+
+  The receipt location is unchanged.
 - The proposed text runs from the next heading to the end of the file. It is
-  4,756 characters, about 1,250 tokens (characters / 3.8). The current file
+  4,798 characters, about 1,260 tokens (characters / 3.8). The current file
   is 15,570 characters, about 4,100 tokens.
 
 ---
@@ -83,16 +84,18 @@ Load each workflow when it is needed, as
   `execution/_Evaluation/DAGCurrency/_LATEST.md`. The setup rules are in
   `execution/_Coordination/_COORDINATION.md`.
 - **Groups.** Groups A–E and their order are in
-  `execution/_Coordination/GROUPS.md`. Rulings GC-7 and GC-8 govern
-  relationships found later; they are in
-  `execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/GC_RULINGS.md`.
+  `execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/GROUPS.md`.
+  A later regrouping decision is recorded by its own run, and this pointer
+  is then updated. Rulings GC-7 and GC-8, in that run's `GC_RULINGS.md`,
+  govern relationships found later.
 - **Deliverables.** `execution/PKG-*/1_Working/DEL-*/`: `ScopeOfWork.md`,
   `Design/`, `Dependencies.csv`, `_DEPENDENCIES.md`, `_STATUS.md` and
   `MEMORY.md`.
 - **Code.** The code is in `app/`. Its `README.md` gives the offline build
   and the tests. App v4 has no `software-workflow.json`.
-- **Contract core.** The contract core (group A) is frozen under change
-  control. Log each contract issue found in implementation in
+- **Change control.** Agreed interfaces in any deliverable's Design change
+  only through named, reviewed changes that are propagated to their
+  consumers. Log each contract issue found in implementation in
   `app/CONTRACT_ISSUES.md`.
 - **SWBPIPE, PEC and Domains.** See
   `execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md`. Their implementation
@@ -123,6 +126,4 @@ Load each workflow when it is needed, as
 - Download nothing without the owner's explicit yes. Before asking, name
   the file, its source and its size.
 - Build offline by default.
-- Record each owner decision in the run's `OWNER_DECISIONS.md`, with its
-  exact words, source and custody. Do not imply that the owner personally
-  reviewed any file.
+- Owner decisions are recorded in the run's `OWNER_DECISIONS.md`.
