@@ -1,0 +1,44 @@
+{
+  "fixture": "P7",
+  "standing": "constructed (EU-D1); not a PEC response; element names are Chirality labels, not PEC wire fields",
+  "note": "adopted release, pin at S, the question asked at S (Q1-S)",
+  "question": "Q1-S",
+  "release": {
+    "identity": "pec-release-EX-1",
+    "stated_qualification": "qualified"
+  },
+  "stamp": {
+    "examined_through": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc",
+    "generated_at": "2026-10-04T08:00:00Z",
+    "feed_freshness": [
+      {
+        "feed": "work_graphs",
+        "freshness": "examined through e4a0c2c4c3"
+      }
+    ]
+  },
+  "envelope": {
+    "pin": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc",
+    "feeds": [
+      {
+        "feed": "work_graphs",
+        "coverage": "orientation: work-graph nodes in READY, ACTIVE or BLOCKED for the loop (PEC-ORI-001); deltas: node state changes since the caller's SHA (PEC-ORI-002)",
+        "freshness": "examined through e4a0c2c4c3",
+        "limitation": null
+      }
+    ],
+    "fallback_signal": "clear"
+  },
+  "claims": [
+    {
+      "claim_id": "c1",
+      "statement": "Work-graph nodes READY or ACTIVE at e4a0c2c4c3: VC ACTIVE, E ACTIVE, O-B1 READY, O-C1 READY",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc"
+      },
+      "tier": "record"
+    }
+  ]
+}

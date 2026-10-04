@@ -1,0 +1,29 @@
+{
+  "fixture": "DM-1",
+  "standing": "constructed (EU-D1); not a Domains response",
+  "question": "QD",
+  "contract": "DQC-EX-1",
+  "index_basis": "built from SRC-1 rev-A and SRC-2 rev-1",
+  "results": [
+    {
+      "result_id": "r1",
+      "source_ref": "domains/sources/SRC-1.md",
+      "indexed_revision": "rev-A",
+      "snippet": "Line EX-L1 support spacing: 3.0 m.",
+      "admission": {
+        "state": "admitted",
+        "basis_ref": "ADM-1",
+        "admitted_revision": "rev-A"
+      }
+    },
+    {
+      "result_id": "r2",
+      "source_ref": "domains/sources/SRC-2.md",
+      "indexed_revision": "rev-1",
+      "snippet": "Someone says line EX-L1 spacing is 3.0 m.",
+      "admission": {
+        "state": "not_admitted"
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "fixture": "P6",
+  "standing": "constructed (EU-D1); not a PEC response; element names are Chirality labels, not PEC wire fields",
+  "question": "Q1",
+  "observation": "no_response",
+  "detail": "connector stopped: no service answered the request; no response carries any signal",
+  "note": "receiver-side observation of total absence (DEL-07-01 REQ-005)"
+}

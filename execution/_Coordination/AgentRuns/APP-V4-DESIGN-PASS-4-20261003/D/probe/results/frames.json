@@ -1,0 +1,401 @@
+[
+  {
+    "t_ms": 3,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "clientInfo": {
+          "name": "chirality-eud1-probe",
+          "title": "EU-D1 probe",
+          "version": "0.0.0"
+        },
+        "capabilities": {
+          "experimentalApi": false,
+          "requestAttestation": false
+        }
+      }
+    }
+  },
+  {
+    "t_ms": 44,
+    "dir": "in",
+    "raw": {
+      "id": 1,
+      "result": {
+        "userAgent": "chirality-eud1-probe/0.158.0 (Mac OS 26.6.2; arm64) unknown (chirality-eud1-probe; 0.0.0)",
+        "codexHome": "/private/tmp/cvx-eud1/codex-home",
+        "platformFamily": "unix",
+        "platformOs": "macos"
+      }
+    }
+  },
+  {
+    "t_ms": 44,
+    "dir": "in",
+    "raw": {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "<REDACTED>",
+        "installationId": "980a2945-2ecf-4ab9-9e73-23a9aebc0567",
+        "environmentId": null
+      },
+      "emittedAtMs": 1791132342439
+    }
+  },
+  {
+    "t_ms": 44,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "method": "initialized"
+    }
+  },
+  {
+    "t_ms": 3054,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "mcpServerStatus/list",
+      "params": {}
+    }
+  },
+  {
+    "t_ms": 3153,
+    "dir": "in",
+    "raw": {
+      "id": 2,
+      "result": {
+        "data": [
+          {
+            "name": "double",
+            "runtimeStatus": null,
+            "pluginId": null,
+            "httpOrigin": null,
+            "serverInfo": {
+              "name": "obs1-example-host",
+              "title": null,
+              "version": "0.0.0-test",
+              "description": null,
+              "icons": null,
+              "websiteUrl": null
+            },
+            "serverCapabilities": {
+              "tools": {
+                "listChanged": false
+              }
+            },
+            "tools": {
+              "example_lookup": {
+                "name": "example_lookup",
+                "description": "Look up an invented example record by key. Test tool for an observation; returns invented example data only.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Example key, e.g. EX-1"
+                    }
+                  },
+                  "required": [
+                    "key"
+                  ]
+                }
+              }
+            },
+            "toolsError": null,
+            "resources": [],
+            "resourceTemplates": [],
+            "authStatus": "unsupported"
+          }
+        ],
+        "nextCursor": null
+      }
+    }
+  },
+  {
+    "t_ms": 3153,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/tmp/cvx-eud1/cwd",
+        "approvalPolicy": "never",
+        "sandbox": "read-only"
+      }
+    }
+  },
+  {
+    "t_ms": 3176,
+    "dir": "in",
+    "raw": {
+      "id": 3,
+      "result": {
+        "thread": {
+          "id": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/tmp/cvx-eud1/cwd",
+              "runtimeWorkspaceRoots": [
+                "/tmp/cvx-eud1/cwd"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": false,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "probe_none",
+          "model": "probe-none",
+          "reasoningEffort": null,
+          "createdAt": 1791132345,
+          "updatedAt": 1791132345,
+          "recencyAt": 1791132345,
+          "status": {
+            "type": "idle"
+          },
+          "path": "/private/tmp/cvx-eud1/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-45-45-01a107ce-a4cd-7b40-970f-5c0c68424933.jsonl",
+          "cwd": "/tmp/cvx-eud1/cwd",
+          "cliVersion": "0.158.0",
+          "originator": "chirality-eud1-probe",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "probe-none",
+        "modelProvider": "probe_none",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/tmp/cvx-eud1/cwd",
+        "runtimeWorkspaceRoots": [
+          "/tmp/cvx-eud1/cwd"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "never",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    }
+  },
+  {
+    "t_ms": 3176,
+    "dir": "in",
+    "raw": {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/tmp/cvx-eud1/cwd",
+              "runtimeWorkspaceRoots": [
+                "/tmp/cvx-eud1/cwd"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": false,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "probe_none",
+          "model": "probe-none",
+          "reasoningEffort": null,
+          "createdAt": 1791132345,
+          "updatedAt": 1791132345,
+          "recencyAt": 1791132345,
+          "status": {
+            "type": "idle"
+          },
+          "path": "/private/tmp/cvx-eud1/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-45-45-01a107ce-a4cd-7b40-970f-5c0c68424933.jsonl",
+          "cwd": "/tmp/cvx-eud1/cwd",
+          "cliVersion": "0.158.0",
+          "originator": "chirality-eud1-probe",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1791132345570
+    }
+  },
+  {
+    "t_ms": 3176,
+    "dir": "in",
+    "raw": {
+      "method": "mcpServer/startupStatus/updated",
+      "params": {
+        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "name": "double",
+        "status": "starting",
+        "error": null,
+        "failureReason": null
+      },
+      "emittedAtMs": 1791132345570
+    }
+  },
+  {
+    "t_ms": 3188,
+    "dir": "in",
+    "raw": {
+      "method": "mcpServer/startupStatus/updated",
+      "params": {
+        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "name": "double",
+        "status": "ready",
+        "error": null,
+        "failureReason": null
+      },
+      "emittedAtMs": 1791132345582
+    }
+  },
+  {
+    "t_ms": 6186,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "method": "thread/items/list",
+      "params": {
+        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933"
+      }
+    }
+  },
+  {
+    "t_ms": 6187,
+    "dir": "in",
+    "raw": {
+      "error": {
+        "code": -32601,
+        "message": "thread/items/list is not supported yet"
+      },
+      "id": 4
+    }
+  },
+  {
+    "t_ms": 6187,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "method": "mcpServer/tool/call",
+      "params": {
+        "server": "double",
+        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "tool": "example_lookup",
+        "arguments": {
+          "key": "EX-1"
+        }
+      }
+    }
+  },
+  {
+    "t_ms": 6188,
+    "dir": "in",
+    "raw": {
+      "id": 5,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"outcome\": \"queued\", \"proposal\": \"P-EX-1\", \"key\": \"EX-1\", \"note\": \"invented example material\", \"toolReceivedAtMs\": 1791132348582, \"logWritable\": true, \"metaReceived\": true}"
+          }
+        ],
+        "structuredContent": {
+          "outcome": "queued",
+          "proposal": "P-EX-1",
+          "key": "EX-1",
+          "note": "invented example material",
+          "toolReceivedAtMs": 1791132348582,
+          "logWritable": true,
+          "metaReceived": true
+        },
+        "isError": false
+      }
+    }
+  },
+  {
+    "t_ms": 9192,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 6,
+      "method": "thread/items/list",
+      "params": {
+        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933"
+      }
+    }
+  },
+  {
+    "t_ms": 9192,
+    "dir": "in",
+    "raw": {
+      "error": {
+        "code": -32601,
+        "message": "thread/items/list is not supported yet"
+      },
+      "id": 6
+    }
+  },
+  {
+    "t_ms": 9192,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 7,
+      "method": "thread/read",
+      "params": {
+        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "includeTurns": true
+      }
+    }
+  },
+  {
+    "t_ms": 9197,
+    "dir": "in",
+    "raw": {
+      "error": {
+        "code": -32601,
+        "message": "list_turns is not supported yet"
+      },
+      "id": 7
+    }
+  }
+]

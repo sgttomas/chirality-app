@@ -645,3 +645,25 @@ evidence rules and the owner's earlier decisions already settle them.
   3. **R23-41 is extended.** Before a path-limited commit, HELP_HUMAN checks
      that every input the unit's checks read is either inside the commit or
      already in git.
+
+- **R23-45 EU-D1 after its reader (O-D). INTEGRATION.**
+  1. **The referred item is met.** In P1 parts (a) and (c), the reader gave
+     basis "both" where the key says "connector". It relied on exactly
+     c1–c7 and also checked them against the files. Reliance on the
+     connector is what the key tests, and checking the files as well
+     takes nothing away from it. The score is 46 of 46. The key is
+     unchanged.
+  2. **App-origin reads (follow-up P-H1b, under R23-37.1).** DEL-01-01's
+     OBS-2 provider tap, in capture-only mode on loopback, recorded exactly
+     what Codex sent for the next turn. There were three message items,
+     with no trace of the App-origin call and no tool-call item. This is
+     direct observation of the model input, so no model was needed. App
+     views may use App-origin `mcpServer/tool/call` reads.
+     - Scope: Codex 0.158.0, one custom provider route, the first request of
+       the next turn. It is rechecked at a version advance (R23-22).
+     - The HOSTING §6.8 receiver row and the "not supported yet" note (R23-37.2)
+       go to DEL-01-01 at its next revision.
+  3. **OD-F1 (c9's broken anchor) was a real gap in the rules.** It was
+     repaired by PR-7: a record-tier claim whose citation does not resolve
+     is `unknown`. This is the same lesson as tranche 1's checker that only
+     agreed with its author's accounts.

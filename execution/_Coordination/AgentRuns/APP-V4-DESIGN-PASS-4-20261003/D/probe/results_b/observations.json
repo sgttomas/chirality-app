@@ -1,0 +1,41 @@
+{
+  "codexHome_is_scratch": true,
+  "thread_id": "01a107d2-7233-7d52-92ba-cf50fd662582",
+  "tool_call_returned": true,
+  "tool_call_markers_in_result": [
+    "P-EX-1",
+    "toolReceivedAtMs",
+    "invented example material"
+  ],
+  "turn_start": "ok",
+  "turn_completed_seen": true,
+  "turn_notifications": [
+    "warning",
+    "thread/status/changed",
+    "turn/started",
+    "item/started",
+    "item/completed",
+    "thread/status/changed",
+    "error",
+    "turn/completed"
+  ],
+  "stop_reason": null,
+  "model_input": {
+    "requests": 1,
+    "per_request": [
+      {
+        "method": "POST",
+        "path": "/v1/responses",
+        "input_item_types": [
+          "message"
+        ],
+        "input_items": 3,
+        "markers_anywhere_in_body": [],
+        "markers_in_input": [],
+        "tool_call_items_in_input": [],
+        "example_lookup_offered_as_tool": true,
+        "prompt_present": true
+      }
+    ]
+  }
+}

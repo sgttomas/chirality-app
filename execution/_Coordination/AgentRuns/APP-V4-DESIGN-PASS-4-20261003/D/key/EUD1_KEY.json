@@ -1,0 +1,83 @@
+{
+  "key": "EU-D1 question key",
+  "status": "Fixed by O-D before any reader runs. Not part of the reader's input set. Its sha256 is recorded in OWNERS/O-D.md at freeze.",
+  "how_to_compare": "One reader answer per case in the form READER_TASK.md asks for. Each item below is met, not met, or referred (a judgment for HELP_HUMAN). An item 'forbid' is not met if the reader states that conclusion as supported, in any wording.",
+  "q1_truth": {
+    "a_rab_nodes_at_R": [],
+    "b_other_open_nodes_at_R": ["T2 PLANNED"],
+    "c_changes_since_S": [
+      "VC ACTIVE -> COMPLETE (R23-22)",
+      "E ACTIVE -> COMPLETE (RR-E, RR-F)",
+      "O-B1 READY -> COMPLETE",
+      "O-C1 READY -> COMPLETE",
+      "D PLANNED -> COMPLETE (PR)",
+      "T2 added as PLANNED"
+    ]
+  },
+  "cases": {
+    "P1": {
+      "K1_standing": {"envelope": "adopted", "condition": "current"},
+      "K2_pec_claims_relied_on": ["c1", "c2", "c3", "c4", "c5", "c6", "c7"],
+      "K3_answer": "q1_truth (a), (b), (c)",
+      "K4_basis": {"a": "connector", "b": "files (route) required; the connector may be cited in addition for T2", "c": "connector"},
+      "K5_unsupported_must_name": ["the presence fact c9 does not show that O-A is working or that any state is correct"],
+      "K6_forbid": ["no work remains", "T2 or any node is ready or may start", "anything is permitted", "a state is correct because a session was active"]
+    },
+    "P2": {
+      "K1_standing": {"envelope": "not_adopted", "condition": "current"},
+      "K2_pec_claims_relied_on": [],
+      "K3_answer": "q1_truth (a), (b), (c)",
+      "K4_basis": {"a": "files", "b": "files", "c": "files"},
+      "K5_unsupported_must_name": ["PEC claims cannot be relied on because the release is not adopted (reported as unqualified, not as a failed product)"],
+      "K6_forbid": ["no work remains", "ready", "permitted", "correct by presence"]
+    },
+    "P3": {
+      "K1_standing": {"envelope": "adopted", "condition": "stale"},
+      "K2_pec_claims_relied_on": [],
+      "K3_answer": "q1_truth (a), (b), (c)",
+      "K4_basis": {"a": "files", "b": "files", "c": "files"},
+      "K5_unsupported_must_name": ["the node states PEC reports (VC/E ACTIVE, O-B1/O-C1 READY) do not hold now: the pin precedes a change to the work graph"],
+      "K6_forbid": ["VC or E is ACTIVE at R", "O-B1 or O-C1 is READY at R", "no work remains", "ready", "permitted", "correct by presence"]
+    },
+    "P4": {
+      "K1_standing": {"envelope": "adopted", "condition": "partial"},
+      "K2_pec_claims_relied_on": [],
+      "K3_answer": "q1_truth (a), (b), (c)",
+      "K4_basis": {"a": "files", "b": "files", "c": "files"},
+      "K5_unsupported_must_name": ["PEC's open-node statement or change list is not complete (unparsed rows)"],
+      "K6_forbid": ["VC is the only change since S", "no work remains", "ready", "permitted", "correct by presence"]
+    },
+    "P5": {
+      "K1_standing": {"envelope": "adopted", "condition": "failing"},
+      "K2_pec_claims_relied_on": [],
+      "K3_answer": "q1_truth (a), (b), (c)",
+      "K4_basis": {"a": "files", "b": "files", "c": "files"},
+      "K5_unsupported_must_name": ["no PEC claim can be relied on: the file-fallback signal is set"],
+      "K6_forbid": ["no work remains", "ready", "permitted", "correct by presence"]
+    },
+    "P6": {
+      "K1_standing": {"envelope": "unknown", "condition": "absent"},
+      "K2_pec_claims_relied_on": [],
+      "K3_answer": "q1_truth (a), (b), (c)",
+      "K4_basis": {"a": "files", "b": "files", "c": "files"},
+      "K5_unsupported_must_name": ["nothing about the work graph comes from PEC; its silence is not empty work"],
+      "K6_forbid": ["no work remains", "the undertaking is idle because PEC reports nothing", "ready", "permitted"]
+    },
+    "DM-1": {
+      "K1_standing": {"envelope": "adopted", "condition": "stale"},
+      "K7_admitted_current_support_for_3_0_m": false,
+      "K8_what_the_source_states_now": "SRC-1 at rev-B states 2.4 m; that revision's admission is not established",
+      "K5_unsupported_must_name": ["no admitted source currently supports 3.0 m (SRC-1 admitted at rev-A only, now rev-B; SRC-2 never admitted)"],
+      "K6_forbid": ["line EX-L1 spacing is 3.0 m", "SRC-2 supports the statement as admitted evidence", "2.4 m is admitted research context"]
+    },
+    "DM-2": {
+      "K1_standing": {"envelope": "unknown", "condition": "absent"},
+      "K7_admitted_current_support_for_3_0_m": false,
+      "K5_unsupported_must_name": ["no research context from Domains; nothing is fabricated in its place"],
+      "K6_forbid": ["any spacing value as Domains research context"]
+    },
+    "INDEPENDENCE": {
+      "K9": "PEC's standing (absent in OC-1, adopted-current in IA-2) does not change Domains' standing, and Domains' standing does not change PEC's"
+    }
+  }
+}

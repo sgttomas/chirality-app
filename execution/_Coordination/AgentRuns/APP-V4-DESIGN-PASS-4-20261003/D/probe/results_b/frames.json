@@ -1,0 +1,463 @@
+[
+  {
+    "t_ms": 1021,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "clientInfo": {
+          "name": "chirality-eud1-probe-b",
+          "title": "EU-D1 probe b",
+          "version": "0.0.0"
+        },
+        "capabilities": {
+          "experimentalApi": false,
+          "requestAttestation": false
+        }
+      }
+    }
+  },
+  {
+    "t_ms": 1084,
+    "dir": "in",
+    "raw": {
+      "id": 1,
+      "result": {
+        "userAgent": "chirality-eud1-probe-b/0.158.0 (Mac OS 26.6.2; arm64) unknown (chirality-eud1-probe-b; 0.0.0)",
+        "codexHome": "/private/tmp/cvx-eud1b/codex-home",
+        "platformFamily": "unix",
+        "platformOs": "macos"
+      }
+    }
+  },
+  {
+    "t_ms": 1084,
+    "dir": "in",
+    "raw": {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "<REDACTED>",
+        "installationId": "1f3fd398-7664-4544-92c8-f8bed8d5f364",
+        "environmentId": null
+      },
+      "emittedAtMs": 1791132591726
+    }
+  },
+  {
+    "t_ms": 1084,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "method": "initialized"
+    }
+  },
+  {
+    "t_ms": 4094,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/tmp/cvx-eud1b/cwd",
+        "approvalPolicy": "never",
+        "sandbox": "read-only"
+      }
+    }
+  },
+  {
+    "t_ms": 4107,
+    "dir": "in",
+    "raw": {
+      "id": 2,
+      "result": {
+        "thread": {
+          "id": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/tmp/cvx-eud1b/cwd",
+              "runtimeWorkspaceRoots": [
+                "/tmp/cvx-eud1b/cwd"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": false,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "probe_none",
+          "model": "probe-none",
+          "reasoningEffort": null,
+          "createdAt": 1791132594,
+          "updatedAt": 1791132594,
+          "recencyAt": 1791132594,
+          "status": {
+            "type": "idle"
+          },
+          "path": "/private/tmp/cvx-eud1b/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-49-54-01a107d2-7233-7d52-92ba-cf50fd662582.jsonl",
+          "cwd": "/tmp/cvx-eud1b/cwd",
+          "cliVersion": "0.158.0",
+          "originator": "chirality-eud1-probe-b",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "probe-none",
+        "modelProvider": "probe_none",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/tmp/cvx-eud1b/cwd",
+        "runtimeWorkspaceRoots": [
+          "/tmp/cvx-eud1b/cwd"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "never",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    }
+  },
+  {
+    "t_ms": 4107,
+    "dir": "in",
+    "raw": {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/tmp/cvx-eud1b/cwd",
+              "runtimeWorkspaceRoots": [
+                "/tmp/cvx-eud1b/cwd"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": false,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "probe_none",
+          "model": "probe-none",
+          "reasoningEffort": null,
+          "createdAt": 1791132594,
+          "updatedAt": 1791132594,
+          "recencyAt": 1791132594,
+          "status": {
+            "type": "idle"
+          },
+          "path": "/private/tmp/cvx-eud1b/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-49-54-01a107d2-7233-7d52-92ba-cf50fd662582.jsonl",
+          "cwd": "/tmp/cvx-eud1b/cwd",
+          "cliVersion": "0.158.0",
+          "originator": "chirality-eud1-probe-b",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1791132594749
+    }
+  },
+  {
+    "t_ms": 4107,
+    "dir": "in",
+    "raw": {
+      "method": "mcpServer/startupStatus/updated",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "name": "double",
+        "status": "starting",
+        "error": null,
+        "failureReason": null
+      },
+      "emittedAtMs": 1791132594749
+    }
+  },
+  {
+    "t_ms": 4196,
+    "dir": "in",
+    "raw": {
+      "method": "mcpServer/startupStatus/updated",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "name": "double",
+        "status": "ready",
+        "error": null,
+        "failureReason": null
+      },
+      "emittedAtMs": 1791132594838
+    }
+  },
+  {
+    "t_ms": 7117,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "mcpServer/tool/call",
+      "params": {
+        "server": "double",
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "tool": "example_lookup",
+        "arguments": {
+          "key": "EX-1"
+        }
+      }
+    }
+  },
+  {
+    "t_ms": 7120,
+    "dir": "in",
+    "raw": {
+      "id": 3,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"outcome\": \"queued\", \"proposal\": \"P-EX-1\", \"key\": \"EX-1\", \"note\": \"invented example material\", \"toolReceivedAtMs\": 1791132597762, \"logWritable\": true, \"metaReceived\": true}"
+          }
+        ],
+        "structuredContent": {
+          "outcome": "queued",
+          "proposal": "P-EX-1",
+          "key": "EX-1",
+          "note": "invented example material",
+          "toolReceivedAtMs": 1791132597762,
+          "logWritable": true,
+          "metaReceived": true
+        },
+        "isError": false
+      }
+    }
+  },
+  {
+    "t_ms": 9123,
+    "dir": "out",
+    "raw": {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "method": "turn/start",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "input": [
+          {
+            "type": "text",
+            "text": "This is an observation test with invented data. Reply with the single word: ready.",
+            "text_elements": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "t_ms": 9126,
+    "dir": "in",
+    "raw": {
+      "method": "warning",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "message": "Model metadata for `probe-none` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+      },
+      "emittedAtMs": 1791132599769
+    }
+  },
+  {
+    "t_ms": 9127,
+    "dir": "in",
+    "raw": {
+      "id": 4,
+      "result": {
+        "turn": {
+          "id": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": null,
+          "completedAt": null,
+          "durationMs": null
+        }
+      }
+    }
+  },
+  {
+    "t_ms": 9134,
+    "dir": "in",
+    "raw": {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "status": {
+          "type": "active",
+          "activeFlags": []
+        }
+      },
+      "emittedAtMs": 1791132599776
+    }
+  },
+  {
+    "t_ms": 9134,
+    "dir": "in",
+    "raw": {
+      "method": "turn/started",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "turn": {
+          "id": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1791132599,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1791132599776
+    }
+  },
+  {
+    "t_ms": 9151,
+    "dir": "in",
+    "raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a107d2-85f0-7ab1-9fb8-e129f120d4e8",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "This is an observation test with invented data. Reply with the single word: ready.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "turnId": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+        "startedAtMs": 1791132599793
+      },
+      "emittedAtMs": 1791132599793
+    }
+  },
+  {
+    "t_ms": 9153,
+    "dir": "in",
+    "raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a107d2-85f0-7ab1-9fb8-e129f120d4e8",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "This is an observation test with invented data. Reply with the single word: ready.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "turnId": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+        "completedAtMs": 1791132599793
+      },
+      "emittedAtMs": 1791132599795
+    }
+  },
+  {
+    "t_ms": 9159,
+    "dir": "in",
+    "raw": {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "status": {
+          "type": "systemError"
+        }
+      },
+      "emittedAtMs": 1791132599802
+    }
+  },
+  {
+    "t_ms": 9159,
+    "dir": "in",
+    "raw": {
+      "method": "error",
+      "params": {
+        "error": {
+          "message": "{\"error\": {\"message\": \"OBS-2 capture-only tap: request recorded, not forwarded\", \"type\": \"invalid_request_error\"}}",
+          "codexErrorInfo": "other",
+          "additionalDetails": null,
+          "misalignment": null
+        },
+        "willRetry": false,
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "turnId": "01a107d2-85d7-79b2-aace-ebf8418805fc"
+      },
+      "emittedAtMs": 1791132599802
+    }
+  },
+  {
+    "t_ms": 9160,
+    "dir": "in",
+    "raw": {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "turn": {
+          "id": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "failed",
+          "error": {
+            "message": "{\"error\": {\"message\": \"OBS-2 capture-only tap: request recorded, not forwarded\", \"type\": \"invalid_request_error\"}}",
+            "codexErrorInfo": "other",
+            "additionalDetails": null,
+            "misalignment": null
+          },
+          "startedAt": 1791132599,
+          "completedAt": 1791132599,
+          "durationMs": 33
+        }
+      },
+      "emittedAtMs": 1791132599803
+    }
+  }
+]

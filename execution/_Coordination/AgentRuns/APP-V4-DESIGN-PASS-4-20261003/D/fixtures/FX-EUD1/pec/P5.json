@@ -1,0 +1,113 @@
+{
+  "fixture": "P5",
+  "standing": "constructed (EU-D1); not a PEC response; element names are Chirality labels, not PEC wire fields",
+  "note": "adopted release, pin at R, file-fallback signal set",
+  "question": "Q1",
+  "release": {
+    "identity": "pec-release-EX-1",
+    "stated_qualification": "qualified"
+  },
+  "stamp": {
+    "examined_through": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "generated_at": "2026-10-04T08:00:00Z",
+    "feed_freshness": [
+      {
+        "feed": "work_graphs",
+        "freshness": "examined through e086dfff32"
+      }
+    ]
+  },
+  "envelope": {
+    "pin": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "feeds": [
+      {
+        "feed": "work_graphs",
+        "coverage": "orientation: work-graph nodes in READY, ACTIVE or BLOCKED for the loop (PEC-ORI-001); deltas: node state changes since the caller's SHA (PEC-ORI-002)",
+        "freshness": "examined through e086dfff32",
+        "limitation": "service failing its own checks: reconcile check failed"
+      }
+    ],
+    "fallback_signal": "set"
+  },
+  "claims": [
+    {
+      "claim_id": "c1",
+      "statement": "No work-graph node of APP-V4-DESIGN-PASS-4-20261003 is READY, ACTIVE or BLOCKED at e086dfff32",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c2",
+      "statement": "Node VC changed from ACTIVE to COMPLETE (R23-22) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c3",
+      "statement": "Node E changed from ACTIVE to COMPLETE (RR-E, RR-F) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c4",
+      "statement": "Node O-B1 changed from READY to COMPLETE since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c5",
+      "statement": "Node O-C1 changed from READY to COMPLETE since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c6",
+      "statement": "Node D changed from PLANNED to COMPLETE (PR) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c7",
+      "statement": "Node T2 was added since e4a0c2c4c3, with state PLANNED",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "tier": "record"
+    },
+    {
+      "claim_id": "c8",
+      "statement": "A session for owner O-A was active",
+      "citation": {
+        "path": "pec-presence:session/O-A"
+      },
+      "tier": "presence",
+      "heartbeat_age_s": 120
+    }
+  ]
+}

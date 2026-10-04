@@ -1,0 +1,115 @@
+{
+  "initialize_ok": true,
+  "codexHome": "/private/tmp/cvx-eud1/codex-home",
+  "mcp_status": {
+    "data": [
+      {
+        "name": "double",
+        "runtimeStatus": null,
+        "pluginId": null,
+        "httpOrigin": null,
+        "serverInfo": {
+          "name": "obs1-example-host",
+          "title": null,
+          "version": "0.0.0-test",
+          "description": null,
+          "icons": null,
+          "websiteUrl": null
+        },
+        "serverCapabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "tools": {
+          "example_lookup": {
+            "name": "example_lookup",
+            "description": "Look up an invented example record by key. Test tool for an observation; returns invented example data only.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Example key, e.g. EX-1"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            }
+          }
+        },
+        "toolsError": null,
+        "resources": [],
+        "resourceTemplates": [],
+        "authStatus": "unsupported"
+      }
+    ],
+    "nextCursor": null
+  },
+  "thread_start": "ok",
+  "thread_id": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+  "items_before": {
+    "code": -32601,
+    "message": "thread/items/list is not supported yet"
+  },
+  "tool_call_response": {
+    "id": 5,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"outcome\": \"queued\", \"proposal\": \"P-EX-1\", \"key\": \"EX-1\", \"note\": \"invented example material\", \"toolReceivedAtMs\": 1791132348582, \"logWritable\": true, \"metaReceived\": true}"
+        }
+      ],
+      "structuredContent": {
+        "outcome": "queued",
+        "proposal": "P-EX-1",
+        "key": "EX-1",
+        "note": "invented example material",
+        "toolReceivedAtMs": 1791132348582,
+        "logWritable": true,
+        "metaReceived": true
+      },
+      "isError": false
+    }
+  },
+  "notifications_after_call": [],
+  "items_after": {
+    "code": -32601,
+    "message": "thread/items/list is not supported yet"
+  },
+  "thread_read_after": {
+    "code": -32601,
+    "message": "list_turns is not supported yet"
+  },
+  "rollouts": [
+    {
+      "file": "sessions/2026/10/04/rollout-2026-10-04T10-45-45-01a107ce-a4cd-7b40-970f-5c0c68424933.jsonl",
+      "lines": 1,
+      "mentions_example_lookup": false,
+      "mentions_P-EX-1": false
+    }
+  ],
+  "double_received": [
+    "",
+    "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"elicitation\":{\"form\":{},\"url\":{}}},\"clientInfo\":{\"name\":\"codex-mcp-client\",\"title\":\"Codex\",\"vers",
+    "{\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"obs1-example-host\",\"version\":\"0.0.0-test\"}}}",
+    "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
+    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"progressToken\":0}}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[{\"name\":\"example_lookup\",\"description\":\"Look up an invented example record by key. Test tool for an observation; returns invented example data only.\",\"inputS",
+    "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"resources/list\",\"params\":{\"_meta\":{\"progressToken\":1}}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":2,\"error\":{\"code\":-32601,\"message\":\"method not found: resources/list\"}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"resources/templates/list\",\"params\":{\"_meta\":{\"progressToken\":2}}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32601,\"message\":\"method not found: resources/templates/list\"}}",
+    "",
+    "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"experimental\":{\"codex/auth-change\":{}},\"elicitation\":{\"form\":{},\"url\":{}}},\"clientInfo\":{\"name\":",
+    "{\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"obs1-example-host\",\"version\":\"0.0.0-test\"}}}",
+    "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
+    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"progressToken\":0}}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[{\"name\":\"example_lookup\",\"description\":\"Look up an invented example record by key. Test tool for an observation; returns invented example data only.\",\"inputS",
+    "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"threadId\":\"01a107ce-a4cd-7b40-970f-5c0c68424933\",\"progressToken\":1},\"name\":\"example_lookup\",\"arguments\":{\"key\":\"EX-1\"}}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"outcome\\\": \\\"queued\\\", \\\"proposal\\\": \\\"P-EX-1\\\", \\\"key\\\": \\\"EX-1\\\", \\\"note\\\": \\\"invented example material\\\", \\\"toolReceivedAtMs\\\""
+  ],
+  "stop_reason": null
+}
