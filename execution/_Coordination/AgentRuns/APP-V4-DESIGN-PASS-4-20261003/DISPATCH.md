@@ -119,3 +119,4 @@ Practice from UC P-E6: a reviewer of a unit that also has a cold reader receives
 | O-E | DA-v0.2 frozen (DA1-R1/R2, N1); new prototype/dag_reach.py — the first committed reach script (earlier rulings referred to one that did not exist). Committed by path; to RV3 |
 | O-A | ACT-POLICY-v0.11 (§10.3 DEL-10-03 row; validate_policy 6 PASS) and FV10-R9 claim-connector check (run_fleet 46/46). Committed by path; mechanical/row changes covered by the pre-merge review; v0.10 pins listed for the closeout |
 | RV3 | RA-v0.1 READY (RA1-R1/R2 MINOR); DA-v0.2 READY (DA2-R1 MINOR; script should print its DAG version). R23-51 names the reach script. To O-E |
+| RV2 | EU-D1 R23-48 follow-ups CONFIRMED (PR-P8 equals O-D's committed bytes). RTD-v0.1 READY. R14/R15/R16 + RTD1-R1 → R23-52, to O-D |

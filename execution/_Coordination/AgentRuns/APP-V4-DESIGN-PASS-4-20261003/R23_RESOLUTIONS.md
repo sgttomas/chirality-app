@@ -760,3 +760,19 @@ evidence rules and the owner's earlier decisions already settle them.
   Before this script was committed, owners ran their own reach scripts over
   DAG-004. That was disclosed in their returns at the time, and their
   verdicts agree with this script.
+
+- **R23-52 RV2's notes on EU-D1 and RTD. INTEGRATION.**
+  1. **EUD1-R15 narrows R23-50's situation 2.** "Thread with history, call
+     between turns" was observed only with an error result: call B used key
+     `EX-ERR`. Until a successful call is observed there, App-origin reads
+     in situation 2 stay unused. O-D may re-probe with a successful call
+     under the same limits. PRC §7 and this ruling both say "(error result
+     only)" until then.
+  2. **EUD1-R14.** The comparison checker's verdict on free-text notes is a
+     limit, not a pass. A "met" that rests on free text needs an examiner's
+     reading, as RC-9's referral already does for absences. O-D states this
+     in the checker and the method; no larger lexicon is built.
+  3. **EUD1-R16.** CFB-v0.2 covers two byte states, so it is cited by hash.
+  4. **RTD1-R1.** RTD pins its supplier records and schema by sha256 and
+     checks them before use (R23-44). RTD1-R2 and RTD1-R3 are carried as
+     notes for the shared-row increment and the later dossier.
