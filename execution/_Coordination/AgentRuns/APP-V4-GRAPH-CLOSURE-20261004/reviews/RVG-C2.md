@@ -404,3 +404,50 @@ None of these needs new analysis beyond the texts cited here.
 - **Still required:** the O-1…O-3 columns of §22.6 need the E residuals (B2-M1).
 
 **Addendum counts.** BLOCKING 0, MAJOR 1, MINOR 0, NOTE 0.
+
+---
+
+## Addendum C — review of SCC-002 §23, the E residuals (2026-10-04)
+
+- **Subject:** `PAIR_ANALYSIS_2026-10-04.md` at commit `fdc713c439`, sha256 `139fd8ea6927746c0aa22bad11bd700161d3f477042e4368b481ad94c001054a`, §23, which is append-only.
+- **CSV:** sha256 `daab5d298d98569dd00e79f90ba0e3afdc7ae8452bce2d279c6e42729ac80432`.
+- **Scripts:** `$TMPDIR/rvg/c2r.py`.
+
+### C.1 Table and claims: reproduced
+
+| Scenario | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| B, E ×5 | 12 members / 11 rows | 5/5 + 2/1 | 5/5 | acyclic |
+| B, E ×5 + P19 | 12/12 | 5/6 + 2/1 | 5/6 | acyclic |
+| C, E ×5 | 12/10 | 5/5 | 5/5 | acyclic |
+| C, E ×5 + P19 | 12/11 | 5/6 | 5/6 | acyclic |
+| D, E ×5 | 12/8 | 5/5 | 5/5 | acyclic |
+| D, E ×5 + P19 | 12/9 | 5/6 | 5/6 | acyclic |
+
+- Every cell matches §23.2.
+- **The E-only cut claim is confirmed.** The O-3 component is {DEL-02-03, DEL-03-03, DEL-04-02, DEL-04-03, DEL-05-01}. With cuts restricted to E rows, it needs exactly 6: DEP-02-03-026, -02-03-022, -04-03-025, -04-03-026, -04-03-022 and -04-03-028. With P19's residual it needs 7.
+- **The unrestricted minimum** (5, or 6 with P19) includes I-side rows, as §23.2 states.
+
+### C.2 Can S1 wording remove the runtime receipt without moving ownership? §23.1 says no
+
+- **The RS rows: P12, P18, P20 and M-X2.** DEL-04-03 CLM-004 assigns "this format, App reader/writer" to the record owner (verified at l.55). Under R14-1, EXEC's recorder emits {RS kind, observed time, body}, and RS writes it.
+  - Supplier-written entries would move the writer. That is S2. **Agree.**
+- **P10.** DEL-02-03 CLM-002 assigns the recording ("which this slice records"). **Agree.**
+- **P19.** It is honestly left as E by default. The alternative (withdraw AS §12.1's DEL-05-01 row, plus S1) is named but not adopted. The sources do not settle it. **Agree.**
+- **The no-flow list** (P3, P5, P6, P7, P9, P11, P15, P17, P21, and P4's identity part) is consistent with the move texts.
+  - P11's "EXEC reads A12 control relations from the record, not from AS" fits AS §3: display is derived, and "the control (App or host) is the authority".
+  - P4's run reference reaches the dispatching channel on existing arcs, not on DEL-03-02 → DEL-02-01.
+- **SCC-001 (§23.3).** It has no E residual. I did not review SCC-CASE-001, which is RVG2's, beyond that sentence.
+
+### C.3 Note for the owner-facing text
+
+- **C-n1 — NOTE.** These E residuals are permanent under O-1…O-3, because no wording removes them without an S2.
+  - Under O-3, the owner must therefore make about six per-edge cuts that reclassify runtime handovers as out-of-objective.
+  - Those cuts are what O-4 does class-wide, but applied to the cycle rows only. G1 r3 §1.3 already says that both paths "encode the same interpretation of what sequences".
+  - The owner checkpoint should present O-3 plus six E cuts beside O-4 as that same choice, made per edge or by class.
+
+### C.4 Verdict
+
+**CONFIRMED — READY.** §23 resolves B2-M1. The residuals, the S1 analysis, the restated table and group 3 are correct. SCC-002's case analysis (§1–§23) is ready as the basis for the owner checkpoint.
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 0, NOTE 1.
