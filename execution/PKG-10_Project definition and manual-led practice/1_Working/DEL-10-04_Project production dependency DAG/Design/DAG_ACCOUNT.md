@@ -1,6 +1,6 @@
 # Project production dependency DAG — evidence account over DAG-001…DAG-004
 
-- **Contribution:** DEL-10-04/DA-v0.2. It supersedes DA-v0.1 (`611adec3…`, committed at `68f83d6b20`; RV3: READY with DA1-R1 and DA1-R2 MINOR); see "Changes". It serves OUT-001 and OUT-002 by
+- **Contribution:** DEL-10-04/DA-v0.3. It supersedes DA-v0.2 (`738f8287…`, committed at `8525b7fa53`; RV3: READY with DA2-R1 MINOR and one note), which superseded DA-v0.1 (`611adec3…`, committed at `68f83d6b20`); see "Changes". It serves OUT-001 and OUT-002 by
   mapping every obligation to the records that already meet it (§2–§4), and
   sets the currency procedure for the rest of this pass (§5).
 - **Status: DRAFT DEFINITION, frozen for RV3** with UC-v0.2 and EB-v0.4.
@@ -103,10 +103,13 @@ claimed (REQ-003, AC-003).
    - **Other outcomes.** A row whose arc C → S already exists adds no arc.
      A row where S does not reach C adds an arc and forms no cycle; it is
      still an added-arc departure for the next currency audit.
-   - **The script.** `prototype/dag_reach.py CONSUMER SUPPLIER` performs
-     this check against the version `_DAG/_LATEST.md` names. It exits 2 for
-     SCC-forming and 0 otherwise. Its `--self-test` has five known cases
-     from DAG-004, for example DEL-02-04 → DEL-10-03 is SCC-forming and
+   - **The script (the project's reach script, R23-51).**
+     `prototype/dag_reach.py CONSUMER SUPPLIER` performs this check against
+     the version `_DAG/_LATEST.md` names, or against a version given with
+     `--dag`. It prints the version it read. It exits 2 for
+     SCC-forming and 0 otherwise. Its `--self-test` always reads DAG-004,
+     whose facts its five cases record, and skips with a notice if DAG-004
+     is absent. Cases include for example DEL-02-04 → DEL-10-03 is SCC-forming and
      DEL-06-01 → DEL-10-02 is not.
 2. **At the pass closeout.** Rerun `shasum -c _DAG/DAG-004/SOURCE_MANIFEST.sha256`
    from `E/`, and run the currency audit if any source differs beyond the
@@ -158,7 +161,7 @@ cut or merge is proposed.
 | SCC-CASE-001 | DEL-01-01, DEL-01-05 | EVIDENCE_ACCUMULATING | R1, "retaining R3 wherever a required input remains absent" | CP1-20260928 (basis only) | `0139b067dc` (2026-09-27) |
 | SCC-CASE-002 | 13 (SCC-002) | EVIDENCE_ACCUMULATING | R-01 and the targeted R-03 limitations; R-02 only as a limited alternative | CP1-20260928 | `b547125dbe` (2026-09-29) |
 | SCC-CASE-003 | 2 (SCC-003) | EVIDENCE_ACCUMULATING | R1, "coordinate explicit support and candidate-return contributions under existing owners" | CP1-20260928 | `0139b067dc` |
-| SCC-CASE-004 | DEL-03-01, DEL-03-02 (history under CASE-002) | EVIDENCE_ACCUMULATING | R004-A (coordinate C and P under both owners); R004-B an objective-dependent alternative | CP1-20260928 | `0139b067dc` |
+| SCC-CASE-004 | DEL-03-01, DEL-03-02 (history under CASE-002) | EVIDENCE_ACCUMULATING | R004-A (coordinate C and P under both owners); R004-B an objective-dependent alternative. **Per the datasheet's later lineage section ("Refreshed observation and proposed case lineage — ruling pending"):** R004-A/C "remain useful **local** inquiry for the expanded CASE-002 account"; "R004-B's conditional pair-view alternative cannot stand as a remedy for the 13-member component" (ruling pending) | CP1-20260928 | `0139b067dc` |
 | SCC-CASE-005 | 3 (SCC-004) | EVIDENCE_ACCUMULATING | R1, "with R3 applied only at a demonstrable missing-input point" | CP1-20260928 | `0139b067dc` |
 | SCC-CASE-006 | DEL-10-02, DEL-10-04 (SCC-005) | EVIDENCE_ACCUMULATING | R1, "coordinated contributions, unresolved candidate topology" | CP1-20260928 | `0139b067dc` |
 | SCC-CASE-007 | DEL-11-01, DEL-11-03 (SCC-006) | EVIDENCE_ACCUMULATING | R1 (the treatment R23-32 F-R8 relies on for DEL-11-03's design) | CP1-20260928 | `0139b067dc` |
@@ -183,6 +186,13 @@ cut or merge is proposed.
 | Currency at the pass closeout (§5 step 2) | HELP_HUMAN or the closeout node | Pass closeout |
 
 ## Changes
+
+**DA-v0.3 (2026-10-04), after RV3-DA1 addendum (DA-v0.2 READY):**
+
+| Change | Cause |
+|---|---|
+| §7 CASE-004 row adds the datasheet's later lineage update: R004-A/C local inquiry for CASE-002; R004-B "cannot stand as a remedy for the 13-member component" (ruling pending) | DA2-R1 |
+| `dag_reach.py` prints the DAG version it read and how it was chosen. `--dag` names a version. The self-test is pinned to DAG-004 and skips with a notice if DAG-004 is absent. §5 names the script as the project's reach script | Note; R23-51 |
 
 **DA-v0.2 (2026-10-04), after RV3-DA1 (READY; 2 MINOR, notes):**
 

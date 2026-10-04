@@ -596,3 +596,65 @@ fix now.
 - PKG-10 waits on RV3's confirmation of RA-v0.1 and of this DA-v0.2 repair.
 - The pass closeout: DA §5 step 2 currency; the CASE-002 update and DEP-005
   are HELP_HUMAN's.
+
+## Freeze — RA-v0.2 + DA-v0.3, last MINOR round (2026-10-04)
+
+**Brief (labelled transcription; as sent in `BRIEFS_AS_SENT.md`).**
+- RV3 found RA-v0.1 and DA-v0.2 READY.
+- R23-51 makes `dag_reach.py` the project's reach script.
+- Fix RA1-R1, RA1-R2, DA2-R1 and the reach-script note.
+- Freeze for commit; no further RV3 round (the pre-merge review covers it).
+
+**Paths.** Under
+`projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/`:
+
+| Path | sha256 |
+|---|---|
+| `DEL-10-03_…/Design/RESPONSIBILITY_ACCOUNT.md` (RA-v0.2) | `811c868cf4689ab58ecab4a9e3e281310f17002d734fbbe2b8065a5879754897` |
+| `DEL-10-03_…/Design/prototype/ra_check.py` | `17f7b42c087ef3ad6d2145bf9ac9b1583316de82340cc49de9df75d5a56f5702` |
+| `DEL-10-04_…/Design/DAG_ACCOUNT.md` (DA-v0.3) | `faffae8119a8e082452516a79eabf7784cb2c5127d40821f9feb708db39d2c6d` |
+| `DEL-10-04_…/Design/prototype/dag_reach.py` | `6325957579501e50cc9b83f76984944cdd42c9296e91615bf8dccf6e76766001` |
+
+Nothing under PKG-10 is ignored. Everything the checkers read is committed,
+including ACT-POLICY-v0.11 at `0bd6e4b4e9` (R23-44).
+
+**Changes.**
+- **RA1-R1.** F-RA1 now says MIRROR (SR-6) and cites DAG-004's handoff
+  "Open matters" as the routing precedent.
+- **RA1-R2.**
+  - S-6 is re-pinned deliberately to ACT-POLICY-v0.11 (`597f13bd…`), after
+    reading the change.
+  - The §10.3 row matches RA §2.3, with adoption checked in the returned
+    file.
+  - ACT's §2.1, §3, §8, §8.2, §8.4 and §10.3 headings are unchanged in v0.11.
+  - In `ra_check.py`, H-1 reports a moved supplier as a NOTICE with a re-pin
+    instruction, and `--strict` makes it a failure. This keeps the check, not
+    weakens it.
+- **DA2-R1.** The CASE-004 row quotes the datasheet's lineage section:
+  R004-A/C are local inquiry for CASE-002, and R004-B "cannot stand as a
+  remedy for the 13-member component" (ruling pending).
+- **Note (R23-51).** `dag_reach.py` prints the version read and how it was
+  chosen, and takes `--dag`. Its self-test is pinned to DAG-004 and skips
+  with a notice if DAG-004 is absent.
+
+**Checks run.**
+- `ra_check.py`: **PASS 31, FAIL 0, NOTICE 0** in both default and
+  `--strict` mode.
+- `ra_check.py --self-test`: H-1 shows as a notice in default mode and as a
+  failure under `--strict`. P-1, R-1, F-1 and R-2 are each detected.
+- `dag_reach.py --self-test` on DAG-004: 5 of 5 as expected, exit 0.
+- `dag_reach.py --dag DAG-003 DEL-02-04 DEL-10-03`: SCC-forming (exit 2),
+  read from DAG-003's 202 arcs.
+- An unknown version exits 1.
+- An intermediate RA draft cited the old v0.10 hash in backticks, and H-1
+  flagged it as drift. That citation was rewritten in plain text so the
+  check reads only the current pin.
+
+**PKG-10 status for this tranche.** All units are READY after RV3. These
+last MINOR repairs are for the pre-merge review. Open and carried:
+- F-RA1 → next amendment;
+- CASE-002 update and DEP-005 text → HELP_HUMAN (closeout, next amendment);
+- DA §5 step 2 currency at the pass closeout;
+- UC VER-002 unit-brief case;
+- VER-007 at the 60% stage discussion;
+- EB VER-005/007.

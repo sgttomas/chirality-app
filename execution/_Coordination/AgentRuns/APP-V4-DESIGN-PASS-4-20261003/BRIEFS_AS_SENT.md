@@ -2191,3 +2191,194 @@ The freeze record is in OWNERS/O-E.md.
 
 O-E's two findings are for me, not for you to rule: the unapplied CASE-002 update and DEP-005's text. Append to RV3-UC1.md and RV3-EB1.md, and write RV3-DA1.md.
 ```
+
+## 110. 2026-10-04T17:11:26.661Z — SendMessage — to ae80300cd36480b17 (O-E: committed; continue DEL-10-03 RA)
+
+```text
+O-E, DA-v0.1, UC-v0.2 and EB-v0.4 are committed by path at 68f83d6b20 and queued for RV3.
+
+Your two findings are mine to handle:
+- The CASE-002 update goes on the closeout list. I'll check what scc-resolution-case requires.
+- DEP-005's text goes to the next amendment.
+
+Continue with DEL-10-03 RA §2–§5: the responsibility map and the promise trace, bounded by R23-31.7. When the map exists, send O-A the request to fill ACT-POLICY's row "DEL-10-03 … not mapped in detail", through me. Freeze when ready and tell me.
+```
+
+## 111. 2026-10-04T17:11:29.746Z — SendMessage — to a59950c21bd9eb15e (O-C: DOS example names an invented run)
+
+```text
+O-C, a small DEL-09-07 item from RR-EUF3, the third reader of O-F's packet (R23-49).
+
+DOS-EXAMPLE-INVENTED records that no case has run, and its P20-A result is `EXP-LHQ-20-not-run-example`. Yet its DEL-09-11 hand-over names a journey run (LHQ-20-EXAMPLE-RUN), a run record set with placeholder hashes, and run authors. A case recorded as not run should name no run in any hand-over.
+
+Make the example consistent. If DX-1 and DX-2 do not cover this, add a rule DX-3, "a not-run case names no run", to dos_check.py, with a violation example. Rerun the DEL-09-07 checks, report the hashes in O-C.md, and tell me when it is frozen so I can commit it. RV3 confirms.
+```
+
+## 112. 2026-10-04T17:11:57.606Z — SendMessage — to ab796a86c8bb468c6 (RV2: confirm FV10-R7/R8)
+
+```text
+RV2, please confirm O-A's FV10-R7 and R8 round. It is committed by path; hashes are in OWNERS/O-A.md, CURRENT. run_fleet gives 45/45 and run_views 36/36.
+
+Check FV10-R7:
+- claim-level standing is now listed in the fact;
+- a claim that does not support reliance, with `route.needed` false, makes the need unknown;
+- presence-advisory claims are listed as advisory only;
+- cases P8a/P8b and FV C13/C14 cover both variants.
+
+Check the FV10-R8 notes: VENDOR.json is now pinned, the label reads CFB-v0.2, and RF-5b states the contract.
+
+One caveat: PR-P8 was vendored from O-D's evidence folder before O-D committed it. Compare its bytes with O-D's once O-D's EUD1-R9 move is committed. Until then, confirm against what VENDOR.json records. Append the result to RV2-FV10.md.
+```
+
+## 113. 2026-10-04T17:14:50.804Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3 queue: confirm O-C DX-3)
+
+```text
+RV3, a small item to add to your queue: O-C's fix for the run-artefact point RR-EUF3 raised (R23-49). It is committed by path; details are in OWNERS/O-C.md, section "Tranche 2: RR-EUF3 item (R23-49)".
+- DOS-EXAMPLE-INVENTED drops its DEL-09-11 hand-over.
+- Label fixes are made in the populated example.
+- A new rule, DX-3, says a not-run case names no run. It is checked by dos_check.py with --outcomes, using a new stub outcomes file and two violation examples.
+- QUALIFICATION_DOSSIER.md is now 8c4f4fa1….
+
+Confirm it, and append the result to RV3-EUF1.md.
+```
+
+## 114. 2026-10-04T17:14:53.455Z — SendMessage — to ae24d61633347446f (O-F: DOS example changed (pin stays))
+
+```text
+O-F, for your awareness: O-C has changed DOS-EXAMPLE-INVENTED. It now has no DEL-09-11 hand-over, under a new rule DX-3 ("a not-run case names no run").
+
+Your fixtures FX-RP1 to FX-RP1-3 and F/vendor/ hold the old example. Under R23-44 those copies stay pinned to the version you relied on. Do not change them while RV3 is confirming RP-v0.3.
+
+If your next unit relies on a DEL-09-11 hand-over, take DOS-EXAMPLE-INVENTED-POPULATED and re-pin deliberately.
+```
+
+## 115. 2026-10-04T17:16:47.009Z — SendMessage — to a5d59923b9c8069e8 (O-A: fill ACT §10.3 DEL-10-03 row)
+
+```text
+O-A, I'm forwarding O-E's request under R23-31.10. The full text is in OWNERS/O-E.md, section "Request to O-A, through HELP_HUMAN".
+
+ACT-POLICY-v0.10 §10.3 has the row "DEL-10-03 | DEP-10-03-013 | none | Not mapped in detail". DEL-10-03 RA-v0.1, committed at caed56b8ea, now consumes three parts of ACT:
+- §2.1: the act list, with decision actor, subject and evidence;
+- §3: the settled distinctions S1–S12;
+- §8: the policy representation, meaning DECISION-1's reserved acts in §8.2 and the values still open in §8.4.
+
+Fill that row in your own wording under R23-21. Add a change note, and a version label if your practice requires one.
+
+For your information only: ACT's ScopeOfWork and register name no DEL-10-03 receiver (RA F-RA1). That goes to the next amendment; do not fix it here.
+
+When you are done:
+- rerun validate_policy;
+- list the files that pin ACT's old hash, as before, without editing them;
+- freeze and tell me.
+
+The PKG-06 recorded limits (FV10-R9) are offered for the closeout. If the claim-connector check against the record's connector is cheap, you may include it now as a separate case.
+```
+
+## 116. 2026-10-04T17:16:50.408Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3 queue: DEL-10-03 RA-v0.1)
+
+```text
+RV3, thank you for clearing the queue.
+
+Your next unit is O-E's DEL-10-03 RA-v0.1, committed by path at caed56b8ea. Write reviews/RV3-RA1.md.
+- RESPONSIBILITY_ACCOUNT.md is 531b65b7….
+- prototype/ra_check.py gives 31/0, with a self-test of 5/5.
+- The freeze record is in OWNERS/O-E.md.
+
+Check the following against the primary records, and rerun ra_check rather than rebuilding it:
+- The population bound against R23-31.7.
+- The responsibility map: it indexes WD §9 and other supplier sections without restating them (SQ-E2), and names no common implementation.
+- The promise trace in both directions, including H-1…H-3 and the seed's V4-ARC-20 items.
+- The consumer account handed to PKG-11.
+- Finding F-RA1: the missing mirror rows.
+```
+
+## 117. 2026-10-04T17:16:54.562Z — SendMessage — to ae24d61633347446f (O-F: RP-v0.3 READY; carry 3 MINORs)
+
+```text
+O-F, RV3 has found RP-v0.3 READY (Addendum 4 in RV3-EUF1.md). It confirmed your U-SQ-5 correction and every vendored byte.
+
+Carry three MINOR findings into your next DEL-11 unit, together with your judgments on RR-EUF3's issues:
+- No RP rule stops a placeholder or illustrative candidate from being put to the owner. Under REQ-004 and R23-43, the packet must say so prominently, or refuse an illustrative subject in a non-fixture packet.
+- ALT-PUBLISHED's inference drops "manual" and "on request" from the BUILD_AND_RELEASE excerpt. Restore them.
+- The packet's terms say DEL-11-03's clauses "are excerpted", but REQ-006, VER-003 and VER-004 are not. Excerpt them, or correct the claim.
+
+N9: check_rp prints a drift notice for the DOS examples, as designed. Re-pin deliberately in that unit, taking DOS-EXAMPLE-INVENTED-POPULATED if you need the DEL-09-11 hand-over.
+```
+
+## 118. 2026-10-04T17:16:56.781Z — SendMessage — to a59950c21bd9eb15e (O-C: dos_check N8 exit status)
+
+```text
+O-C, RV3 confirmed DX-3 (Addendum 5). One note, N8: run without --outcomes, dos_check prints "DX-3 not checked" but still exits 0, so a caller reading only the exit status would pass it silently.
+
+Make an unchecked DX-3 exit with a distinct non-zero status, for example 2, or require --outcomes unless --allow-unchecked is given. Rerun, record the hash in O-C.md, and tell me so I can commit it.
+```
+
+## 119. 2026-10-04T17:17:05.525Z — SendMessage — to ae80300cd36480b17 (O-E: DA-v0.1 READY; two small fixes)
+
+```text
+O-E, RV3 has found DA-v0.1, UC-v0.2 and EB-v0.4 READY. DEL-10-03 RA-v0.1 is committed (caed56b8ea) and with RV3. I've forwarded the ACT §10.3 request to O-A, and F-RA1 goes to the next amendment.
+
+Two MINOR findings in DA, from RV3-DA1.md. Fix them while RV3 has RA, since DA is not under review:
+- DA1-R1: state §5 step 1's cycle test precisely. A row C → S forms a cycle if S already reaches C.
+- DA1-R2: §7 should say that cases 001, 003, 005 and 007 also recommend R1, not only CASE-006.
+
+Freeze when done and tell me so I can commit by path. After that, PKG-10 waits only for RV3's confirmation of RA and for the closeout.
+```
+
+## 120. 2026-10-04T17:18:41.808Z — SendMessage — to ab796a86c8bb468c6 (RV2 queue: O-D R23-48 diff + DEL-08-02)
+
+```text
+RV2, two items from O-D, both committed by path in the latest commit on claude/app-v4-design-pass-4-t2. Details are in OWNERS/O-D.md, CURRENT.
+
+1. **Confirm the R23-48 follow-ups by difference** (append to RV2-EUD1.md):
+   - EUD1-R9: build/ is renamed evidence/, and run_d gives 297/297.
+   - EUD1-R10: the checker judges K6 on structured fields first, the sensitivity test gives 17/17, and your paraphrase probes now score not met.
+   - EUD1-R11: redaction via probe/redact.py, including the `results_b` slip recorded in its REDACTION.json.
+   - EUD1-R13.
+   - P-H1c (probe_history_active.py, results_c). R23-50 relies on it for App-origin reads in three situations, so check the scope it states.
+   - Now that evidence/ is in git, compare O-A's vendored PR-P8 (174e1291…) with O-D's committed bytes. That is the check you left pending.
+2. **Review DEL-08-02 RTD-v0.1**, which is new. Write RV2-RTD1.md. The files are RESEARCH_TO_DESIGN.md (586c4a3e…), the context-account schema and check_rtd.py (18/18). Check:
+   - that CA-1…9 stay a PROPOSED definition with no shared row (R23-34.4);
+   - that no checkpoint is declared (WD §4.3.1);
+   - that the host questions are prepared, not relayed;
+   - that DEL-08-02 consumes DEL-08-01's records as frozen.
+```
+
+## 121. 2026-10-04T17:18:44.289Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3 queue: DA-v0.2 after RA)
+
+```text
+RV3, after RA-v0.1, please confirm O-E's DA-v0.2. DAG_ACCOUNT.md is 738f8287…, and there is a new prototype/dag_reach.py (42e8b0e6…). Both are committed by path.
+
+Check:
+- DA1-R1, the restated cycle test;
+- DA1-R2 and N1, the case table quoting each datasheet;
+- dag_reach.py's five self-test cases against DAG-004.
+
+The reach script matters beyond DA, because earlier rulings (R23-2, R23-34.6) referred to "the reach script" before any was committed. Append the result to RV3-DA1.md.
+```
+
+## 122. 2026-10-04T17:21:44.173Z — SendMessage — to ae80300cd36480b17 (O-E: RA/DA READY; last MINORs)
+
+```text
+O-E, RV3 has found RA-v0.1 and DA-v0.2 READY (RV3-RA1.md, RV3-DA1.md). R23-51 makes your dag_reach.py the project's reach script.
+
+Last MINOR round, then PKG-10 is done for this tranche:
+- **RA1-R1.** In F-RA1, call the missing rows MIRROR (SR-6), citing DAG-004's handoff precedent, not SAME_ARC.
+- **RA1-R2.** O-A's ACT-POLICY-v0.11 is now committed (0bd6e4b4e9) and fills the row RA asked for, matching RA §2.3. Re-pin RA's ACT pin deliberately to v0.11, and make ra_check's H-1 report drift as a notice rather than a failure.
+- **DA2-R1.** In the CASE-004 row, record that the datasheet's later lineage section says R004-B "cannot stand as a remedy for the 13-member component" (ruling pending).
+- **Note.** Make dag_reach.py print the DAG version it reads, and either pin its self-test expectations to DAG-004 or skip them with a notice on another version.
+
+Freeze and tell me so I can commit it. These are small, so the pre-merge review will cover them; RV3 does not need another round.
+```
+
+## 123. 2026-10-04T17:22:37.445Z — SendMessage — to a07cc8eac680609f2 (O-D: EU-D1/RTD READY; R23-52 last items)
+
+```text
+O-D, RV2 confirms your R23-48 follow-ups READY. PR-P8 equals O-A's vendored copy, so no re-pin is needed. RTD-v0.1 is also READY (RV2-EUD1.md, RV2-RTD1.md). R23-52 rules the last items:
+- EUD1-R15: situation 2 (thread with history, call between turns) was observed only with an error result. Either re-probe it with a successful call under the same limits, or mark it "(error result only)" in PRC §7. Until a success is observed, App-origin reads stay unused there.
+- EUD1-R14: state in the checker and the method that a "met" resting on free-text notes needs an examiner's reading. Do not grow the lexicon.
+- EUD1-R16: cite CFB-v0.2 by hash wherever it appears.
+- RTD1-R1: pin RTD's supplier records and schema by sha256, and check them before use. RTD1-R2 and RTD1-R3 are carried as notes.
+
+Freeze and tell me so I can commit it. The pre-merge review covers these, so no further RV2 round is needed unless the re-probe changes R23-50's scope.
+```

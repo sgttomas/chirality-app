@@ -2,11 +2,13 @@
 """RA checks (DEL-10-03 RA-v0.1 §5). Design prototype, not product code. Read-only.
 
   python3 ra_check.py              # run the checks; exit 0 only if all pass
+  python3 ra_check.py --strict     # also fail when a cited supplier hash has moved
   python3 ra_check.py --self-test  # negative cases: each must be detected
 
 Checks:
   H-1  every supplier Design and supplier SoW sha256 prefix cited in §1.2 and §3.1
-       equals today's bytes
+       equals today's bytes. A moved supplier is reported as a NOTICE with a re-pin
+       instruction (R23-21), not a failure (RV3 RA1-R2); --strict makes it a failure
   P-1  DEL-10-03's ACTIVE EXECUTION rows to DEL-02/03/04/05 deliverables equal the
        nine supplier entries S-1…S-9 (row IDs DEP-10-03-008…016)
   R-1  reverse scan: every ACTIVE row in any register targeting DEL-10-03 is either
@@ -73,8 +75,8 @@ def cited_prefixes(text: str):
     return out
 
 
-def run(e: pathlib.Path, account: str, registers: dict, sows: dict, designs: dict):
-    fails, passes = [], 0
+def run(e: pathlib.Path, account: str, registers: dict, sows: dict, designs: dict, strict=False):
+    fails, passes, notices = [], 0, []
 
     def ok(c, msg):
         nonlocal passes
@@ -85,8 +87,15 @@ def run(e: pathlib.Path, account: str, registers: dict, sows: dict, designs: dic
 
     cited = cited_prefixes(account)
     for entry, (d, row, dname) in SUPPLIERS.items():
-        want = {designs[d][:len(x)] == x or sows[d][:len(x)] == x for x in cited.get(entry, set())}
-        ok(cited.get(entry) and all(want), f"H-1 {entry} {d}: a cited prefix differs from today's Design or SoW bytes")
+        ok(bool(cited.get(entry)), f"H-1 {entry} {d}: no hash cited")
+        moved = [x for x in cited.get(entry, set()) if designs[d][:len(x)] != x and sows[d][:len(x)] != x]
+        if moved:
+            msg = (f"H-1 {entry} {d}: cited {moved} no longer matches today's Design ({designs[d][:16]}…) "
+                   f"or SoW ({sows[d][:16]}…). Re-pin deliberately after reading the change (R23-21)")
+            if strict:
+                fails.append(msg)
+            else:
+                notices.append(msg)
     own = [r for r in registers[TARGET] if r["Status"] == "ACTIVE" and r["DependencyClass"] == "EXECUTION"
            and re.match(r"DEL-0[2-5]-", r["TargetDeliverableID"] or "")]
     ok({(r["TargetDeliverableID"], r["DependencyID"]) for r in own} ==
@@ -103,7 +112,7 @@ def run(e: pathlib.Path, account: str, registers: dict, sows: dict, designs: dic
     for d in F_RA1:
         mirror = [r for r in registers[d] if r["Status"] == "ACTIVE" and (r["TargetDeliverableID"] or "") == TARGET]
         ok(not mirror and not SOW_CLAUSES[d], f"F-1 {d} now has a mirror or clause: update F-RA1")
-    return passes, fails
+    return passes, fails, notices
 
 
 sow_text = {}
@@ -125,21 +134,27 @@ def load(e: pathlib.Path):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--strict", action="store_true")
     a = ap.parse_args()
     e = execution_root()
     account = (DESIGN / "RESPONSIBILITY_ACCOUNT.md").read_text()
     registers, sows, designs = load(e)
     if not a.self_test:
-        passes, fails = run(e, account, registers, sows, designs)
+        passes, fails, notices = run(e, account, registers, sows, designs, a.strict)
         print(f"account sha256 {sha(DESIGN / 'RESPONSIBILITY_ACCOUNT.md')}")
-        print(f"PASS {passes}  FAIL {len(fails)}")
+        print(f"PASS {passes}  FAIL {len(fails)}  NOTICE {len(notices)}")
+        for n in notices:
+            print("  NOTICE", n)
         for f in fails:
             print("  FAIL", f)
         return 0 if not fails else 1
     # Negative cases: each mutation must produce a failure with the named check.
     cases = []
     d2 = dict(designs); d2["DEL-02-01"] = "0" * 64
-    cases.append(("H-1", run(e, account, registers, sows, d2)))
+    _, f_def, n_def = run(e, account, registers, sows, d2)
+    print(f"self-test H-1 default: {'notice' if any(n.startswith('H-1') for n in n_def) and not any(f.startswith('H-1') for f in f_def) else 'WRONG'}")
+    bad_h = not (any(n.startswith('H-1') for n in n_def) and not any(f.startswith('H-1') for f in f_def))
+    cases.append(("H-1", run(e, account, registers, sows, d2, strict=True)))
     r2 = {k: list(v) for k, v in registers.items()}
     r2[TARGET] = [r for r in r2[TARGET] if r["DependencyID"] != "DEP-10-03-016"]
     cases.append(("P-1", run(e, account, r2, sows, designs)))
@@ -152,8 +167,8 @@ def main() -> int:
     sow_text["DEL-05-02"] = saved + "\n- **CLM-099** received by DEL-10-03.\n"
     cases.append(("R-2", run(e, account, registers, sows, designs)))
     sow_text["DEL-05-02"] = saved
-    bad = 0
-    for check, (_, fails) in cases:
+    bad = int(bad_h)
+    for check, (_, fails, _n) in cases:
         hit = any(f.startswith(check) for f in fails)
         print(f"self-test {check}: {'detected' if hit else 'MISSED'}")
         bad += not hit

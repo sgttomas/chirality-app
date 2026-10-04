@@ -5,8 +5,12 @@ Design prototype, not product code. Read-only. Reads the accepted DAG named by
 `_DAG/_LATEST.md` (admitted `DependencyEdges.csv` plus held `CandidateEdges.csv`),
 with arcs read consumer -> supplier (a DOWNSTREAM row's endpoints are reversed).
 
-  python3 dag_reach.py CONSUMER SUPPLIER   # e.g. DEL-02-04 DEL-10-03
-  python3 dag_reach.py --self-test
+  python3 dag_reach.py CONSUMER SUPPLIER   # e.g. DEL-02-04 DEL-10-03 (reads _LATEST.md's version)
+  python3 dag_reach.py --dag DAG-004 CONSUMER SUPPLIER   # a named version
+  python3 dag_reach.py --self-test         # always DAG-004, whose facts the cases record
+
+The script prints the DAG version it read (R23-51). This is the project's
+reach script (R23-51).
 
 A proposed row C -> S (C consumes S's contribution) forms a cycle exactly when
 S already reaches C over both layers. Exit 0: no cycle. Exit 2: SCC-forming
@@ -23,12 +27,22 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 
 
-def dag_dir() -> pathlib.Path:
+SELF_TEST_VERSION = "DAG-004"
+
+
+def dag_root() -> pathlib.Path:
     top = pathlib.Path(subprocess.run(["git", "-C", str(HERE), "rev-parse", "--show-toplevel"],
                                       capture_output=True, text=True, check=True).stdout.strip())
-    dag_root = top / "projects/chirality-app-v4/execution/_DAG"
-    latest = re.search(r"^Latest:\s*(\S+)", (dag_root / "_LATEST.md").read_text(), re.M).group(1)
-    return dag_root / latest
+    return top / "projects/chirality-app-v4/execution/_DAG"
+
+
+def dag_dir(version=None):
+    """(directory, how it was chosen)."""
+    root = dag_root()
+    if version:
+        return root / version, "named with --dag"
+    latest = re.search(r"^Latest:\s*(\S+)", (root / "_LATEST.md").read_text(), re.M).group(1)
+    return root / latest, "from _DAG/_LATEST.md"
 
 
 def arcs(path: pathlib.Path) -> set:
@@ -73,10 +87,21 @@ def main() -> int:
     ap.add_argument("consumer", nargs="?")
     ap.add_argument("supplier", nargs="?")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--dag", help="a DAG version folder name, for example DAG-004")
     a = ap.parse_args()
-    d = dag_dir()
+    if a.self_test:
+        d, how = dag_dir(SELF_TEST_VERSION)
+        how = f"pinned for the self-test; its cases record {SELF_TEST_VERSION} facts"
+        if not (d / "DependencyEdges.csv").is_file():
+            print(f"NOTICE: {SELF_TEST_VERSION} not found; self-test skipped")
+            return 0
+    else:
+        d, how = dag_dir(a.dag)
+        if not (d / "DependencyEdges.csv").is_file():
+            print(f"DAG version {d.name} not found")
+            return 1
     edges = arcs(d / "DependencyEdges.csv") | arcs(d / "CandidateEdges.csv")
-    print(f"DAG: {d.name}; arcs over both layers: {len(edges)}")
+    print(f"DAG read: {d.name} ({how}); arcs over both layers: {len(edges)}")
     if a.self_test:
         # Facts read from DAG-004 by O-E (S2-E survey; DA §5): DEL-10-03 consumes DEL-02-04
         # (admitted); DEL-06-01 does not reach PKG-10; DEL-10-02 <-> DEL-10-04 is held SCC-005.
