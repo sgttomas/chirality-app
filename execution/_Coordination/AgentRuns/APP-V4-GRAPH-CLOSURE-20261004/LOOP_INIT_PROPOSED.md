@@ -16,8 +16,18 @@ Drafting notes. They are not part of the proposed text.
     A5 adds the general rule to the Agent User Manual §13.
 
   The receipt location is unchanged.
+- Repaired in place for MR's review (`reviews/MR-LOOPINIT.md`):
+  - L1: entry step 2 now reads the other groups' graphs for relationships
+    recorded against your group (GC-8);
+  - L2: the App v3 line no longer names AUM §14, which now also holds the
+    App v4 entry;
+  - L3: one "Owner decisions" bullet replaces the two statements;
+  - L4: Conventions keeps only the MEMORY grant and LOOP_RECEIPTS, because
+    the Methods adoption line already binds the graph and receipt
+    locations;
+  - L5: the Codex constraint is scoped to development and test runs.
 - The proposed text runs from the next heading to the end of the file. It is
-  4,798 characters, about 1,260 tokens (characters / 3.8). The current file
+  4,698 characters, about 1,236 tokens (characters / 3.8). The current file
   is 15,570 characters, about 4,100 tokens.
 
 ---
@@ -40,7 +50,9 @@ state.
    Manual's headings to three levels (`grep -nE '^#{1,3} '` on its
    Markdown), then read the Field Book in full.
 2. Read the work graph of the undertaking the steering names. If it has
-   none, construct one.
+   none, construct one. When you construct or resume a group's graph, read
+   the other groups' graphs under `execution/_Coordination/WorkGraphs/` for
+   relationships recorded against your group (GC-8).
 
 ## When to read further
 
@@ -74,9 +86,11 @@ Load each workflow when it is needed, as
 
 - **Basis.** `docs/PRD.md` and its companions, read through
   `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`
-  and later owner decisions. Owner decisions are kept in that folder and in
-  each run's `execution/_Coordination/AgentRuns/<RunID>/OWNER_DECISIONS.md`.
-  There is no central decision register.
+  and later owner decisions.
+- **Owner decisions.** They are in `execution/_Coordination/Acceptances/`
+  and in each run's
+  `execution/_Coordination/AgentRuns/<RunID>/OWNER_DECISIONS.md`. Record new
+  ones in the run's file. There is no central register.
 - **Decomposition.**
   `execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md`, as
   amended through `execution/_ScopeChange/_LATEST.md`.
@@ -100,18 +114,12 @@ Load each workflow when it is needed, as
 - **SWBPIPE, PEC and Domains.** See
   `execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md`. Their implementation
   stays with their own sessions, and the owner coordinates them.
-- **App v3.** `projects/chirality-app-dev` belongs to App v3, as do the
-  Agent User Manual's §14 and that section's tools, checks and decision
-  register. Do not apply them here.
+- **App v3.** `projects/chirality-app-dev` belongs to App v3, as do its
+  tools, checks and decision register. Do not apply them here.
 - **Thesis.** Leave `foundation/thesis/` unchanged.
 
 ## Conventions
 
-- **Work graph.**
-  `execution/_Coordination/WorkGraphs/<undertaking>/WORK_GRAPH.md`.
-- **Receipt.** One receipt per undertaking, at
-  `execution/_Coordination/AgentRuns/<RunID>/RECEIPT.md`. The run's other
-  records go in the same folder.
 - **MEMORY.** Add a terse Runs entry to each affected deliverable's
   `MEMORY.md`, and create the file the first time it is needed.
 - **LOOP_RECEIPTS.** `loop/LOOP_RECEIPTS.md` is a reset pointer. It is not a
@@ -120,10 +128,9 @@ Load each workflow when it is needed, as
 ## Standing constraints
 
 - The owner assesses each stage gate.
-- Run Codex only with a scratch home made by `mktemp -d`, never with
-  `~/.codex`. Configure the scratch home as `app/README.md` describes.
+- When you run Codex for development or tests, use a scratch home made by
+  `mktemp -d`, never `~/.codex`. Configure it as `app/README.md` describes.
 - Do not sign in or use credentials without the owner.
 - Download nothing without the owner's explicit yes. Before asking, name
   the file, its source and its size.
 - Build offline by default.
-- Owner decisions are recorded in the run's `OWNER_DECISIONS.md`.
