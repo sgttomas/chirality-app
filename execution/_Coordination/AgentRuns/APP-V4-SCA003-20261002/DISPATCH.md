@@ -14,3 +14,5 @@ HELP_HUMAN session, under D-GOV-35, agent type `type2-opus-high`.
 | RP1 | Packet repaired per V23: Amendment_Actions.draft.csv (23 rows), exact OI-009/OI-018 bytes, DC-01 and pointer text, supersession row D-021, Q-10 word RESOLVED_BY_OWNER_DECISION; R22-7 rows; Q-5 departure explained; drafted-text section; Q-17 (15 extra mirror rows). Ledger 216 rows (191 INCLUDE, 10 DEFER, 15 DROP); 10 links, SCCs unchanged. V23b recheck launched |
 | V23b | READY FOR CHECKPOINT: B-1, M-1, M-2 and m-1…m-8 fixed (m-5 by note); three new MINOR record items n-1…n-3 fixed by HELP_HUMAN in place (no fence or exact-byte field changed) |
 | K1 package | Decision page https://claude.ai/artifact/A8XbVqJPNoWCHK3RM7YaYJ (Version 1) from OWNER_ITEMS.md Q-1…Q-17, with the drafted criteria |
+| K1 | Accepted by the owner (DECISION-1, groups 1–2, "accept the remaining items as recommended"), committed `5b16bb6831` |
+| Q-13 | The six deliverables set INITIALIZED → IN_PROGRESS with `tools/scaffolding/write_status.sh`, actor "human (owner direction SCA-V4-003 DECISION-1 Q-13, relayed by HELP_HUMAN)" |
