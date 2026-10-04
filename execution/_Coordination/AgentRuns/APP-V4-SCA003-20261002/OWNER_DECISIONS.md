@@ -95,3 +95,28 @@ UPDATE, DAG-004, the Design re-pins, `Coverage_Telemetry.json`).
   REVISE for the 19 Scopes of Work (`NO_STATUS_TOUCH`), `dependency-extract`
   UPDATE for the 20 registers, the `project-dag` currency audit and a DAG-004
   candidate, which returns to the owner.
+
+## DECISION-3 — Checkpoint K3: DAG-004 (owner, exact, 2026-10-03, local time America/Denver)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after HELP_HUMAN
+presented in chat the DAG-004 candidate staged in `DAG_PREP/`
+(CHECKPOINT_C.md sha256 prefix `710de58450fafb86`, REVIEW_PACKET.md, committed by
+`4ca22437f7`), the currency DEPARTURE against DAG-003, and review V25
+(READY FOR CHECKPOINT C, committed `6358ce132d`), with the recommendations
+below.
+
+> I accept DAG-004.
+
+**Effects** (CHECKPOINT_C §8 as recommended, with V25's notes):
+
+1. DAG-004 is accepted as the single successor to DAG-003 for the ten links
+   (project-dag checkpoints 1 and 2 together).
+2. The handoff records the four new sequencing waits (DEL-01-04, 02-02,
+   02-03, 03-03), the route re-examination list (a light check: V25 O-1),
+   X-1's narrow scope, the DEL-09-06 guard, V25 m-1 (DEL-05-01 → DEL-01-05
+   representative row is information-only; for the register owners), V25 m-2
+   (hub growth) and the carried obligations.
+3. The integrator moves the staged files to their method homes and writes the
+   pointers at publication; INDEPENDENT_REVIEW.md is added at publication
+   (V25 m-4).
+4. The DEL-01-03 absolute TargetLocation is repaired after acceptance.
