@@ -324,3 +324,83 @@ Repair needs:
 None of these needs new analysis beyond the texts cited here.
 
 **Addendum counts.** BLOCKING 0, MAJOR 3 (one a self-correction), MINOR 1, NOTE 1.
+
+---
+
+## Addendum B — review of C2's §22 narrow repair (2026-10-04)
+
+- **Subject:** HEAD `c6c1fd74b2`.
+  - `PAIR_ANALYSIS_2026-10-04.md`, sha256 `ad196971250aacb14f1eb5b8381549014615e23f606b06b96a7c8c44588f8250`, append-only: the diff from `5c3d6b50cf` deletes nothing;
+  - `MOVES_PROPOSED_2026-10-04.csv`, sha256 `c9bd426b90c2b54426c3321c673bfbfe1016596a484dcb2af2eec7187bba31c9`, with 8 new "-N" rows;
+  - `GC_RULINGS.md`, sha256 `27265cc9…`, with GC-3 and GC-4.
+- **Also read at source:**
+  - P-v0.8 l.224 (§3.3 workflow identity) and l.806 (§8 Origin row);
+  - DEL-03-02 ScopeOfWork REQ-003, AC-004 and VER-004;
+  - C's `read_result.schema.json` `$defs/act_evidence_ref`;
+  - LOOP-v0.9 l.210, l.2045–2050 and l.2072;
+  - ADAPTER-v0.7 l.364–366, l.420 (NM-1) and l.559 (OM-1);
+  - DAG-004's admitted arcs touching DEL-03-03.
+- **Scripts:** `$TMPDIR/rvg/c2r.py`.
+
+### B.1 Repair list items 1–5: done
+
+| Addendum A item | §22 | Status |
+|---|---|---|
+| 1 B-M1, uninterpreted identifiers | GC-3 ruled; §22.1 applies it to each identifier | **Done** (B.2) |
+| 2 B-M2, R-9 / R14-1 amendments; drop "revisits R-8, R2-6" | GC-4; §22.2; M-12-N | **Done** |
+| 3 B-M3, P10 into group 1 | §22.3; M-14-N | **Done** (B.3) |
+| 4 B-m1, `lapse_state` | §22.4; M-11-N | **Done**: the field is in the schema's `required` list today, and §22.4 removes it from both |
+| 5 Operation-identity row | §22.5 | **Done**: it reproduces as a 2-cycle {DEL-03-01, DEL-04-01} under O-2…O-4, inside the 15-member component under O-1 |
+
+### B.2 The GC-3 passes, checked against the three conditions
+
+| Pair | Uninterpreted string | Not constructed, parsed or validated | Resolver named, and not the consumer | Conditions honest? |
+|---|---|---|---|---|
+| P4 | Yes, once `proposal.schema.json` drops the `origin` enumeration | Yes, once P §3.3's adapted-identity sentences (l.224, WD's rules) are withdrawn. P §8's "Origin (author, seat role, conversation, workflow identity and run)" row (l.806) must show the run reference only | DEL-04-03's record, with the run issued by DEL-02-03's run starter: both third parties to the pair | **Yes.** The pass depends on the §8 change, and §22.1 and §22.7 say so. P's own ScopeOfWork asks only for "workflow-run attribution" (REQ-003, AC-004, VER-004), so nothing in an accepted text needs the tuple's parts. GC-3 item 3 does not bite |
+| P9 | Yes | Yes: whole-string comparison only | DEL-04-03's reader; DEL-01-04 maps | Yes |
+| P15 | Yes. C's `#/$defs/identity` is already `{"type":"string","minLength":1}` | Yes, once rule 4, the act-evidence "Must not be strengthened by" column and `lapse_state` go. `act_kind`'s enumeration is DEL-04-01's (admitted DEP-03-01-024), not the pair supplier's | DEL-04-03, or the host (RS L-9) | Yes |
+| P19 | Yes | Yes, once LOOP drops grant value, display state (O-6), scope, the policy-class reference and "grant in force: unconfirmed", and O-5 hands the comparison to the record or display owner | DEL-04-02 and the host route | **Yes.** All three removals are named, and "stays I if LOOP keeps an AS state value" is stated |
+
+### B.3 P10: no responsibility moves
+
+- R12-4 assigns the mapping of observed items to ADAPTER.
+- ADAPTER already consumes DEL-01-01's MCP and command-execution surfaces through the admitted DEP-03-03-013, and recognizes dispatch at `item/started` (§4.6 OM-1, l.559). So ADAPTER can emit "operation call started" and "outcome observed" with no new input and no new arc.
+- EXEC keeps the reached-when evaluation, and ADAPTER's "evaluates no reached-when" holds.
+- **Confirmed.**
+
+### B.4 Finding
+
+**B2-M1 — MAJOR. The inverts leave a runtime flow, which is an E row under K-3. The per-option table models these rows as removed, so its O-1…O-3 columns are understated. O-4 is unaffected.**
+
+- **What G1 r2/r3's K-3 says.** It reads a row as E when "the consumer needs runtime instances and has no definitional need". After the rewordings, that is exactly what remains on several arcs:
+  - **P10.** EXEC still records ADAPTER's observations at runtime, now in EXEC's own input form.
+  - **P18.** RS's writer still receives settings-in at runtime (AS §6 / RS §8 exchange).
+  - **P12, P20 and M-X2.** In registry form, RS's reader still takes EXEC, LOOP and ADAPTER entries, unless the S1 wording makes them supplier-written entries in RS's container with no receipt by DEL-04-03.
+  - **P19.** LOOP still receives the settings-version identity on each dispatch.
+- **Why the rows remain.** `dependency-extract` records information flow ("Information flow only"). Unless the S1 wording removes the runtime receipt from the consumer's ScopeOfWork, these remain rows of kind E. That is the same treatment §21 gives P1 and P8, whose residuals are V.
+- **Computed** (G1 r2/r3 held kinds; §21.8 scenarios B and C, with those rows as E rather than removed):
+
+  | Scenario | O-1 | O-2 | O-3 | O-4 |
+  |---|---|---|---|---|
+  | §22.6 table, C | 12 members / 6 rows | P13 | P13 | acyclic |
+  | C, with E residuals on P10, P12, P18, P20, M-X2 | 12 / 10 | 5 members / 5 rows | 5 / 5 | **acyclic** |
+  | as above, + P19 | 12 / 11 | 5 / 6 | 5 / 6 | acyclic |
+  | B (no P4 cut), with the five E residuals | 12 / 11 | 5 / 5 + 2 / 1 | 5 / 5 | acyclic |
+
+- **Consequence.**
+  - §22.6's group 3 holds for O-4 ("acyclic, no owner act on any I–I pair").
+  - It does not hold for O-1…O-3. There, the E residuals stay cycle-closing and need either the class choice (O-4) or per-edge owner cuts. O-3 is about five E cuts plus P13, not "P13 only".
+  - So the owner's class choice weighs more after the moves than G1 r3's pre-move "O-4 differs from O-3 by one cycle-closing row" suggests.
+  - I reproduced the table in Addendum A without testing this assumption. The omission is mine as well as C2's.
+- **Repair** (text and table):
+  - record E residuals on the IV and registry moves where a runtime flow remains, as §21 does with V for P1 and P8;
+  - restate group 3's O-1…O-3 columns, noting that each E residual is a per-edge cut candidate, or leaves under O-4;
+  - alternatively, name the S1 wording that removes the runtime receipt from the consumer's ScopeOfWork for any arc where that is genuinely the design.
+
+### B.5 Verdict
+
+**REPAIR (narrow, one table).**
+- **Confirmed:** items 1–5, the GC-3 passes and their stated conditions (P4 and P19 are honest), P10's no-responsibility rewording, the operation-identity row, and §22.6's O-4 column and group-1/group-2 structure.
+- **Still required:** the O-1…O-3 columns of §22.6 need the E residuals (B2-M1).
+
+**Addendum counts.** BLOCKING 0, MAJOR 1, MINOR 0, NOTE 0.
