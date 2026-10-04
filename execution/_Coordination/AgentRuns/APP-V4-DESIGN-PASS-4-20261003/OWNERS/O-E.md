@@ -546,3 +546,53 @@ fix now.
 - ACT's consumer row: O-A, on request.
 - Build and runtime checks for P-2/P-3: at the first package (DEL-01-06).
 - WD U-17 confirmations: deliverable owners (R23-31.8).
+
+## Freeze — DEL-10-04 DA-v0.2, for RV3 confirmation (2026-10-04)
+
+**Brief (labelled transcription; as sent in `BRIEFS_AS_SENT.md`).**
+- RV3 found DA-v0.1, UC-v0.2 and EB-v0.4 READY.
+- Fix DA1-R1 (cycle test in arc terms) and DA1-R2 (recommended treatments
+  for all cases) while RV3 holds RA.
+- Freeze and report for a by-path commit.
+
+**Paths.** Under
+`projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/`:
+
+| Path | sha256 |
+|---|---|
+| `Design/DAG_ACCOUNT.md` (DA-v0.2) | `738f8287e31240102ce627280e5108f8ca3a23b261fb8e37ba92c421d16f13b4` |
+| `Design/prototype/dag_reach.py` (new) | `42e8b0e6daa60bef3a9d503eeec96b8135efcaffd5bf7123f92fe0a6be3b98f6` |
+
+**Commit-readiness.**
+- `git status --ignored` shows nothing ignored under DEL-10-04.
+- `dag_reach.py` reads only the committed `_DAG/_LATEST.md` and DAG-004's
+  edge CSVs (R23-44).
+
+**Claims.**
+- **§5 step 1 (DA1-R1)** states the test in arc terms: a proposed C → S
+  forms a cycle exactly when S already reaches C over both layers. It names
+  `prototype/dag_reach.py`.
+- **§7 (DA1-R2, N1)** quotes each case's recommended treatment from its
+  datasheet:
+  - R1 for cases 001, 003, 005, 006 and 007;
+  - R-01/R-03 for 002;
+  - R004-A for 004.
+
+  All are unruled; CP1 is the only ruling recorded. The datasheet is named
+  as the source of the state.
+
+**Checks run.**
+- `dag_reach.py --self-test` on DAG-004: 212 arcs over both layers (129
+  admitted + 83 held). All 5 cases are as expected:
+  - DEL-02-04 → DEL-10-03: SCC-forming;
+  - DEL-06-01 → DEL-10-02: no cycle;
+  - DEL-10-03 → DEL-02-04: existing arc;
+  - self-arc: cycle;
+  - DEL-10-01 → DEL-10-04: SCC-forming.
+- The five case quotations were checked against each `Case_Datasheet.md`
+  and against R23-32 F-R8.
+
+**Open.**
+- PKG-10 waits on RV3's confirmation of RA-v0.1 and of this DA-v0.2 repair.
+- The pass closeout: DA §5 step 2 currency; the CASE-002 update and DEP-005
+  are HELP_HUMAN's.

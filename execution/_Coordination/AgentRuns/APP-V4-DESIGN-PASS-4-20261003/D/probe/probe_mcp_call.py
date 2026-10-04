@@ -262,6 +262,8 @@ def main():
     err = open(os.path.join(p.logs, "stderr.txt"), "rb").read().decode(errors="replace")
     with open(os.path.join(a.out, "stderr.txt"), "w") as f:
         f.write(scrub(err, needles))
+    import redact  # HOSTING §9.1 categories (RV2 EUD1-R11; R23-48 item 3), applied to every later run
+    redact.redact_dir(a.out)
     leaked = [n for n in needles if n and n != "\0" and any(n in open(os.path.join(a.out, f)).read() for f in os.listdir(a.out))]
     print("redaction check:", "no user or host name left" if not leaked else "LEAK %d needle(s)" % len(leaked))
     if a.cleanup:

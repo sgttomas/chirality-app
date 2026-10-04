@@ -1,6 +1,6 @@
 # Project production dependency DAG — evidence account over DAG-001…DAG-004
 
-- **Contribution:** DEL-10-04/DA-v0.1 (new). It serves OUT-001 and OUT-002 by
+- **Contribution:** DEL-10-04/DA-v0.2. It supersedes DA-v0.1 (`611adec3…`, committed at `68f83d6b20`; RV3: READY with DA1-R1 and DA1-R2 MINOR); see "Changes". It serves OUT-001 and OUT-002 by
   mapping every obligation to the records that already meet it (§2–§4), and
   sets the currency procedure for the rest of this pass (§5).
 - **Status: DRAFT DEFINITION, frozen for RV3** with UC-v0.2 and EB-v0.4.
@@ -95,10 +95,19 @@ claimed (REQ-003, AC-003).
 
 ## 5. Currency through the rest of this pass (REQ-007; DERIVED from SPEC §5.4, `project-dag` currency resource, R23-2)
 
-1. **Before a row is proposed.** An owner who proposes a register row runs
-   reach over DAG-004's two layers first (R23-2). Any row that a deliverable
-   already reached by the proposer would consume is an SCC-forming departure
-   for the owner and `scc-resolution-case`.
+1. **Before a row is proposed (R23-2).**
+   - **The test, in arc terms.** A proposed row C → S (C consumes S's
+     contribution) forms a cycle exactly when S already reaches C over the
+     accepted DAG's admitted and held layers. The row is then an SCC-forming
+     departure for its owner and `scc-resolution-case`.
+   - **Other outcomes.** A row whose arc C → S already exists adds no arc.
+     A row where S does not reach C adds an arc and forms no cycle; it is
+     still an added-arc departure for the next currency audit.
+   - **The script.** `prototype/dag_reach.py CONSUMER SUPPLIER` performs
+     this check against the version `_DAG/_LATEST.md` names. It exits 2 for
+     SCC-forming and 0 otherwise. Its `--self-test` has five known cases
+     from DAG-004, for example DEL-02-04 → DEL-10-03 is SCC-forming and
+     DEL-06-01 → DEL-10-02 is not.
 2. **At the pass closeout.** Rerun `shasum -c _DAG/DAG-004/SOURCE_MANIFEST.sha256`
    from `E/`, and run the currency audit if any source differs beyond the
    recorded DEL-01-03 drift.
@@ -137,15 +146,22 @@ cut or merge is proposed.
 
 ## 7. Cases (REQ-004; checked by O-E from `E/_DAG/cases/`)
 
-| Case | Members (DAG-004 handoff) | State | Rulings | Last committed change |
-|---|---|---|---|---|
-| SCC-CASE-001 | DEL-01-01, DEL-01-05 | EVIDENCE_ACCUMULATING | CP1-20260928 (basis only) | `0139b067dc` (2026-09-27) |
-| SCC-CASE-002 | 13 (SCC-002) | EVIDENCE_ACCUMULATING | CP1-20260928 | `b547125dbe` (2026-09-29) |
-| SCC-CASE-003 | 2 (SCC-003) | EVIDENCE_ACCUMULATING | CP1-20260928 | `0139b067dc` |
-| SCC-CASE-004 | DEL-03-01, DEL-03-02 (history under CASE-002) | EVIDENCE_ACCUMULATING | CP1-20260928 | `0139b067dc` |
-| SCC-CASE-005 | 3 (SCC-004) | EVIDENCE_ACCUMULATING | CP1-20260928 | `0139b067dc` |
-| SCC-CASE-006 | DEL-10-02, DEL-10-04 (SCC-005) | EVIDENCE_ACCUMULATING; R1 recommended | CP1-20260928 | `0139b067dc` |
-| SCC-CASE-007 | DEL-11-01, DEL-11-03 (SCC-006) | EVIDENCE_ACCUMULATING | CP1-20260928 | `0139b067dc` |
+- **Where the state is read.** "State" comes from each case's
+  `Case_Datasheet.md`, written after CP1. Each `Case_Contract.md` still reads
+  `HUMAN_RULINGS_PENDING` from before CP1 (RV3 DA1 N1).
+- **Recommendations are not rulings.** "Recommended treatment" quotes the
+  datasheet's own recommendation, which stays unruled in every case. The
+  only ruling recorded is CP1-20260928, the basis-only ruling.
+
+| Case | Members (DAG-004 handoff) | State (datasheet) | Recommended treatment (datasheet; unruled) | Rulings | Last committed change |
+|---|---|---|---|---|---|
+| SCC-CASE-001 | DEL-01-01, DEL-01-05 | EVIDENCE_ACCUMULATING | R1, "retaining R3 wherever a required input remains absent" | CP1-20260928 (basis only) | `0139b067dc` (2026-09-27) |
+| SCC-CASE-002 | 13 (SCC-002) | EVIDENCE_ACCUMULATING | R-01 and the targeted R-03 limitations; R-02 only as a limited alternative | CP1-20260928 | `b547125dbe` (2026-09-29) |
+| SCC-CASE-003 | 2 (SCC-003) | EVIDENCE_ACCUMULATING | R1, "coordinate explicit support and candidate-return contributions under existing owners" | CP1-20260928 | `0139b067dc` |
+| SCC-CASE-004 | DEL-03-01, DEL-03-02 (history under CASE-002) | EVIDENCE_ACCUMULATING | R004-A (coordinate C and P under both owners); R004-B an objective-dependent alternative | CP1-20260928 | `0139b067dc` |
+| SCC-CASE-005 | 3 (SCC-004) | EVIDENCE_ACCUMULATING | R1, "with R3 applied only at a demonstrable missing-input point" | CP1-20260928 | `0139b067dc` |
+| SCC-CASE-006 | DEL-10-02, DEL-10-04 (SCC-005) | EVIDENCE_ACCUMULATING | R1, "coordinated contributions, unresolved candidate topology" | CP1-20260928 | `0139b067dc` |
+| SCC-CASE-007 | DEL-11-01, DEL-11-03 (SCC-006) | EVIDENCE_ACCUMULATING | R1 (the treatment R23-32 F-R8 relies on for DEL-11-03's design) | CP1-20260928 | `0139b067dc` |
 
 - **Observation (states).** DAG-004's handoff says CASE-002's evidence update
   for this version "is drafted
@@ -165,3 +181,13 @@ cut or merge is proposed.
 | Apply CASE-002's drafted evidence update for DAG-004 | HELP_HUMAN, through `scc-resolution-case` | Before the next closure or currency observation relies on CASE-002 |
 | DEP-005's row text lags D4 and R23-22 | The row's owner, at the next amendment (R23-11 practice) | Next amendment |
 | Currency at the pass closeout (§5 step 2) | HELP_HUMAN or the closeout node | Pass closeout |
+
+## Changes
+
+**DA-v0.2 (2026-10-04), after RV3-DA1 (READY; 2 MINOR, notes):**
+
+| Change | Cause |
+|---|---|
+| §5 step 1 states the cycle test in arc terms (C → S forms a cycle iff S already reaches C over both layers), and names the new `prototype/dag_reach.py`, with a self-test | DA1-R1 |
+| §7 gives each case's recommended treatment from its datasheet (R1 for 001, 003, 005, 006 and 007; R-01/R-03 for 002; R004-A for 004), all unruled. It names the datasheet as the source of the state | DA1-R2; N1 |
+

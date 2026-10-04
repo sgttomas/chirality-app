@@ -21,8 +21,8 @@
     {
       "case": "P1",
       "item": "K4",
-      "verdict": "referred",
-      "why": "(a) reader 'both' -> referred; (b) reader 'files' -> met; (c) reader 'both' -> referred; checker's proposed reading: 'both' meets 'connector' when the relied-on claims are exactly the key's K2 set"
+      "verdict": "met",
+      "why": "(a) reader 'both' -> met; (b) reader 'files' -> met; (c) reader 'both' -> met"
     },
     {
       "case": "P1",
@@ -34,7 +34,7 @@
       "case": "P1",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "P2",
@@ -70,7 +70,7 @@
       "case": "P2",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "P3",
@@ -106,7 +106,7 @@
       "case": "P3",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "P4",
@@ -142,7 +142,7 @@
       "case": "P4",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "P5",
@@ -178,7 +178,7 @@
       "case": "P5",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "P6",
@@ -214,7 +214,7 @@
       "case": "P6",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "DM-1",
@@ -244,7 +244,7 @@
       "case": "DM-1",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "DM-2",
@@ -268,7 +268,7 @@
       "case": "DM-2",
       "item": "K6",
       "verdict": "met",
-      "why": "no forbidden conclusion stated as supported"
+      "why": "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
     },
     {
       "case": "INDEPENDENCE",
@@ -278,8 +278,8 @@
     }
   ],
   "tally": {
-    "met": 45,
+    "met": 46,
     "not met": 0,
-    "referred": 1
+    "referred": 0
   }
 }

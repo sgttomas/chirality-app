@@ -48,7 +48,7 @@
     "nextCursor": null
   },
   "thread_start": "ok",
-  "thread_id": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+  "thread_id": "<ID-2>",
   "items_before": {
     "code": -32601,
     "message": "thread/items/list is not supported yet"
@@ -85,7 +85,7 @@
   },
   "rollouts": [
     {
-      "file": "sessions/2026/10/04/rollout-2026-10-04T10-45-45-01a107ce-a4cd-7b40-970f-5c0c68424933.jsonl",
+      "file": "sessions/2026/10/04/rollout-2026-10-04T10-45-45-<ID-2>.jsonl",
       "lines": 1,
       "mentions_example_lookup": false,
       "mentions_P-EX-1": false
@@ -108,7 +108,7 @@
     "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"progressToken\":0}}}",
     "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[{\"name\":\"example_lookup\",\"description\":\"Look up an invented example record by key. Test tool for an observation; returns invented example data only.\",\"inputS",
-    "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"threadId\":\"01a107ce-a4cd-7b40-970f-5c0c68424933\",\"progressToken\":1},\"name\":\"example_lookup\",\"arguments\":{\"key\":\"EX-1\"}}}",
+    "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"threadId\":\"<ID-2>\",\"progressToken\":1},\"name\":\"example_lookup\",\"arguments\":{\"key\":\"EX-1\"}}}",
     "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"outcome\\\": \\\"queued\\\", \\\"proposal\\\": \\\"P-EX-1\\\", \\\"key\\\": \\\"EX-1\\\", \\\"note\\\": \\\"invented example material\\\", \\\"toolReceivedAtMs\\\""
   ],
   "stop_reason": null

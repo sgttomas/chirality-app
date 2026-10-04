@@ -1,0 +1,144 @@
+{
+  "format": "chirality.domains.receiving-record",
+  "formatVersion": "0.1",
+  "record_id": "dr:EUD1-DM-1",
+  "question_id": "QD",
+  "simulated": true,
+  "simulated_terms": [
+    "research sources, query contract DQC-EX-1 and admission ADM-1 are invented (FX-EUD1); no Domains provider exists (OI-023, OI-026)"
+  ],
+  "input": {
+    "kind": "response",
+    "ref": "FX-EUD1 domains/DM-1.json",
+    "sha256": "0a83afe2aedc1e0981be6a57764849d6688d9242d9f9485b696a108a2109f184",
+    "fixture_standing": "constructed"
+  },
+  "recorder": {
+    "kind": "tool",
+    "identity": "O-D prototype eud1.py (EU-D1)"
+  },
+  "contract": {
+    "identity": "DQC-EX-1",
+    "established": true
+  },
+  "index_basis": "built from SRC-1 rev-A and SRC-2 rev-1",
+  "results": [
+    {
+      "result_id": "r1",
+      "source_ref": "domains/sources/SRC-1.md",
+      "indexed_revision": "rev-A",
+      "current_revision": "rev-B",
+      "admission": {
+        "state": "admitted",
+        "basis_ref": "ADM-1",
+        "admitted_revision": "rev-A"
+      },
+      "standing": {
+        "connector": "domains",
+        "envelope": "adopted",
+        "condition": "stale",
+        "claim_tier": "admitted",
+        "supports_reliance": false,
+        "reasons": [
+          {
+            "facet": "condition",
+            "value": "stale",
+            "basis": "indexed rev-A, source now rev-B"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "admitted",
+            "basis": "admission as supplied and in the admission basis"
+          },
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "query contract established (constructed DQC-EX-1)"
+          }
+        ]
+      }
+    },
+    {
+      "result_id": "r2",
+      "source_ref": "domains/sources/SRC-2.md",
+      "indexed_revision": "rev-1",
+      "current_revision": "rev-1",
+      "admission": {
+        "state": "not_admitted"
+      },
+      "standing": {
+        "connector": "domains",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "located_not_admitted",
+        "supports_reliance": false,
+        "reasons": [
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "indexed rev-1, source now rev-1"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "located_not_admitted",
+            "basis": "search hit without admission"
+          },
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "query contract established (constructed DQC-EX-1)"
+          }
+        ]
+      }
+    }
+  ],
+  "response_standing": {
+    "connector": "domains",
+    "envelope": "adopted",
+    "condition": "stale",
+    "supports_reliance": false,
+    "reasons": [
+      {
+        "facet": "condition",
+        "value": "stale",
+        "basis": "worst result condition"
+      },
+      {
+        "facet": "envelope",
+        "value": "adopted",
+        "basis": "contract and admission basis"
+      }
+    ]
+  },
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "SRC-1 as it stands now (rev-B) states 2.4 m; that revision's admission is not established, so this is a source reading, not admitted research context",
+        "basis": "source_route",
+        "refs": [
+          "ra:EUD1-QD#f-1"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "An admitted source supports 'line EX-L1 support spacing is 3.0 m'",
+        "why": "r1 (SRC-1) was admitted and indexed at rev-A, but SRC-1 is now rev-B and states 2.4 m (stale); r2 (SRC-2) is a search hit that was never admitted"
+      },
+      {
+        "conclusion": "SRC-1 rev-B is admitted evidence",
+        "why": "the admission basis ADM-1 covers rev-A only"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "route": {
+    "needed": true,
+    "account_ref": "ra:EUD1-QD"
+  }
+}

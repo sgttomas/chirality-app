@@ -1,0 +1,191 @@
+{
+  "format": "chirality.pec.receiving-record",
+  "formatVersion": "0.1",
+  "record_id": "pr:EUD1-P4",
+  "question_id": "Q1",
+  "simulated": true,
+  "simulated_terms": [
+    "PEC response elements constructed from PEC-ORI-003/004/007 and DEL-04-03 CLM-003/019 (FX-EUD1)",
+    "release identities and the adoption account are constructed; no PEC release or App adoption exists"
+  ],
+  "input": {
+    "kind": "response",
+    "ref": "FX-EUD1 pec/P4.json",
+    "sha256": "0c4f3f4058894827b5f8a528094e95b8fb03f0d60e2c63f4208a694ed47e4cbe",
+    "fixture_standing": "constructed"
+  },
+  "adoption": {
+    "account_ref": "pec/ADOPTION_ACCOUNT.json (constructed OUT-004 account)",
+    "release_adopted": true,
+    "feeds_adopted": [
+      "work_graphs"
+    ]
+  },
+  "recorder": {
+    "kind": "tool",
+    "identity": "O-D prototype eud1.py (EU-D1)"
+  },
+  "release": {
+    "identity": "pec-release-EX-1",
+    "stated_qualification": "qualified"
+  },
+  "stamp": {
+    "examined_through": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "generated_at": "2026-10-04T08:00:00Z",
+    "feed_freshness": [
+      {
+        "feed": "work_graphs",
+        "freshness": "examined through e086dfff32"
+      }
+    ]
+  },
+  "envelope_elements": {
+    "pin": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "feeds": [
+      {
+        "feed": "work_graphs",
+        "coverage": "partial: node-table rows after node K not parsed",
+        "freshness": "examined through e086dfff32",
+        "limitation": "work-graph table rows 6-10 unparsed (PEC-ORI-006 measurement limitation)"
+      }
+    ],
+    "fallback_signal": "clear"
+  },
+  "response_standing": {
+    "connector": "pec",
+    "envelope": "adopted",
+    "condition": "partial",
+    "supports_reliance": false,
+    "reasons": [
+      {
+        "facet": "envelope",
+        "value": "adopted",
+        "basis": "release pec-release-EX-1 and feed work_graphs are adopted in the OUT-004 account"
+      },
+      {
+        "facet": "condition",
+        "value": "partial",
+        "basis": "feed work_graphs: work-graph table rows 6-10 unparsed (PEC-ORI-006 measurement limitation)"
+      }
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "c1",
+      "statement": "No READY, ACTIVE or BLOCKED node among the parsed rows at e086dfff32",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "partial",
+        "claim_tier": "record",
+        "supports_reliance": false,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "partial",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c2",
+      "statement": "Node VC changed from ACTIVE to COMPLETE (R23-22) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "partial",
+        "claim_tier": "record",
+        "supports_reliance": false,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "partial",
+            "basis": "response condition"
+          }
+        ]
+      }
+    }
+  ],
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "(a) answered from the route account (ra:EUD1-Q1 f-a)",
+        "basis": "source_route",
+        "refs": [
+          "ra:EUD1-Q1#f-a"
+        ]
+      },
+      {
+        "statement": "(b) answered from the route account (ra:EUD1-Q1 f-b): PEC orientation covers READY/ACTIVE/BLOCKED nodes only, so other open nodes are outside its coverage",
+        "basis": "source_route",
+        "refs": [
+          "ra:EUD1-Q1#f-b"
+        ]
+      },
+      {
+        "statement": "(c) answered from the route account (ra:EUD1-Q1 f-c)",
+        "basis": "source_route",
+        "refs": [
+          "ra:EUD1-Q1#f-c"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "No work remains in the undertaking",
+        "why": "no connector state or its absence establishes empty work; the route shows T2 open"
+      },
+      {
+        "conclusion": "Any item is ready to start, complete or permitted because of this connector material",
+        "why": "CS-R2: absence or limitation implies none of these, and a relied record-tier claim only reports what its cited record states at its pin"
+      },
+      {
+        "conclusion": "PEC's open-node statement or change list is complete",
+        "why": "the work-graph feed states unparsed rows; claims cover the parsed rows only"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "route": {
+    "needed": true,
+    "account_ref": "ra:EUD1-Q1"
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "format": "chirality.connector.route-account",
+  "formatVersion": "0.1",
+  "account_id": "ra:EUD1-Q1",
+  "question": {
+    "id": "Q1",
+    "text": "For undertaking APP-V4-DESIGN-PASS-4-20261003 at revision e086dfff32: (a) which work-graph nodes are READY, ACTIVE or BLOCKED; (b) which other nodes are open (any state other than COMPLETE); (c) which nodes changed state or were added since revision e4a0c2c4c3?",
+    "scope": "loop/undertaking APP-V4-DESIGN-PASS-4-20261003 (PEC-ORI-001/002/005; R23-34 item 2)",
+    "at_revision": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "since_revision": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc"
+  },
+  "trigger": {
+    "connector": "pec",
+    "why": "PEC material did not support reliance for every part of Q1 (each condition P1-P6 and P8; for P1, part (b) is outside the declared coverage)",
+    "receiving_records": [
+      "pr:EUD1-P1",
+      "pr:EUD1-P2",
+      "pr:EUD1-P3",
+      "pr:EUD1-P4",
+      "pr:EUD1-P5",
+      "pr:EUD1-P6",
+      "pr:EUD1-P8"
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "WG@S",
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+      "revision": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc",
+      "sha256": "a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+      "role": "work graph at the since-revision"
+    },
+    {
+      "source_id": "WG@R",
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+      "revision": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+      "sha256": "1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf",
+      "role": "work graph at the asked revision"
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "f-a",
+      "statement": "The work graph at e086dfff32 marks no node READY, ACTIVE or BLOCKED",
+      "source_id": "WG@R",
+      "anchor": "## Nodes",
+      "data": {
+        "nodes": []
+      }
+    },
+    {
+      "fact_id": "f-b",
+      "statement": "Other open nodes at e086dfff32: T2 PLANNED",
+      "source_id": "WG@R",
+      "anchor": "## Nodes",
+      "data": {
+        "nodes": [
+          "T2"
+        ]
+      }
+    },
+    {
+      "fact_id": "f-c",
+      "statement": "Changed or added since e4a0c2c4c3: VC ACTIVE -> COMPLETE (R23-22); E ACTIVE -> COMPLETE (RR-E, RR-F); O-B1 READY -> COMPLETE; O-C1 READY -> COMPLETE; D PLANNED -> COMPLETE (PR); T2 added as PLANNED",
+      "source_id": "WG@S",
+      "anchor": "## Nodes (compared with WG@R)",
+      "data": {
+        "changes": [
+          {
+            "node": "VC",
+            "from": "ACTIVE",
+            "to": "COMPLETE (R23-22)"
+          },
+          {
+            "node": "E",
+            "from": "ACTIVE",
+            "to": "COMPLETE (RR-E, RR-F)"
+          },
+          {
+            "node": "O-B1",
+            "from": "READY",
+            "to": "COMPLETE"
+          },
+          {
+            "node": "O-C1",
+            "from": "READY",
+            "to": "COMPLETE"
+          },
+          {
+            "node": "D",
+            "from": "PLANNED",
+            "to": "COMPLETE (PR)"
+          },
+          {
+            "node": "T2",
+            "from": null,
+            "to": "PLANNED"
+          }
+        ],
+        "removed": []
+      }
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "The node table names no owner per node; owners appear only in the 'Owners' table by deliverable",
+      "effect": "Q1 does not ask for per-node owners; none is inferred",
+      "responsible": "none needed for Q1"
+    },
+    {
+      "gap": "The working tree may hold later, uncommitted bytes of the same file",
+      "effect": "answered at committed revision e086dfff32 only; nothing is said about uncommitted state",
+      "responsible": "the asker, if a later revision is wanted"
+    }
+  ],
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "The work graph at e086dfff32 marks no node READY, ACTIVE or BLOCKED",
+        "basis": "source_route",
+        "refs": [
+          "WG@R"
+        ]
+      },
+      {
+        "statement": "Other open nodes at e086dfff32: T2 PLANNED",
+        "basis": "source_route",
+        "refs": [
+          "WG@R"
+        ]
+      },
+      {
+        "statement": "Changed or added since e4a0c2c4c3: VC ACTIVE -> COMPLETE (R23-22); E ACTIVE -> COMPLETE (RR-E, RR-F); O-B1 READY -> COMPLETE; O-C1 READY -> COMPLETE; D PLANNED -> COMPLETE (PR); T2 added as PLANNED",
+        "basis": "source_route",
+        "refs": [
+          "WG@S"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "No work remains in the undertaking",
+        "why": "T2 PLANNED at e086dfff32; the absence of READY/ACTIVE/BLOCKED nodes is not empty work"
+      },
+      {
+        "conclusion": "A node this file marks READY or PLANNED may be started, dispatched or treated as complete now",
+        "why": "this account reports what the work graph records at the asked revision; readiness to start, completion and permission are the coordinating role's, from current records (FV), not this account's"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "duties": [
+    {
+      "duty": "locate_compare",
+      "actor_role": "agent",
+      "actor": "O-D (agent) running eud1.py",
+      "standing": "performed",
+      "evidence": "RUN_LOG.json",
+      "reason": "located the committed revision(s) and read or compared the node tables"
+    },
+    {
+      "duty": "review_integrate",
+      "actor_role": "manager",
+      "standing": "outstanding",
+      "reason": "no manager (HELP_HUMAN in the WORKING_ITEMS function) has reviewed or integrated this account"
+    },
+    {
+      "duty": "cross_undertaking_coordination",
+      "actor_role": "person",
+      "standing": "not_required",
+      "reason": "the question concerns one undertaking in one repository"
+    }
+  ],
+  "recorder": {
+    "kind": "tool",
+    "identity": "O-D prototype eud1.py (EU-D1)"
+  },
+  "written_at": "2026-10-04T09:00:00Z",
+  "written_at_source": "build_constant"
+}

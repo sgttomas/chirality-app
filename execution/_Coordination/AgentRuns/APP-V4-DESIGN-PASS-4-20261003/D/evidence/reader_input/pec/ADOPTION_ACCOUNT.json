@@ -1,0 +1,24 @@
+{
+  "account": "acct:pec-adoption-EX",
+  "form": "DEL-07-01 OUT-004 evidence account (PRC-v0.1 §6)",
+  "standing": "constructed (EU-D1): no PEC release exists; DEP-002 is OPTIONAL_RECEIVING_QUALIFICATION_UNESTABLISHED_AT_ffb2b6289",
+  "adopted": [
+    {
+      "release": "pec-release-EX-1",
+      "feeds": [
+        "work_graphs"
+      ],
+      "recorded_by": "App receiving owner (constructed)",
+      "evidence": [
+        "constructed"
+      ]
+    }
+  ],
+  "not_adopted": [
+    {
+      "release": "pec-release-EX-2",
+      "why": "stated unqualified; no qualification or release evidence"
+    }
+  ],
+  "d108": "D-PEC-108 accepted the D1 bytes as-is: RF-001 MAJOR retained, PEC DEL-00-01/AC-002 partly met. No repair, readiness, release or adoption is inferred from it."
+}

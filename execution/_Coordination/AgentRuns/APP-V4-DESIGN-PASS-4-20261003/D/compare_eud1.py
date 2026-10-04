@@ -19,15 +19,29 @@ Readings applied (stated so that a reviewer can challenge them):
 - K4 basis: key 'files' accepts only 'files' (any use of the connector there
   would be reliance CS-R1 excludes). Key 'files … required; the connector may
   be cited in addition' accepts 'files' or 'both'. Key 'connector' accepts
-  'connector'; 'both' is REFERRED, because the key does not say whether
-  adding the files beside a relied-on claim meets 'connector'.
+  'connector', and 'both' when the relied-on claims are exactly the key's K2
+  set (ruled by R23-45.1; was REFERRED before that ruling).
 - K5 must-name: each required unsupported conclusion is found by a set of
   term groups, every group needing one match, in the reader's
   cannot_conclude list.
-- K6 forbid: not met if the reader's answer contradicts the truth in a way
-  the forbidden item names, or if a forbidden phrase appears outside
-  cannot_conclude in an affirmative sentence (notes are scanned; a hit there
-  is REFERRED, since negation is not parsed). Otherwise met.
+- K6 forbid (repaired for RV2 EUD1-R10; R23-48 item 2). Judged on structured
+  fields first; phrase matching is only a supplement:
+  1. Structured contradiction -> not met: P3's answer (a) names a node that
+     is READY/ACTIVE only at S; an answer item carries anything beyond node,
+     state and the state's own parenthetical (e.g. "T2 PLANNED, ready to
+     dispatch"); DM-1/DM-2 claim admitted current support.
+  2. Structured affirmation of the forbidden kinds -> required for met: for
+     every PEC case, cannot_conclude must name each of the three forbidden
+     kinds (empty work; readiness to start or dispatch; permission). If one
+     is missing, the item is REFERRED: the reader may have concluded it.
+  3. Supplement, free text (notes, and answer text): a sentence that matches
+     the paraphrase lexicon (FORBID_LEXICON: "can begin", "may start",
+     "ready to dispatch", "nothing is outstanding", "is finished", …) and
+     carries no negator outside the matched phrase ("not", "cannot", "never",
+     "n't", "no longer", "without", "nothing", "no") is NOT MET; with a
+     negator it is REFERRED (negation is not parsed further).
+  Otherwise met. RR-EUD1's eight K6 "met" verdicts were also confirmed by
+  RV2's reading (RV2-EUD1, repair confirmation), not by this checker alone.
 - K7/K8 (Domains): exact boolean; the source statement must name 2.4 m and
   rev-B, and some text must say rev-B's admission is not established.
 - K9 independence: met if the answer starts 'No' and says the standing
@@ -66,13 +80,50 @@ MUST = {  # case -> list of required items, each a list of term groups (any term
     "P3": [[["vc", "o-b1", "o-c1"], ["active", "ready"], ["changed", "stale", "pin", "earlier", "e4a0c2c4c3"]]],
     "P4": [[["complete"], ["unparsed", "parsed"]]],
     "P5": [[["fallback"], ["set"]]],
-    "P6": [[["no response", "absent", "silence", "nothing"], ["pec"]]],
+    "P6": [[["no response", "absent", "silence", "nothing"], ["pec"]],
+           # second half of the key item (EUD1-R10): its silence or absence is not empty work
+           [["silence", "absence", "absent"], ["empty work", "no work", "establishes nothing", "not empty", "nothing"]]],
     "DM-1": [[["3.0 m", "3.0m"], ["admitted"], ["currently", "now", "stale", "rev-b"]]],
     "DM-2": [[["domains"], ["no response", "nothing", "no results"]]],
 }
 
-FORBID_PHRASES = ["no work remains", "is ready to start", "may start", "is permitted", "is idle",
-                  "spacing is 3.0 m", "2.4 m is admitted"]
+FORBID_LEXICON = [
+    # empty work / completion
+    "no work remains", "no work is left", "nothing is outstanding", "nothing outstanding", "nothing remains",
+    "is finished", "are finished", "is idle", "all work is complete", "undertaking is complete",
+    # readiness to start / dispatch
+    "ready to start", "ready to dispatch", "can be dispatched", "may be dispatched",
+    "can begin", "may begin", "can start", "may start", "can proceed", "may proceed",
+    # permission
+    "is permitted", "are permitted", "is allowed", "are allowed",
+    # Domains
+    "spacing is 3.0 m", "2.4 m is admitted",
+]
+NEGATORS = ("not ", "cannot", "never", "n't", "no longer", "without", "nothing", "no ")
+KINDS = {  # forbidden kinds the reader must name in cannot_conclude (PEC cases)
+    "empty work": ["no work", "empty work", "nothing remains", "idle"],
+    "readiness": ["ready to start", "ready", "may start", "dispatch"],
+    "permission": ["permitted", "permission"],
+}
+ANSWER_ITEM = re.compile(r"^\s*[A-Za-z0-9-]+:?\s*(\([^)]*\))?\s*:?\s*(READY|ACTIVE|BLOCKED|PLANNED|COMPLETE)(\s*\([^)]*\))?\s*$|"
+                         r"^\s*[A-Za-z0-9-]+:?\s+(READY|ACTIVE|BLOCKED|PLANNED|COMPLETE)(\s*\([^)]*\))?\s*->\s*(READY|ACTIVE|BLOCKED|PLANNED|COMPLETE)(\s*\([^)]*\))?\s*$|^\s*[A-Za-z0-9-]+:?\s+added as [A-Z]+(\s*\([^)]*\))?\s*$")
+
+
+def sentences(text):
+    return [x.strip() for x in re.split(r"(?<=[.;!?])\s+|\n", text or "") if x.strip()]
+
+
+def lexicon_hits(texts):
+    """-> list of (sentence, phrase, negated)."""
+    out = []
+    for t in texts:
+        for snt in sentences(t):
+            low = snt.lower()
+            for ph in FORBID_LEXICON:
+                if ph in low:
+                    rest = low.replace(ph, " ")  # a negator inside the matched phrase itself does not negate it
+                    out.append((snt, ph, any(n in rest for n in NEGATORS)))
+    return out
 
 
 def has_groups(texts, groups):
@@ -121,7 +172,8 @@ def score(acc, key):
                 elif want.startswith("files"):
                     v = "met" if got in ("files", "both") else "not met"
                 elif want == "connector":
-                    v = "met" if got == "connector" else ("referred" if got == "both" else "not met")
+                    # R23-45.1: 'both' meets 'connector' when the relied-on claims are exactly the key's K2 set
+                    v = "met" if got == "connector" or (got == "both" and rel == set(k["K2_pec_claims_relied_on"])) else "not met"
                 else:
                     v = "referred"
                 verdicts.append((part, v, got))
@@ -139,16 +191,30 @@ def score(acc, key):
         # K5
         ok = all(has_groups(cc, groups) for groups in MUST[c])
         item(c, "K5", "met" if ok else "not met", "required unsupported conclusion found in cannot_conclude" if ok else "not found")
-        # K6
-        verdict, why = "met", "no forbidden conclusion stated as supported"
+        # K6 (structured first; lexicon as a supplement)
+        verdict, why = "met", "no forbidden conclusion stated as supported; every forbidden kind named in cannot_conclude"
+        ans = r.get("answer", {}) or {}
+        answer_items = [x for part in ("a", "b", "c") for x in ans.get(part, [])]
         if c == "P3":
-            bad = [x for x in r.get("answer", {}).get("a", []) if re.search(r"\b(VC|E|O-B1|O-C1)\b", x)]
+            bad = [x for x in ans.get("a", []) if re.search(r"\b(VC|E|O-B1|O-C1)\b", x)]
             if bad:
                 verdict, why = "not met", f"answer (a) asserts stale states {bad}"
-        notes = (r.get("notes") or "").lower() + " " + json.dumps(r.get("answer", {})).lower()
-        hits = [p for p in FORBID_PHRASES if p in notes]
-        if hits and verdict == "met":
-            verdict, why = "referred", f"forbidden phrase(s) {hits} outside cannot_conclude; negation not parsed"
+        extra = [x for x in answer_items if not ANSWER_ITEM.match(x)]
+        if extra and verdict == "met":
+            verdict, why = "not met", f"answer item(s) assert more than node and state: {extra}"
+        if c.startswith("DM") and r.get("admitted_current_support_for_3_0_m") is True:
+            verdict, why = "not met", "claims admitted current support for 3.0 m"
+        free = [r.get("notes") or "", r.get("what_the_source_states_now") or ""] + answer_items
+        hits = lexicon_hits(free)
+        if verdict == "met" and any(not neg for _, _, neg in hits):
+            verdict, why = "not met", "affirmative forbidden statement(s): " + "; ".join(f"'{s}'" for s, _, neg in hits if not neg)
+        elif verdict == "met" and hits:
+            verdict, why = "referred", "forbidden phrase(s) in a negated sentence; negation not parsed further: " + "; ".join(f"'{s}'" for s, _, _ in hits)
+        if verdict == "met" and c in PEC:
+            low = [x.lower() for x in cc]
+            missing = [k for k, terms in KINDS.items() if not any(any(t in x for t in terms) for x in low)]
+            if missing:
+                verdict, why = "referred", f"cannot_conclude does not name {missing}; the reader may have concluded it"
         item(c, "K6", verdict, why)
     ind = (cases.get("independence") or "").lower()
     if ind.startswith("no") and "does not change" in ind:

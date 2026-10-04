@@ -1,6 +1,10 @@
 # PEC first-consumer receiving contract
 
-- **Contribution:** DEL-07-01/PRC-v0.2. It supersedes PRC-v0.1 (sha256
+- **Contribution:** DEL-07-01/PRC-v0.3. It supersedes PRC-v0.2 (sha256
+  `f587604c41b3d39bc1702a6a236270bf3fc31c5dc7bcecde7ebaf1b290e7bdd4`, which
+  RV2 confirmed READY at `25054b04df`) for R23-48 item 3 only: §7's scope
+  is narrowed to what P-H1b observed and widened by what P-H1c observed.
+  PRC-v0.2 superseded PRC-v0.1 (sha256
   `1a8acc8593dfb5c27faa63e5306cf636717aa07a552b68115336de349ecb379d`, the
   EU-D1 freeze RV2 reviewed), repaired for RV2-EUD1 (R23-40; EUD1-R1, R3,
   R4) and owner finding OD-F1, and updated to R23-37; see "Changes". Owner O-D, run
@@ -132,7 +136,7 @@ says so.
 | Path | Use | Standing |
 |---|---|---|
 | Agent tool call to PEC's MCP server in the person's Codex configuration, observed as `mcpToolCall` (HOSTING §6.8; NPTD tool row) | The agent's use; the App builds a receiving record from the observed result | Designed |
-| App-origin `mcpServer/tool/call` to the same configured server, recorded with initiator App | The App's own presentation read, for **App views** | **Permitted for App views by R23-37 item 1's condition, met by probe P-H1b** (below). Recorded with initiator App and never presented as the agent's call (HOSTING §6.8) |
+| App-origin `mcpServer/tool/call` to the same configured server, recorded with initiator App | The App's own presentation read, for **App views** | **Permitted for App views in the situations observed below** (R23-37 item 1; R23-48 item 3): between turns on a thread with or without history, and while a turn's model request is in flight. Recorded with initiator App and never presented as the agent's call (HOSTING §6.8) |
 | App-held PEC client, socket or token | — | Excluded (R23-34 item 3) |
 
 **What the probes observed** (`RUN/D/probe/`; 0.158.0; DEL-01-01's MCP
@@ -151,9 +155,43 @@ double; scratch homes under `/tmp`, removed; no sign-in, no download):
   call's markers (`P-EX-1`, `toolReceivedAtMs`, the result text) appeared
   anywhere in the request, and there was no tool-call or tool-output item.
   R23-37 item 1's condition holds: **no trace in the model's input.**
-- **Scope of that result:** 0.158.0, one custom Responses provider route,
-  the first request of the next turn. A later pin or route rechecks it at
-  its version-advance check.
+- **Scope of P-H1b (R23-48 item 3):** an App-origin call on a thread with
+  **no prior turn**, made **between turns**, with the next turn's first
+  request captured.
+- **P-H1c, a thread with history and a call during an active turn**
+  (R23-48 item 3; `RUN/D/probe/results_c/`). The model was the
+  already-present `qwen/qwen3.5-9b`, served by LM Studio on loopback
+  (`127.0.0.1:1234`, checked before the run). The model was unloaded and
+  the server stopped afterwards. DEL-01-01's OBS-2 tap ran in pass-through
+  mode and recorded every request. Sequence and observations:
+  - **T1** started; while its model request was in flight (turn started at
+    7.45 s, call sent 7.53 s and returned 7.54 s, turn completed 50.6 s),
+    App-origin call A (key EX-1) returned its result.
+  - **T2** then ran on the thread, which now had history. Its request
+    carried T1's prompt, reasoning and assistant message, and the new
+    prompt: six items.
+  - **Call B** (key EX-ERR) was made between T2 and **T3**. T3's request
+    carried nine items.
+  - **No request carried any marker of call A or call B**, and no request
+    held a tool-call or tool-output item. Codex emitted no item
+    notification for either call.
+  - Codex warned that the model's metadata was not found and used fallback
+    metadata. That is a property of this route, not of the call.
+- **Situations now observed, at 0.158.0 on one custom Responses route:**
+  1. no prior turn, call between turns (P-H1b);
+  2. a thread with history, call between turns (P-H1c, T3);
+  3. a call while a turn's model request is in flight, followed by later
+     turns (P-H1c, T2 and T3).
+
+  App views may use App-origin reads in these situations.
+- **Not observed, so not covered:**
+  - a later model request **within the same turn** as the call (T1 made
+    one request, sent before the call; no tool loop ran);
+  - a thread after **compaction**;
+  - other pins and routes.
+
+  Each is rechecked at the version-advance check (R23-22) or when an App
+  view needs it.
 - The HOSTING §6.8 receiver row for DEL-07-01 goes to DEL-01-01's next
   revision (not edited here).
 - **Recorded for DEL-01-01's owner (R23-37 item 2):** `thread/items/list` and
@@ -206,6 +244,7 @@ The sources are this run's real work graph at commits `e4a0c2c4c3` (S) and
 | Agreement of §2's questions and §3's mapping | App receiving owner with the PEC owner | Before operational reliance |
 | Per-feed freshness meaning beyond the revision test | Same | Same |
 | HOSTING §6.8 receiver row for App-origin reads (§7) | DEL-01-01's owner | DEL-01-01's next revision |
+| App-origin reads in the situations §7 lists as not observed (a later request in the same turn; after compaction) | O-D, by a further probe under R23-37's limits | Before an App view relies on them |
 | Release-level adoption (§6) | App receiving owner | After a qualified PEC release |
 
 ## Changes
@@ -216,4 +255,5 @@ The sources are this run's real work graph at commits `e4a0c2c4c3` (S) and
 | RV2 EUD1-R3 (R23-37) | §7 cites R23-37 item 1 and states which observations support it; P-H1b's result is recorded; App-origin reads are permitted for App views | §7, §10 |
 | RV2 EUD1-R4 | PR-5 compares content at the citation, not revision identifiers; an unreadable citation revision is `unknown` | §4 PR-3, PR-5 |
 | OD-F1 (owner, from RR-EUD1) | PR-7: a record-tier citation must resolve, or the claim is `unknown`. Presence facts cite PEC's presence record. Case P8 added; claims renumbered (presence c9 → c8) | §4 PR-4, PR-7, §9 |
+| R23-48 item 3 (RV2 EUD1-R11) | PRC-v0.3: §7 states P-H1b's narrow scope; records P-H1c (a thread with history; a call while a turn's request is in flight); lists the situations observed and those not observed. Kept captures are redacted by HOSTING §9.1's categories (`RUN/D/probe/redact.py`) | §7, §10 |
 

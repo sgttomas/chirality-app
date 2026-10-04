@@ -15,14 +15,14 @@ files are this run's real `WORK_GRAPH.md` at commits `e4a0c2c4c3` (S) and
 | `probe/` | H-1 probes P-H1 (`probe_mcp_call.py`) and P-H1b (`probe_model_input.py`), with redacted results |
 | `key/EUD1_KEY.json` | The question key, fixed before any reader runs. **Not** in the reader's input set |
 | `reader/READER_TASK.md` | The reader's task and answer form |
-| `build/` | The frozen build: `records/` (route accounts, receiving records, `exp/` EXP records), `RUN_LOG.json`, `reader_input/` (the isolated reader's whole input set, with `MANIFEST.sha256`) |
+| `evidence/` | The frozen build (named `build/` until EUD1-R9; the root `.gitignore` line `**/build/` kept that folder out of every commit): `records/` (route accounts, receiving records, `exp/` EXP records), `RUN_LOG.json`, `reader_input/` (the isolated reader's whole input set, with `MANIFEST.sha256`) |
 
 ## Run
 
 ```text
 cd "<this folder>"
-python3 -B run_d.py "$TMPDIR/eud1"          # includes B-2: build/ equals a fresh build
-python3 -B run_d.py "$TMPDIR/eud1" --freeze  # rewrites build/ (owner only)
+python3 -B run_d.py "$TMPDIR/eud1"          # includes B-2: the on-disk evidence/ equals a fresh build
+python3 -B run_d.py "$TMPDIR/eud1" --freeze  # rewrites evidence/ (owner only)
 ```
 
 Needs Python 3 with `jsonschema` (Draft 2020-12, `referencing`). It reads

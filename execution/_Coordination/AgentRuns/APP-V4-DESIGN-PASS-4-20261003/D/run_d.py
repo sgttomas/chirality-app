@@ -7,7 +7,7 @@ fixture, the Design files and DEL-09-01's EXP schema and checker
 (read-only); writes only into OUTDIR.
 
   python3 -B run_d.py OUTDIR          # check; OUTDIR gets the build
-  python3 -B run_d.py OUTDIR --freeze # also write build/ and the reader input set here
+  python3 -B run_d.py OUTDIR --freeze # also write evidence/ and the reader input set here
 
 Checks:
   F  fixture: rebuilt bytes equal fixtures/FX-EUD1 (determinism; sources unchanged)
@@ -16,7 +16,8 @@ Checks:
   I  independence (CS-R4): each connector's records unchanged with the other's inputs removed
   T  route truth from the real work graph; the question key agrees with it
   X  EXP rehearsal records: EXP schema valid, EXP-R1/R3/R5 rules hold, aggregate as expected
-  B  build is deterministic; with --freeze, committed build/ equals the fresh build
+  B  build is deterministic; without --freeze, the on-disk evidence/ equals the fresh build
+     (evidence/ was named build/ until EUD1-R9: the root .gitignore excludes **/build/)
 """
 import copy
 import hashlib
@@ -353,13 +354,13 @@ def main():
     check("B-1 build deterministic", f2 == files)
     items = reader_set(OUT)
     if freeze:
-        dest = os.path.join(HERE, "build")
+        dest = os.path.join(HERE, "evidence")
         shutil.rmtree(dest, ignore_errors=True)
         shutil.copytree(OUT, dest, ignore=shutil.ignore_patterns("_tmp"))
-    elif os.path.isdir(os.path.join(HERE, "build")):
-        a = tree_bytes(os.path.join(HERE, "build"))
+    elif os.path.isdir(os.path.join(HERE, "evidence")):
+        a = tree_bytes(os.path.join(HERE, "evidence"))
         b = {k: x for k, x in tree_bytes(OUT).items() if not k.startswith("_tmp")}
-        check("B-2 committed build/ equals the fresh build", a == b, str(sorted(set(a) ^ set(b)))[:200])
+        check("B-2 on-disk evidence/ equals the fresh build", a == b, str(sorted(set(a) ^ set(b)))[:200])
     shutil.rmtree(TMP, ignore_errors=True)
     failed = [r for r in RESULTS if not r[1]]
     for cid, ok, d in RESULTS:

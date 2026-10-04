@@ -1,0 +1,124 @@
+{
+  "format": "chirality.connector.route-account",
+  "formatVersion": "0.1",
+  "account_id": "ra:EUD1-Q1S",
+  "question": {
+    "id": "Q1-S",
+    "text": "For undertaking APP-V4-DESIGN-PASS-4-20261003 at revision e4a0c2c4c3: (a) which work-graph nodes are READY, ACTIVE or BLOCKED; (b) which other nodes are open (any state other than COMPLETE)?",
+    "scope": "as Q1, asked at the earlier revision (RV2 EUD1-R1; R23-40)",
+    "at_revision": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc"
+  },
+  "trigger": {
+    "connector": "pec",
+    "why": "Part (b) of Q1-S is outside PEC's orientation coverage (P7)",
+    "receiving_records": [
+      "pr:EUD1-P7"
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "WG@S",
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+      "revision": "e4a0c2c4c369c9f85c3be4417e5815a4b4cb0abc",
+      "sha256": "a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+      "role": "work graph at the asked revision"
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "f-a",
+      "statement": "The work graph at e4a0c2c4c3 marks: VC ACTIVE, E ACTIVE, O-B1 READY, O-C1 READY",
+      "source_id": "WG@S",
+      "anchor": "## Nodes",
+      "data": {
+        "nodes": [
+          "VC",
+          "E",
+          "O-B1",
+          "O-C1"
+        ]
+      }
+    },
+    {
+      "fact_id": "f-b",
+      "statement": "Other open nodes at e4a0c2c4c3: D PLANNED",
+      "source_id": "WG@S",
+      "anchor": "## Nodes",
+      "data": {
+        "nodes": [
+          "D"
+        ]
+      }
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "The node table names no owner per node; owners appear only in the 'Owners' table by deliverable",
+      "effect": "Q1 does not ask for per-node owners; none is inferred",
+      "responsible": "none needed for Q1"
+    },
+    {
+      "gap": "The working tree may hold later, uncommitted bytes of the same file",
+      "effect": "answered at committed revision e4a0c2c4c3 only; nothing is said about uncommitted state",
+      "responsible": "the asker, if a later revision is wanted"
+    }
+  ],
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "The work graph at e4a0c2c4c3 marks: VC ACTIVE, E ACTIVE, O-B1 READY, O-C1 READY",
+        "basis": "source_route",
+        "refs": [
+          "WG@S"
+        ]
+      },
+      {
+        "statement": "Other open nodes at e4a0c2c4c3: D PLANNED",
+        "basis": "source_route",
+        "refs": [
+          "WG@S"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "A node this file marks READY or PLANNED may be started, dispatched or treated as complete now",
+        "why": "this account reports what the work graph records at the asked revision; readiness to start, completion and permission are the coordinating role's, from current records (FV), not this account's"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "duties": [
+    {
+      "duty": "locate_compare",
+      "actor_role": "agent",
+      "actor": "O-D (agent) running eud1.py",
+      "standing": "performed",
+      "evidence": "RUN_LOG.json",
+      "reason": "located the committed revision(s) and read or compared the node tables"
+    },
+    {
+      "duty": "review_integrate",
+      "actor_role": "manager",
+      "standing": "outstanding",
+      "reason": "no manager (HELP_HUMAN in the WORKING_ITEMS function) has reviewed or integrated this account"
+    },
+    {
+      "duty": "cross_undertaking_coordination",
+      "actor_role": "person",
+      "standing": "not_required",
+      "reason": "the question concerns one undertaking in one repository"
+    }
+  ],
+  "recorder": {
+    "kind": "tool",
+    "identity": "O-D prototype eud1.py (EU-D1)"
+  },
+  "written_at": "2026-10-04T09:00:00Z",
+  "written_at_source": "build_constant"
+}

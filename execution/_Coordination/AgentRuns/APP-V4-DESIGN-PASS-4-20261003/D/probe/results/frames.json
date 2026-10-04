@@ -40,7 +40,7 @@
       "params": {
         "status": "disabled",
         "serverName": "<REDACTED>",
-        "installationId": "980a2945-2ecf-4ab9-9e73-23a9aebc0567",
+        "installationId": "<ID-1>",
         "environmentId": null
       },
       "emittedAtMs": 1791132342439
@@ -138,7 +138,7 @@
       "id": 3,
       "result": {
         "thread": {
-          "id": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "id": "<ID-2>",
           "environments": [
             {
               "environmentId": "local",
@@ -149,7 +149,7 @@
             }
           ],
           "extra": null,
-          "sessionId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "sessionId": "<ID-2>",
           "forkedFromId": null,
           "parentThreadId": null,
           "preview": "",
@@ -167,7 +167,7 @@
           "status": {
             "type": "idle"
           },
-          "path": "/private/tmp/cvx-eud1/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-45-45-01a107ce-a4cd-7b40-970f-5c0c68424933.jsonl",
+          "path": "/private/tmp/cvx-eud1/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-45-45-<ID-2>.jsonl",
           "cwd": "/tmp/cvx-eud1/cwd",
           "cliVersion": "0.158.0",
           "originator": "chirality-eud1-probe",
@@ -209,7 +209,7 @@
       "method": "thread/started",
       "params": {
         "thread": {
-          "id": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "id": "<ID-2>",
           "environments": [
             {
               "environmentId": "local",
@@ -220,7 +220,7 @@
             }
           ],
           "extra": null,
-          "sessionId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+          "sessionId": "<ID-2>",
           "forkedFromId": null,
           "parentThreadId": null,
           "preview": "",
@@ -238,7 +238,7 @@
           "status": {
             "type": "idle"
           },
-          "path": "/private/tmp/cvx-eud1/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-45-45-01a107ce-a4cd-7b40-970f-5c0c68424933.jsonl",
+          "path": "/private/tmp/cvx-eud1/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-45-45-<ID-2>.jsonl",
           "cwd": "/tmp/cvx-eud1/cwd",
           "cliVersion": "0.158.0",
           "originator": "chirality-eud1-probe",
@@ -262,7 +262,7 @@
     "raw": {
       "method": "mcpServer/startupStatus/updated",
       "params": {
-        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "threadId": "<ID-2>",
         "name": "double",
         "status": "starting",
         "error": null,
@@ -277,7 +277,7 @@
     "raw": {
       "method": "mcpServer/startupStatus/updated",
       "params": {
-        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "threadId": "<ID-2>",
         "name": "double",
         "status": "ready",
         "error": null,
@@ -294,7 +294,7 @@
       "id": 4,
       "method": "thread/items/list",
       "params": {
-        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933"
+        "threadId": "<ID-2>"
       }
     }
   },
@@ -318,7 +318,7 @@
       "method": "mcpServer/tool/call",
       "params": {
         "server": "double",
-        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "threadId": "<ID-2>",
         "tool": "example_lookup",
         "arguments": {
           "key": "EX-1"
@@ -359,7 +359,7 @@
       "id": 6,
       "method": "thread/items/list",
       "params": {
-        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933"
+        "threadId": "<ID-2>"
       }
     }
   },
@@ -382,7 +382,7 @@
       "id": 7,
       "method": "thread/read",
       "params": {
-        "threadId": "01a107ce-a4cd-7b40-970f-5c0c68424933",
+        "threadId": "<ID-2>",
         "includeTurns": true
       }
     }

@@ -40,7 +40,7 @@
       "params": {
         "status": "disabled",
         "serverName": "<REDACTED>",
-        "installationId": "1f3fd398-7664-4544-92c8-f8bed8d5f364",
+        "installationId": "<ID-1>",
         "environmentId": null
       },
       "emittedAtMs": 1791132591726
@@ -75,7 +75,7 @@
       "id": 2,
       "result": {
         "thread": {
-          "id": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "id": "<ID-2>",
           "environments": [
             {
               "environmentId": "local",
@@ -86,7 +86,7 @@
             }
           ],
           "extra": null,
-          "sessionId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "sessionId": "<ID-2>",
           "forkedFromId": null,
           "parentThreadId": null,
           "preview": "",
@@ -104,7 +104,7 @@
           "status": {
             "type": "idle"
           },
-          "path": "/private/tmp/cvx-eud1b/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-49-54-01a107d2-7233-7d52-92ba-cf50fd662582.jsonl",
+          "path": "/private/tmp/cvx-eud1b/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-49-54-<ID-2>.jsonl",
           "cwd": "/tmp/cvx-eud1b/cwd",
           "cliVersion": "0.158.0",
           "originator": "chirality-eud1-probe-b",
@@ -146,7 +146,7 @@
       "method": "thread/started",
       "params": {
         "thread": {
-          "id": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "id": "<ID-2>",
           "environments": [
             {
               "environmentId": "local",
@@ -157,7 +157,7 @@
             }
           ],
           "extra": null,
-          "sessionId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+          "sessionId": "<ID-2>",
           "forkedFromId": null,
           "parentThreadId": null,
           "preview": "",
@@ -175,7 +175,7 @@
           "status": {
             "type": "idle"
           },
-          "path": "/private/tmp/cvx-eud1b/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-49-54-01a107d2-7233-7d52-92ba-cf50fd662582.jsonl",
+          "path": "/private/tmp/cvx-eud1b/codex-home/sessions/2026/10/04/rollout-2026-10-04T10-49-54-<ID-2>.jsonl",
           "cwd": "/tmp/cvx-eud1b/cwd",
           "cliVersion": "0.158.0",
           "originator": "chirality-eud1-probe-b",
@@ -199,7 +199,7 @@
     "raw": {
       "method": "mcpServer/startupStatus/updated",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "name": "double",
         "status": "starting",
         "error": null,
@@ -214,7 +214,7 @@
     "raw": {
       "method": "mcpServer/startupStatus/updated",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "name": "double",
         "status": "ready",
         "error": null,
@@ -232,7 +232,7 @@
       "method": "mcpServer/tool/call",
       "params": {
         "server": "double",
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "tool": "example_lookup",
         "arguments": {
           "key": "EX-1"
@@ -273,7 +273,7 @@
       "id": 4,
       "method": "turn/start",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "input": [
           {
             "type": "text",
@@ -290,7 +290,7 @@
     "raw": {
       "method": "warning",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "message": "Model metadata for `probe-none` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
       },
       "emittedAtMs": 1791132599769
@@ -303,7 +303,7 @@
       "id": 4,
       "result": {
         "turn": {
-          "id": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+          "id": "<ID-3>",
           "items": [],
           "itemsView": "notLoaded",
           "status": "inProgress",
@@ -321,7 +321,7 @@
     "raw": {
       "method": "thread/status/changed",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "status": {
           "type": "active",
           "activeFlags": []
@@ -336,9 +336,9 @@
     "raw": {
       "method": "turn/started",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "turn": {
-          "id": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+          "id": "<ID-3>",
           "items": [],
           "itemsView": "notLoaded",
           "status": "inProgress",
@@ -359,7 +359,7 @@
       "params": {
         "item": {
           "type": "userMessage",
-          "id": "01a107d2-85f0-7ab1-9fb8-e129f120d4e8",
+          "id": "<ID-4>",
           "clientId": null,
           "content": [
             {
@@ -369,8 +369,8 @@
             }
           ]
         },
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
-        "turnId": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+        "threadId": "<ID-2>",
+        "turnId": "<ID-3>",
         "startedAtMs": 1791132599793
       },
       "emittedAtMs": 1791132599793
@@ -384,7 +384,7 @@
       "params": {
         "item": {
           "type": "userMessage",
-          "id": "01a107d2-85f0-7ab1-9fb8-e129f120d4e8",
+          "id": "<ID-4>",
           "clientId": null,
           "content": [
             {
@@ -394,8 +394,8 @@
             }
           ]
         },
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
-        "turnId": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+        "threadId": "<ID-2>",
+        "turnId": "<ID-3>",
         "completedAtMs": 1791132599793
       },
       "emittedAtMs": 1791132599795
@@ -407,7 +407,7 @@
     "raw": {
       "method": "thread/status/changed",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "status": {
           "type": "systemError"
         }
@@ -428,8 +428,8 @@
           "misalignment": null
         },
         "willRetry": false,
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
-        "turnId": "01a107d2-85d7-79b2-aace-ebf8418805fc"
+        "threadId": "<ID-2>",
+        "turnId": "<ID-3>"
       },
       "emittedAtMs": 1791132599802
     }
@@ -440,9 +440,9 @@
     "raw": {
       "method": "turn/completed",
       "params": {
-        "threadId": "01a107d2-7233-7d52-92ba-cf50fd662582",
+        "threadId": "<ID-2>",
         "turn": {
-          "id": "01a107d2-85d7-79b2-aace-ebf8418805fc",
+          "id": "<ID-3>",
           "items": [],
           "itemsView": "notLoaded",
           "status": "failed",

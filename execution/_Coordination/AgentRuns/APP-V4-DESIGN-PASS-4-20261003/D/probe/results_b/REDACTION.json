@@ -1,0 +1,21 @@
+{
+  "basis": "HOSTING-v0.9 §9.1 redaction categories; RV2 EUD1-R11; R23-48 item 3",
+  "method": "redact.py: UUID-shaped identifiers -> <ID-n> (consistent within the folder); <timezone> content -> <REDACTED-TZ>; user, home and host names re-checked absent",
+  "categories": [
+    "installation identifier",
+    "session, thread, turn, window and context-window identifiers",
+    "host time zone"
+  ],
+  "replaced_this_run": {
+    "identifiers": 56,
+    "time_zone": 1
+  },
+  "distinct_identifiers_this_run": 8,
+  "kept_with_reason": {
+    "userAgent client text": "the probe's own invented client name",
+    "OS version": "not a personal identifier",
+    "timestamps": "kept for ordering"
+  },
+  "earlier_runs": [],
+  "note": "Applied in two passes on 2026-10-04: the first pass missed the three message ids inside 'msg_…' (word-boundary regex); the second pass numbered them <ID-1…3>, colliding with existing markers, and they were renumbered by hand to <ID-6…8> (each occurred once, prefixed 'msg_'). redact.py now numbers new identifiers after the highest existing marker."
+}

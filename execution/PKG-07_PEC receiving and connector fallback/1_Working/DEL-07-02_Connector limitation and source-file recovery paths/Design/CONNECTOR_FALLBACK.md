@@ -1,6 +1,6 @@
 # Connector standing and the source-file route
 
-- **Contribution:** DEL-07-02/CFB-v0.2. It supersedes CFB-v0.1 (sha256
+- **Contribution:** DEL-07-02/CFB-v0.2 (with two label corrections in place for RV2 EUD1-R13, R23-48; no rule changed). It supersedes CFB-v0.1 (sha256
   `ae49d6543f92c38c3c3772c39e4fa4ebfdb53f33bedae3f0f75339dd88be33c8`, the
   EU-D1 freeze RV2 reviewed), repaired for RV2-EUD1 under R23-40 (EUD1-R1,
   R1 item 2, R2, R5) and R23-37 item 3; see "Changes". Owner O-D, run
@@ -27,7 +27,7 @@ A connector (PEC, later Domains) may be qualified and current, limited, or
 absent. This file gives one way to say which, a rule for when its material
 may be relied on, the conclusions nothing about a connector can establish,
 and the route that answers the same question from ordinary project files.
-Connector-specific derivation is DEL-07-01's (PEC, PRC-v0.1) and DEL-08-01's
+Connector-specific derivation is DEL-07-01's (PEC, PRC-v0.3) and DEL-08-01's
 (Domains, DRC-v0.1). They use this vocabulary; they do not redefine it.
 
 ## 2. The standing vocabulary (frozen at EU-D1; R23-34 item 1; repaired at v0.2)
@@ -91,7 +91,7 @@ connector. The schema refuses a tier of the other connector (RV2 EUD1-R2).
     readiness to start, completion or permission.
   - Record values: every record lists `no_work`, `ready`, `permitted` and
     `correct_by_presence` as prohibited, so no consumer has to infer them.
-    "Completion" (done, satisfied) is not a record value (R23-40 item 2); it
+    "Completion" (done) is not a record value (R23-40 item 2); it
     is stated in §3 with CS-R5.
 - **CS-R3 Unsupported conclusions are named.** Each record lists, with
   reasons, the conclusions its material does not support, in words a reader
@@ -113,20 +113,20 @@ connector. The schema refuses a tier of the other connector (RV2 EUD1-R2).
 | Any other standing, or `absent` | The standing, its reasons and the unsupported conclusions; no connector conclusion | Needed for the whole question |
 
 Independently supported work continues meanwhile. A part that has only the
-connector as its source waits, with the missing input named, and is never
-marked satisfied (REQ-005).
+connector as its source waits, with the missing input named, and its need
+is never marked satisfied (REQ-005).
 
 **Prohibited conclusions (R23-40 item 2; consumers such as FV refer here).**
 Connector material, its limitation or its absence never establishes, for any
 item:
 1. that no work remains (empty work);
 2. that it is ready to start, may be dispatched or is permitted;
-3. that it is complete, done or satisfied (CS-R5: a missing input is never
-   marked satisfied; `unknown` is never promoted);
+3. that it is complete or done (CS-R5: `unknown` is never promoted, and a
+   missing input never satisfies a need);
 4. that anything is correct because of a presence fact.
 
-A connector need counts as met only when CS-R1 supports reliance. Meeting a
-need is not readiness: an item's readiness is decided by its consumer's own
+"Satisfied" is said of **needs** only. A connector need is satisfied only
+when CS-R1 supports reliance. A satisfied need is not readiness: an item's readiness is decided by its consumer's own
 file-based rules (for FV, V4-PM-06; RF-5a, R23-39).
 
 ## 4. The route account (`connector.route-account.schema.json`)
@@ -219,4 +219,4 @@ deliverable, never the reverse.
 | RV2 EUD1-R2 | CS-R1 per connector (PEC `record`, Domains `admitted`); tiers marked per connector; the schema refuses cross-connector tiers and standings | §2.3, §2.4; `connector.standing.schema.json`; DEL-07-01/08-01 record schemas |
 | RV2 EUD1-R5 | `connector.route-account.schema.json` gains `written_at_source` (`observed_clock` or `build_constant`) | §4 (schema) |
 | OD-F1 (owner) | Presence facts cite PEC's presence record, never a file | §2.3 |
-
+| RV2 EUD1-R13 (R23-48 item 4; in place, label only) | §1 names PRC-v0.3 (its PR rules are those of v0.2; v0.3 changed only §7). "Satisfied" is reserved for needs: §3 item 3 says "complete or done" of items, and the need sentence uses "satisfied" | §1, §2.4, §3 |

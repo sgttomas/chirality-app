@@ -1,0 +1,225 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "activity": "verification",
+  "run_basis": "rehearsal",
+  "subject": {
+    "kind": "double",
+    "double": "EU-D1 constructed connector inputs and real work-graph sources (FX-EUD1)",
+    "file_digests": [
+      "sha256:6e5ab8b72398aed5d2f55a1464290375340cb32e75fc2c963589df950787cd30 FX-EUD1 domains/ADMISSION.json",
+      "sha256:0a83afe2aedc1e0981be6a57764849d6688d9242d9f9485b696a108a2109f184 FX-EUD1 domains/DM-1.json",
+      "sha256:01cf03c5ccbd3c7da6d3e7e007c5b8f85bddfca8b19a9835726547d13bf99f5d FX-EUD1 domains/DM-2.json",
+      "sha256:c642a36b2fe23f1d7e55818181504f572990e8158847eafc220d6aa496f84390 FX-EUD1 domains/sources/SRC-1.md",
+      "sha256:7f9ded1741578a5839c084814911709b3a22b34db74047a2acb817e07bf5d6c6 FX-EUD1 domains/sources/SRC-1@rev-A.md",
+      "sha256:509b59316648ce7ecdde614ef09c3efcea49a33eb0354e25829015cbd0093690 FX-EUD1 domains/sources/SRC-2.md",
+      "sha256:7d1634498fabd9ae02efe5581af779378a8c9def2666447ad20af12fd9030059 FX-EUD1 pec/ADOPTION_ACCOUNT.json",
+      "sha256:4e2342fc068b7b7765fe4d297901c9643acc507b15e2462c73265a9b30ec33a6 FX-EUD1 pec/P1.json",
+      "sha256:0f952e6db4bec28667e73ade99fff407ba29ee359c2812be64cbb9eeba3d0ded FX-EUD1 pec/P2.json",
+      "sha256:813039111b1b13fbb667db6218037fd003b7c7fa971a72845296511c2b35e8b6 FX-EUD1 pec/P3.json",
+      "sha256:0c4f3f4058894827b5f8a528094e95b8fb03f0d60e2c63f4208a694ed47e4cbe FX-EUD1 pec/P4.json",
+      "sha256:27073f5971634efa3518d07990f7c6b3a5d7a2dbe7fd6ede00a5cb6d372ed963 FX-EUD1 pec/P5.json",
+      "sha256:d69ce63348a9872044df47b2715d4e6a07f33d0a868ba86cceadb9e961b7037c FX-EUD1 pec/P6.json",
+      "sha256:b0f6a4c4817542e1f6dd4442baa1e84971c6808154756744c1735d3922886919 FX-EUD1 pec/P7.json",
+      "sha256:a5faadcd5a13207bb04a2267fc1e8786364ea43c6fe47469c0d4ea7c36024a77 FX-EUD1 pec/P8.json",
+      "sha256:dc89edb0ef400799b0a24f895a030c60e4f8b8294acbe0bdfc2a70fdae8d43f1 FX-EUD1 sources/SOURCES.json",
+      "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf FX-EUD1 sources/WORK_GRAPH@e086dfff32.md",
+      "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3 FX-EUD1 sources/WORK_GRAPH@e4a0c2c4c3.md"
+    ]
+  },
+  "configuration": {
+    "codex_pin": "not_applicable",
+    "route": {
+      "kind": "model_only"
+    }
+  },
+  "date": {
+    "value": "2026-10-04",
+    "source": "record_timestamp"
+  },
+  "currency": {
+    "state": "current"
+  },
+  "record_id": "CW-EUD1-LC",
+  "case": {
+    "case_id": "CW-LC",
+    "owner_deliverable": "DEL-09-10"
+  },
+  "criterion": {
+    "source": "DEL-09-10 ScopeOfWork AC-002",
+    "identity": "sha256:24501bb43770df22cf53d5c7da37e24502160778544023fba8038a86678607ea"
+  },
+  "parts": [
+    {
+      "part": "LC-1 absent (no response)",
+      "expectation": "PEC P6: condition absent, envelope unknown; no PEC conclusion; Q1 answered by the route; no prohibited conclusion",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P6.json",
+          "digest": "sha256:98aa1d8e14dbaff525d9a0462583157fe90aedf7d7a516012ca9deb50bac95e8",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/RA-Q1.json",
+          "digest": "sha256:b03d357ee701dddf48c643c6681323e28a2ef69f1dbe2a68297f144ce978b7b1",
+          "provenance": "test_definition"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e4a0c2c4c3 (git show)",
+          "digest": "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e086dfff32 (git show)",
+          "digest": "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        }
+      ]
+    },
+    {
+      "part": "LC-2 stale",
+      "expectation": "PEC P3: condition stale; no claim relied on; the earlier node states named unsupported; Q1 answered by the route",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P3.json",
+          "digest": "sha256:fcacb91a8a4e4e981cbe602cefd8283334d89f2d2394ad295ba470eac413acce",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/RA-Q1.json",
+          "digest": "sha256:b03d357ee701dddf48c643c6681323e28a2ef69f1dbe2a68297f144ce978b7b1",
+          "provenance": "test_definition"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e4a0c2c4c3 (git show)",
+          "digest": "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e086dfff32 (git show)",
+          "digest": "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        }
+      ]
+    },
+    {
+      "part": "LC-3 partial",
+      "expectation": "PEC P4: condition partial; completeness named unsupported; Q1 answered by the route",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P4.json",
+          "digest": "sha256:00eeee7436d60a3d9e1836e3fc10237f0d921810d728e1e587287648b7fc50eb",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/RA-Q1.json",
+          "digest": "sha256:b03d357ee701dddf48c643c6681323e28a2ef69f1dbe2a68297f144ce978b7b1",
+          "provenance": "test_definition"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e4a0c2c4c3 (git show)",
+          "digest": "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e086dfff32 (git show)",
+          "digest": "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        }
+      ]
+    },
+    {
+      "part": "LC-4 failing",
+      "expectation": "PEC P5: condition failing; no claim relied on; Q1 answered by the route",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P5.json",
+          "digest": "sha256:90a4210aac464b00ba642c32bee56c650ab79331eae3ab46cf9a4437afeacb2d",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/RA-Q1.json",
+          "digest": "sha256:b03d357ee701dddf48c643c6681323e28a2ef69f1dbe2a68297f144ce978b7b1",
+          "provenance": "test_definition"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e4a0c2c4c3 (git show)",
+          "digest": "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e086dfff32 (git show)",
+          "digest": "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        }
+      ]
+    },
+    {
+      "part": "LC-5 citation does not resolve",
+      "expectation": "PEC P8: claim c3's anchor is not in the cited file; c3 condition unknown, not relied on; (c) answered by the route",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P8.json",
+          "digest": "sha256:174e129146ad13932211a5c1407eb5089969c62fca5f53f5fb299ef44bbe4fec",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/RA-Q1.json",
+          "digest": "sha256:b03d357ee701dddf48c643c6681323e28a2ef69f1dbe2a68297f144ce978b7b1",
+          "provenance": "test_definition"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e4a0c2c4c3 (git show)",
+          "digest": "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        },
+        {
+          "ref": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md @ e086dfff32 (git show)",
+          "digest": "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf",
+          "provenance": "static_inspection",
+          "fixture_standing": "recorded"
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "ref": "RUN/D run_d.py output",
+      "provenance": "test_definition"
+    }
+  ],
+  "limits": [
+    {
+      "label": "rehearsal on constructed connector inputs; stands for no scenario or VER criterion (EXP-R3)",
+      "vocabulary": "EXP"
+    },
+    {
+      "label": "date is the build constant BUILD_DATE of eud1.py (deterministic build), not a clock observation",
+      "vocabulary": "EXP"
+    }
+  ],
+  "outcome": "pass"
+}

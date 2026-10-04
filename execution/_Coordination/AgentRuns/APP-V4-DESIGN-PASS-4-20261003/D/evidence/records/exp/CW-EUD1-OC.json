@@ -1,0 +1,119 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "activity": "verification",
+  "run_basis": "rehearsal",
+  "subject": {
+    "kind": "double",
+    "double": "EU-D1 constructed connector inputs and real work-graph sources (FX-EUD1)",
+    "file_digests": [
+      "sha256:6e5ab8b72398aed5d2f55a1464290375340cb32e75fc2c963589df950787cd30 FX-EUD1 domains/ADMISSION.json",
+      "sha256:0a83afe2aedc1e0981be6a57764849d6688d9242d9f9485b696a108a2109f184 FX-EUD1 domains/DM-1.json",
+      "sha256:01cf03c5ccbd3c7da6d3e7e007c5b8f85bddfca8b19a9835726547d13bf99f5d FX-EUD1 domains/DM-2.json",
+      "sha256:c642a36b2fe23f1d7e55818181504f572990e8158847eafc220d6aa496f84390 FX-EUD1 domains/sources/SRC-1.md",
+      "sha256:7f9ded1741578a5839c084814911709b3a22b34db74047a2acb817e07bf5d6c6 FX-EUD1 domains/sources/SRC-1@rev-A.md",
+      "sha256:509b59316648ce7ecdde614ef09c3efcea49a33eb0354e25829015cbd0093690 FX-EUD1 domains/sources/SRC-2.md",
+      "sha256:7d1634498fabd9ae02efe5581af779378a8c9def2666447ad20af12fd9030059 FX-EUD1 pec/ADOPTION_ACCOUNT.json",
+      "sha256:4e2342fc068b7b7765fe4d297901c9643acc507b15e2462c73265a9b30ec33a6 FX-EUD1 pec/P1.json",
+      "sha256:0f952e6db4bec28667e73ade99fff407ba29ee359c2812be64cbb9eeba3d0ded FX-EUD1 pec/P2.json",
+      "sha256:813039111b1b13fbb667db6218037fd003b7c7fa971a72845296511c2b35e8b6 FX-EUD1 pec/P3.json",
+      "sha256:0c4f3f4058894827b5f8a528094e95b8fb03f0d60e2c63f4208a694ed47e4cbe FX-EUD1 pec/P4.json",
+      "sha256:27073f5971634efa3518d07990f7c6b3a5d7a2dbe7fd6ede00a5cb6d372ed963 FX-EUD1 pec/P5.json",
+      "sha256:d69ce63348a9872044df47b2715d4e6a07f33d0a868ba86cceadb9e961b7037c FX-EUD1 pec/P6.json",
+      "sha256:b0f6a4c4817542e1f6dd4442baa1e84971c6808154756744c1735d3922886919 FX-EUD1 pec/P7.json",
+      "sha256:a5faadcd5a13207bb04a2267fc1e8786364ea43c6fe47469c0d4ea7c36024a77 FX-EUD1 pec/P8.json",
+      "sha256:dc89edb0ef400799b0a24f895a030c60e4f8b8294acbe0bdfc2a70fdae8d43f1 FX-EUD1 sources/SOURCES.json",
+      "sha256:1ad91afcdd18ae3eb74e4eeafb041e95c16f4411a8479c33d309a18f765e2fdf FX-EUD1 sources/WORK_GRAPH@e086dfff32.md",
+      "sha256:a6fb741dfcdf46d0dfc44987f68c5b5bde267264a080e37c570460332d263fe3 FX-EUD1 sources/WORK_GRAPH@e4a0c2c4c3.md"
+    ]
+  },
+  "configuration": {
+    "codex_pin": "not_applicable",
+    "route": {
+      "kind": "model_only"
+    }
+  },
+  "date": {
+    "value": "2026-10-04",
+    "source": "record_timestamp"
+  },
+  "currency": {
+    "state": "current"
+  },
+  "record_id": "CW-EUD1-OC",
+  "case": {
+    "case_id": "CW-OC",
+    "owner_deliverable": "DEL-09-10"
+  },
+  "criterion": {
+    "source": "DEL-09-10 ScopeOfWork AC-003",
+    "identity": "sha256:04f713235fd98f861dbb23e238b3d33c002f4a0949017e090f9e33be6925da93"
+  },
+  "parts": [
+    {
+      "part": "OC-1 PEC absent + Domains stale",
+      "expectation": "P6 absent and DM-1 stale each keep their own standing; DM-1's standing equals its standing with PEC present; both routes are followed",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P6.json",
+          "digest": "sha256:98aa1d8e14dbaff525d9a0462583157fe90aedf7d7a516012ca9deb50bac95e8",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/DR-DM-1.json",
+          "digest": "sha256:075f0aadb9decb4885b6a908eaf9a5ecfb287905110cda70216e7b9a7b823c5d",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/RA-QD.json",
+          "digest": "sha256:4f1fc25e58078b88150f5f0dd6d315be4aad6f5c16813dacb8e96430539485fd",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        }
+      ]
+    },
+    {
+      "part": "IA-2 PEC adopted-current + Domains absent",
+      "expectation": "P1 keeps its reliance; DM-2 absent gives no research context; neither changes the other",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "records/PR-P1.json",
+          "digest": "sha256:b9cd7cce7fbf459d06a26e29ad3f2d6bc94384d3c8f4f4b3dcf359b91ab24689",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        },
+        {
+          "ref": "records/DR-DM-2.json",
+          "digest": "sha256:277def89778328e65ba0d0df7328755f0c2e60d835ae5a087e19faeafe616db7",
+          "provenance": "test_definition",
+          "fixture_standing": "constructed"
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "ref": "RUN/D run_d.py output",
+      "provenance": "test_definition"
+    }
+  ],
+  "limits": [
+    {
+      "label": "rehearsal on constructed connector inputs; stands for no scenario or VER criterion (EXP-R3)",
+      "vocabulary": "EXP"
+    },
+    {
+      "label": "date is the build constant BUILD_DATE of eud1.py (deterministic build), not a clock observation",
+      "vocabulary": "EXP"
+    }
+  ],
+  "outcome": "pass"
+}

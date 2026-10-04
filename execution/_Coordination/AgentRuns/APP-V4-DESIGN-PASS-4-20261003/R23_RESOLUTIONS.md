@@ -734,3 +734,20 @@ evidence rules and the owner's earlier decisions already settle them.
      The DOS example's invented run artefacts in its DEL-09-11 hand-off go
      to O-C, because a case recorded as not run should name no run.
   3. RV3's confirmation of RP-v0.3 takes this result into account (P-E6).
+
+- **R23-50 App-origin reads after P-H1c. INTEGRATION.** R23-48.3's
+  condition is met. App views may use App-origin `mcpServer/tool/call` reads
+  in the three situations P-H1b and P-H1c observed, at Codex 0.158.0 on the
+  routes probed:
+  - a thread with no prior turn, with the call made between turns;
+  - a thread with history, with the call made between turns;
+  - a call made while a model request is in flight.
+
+  Other situations stay unused until observed. PRC-v0.3 §7 lists them:
+  - a later request within the same turn;
+  - after compaction;
+  - other pins or routes.
+
+  The redaction slip in `results_b` is recorded in that folder's
+  `REDACTION.json` and corrected by hand. The script now never reuses a
+  marker.
