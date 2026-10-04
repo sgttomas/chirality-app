@@ -59,3 +59,4 @@ points.
 | MR | GC-7 revision READY (Addendum B). HELP_HUMAN applied MINOR-B1 (the readiness sentence in all three manuals) and N-B1 (GROUPS triggers). N-B2 is for the close-out. Rendering is held for the owner's regrouping answer (N-B3) |
 | HELP_HUMAN | Owner accepted both moves (DEL-09-12 to E, DEL-09-10 to D); GROUPS.md updated |
 | MW | GC-8 wording in all three manuals; v8 current in the README (v7 archived); 18 links repointed v7→v8, all anchors resolve; Agent manual header names the current edition. Local commit only (merge hold) |
+| MR | Manual part A READY (Addendum C; minors C1 formats, C2, C3 window, C4). LOOP_INIT draft REPAIR small: MAJOR-L1 read other groups' graphs; L2–L5 minors; mapping accurate (84 quotes verified). Codex binary path goes in the handoff; the hash goes in app/README |

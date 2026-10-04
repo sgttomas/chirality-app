@@ -496,3 +496,79 @@ So a ready or blocked verdict computed from the DAG will not reflect such a rela
 | MAJOR | 0 |
 | MINOR | 1 (MINOR-B1, a one-sentence readiness caveat, recommended before rendering) |
 | NOTE | 3 (N-B1 to N-B3, for HELP_HUMAN's records) |
+
+---
+
+## Addendum C: manual changes after Addendum B (GC-8, current edition, AUM additions)
+
+**Reviewer:** MR, the same instance (Claude Opus 5.5, `claude-opus-5-5`). I used read-only git and no network.
+
+**Candidate:** the local commit `1e930cb16e`, under the owner's merge hold. I checked `git diff a61372eb4c 1e930cb16e -- docs/alignment-manual` against GC-8, GC-9, `MANUAL_CHANGES.md` §8–9 and the owner's directions from "How LOOP_INIT steers agents…" onward.
+
+| File | sha256 (prefix) |
+|---|---|
+| AUM | `2671c22edb8a…` |
+| Field book | `fe1136c5bf51…` |
+| v8 | `aec310aba8f1…` |
+| README | `ab70ed20c865…` |
+
+The companion review of the LOOP_INIT drafts is `reviews/MR-LOOPINIT.md`.
+
+### Checks
+
+**GC-8 wording: accurate.** v8 §4.12 (the level table and the handoff paragraph), AUM §5 step 4, and the Field Book (HAND OFF block and §5 step 2) now say three things:
+- a cross-group relationship is recorded in each affected loop's work graph;
+- where the other group has no graph yet, it is recorded in the finding loop's graph and carried over;
+- no new standing list is created.
+
+The readiness caveat is kept. No text still mentions the shared list or `CROSS_GROUP_RELATIONSHIPS.md`.
+
+**Current edition and links: correct.**
+- README "Current editions" names v8, and v7 is first in the Archive table, with targets that exist.
+- The Field Book has 18 links to v8 and none to v7.
+- The AUM's `[human-manual]` points to v8; `[human-manual-v8]` is removed and its three uses are rewritten.
+- The header now reads "the current edition".
+
+**Edition pinning: none unwanted.** Edition numbers survive only in file names, which links must use, and in history: "since version 7" and the kept anchor `#v7-adoption`. A repository-wide grep finds the remaining references to `Consolidated_v7` outside the alignment-manual sources only in dated records. Those are App v4's definition-run basis files, which are scoped historical records, and the governance tranche and decision records.
+
+**Anchors: resolved.**
+- All 31 internal fragment links in the AUM resolve, including `#app-v4` and `#gate-60`.
+- Every reference-style link is defined, and every link-definition target exists.
+- All Field Book fragment links into v8 resolve to explicit `<a id>` anchors.
+
+**A1, the receipt content (§13): accurate.** It matches construct §3 on the location and bounded-reconciliation §5 on the PR-description use. It defines content and limits that were previously stated only in LOOP_INIT. It adds no time-sensitive state.
+
+**A5, decision recording (§13): accurate and general.** "Imply no review the human did not perform" is consistent with Root AGENTS.md's "never imply personal owner review".
+
+**A3, the gate sentence (§5): true only after the close-out.** "Reserves each stage-gate assessment" matches the proposed LOOP_INIT ("The owner assesses each stage gate."). The live LOOP_INIT, which `[app-v4-loop]` links to, still says only "The human assesses the 60% position". See MINOR-C3.
+
+**A2, the App v4 entry (§14): it does not duplicate LOOP_INIT.** It routes to the init prompt and LOOP_INIT and separates App v4 from the App v3 material. It holds no phase, group or DAG state. It has one current-state clause (MINOR-C2). The proposed LOOP_INIT's App v3 line now conflicts with it (MR-LOOPINIT MINOR-L2), so the repair belongs on the LOOP_INIT side.
+
+### Findings
+
+**MINOR-C1: README links to v8 Word and PDF files that do not exist yet.**
+- *Evidence:* a link check finds `Project_Management_for_Human_Agent_Teams_Consolidated_v8.docx` and `.pdf` missing. `MANUAL_CHANGES.md` §8 says HELP_HUMAN will produce them or remove the entries.
+- *Fix:* produce them, or remove the two entries, before the change is merged.
+
+**MINOR-C2: A2 states a current-state fact that will go stale.**
+- *Evidence:* "App v4 has no project `AGENTS.md`." This becomes false if one is established.
+- *Fix:* "Read a project `AGENTS.md` if App v4 establishes one; its `LOOP_INIT.md` binds it to…". Alternatively, drop the sentence, since AUM §2's entry already tells the agent to read a project AGENTS.md where one exists.
+
+**MINOR-C3: Sequence A3 with the LOOP_INIT replacement.**
+- *Evidence:* until the close-out replaces `loop/LOOP_INIT.md`, the AUM states something about the App v4 loop that the linked file does not yet say.
+- *Fix:* land the AUM change and the LOOP_INIT replacement in the same PR. The merge hold makes this easy.
+
+**MINOR-C4: The manuals do not say who carries a cross-group relationship into a graph built later.**
+- *Evidence:* AUM step 4 says "record it in the finding loop's graph and carry it over when that graph is constructed". v8 says "carrying it into a group's graph when that graph is constructed". Neither says that the loop constructing the graph reads the other groups' graphs. The finding loop may have closed by then.
+- *Fix:* add a clause to both: "the loop that constructs a group's graph reads the other groups' graphs for relationships recorded against it". This is the general counterpart of MR-LOOPINIT MAJOR-L1.
+
+**NOTE-C1.** The HTML editions of the AUM and the Field Book are stale until they are rendered. The README's render commands carry the old `--basis-date` and `--basis-revision` values for both. Update them when you render.
+
+### Verdict for part A
+
+**READY**, with four MINOR items and one NOTE.
+- MINOR-C1 must be closed before merge.
+- MINOR-C4 is a one-clause change that should travel with MR-LOOPINIT MAJOR-L1.
+- MINOR-C2 and MINOR-C3 can be fixed in the same pass.
+
+Rendering and producing the Word and PDF files can proceed.
