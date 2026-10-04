@@ -1153,3 +1153,76 @@ Even the least contested ACT §5.1 input forms a cycle, under every option. M-Q-
 |---|---|
 | Whether the host's proposal views must show a workflow name or revision (P §8) | REQ-009 does not require it, and V4-HI-21 requires only the run. If an accepted text requires it, P4's identity row stays I (GC-3 item 3) |
 | The exact EXEC input forms in §22.3 | Named from RVG B-M3 and EXEC §2.5.1's row references. The wording is the design agents' |
+
+## 23. 2026-10-04 E residuals (RVG-C2 Addendum B, B2-M1)
+
+**Standing.** This section responds to RVG-C2 Addendum B (`reviews/RVG-C2.md`, sha256 `0736ec4cf9bf47d3a3a82eb40230b566403e8d98f85b77dae702cbc7377e6629`, commit `0c815a8cdf`). It is append-only and supersedes:
+- the O-1…O-3 columns of §22.6's per-option table;
+- the "Residual" cells of the CSV rows named below.
+
+§22.6's O-4 column and its group-1 and group-2 structure stand, as RVG confirms.
+
+### 23.1 Which moves leave a runtime flow (E residual)
+
+An invert removes the consumer's definitional need. It does not remove runtime instances the consumer still receives. Under K-3 those stay rows of kind E, just as §21 records V residuals for P1 and P8.
+
+**Moves that leave an E residual on their arc:**
+
+| Pair (row) | Runtime flow that remains | Does a source support an S1 wording that removes the receipt? | Residual |
+|---|---|---|---|
+| P10 (DEP-02-03-026) | EXEC records ADAPTER's observations, now in EXEC's own input form | **No.** DEL-02-03 CLM-002 assigns the recording to EXEC: "`DEL-03-03`'s observations … which this slice records". Making the adapter write the record would move recording ownership (S2) | **E** |
+| P12 (DEP-04-03-025) | RS's writer and reader take EXEC's checkpoint entries | **No.** DEL-04-03 CLM-004: "The App/shared evidence-record owner owns this format, App reader/writer". EXEC R14-1: EXEC's root "validates one recorder output {RS kind, observed time, body}", which RS writes. Supplier-written entries would move the writer (S2) | **E** |
+| P18 (DEP-04-03-022) | RS's writer receives settings-in. AS §12.1, DEL-04-03 row: "Written as a `settings_version` entry in order with the operation entries (RS §13, §14.1)" | **No**, for the same CLM-004 reason | **E** |
+| P20 (DEP-04-03-028) | RS's writer receives LOOP's destination events as R15 entries | **No**, for the same reason | **E** |
+| M-X2 (DEP-04-03-026) | RS's writer receives ADAPTER's external dispatch entries | **No**, for the same reason | **E** |
+| P19 (DEP-05-01-025) | LOOP's dispatch record receives AS's settings-version identity on each dispatch | **Partly.** The host route resolves treatment from the host's own control (ACT §5.3; AS §3: "the control (App or host) is the authority for the current grant"). R-3.6's "Record both" is met by RS's ordered `settings_version` entries. But AS §12.1 defines "**Grant in force per dispatch** (defined here)" for this receiver, and DEL-05-01 CLM-002 states the consumption. Removing the carriage would need AS §12.1's DEL-05-01 row withdrawn as well as S1 in DEL-05-01 CLM-002. I do not claim the sources settle it | **E** by default. The alternative is named, not adopted |
+
+**Moves that leave no runtime flow on their arc:**
+- P3, P6, P7, P21: the consumer receives only definitions or requirements.
+- P11: EXEC reads A12 control relations from the record, not from AS.
+- P5, P9, P15, P17: the act meaning comes through admitted DEP-…→DEL-04-01 rows. Record identities arrive through DEL-01-04's capture report (P9) or the host (P15), not from DEL-04-03.
+- P4 identity part: the workflow-run reference reaches the dispatching channel (LOOP or ADAPTER) from DEL-02-03's run starter. That flow is on the existing arcs DEL-05-01 → DEL-02-03 and DEL-03-03 → DEL-02-03, not on DEL-03-02 → DEL-02-01. DEL-03-02, as a contract, receives no instance.
+
+### 23.2 Per-option table (supersedes §22.6 group 3's O-1…O-3 columns)
+
+My recomputation reproduces RVG's Addendum B figures exactly. G1 r2/r3 kinds, held arcs. "Rows" is the exact minimum. Group 1 is the §22 move set, now with the five E residuals; the "+P19" lines add the sixth.
+
+| Scenario | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| Group 1 only (B), E residuals ×5 | 12 members, 11 rows | 5 / 5 (P10, P12, P13, P18, P20) + 2 / 1 (P4) | 5 / 5 | **acyclic** |
+| B, E residuals ×5 + P19 | 12 / 12 | 5 / 6 + 2 / 1 | 5 / 6 | acyclic |
+| Group 1 + P4 cut (C), E residuals ×5 | 12 / 10 | 5 / 5 | 5 / 5 | **acyclic** |
+| C, E residuals ×5 + P19 | 12 / 11 | 5 / 6 | 5 / 6 | acyclic |
+| D (C, without P1 and P8's V residuals), E residuals ×5 | 12 / 8 | 5 / 5 | 5 / 5 | acyclic |
+| D, E residuals ×5 + P19 | 12 / 9 | 5 / 6 | 5 / 6 | acyclic |
+
+**Reading.**
+
+1. **O-4 is unchanged.** It is acyclic with no owner act on any I–I pair. Every residual is E or V, and O-4 keeps only P and I.
+
+2. **Under O-3 and O-2, the 5-member component is {DEL-02-03, DEL-03-03, DEL-04-02, DEL-04-03, DEL-05-01}.**
+   - Its exact minimum is 5 rows, or 6 with P19. Some rows in that minimum are I-side rows (DEP-02-03-013, DEP-04-02-008, DEP-05-01-019), so it is not a set of cut candidates.
+   - **If owner cuts are restricted to E rows**, it closes with 6 cuts: the E residuals of P10, P12, P18 and P20, the M-X2 residual, and P13's DEP-02-03-022. With P19's residual, 7 cuts are needed.
+   - Computed: cutting the P10, P12, P18 and P20 residuals plus P13 still leaves 1 row, M-X2's DEP-04-03-026. Adding P19's residual raises that remainder to 2.
+
+3. **O-1** adds to the O-3 set:
+   - the V residuals of P1 and P8;
+   - the V and V/L rows of P2, P14 and P16;
+   - P4's L residual, unless it is cut (scenario B against C).
+
+**Group 3 restated.**
+
+| Option | What remains after group 1 and the P4 cut | Owner acts that close it |
+|---|---|---|
+| O-4 | nothing | none |
+| O-3 | one 5-member component | per-edge cuts of 6 E rows (7 with P19's residual) |
+| O-2 | as O-3 | as O-3; plus the P4 cut, if not already made |
+| O-1 | 12 members, 10 rows (11 with P19) | as O-2; plus V cuts of P1, P2, P8, P14 and P16 |
+
+**Consequence (RVG B.4).** After the moves, the owner's class choice weighs more than G1 r3's pre-move figures suggest:
+- O-4 leaves nothing to cut;
+- O-3 still needs about six per-edge cuts on E rows.
+
+### 23.3 SCC-001 has no E residual
+
+SCC-CASE-001's IV of DEP-01-01-024 (that case's §1.6) leaves no runtime flow to DEL-01-01. The sign-in and substitution evidence stays with DEL-01-05 (DEL-01-05 REQ-007; ACCESS §12). Its closure table stands.
