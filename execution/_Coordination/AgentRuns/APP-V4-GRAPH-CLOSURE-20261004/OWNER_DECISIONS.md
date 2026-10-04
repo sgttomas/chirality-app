@@ -101,3 +101,7 @@ replied:
 They were installed into that venv (`pip install -r
 docs/alignment-manual/requirements.txt`). `--check` against the committed
 v3 HTML confirmed that the renderer reproduces it.
+
+## Close-out and development-loop handoff (owner, exact, 2026-10-04)
+
+> When that work lands and the PR is merged, then proceed with the "Close out this session" steps you outlined earlier.  I will then start the development loops in a new session with the handoff you provide.  Review the init-prompt and LOOP_INIT text before finalizing your handoff.  We should incorporate the `coordinated-knowledge-work` workflow into the LOOP_INIT instructions too.
