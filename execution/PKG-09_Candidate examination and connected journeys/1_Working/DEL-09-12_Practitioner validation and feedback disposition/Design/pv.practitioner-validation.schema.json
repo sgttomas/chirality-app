@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-09-12:practitioner-validation:0.1",
-  "title": "DEL-09-12 practitioner validation records (PV-v0.1, PROPOSED)",
+  "$id": "urn:chirality:app-v4:del-09-12:practitioner-validation:0.3",
+  "title": "DEL-09-12 practitioner validation records (PV-v0.3, PROPOSED)",
   "description": "DEL-09-12's own records (F-R12): arrangement, observation, disposition, and the hand-overs to DEL-10-02 and DEL-11-03. None carries an examination outcome or a score.",
   "oneOf": [
     {
@@ -42,7 +42,7 @@
           "const": "pv_arrangement"
         },
         "format": {
-          "const": "PV-v0.1"
+          "const": "PV-v0.3"
         },
         "arrangement_id": {
           "type": "string",
@@ -92,29 +92,7 @@
                   "object",
                   "null"
                 ],
-                "description": "EXP-v0.2 candidate_subject.app_candidate (R23-33), or null when no candidate is identified.",
-                "additionalProperties": false,
-                "required": [
-                  "revision",
-                  "build_identity"
-                ],
-                "properties": {
-                  "revision": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "build_identity": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "packaged": {
-                    "type": "boolean"
-                  },
-                  "package_record": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                }
+                "description": "Per expression: App -> $defs/candidate_app; SWBPIPE -> $defs/candidate_swbpipe; null when none is identified."
               },
               "activities": {
                 "type": "array",
@@ -173,9 +151,83 @@
                   }
                 }
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "expression": {
+                      "const": "app"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "candidate": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/candidate_app"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "expression": {
+                      "const": "swbpipe"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "candidate": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/candidate_swbpipe"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
           },
-          "description": "Both expressions, App and SWBPIPE (V4-EXM-40)."
+          "description": "Exactly the two expressions, one 'app' and one 'swbpipe' (V4-EXM-40; PV1-R2).",
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "expression": {
+                    "const": "app"
+                  }
+                },
+                "required": [
+                  "expression"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "expression": {
+                    "const": "swbpipe"
+                  }
+                },
+                "required": [
+                  "expression"
+                ]
+              }
+            }
+          ]
         },
         "period": {
           "type": [
@@ -307,6 +359,52 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "agreed",
+                  "in_use",
+                  "ended"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expressions": {
+                "items": {
+                  "if": {
+                    "properties": {
+                      "availability": {
+                        "properties": {
+                          "state": {
+                            "const": "available"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "candidate": {
+                        "type": "object"
+                      },
+                      "material": {
+                        "enum": [
+                          "invented",
+                          "owner_controlled"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "PV1-R3 / AC-001: in an agreed arrangement every available expression has a candidate and material."
         }
       ]
     },
@@ -335,7 +433,7 @@
           "const": "pv_observation"
         },
         "format": {
-          "const": "PV-v0.1"
+          "const": "PV-v0.3"
         },
         "observation_id": {
           "type": "string",
@@ -350,7 +448,8 @@
         },
         "arrangement_ref": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^PV-ARR-[0-9]+ v[0-9]+$",
+          "description": "The arrangement and version the session ran under (PV-R4)."
         },
         "expression": {
           "enum": [
@@ -363,29 +462,7 @@
             "object",
             "null"
           ],
-          "description": "EXP-v0.2 candidate_subject.app_candidate (R23-33), or null when no candidate is identified.",
-          "additionalProperties": false,
-          "required": [
-            "revision",
-            "build_identity"
-          ],
-          "properties": {
-            "revision": {
-              "type": "string",
-              "minLength": 1
-            },
-            "build_identity": {
-              "type": "string",
-              "minLength": 1
-            },
-            "packaged": {
-              "type": "boolean"
-            },
-            "package_record": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
+          "description": "Per expression, as in the arrangement; a SWBPIPE observation always names its host candidate (PV1-R4)."
         },
         "configuration": {
           "type": "object",
@@ -408,10 +485,6 @@
               "minLength": 1
             },
             "model_server": {
-              "type": "string",
-              "minLength": 1
-            },
-            "host_candidate": {
               "type": "string",
               "minLength": 1
             }
@@ -709,7 +782,48 @@
             "minLength": 1
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "expression": {
+                "const": "app"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "candidate": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/candidate_app"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expression": {
+                "const": "swbpipe"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "candidate": {
+                "$ref": "#/$defs/candidate_swbpipe"
+              }
+            }
+          }
+        }
+      ]
     },
     "disposition": {
       "type": "object",
@@ -731,7 +845,7 @@
           "const": "pv_disposition"
         },
         "format": {
-          "const": "PV-v0.1"
+          "const": "PV-v0.3"
         },
         "disposition_id": {
           "type": "string",
@@ -807,6 +921,7 @@
           "required": [
             "state"
           ],
+          "description": "The disposition (routing and a proposed treatment) is DEL-09-12's; the decision is someone else's act (REQ-003, REQ-004, CLM-003). An agent may route or propose; it never decides a method or a successor basis.",
           "properties": {
             "state": {
               "enum": [
@@ -814,9 +929,38 @@
                 "decided"
               ]
             },
+            "proposed_by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decider": {
+              "enum": [
+                "owning_deliverable",
+                "owner_at_stage_decision",
+                "owner_with_affected_consumers"
+              ],
+              "description": "feature/workflow: the owning deliverable's own record (CLM-003); method: the owner at the DEL-10-02 stage decision (UC §7); successor basis: the owner with affected consumers (OI-024; CLM-005)."
+            },
+            "deliverable": {
+              "type": "string",
+              "pattern": "^DEL-[0-9]{2}-[0-9]{2}$"
+            },
             "actor": {
               "type": "string",
               "minLength": 1
+            },
+            "recorder": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recorder_stated_by_record": {
+              "type": "boolean"
+            },
+            "recording_mode": {
+              "enum": [
+                "direct capture",
+                "faithful recording"
+              ]
             },
             "record_ref": {
               "type": "string",
@@ -825,9 +969,73 @@
             "scope": {
               "type": "string",
               "minLength": 1
+            },
+            "adoption_ref": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Successor basis only: the adoption's own record, separate from the decision's (REQ-004)."
             }
           },
           "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "proposed"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "state",
+                  "proposed_by"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "decider"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "deliverable"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "actor"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "recorder"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "recorder_stated_by_record"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "recording_mode"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "record_ref"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "adoption_ref"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
             {
               "if": {
                 "properties": {
@@ -839,10 +1047,48 @@
               "then": {
                 "required": [
                   "state",
+                  "decider",
                   "actor",
+                  "recorder",
+                  "recorder_stated_by_record",
+                  "recording_mode",
                   "record_ref",
                   "scope"
+                ],
+                "not": {
+                  "required": [
+                    "proposed_by"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "actor": {
+                    "const": "the owner"
+                  }
+                },
+                "required": [
+                  "actor"
                 ]
+              },
+              "then": {
+                "properties": {
+                  "recording_mode": {
+                    "const": "faithful recording"
+                  }
+                },
+                "not": {
+                  "properties": {
+                    "recorder": {
+                      "const": "the owner"
+                    }
+                  },
+                  "required": [
+                    "recorder"
+                  ]
+                }
               }
             }
           ]
@@ -892,6 +1138,154 @@
                 "const": [
                   "unresolved"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "routed_by": {
+                "const": "unresolved"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decision": {
+                "properties": {
+                  "state": {
+                    "const": "proposed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "feature",
+                  "workflow"
+                ]
+              },
+              "proposed_treatment": {
+                "not": {
+                  "const": "successor_basis_proposal"
+                }
+              },
+              "decision": {
+                "properties": {
+                  "state": {
+                    "const": "decided"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decision": {
+                "properties": {
+                  "decider": {
+                    "const": "owning_deliverable"
+                  }
+                },
+                "required": [
+                  "deliverable"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "method"
+              },
+              "proposed_treatment": {
+                "not": {
+                  "const": "successor_basis_proposal"
+                }
+              },
+              "decision": {
+                "properties": {
+                  "state": {
+                    "const": "decided"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decision": {
+                "properties": {
+                  "decider": {
+                    "const": "owner_at_stage_decision"
+                  },
+                  "actor": {
+                    "const": "the owner"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "proposed_treatment": {
+                "const": "successor_basis_proposal"
+              },
+              "decision": {
+                "properties": {
+                  "state": {
+                    "const": "decided"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decision": {
+                "properties": {
+                  "decider": {
+                    "const": "owner_with_affected_consumers"
+                  },
+                  "actor": {
+                    "const": "the owner"
+                  }
+                },
+                "required": [
+                  "adoption_ref"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "proposed_treatment": {
+                "not": {
+                  "const": "successor_basis_proposal"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "decision": {
+                "not": {
+                  "required": [
+                    "adoption_ref"
+                  ]
+                }
               }
             }
           }
@@ -1009,7 +1403,7 @@
           "const": "practitioner_standing"
         },
         "format": {
-          "const": "PV-v0.1"
+          "const": "PV-v0.3"
         },
         "open_issue": {
           "const": "OI-016 (App v4)",
@@ -1034,9 +1428,13 @@
           ]
         },
         "observations": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Count of actual_use observations."
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^PV-OBS-[A-Za-z0-9._-]+$"
+          },
+          "uniqueItems": true,
+          "description": "The actual_use observations' ids (an array, as DEL-11-03's first cut reads it; PV1-R5)."
         },
         "is_replacement_condition": {
           "const": false,
@@ -1065,13 +1463,121 @@
                 "type": "null"
               },
               "observations": {
-                "const": 0
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "standing": {
+                "enum": [
+                  "agreed",
+                  "in_use",
+                  "ended"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "agreement_ref": {
+                "type": "string",
+                "minLength": 1
               }
             }
           }
         }
       ],
-      "description": "DEL-09-12 -> DEL-11-03 (DEP-11-03-009). Supersedes DEL-11-03's first-cut $defs/practitioner_standing at DEL-11-03's next revision."
+      "description": "DEL-09-12 -> DEL-11-03 (DEP-11-03-009). Supersedes DEL-11-03's first-cut $defs/practitioner_standing at DEL-11-03's next revision. Differences from the first cut, stated (PV1-R5): format 'PV-v0.3' (first cut 'RP-v0.1-first-cut'); added arrangement_ref and is_replacement_condition; every other field has the first cut's name and type."
+    },
+    "app_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "build_identity"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packaged": {
+          "type": "boolean"
+        },
+        "package_record": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "if": {
+        "properties": {
+          "packaged": {
+            "const": true
+          }
+        },
+        "required": [
+          "packaged"
+        ]
+      },
+      "then": {
+        "required": [
+          "package_record"
+        ]
+      },
+      "description": "EXP-v0.2 candidate_subject.app_candidate (R23-33)."
+    },
+    "candidate_app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app_candidate"
+      ],
+      "description": "The App expression's candidate: EXP candidate_subject without its kind; no host.",
+      "properties": {
+        "app_candidate": {
+          "$ref": "#/$defs/app_candidate"
+        },
+        "identification_record": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "candidate_swbpipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host_candidate",
+        "app_candidate"
+      ],
+      "description": "The SWBPIPE expression's candidate (PV1-R4): EXP candidate_subject's host_candidate (the host build or the DEL-09-07 LHQ candidate identification record that names it; DEL-09-07 and SWBPIPE supply it), and the App candidate when one takes part, else null (the App candidate's role in V4-EXM-20 is the OI-013/014 residue).",
+      "properties": {
+        "host_candidate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "app_candidate": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/app_candidate"
+            }
+          ]
+        },
+        "identification_record": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

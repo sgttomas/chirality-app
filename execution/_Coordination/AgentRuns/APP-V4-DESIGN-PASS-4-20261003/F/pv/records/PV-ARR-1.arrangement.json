@@ -23,7 +23,7 @@
       "material": null
     }
   ],
-  "format": "PV-v0.1",
+  "format": "PV-v0.3",
   "limits": [
     "OI-016 (App v4) is open: Owner 'Owner', point of need 'Before practitioner validation in use' (Open_Issues.csv at b2fbfdbac8)",
     "no activity is proposed here: the activities are the owner's choice (V4-EXM-40), and none can run before a candidate exists",
@@ -31,7 +31,7 @@
   ],
   "open_issue": "OI-016 (App v4)",
   "period": null,
-  "prepared_by": "DEL-09-12 coordinator (O-F, prototype)",
+  "prepared_by": "DEL-09-12 coordinator (O-F, design owner agent; prototype)",
   "record_kind": "pv_arrangement",
   "state": "not_agreed",
   "version": 1

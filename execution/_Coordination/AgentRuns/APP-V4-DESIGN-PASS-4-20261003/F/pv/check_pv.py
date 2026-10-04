@@ -1,4 +1,4 @@
-"""Check DEL-09-12's records and rules (PV-v0.1). Prototype, not product code. Reads only.
+"""Check DEL-09-12's records and rules (PV-v0.3). Prototype, not product code. Reads only.
 
 K-1..K-13 check the real records and the examples. Each rule about the real records is a function of them;
 each N-case breaks a real record (or the schema text, for F-R12) in memory and runs the same function, naming
@@ -39,7 +39,7 @@ def state_errors(arr, std):
     """K-4: the real state as it is today."""
     ok = (arr["state"] == "not_agreed" and arr["agreement"] is None and arr["period"] is None
           and all(not e["activities"] and e["availability"]["state"] == "blocked" for e in arr["expressions"])
-          and std["standing"] == "not_agreed" and std["observations"] == 0 and std["is_replacement_condition"] is False)
+          and std["standing"] == "not_agreed" and std["observations"] == [] and std["is_replacement_condition"] is False)
     return [] if ok else ["K-4 the records do not state today's state"]
 
 
@@ -54,9 +54,34 @@ def method_note_errors(schema, at):
     return [] if ok else ["K-11 method_note fields differ from UC §5"]
 
 
-def standing_errors(std):
-    """K-12: the standing hand-over carries what DEL-11-03's first cut reads."""
-    return [] if std["open_issue"] == "OI-016 (App v4)" and std["standing"] in ("not_agreed", "agreed", "in_use", "ended") else ["K-12 standing hand-over"]
+def handover_errors(std, schema, at):
+    """K-12 (PV1-R5): every field of DEL-11-03's first-cut $defs/practitioner_standing (read at the commit) is in the
+    hand-over with the same name, type, const and enum, except the differences P.HANDOVER_CHANGES states; and the
+    record, with the stated differences undone, is valid against the first cut."""
+    rp_all = json.loads(P.text_at(at, P.RP_SCHEMA))
+    rp, pv = rp_all["$defs"]["practitioner_standing"], schema["$defs"]["standing"]
+    errs = []
+    added = sorted(set(pv["properties"]) - set(rp["properties"]))
+    if added != sorted(P.HANDOVER_CHANGES["added"]):
+        errs.append("K-12 fields added beyond the stated ones: %s" % added)
+    for f, rdef in rp["properties"].items():
+        pdef = pv["properties"].get(f)
+        if pdef is None:
+            errs.append("K-12 first-cut field %s missing" % f)
+            continue
+        if f in P.HANDOVER_CHANGES["changed"]:
+            if (rdef.get("const"), pdef.get("const")) != P.HANDOVER_CHANGES["changed"][f]:
+                errs.append("K-12 %s changed other than stated" % f)
+            continue
+        for k in ("type", "const", "enum"):
+            if k in rdef and rdef[k] != pdef.get(k):
+                errs.append("K-12 %s: %s %r differs from the first cut's %r" % (f, k, pdef.get(k), rdef[k]))
+    if not set(rp["required"]) <= set(pv["required"]):
+        errs.append("K-12 a first-cut required field is optional here")
+    undone = {k: v for k, v in std.items() if k not in P.HANDOVER_CHANGES["added"]}
+    undone["format"] = P.HANDOVER_CHANGES["changed"]["format"][0]
+    errs += ["K-12 vs first cut: " + e.message for e in Draft202012Validator(dict(rp, **{"$defs": rp_all["$defs"]})).iter_errors(undone)]
+    return errs
 
 
 def manifest_errors(files, manifest):
@@ -79,24 +104,27 @@ def main():
     arr, std = rec["PV-ARR-1.arrangement.json"], rec["PV-STANDING-1.json"]
     expect("K-4 the real state: not agreed, no agreement, no activity proposed or selected, both expressions blocked with their causes; standing not_agreed, 0 observations, not a replacement condition",
            not state_errors(arr, std))
-    expect("K-5 every valid example passes the schema and the rules PV-R1..PV-R3",
-           lambda: all(not list(V.iter_errors(v["record"])) and not P.rule_errors(v["record"], at) for v in valid),
-           [(v["why"], [e.message for e in V.iter_errors(v["record"])], P.rule_errors(v["record"], at)) for v in valid
-            if list(V.iter_errors(v["record"])) or P.rule_errors(v["record"], at)])
+    arrs = {P.arrangement_key(x): x for x in [arr] + [v["record"] for v in valid if v["record"].get("record_kind") == "pv_arrangement"]}
+    expect("K-5 every valid example passes the schema and the rules PV-R1..PV-R5",
+           lambda: all(not list(V.iter_errors(v["record"])) and not P.rule_errors(v["record"], at, arrs) for v in valid),
+           [(v["why"], [e.message for e in V.iter_errors(v["record"])], P.rule_errors(v["record"], at, arrs)) for v in valid
+            if list(V.iter_errors(v["record"])) or P.rule_errors(v["record"], at, arrs)])
+    KIND_DEF = {"pv_arrangement": "arrangement", "pv_observation": "observation", "pv_disposition": "disposition", "practitioner_standing": "standing"}
 
-    def invalid_ok():
+    def invalid_bad():
         bad = []
         for v in invalid:
-            schema_errs = list(V.iter_errors(v["record"]))
-            rule_errs = P.rule_errors(v["record"], at)
+            schema_errs = def_errors(schema, KIND_DEF[v["record"]["record_kind"]], v["record"])  # its own kind's $def (RV2 PV1-R7)
+            rule_errs = P.rule_errors(v["record"], at, arrs)
             if v["refused_by"] == "schema" and not schema_errs:
                 bad.append(v["why"])
             if v["refused_by"].startswith("rule"):
                 code = v["refused_by"].split()[1]
                 if schema_errs or not any(e.startswith(code) for e in rule_errs):
                     bad.append(v["why"])  # a rule case must pass the schema and fail for its own rule
-        return not bad
-    expect("K-6 every invalid example is refused, each by what it names (schema, or its own rule with the schema passing)", invalid_ok)
+        return bad
+    bad_inv = invalid_bad()
+    expect("K-6 every invalid example is refused, each by what it names (its own kind's $def, or its own rule with the schema passing)", not bad_inv, bad_inv)
     expect("K-7 F-R12: no record kind has an outcome, verdict or score field",
            not fr12_errors(schema))
 
@@ -117,8 +145,8 @@ def main():
            and P.route(at, "V4-NONEXISTENT-99", "feature") == (["unresolved"], "unresolved"))
     expect("K-11 the method note carries exactly DEL-10-02 UC §5's fields (read from UC at the commit), and nothing else",
            lambda: not method_note_errors(schema, at))
-    expect("K-12 the standing hand-over carries what DEL-11-03's first-cut $defs/practitioner_standing reads (open issue, standing, no agreement and no observations while not agreed)",
-           lambda: not standing_errors(std))
+    expect("K-12 the standing hand-over has every field of DEL-11-03's first-cut $defs/practitioner_standing (at the commit) with its name and type, differs only as stated (format; added arrangement_ref, is_replacement_condition), and the record is valid against the first cut with those undone (PV1-R5)",
+           lambda: not handover_errors(std, schema, at), handover_errors(std, schema, at))
     expect("K-13 no home path in the records or Design files",
            lambda: not any(re.search(r"/Users/|/home/", open(f, encoding="utf-8").read())
                            for f in glob.glob(os.path.join(HERE, "records", "*")) + glob.glob(os.path.join(design, "*"))))
@@ -130,13 +158,17 @@ def main():
     a = copy.deepcopy(arr)
     a["state"] = "agreed"
     neg("N-1 the real arrangement declared agreed with no agreement record (a plan offered as agreement)", def_errors(schema, "arrangement", a), "schema")
+    agreement = {"actor": "the owner", "recorder": "HELP_HUMAN", "recorder_stated_by_record": True, "record_ref": "OWNER_DECISIONS_n.md (INVENTED)",
+                 "exact_text": "INVENTED", "custody": "INVENTED"}
     a = copy.deepcopy(arr)
-    a.update({"state": "agreed", "agreement": {"by": "the owner", "recorder": "HELP_HUMAN", "record_ref": "INVENTED", "exact_text": "INVENTED"}})
-    a["expressions"][0]["availability"] = {"state": "available"}
-    a["expressions"][0]["activities"] = [{"activity": "INVENTED", "selected_by": "proposed_not_selected"}]
-    neg("N-2 the real arrangement agreed with an activity the owner did not select", any(e.startswith("PV-R2") for e in P.rule_errors(a, at)), "PV-R2")
+    a.update({"state": "agreed", "agreement": agreement, "period": {"kind": "one_for_both", "value": "INVENTED"}})
+    a["expressions"][0].update({"availability": {"state": "available", "cause": "INVENTED"}, "material": "invented",
+                                "candidate": {"app_candidate": {"revision": "INVENTED", "build_identity": "INVENTED"}},
+                                "activities": [{"activity_id": "ACT-INVENTED", "description": "INVENTED", "selected_by": "proposed_not_selected"}]})
+    neg("N-2 the real arrangement agreed (schema-valid) with an activity the owner did not select",
+        not def_errors(schema, "arrangement", a) and any(e.startswith("PV-R2") for e in P.rule_errors(a, at)), "PV-R2 (schema passing)")
     s_ = copy.deepcopy(std)
-    s_["observations"] = 2
+    s_["observations"] = ["PV-OBS-INVENTED-1", "PV-OBS-INVENTED-2"]
     neg("N-3 the real standing with observations while not agreed", def_errors(schema, "standing", s_), "schema")
     s_ = copy.deepcopy(std)
     s_["agreement_ref"] = "INVENTED"
@@ -161,13 +193,54 @@ def main():
     neg("N-10 a method-note field UC §5 does not have", method_note_errors(sc, at), "K-11")
     s_ = copy.deepcopy(std)
     s_["open_issue"] = "SWBPIPE OI-016"
-    neg("N-11 the standing hand-over naming the other register's OI-016", standing_errors(s_), "K-12")
+    neg("N-11 the standing hand-over naming the other register's OI-016", handover_errors(s_, schema, at), "K-12")
     bad = dict(files)
     bad["PV-STANDING-1.json"] = files["PV-STANDING-1.json"].replace(b"not_agreed", b"agreed")
     neg("N-12 a record byte changed after the manifest was written", manifest_errors(bad, files["MANIFEST.sha256"].decode()), "K-2")
     built = P.build(at)
     built["PV-STANDING-1.json"] = dict(built["PV-STANDING-1.json"], observations=1)
     neg("N-13 a record that is not what the builder makes at the commit", built != rec, "K-3")
+
+    # PV-v0.3 (RV2-PV1): each repaired rule broken on the real records, and PV-R4 both ways
+    a = copy.deepcopy(arr)
+    a["expressions"][1] = copy.deepcopy(a["expressions"][0])
+    neg("N-15 RV2 probe A on the real arrangement: two 'app' expressions, no 'swbpipe' (PV1-R2)", def_errors(schema, "arrangement", a), "schema")
+    a2 = copy.deepcopy(arr)
+    a2.update({"state": "agreed", "agreement": agreement, "period": {"kind": "one_for_both", "value": "INVENTED"}})
+    a2["expressions"][0]["availability"] = {"state": "available", "cause": "INVENTED"}
+    neg("N-16 RV2 probe B on the real arrangement: agreed, an available expression with no candidate and no material (PV1-R3)",
+        def_errors(schema, "arrangement", a2), "schema")
+    s_ = dict(std, standing="in_use")
+    neg("N-17 RV2 probe H on the real standing: in use with no agreement reference (PV1-R3)", def_errors(schema, "standing", s_), "schema")
+    s_ = dict(std, observations=0)
+    neg("N-18 the real standing with PV-v0.2's integer count, which DEL-11-03's first cut does not read (PV1-R5)",
+        def_errors(schema, "standing", s_) and handover_errors(s_, schema, at), "schema, K-12")
+    sc = copy.deepcopy(schema)
+    sc["$defs"]["standing"]["properties"]["validated"] = {"type": "boolean"}
+    neg("N-19 a hand-over field the stated differences do not list", handover_errors(std, sc, at), "K-12")
+    # PV-R4: an in-memory agreed arrangement with an identified-looking candidate (INVENTED; never written to disk)
+    real_c = {"app_candidate": {"revision": "a1b2c3d", "build_identity": "4.0.0+a1b2c3d"}}
+    ag = copy.deepcopy(arr)
+    ag.update({"arrangement_id": "PV-ARR-9", "state": "agreed", "agreement": agreement, "period": {"kind": "one_for_both", "value": "INVENTED"}})
+    ag["expressions"][0].update({"availability": {"state": "available", "cause": "INVENTED"}, "material": "invented", "candidate": real_c,
+                                 "activities": [{"activity_id": "ACT-9", "description": "INVENTED", "selected_by": "the owner"}]})
+    ob = copy.deepcopy([v["record"] for v in valid if v["record"].get("observation_id") == "PV-OBS-EX-1"][0])
+    ob.update({"standing": "actual_use", "arrangement_ref": "PV-ARR-9 v1", "activity_id": "ACT-9", "candidate": copy.deepcopy(real_c)})
+    ctx = dict(arrs, **{"PV-ARR-9 v1": ag})
+    neg("P-1 positive control: actual use under an agreed arrangement, on an owner-selected activity, on that expression's candidate",
+        not def_errors(schema, "observation", ob) and not def_errors(schema, "arrangement", ag) and not P.rule_errors(ob, at, ctx), "none")
+
+    def r4(mut_arr=None, mut_obs=None):
+        a_, o_ = copy.deepcopy(ag), copy.deepcopy(ob)
+        (mut_arr or (lambda x: None))(a_)
+        (mut_obs or (lambda x: None))(o_)
+        return [e for e in P.rule_errors(o_, at, dict(arrs, **{"PV-ARR-9 v1": a_})) if e.startswith("PV-R4")]
+    neg("N-20 the same under a proposed (not agreed) arrangement", r4(lambda a_: a_.update(state="proposed", agreement=None, period=None)), "PV-R4")
+    neg("N-21 the same on an activity the owner did not select", r4(mut_obs=lambda o_: o_.update(activity_id="ACT-NOWHERE")), "PV-R4")
+    neg("N-22 the same on another candidate", r4(mut_obs=lambda o_: o_.update(candidate={"app_candidate": {"revision": "ffff", "build_identity": "other"}})), "PV-R4")
+    neg("N-23 the same naming an arrangement that is not supplied", r4(mut_obs=lambda o_: o_.update(arrangement_ref="PV-ARR-77 v1")), "PV-R4")
+    neg("N-24 RV2 probe C on the real PV-ARR-1 (not agreed; activity in no arrangement)",
+        [e for e in P.rule_errors(dict(ob, arrangement_ref="PV-ARR-1 v1", activity_id="ACT-NOWHERE"), at, arrs) if e.startswith("PV-R4")], "PV-R4")
 
     neg("N-14 a home path in a record", re.search(r"/Users/|/home/", json.dumps(dict(std, limits=["see /" + "Users/someone/notes"]))), "K-13")
 

@@ -3,7 +3,7 @@
     "why": "a proposal: activities proposed, not selected; no agreement",
     "record": {
       "record_kind": "pv_arrangement",
-      "format": "PV-v0.1",
+      "format": "PV-v0.3",
       "arrangement_id": "PV-ARR-90",
       "version": 1,
       "open_issue": "OI-016 (App v4)",
@@ -48,7 +48,7 @@
     "why": "an agreed arrangement (invented owner act)",
     "record": {
       "record_kind": "pv_arrangement",
-      "format": "PV-v0.1",
+      "format": "PV-v0.3",
       "arrangement_id": "PV-ARR-91",
       "version": 1,
       "open_issue": "OI-016 (App v4)",
@@ -57,8 +57,10 @@
         {
           "expression": "app",
           "candidate": {
-            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
-            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+            "app_candidate": {
+              "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+              "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+            }
           },
           "activities": [
             {
@@ -76,8 +78,8 @@
         {
           "expression": "swbpipe",
           "candidate": {
-            "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
-            "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+            "host_candidate": "ILLUSTRATIVE (PV example; not a real host candidate or LHQ identification record)",
+            "app_candidate": null
           },
           "activities": [
             {
@@ -107,7 +109,7 @@
       },
       "prepared_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
       "limits": [
-        "illustrative example of a proposal; not an agreement"
+        "illustrative example of an agreed arrangement; the owner's agreement is INVENTED"
       ]
     }
   },
@@ -115,14 +117,16 @@
     "why": "an illustrative observation; two aims observed, two not observed; no outcome or score",
     "record": {
       "record_kind": "pv_observation",
-      "format": "PV-v0.1",
+      "format": "PV-v0.3",
       "observation_id": "PV-OBS-EX-1",
       "standing": "illustrative",
       "arrangement_ref": "PV-ARR-91 v1",
       "expression": "app",
       "candidate": {
-        "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
-        "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+        "app_candidate": {
+          "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+          "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+        }
       },
       "configuration": {
         "codex_pin": "0.158.0",
@@ -175,7 +179,7 @@
     "why": "a feature disposition routed by the ScopeLedger (V4-EXE-01 -> DEL-01-02)",
     "record": {
       "record_kind": "pv_disposition",
-      "format": "PV-v0.1",
+      "format": "PV-v0.3",
       "disposition_id": "PV-DSP-EX-1",
       "observation_ref": "PV-OBS-EX-1",
       "kind": "feature",
@@ -189,7 +193,8 @@
       "routed_by": "scope_ledger",
       "proposed_treatment": "proposed_revision",
       "decision": {
-        "state": "proposed"
+        "state": "proposed",
+        "proposed_by": "DEL-09-12 coordinator (ILLUSTRATIVE)"
       }
     }
   },
@@ -197,7 +202,7 @@
     "why": "a method disposition to DEL-10-02 with manual section and node",
     "record": {
       "record_kind": "pv_disposition",
-      "format": "PV-v0.1",
+      "format": "PV-v0.3",
       "disposition_id": "PV-DSP-EX-2",
       "observation_ref": "PV-OBS-EX-1",
       "kind": "method",
@@ -213,7 +218,8 @@
       "routed_by": "method_feedback_to_DEL-10-02",
       "proposed_treatment": "no_change",
       "decision": {
-        "state": "proposed"
+        "state": "proposed",
+        "proposed_by": "DEL-09-12 coordinator (ILLUSTRATIVE)"
       }
     }
   },
@@ -242,16 +248,192 @@
     "why": "a standing hand-over in use (invented agreement)",
     "record": {
       "record_kind": "practitioner_standing",
-      "format": "PV-v0.1",
+      "format": "PV-v0.3",
       "open_issue": "OI-016 (App v4)",
       "standing": "in_use",
       "arrangement_ref": "PV-ARR-91 v1",
       "agreement_ref": "OWNER_DECISIONS_n.md (INVENTED)",
-      "observations": 1,
+      "observations": [
+        "PV-OBS-EX-1"
+      ],
       "is_replacement_condition": false,
       "limits": [
         "illustrative"
       ]
+    }
+  },
+  {
+    "why": "an illustrative SWBPIPE observation: the host candidate named, no App candidate taking part (PV1-R4)",
+    "record": {
+      "record_kind": "pv_observation",
+      "format": "PV-v0.3",
+      "observation_id": "PV-OBS-EX-2",
+      "standing": "illustrative",
+      "arrangement_ref": "PV-ARR-91 v1",
+      "expression": "swbpipe",
+      "candidate": {
+        "host_candidate": "ILLUSTRATIVE (PV example; not a real host candidate or LHQ identification record)",
+        "app_candidate": null
+      },
+      "configuration": {
+        "codex_pin": "0.158.0",
+        "model": "ILLUSTRATIVE",
+        "model_server": "ILLUSTRATIVE"
+      },
+      "date": "2026-10-04",
+      "activity_id": "ACT-EX-swbpipe",
+      "observer": "the owner",
+      "recorder": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "conditions": "ILLUSTRATIVE: a two-hour design session on invented material",
+      "aims": {
+        "confidence_for_attention": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the plan view's result needed a second reading before it could be relied on",
+              "sources": [
+                "ILLUSTRATIVE session record"
+              ]
+            }
+          ]
+        },
+        "workarounds": {
+          "coverage": "observed",
+          "observed": [
+            {
+              "statement": "ILLUSTRATIVE: the owner copied a path by hand because the view offered no link",
+              "sources": [
+                "ILLUSTRATIVE"
+              ]
+            }
+          ]
+        },
+        "perception_gaps": {
+          "coverage": "not_observed",
+          "observed": []
+        },
+        "records_missing_or_unused": {
+          "coverage": "not_observed",
+          "observed": []
+        }
+      },
+      "limits": [
+        "illustrative: inspects the record definition only (VER-003); no favourable or unfavourable conclusion"
+      ]
+    }
+  },
+  {
+    "why": "a feature disposition decided by the owning deliverable's own record, faithfully recorded (invented)",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.3",
+      "disposition_id": "PV-DSP-EX-3",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "feature",
+      "owning_commitment": {
+        "ref": "V4-EXE-01",
+        "source": "original-seed PRD.md#V4-EXE-01 via _Decomposition/ScopeLedger.csv"
+      },
+      "recipient": [
+        "DEL-01-02"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "proposed_revision",
+      "decision": {
+        "state": "decided",
+        "decider": "owning_deliverable",
+        "deliverable": "DEL-01-02",
+        "actor": "DEL-01-02 feature owner (INVENTED)",
+        "recorder": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+        "recorder_stated_by_record": true,
+        "recording_mode": "faithful recording",
+        "record_ref": "DEL-01-02 Design change record (INVENTED)",
+        "scope": "ILLUSTRATIVE: the plan view's link"
+      }
+    }
+  },
+  {
+    "why": "a method disposition decided by the owner at the DEL-10-02 stage decision (UC §7; invented)",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.3",
+      "disposition_id": "PV-DSP-EX-4",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "method",
+      "owning_commitment": {
+        "ref": "V4-OPS-20",
+        "source": "docs/OPERATING_METHOD.md#V4-OPS-20",
+        "manual_section": "ILLUSTRATIVE: Field Book §n (edition per CURRENT_EXECUTION_BASIS)",
+        "work_graph_node": "ILLUSTRATIVE node"
+      },
+      "recipient": [
+        "DEL-10-02"
+      ],
+      "routed_by": "method_feedback_to_DEL-10-02",
+      "proposed_treatment": "no_change",
+      "decision": {
+        "state": "decided",
+        "decider": "owner_at_stage_decision",
+        "actor": "the owner",
+        "recorder": "HELP_HUMAN",
+        "recorder_stated_by_record": true,
+        "recording_mode": "faithful recording",
+        "record_ref": "OWNER_DECISIONS_n.md (INVENTED), the DEL-10-02 stage decision",
+        "scope": "ILLUSTRATIVE: Field Book §n, this undertaking only"
+      }
+    }
+  },
+  {
+    "why": "a successor-basis proposal, kept proposed (REQ-004)",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.3",
+      "disposition_id": "PV-DSP-EX-5",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "feature",
+      "owning_commitment": {
+        "ref": "V4-EXE-01",
+        "source": "original-seed PRD.md#V4-EXE-01 via _Decomposition/ScopeLedger.csv"
+      },
+      "recipient": [
+        "DEL-01-02"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "successor_basis_proposal",
+      "decision": {
+        "state": "proposed",
+        "proposed_by": "DEL-09-12 coordinator (ILLUSTRATIVE)"
+      }
+    }
+  },
+  {
+    "why": "a successor basis decided by the owner, with its own decision and adoption records (invented)",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.3",
+      "disposition_id": "PV-DSP-EX-6",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "feature",
+      "owning_commitment": {
+        "ref": "V4-EXE-01",
+        "source": "original-seed PRD.md#V4-EXE-01 via _Decomposition/ScopeLedger.csv"
+      },
+      "recipient": [
+        "DEL-01-02"
+      ],
+      "routed_by": "scope_ledger",
+      "proposed_treatment": "successor_basis_proposal",
+      "decision": {
+        "state": "decided",
+        "decider": "owner_with_affected_consumers",
+        "actor": "the owner",
+        "recorder": "HELP_HUMAN",
+        "recorder_stated_by_record": true,
+        "recording_mode": "faithful recording",
+        "record_ref": "OWNER_DECISIONS_n.md (INVENTED)",
+        "scope": "ILLUSTRATIVE: a v5.0 basis",
+        "adoption_ref": "the adopting loop's adoption record (INVENTED)"
+      }
     }
   }
 ]
