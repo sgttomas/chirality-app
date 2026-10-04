@@ -455,3 +455,94 @@ draft; keep it out of the commit.
 - UC VER-005; VER-007 at the stage discussion.
 - DA §5 step 2 at the pass closeout.
 - RA §2–§5 (DEL-10-03), next unit.
+
+## Brief received, 2026-10-04 (labelled transcription; the brief as sent is in `BRIEFS_AS_SENT.md`)
+
+- **Committed:** DA-v0.1, UC-v0.2 and EB-v0.4 at `68f83d6b20`, queued for
+  RV3. The CASE-002 update and DEP-005's text are HELP_HUMAN's (closeout
+  list; next amendment).
+- **Next:** RA §2–§5, bounded by R23-31.7. When the map exists, send the
+  ACT-POLICY row request to O-A through HELP_HUMAN. Freeze when ready.
+
+## Request to O-A, through HELP_HUMAN (R23-31.10; RA §2.3)
+
+To O-A, owner of DEL-04-01. ACT-POLICY-v0.10 §10.3, "Receivers by register
+row", has the row:
+
+| DEL-10-03 | DEP-10-03-013 | none | Not mapped in detail |
+
+DEL-10-03 RA-v0.1 now consumes ACT under entry S-6:
+- §2.1, the act list with decision actor, subject and evidence;
+- §3, the settled distinctions S1–S12;
+- §8, the policy representation (DECISION-1's reserved acts in §8.2, the
+  values still open in §8.4).
+
+That is the mapping, offered for your wording. Make the row under R23-21,
+with a version label if your practice requires one. RA cites ACT by
+section, not by version line.
+
+Separately, for your information: ACT is one of three suppliers whose
+ScopeOfWork names no DEL-10-03 receiver and whose register holds no mirror
+row (RA §3.4, F-RA1). That goes to the next amendment and is not yours to
+fix now.
+
+## Freeze — DEL-10-03 RA-v0.1, for RV3 (2026-10-04)
+
+**Paths for the path-limited commit.** Under
+`projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/`:
+
+| Path | sha256 |
+|---|---|
+| `Design/RESPONSIBILITY_ACCOUNT.md` (RA-v0.1) | `531b65b7b63f2e705ad6eb033dfe52ce3812ddf5879dff3af74b0cef122d8934` |
+| `Design/prototype/ra_check.py` | `ccbab0b3ebcffa2ee4329b204fadc3abc82207b33ae6d2b76821e18d8a159269` |
+
+**Commit-readiness (R23-41, R23-44, R23-48).**
+- `git status --ignored` shows nothing ignored under DEL-10-03.
+- Everything `ra_check.py` reads is tracked and clean: the nine supplier
+  Design files and ScopeOfWorks, and every `Dependencies.csv`.
+
+**Claims.**
+1. **§1, the population bound (R23-31.7):** 9 supplier entries and 5
+   cross-project or open-allocation entries, with exclusions.
+2. **§2, the map:** the 14 entries by class, App v4 owner, host part,
+   consumers, open allocation and confirmation state. Each indexes its
+   supplier section and restates none (SQ-E2). No common implementation is
+   named.
+3. **§3, two-way trace.**
+   - Each entry goes to its supplier SoW clause and mirror row (checked).
+   - The reverse scan finds nothing outside the bound.
+   - Seed V4-ARC-20's five shared-layer items all have v4 owners, so the
+     relocation lost no promise.
+   - Finding **F-RA1:** DEL-04-01, 05-01 and 05-02 supply DEL-10-03 on
+     admitted arcs, but their SoWs and registers do not record the
+     receiver. These would be SAME_ARC mirrors (no SCC). They go to the
+     next amendment; no row is added.
+4. **§4.**
+   - Historical applicability H-1…H-3, quoting the seed and current text,
+     with seed hashes checked.
+   - Consumer, packaging and tool-path account, static only: App v3
+     (historical), App v4 P-2/P-3 (proposed), Root, Runtime, Piping and PEC,
+     each with its outstanding check and point of need.
+5. **Owner boundary.** No adoption is performed or claimed. No register or
+   ScopeOfWork is written.
+
+**Checks run.**
+- `ra_check.py`: **PASS 31, FAIL 0** (H-1 ×9, P-1, R-1 ×9, R-2 ×9, F-1 ×3).
+- `ra_check.py --self-test`: H-1, P-1, R-1, R-2 and F-1 each **detected** a
+  mutation.
+- `check_boundary_owner_resolution.py` on DEL-10-03's SoW: 1 checked, 0
+  failing.
+- Ledger dispositions for SC2-02-01-2, SC2-04-03-1 and SC3-02-04-9: all
+  INCLUDE.
+
+**PN-1, re-read before freeze.**
+- Re-read because they changed: R23 (`0f79ed06…`, R23-49, not bearing on
+  RA) and DISPATCH (`dc6855b4…`).
+- Unchanged: `OWNER_DECISIONS_2.md` `3a861c52…`.
+- No supplier Design file has uncommitted changes.
+
+**Open.**
+- F-RA1: next amendment.
+- ACT's consumer row: O-A, on request.
+- Build and runtime checks for P-2/P-3: at the first package (DEL-01-06).
+- WD U-17 confirmations: deliverable owners (R23-31.8).
