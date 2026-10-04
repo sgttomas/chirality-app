@@ -1,6 +1,6 @@
 # Preserved history and coexistence account
 
-- **Contribution:** DEL-11-01/CA-v0.1, the first Design file of DEL-11-01. Frozen with DEL-11-03 RP-v0.4 as unit **EU-F2**, because RP-v0.4 adopts this file's hand-over.
+- **Contribution:** DEL-11-01/CA-v0.2. It supersedes CA-v0.1 (sha256 `1a4a0ca6b1b6e74fe11e3c41b0c6b3d1316624e41c8aa4adb28f2c7d050f6ab2`, unit EU-F2, READY in RV3-CA1.md). It is repaired for RV3's CA1-R1, CA1-R2 and CA1-N1, and it records DEL-11-02's adoption status. It is part of unit **EU-F3**, with DEL-11-02 AA-v0.1 and DEL-11-03 RP-v0.5.
 - **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it is the PROPOSED schema `ca.continuity-account.schema.json`. The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/ca/` (RUN/F/ca): `build_ca.py`, `check_ca.py`, and the built account `records/CA-1.continuity-account.json` with its hand-over `records/CA-1.handoff.json`. The account's checks are **real**, run against this repository and the original checkout; only the lane obligations are absent, because their owners have not supplied them.
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-007 (§8).
@@ -13,13 +13,13 @@
   - `docs/PRD.md` `bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd` (§6, §8, §9 OQ-12, §11);
   - `docs/OPERATING_METHOD.md` `98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd` (§5 closing paragraph, V4-OPS-31/32);
   - `conceptual/DECISIONS.md` `abe26074667b77863c2d917331d4ffba3a6996189273c551e1cf722d84e0430a` (OD-09).
-- **Linked records** (the account names each by its git identity at commit `22ed9383a45e788ade4718b9e78053e9ceb72d90`; the current sha256 of each file):
+- **Linked records** (the account names each by its git identity at commit `122c5abcf516f31ffdb1fdb17d9d5b0f96603154`; CA-v0.1 was built at `22ed9383a4`; the current sha256 of each file):
   - `reference/REFERENCES.md` `07fe44e0494634ee40ae57a0b112f6fed7ae0b937fd3e2502574cd5431b240fc`;
   - `reference/archives/ARCHIVES.md` `b791f8390b9423f59d5a7e5fbb43ec57d1c9f119be208c29b041a38c945e41a2`;
   - `archive_digests.json` `c73203c2fc13fe35954c75367947324b483f67533c8f2d3b6ab512418c5c9357`;
   - `archive_digests.py` `84ca3b480cba1a176a35c709cb319e904fdcb7babb80a9b8936e4e0d7c5cc816`;
   - `reference/SOURCE_INVENTORY.md` `4008921d7f826122f20c95861f9a3f15b474f37c4819bea715df60dcc910122a`.
-- **Supplier input (R23-44):** DEL-10-03's RA-v0.1 draft (O-E, not frozen) is vendored at `RUN/F/ca/vendor/` (sha256 `531b65b7…8934`) for its X-1 consumer list.
+- **Supplier input (R23-44):** DEL-10-03's RA-v0.2 is vendored at `RUN/F/ca/vendor/` (sha256 `811c868cf4689ab58ecab4a9e3e281310f17002d734fbbe2b8065a5879754897`, committed `ce64a97a2a`) for its X-1 consumer list. CA-v0.1 vendored RA-v0.1 (`531b65b7…`) while it was an uncommitted draft; O-E later froze RA-v0.1 at `caed56b8ea` and superseded it. RV3 confirmed that §1.3 (X-1…X-5) and §4.2 are byte-identical in the two versions (CA1-N1), so the lane basis is unchanged. DEL-11-02's AA-1 status hand-over (`RUN/F/aa/records/AA-1.status.json`) is the adoption input.
 - **Labels.** *States* means a file says it; *inference* marks this file's reading; PROPOSED marks a rule introduced here.
 
 ## 0. What the account is, and what it is not
@@ -41,7 +41,7 @@ It does not open a whole-corpus archival audit.
 | Replacing v3.0.1 | The owner (P-1; PRD §8) | Standing carried: "replacement pending; v3.0.1 retained" |
 | Retiring any lane; ending coexistence; chat migration | The owner with affected consumers (P-4; OI-024; OQ-12) | Rows carried; no lane is eligible (§5) |
 | A lane's continuing obligations | That lane's owner (DEP-006) | Status carried as *not supplied* |
-| Consumer adoption | Each receiving loop (F-R10), recorded by DEL-11-02 | Status carried as *not supplied* until DEL-11-02's account exists |
+| Consumer adoption | Each receiving loop (F-R10), recorded by DEL-11-02 | Status carried from DEL-11-02's AA-1 as *supplied*. No consumer has adopted the renewed v4 basis (OI-024) |
 | Shared responsibility and consumer map | DEL-10-03 (O-E) | X-1 consumed (§2) |
 
 ## 2. Interfaces
@@ -59,7 +59,7 @@ The hand-over (O-1) supersedes DEL-11-03's first-cut `$defs/continuity_input`. D
 
 ## 3. Preservation classes (OUT-001; REQ-001, REQ-002)
 
-Seven classes are built from REQ-001's list and B-HTML d7's "What to carry" (F-R6). The account's identity check is in the last column, as run at `22ed9383a4`.
+Seven classes are built from REQ-001's list and B-HTML d7's "What to carry" (F-R6). The account's identity check is in the last column, as run at `122c5abcf5` (the results are the same as at `22ed9383a4`).
 
 | ID | Class | Linked records | Standing | Current selector | Recovery route | Check |
 |---|---|---|---|---|---|---|
@@ -97,11 +97,23 @@ Seven classes are built from REQ-001's list and B-HTML d7's "What to carry" (F-R
 
 **RE-1 (PROPOSED).** `retirement_eligible` can be true only with all of: retirement intended, obligations supplied, and an evidenced disposition by the lane's accountable owner (`by`, `record_ref`, `evidence`). The schema enforces this. The check's rule never consults the fallback replacement: a decided replacement makes no lane eligible (VER-005), and neither does an empty disposition.
 
-**Owner acts, recorded faithfully (VER-006 positive).** Two real acts bear on preservation. Each is recorded with its exact text, which is found in its record at the commit, and with a recorder distinct from the actor:
-- **OD-09** (conceptual/DECISIONS.md): "Preserve the old projects and archives until I decide v4 has replaced the fallback."
-- **Direction item 2** of this run (OWNER_DECISIONS.md): "1 yes, 2 no rewrite, 3 go, 4 A+C", whose effect is that git history is not rewritten. History stays recoverable as recorded.
+**Owner acts, recorded faithfully (VER-006 positive).** Two real acts bear on preservation. Each is recorded with its exact text, which is found in its record at the commit. Each says who recorded it **only as far as the record itself says** (`recorder_stated_by_record`).
 
-A fabricated act whose text is not in its record fails the rule, and an act recorded by its own actor is refused.
+- **OD-09** (conceptual/DECISIONS.md, row OD-09). All three of its sentences are recorded, with the classes each supports (CA-v0.2; CA1-R2):
+  1. "Pin the investigation revision separately from the published v3.0.1 fallback release in sgttomas/chirality-app. Preserve both references." (C-1, C-5)
+  2. "Inventory relevant Git-ignored archives in the original checkout at ‹archive root› and establish stable read access." (C-3)
+  3. "Preserve the old projects and archives until I decide v4 has replaced the fallback." (C-1, C-2, C-3, C-7)
+
+  In sentence 2, ‹archive root› replaces a home path. The check matches exactly one path-like token there, so an altered sentence still fails (N-9).
+
+  **Recorder: not named by the record** (CA-v0.2; CA1-R1). DECISIONS.md states that its OD entries quote "the owner's opening message to HELPS_HUMANS in the session that created this working root (preserved verbatim in the run record, `OPENING_BRIEF.md`)", and that "the grouping and IDs are the agent's". It names no writer. CA-v0.1 named a recorder the record does not state.
+
+  **Custody:** OPENING_BRIEF.md (`af88327a…`), in which each sentence is also found.
+- **Direction item 2** of this run (OWNER_DECISIONS.md): "1 yes, 2 no rewrite, 3 go, 4 A+C", whose effect is that git history is not rewritten. Recorder HELP_HUMAN, as the file's custody line states. History stays recoverable as recorded.
+
+A fabricated act whose text is not in its record fails the rule, and an act whose recorder is "the owner" is refused.
+
+**Limit of the check (CA1-R1).** K-9's actor-not-recorder test is a string comparison. It would pass any recorder text other than "the owner", and it cannot tell whether a named recorder is true. `recorder_stated_by_record` and the custody text are what make the record honest; the check only refuses the self-recorded case.
 
 **Replacement standing (F-R8, SCC-CASE-007 R1).** The standing is "pending" and "v3.0.1 retained", with no disposition reference. When DEL-11-03 returns an attributable disposition, the next account version records it (`decided`, with its reference). Even then the account retires nothing: P-4's acts remain separate.
 
@@ -123,9 +135,9 @@ A fabricated act whose text is not in its record fails the rule, and an act reco
 | CF-2 | `verify` reports a change | C-3 `changed`; the hand-over carries it | The owner is told: archives are the owner's (OD-09). The account never "repairs" archive content |
 | CF-3 | The thesis tree differs, or its working tree is dirty | C-4 `differs`; `check_ca.py` K-5/K-6 fail | A discrepancy, exposed and not normalised (AC-003) |
 | CF-4 | A lane owner supplies obligations | A new row version with a disposition only if evidenced; eligibility only under RE-1 | — |
-| CF-5 | DEL-10-03's consumer list changes | V-1 prints a NOTICE (live moved since vendoring) | Re-pin deliberately (R23-21) |
+| CF-5 | DEL-10-03's consumer list changes after the vendored RA-v0.2 | V-1 prints a NOTICE (live moved since vendoring) | Re-pin deliberately (R23-21), as was done for RA-v0.1 → RA-v0.2 |
 
-## 8. Verification (designed; `check_ca.py` 21/21 at freeze)
+## 8. Verification (designed; `check_ca.py` 23/23 at freeze)
 
 | VER | Case | Held by |
 |---|---|---|
@@ -134,7 +146,8 @@ A fabricated act whose text is not in its record fails the rule, and an act reco
 | VER-003 | Complete thesis comparison; omitted, added and changed files detected in memory; thesis untouched | K-5, K-6, K-7, K-8 |
 | VER-004 | Named material identities (C-1, C-3, C-5, C-6) with coverage limits (C-7 not checked) | K-4, K-3 (rebuild), C-3 live verify |
 | VER-005 | Obligations to owners; a fallback-only replacement and an empty disposition never establish retirement | K-11, N-1, N-2, N-3 |
-| VER-006 | Two real owner acts faithfully recorded; fabricated and self-recorded acts refused | K-9, N-4, N-5 |
+| VER-006 | Two real owner acts faithfully recorded (OD-09 in full; no recorder named where the record names none); fabricated, altered and self-recorded acts refused. K-9's recorder test is a string comparison (limit) | K-9, N-4, N-5, N-9 |
+| — | Adoption status taken from DEL-11-02's AA-1 | K-13 |
 | VER-007 | One-for-one act boundary (§1) | Review |
 
 ## 9. Open matters
@@ -144,11 +157,12 @@ A fabricated act whose text is not in its record fails the rule, and an act reco
 | U-CA-1 | Each lane's continuing obligations | The lane owners, with the owner (DEP-006; OI-024) | Before each adoption or retirement decision |
 | U-CA-2 | C-7 has no inventory or digest record. Recording one would need `archive_digests.py`-style hashed keys and a write outside this unit's area | HELP_HUMAN to route (the owner's archive) | Before C-7's identity is relied on |
 | U-CA-3 | Remote re-check of REFERENCES §2 | DEL-11-03 coordinator | When a real package is prepared for the owner |
-| U-CA-4 | DEL-11-02's adoption status | O-F (DEL-11-02, next unit) | The next account version |
+| U-CA-4 | Closed in CA-v0.2: DEL-11-02's AA-1 status is recorded | — | — |
 | U-CA-5 | Reading the thesis front matter for attribution (VER-003's production run) | O-F | Before the account is relied on as VER-003 evidence |
 
 ## 10. Changes
 
 | Version | Change |
 |---|---|
+| CA-v0.2 (2026-10-04) | CA1-R1: OD-09's recorder not named where the record names none; custody OPENING_BRIEF.md; K-9's string-comparison limit stated. CA1-R2: OD-09's three sentences, each with its classes. CA1-N1: RA re-pinned to v0.2. DEL-11-02's adoption status recorded (U-CA-4 closed). Built at `122c5abcf5`. Unit EU-F3 |
 | CA-v0.1 (2026-10-04) | First Design file; unit EU-F2 with DEL-11-03 RP-v0.4 |

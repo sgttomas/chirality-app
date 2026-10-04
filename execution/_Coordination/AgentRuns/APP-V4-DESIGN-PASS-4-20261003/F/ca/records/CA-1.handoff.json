@@ -1,13 +1,13 @@
 {
   "account_id": "CA-1",
   "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
-  "account_version": 1,
-  "adoption_status": "not_supplied",
+  "account_version": 2,
+  "adoption_status": "supplied",
   "archives": {
     "source": "projects/chirality-app-v4/reference/archives/ARCHIVES.md",
     "verify": "passed"
   },
-  "at_commit": "22ed9383a45e788ade4718b9e78053e9ceb72d90",
+  "at_commit": "122c5abcf516f31ffdb1fdb17d9d5b0f96603154",
   "continuing_obligations": {
     "owner": "Owner with affected consumers (OI-024)",
     "point_of_need": "Before each adoption/retirement decision",

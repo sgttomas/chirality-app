@@ -2382,3 +2382,60 @@ O-D, RV2 confirms your R23-48 follow-ups READY. PR-P8 equals O-A's vendored copy
 
 Freeze and tell me so I can commit it. The pre-merge review covers these, so no further RV2 round is needed unless the re-probe changes R23-50's scope.
 ```
+
+## 124. 2026-10-04T17:26:13.619Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: review EU-F2 (CA-v0.1 + RP-v0.4))
+
+```text
+RV3, your next unit is O-F's EU-F2, committed by path:
+- DEL-11-01 CONTINUITY_ACCOUNT.md (CA-v0.1, new), with its schema and F/ca/ (build_ca.py, check_ca.py 21/21, vendor/, records/);
+- DEL-11-03 REPLACEMENT_PACKET.md (RP-v0.4), with check_rp 70/70.
+The freeze record and O-F's judgment of each RR-EUF3 issue are in OWNERS/O-F.md.
+
+Write RV3-CA1.md, and append to RV3-EUF1.md for RP-v0.4. Check:
+- **CA, against the primary records.** It is a linked view (F-R6, F-R7). The checks run for real:
+  - the v3.0.1 git facts against REFERENCES §2;
+  - archive_digests verify, 19/19;
+  - the thesis tree against PRD §11.
+  
+  No consumer lane is eligible for retirement. The two owner acts it records (OD-09 and "2 no rewrite") must be quoted exactly, with the actor distinct from the recorder.
+- **RP-v0.4: your three MINOR findings and N9.**
+  - Is the illustrative-candidate refusal sound, with a fixture marked "FIXTURE, NOT FOR THE OWNER"?
+  - Is "manual" and "on request" restored?
+  - Are the excerpts now true?
+- **O-F's fixes for RR-EUF3's issues** (§3, §4, §5).
+- **That DEL-11-01's hand-over feeds RP-v0.4 correctly.**
+
+**Vendored DEL-10-03.** O-F vendored O-E's DEL-10-03 draft before O-E froze RA-v0.2. Check what it vendored against RA-v0.2 (committed ce64a97a2a). Flag a re-pin if they differ.
+```
+
+## 125. 2026-10-04T17:28:34.396Z — SendMessage — to ab796a86c8bb468c6 (RV2: confirm P-H1d (R23-53) + R23-52 items)
+
+```text
+RV2, O-D's R23-52 round is committed. Please confirm it; details are in OWNERS/O-D.md, CURRENT.
+
+1. **P-H1d** (D/probe/results_d/, probe_history_active.py). R23-53 lifts the "error result only" limit on situation 2 because of it. That widens reliance, so check:
+   - call B succeeded, between turns, on a thread with history;
+   - the marker search (each call's toolReceivedAtMs) is sound;
+   - none of the three requests carries a trace;
+   - redaction is clean;
+   - the probe stayed within limits.
+2. **EUD1-R14.** The `examiner_reading_required` flag works (sensitivity 19/19), and your N-2/N-6 now raise the flag.
+3. **EUD1-R16.** CFB is cited by hash (69c1f10e…), and §1 names PRC's rules rather than its version label.
+4. **RTD1-R1.** RTD-v0.2 pins its suppliers, and check_rtd refuses to run on a bad pin (19/19).
+
+Append to RV2-EUD1.md and RV2-RTD1.md.
+```
+
+## 126. 2026-10-04T17:31:20.416Z — SendMessage — to ae24d61633347446f (O-F: EU-F2 READY; MINORs for next freeze)
+
+```text
+O-F, RV3 has found CA-v0.1 and RP-v0.4 READY (RV3-CA1.md, and Addendum 6 in RV3-EUF1.md). It reproduced every CA check itself, including archive verify 19/19.
+
+Fold these MINOR findings into your next freeze, with DEL-11-02 or DEL-09-12:
+- **CA1-R1.** CA names a recorder for OD-09 that DECISIONS.md does not name. Say exactly what the file states (it quotes the owner's message to HELPS_HUMANS, and the grouping is the agent's), and do not name a recorder the record lacks. K-9's actor-not-recorder check is a string comparison; state that limit.
+- **CA1-R2.** Quote all three of OD-09's sentences, since C-1, C-3 and C-5 rest on the other two.
+- **EUF4-R1.** The fixture refusal rests on two constants the builder writes. Derive evidence_standing and candidate.identified from the supplied items' own standings and from the placeholder subject, recompute them in A-9, and make check_disposition refuse to present or decide a fixture package. Add RV3's probe as a negative case.
+- **Vendored DEL-10-03.** Re-pin it to RA-v0.2 (811c868c, committed at ce64a97a2a); RV3 confirmed X-1 and §4.2 are byte-identical. Update the stale "unfrozen draft" wording in VENDOR.json, the CA header and CF-5.
+
+Freeze when ready and tell me.
+```

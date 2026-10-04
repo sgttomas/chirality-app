@@ -1,11 +1,11 @@
 {
   "account_id": "CA-1",
   "adoption_status": {
-    "ref": "DEL-11-02's adoption account is not yet written; its first real entry (D-GOV-52) concerns Root guidance, not the renewed v4 basis's staged adoption",
-    "status": "not_supplied",
+    "ref": "AA-1 v1 at 122c5abcf5: No consumer has adopted the renewed App v4 basis; first adopters are the owner's decision with affected consumers (OI-024). Of the one instruction change traced (D-GOV-52), App v4 adopted it; App v3 and Runtime received a notice and recorded no decision; Piping and PEC received none by design.",
+    "status": "supplied",
     "supplier": "DEL-11-02"
   },
-  "at_commit": "22ed9383a45e788ade4718b9e78053e9ceb72d90",
+  "at_commit": "122c5abcf516f31ffdb1fdb17d9d5b0f96603154",
   "classes": [
     {
       "class_id": "C-1",
@@ -278,13 +278,13 @@
   "handoff": {
     "account_id": "CA-1",
     "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
-    "account_version": 1,
-    "adoption_status": "not_supplied",
+    "account_version": 2,
+    "adoption_status": "supplied",
     "archives": {
       "source": "projects/chirality-app-v4/reference/archives/ARCHIVES.md",
       "verify": "passed"
     },
-    "at_commit": "22ed9383a45e788ade4718b9e78053e9ceb72d90",
+    "at_commit": "122c5abcf516f31ffdb1fdb17d9d5b0f96603154",
     "continuing_obligations": {
       "owner": "Owner with affected consumers (OI-024)",
       "point_of_need": "Before each adoption/retirement decision",
@@ -365,12 +365,30 @@
     {
       "act_id": "OD-09",
       "actor": "the owner",
-      "bears_on": "C-1, C-2, C-3, C-7: all retained",
-      "custody": "the owner's direction as transcribed in DECISIONS.md; no platform timestamp",
-      "exact_text": "Preserve the old projects and archives until I decide v4 has replaced the fallback.",
+      "bears_on": "C-1, C-2, C-3, C-5, C-7 (each sentence's classes are in parts)",
+      "custody": "the owner's opening message, preserved verbatim in projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md and quoted exactly in DECISIONS.md row OD-09; no platform timestamp",
+      "exact_text": "\"Pin the investigation revision separately from the published v3.0.1 fallback release in sgttomas/chirality-app. Preserve both references.\" \"Inventory relevant Git-ignored archives in the original checkout at <archive root> and establish stable read access.\" \"Preserve the old projects and archives until I decide v4 has replaced the fallback.\"",
+      "parts": [
+        {
+          "bears_on": "C-1, C-5",
+          "text": "Pin the investigation revision separately from the published v3.0.1 fallback release in sgttomas/chirality-app. Preserve both references."
+        },
+        {
+          "bears_on": "C-3",
+          "text": "Inventory relevant Git-ignored archives in the original checkout at <archive root> and establish stable read access."
+        },
+        {
+          "bears_on": "C-1, C-2, C-3, C-7",
+          "text": "Preserve the old projects and archives until I decide v4 has replaced the fallback."
+        }
+      ],
       "record_ref": "projects/chirality-app-v4/conceptual/DECISIONS.md row OD-09",
-      "recorder": "the v4 conceptual undertaking's recorder (conceptual/DECISIONS.md)",
-      "subject": "preserve the old projects and archives until the owner decides v4 has replaced the fallback"
+      "recorder": "not named by the record: DECISIONS.md quotes the owner's opening message to HELPS_HUMANS and states 'the grouping and IDs are the agent's'",
+      "recorder_stated_by_record": false,
+      "redactions": [
+        "the archive-root path, a home path, is shown as <archive root>; the check matches any path-like token there"
+      ],
+      "subject": "pin and preserve the two references; inventory the Git-ignored archives with stable read access; preserve old projects and archives until the replacement decision"
     },
     {
       "act_id": "APP-V4-DESIGN-PASS-4-20261003 direction item 2",
@@ -380,6 +398,7 @@
       "exact_text": "1 yes, 2 no rewrite, 3 go, 4 A+C",
       "record_ref": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/OWNER_DECISIONS.md, 'Direction'",
       "recorder": "HELP_HUMAN",
+      "recorder_stated_by_record": true,
       "subject": "git history is not rewritten for the home-path cleanup"
     }
   ],
@@ -389,5 +408,5 @@
     "fallback": "v3.0.1 retained",
     "state": "pending"
   },
-  "version": 1
+  "version": 2
 }

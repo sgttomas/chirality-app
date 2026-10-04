@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.4",
-  "title": "DEL-11-03 replacement packet manifest (RP-v0.4, PROPOSED)",
+  "$id": "urn:chirality:app-v4:del-11-03:rp-packet-manifest:0.5",
+  "title": "DEL-11-03 replacement packet manifest (RP-v0.5, PROPOSED)",
   "description": "The evidence the owner's replacement decision rests on (REPLACEMENT_PACKET.md §3). Every value is derived from the supplied items by the packet rules (RP-R1...RP-R8) or copied from a named source; nothing is filled from a definition. The package file names this manifest by sha256. The packet may be put to the owner at any time; it states plainly what is and is not established and claims replacement qualification only when both witnesses hold (DEL-11-03 AX-001). Two $defs are the first-cut inputs DEL-11-03 expects from DEL-11-01 (continuity_input) and DEL-09-12 (practitioner_standing); their owners' own files supersede them when written.",
   "type": "object",
   "additionalProperties": false,
@@ -34,7 +34,7 @@
       "const": "rp_packet_manifest"
     },
     "format": {
-      "const": "RP-v0.4"
+      "const": "RP-v0.5"
     },
     "packet_id": {
       "type": "string",
@@ -53,7 +53,7 @@
         "illustrative",
         "candidate"
       ],
-      "description": "illustrative: built from schema examples or fixtures; nothing in it can establish an obligation. candidate: built from records of an identified candidate."
+      "description": "illustrative: built from schema examples or fixtures; nothing in it can establish an obligation. candidate: built from records of an identified candidate. Derived, never declared (RP-v0.5): illustrative if any supplied item is illustrative or a first cut."
     },
     "basis": {
       "type": "array",
@@ -203,7 +203,7 @@
         },
         "identified": {
           "type": "boolean",
-          "description": "True only when the subject names an identified candidate (evidence_standing candidate). Illustrative examples name none."
+          "description": "Derived (RP-v0.5): the subject maps, its revision and build carry no placeholder marker, and every counted core-loop result resolves to a record of an identified candidate. RP-R6 refuses a manifest whose declared value differs."
         }
       }
     },
@@ -739,6 +739,9 @@
         },
         "supplier": {
           "const": "DEL-11-02"
+        },
+        "statement": {
+          "$ref": "#/$defs/nonempty"
         }
       }
     },

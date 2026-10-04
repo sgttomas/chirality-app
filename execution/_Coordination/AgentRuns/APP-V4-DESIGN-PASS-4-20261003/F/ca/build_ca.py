@@ -1,4 +1,4 @@
-"""Build DEL-11-01's continuity account CA-1 (CA-v0.1) as a linked view at one commit. Prototype, not product code.
+"""Build DEL-11-01's continuity account CA-1 (CA-v0.2) as a linked view at one commit. Prototype, not product code.
 
 Design: DEL-11-01 Design/CONTINUITY_ACCOUNT.md. Rulings: R23-32 (F-R6, F-R7, F-R8), R23-43, R23-44.
 
@@ -32,6 +32,17 @@ INV = V4 + "/reference/SOURCE_INVENTORY.md"
 PRD = V4 + "/docs/PRD.md"
 DECISIONS = V4 + "/conceptual/DECISIONS.md"
 OWNER_DEC = V4 + "/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/OWNER_DECISIONS.md"
+OPENING_BRIEF = V4 + "/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/OPENING_BRIEF.md"
+AA_STATUS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "aa", "records", "AA-1.status.json"))
+REDACTED = "<archive root>"
+
+
+def matches_redacted(text, record):
+    """Exact match after whitespace normalisation, with the redaction placeholder matching one path-like token."""
+    pat = re.escape(re.sub(r"\s+", " ", text)).replace(re.escape(REDACTED), r"\S+")
+    return re.search(pat, re.sub(r"\s+", " ", record)) is not None
+
+
 HANDOFF30 = V4 + "/execution/_Coordination/HANDOFF_30_PERCENT.md"
 THESIS = V4 + "/foundation/thesis"
 THESIS_TREE = "47fc49e96c2931ba18090f1a82d56a49f230b3ee"  # docs/PRD.md §11
@@ -194,26 +205,41 @@ def build(at, run_archives):
                     "point_of_need": "Before each adoption/retirement decision"} for l, o in lanes]
 
     od = text_at(at, DECISIONS)
-    od09 = "Preserve the old projects and archives until I decide v4 has replaced the fallback."
     owner = text_at(at, OWNER_DEC)
+    brief = text_at(at, OPENING_BRIEF)
     od2 = "1 yes, 2 no rewrite, 3 go, 4 A+C"
-    if od09 not in od or od2 not in owner:
+    od09_parts = [
+        ("Pin the investigation revision separately from the published v3.0.1 fallback release in sgttomas/chirality-app. Preserve both references.", "C-1, C-5"),
+        ("Inventory relevant Git-ignored archives in the original checkout at %s and establish stable read access." % REDACTED, "C-3"),
+        ("Preserve the old projects and archives until I decide v4 has replaced the fallback.", "C-1, C-2, C-3, C-7"),
+    ]
+    if not matches_redacted(" ".join('"%s"' % t for t, _ in od09_parts), od):
+        sys.exit("OD-09's three quoted sentences are not, as one run, in DECISIONS.md")
+    for text, _ in od09_parts:
+        if not (matches_redacted(text, od) and matches_redacted(text, brief)):
+            sys.exit("an OD-09 sentence is not in DECISIONS.md and OPENING_BRIEF.md: " + text[:50])
+    if od2 not in owner:
         sys.exit("an owner act's exact text is not in its record")
     acts = [
-        {"act_id": "OD-09", "actor": "the owner", "recorder": "the v4 conceptual undertaking's recorder (conceptual/DECISIONS.md)",
-         "subject": "preserve the old projects and archives until the owner decides v4 has replaced the fallback",
-         "record_ref": DECISIONS + " row OD-09", "exact_text": od09,
-         "custody": "the owner's direction as transcribed in DECISIONS.md; no platform timestamp",
-         "bears_on": "C-1, C-2, C-3, C-7: all retained"},
+        {"act_id": "OD-09", "actor": "the owner",
+         "recorder": "not named by the record: DECISIONS.md quotes the owner's opening message to HELPS_HUMANS and states 'the grouping and IDs are the agent's'",
+         "recorder_stated_by_record": False,
+         "subject": "pin and preserve the two references; inventory the Git-ignored archives with stable read access; preserve old projects and archives until the replacement decision",
+         "record_ref": DECISIONS + " row OD-09", "exact_text": " ".join('"%s"' % t for t, _ in od09_parts),
+         "parts": [{"text": t, "bears_on": b} for t, b in od09_parts],
+         "redactions": ["the archive-root path, a home path, is shown as %s; the check matches any path-like token there" % REDACTED],
+         "custody": "the owner's opening message, preserved verbatim in " + OPENING_BRIEF + " and quoted exactly in DECISIONS.md row OD-09; no platform timestamp",
+         "bears_on": "C-1, C-2, C-3, C-5, C-7 (each sentence's classes are in parts)"},
         {"act_id": "APP-V4-DESIGN-PASS-4-20261003 direction item 2", "actor": "the owner", "recorder": "HELP_HUMAN",
+         "recorder_stated_by_record": True,
          "subject": "git history is not rewritten for the home-path cleanup",
          "record_ref": OWNER_DEC + ", 'Direction'", "exact_text": od2,
          "custody": "the session transcript; recorded by HELP_HUMAN (its effect list reads: '2: git history is not rewritten')",
          "bears_on": "C-2, C-4, C-5, C-6: history recoverable from git as recorded"},
     ]
-
+    aa_status = json.load(open(AA_STATUS, encoding="utf-8")) if os.path.exists(AA_STATUS) else None
     handoff = {
-        "record_kind": "continuity_handoff", "format": "CA-v0.1", "account_id": "CA-1", "account_version": 1,
+        "record_kind": "continuity_handoff", "format": "CA-v0.1", "account_id": "CA-1", "account_version": 2,
         "at_commit": at,
         "account_sha256_note": "the account file's sha256 is in records/MANIFEST.sha256 (a record cannot hold its own hash)",
         "thesis_check": classes[3]["identity_check"],
@@ -221,15 +247,16 @@ def build(at, run_archives):
         "archives": {"verify": arch_result, "source": ARCH},
         "continuing_obligations": {"status": "not_supplied", "owner": "Owner with affected consumers (OI-024)",
                                    "point_of_need": "Before each adoption/retirement decision"},
-        "adoption_status": "not_supplied",
+        "adoption_status": "supplied" if aa_status else "not_supplied",
         "replacement_standing": "replacement pending; v3.0.1 retained",
         "disposition_ref": None,
     }
     return {
-        "record_kind": "continuity_account", "format": "CA-v0.1", "account_id": "CA-1", "version": 1, "date": DATE,
+        "record_kind": "continuity_account", "format": "CA-v0.1", "account_id": "CA-1", "version": 2, "date": DATE,
         "at_commit": at, "classes": classes, "obligations": obligations, "owner_acts": acts,
-        "adoption_status": {"status": "not_supplied", "supplier": "DEL-11-02",
-                            "ref": "DEL-11-02's adoption account is not yet written; its first real entry (D-GOV-52) concerns Root guidance, not the renewed v4 basis's staged adoption"},
+        "adoption_status": ({"status": "supplied", "supplier": "DEL-11-02",
+                             "ref": "%s v%d at %s: %s" % (aa_status["account_id"], aa_status["account_version"], aa_status["at_commit"][:10], aa_status["statement"])}
+                            if aa_status else {"status": "not_supplied", "supplier": "DEL-11-02", "ref": "no adoption account found"}),
         "replacement_standing": {"state": "pending", "fallback": "v3.0.1 retained", "disposition_ref": None},
         "handoff": handoff,
         "limits": ["a linked view: it adds standing, selector, recovery route, owner and point of need to existing records and opens no archival audit (AX-003)",

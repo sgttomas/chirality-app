@@ -18,7 +18,8 @@ Escalate only for:
 | Unit | Deliverable | Path (from `projects/chirality-app-v4/execution/`) | sha256 | State |
 |---|---|---|---|---|
 | EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | RP-v0.1…v0.3 | as recorded below | **PASSED as an early path (R23-49); RP-v0.3 READY (RV3 Addendum 4)** |
-| EU-F2 | DEL-11-01 CA-v0.1 + DEL-11-03 RP-v0.4 | DEL-11-01 `Design/`, DEL-11-03 `Design/`, `F/` (incl. `F/ca/`) | see "EU-F2 — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then for review** |
+| EU-F2 | DEL-11-01 CA-v0.1 + DEL-11-03 RP-v0.4 | DEL-11-01 `Design/`, DEL-11-03 `Design/`, `F/` (incl. `F/ca/`) | see "EU-F2 — frozen" | **READY** (RV3-CA1.md; RV3-EUF1.md Addendum 6); MINORs carried into EU-F3 |
+| EU-F3 | DEL-11-02 AA-v0.1 + DEL-11-01 CA-v0.2 + DEL-11-03 RP-v0.5 | the three `Design/` folders; `F/` (incl. `F/aa/`, `F/ca/`) | see "EU-F3 — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then for review** |
 
 ## EU-F1 — frozen (RP-v0.1; superseded by the refreeze below, kept as the record RR-EUF1 read)
 
@@ -387,3 +388,76 @@ The re-pin of `F/vendor/lhq.dossier-manifest.valid.examples.json` was deliberate
 - All DEL-11-03 supplier evidence is still illustrative.
 
 **Next.** DEL-11-02 (the D-GOV-52 adoption trace, consumers from DEL-10-03 X-1), then DEL-09-12. I work on them while EU-F2 waits, and do not freeze another unit until EU-F2 leaves review.
+
+## EU-F3 — frozen (DEL-11-02 AA-v0.1, with DEL-11-01 CA-v0.2 and DEL-11-03 RP-v0.5)
+
+**Why one unit.** AA-v0.1's status hand-over feeds both CA-v0.2 (adoption status) and RP-v0.5 (S-6). The interface is checked from all three ends: `check_aa` K-9, `check_ca` K-13, and `check_rp` A-7, A-8 and A-22. CA-v0.2 and RP-v0.5 also carry RV3's MINORs on EU-F2.
+
+**Claims.**
+1. **DEL-11-02 (AA-v0.1)** records, per renewal and consumer, eight separately warranted facts read from git at `122c5abcf516f31ffdb1fdb17d9d5b0f96603154`. Separation rules SR-1…SR-4 and the schema keep the facts apart. The real case is RN-1, D-GOV-52:
+   - **App v4:** adopted, by agent act AD-1 (R23-30's exact text). Supply, provider adoption and behaviour are not established. Its three Design files are "pending next revision", recomputed (K-10).
+   - **App v3 and Runtime:** notice delivered; receiving decision not recorded. The search found no other mention and no commit after the tranche.
+   - **Piping and PEC:** no notice by design; the manifest's "reads … live" is quoted, not taken as observed and not counted as adoption.
+   - **The owner's approval A-1** is faithfully recorded, with recorder HELP_HUMAN as the file states.
+
+   RN-2 (the renewed v4 basis) shows no adopter among the four X-1 consumers; OI-024's owner and point of need are carried. Packaging: the export manifest is established; publication is not. Currency: no reliance, so no comparison is run. The consumers are checked against DEL-10-03 RA-v0.2's X-1 (F-R11).
+2. **DEL-11-01 (CA-v0.2):**
+   - **CA1-R1:** OD-09's recorder is now "not named by the record", quoting DECISIONS.md's own custody ("the grouping and IDs are the agent's"), with OPENING_BRIEF.md as custody. K-9's string-comparison limit is stated in the check and in the Design.
+   - **CA1-R2:** all three OD-09 sentences, each with its classes. The archive-root home path in sentence 2 is replaced by ‹archive root›, matched as one token, so an altered sentence still fails (N-9).
+   - **CA1-N1:** RA re-pinned to v0.2 (`811c868c…`, `ce64a97a2a`); VENDOR.json, the header and CF-5 corrected.
+   - DEL-11-02's status is recorded (U-CA-4 closed).
+   - Rebuilt at `122c5abcf5`: identity results unchanged, archive verify 19/19.
+3. **DEL-11-03 (RP-v0.5), EUF4-R1:**
+   - `evidence_standing` and `candidate.identified` are derived from the supplied items' standings, the subject's placeholder markers and the unresolved results, and recomputed in A-9.
+   - `check_package` refuses a declared/derived mismatch and decides the fixture refusal on the derived values. RV3's probe is B-48 and is refused on both counts.
+   - `check_disposition` refuses presenting or deciding a fixture package (B-51, B-52).
+   - B-47 (made genuinely real-looking), B-49 and B-50 are the controls.
+   - S-6 adoption status is supplied.
+
+**Checks run.**
+- `aa/check_aa.py`: **19/19**. Its K-3 rebuild reproduces the account exactly.
+- `ca/check_ca.py`: **23/23**. Its K-3 rebuild reproduces it exactly, with the archives verified; no drift NOTICE.
+- `check_rp.py`: **76/76**. `--fixture FX-RP1-3` gives 13/23 and `--fixture FX-RP1-4` gives 18/23 (history).
+- All three builders are deterministic (`cmp`).
+- Pins: CA-v0.2 has 11, RP-v0.5 13 and AA-v0.1 3. Each matches its current file except the one superseded version each names (CA-v0.1, RP-v0.4). AA's Root-level pins (`AGENTS.md`, tranche manifest) were recomputed separately.
+- Quotes: every quote in the AA evidence is checked against its file at the commit (K-4). The OWNER_DECISIONS and AGENTS.md quotes in ADOPTION_ACCOUNT.md §1 were checked by script.
+- `git status --ignored` on the unit's paths shows nothing ignored; records are in `records/`, not `out/`.
+- Home paths: none except the refusal regexes in the four builder and checker scripts.
+
+**Files (sha256)** — paths for the R23-41 commit:
+
+| File | sha256 |
+|---|---|
+| `DEL-11-02_…/Design/ADOPTION_ACCOUNT.md` (AA-v0.1) | `583637e3fd71dca76e87998fb0927906bee8c3b5a8d7a4a70ed1778ccaa0b878` |
+| `DEL-11-02_…/Design/aa.adoption-account.schema.json` | `0fd3c573c7fa7580afc44424adfbb0fd8c1e39857ed92fa09355ae47085799bb` |
+| `DEL-11-01_…/Design/CONTINUITY_ACCOUNT.md` (CA-v0.2) | `ecde63b47d3a820c8ffbf35ad0ad3c17d40c506626528afb505506b42fbc1c8d` |
+| `DEL-11-01_…/Design/ca.continuity-account.schema.json` (0.2) | `b575dd4e7c182e1d65b3370b32435638a5702d66a96ed9c6353f8612ed54dbfe` |
+| `DEL-11-03_…/Design/REPLACEMENT_PACKET.md` (RP-v0.5) | `f928cd0274d14a41ad693b8d073bf9a7a286f5fc7a0ff71fc6be082292107644` |
+| `DEL-11-03_…/Design/rp.packet-manifest.schema.json` (RP-v0.5) | `90629f17dcb621df7626325974a65b48e393574b69a187998855deb5df9fa290` |
+| `F/rplib.py` | `52e645640ff9d42772ea3b5cda94fb9d63212ef5ab03afcf8ea3b6fd15ed9cd3` |
+| `F/build_fx_rp1.py` | `0754e56b09dd19d25b2954df15c98e5840f082dd4c89aefdf69be606b8cfef9d` |
+| `F/check_rp.py` | `71987a463bc8c52eac73af2f3e8261572d2f915350fcf40e5c56cd71f4b46c3a` |
+| `F/README.md` | `14b3a3ebcbdfdb13d9edca3ea7322521042d59a3746a527f1dccb9ed41c372e8` |
+| `F/fixtures/FX-RP1-5/MANIFEST.sha256` (12 files) | `c8a267ff5149c3f5315ec56f041e680e10a9eef249c14f702a0630068744d700` |
+| `F/ca/build_ca.py` | `7b33c8ac80e12d1e67275c68e2999485b5ef68f4da68fb678094b2ae2daccf66` |
+| `F/ca/check_ca.py` | `2ba5c7d070789b416452a466c6e5ca494b4e1ddc0e4e91d6d81fb5f7ab65d22f` |
+| `F/ca/vendor/VENDOR.json` (+ RA-v0.2 `811c868c…`) | `f608edcfe78fc3cc585347468b236a6dcbe48555600986245a262f55c0acd966` |
+| `F/ca/records/MANIFEST.sha256` (CA-1 v2) | `0382842e674a63bb3d5a371a413f8987e84dc089468782afaf823aad4eadca77` |
+| `F/aa/build_aa.py` | `4b435bee26ff7a84f910b0ae12d0692dd6ced96d82e67ba08685d481500087c2` |
+| `F/aa/check_aa.py` | `a5d5feee13e58d8f3effea54e0e0e77c9ef03725111520956933be9fce323d8f` |
+| `F/aa/records/MANIFEST.sha256` (AA-1) | `3ea37d116a9600534c830338013e390d32e5be9b33e55e79269253d30366d0d7` |
+
+**Unchanged:**
+- FX-RP1…FX-RP1-4;
+- input sets 1–3 and their keys;
+- the reader briefs and schemas;
+- `compare_rp.py`, `stage_is.py`, `F/vendor/`;
+- the disposition schema.
+
+**Limits.**
+- AA-1's facts for App v3, Runtime, Piping and PEC are what git holds. Whether a loop read its notice is not observable (U-AA-1).
+- RN-2 has no adopter, and first adopters are the owner's decision (U-AA-2; P-4).
+- CA's archive check needs the original checkout.
+- All DEL-11-03 supplier evidence is still illustrative; the package is a fixture and can never be presented (B-51).
+
+**Next.** DEL-09-12, its own observation record (F-R12, F-R13, F-R14). It will be designed while EU-F3 waits and frozen after.

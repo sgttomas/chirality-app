@@ -1,12 +1,18 @@
 {
-  "rule": "R23-44: DEL-10-03's RA-v0.1 draft (O-E, not frozen, untracked when vendored) is copied here; check_ca.py reads the copy and reports live movement as a NOTICE.",
+  "rule": "R23-44: DEL-10-03's responsibility account, copied here; check_ca.py and check_aa.py read the copy and report live movement as a NOTICE.",
   "files": [
     {
       "key": "ra",
       "vendored": "vendor/RESPONSIBILITY_ACCOUNT.md",
       "source": "PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Design/RESPONSIBILITY_ACCOUNT.md",
-      "sha256": "531b65b7b63f2e705ad6eb033dfe52ce3812ddf5879dff3af74b0cef122d8934",
-      "source_git_status": "?? \"projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Design/RESPONSIBILITY_ACCOUNT.md\""
+      "sha256": "811c868cf4689ab58ecab4a9e3e281310f17002d734fbbe2b8065a5879754897",
+      "version": "RA-v0.2",
+      "source_commit": "ce64a97a2a",
+      "source_git_status": "clean (committed)",
+      "repinned": {
+        "from": "RA-v0.1 531b65b7b63f2e705ad6eb033dfe52ce3812ddf5879dff3af74b0cef122d8934 (vendored while RA was an uncommitted draft; O-E later froze it at caed56b8ea)",
+        "why": "RV3 CA1-N1: RA-v0.2 supersedes it; \u00a71.3 (X-1\u2026X-5) and \u00a74.2 are byte-identical, so the lane basis is unchanged"
+      }
     }
   ]
 }

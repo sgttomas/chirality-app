@@ -1,7 +1,7 @@
 """DEL-11-03 replacement packet rules RP-R1...RP-R9 (prototype for EU-F1; not product code).
 
 Owner O-F, run APP-V4-DESIGN-PASS-4-20261003. Design text: DEL-11-03
-Design/REPLACEMENT_PACKET.md (RP-v0.4). Rulings: R23-32 (F-R1...F-R16), R23-33
+Design/REPLACEMENT_PACKET.md (RP-v0.5). Rulings: R23-32 (F-R1...F-R16), R23-33
 (EXP candidate_subject is the canonical App candidate identity), R23-36 (LHQ-v0.2 CI-5).
 
 Python 3 standard library plus `jsonschema` (Draft 2020-12). Reads only.
@@ -10,6 +10,7 @@ Python 3 standard library plus `jsonschema` (Draft 2020-12). Reads only.
 import hashlib
 import json
 import os
+import re
 
 # --- Locations (relative to projects/chirality-app-v4/execution) -------------
 
@@ -32,6 +33,8 @@ PATHS = {
     "references": "../reference/REFERENCES.md",
     "ca_schema": P11 + "/DEL-11-01_Preserved history and coexistence account/Design/ca.continuity-account.schema.json",
     "ca_handoff": "_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/ca/records/CA-1.handoff.json",
+    "aa_schema": P11 + "/DEL-11-02_Consumer-specific renewed-basis adoption/Design/aa.adoption-account.schema.json",
+    "aa_status": "_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/aa/records/AA-1.status.json",
 }
 
 
@@ -359,6 +362,21 @@ def replacement_evidence_complete(cl, jr, reconciliation):
 ALTERNATIVE_IDS = ["ALT-OWN-USE", "ALT-PUBLISHED", "ALT-DEFER", "ALT-DECLINE"]
 CHOICE_SENTENCE = "Choosing any alternative remains the owner's act, on the evidence as presented"
 FIXTURE_NOTICE = "FIXTURE, NOT FOR THE OWNER: no real candidate is identified"
+PLACEHOLDER_RE = re.compile(r"illustrative|invented|example|placeholder", re.I)
+
+
+def derive_standing(supplied, subject, unresolved_steps):
+    """EUF4-R1: evidence_standing and candidate.identified are derived, never declared.
+
+    evidence_standing is `illustrative` if any supplied item is illustrative or a first cut; else `candidate`.
+    identified needs a mapped subject whose revision and build carry no placeholder marker, and no unresolved
+    core-loop step (every counted result resolves to a record of an identified candidate).
+    """
+    standing = "illustrative" if any(s.get("standing") in ("illustrative", "first_cut_interface") for s in supplied) else "candidate"
+    a = (subject or {}).get("app_candidate") or {}
+    marked = any(PLACEHOLDER_RE.search(str(a.get(k, ""))) for k in ("revision", "build_identity"))
+    identified = bool(a.get("revision") and a.get("build_identity") and not marked and not unresolved_steps)
+    return standing, identified
 REQUIRED_RESERVED_BY = ["docs/PRD.md §8", "docs/EXAMINATION.md §7"]
 
 
@@ -385,7 +403,11 @@ def check_package(pkg, manifest_sha256, manifest=None):
             if "BUILD_AND_RELEASE" in c and not ("manual" in c and "on request" in c):
                 errs.append("RP-R6: %s's inference from BUILD_AND_RELEASE drops 'manual' or 'on request'" % a.get("id"))
     if manifest is not None:
-        illustrative = manifest["evidence_standing"] == "illustrative" or not manifest["candidate"].get("identified", False)
+        d_standing, d_identified = derive_standing(manifest.get("supplied", []), manifest["candidate"].get("subject"),
+                                                   manifest.get("core_loop", {}).get("unresolved_steps", ["unknown"]))
+        if manifest.get("evidence_standing") != d_standing or manifest["candidate"].get("identified") != d_identified:
+            errs.append("RP-R6: the manifest's declared standing or identification disagrees with what its supplied items and subject derive (EUF4-R1)")
+        illustrative = d_standing == "illustrative" or not d_identified
         if illustrative and not manifest.get("fixture", False):
             errs.append("RP-R6: an illustrative or unidentified candidate is refused in a packet that is not a fixture (REQ-004; R23-43)")
         if illustrative and not pkg.get("purpose", "").startswith(FIXTURE_NOTICE):
@@ -397,8 +419,10 @@ def check_package(pkg, manifest_sha256, manifest=None):
 
 # --- RP-R7 disposition (DEL-11-03 REQ-004, VER-004; F-R4 OWNER_DECISIONS form) ------
 
-def check_disposition(disp, pkg, pkg_sha256):
+def check_disposition(disp, pkg, pkg_sha256, manifest=None):
     errs = errors(file_validator("rp_disposition_schema"), disp)
+    if manifest is not None and manifest.get("fixture") and disp.get("state") in ("presented_no_decision", "decided"):
+        errs.append("RP-R7: a fixture package is never presented or decided (EUF4-R1)")
     if disp.get("package_id") != pkg.get("packageId"):
         errs.append("RP-R7: disposition names another package")
     if disp.get("package_file", {}).get("sha256") != pkg_sha256:

@@ -1,6 +1,6 @@
 # Shared commitments and consumer responsibility account
 
-- **Contribution:** DEL-10-03/RA-v0.1 (new). It serves OUT-001 (§2),
+- **Contribution:** DEL-10-03/RA-v0.2. It supersedes RA-v0.1 (`531b65b7…`, committed at `caed56b8ea`; RV3: READY with RA1-R1 and RA1-R2 MINOR); see "Changes". It serves OUT-001 (§2),
   OUT-002 (§1, §3) and OUT-003 (§4); verification design is in §5.
 - **Status: DRAFT DEFINITION, frozen for RV3.** Owner O-E (Type 2 TASK, Claude Opus 5.5),
   run `APP-V4-DESIGN-PASS-4-20261003`, 2026-10-04.
@@ -47,7 +47,7 @@ Each entry indexes its supplier Design file at the hash read (2026-10-04).
 | S-3 | DEP-10-03-010 | DEL-02-04, ROLE-v0.2 `c8474d91…` | O-5 row, "§3–§6" | Guidance supply | Product `AGENTS.md`, role files and `roles.json` are supplied by v4's bundle (PKG-v0.2 P-3), not v3's script (CLM-007). Root instruction change D-GOV-52 (R23-30) |
 | S-4 | DEP-10-03-011 | DEL-03-01, C-v0.8 `0e3ba39c…` | §8 "Three-surface responsibility map — skeleton"; its rows naming "DEL-10-03 account" (OI-013/014 UNRESOLVED) | Technical commitment | Placement unresolved (OI-013, OI-014) |
 | S-5 | DEP-10-03-012 | DEL-03-02, P-v0.8 `ad6a3083…` | §1 authority map; §13 "Provide to DEL-10-03" row | Technical commitment | Shared meaning; any common implementation is unagreed |
-| S-6 | DEP-10-03-013 | DEL-04-01, ACT-POLICY-v0.10 `1bf0ce8e…` | §2 act list (A1–A16). Its consumer table says "DEL-10-03 \| DEP-10-03-013 \| none \| Not mapped in detail" | Concept and human-act responsibility | Act ownership is split across App, host and person. The consumer row is filled by O-A under R23-21 when RA §2 maps it (R23-31.10). **Request to O-A, not an edit by O-E** |
+| S-6 | DEP-10-03-013 | DEL-04-01, ACT-POLICY-v0.11 `597f13bd…` (re-pinned deliberately from v0.10, sha256 prefix 1bf0ce8e; R23-21) | §2.1 act list (A1–A16), §3, §8. Its §10.3 receivers row for DEL-10-03 now maps exactly these sections | Concept and human-act responsibility | Act ownership is split across App, host and person. The consumer row is filled by O-A under R23-21 when RA §2 maps it (R23-31.10). **Request to O-A, not an edit by O-E** |
 | S-7 | DEP-10-03-014 | DEL-04-03, RS-v0.10 `2e7afb1b…` | Its row: "§2 authority rules, §13 format, §14 writer and reader sequences … no common service or implementation is inferred" | Technical commitment | Record format shared across App and hosts; host writers external |
 | S-8 | DEP-10-03-015 | DEL-05-01, LOOP-v0.9 `2bac33a8…` | Receiver row "§5, §10, §12"; §10.1 "Responsibility map" | Technical commitment | Host loop is constructed externally (SWBPIPE); placement (OI-013) |
 | S-9 | DEP-10-03-016 | DEL-05-02, PANEL-v0.9 `4898b6f8…` | §6 "Reusable-component allocation account" | Technical commitment | Panel components: shared vs per host unagreed (OI-014) |
@@ -108,7 +108,7 @@ records.
 | S-3 | Guidance (supply) | Role selection; product guidance plus role supplied at conversation start (K-9 as amended by L-2) | DEL-02-04; packaging DEL-01-06 (PKG-v0.2 P-3) | Each host's own role and guidance supply | ROLE O-1…O-5 | OI-018 remainder (hosts, other instruction owners) | Not applicable | ROLE-v0.2 §3–§6 |
 | S-4 | Technical | Catalog, read basis and exposure across the three surfaces (H/E/X) | DEL-03-01 | Host owner produces every element (C §8: all "unagreed") | C Receivers line | OI-014 ("Shared types / components … DEL-10-03 account"); OI-013/014 for loop-side checking | **"unagreed"** throughout | C-v0.8 §8 |
 | S-5 | Technical | Proposal, validation and outcome meaning; receiving semantics | DEL-03-02 | Domain truth, validation, the application route, receipts and views (P §1) | P §13 "Provide to" rows | Residual policy with App/SWB owners (P §1 row "Act names …") | Not applicable | P-v0.8 §1, §13 |
-| S-6 | Concept + human-act responsibility | Acts A1–A16: canonical names, decision actors, subjects, evidence; reserved acts (D2) | DEL-04-01 | The host offers, enforces its own list and captures acts (V4-HI-30); OI-021 operation-specific additions | ACT §10.3 receivers table | OI-021 (owner via the SWB session and App/shared owner) | Not applicable. ACT's DEL-10-03 receiver row reads "Not mapped in detail" (§2.3) | ACT-POLICY-v0.10 §2.1, §3, §8, §10.3 |
+| S-6 | Concept + human-act responsibility | Acts A1–A16: canonical names, decision actors, subjects, evidence; reserved acts (D2) | DEL-04-01 | The host offers, enforces its own list and captures acts (V4-HI-30); OI-021 operation-specific additions | ACT §10.3 receivers table | OI-021 (owner via the SWB session and App/shared owner) | Not applicable. ACT-POLICY-v0.11's DEL-10-03 receiver row maps RA's reading (§2.3) | ACT-POLICY-v0.11 §2.1, §3, §8, §10.3 |
 | S-7 | Technical | Act and run record format; ordinary-file authority rules OF-1…OF-9; writer and reader sequences | DEL-04-03 | Host-agent runs keep records with the host project (OF-9); host receipts stay with the host (OF-3) | RS Receivers line | None for meaning ("no common service or implementation is inferred") | Not applicable | RS-v0.10 §2, §13, §14 |
 | S-8 | Technical | Loop receiving requirements, fixtures and cases | DEL-05-01 (receiving only) | Loop construction, placement, parsing and persistence (SWBPIPE) | LOOP §10.4 receivers | OI-013; common loop implementation "Not allocated" (OI-014/013) | LOOP §10 records "no candidate, evidence, commitment or contribution received" from SWBPIPE | LOOP-v0.9 §10.1 |
 | S-9 | Technical | Panel receiving; candidate shared presentation components | DEL-05-02 (receiving) | Panel assembly (SWBPIPE) | PANEL Receivers line | OI-013 (assembly); OI-014 (whether any candidate is shared) | **"None"** for every candidate | PANEL-v0.9 §6 |
@@ -123,16 +123,19 @@ records.
 - **The chosen direction is retained** (SCA-V4-002 revision of REQ-005):
   stock Codex with App-owned hosting, Tauri, and the minimal host loop on a
   person-chosen model.
-- **S-6 consumer row (R23-31.10).** ACT-POLICY's §10.3 receivers table has
-  the row "DEL-10-03 | DEP-10-03-013 | none | Not mapped in detail". RA now
-  consumes, under S-6:
-  - §2.1, the act list with decision actor, subject and evidence;
-  - §3, the settled distinctions;
-  - §8, the policy representation, including DECISION-1's reserved acts and
-    the values still open.
-
-  The row's wording is O-A's to write, under R23-21 (request in `O-E.md`,
-  sent through HELP_HUMAN).
+- **S-6 consumer row (R23-31.10): done.**
+  - RA-v0.1 asked O-A, through HELP_HUMAN, to map ACT-POLICY §10.3's row
+    "DEL-10-03 | DEP-10-03-013 | none | Not mapped in detail".
+  - O-A's ACT-POLICY-v0.11, committed at `0bd6e4b4e9` (sha256 `597f13bd…`),
+    now reads: RA-v0.1 "reads, by section: §2.1, the acts with their
+    decision actor, subject and supporting evidence; §3, the settled
+    distinctions S1–S12; §8, the policy representation, namely DECISION-1's
+    reserved acts (§8.2) and the values still open (§8.4)".
+  - That matches what RA consumes. Adoption was checked in the returned
+    file, not assumed (workflow §5).
+  - RA's ACT pin is re-pinned deliberately to v0.11 (R23-21). Sections §2.1,
+    §3, §8, §8.2, §8.4 and §10.3 keep their headings in v0.11, checked by
+    O-E.
 
 ## 3. Promise trace (OUT-002; REQ-002; AC-002)
 
@@ -152,7 +155,7 @@ on 2026-10-04.
 | S-3 | DEL-02-04 `2327508f…` CLM-002 (SC3-02-04-9) | DEP-02-04-018 | K-9 as amended by L-2; D-GOV-52 (R23-30) | ROLE-v0.2 §3–§6 | ROLE §11 "Verification (designed; nothing qualified)" |
 | S-4 | DEL-03-01 `48f0496c…` CLM-002 | DEP-03-01-042 | — | C-v0.8 §8 | C "Verification cases" |
 | S-5 | DEL-03-02 `e2f8d49d…` CLM-004 | DEP-03-02-033 | R5-2; R8-1 | P-v0.8 §1, §13 | P §1 (VER-003, VER-014); "Verification cases" |
-| S-6 | DEL-04-01 `2cd1dc9e…`: **no clause names DEL-10-03** | **None** | DECISION-1 D2; R23-8 (A16) | ACT-POLICY-v0.10 §2.1, §3, §8 | ACT §11 (VER-008); "Verification cases" |
+| S-6 | DEL-04-01 `2cd1dc9e…`: **no clause names DEL-10-03** | **None** | DECISION-1 D2; R23-8 (A16) | ACT-POLICY-v0.11 §2.1, §3, §8 | ACT §11 (VER-008); "Verification cases" |
 | S-7 | DEL-04-03 `b8b58d67…` REQ-005 (SC2-04-03-1) | DEP-04-03-045 | R23-8, R23-24 (A16, package record) | RS-v0.10 §2, §13, §14 | RS "Verification cases" |
 | S-8 | DEL-05-01 `6fdf4d59…`: **no clause names DEL-10-03** | **None** | SCA-V4-001 (V4-HOST-01, person-chosen model); DECISION-3 | LOOP-v0.9 §10.1 | LOOP "Verification cases" |
 | S-9 | DEL-05-02 `beb9c66c…`: **no clause names DEL-10-03** | **None** | DECISION-3 | PANEL-v0.9 §6 | PANEL "Verification cases" |
@@ -200,8 +203,15 @@ arcs (DEP-10-03-013, 015, 016). Yet:
 Their Design files do acknowledge the consumer: ACT §10.3, LOOP §10.4 and
 the PANEL Receivers line.
 
-**Inference.** Each would be a supplier-side mirror of an existing admitted
-arc (SAME_ARC), so no new arc and no SCC (R23-2). Adding register rows or
+**Inference.** Each would be a supplier-side DOWNSTREAM row of an existing
+admitted arc, dispositioned **MIRROR (SR-6)** as DAG-004 treats every such
+row (its six existing siblings to DEL-10-03 are all MIRROR). So no new arc
+and no SCC (R23-2).
+
+**Precedent.** DAG-004 `HANDOFF_STATE.md` "Open matters" routes "Five
+expected mirror rows not extracted … Each arc exists through the
+consumer's row; no graph effect" to a named owner. F-RA1's three are not
+among those five; they are added to the same kind of routing. Adding register rows or
 SoW clauses is outside O-E's write area and is an escalation condition. It
 goes to the register and SoW owners at the next amendment, as R23-32 F-R15
 treats missing rows. Nothing depends on it now: the consumer rows carry the
@@ -243,7 +253,7 @@ consumer basis for DEL-11-02. No adoption is performed or claimed (CLM-005).
 | VER-003 | Applicability against SEED and later direction (§4.1) | Done for H-1…H-3, with the seed hashes checked by O-E |
 | VER-004 | Selector and tool-path chain from CLM-007 (§4.2), static only | Done as static traces; build and runtime checks are outstanding at their points of need |
 | VER-005 | Against PKG-02…05 interfaces and ARCH (§2.3) | Done: no common implementation named; direction retained |
-| VER-006 | Exclusions and attribution | `check_boundary_owner_resolution.py` on this SoW: 1 checked, 0 failing (O-E, 2026-10-04). Semantic follow-up: §2 assigns every act to its owner; F-RA1 and the S-6 row are routed, not performed |
+| VER-006 | Exclusions and attribution | `check_boundary_owner_resolution.py` on this SoW: 1 checked, 0 failing (O-E, 2026-10-04). Semantic follow-up: §2 assigns every act to its owner; F-RA1 is routed, not performed; the S-6 row was made by O-A, its owner |
 
 **`prototype/ra_check.py` (checked by O-E).** It recomputes:
 - the sha256 of each supplier Design file and supplier SoW cited in §1.2 and
@@ -254,3 +264,13 @@ consumer basis for DEL-11-02. No adoption is performed or claimed (CLM-005).
   noticed).
 
 Negative cases are in its `--self-test`.
+
+## Changes
+
+**RA-v0.2 (2026-10-04), after RV3-RA1 (RA-v0.1 READY; 2 MINOR):**
+
+| Change | Cause |
+|---|---|
+| F-RA1 names the missing rows MIRROR (SR-6), not SAME_ARC, and cites DAG-004's handoff "Open matters" as the routing precedent | RA1-R1 |
+| S-6 re-pinned deliberately to ACT-POLICY-v0.11 (`597f13bd…`, committed at `0bd6e4b4e9`). The §10.3 mapping is recorded as done, and adoption is checked in the returned file | RA1-R2; R23-21 |
+| `ra_check.py` H-1 reports a moved supplier as a NOTICE with a re-pin instruction, not a failure. `--strict` restores failure on drift. The self-test checks both | RA1-R2 |

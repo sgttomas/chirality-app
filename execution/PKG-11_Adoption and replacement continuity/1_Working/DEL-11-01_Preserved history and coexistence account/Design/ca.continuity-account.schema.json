@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-11-01:continuity-account:0.1",
-  "title": "DEL-11-01 continuity account (CA-v0.1, PROPOSED)",
+  "$id": "urn:chirality:app-v4:del-11-01:continuity-account:0.2",
+  "title": "DEL-11-01 continuity account (CA-v0.2, PROPOSED)",
   "description": "A linked view over existing preservation records (CONTINUITY_ACCOUNT.md; F-R6, F-R7). Each class links its primary records by identity at one commit; it adds only standing, current selector, recovery route, owner and point of need. It retires, migrates, freezes or deletes nothing (REQ-005).",
   "type": "object",
   "additionalProperties": false,
@@ -355,6 +355,7 @@
           "act_id",
           "actor",
           "recorder",
+          "recorder_stated_by_record",
           "subject",
           "record_ref",
           "exact_text",
@@ -371,7 +372,8 @@
           },
           "recorder": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Who recorded the act, as the record states it; where the record names nobody, say so (recorder_stated_by_record false) rather than naming one."
           },
           "subject": {
             "type": "string",
@@ -392,6 +394,37 @@
           "bears_on": {
             "type": "string",
             "minLength": 1
+          },
+          "recorder_stated_by_record": {
+            "type": "boolean"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "bears_on"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "bears_on": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "redactions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "not": {

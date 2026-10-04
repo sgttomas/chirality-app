@@ -1,4 +1,4 @@
-"""Check DEL-11-01's continuity account CA-1 (CA-v0.1). Prototype, not product code. Reads only.
+"""Check DEL-11-01's continuity account CA-1 (CA-v0.2). Prototype, not product code. Reads only.
 
 K-1..K-12 check the account as written against the schema, git at the recorded commit, the working tree,
 the owner records and DEL-10-03's consumer list. N-1..N-8 are negative cases on in-memory variants:
@@ -109,16 +109,24 @@ def main():
     def acts():
         for a in acct["owner_acts"]:
             path = a["record_ref"].split(" row ")[0].split(", '")[0]
-            if a["exact_text"] not in B.text_at(at, path) or a["actor"] == a["recorder"]:
+            if not B.matches_redacted(a["exact_text"], B.text_at(at, path)) or a["actor"] == a["recorder"]:
+                return False
+            if a["act_id"] == "OD-09" and not (all(B.matches_redacted(p["text"], B.text_at(at, B.OPENING_BRIEF)) for p in a.get("parts", []))
+                                                and len(a.get("parts", [])) == 3 and a["recorder_stated_by_record"] is False):
                 return False
         return True
-    expect("K-9 VER-006 positive: each owner act's exact text is in its record at the commit, with actor distinct from recorder", acts)
+    expect("K-9 VER-006 positive: each owner act's exact text is in its record at the commit (OD-09: all three sentences, also in OPENING_BRIEF.md, the "
+           "archive-root path redacted; no recorder named where the record names none). Limit: actor-not-recorder is a string comparison and cannot "
+           "tell whether a named recorder is true", acts)
 
     ra = open(os.path.join(HERE, "vendor", "RESPONSIBILITY_ACCOUNT.md"), encoding="utf-8").read()
     x1 = [l for l in ra.splitlines() if l.startswith("| X-1 ")][0]
     expect("K-10 VER-002: the obligation lanes cover DEL-10-03's DEP-006 consumers (Root, Runtime, App v3, Piping; F-R11)",
            lambda: all(n in x1 for n in ("Root", "Runtime", "App v3", "Piping"))
            and all(any(k in o["lane"] for o in acct["obligations"]) for k in ("Root", "Runtime", "App v3", "SWBPIPE")))
+    aa = json.load(open(B.AA_STATUS))
+    expect("K-13 adoption status is DEL-11-02's AA-1 status, recorded as supplied with its statement",
+           lambda: acct["adoption_status"]["status"] == "supplied" and aa["statement"] in acct["adoption_status"]["ref"] and acct["handoff"]["adoption_status"] == "supplied")
     expect("K-11 the hand-over to DEL-11-03 repeats the account's own checks and standing, and no lane is eligible for retirement",
            lambda: handoff == acct["handoff"] and handoff["thesis_check"] == acct["classes"][3]["identity_check"]
            and handoff["archives"]["verify"] == acct["classes"][2]["identity_check"]["result"]
@@ -142,7 +150,11 @@ def main():
     v = copy.deepcopy(acct)
     v["owner_acts"].append(dict(v["owner_acts"][1], act_id="INVENTED", exact_text="retire App v3 now"))
     expect("N-5 a fabricated act whose exact text is not in its record fails K-9's rule",
-           any(a["exact_text"] not in B.text_at(at, a["record_ref"].split(" row ")[0].split(", '")[0]) for a in v["owner_acts"]))
+           any(not B.matches_redacted(a["exact_text"], B.text_at(at, a["record_ref"].split(" row ")[0].split(", '")[0])) for a in v["owner_acts"]))
+    v = copy.deepcopy(acct)
+    v["owner_acts"][0]["exact_text"] = v["owner_acts"][0]["exact_text"].replace("Preserve both references.", "Retire both references.")
+    expect("N-9 an OD-09 sentence altered behind the redaction placeholder still fails the exact-text rule (the placeholder matches one token only)",
+           not B.matches_redacted(v["owner_acts"][0]["exact_text"], B.text_at(at, B.DECISIONS)))
     v = copy.deepcopy(acct)
     v["classes"][1]["retained"] = False
     expect("N-6 a class marked not retained (deletion, migration or freeze by implication) is refused (REQ-001, REQ-005)", list(V.iter_errors(v)))

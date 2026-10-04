@@ -1,11 +1,14 @@
 # Owner replacement evidence packet
 
-- **Contribution:** DEL-11-03/RP-v0.4. It supersedes RP-v0.3 (sha256 `164c082c1ef4957acf9edca1040dd4e76e2647a0a1af540d755d992f3a58f9af`, read by RR-EUF3 at 36/36 and found READY by RV3, Addendum 4). Earlier versions: RP-v0.2 (`80e88983…1869`, RR-EUF2) and RP-v0.1 (`1a06262b…9c8c`, RR-EUF1). RP-v0.4 is frozen with DEL-11-01 CA-v0.1 as unit **EU-F2**. It does five things:
-  - adopts DEL-11-01's continuity hand-over;
-  - carries RV3 Addendum 4's three MINOR findings and N9 (the DOS re-pin);
-  - carries the cheap fixes from RR-EUF3's issues (O-F.md "RR-EUF3 judgments");
-  - leaves the EU-F1 early path as passed (R23-49);
-  - adds no reader.
+- **Contribution:** DEL-11-03/RP-v0.5. It supersedes RP-v0.4 (sha256 `5bfa93036466e3b894608f595a4f8fda070f6335470bdca6433e939dbcd98271`, unit EU-F2, READY in RV3-EUF1.md Addendum 6). It is part of unit **EU-F3**, with DEL-11-01 CA-v0.2 and DEL-11-02 AA-v0.1. RP-v0.5 does three things:
+  - repairs EUF4-R1: `evidence_standing` and `candidate.identified` are derived, not declared, and a fixture package is never presented or decided;
+  - carries DEL-11-02's adoption status as supplied item S-6;
+  - takes CA-1 v2.
+
+  Earlier versions:
+  - RP-v0.3 `164c082c…` (RR-EUF3, 36/36; EU-F1 passed, R23-49);
+  - RP-v0.2 `80e88983…` (RR-EUF2);
+  - RP-v0.1 `1a06262b…` (RR-EUF1).
 - **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside this file are two PROPOSED schemas, `rp.packet-manifest.schema.json` and `rp.disposition.schema.json`. The prototype, fixture and consumption check are under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/` (RUN/F). No candidate exists; no replacement witness exists; this fixture is never presented to the owner (a real packet may be: §6.3).
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-006 (§8).
@@ -15,7 +18,7 @@
 - **Supplier pins** (committed and unchanged since `d150856784`, except LHQ-v0.2 as stated):
   - DEL-09-02 SQ-v0.2 `STANDALONE_QUALIFICATION.md` `3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391` (§1, §2 O-1, §8), with `sq.dossier.valid.examples.json` `426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db`.
   - DEL-09-07 DOS-v0.1 `QUALIFICATION_DOSSIER.md` (§1, §4 DH-1/DH-2, §6 DF-5, DX-1…DX-3). RP-v0.4 deliberately re-pins `lhq.dossier-manifest.valid.examples.json` to O-C's DX-3 version (commit `aa95aff4e1`; sha256 `dbf8463f45dc2b9c…`, vendored; RV3 N9). In it, `DOS-EXAMPLE-INVENTED` names no run and no receipt and has no DEL-09-11 hand-over, and `DOS-EXAMPLE-INVENTED-POPULATED` keeps RC-1 in all three places. FX-RP1-3 stays pinned to the earlier copy (`9873df65…`) as history.
-  - DEL-11-01 CA-v0.1 (this unit): `ca.continuity-account.schema.json` `$defs/continuity_handoff`, and the built hand-over `RUN/F/ca/records/CA-1.handoff.json`.
+  - DEL-11-01 CA-v0.2 and DEL-11-02 AA-v0.1 (this unit): `ca.continuity-account.schema.json` `$defs/continuity_handoff` and `aa.adoption-account.schema.json` `$defs/adoption_status`, with the built hand-overs `RUN/F/ca/records/CA-1.handoff.json` and `RUN/F/aa/records/AA-1.status.json`. The CA hand-over:, and the built hand-over `RUN/F/ca/records/CA-1.handoff.json`.
   - **Vendored supplier bytes (R23-44).** Every supplier schema and example the checks read is copied into `RUN/F/vendor/` with its source path, sha256 and source commit (`vendor/VENDOR.json`). The checks read the copies; `check_rp.py` V-1 verifies them, and prints a NOTICE (it does not fail) when a live source has moved since vendoring, so that the owner re-pins deliberately (R23-21).
   - DEL-09-07 LHQ-v0.2 (R23-36; committed at `141a6cc8b4`; its schema and examples vendored) `LOCAL_HOST_QUALIFICATION.md` `90f461cbbe98de20cdd19e13be6adb82818fa23ea55166cab04833108df8523e` (§3 CIR, CI-5 with LHQ2-R1: where both are given, the mapping agrees with the element's `value`, so consumers reconcile on the mapping; the OI-013/014 row). RP-v0.2 read the uncommitted `5cd31e09…`; the change adds the agreement rule only, which RP-R3 relies on and nothing else here changes, with `lhq.candidate-identification.schema.json` `3fb8f586b0bc1ca32c2ba4e82008e384109d3adc1189a0bf5091d598c46b5fc5` and `….valid.examples.json` `c7684ee595bcb1e91a6a3b86bb4a37022a0c4c57dfcacc3ffad8326b41b2d9d4`. RP-v0.1 relied on LHQ-v0.1 (`20361a0b…`); the fixture's CIR record is byte-identical in both versions.
   - DEL-09-01 EXP-v0.2 `EXAMINATION_PROTOCOL.md` `ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93` and `exam.result-record.schema.json` `f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081` (`$defs/candidate_subject`, `$defs/outcome`).
@@ -60,7 +63,7 @@ It leaves out:
 | I-2 | DOS dossier manifest `handoff_del_11_03` and the CIR it cites | DEL-09-07 | DEP-11-03-007, admitted | Packet assembly | OUT-002 *incomplete*; gap named |
 | I-3 | Continuity hand-over (DEL-11-01 CA `$defs/continuity_handoff`; from RP-v0.4, replacing the first cut) | DEL-11-01 | DEP-11-03-008, held (SCC-006; F-R8: SCC-CASE-007 R1) | Packet assembly | Carried as *not supplied*; gap named |
 | I-4 | Practitioner standing (first cut `$defs/practitioner_standing`) | DEL-09-12 | DEP-11-03-009, admitted | Packet assembly | Standing *not_supplied*; never a gap for replacement |
-| I-5 | Adoption status | DEL-11-02 | DEP-11-02-015, admitted (supplier's row) | Packet assembly | *not supplied*; gap named |
+| I-5 | Adoption status: DEL-11-02's AA `$defs/adoption_status` (S-6, `owner_record`, from RP-v0.5) | DEL-11-02 | DEP-11-02-015, admitted (supplier's row) | Packet assembly | *not supplied*; gap G-ADOPT named |
 | I-6 | v3.0.1 baseline identity | `reference/REFERENCES.md` §2 | DEP-11-03-010 (not topological; was UNKNOWN, F-R2) | Packet assembly | Packet not assembled |
 | I-7 | EXP result records the dossiers cite; EXP change-impact records | DEL-09-01 records (EXP-v0.2) | through I-1/I-2 | Establishing an obligation | Obligation *not established* |
 | O-1 | Package file (R23-24 shape) | The owner, when presented | DEP-11-03-014 (not topological) | **Any time** (R23-43). It states plainly what is and is not established, and claims replacement qualification only when both witnesses hold | — |
@@ -73,6 +76,14 @@ One manifest per packet version.
 - It states what the rules (§4, §5) derive from those items. Nothing in it is filled from a definition.
 - `evidence_standing` is `illustrative` whenever any supplier input is an example or fixture. An illustrative packet can establish nothing.
 - `fixture` and `candidate.identified` (RP-v0.4; RV3 Addendum 4; RR-EUF3 #1). A packet whose candidate is not identified is refused unless it is a fixture. A fixture's package purpose **opens** with "FIXTURE, NOT FOR THE OWNER: no real candidate is identified", so a placeholder subject can never be put to the owner as a decision (RP-R6; B-45, B-47; A-20).
+- **Both are derived, never declared (RP-v0.5; EUF4-R1).**
+  - `evidence_standing` is `illustrative` if any supplied item's own standing is illustrative or a first cut; otherwise `candidate`.
+  - `candidate.identified` holds only if all three hold:
+    - the subject maps to EXP's `candidate_subject`;
+    - its revision and build carry no placeholder marker (illustrative, invented, example, placeholder);
+    - every counted core-loop result resolves to a record of an identified candidate.
+  - A-9 recomputes both from the supplied copies. RP-R6 refuses a manifest whose declared values differ from the derivation, and decides the fixture refusal on the derived values. RV3's probe is now B-48: notice removed, `fixture: false`, standing "established", `identified: true`, placeholder subject still present. It is refused on both counts.
+  - B-47, B-49 and B-50 are the positive and boundary controls.
 - `core_loop.dossier_review.dossier_states_independent` shows the dossier's own claim of independence beside the review's resolved `state`, so the claim is not read as a review (RR-EUF3 #4). `journey.host_contributions` counts the CIR's contributions by LHQ ladder standing; "answered" is not counted as committed, delivered, adopted or examined (RR-EUF3 #3). `comparison_rule` says that no direct measurement of v3.0.1 exists (RR-EUF3 #5).
 - Each supplied item states `produced_by` (who produced its content) and `source_kind`. For `copied_record`, `source` names the supplier file, its sha256 and the record. For `shape_only`, `source` says in words that the item is a first cut by the DEL-11-03 owner pending DEL-11-01's or DEL-09-12's own record, and `shape` names the `$def` it follows (RP-v0.3; RV3 EUF1-R3). `RUN/F/EU-F1.key-grounding.md` marks which key answers rest on these first cuts.
 - The fixture carries its legend (the two RP schemas) inside it, so an input set no longer depends on live Design files (RP-v0.3; the lesson of IS-FX-RP1-1).
@@ -139,7 +150,7 @@ See §5. Results join across the two obligations only when the reconciliation is
 - **RP-R6:** see §6.1. The package validates against DEL-02-03's `$defs/decisionPackageFile`, and the rules there apply. RP-v0.4 adds:
   - with the manifest, an unidentified or illustrative candidate is refused outside a fixture, and a fixture's purpose must open with the fixture notice;
   - a consequence that rests on App v3's BUILD_AND_RELEASE must keep "manual" and "on request".
-- **RP-R7:** see §6.2.
+- **RP-R7:** see §6.2. RP-v0.5 adds: given its manifest, a fixture package is never `presented_no_decision` or `decided` (B-51, B-52).
 - **RP-R8:** every supplied item's sha256 in the manifest equals the file. Each copied supplier record equals its source record at the named source sha256. The manifest's derived values recompute to themselves from the supplied copies.
 
 ## 5. Candidate identity (R23-33)
@@ -202,6 +213,7 @@ The owner's act is recorded in the project's OWNER_DECISIONS form (F-R4), and th
 If the owner instead decides through a candidate App's act control, that A16 record is cited as well. No ACT, RS, AAC or shared schema changes.
 
 RP-R7:
+- A fixture package is never presented or decided (RP-v0.5; EUF4-R1).
 - An undecided record keeps "v3.0.1 remains the fallback".
 - A decided record names an alternative the package names.
 - A package whose sha256 differs from the presented one makes the disposition *lapsed*, as an A16 on a changed file lapses (RS L-1).
@@ -243,7 +255,14 @@ A supplier change makes a new manifest version, and so a new package. An earlier
 | RP-VC-06 Act boundary | VER-006, AC-006 | §1 table; the package never performs or implies an owner act | Review |
 | **EU-F1 consumption check** | REQ-004 (the owner can decide from the files) | An isolated reader given only the input set answers fixed questions; an examiner compares the answers with the frozen key, field by field | RR-EUF1 on IS-FX-RP1-1 (RP-v0.1): 33/33 fields, 11 issues. RR-EUF2 on IS-FX-RP1-2 (RP-v0.2): 33/33, 10 issues. Each issue is judged in O-F.md. IS-FX-RP1-3 (RP-v0.3, Q-1…Q-13) is staged and keyed, not read |
 
-Prototype at freeze (RP-v0.4, fixture FX-RP1-4): `check_rp.py` **70/70**. It adds:
+Prototype at freeze (RP-v0.5, fixture FX-RP1-5): `check_rp.py` **76/76**. It adds:
+- A-9 now recomputes the derived standing and identification;
+- A-22: adoption status is DEL-11-02's own;
+- B-48…B-52: RV3's probe, the derivation controls, and fixture presentation and decision refused.
+
+`--fixture FX-RP1-3` and `--fixture FX-RP1-4` give 13/23 and 18/23 under the current rules: earlier fixtures, as history.
+
+At RP-v0.4 (fixture FX-RP1-4), `check_rp.py` was **70/70**. It added:
 - A-20: fixture and identification;
 - A-21: the continuity hand-over is DEL-11-01's own;
 - B-45…B-47: the non-fixture refusal, the inference wording, and a real-packet positive control.
@@ -275,6 +294,11 @@ At RP-v0.3 (fixture FX-RP1-3), `check_rp.py` was **65/65**:
 
 | Version | Change |
 |---|---|
+| RP-v0.5 (2026-10-04) | Unit EU-F3:
+- EUF4-R1: `evidence_standing` and `candidate.identified` derived (`rplib.derive_standing`) and recomputed in A-9; RP-R6 refuses a declared/derived mismatch; RP-R7 refuses presenting or deciding a fixture; RV3's probe is B-48.
+- S-6: DEL-11-02's AA-1 status (adoption supplied; G-ADOPT not raised).
+- CA-1 v2 consumed.
+- Fixture FX-RP1-5; manifest format RP-v0.5 |
 | RP-v0.4 (2026-10-04) | With DEL-11-01 CA-v0.1 (unit EU-F2):
 - the continuity hand-over adopted (S-4 `owner_record`);
 - RV3 Addendum 4: an illustrative subject refused outside a fixture and announced in a fixture; ALT-PUBLISHED's "manual" and "on request" restored; REQ-006, VER-003 and VER-004 (and R23-32, R23-43) excerpted;
