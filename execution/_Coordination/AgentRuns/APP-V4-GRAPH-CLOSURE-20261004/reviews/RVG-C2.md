@@ -185,3 +185,142 @@ Repair needs:
 - the residuals for P3 and the registry moves.
 
 **Counts.** BLOCKING 0, MAJOR 5, MINOR 4 (one resolved by §20), NOTE 4.
+
+---
+
+## Addendum A — review of the C2 repair, §21 (2026-10-04)
+
+- **Subject:** HEAD `5c3d6b50cf`.
+  - `PAIR_ANALYSIS_2026-10-04.md`, sha256 `55be9211f88acbdf5c78b43306dc84d77f0b97cd4a73e1c30c0fd477a1196a78`, append-only: the diff from `ca63f1cea9` deletes nothing;
+  - `MOVES_PROPOSED_2026-10-04.csv`, sha256 `d28ad430aabfa496cc24f5ebbbc18d078686caa76b5e38406ef9262407a86061`, with 12 new rows;
+  - `GC_RULINGS.md`, sha256 `dd92df36…`.
+- **Also read:**
+  - the integrator rulings at source: R-3, R-8 and R-9 (`APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md`), R2-6 (`R2_RESOLUTIONS.md`), R12-4 (`APP-V4-DESIGN-PASS-2-20260930/R12_RESOLUTIONS.md`) and R14-1 (`R14_RESOLUTIONS.md`);
+  - EXEC-v0.7 §2.5 and §2.5.1;
+  - C's `read_result.schema.json`;
+  - LOOP-v0.9 l.210, l.2045–2050 and l.2072.
+- **Scripts:** `$TMPDIR/rvg/c2r.py`.
+
+### A.1 Closure and ACT §5.1 table: reproduced exactly
+
+- **Every §21.8 scenario** reproduces from my own code, with G1 r2/r3 held kinds:
+  - A0: O-4 10 members / 6 rows;
+  - A: O-4 4/1;
+  - B and C: O-4 acyclic; O-3 P13 only;
+  - C: O-1 12/6; D: O-1 12/4;
+  - C without the P3 re-anchoring: O-4 5/1;
+  - C with V residuals on the registry moves: O-1 12/9.
+- **§21.2's table** reproduces over all 212 arcs, with admitted arcs held fixed:
+
+  | ACT §5.1 inputs registered as I | O-4 | O-1 |
+  |---|---|---|
+  | grant state | 12 members / 1 row | 15 / 7 |
+  | checkpoint state | 11 / 3 | 15 / 9 |
+  | all five | 12 / 5 | 15 / 11 |
+
+- **One addition.** The operation-identity input alone (DEL-04-01 → DEL-03-01) closes a 2-cycle with the admitted DEP-03-01-024 under every option. The table should show it: even the least contested ACT §5.1 input is cycle-forming.
+
+### A.2 Disposition of RVG-C2's findings
+
+| Finding | §21 | Status |
+|---|---|---|
+| C2-M1 IV-S conditions | §21.1 re-tests every IV-S pair against GC-1, including P4's identity part, which I had not tested. It names a rewording, a file, a section and a design agent for each | **Resolved**, subject to A.3 B-M1 |
+| C2-M2 Q-5 | §21.2 quotes Q-5 correctly. Re-targets add no new arc (verified: DEP-02-01-018, -02-02-016, -03-02-017 admitted). M-Q-ACT records the owner question | **Resolved** |
+| C2-M3 P11 | Plain IV, anchored on EXEC §4.10 and SP-7 | **Resolved** |
+| C2-M4 P4 | CUT is listed as the smallest act. "Decomposition confirmed" is withdrawn | **Resolved** |
+| C2-M5 P10 | Accepted as I wrote it (IV-O or DEC) | **My finding was wrong in part. Reclassified: see B-M3** |
+| C2-m1 P3 residual | M-02-R, with the WD §4.3.4 and §6.4 re-anchoring named | Resolved |
+| C2-m2 registry form | M-REG-R, with the RS registry form and V residuals stated | Resolved, subject to B-M2 |
+| C2-m3, C2-m4 | Covered | Resolved |
+
+### A.3 New findings on the repair
+
+**B-M1 — MAJOR. GC-1 (a) is silent on an uninterpreted identifier of a supplier-defined scheme. Five rewordings depend on that reading.**
+
+- **The test.** GC-1 (a) says "The consumer's Design uses no field, state value or identity scheme that the supplier defines".
+- **What the rewordings carry.** Each carries an "opaque" reference whose values the supplier's scheme defines:
+  - P9: an RS record identity in the WR ledger;
+  - P15: RS record references;
+  - P19: AS's settings-version identity on LOOP's dispatch record;
+  - P4: a workflow-run reference resolved through the RS record;
+  - P1: an RS record identity, but there it comes from a third party, not P1's supplier, so it is fine.
+- **Two readings.**
+  - If an identifier typed as an uninterpreted string, and resolved only by its owner, does not "use" the scheme, the rewordings pass. This reading is consistent with the doctrine's "invert behind a contract".
+  - If it does use the scheme, none of the five passes, and A0's 10-member component remains.
+- **Consequence.** The "15/17 by rewordings" claim turns on this reading.
+- **Repair.** HELP_HUMAN should rule on it as a GC-1 clarification (INTEGRATION). Each rewording should then state "typed as an uninterpreted string; resolved by ⟨owner⟩".
+
+**B-M2 — MAJOR. Two integrator rulings must be amended for "rewordings alone". R-8, R2-6 and R12-4 allow the rewordings.** The brief asked about this, and §21.10 left it open. The rulings are INTEGRATION rulings ("not owner policy acts … open to owner revision", R1 header). Amending them is therefore HELP_HUMAN's act, visible to the owner, not an owner decision.
+
+| Ruling | Text (source) | Effect on the rewording |
+|---|---|---|
+| R-8 + R2-6 (+ R-3 point 6) | R-8: "Two settings references are recorded per operation"; R-3.6: "Record both the standing **at drafting** and the treatment **at resolution**"; R2-6 adds *effective (policy default)* | **Allow** P17's rewording. They require the references to be *recorded*, not held by P. Recording them in RS §5 and settings-in satisfies them. §21.1's "revisits R-8 and R2-6" is overcautious; only the Q-11 owner visibility remains |
+| R-9 | "Workflow identity is carried everywhere as {kind, origin, source root, name, revision} … The P, LOOP and PANEL 'identity/version' elements are replaced by it." | **Conflicts** with P4's identity rewording (an opaque run reference in P). R-9 must be amended, or P4 needs an owner act under every option (§21.4) |
+| R12-4 | "ADAPTER maps each path's observed items to record elements." | **Allows**, and supports, a P10 rewording (B-M3) |
+| R14-1 | "Every CE kind gets an RS entry kind …"; "LOOP §2.3's checkpoint events map to the same RS kinds (RS states the mapping; LOOP cites it)" | **Conflicts** with the registry form (P12, P18, P20, M-X2). In registry form RS stops enumerating supplier kinds, and the supplier states its own mapping. R14-1 must be amended |
+
+- **Consequence.** The bottom line's group 1 needs two named integrator amendments (R-9, R14-1), in addition to the design rewordings and S1 wording.
+
+**B-M3 — MAJOR (RVG self-correction). P10 can close by a design rewording that R12-4 already allows. My C2-M5 was overstated.**
+
+- **What I relied on.** C2-M5 relied on EXEC's own Changes row (l.113) attributing the per-path AW table to R12-4.
+- **What R12-4 says.** "ADAPTER maps each path's observed items to record elements."
+- **What EXEC's per-path rows do.** EXEC §2.5.1's rows restate ADAPTER's mappings:
+  - AW-1 uses NM-1;
+  - AW-2 uses OM-1 ("removing the one shell wrapper Codex adds");
+  - AW-4 uses NM-2;
+  - AW-8 uses §4.5;
+  - AW-9 uses OC-9;
+  - AW-10 uses §7.7.
+
+  The reached-when *evaluation* itself (whether an observed event matches WD §4.3.1's kind) is EXEC's.
+- **The rewording.** EXEC §2.5.1 (AW-1, AW-2, AW-4, AW-8…AW-10) and §9.1's DEL-03-03 row would consume ADAPTER-mapped observations in an input form EXEC defines: "operation call started", "outcome observed", "not evaluable", each with ADAPTER's limit label. ADAPTER §4.1, §4.5, §4.6 and §7.7 emit them. `checkpoint_observation.schema.json` already names `exec_event`.
+- **Does it pass?**
+  - Evaluation stays in EXEC, so ADAPTER's "evaluates no reached-when" holds.
+  - The mapping is ADAPTER's per R12-4, so no responsibility moves.
+  - GC-1 (a) holds for EXEC once its rows cite no NM, OM or OC semantics.
+  - Design agents: DEL-02-03 and DEL-03-03, with S1 on DEL-02-03 CLM-002.
+- **Consequence.** P10 moves to group 1. Scenario B is then reached by rewordings alone:
+  - O-4 is acyclic with **no owner act** on SCC-002's I–I pairs;
+  - O-3 leaves P13;
+  - O-2 leaves P4 and P13;
+  - O-1 needs 7 rows.
+
+  M-14-R should become this rewording, with IV-O, DEC, CUT and MRG as fallbacks. The C2 author followed my finding here; the error was mine.
+
+**B-m1 — MINOR. P15's rewording does not name the schema field.** C's `read_result.schema.json` has `act_evidence_ref.lapse_state`, which carries an RS §7 state value. The rewording must remove it from that file, not only from the §6.2 text. `act_kind`'s enum is DEL-04-01's (admitted DEP-03-01-024) and can stay.
+
+**B-n1 — NOTE. The checkpoint-state input of ACT §5.1 is a fair boundary call.** ACT §5.3 rule 2 needs "whether a declared checkpoint applies, the act it requires, and any governing checkpoint constraint", which reads WD's declaration. I would class it I. It does not change the owner question.
+
+### A.4 Bottom line, as corrected
+
+1. **Group 1, by design rewordings, S1 and two integrator amendments (R-9, R14-1), given the B-M1 ruling:**
+   - all 17 I–I pairs under O-3 and O-4;
+   - 16 under O-1 and O-2, where P4 needs one owner act (CUT smallest).
+2. **Group 2, owner acts:**
+   - P4 under O-1/O-2;
+   - the non-I–I rows: P13 under O-1…O-3; P2, P14 and P16, and the V residuals of P1 and P8, under O-1;
+   - M-Q-ACT. If ACT §5.1's inputs are registered as I, they become the cycle-closing rows. Even operation identity alone forms a cycle, with the admitted DEP-03-01-024.
+3. **Group 3, per option (my recomputation):**
+
+   | Option | Remaining |
+   |---|---|
+   | O-4 | acyclic |
+   | O-3 | P13 |
+   | O-2 | P13, plus P4 without its cut |
+   | O-1 | 12 members / 6 rows with the P4 cut (7 without) |
+
+   No decomposition is required anywhere.
+
+### A.5 Verdict
+
+**REPAIR (narrow, text and one ruling).** The repair resolves C2-M1 to M4 and every minor finding, and every number reproduces. Before the premise "no broad structural change" goes to the owner:
+- HELP_HUMAN rules on B-M1 (GC-1 and identifiers);
+- §21 records the R-9 and R14-1 amendments, and drops "revisits R-8 and R2-6" (B-M2);
+- P10 moves to group 1, as rewritten in B-M3, which also corrects my own C2-M5;
+- P15's rewording names `lapse_state` (B-m1);
+- §21.2's table gains the operation-identity row.
+
+None of these needs new analysis beyond the texts cited here.
+
+**Addendum counts.** BLOCKING 0, MAJOR 3 (one a self-correction), MINOR 1, NOTE 1.

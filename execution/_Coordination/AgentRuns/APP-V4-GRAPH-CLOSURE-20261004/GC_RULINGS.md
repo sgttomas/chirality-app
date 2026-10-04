@@ -44,3 +44,38 @@ decides no more than that source settles.
     Whether those inputs are interface rows (I) or runtime evidence (E) under
     G1 r2's K-3 is open. It is analysed by C2 and checked by RVG, not
     assumed.
+
+- **GC-3 An uninterpreted identifier is an opaque reference (RVG-C2
+  Addendum A, B-M1). INTEGRATION.**
+  Sources: GC-1 (a), "The consumer's Design uses no field, state value or
+  identity scheme that the supplier defines", and the DAG-004 edge
+  semantics.
+  1. Carrying a supplier's identifier satisfies GC-1 (a) when all of these
+     hold for the consumer:
+     - it types the identifier as an uninterpreted string, with no pattern,
+       format, enumeration or structure taken from the supplier;
+     - it neither constructs, parses nor validates the identifier against
+       the supplier's scheme. Equality comparison of the whole string is
+       allowed;
+     - its Design names who resolves the identifier, and that is the
+       supplier or a third party, not the consumer.
+  2. Each rewording that relies on this rule says so in its own text. It
+     states that the identifier is uninterpreted and names its resolver.
+  3. When a consumer needs any part of the identifier's structure (for
+     example the kind, origin and revision of a workflow identity), the
+     row stays I. A move must then come from elsewhere.
+
+- **GC-4 Integrator rulings that the SCC-002 rewordings would amend
+  (RVG-C2 Addendum A, B-M2). INTEGRATION.**
+  1. The rewordings that rely on them would amend:
+     - R-9: "workflow identity is carried everywhere as {kind, origin,
+       source root, name, revision}";
+     - R14-1: "Every CE kind gets an RS entry kind" and "RS states the
+       mapping".
+  2. These are HELP_HUMAN integrator rulings from earlier passes. Amending
+     them is HELP_HUMAN's act, made when the rewordings are applied after
+     checkpoint 1. Each amendment is listed in the owner-facing checkpoint,
+     so the owner sees it. None is an owner decision.
+  3. R-8, R2-6 and R-3 point 6 already allow P17's rewording, so no
+     amendment is needed for them. R12-4 already allows the rewording that
+     closes P10.
