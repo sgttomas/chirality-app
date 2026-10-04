@@ -136,3 +136,16 @@ the mirror groups and the 15 Q-17 mirrors, statement refreshes; nothing
 else. Apply the extraction guards of SOW_REVISIONS_A/B and the Handoff_State.
 Run the register validators; recompute the closure (arcs, SCCs) and compare
 with ARC_EFFECT. Records in `RUN/DX/`.
+
+## D1 — currency audit and the DAG-004 candidate (one Type 2)
+
+As SCA-V4-002's D1 (`APP-V4-SCA002-20260929/DAG_PREP/`, DISPATCH row D1) and
+`workflows/project-dag`: currency of the current registers against DAG-003
+(expected DEPARTURE: +10 arcs, 0 removed, 11 DAG pending); build the DAG-004
+candidate (41 deliverables; admitted / held / excluded counts; strict audit;
+SCC cases as evidence only); write `DAG_PREP/REVIEW_PACKET.md` and
+`DAG_PREP/CHECKPOINT_C.md` for the owner (plain summary, the 10 links, what
+becomes pending, the carried obligations: the 5 unextracted mirror rows, the
+DEL-01-03 absolute TargetLocation defect, the Design re-pins,
+`Coverage_Telemetry.json`). Write the candidate only under
+`RUN/DAG_PREP/` (not `_DAG/`); nothing accepted or published.
