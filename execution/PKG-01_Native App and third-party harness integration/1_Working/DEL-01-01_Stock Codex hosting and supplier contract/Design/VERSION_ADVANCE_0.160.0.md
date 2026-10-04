@@ -179,6 +179,7 @@ The `initialize` response has the same four fields (`userAgent` = `chirality-vc/
 ### 7.1 Per-file inventory
 
 Units are given by their start line, or by a line range. For each file: sha256 at inventory time, unit counts, then the units under each verdict.
+- **Note (pass-4 closeout C2; R23-29 item 3):** the sha256 values below hash the working-tree bytes as read at 04:04 UTC; six of them (AAC `eca9a079…`, ACT `e5bf830c…`, RS `1068e295…`, EXP `dc6b6a0c…`, LHQ `2668d955…`, TOP `cf0b65f2…`) are held by no commit and cannot be re-verified from git; the current versions of these files are named under the R23 rulings (`R23_RESOLUTIONS.md` of run `APP-V4-DESIGN-PASS-4-20261003`: R23-17, R23-21, R23-23), not here.
 
 **`PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md`** (sha256 `ce235650e8a9494c…`;261 units: changed 6, not re-checked 9, partly not re-checked 51, unchanged+ 4, unchanged 153, names the pin or a record only 38)
 - *changed:* L216 (0.158.0 generated-output identity; 0.160.0 output identity differs (§3.1)); L1107 (0.160.0 reports `codex-cli 0.160.0`); L1108 (new per-file identities (bin/codex 112fae7a…1b4b, 241,555,024 B); same composition of the vendor tree); L1113 (new generated-output identities (VERSION_ADVANCE §3.1); same shape); L1143–1152 (0.158.0 generated-output identity; 0.160.0 output identity differs (§3.1)); L2199 (0.158.0 generated-output identity; 0.160.0 output identity differs (§3.1))

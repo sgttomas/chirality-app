@@ -6,7 +6,8 @@ Layout of a fleet folder (PROPOSED for the prototype only; no placement is selec
   graphs/<undertaking>/r<n>.json  one work-graph revision per file, never edited
   coordination.fleet.jsonl       append-only: current_graph selectors and every coordination event
 The writer refuses a record that does not validate (W-1) and never overwrites a file (exclusive create, W-2).
-The reader derives per-item record facts with their sources (FR §6); it writes nothing.
+The reader derives per-item record facts with their sources (FR §6); it writes nothing. It reports every line it could
+not read (RF-10, RF-11) and orphaned observations (RF-12), so that no consumer derives completeness from a partial log.
 """
 
 import hashlib
@@ -86,6 +87,8 @@ class Reader:
         self.reg, self.schema = schema()
         self.limits = []
         self.briefs, self.graphs, self.log = {}, {}, []
+        self.unread_log = []      # RF-10: line numbers of coordination-log lines not read (torn or nonconformant)
+        self.unread_rs = []       # RF-11: line numbers of RS lines not read
         for d, _, fs in os.walk(os.path.join(root, "briefs")):
             for f in sorted(fs):
                 rec = self._read(os.path.join(d, f))
@@ -106,16 +109,26 @@ class Reader:
                         rec = json.loads(line)
                     except json.JSONDecodeError:
                         self.limits.append(f"coordination log line {n}: partial entry (not read)")
+                        self.unread_log.append(n)
                         continue
                     errs = validate(rec, self.schema, self.reg)
                     if errs:
                         self.limits.append(f"coordination log line {n}: nonconformant ({errs[0][:80]}); not used")
+                        self.unread_log.append(n)
                         continue
                     self.log.append(rec)
         self.rs = []
         if rs_records:
             with open(rs_records, encoding="utf-8") as fh:
-                self.rs = [json.loads(l) for l in fh if l.strip()]
+                for n, line in enumerate(fh, 1):
+                    if not line.strip():
+                        continue
+                    try:
+                        self.rs.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        # RF-11 (RV E2-R2): a torn RS line is a limit; decisions it could hold become unknown.
+                        self.limits.append(f"RS records line {n}: partial entry (not read)")
+                        self.unread_rs.append(n)
         self.rs_root = rs_root
 
     def _read(self, path):
@@ -154,7 +167,7 @@ class Reader:
         """RF-6: a decision need, read from RS records (DEL-04-03): the act the package names, citing it."""
         req = next((e for e in self.rs if e.get("recordId") == request_id and e.get("kind") == "act_request"), None)
         if req is None:
-            return "unknown", "request not in the supplied records"
+            return "unknown", "request not in the supplied records" + (f" (RS line(s) {self.unread_rs} not read)" if self.unread_rs else "")
         kind = req["body"]["actKind"]
         alts = [a["id"] for a in req["body"].get("alternatives", [])]
         found = []
@@ -172,6 +185,8 @@ class Reader:
             e = current[-1]
             chosen = e["body"]["relations"].get("alternativeChosen")
             return "satisfied", f"{e['recordId']} ({kind}{', ' + chosen if chosen else ''})"
+        if self.unread_rs:
+            return "unknown", f"no decision found on {request_id}, but RS line(s) {self.unread_rs} were not read"
         return "outstanding", f"decision pending on {request_id}"
 
     def item_facts(self, undertaking):
@@ -241,5 +256,12 @@ class Reader:
         index = [{"child": e["body"]["childThread"], "parent": e["body"]["parentThread"],
                   "association": e["body"]["association"]["state"], "brief": e["body"]["association"].get("brief")}
                  for e in self.events("dispatch_observed")]
+        # RF-12 (RV E2-R1): orphans, an observation of a child whose dispatch the log does not hold, are limits.
+        dispatched = {e["body"]["childThread"] for e in self.events("dispatch_observed")}
+        orphans = sorted({e["body"]["childThread"] for e in self.log
+                          if e["kind"] in ("child_observed", "observation_ended") and e["body"]["childThread"] not in dispatched})
+        for c in orphans:
+            self.limits.append(f"child {c} observed with no dispatch_observed in the log: a dispatch record may be missing")
         return {"undertaking": undertaking, "graph": graph["recordId"], "revision": graph["body"]["revision"],
+                "logIncomplete": list(self.unread_log), "orphanChildren": orphans,
                 "items": out, "childIndex": index, "notes": notes, "limits": self.limits}

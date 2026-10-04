@@ -134,3 +134,80 @@ The fixture-dependent results hold on the current FX-DP1 and must be rerun on th
 - The R23-24 refreeze of FX-DP1, which does not exist yet. O-C reruns on the new manifest, and I confirm that rerun when it is sent.
 - A reader run on IS-FX-DP1-2. None has been made.
 - DEL-09-05's later units: the V4-EXM-13 undertaking and the delegations.
+
+## Repair confirmation and rerun on FX-DP1 `9501ef81…` (2026-10-03)
+
+- **Bytes reviewed.** Recomputed with `shasum -a 256`; all match O-C.md "Minor repairs after RV's confirmations…":
+  - DAC `bf0ddb6a…7a808d62`, `fw04_check.py` `e57359d3…2a5229b9`
+  - RRM `7446d056…bfcec343`, `rrm_compare.py` `d445740e…daa5e8d8`, `run_standing_check.py` `6ff45447…938113d6`
+  - `judgments.independent.RR-E.json` `1b2952bf…f726ac24`, `judgments.bad2.json` `c22e0ab1…6416eb99`
+  - `IS-FX-DP1-3.input-set.json` `18b9e49b…6978c17f`, `account.good.IS-FX-DP1-3.json` `f977804d…57b6eb01`, `account.rre-shape.IS-FX-DP1-3.json` `0aece549…d8eecd7a`
+- **Owner checks rerun, not rebuilt:**
+
+| Check | Result |
+|---|---|
+| `fw04_check.py` (DAC §6 command, run from the deliverable folder, with `--rs-design` and `--as-design`) | **22 expectations, 0 failed**, including "every fixture record is valid against RS (with its CE-4 and AS references)" |
+| `run_standing_check.py` | **17 cases, 0 unexpected** |
+| O-A's `E/run_e.py` | **56/56** |
+
+### Verdict: **CONFIRMED — READY**
+
+No finding of mine is open. One NOTE follows on the new subject rule; it is not blocking.
+
+| Finding | Status | Confirmed against |
+|---|---|---|
+| EP-R1 MINOR | **Repaired** | `bind_judgments` (`rrm_compare.py`) applies a judgment file only if it names `account` {account_id, sha256 of the given account file} and an `examiner`. Otherwise the file is ignored, with the reason recorded as a limit. The RR-E judgment file (format 0.2) names `RR-E-FX-DP1-ACCOUNT-1`, `637e234c…`, and examiner "HELP_HUMAN (Claude Code session), confirmed by O-C". Standing check SC-2 covers a judgment bound to another account and the judgment file of another account: both are ignored and C-09 stays referred. A mutated account no longer inherits the judgment |
+| EP-R2 MINOR | **Repaired** | R-3 (DAC L62; `decision_for`) refuses an actor whose `displayName`, `osAccount` or `codexAccount` equals the package's requester or any agent requester in the record set. Every constructed `human_act` is validated against RS. N-1 is now RS-valid, with agreeing capture evidence, and is stopped by R-3 alone ("decision actor is an agent of the run or the requester"). **Limit, noted:** "agent identities" are taken only from `act_request` requesters. On a candidate, other agent identities in the run (children, recorders) are not in that set. R-7, the examiner's observation, still covers that case; on a candidate the run-author list would be a fuller source |
+| EP-R3 MINOR | **Repaired** | DAC pins EXP-v0.2 (`fc5b8230…`, `f7871c96…`; header L18, §7 L148), and its UNRESOLVED has no EXP row. RRM's UNRESOLVED no longer lists the digest serialization or the A16 refreeze |
+| EP-R4 NOTE | **Adopted** | P04-A reads `reservedBy` from the package file and checks that the file's alternatives equal its request's. Both packages hold |
+| EP-R5 NOTE (R-6 and R23-25) | **Adopted** | DAC R-6 (L65) matches ACT, RS HA-11, DV-6 and FR RF-6. It is exercised both ways (22-run lines "R-6: a later A16 … supersedes (ALT-1) … earlier stays listed" and "a correction … is not a new decision"). The correction chain is applied before kind and alternative checks |
+| EP-R6 NOTE | **Adopted** | RC-5 (RRM L82; `rrm_compare.py` L66–70) refuses a decision, acceptance, change or outcome claim resting on a `definition` item. Standing-check case SC-2 "a decision claim resting only on a definition item" → RC-5 fails |
+| EP-R7 NOTE | Kept, as stated | — |
+| DAC §6 command path | **Repaired** | The command runs from the deliverable folder, and the documented flags are complete |
+
+**The new subject rule (a namespaced `packageId` also matched by its unique last segment): sound, with one gap.**
+- **What is sound.**
+  - The rule is stated where readers and examiners look: RRM §4 L70, the brief and the schema description.
+  - It only widens how the *examiner* recognises a subject the reader named. It grants no claim content.
+  - Its uniqueness guard compares tails exactly.
+  - A wrong assignment fails toward RC-6 or RC-7 failures rather than toward false passes, because a claim assigned to two packages is compared against both.
+- **The gap.** `mentions()` treats `-` (and `.`, `:`) as a boundary.
+  - So the tail `PKG-1` also matches the text `PKG-1-b`. I checked this directly: `mentions("PKG-1-b decision", "PKG-1")` is True.
+  - So two packages with tails `PKG-1` and `PKG-1-b` both pass the exact-uniqueness check, yet a claim about `PKG-1-b` is also assigned to `PKG-1`.
+  - A short generic tail would match ordinary words: a tail `a` matches "a decision".
+- **Suggested hardening** (NOTE, not blocking):
+  - Admit a tail only if it mentions no other package's identifiers and none of theirs mentions it.
+  - Or require a tail to contain a digit, or be at least some length.
+  - Add a standing-check case with overlapping tails.
+- **When RR-F lands.** I will judge the rule against its real account: whether the reader used tails at all, and whether any claim was assigned to an unintended package.
+
+## Hardenings confirmation: subject rule, RR-F, RW-1 and re-pins (2026-10-03)
+
+**Bytes reviewed.** Recomputed with `shasum -a 256`; all match O-C.md "RR-F and RV's two hardenings" and "FV-4a":
+
+| File | sha256 |
+|---|---|
+| DAC | `1fc4fd272c4f155c04f6367fb2e2562071536c78dea579dd1cfedbb889d5756c` |
+| `fw04_check.py` | `e57359d3…29b9`, unchanged |
+| RRM | `3a4a1462…7673` |
+| `rrm_compare.py` | `48630745…7be8` |
+| `run_standing_check.py` | `8eb1bd19…3b46` |
+| `account.independent.RR-F.json` | `8188caba…92c0` |
+
+`account.independent.RR-F.json` is byte-identical to `E/RR-F/account.json` (checked with `cmp`).
+
+**Checks rerun, not rebuilt.**
+- `fw04_check.py`, from the deliverable folder with the RS and AS design flags: **22 expectations, 0 failed**.
+- `run_standing_check.py`: **19 cases, 0 unexpected**. These include:
+  - RR-F as SC-1's second independent case: no failure, nothing referred;
+  - the new overlap case.
+
+### Verdict: **CONFIRMED**. Nothing is open from me on EP-05 or EP-11.
+
+| Item | Result | Evidence |
+|---|---|---|
+| **Subject-rule hardening** | **Sound.** No longer over-lenient on the cases I raised | `mentions()` (L38–41) now treats `-`, `_` and `:` as continuing an identifier, so `pkg:t:PKG-1` is not found inside `pkg:t:PKG-1-b`. A trailing `:` or `.` still ends one, so "PKG-1: request" and "PKG-1.json" match as intended. `package_identifiers()` (L43–56) admits a tail only if it is unique, not contained in any other package's identifier, and contains none of them. That is a substring test, so a short generic tail (e.g. `a`) is also refused, because it occurs inside the file paths. The SC-2 case shows PKG-1 / PKG-1-b admitting no short form and PKG-1 / PKG-2 admitting theirs. RR-F used full ids, so the rule was not exercised by an independent reader, as the coordinator said |
+| **RW-1 (DAC §6.1)** | **Adopted** | It states that the V4-EXM-13 joined witness treats *ready* and *ready (qualified)* (and `readinessQualified`) as ready, keeps the qualifier and its first cause, never reports a qualified row as bare *ready*, and names the expected label in rebuilt states. It cites `FLEET_VIEWS.md` at `15e25a24…1b85`, the version I confirmed. §7's DEL-06-02 row names it |
+| **Re-pins** | **Correct** | DAC (L13) and RRM pin RS at `2e7afb1b…30ff`, and DAC states that R-6 relies on the new L-0 A16 sentence. I checked every 64-hex pin in DAC and RRM against current files. RRM: all match. DAC: all match except `fc5b8230…` (EXP-v0.2). Its `git show 09ca67d094:` bytes give `fc5b8230…`, and the working-copy diff from that commit is the U-EXP-1 closure only (6+/4− lines; no rule, schema or example). So keeping that pin is right under R23-21 item 3 |
+
+**Note on the RR-F evidence I relied on.** `rrm_compare` gives 9/9 with nothing referred on RR-F. I relied on the standing check's SC-1 case for this and did not re-read RR-F's account claim by claim.

@@ -35,6 +35,25 @@ def truth_from_records(root, items):
         out[b['evidence']['ref']] = {'record': rid, 'decision': dec}
     return out
 
+def mentions(text, ident):
+    """Whole-identifier match: the identifier is not part of a longer identifier on either side
+    ('-', '_' and ':' continue an identifier, so 'pkg:t:PKG-1' is not found inside 'pkg:t:PKG-1-b')."""
+    return re.search(r'(?<![A-Za-z0-9_:-])' + re.escape(ident) + r'(?![A-Za-z0-9_-])', text or '') is not None
+
+def package_identifiers(pk):
+    """Identifiers that name each package in `about` (RRM §4). pk: {file ref: (packageId, request record id)}.
+    Full forms always: the file path, the packageId and the record id. A namespaced packageId's last segment
+    (e.g. 'PKG-1' of 'pkg:fx-u1:PKG-1') is admitted only when it is distinctive (RV hardening): unique among the
+    packages, not contained in any identifier of another package, and containing none of them (nor another
+    package's tail). With PKG-1 and PKG-1-b neither tail is admitted, and only full forms name them."""
+    ids = {ref: [x for x in (ref, pid, rid) if x] for ref, (pid, rid) in pk.items()}
+    tails = {ref: pid.rsplit(':', 1)[-1] for ref, (pid, rid) in pk.items() if pid and ':' in pid}
+    for ref, tail in tails.items():
+        others = [x for o, xs in ids.items() if o != ref for x in xs] + [t for o, t in tails.items() if o != ref]
+        if all(tail not in x and x not in tail for x in others):
+            ids[ref].append(tail)
+    return ids
+
 def bind_judgments(doc, account_path, acc):
     """RRM §5 (RV-EP EP-R1): a judgment file applies only to the account it names, by account id and the
     sha256 of the account file, and must name its examiner. Otherwise its judgments are ignored.
@@ -72,12 +91,8 @@ def compare(root, ism, acc, ism_path, judgments=None):
     # Subject of a claim (RRM §4, "Naming the subject"; repaired after RR-E): `about` names it by an
     # identifier — the package file path, the package id in that file, or the package's record id.
     # When `about` names no package, the package files among the claim's sources name it.
-    ids = {}
-    for ref, t in truth.items():
-        pid = json.load(open(os.path.join(root, ref))).get('packageId')
-        ids[ref] = [x for x in (ref, pid, t['record']) if x]
-    def mentions(text, ident):
-        return re.search(r'(?<![A-Za-z0-9])' + re.escape(ident) + r'(?![A-Za-z0-9])', text or '') is not None
+    pk = {ref: (json.load(open(os.path.join(root, ref))).get('packageId'), t['record']) for ref, t in truth.items()}
+    ids = package_identifiers(pk)
     def subjects(c):
         named = [ref for ref, xs in ids.items() if any(mentions(c['about'], x) for x in xs)]
         if named:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""DEL-09-02 SQ-v0.1 design prototype: checks the PROPOSED dossier schema, its
-example sets, the rules SQ-R1...SQ-R7 a schema cannot express, and that every
+"""DEL-09-02 SQ-v0.2 design prototype: checks the PROPOSED dossier schema, its
+example sets, the rules SQ-R1...SQ-R10 a schema cannot express, and that every
 supplier case the step map cites exists as a designed-case row in that
 supplier's actual Design file (SQ-R6).
 
@@ -25,6 +25,7 @@ RESULTS = []
 SCENARIOS = ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"]
 NOT_CLAIMED = {"joined_host_witness", "replacement", "public_release", "retirement",
                "professional_reliance", "practitioner_validation"}
+CORE_LOOP = {"planning", "execution", "workflow saving", "reuse", "approvals", "interruption", "restart"}  # DEL-11-03 REQ-001
 
 
 def check(n, ok, d=""):
@@ -66,8 +67,13 @@ def aggregate(outs):
     return "inconclusive"
 
 
+def map_steps(step_map):
+    return {s["step"]: s for v in step_map["scenarios"].values() for s in v}
+
+
 def violations(d, step_map):
     v = []
+    ms = map_steps(step_map)
     names = [s["scenario"] for s in d["scenarios"]]
     if sorted(names) != SCENARIOS:
         v.append("SQ-R1")
@@ -83,24 +89,53 @@ def violations(d, step_map):
         if (kinds != ["api_key", "chatgpt_account", "local_provider"] or homes.get("api_key") != "H-key"
                 or homes.get("chatgpt_account") != "H-acct" or len(set(convs)) != 3):
             v.append("SQ-R3")
+    # SQ-R4 a scenario outcome only once every counted step is recorded; it is their aggregate
     for s in d["scenarios"]:
-        outs = [st.get("outcome", "not-run") if st["state"] == "recorded" else "not-run" for st in s["steps"]]
-        if aggregate(outs) != s["outcome"]:
-            v.append("SQ-R4")
-            break
+        counted = [st for st in s["steps"] if st.get("counts", True)]
+        if "outcome" in s:
+            if any(st["state"] != "recorded" for st in counted) or aggregate([st["outcome"] for st in counted]) != s["outcome"]:
+                v.append("SQ-R4")
+                break
     if not NOT_CLAIMED <= set(d["handoff"]["not_claimed"]):
         v.append("SQ-R5")
     for s in d["scenarios"]:
         for st in s["steps"]:
-            for c in st["supplier_cases"]:
-                if not case_exists(c["deliverable"], c["file"], c["case_id"]):
-                    v.append("SQ-R6")
-                    break
+            if any(not case_exists(c["deliverable"], c["file"], c["case_id"]) for c in st["supplier_cases"]):
+                v.append("SQ-R6")
+                break
     for s in d["scenarios"]:
-        want = [x["step"] for x in step_map.get(s["scenario"], [])]
+        want = [x["step"] for x in step_map["scenarios"].get(s["scenario"], [])]
         if [st["step"] for st in s["steps"]] != want:
             v.append("SQ-R7")
             break
+    # SQ-R8 handover as qualification, and independence
+    h = d["handoff"]
+    if h["handed_over"]:
+        all_recorded = all(st["state"] == "recorded" for s in d["scenarios"] for st in s["steps"] if st.get("counts", True))
+        if not all_recorded or any("outcome" not in s for s in d["scenarios"]) or not d["examiner"].get("review_record"):
+            v.append("SQ-R8")
+    if h["reported_as_independent"] and (d["examiner"]["separation"] == "not_separate" or not d["examiner"].get("review_record")):
+        v.append("SQ-R8")
+    # SQ-R9 stimuli: a recorded counted step lists every stimulus its map declares; one not produced cannot pass
+    for s in d["scenarios"]:
+        for st in s["steps"]:
+            if st["state"] != "recorded" or not st.get("counts", True):
+                continue
+            declared = set(ms.get(st["step"], {}).get("stimuli", []))
+            given = {x["id"]: x for x in st.get("stimuli", [])}
+            no_replay = {x["id"] for x in step_map["stimuli"] if not x.get("replay_counterpart")}
+            if (declared - set(given)
+                    or any(x["produced"] == "replay" and i in no_replay for i, x in given.items())
+                    or (any(x["produced"] == "not_produced" for x in given.values())
+                        and st["outcome"] not in ("blocked", "fail"))):
+                v.append("SQ-R9")
+                break
+    # SQ-R10 a counted step's map entry carries counts consistently
+    for s in d["scenarios"]:
+        for st in s["steps"]:
+            if st["step"] in ms and st.get("counts", True) != ms[st["step"]]["counts"]:
+                v.append("SQ-R10")
+                break
     return sorted(set(v))
 
 
@@ -111,12 +146,25 @@ def main():
     check("SCHEMA sq.dossier.schema.json is valid 2020-12", True)
     step_map = load("sq.step-map.json")
     n = 0
-    for scen, steps in step_map.items():
+    for scen, steps in step_map["scenarios"].items():
         for st in steps:
             for c in st["supplier_cases"]:
                 n += 1
                 check(f"SQ-R6 step map {scen} {st['step']} {c['case_id']} exists in {c['file']}",
                       case_exists(c["deliverable"], c["file"], c["case_id"]))
+    elements = {s["core_loop_element"] for s in sum(step_map["scenarios"].values(), [])}
+    check("MAP covers DEL-11-03 REQ-001's seven core-loop elements", CORE_LOOP <= elements, str(sorted(elements)))
+    check("MAP every step has a v3 reference", all(s.get("v3_reference") for s in sum(step_map["scenarios"].values(), [])))
+    ids = {x["id"] for x in step_map["stimuli"]}
+    used = {i for s in sum(step_map["scenarios"].values(), []) for i in s["stimuli"]}
+    check("MAP every stimulus declared is used and every used one declared", ids == used, f"{sorted(ids)} vs {sorted(used)}")
+    check("MAP added steps are not counted and give their reason",
+          all((not s["counts"]) == s["step"].endswith("R") and (s["counts"] or s.get("added_reason"))
+              for s in sum(step_map["scenarios"].values(), [])))
+    check("MAP no act-control case for A4 joined at a registration step (RV2 SQ-R-C)",
+          not any(c["case_id"] == "VC-AAC-04" for s in sum(step_map["scenarios"].values(), []) for c in s["supplier_cases"]))
+    check("MAP VC-R-14 cited at every V4-EXM-11 step (one execution)",
+          all(any(c["case_id"] == "VC-R-14" for c in s["supplier_cases"]) for s in step_map["scenarios"]["V4-EXM-11"]))
     for d in load("sq.dossier.valid.examples.json"):
         errs = list(val.iter_errors(d))
         check(f"VALID {d['record_id']}", not errs, "; ".join(e.message[:120] for e in errs[:2]))

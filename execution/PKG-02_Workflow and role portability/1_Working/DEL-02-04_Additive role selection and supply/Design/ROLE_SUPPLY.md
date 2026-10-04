@@ -44,7 +44,7 @@
 |---|---|---|
 | Run `BRIEFS.md`; `OWNER_DECISIONS.md`; `R17_RESOLUTIONS.md`; `DECISIONS_PENDING.md` | `b261394112d7264e`; `9d18c40dd7d894dc`; `b0af81bcbad9bc52`; `431ec4eb22a0b913` | Whole (DECISIONS_PENDING: K-9…K-12 and Part 2) |
 | `SURVEY/S1-C.md` | `06a8a6667ca7c64d` | §0, Part B, Part C whole |
-| DEL-02-04 `ScopeOfWork.md`; `Dependencies.csv` | `3acfaa62a3bbf003`; `0cb255b3270dfe61` | Whole; rows via S1-C §B.2 and DAG-003 |
+| DEL-02-04 `ScopeOfWork.md`; `Dependencies.csv` | `2327508f2290e7cf`; `0cb255b3270dfe61` | Whole; rows via S1-C §B.2 and DAG-003. ScopeOfWork (SCA-V4-003 revision; re-pinned at pass-4 closeout C1 under R23-5, was `3acfaa62…6601`; SCA-V4-003 blocks read: G-0204-01…13, none requiring a change to this file's design text) |
 | DEL-01-01/HOSTING-BOUNDARY-v0.8 `HOSTING_BOUNDARY.md` | `3cf0381c42358fec` | §8 (S-6, S-7, receivers table), §8.1, §8.2, §8.4, F-16, F-20, UNRESOLVED, VC-19 |
 | DEL-01-01 `PIN_SPIKE_0.158.0.md`; `OBS_1_0.158.0.md` | `0e090a4ca14e3ec3`; `7b984b541edca0b1` | P-15 row; instruction and delegation facts by search |
 | DEL-02-01/WD-v0.8 `WORKFLOW_DECLARATION.md` | `517821d18fc95830` | §3.5 CR-7, §3.9, §4.2.5 HC-3/HC-4, §4.7, §5, §6.1, §6.2, §6.4 HL-3, §7, §9 A-6, U-09, U-14 |

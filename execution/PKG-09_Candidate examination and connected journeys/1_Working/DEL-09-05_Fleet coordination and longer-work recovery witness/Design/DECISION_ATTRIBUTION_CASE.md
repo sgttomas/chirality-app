@@ -8,14 +8,14 @@
 - **ScopeOfWork** `ScopeOfWork.md` sha256 35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063 (INIT contract; no amendment changed any of its blocks, so R23-5 has nothing to re-read). It is read with R23-7: its TBD-002 (OI-001/002 "remain OPEN") and TBD-003 ("no supplier version is selected") are followed as the later decisions D2/D3/D4 state them; the wording goes to the next amendment (R23-11).
 - **Rulings, cited by ID (R23-21):** R23-2 (the package reaches the act control as a runtime value), R23-8 (package = A8 recorded as RS R16 `act_request` with alternatives and consequences; the decision is the act the package names; A16 *decide* for a reserved coordination decision, captured by DEL-01-04's App act control, recorded under RS HA-1; which decisions are reserved is set by the governing instrument the package cites), R23-18 (O-A adds the A16 rows), R23-19, R23-20, R23-21; DECISION-K1 K1-1 (the agent asks; nothing reacts in its place) and K1-4 ("identity not verified").
 - **Basis:** `docs/PRD.md` V4-PM-01…06, V4-EXE-02/03, V4-AUT-03…05, V4-REC-03/05; `docs/EXAMINATION.md` §§1–2, V4-EXM-13.
-- **Suppliers: the A16-carrying versions, adopted (R23-21 item 3; O-A's E-1 refreeze, `OWNERS/O-A.md`).** This file relies on the A16 rows, so it pins the refrozen versions (sha256 recomputed at this node):
-  - DEL-04-01/ACT-POLICY-v0.10 `ACT_AND_POLICY_CONTRACT.md` d8e7449c7364609cc7dab435bcb745accdb31dee416d39a74c0ea4b98487f268 (§2.1 A8 and A16 rows, §2.4, §2.5 A16 content binding (R23-23 item 2), §9 "decide");
-  - DEL-04-03/RS-v0.10 `RECORD_SEMANTICS.md` 0d700f54d323682d439b1e44bc23dab52339873205604aa17a6c657c6e432ab2 (§6.1, §6.2 HA-1 and HA-11, §7 L-1…L-8, §13.3, §13.6) and `RS_RECORD.schema.json` 44331659c01472a1e2f96de21b66d1cd05e357f6b6332756bd077228a58a7137;
-  - DEL-02-03 `checkpoint-record-entries.schema.json` (schema 0.7, the CE-4 body) e56d33dc3d142f848ebf716b3dd7f1e3baefe2779b51ed642d1be74eff792e96;
-  - DEL-01-04/AAC-v0.3 `APP_ACT_CONTROL.md` 45b13f155a0c97949b60e0dfbe0c086fa5c9e9b1afcb0db1ef4f28f82a726057 (§1.2 A16 row, AK-a…AK-f, §5.1 `aac-offer-digest/0.1`), with its schemas `aac.offer.schema.json` 662083f8b569bd0ec0b954dd6c4adac0f6a3b9d7c35735b51bde5ffa53ce0e59 and `aac.capture-evidence.schema.json` 54af340140bb5896157348910917ebf7abcbaab839a14113cfcfa1b66b205b43;
-  - DEL-06-02/DV-v0.1 `DECISION_VIEW.md` f4aa62065a48361c4ce9c888473e2bed50da8dd4939bd21d697d55b00bd1c2c3 (§3 DV-1…DV-9).
-- **Fixture:** FX-DP1 at `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/E/fixtures/FX-DP1/`, as refrozen at E-1: `MANIFEST.sha256` sha256 346191ff346ff788efec7aced9f46666fa46e5374dc288a85c69181bde928be9, all six files verified with `shasum -a 256 -c`. Against the first freeze (`e3c8c5ea…`), only the offer and the capture evidence changed, and only in `offerDigest` (now `aac-offer-digest/0.1`) and the offer's key order (O-A, RR-E addendum). FW-04 does not rely on the digest; the comparison in §3 is unchanged.
-- **Examination records:** DEL-09-01 EXP. The rehearsal's records are validated against the EXP result schema actually present (§6), whose `format` the check reads rather than assumes.
+- **Suppliers: the A16-carrying versions, adopted (R23-21 item 3), as O-A refroze them under R23-24 and R23-25 (`OWNERS/O-A.md`).** This file relies on the A16 rows, so it pins those versions (sha256 recomputed at this node):
+  - DEL-04-01/ACT-POLICY-v0.10 `ACT_AND_POLICY_CONTRACT.md` 1bf0ce8e413d2b8fb3825808e3ce50bf8c56584c8b40bdb990bc81d2863525c1 (§2.1 A8 and A16 rows, §2.4, §2.5 A16 content binding, §9 "decide"; R23-25: a later A16 supersedes for current standing, a correction is not a decision);
+  - DEL-04-03/RS-v0.10 `RECORD_SEMANTICS.md` 2e7afb1bb8b872c0ba30a514a034b1aa7174e63ee782505438c95d7cd78430ff (§7 L-0 now states A16 supersession under R23-25, which R-6 relies on; §6.1, §6.2 HA-1 and HA-11, §7 L-1…L-8, OF-5/W-3 corrections, §13.3, §13.6) and `RS_RECORD.schema.json` 44331659c01472a1e2f96de21b66d1cd05e357f6b6332756bd077228a58a7137, with DEL-04-02's `AS_SETTINGS_IN.schema.json` 206045da42dae052621893c8e25487066b36ef8e8a3a7a28414b02137be07d62, which RS references;
+  - DEL-02-03 `checkpoint-record-entries.schema.json` (the CE-4 request body and, under R23-24 item 1, the package file's own `$def`) a5271857c8bf71f67077fc52760a35d41ee0c30f8bd6d487a93d3c882308b45c;
+  - DEL-01-04/AAC-v0.3 `APP_ACT_CONTROL.md` de39976e93500c9455c000b78363ad192fe56fd8aa87c680284f78db939acf65 (§1.2 A16 row, AK-a…AK-f, §5.1 `aac-offer-digest/0.1`), with its schemas `aac.offer.schema.json` 662083f8b569bd0ec0b954dd6c4adac0f6a3b9d7c35735b51bde5ffa53ce0e59 and `aac.capture-evidence.schema.json` 54af340140bb5896157348910917ebf7abcbaab839a14113cfcfa1b66b205b43;
+  - DEL-06-02/DV-v0.1 `DECISION_VIEW.md` b944b0be081a56a4796d85e9175dcfb202b50f6fa717e0e6211f8f8b5b4a206d (§3 DV-1…DV-9; DV-6 under R23-25).
+- **Fixture:** FX-DP1 at `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/E/fixtures/FX-DP1/`, as refrozen under R23-24: `MANIFEST.sha256` sha256 9501ef81b94c24b71a00c3611cbfa5b8eed2214eb575208283be4c3b46f034c5, all six files verified with `shasum -a 256 -c`. All five content files changed against the E-1 freeze (`346191ff…`); `conversation/agent-message.txt` did not. The package files now have their own shape (R23-24 item 1), with `reservedBy`; record ids, PKG-1's decision (ALT-2) and PKG-2's pending state are unchanged.
+- **Examination records:** DEL-09-01 EXP-v0.2, refrozen and confirmed READY (`reviews/RV-EXP-U1.md`): `EXAMINATION_PROTOCOL.md` fc5b8230ec2ab81a9307bd58a573752194a859afbc28eda6bce1a12ee332a20d (the bytes relied on, committed at `09ca67d094`; O-B has since closed U-EXP-1 in place, which nothing here relies on); `exam.result-record.schema.json` f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081. The check reads `format` from the schema it is given.
 
 ## 1. What VER-004 asks, and the shape it is examined on
 
@@ -59,10 +59,10 @@ These are DEL-09-05's examination rules. They are written independently of DEL-0
 
 - **R-1 Subject.** Only a `human_act` whose `relations.requestRef` names the package's record is considered for that package.
 - **R-2 Kind.** Its act kind is the kind the package names; an act of another kind citing the package does not decide it.
-- **R-3 Actor and recorder.** The decision actor is a person (never the agent or a tool), and the recorder is a recording surface distinct from the actor.
+- **R-3 Actor and recorder.** The decision actor is a person: RS's `decisionActor` (`$defs/person`) has no kind element, so an agent shows up as an identity the run knows as an agent's. The actor's names (`displayName`, `osAccount`, `codexAccount`) must not equal the package's requester or any agent requester of an `act_request` in the record set. The recorder is a recording surface distinct from the actor. (Repaired for RV-EP EP-R2.)
 - **R-4 Alternative.** For A16, the chosen alternative is one the package names.
 - **R-5 Capture.** The record cites resolvable capture evidence, which agrees with it on record identity, request, kind, actor, chosen alternative and bound content.
-- **R-6 Order.** Of several counted acts, the latest in written order is the one shown; earlier ones stay listed.
+- **R-6 Several decisions (R23-25, O-A's decision, as in ACT, RS HA-11, DV-6 and FR RF-6).** A later A16 on the same package that is not a correction is a new decision by the person; it supersedes the earlier one for current standing, and both stay listed. A correction (an entry naming the earlier one in `corrects`, with a reason; RS OF-5, W-3) is not a new decision: it takes the place of the entry it corrects, and the latest correction is used.
 - **R-7 Observation.** On a candidate, the counted record agrees with the examiner's observation (step 04-4) on person, package and alternative. A record without an observed act, or an observed act without a record, **fails** P04-B.
 - **R-8 Lapse.** Bound content compared with the package file now: equal → not lapsed; different → lapsed; file absent → unknown (unavailable).
 
@@ -70,7 +70,7 @@ These are DEL-09-05's examination rules. They are written independently of DEL-0
 
 | Part | Steps | Passes when | Criterion |
 |---|---|---|---|
-| P04-A Package exactness | 04-0, 04-1 | The package names the exact act, subject, purpose, scope, two or more alternatives, a consequence for each, the requester and the reserving instrument | REQ-001; V4-PM-04 |
+| P04-A Package exactness | 04-0, 04-1 | The package names the exact act, subject, purpose, scope, two or more alternatives, a consequence for each, the requester; and the package **file** names the basis that reserves the decision (`reservedBy`, R23-24 item 1) and the same alternatives | REQ-001; V4-PM-04 |
 | P04-B Faithful record of the actual decision | 04-4…04-6 | R-1…R-7 hold; actor ≠ recorder | AC-004; VER-004 |
 | P04-C No unsupported attribution | 04-2, 04-3 | No decision is recorded or shown from message text, success, a return, silence or a timeout, or from an act failing R-2…R-5 | AC-004; REQ-004 |
 | P04-D Lapse | 04-8 | R-8; the decision stays listed | REQ-003 (prior judgments exposed after a change) |
@@ -101,24 +101,33 @@ Outcomes, aggregation and not-applicable parts follow EXP and R23-19/R23-20. No 
 
 It also checks the lapse on a scratch copy, and the independence of an unrelated A4. It writes one EXP result record per part (run basis `rehearsal`, subject the fixture double with its file digests), validates each against the EXP result schema given, and confirms the fixture is byte-identical afterwards.
 
-**Runs of 2026-10-03** (macOS, Python 3, `jsonschema` 4.26; script sha256 4b54169825db70006c115b44fecb71bf18a3ab6d9695afe75158c74e1edd51f9; observation file afc9df9d087488680a3624bb01ba88df3583ab3cb9ad98eb013b73acb6301716):
+**Repairs at RV-EP (MINOR).** R-3 follows RS's actual actor record (EP-R2). Every record the check constructs as a `human_act` is validated against RS before the rules are applied, with DEL-04-03's subset validator (`prototype/minischema.py`, read-only). N-1 is now RS-valid: the requesting agent's own identity as `displayName`, with capture evidence that agrees, so only R-3 can stop it. P04-A reads the reserving basis from the package file's `reservedBy` (EP-R4, after R23-24). R-6 follows R23-25 and is exercised both ways: a later A16 supersedes, and a correction is not a new decision. The N-5 entries are non-act stand-ins, not RS-validated; their only relevant property is that they are not `human_act` entries (R-1).
+
+**Run of 2026-10-03 on the R23-24 refreeze** (macOS, Python 3, `jsonschema` 4.26; script sha256 e57359d3646031cec28444713832f9accb5c33259a864b8821ae44aa2a5229b9; observation file afc9df9d087488680a3624bb01ba88df3583ab3cb9ad98eb013b73acb6301716). Run from the deliverable folder:
 
 ```text
-python3 -B prototype/fw04_check.py --fixture <run>/E/fixtures/FX-DP1 \
-  --observation prototype/fixtures/examiner_observation.FX-DP1.json \
+cd "<DEL-09-05 deliverable folder>"
+python3 -B Design/prototype/fw04_check.py --fixture <run>/E/fixtures/FX-DP1 \
+  --observation Design/prototype/fixtures/examiner_observation.FX-DP1.json \
   --exp-schema <DEL-09-01 Design>/exam.result-record.schema.json \
+  --rs-design <DEL-04-03 Design> --as-design <DEL-04-02 Design> \
   --criterion ScopeOfWork.md --out "$TMPDIR/fw04"
 ```
 
-- First freeze of FX-DP1 (`e3c8c5ea…`): 19 expectations, 0 failed.
-- **E-1 refreeze (`346191ff…`): 19 expectations, 0 failed.**
-  - PKG-1 is *decided*: ALT-2, Engineer A, recorded by the App interface, not lapsed. This agrees with the constructed observation.
-  - PKG-2 stays *pending* although the agent's message claims a decision.
-  - Every negative decides nothing, each for its named rule.
-  - The edited copy shows *lapsed*.
-  - Five EXP records are schema-valid against the EXP result schema present (`format` EXP-v0.2, sha256 f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081, O-B's repair in progress; the check reads the format from the schema).
+**22 expectations, 0 failed.**
+- Every fixture record is valid against RS, with its CE-4 and AS references.
+- P04-A: both packages hold; each file names its `reservedBy` and the same alternatives as its request.
+- P04-B: PKG-1 is *decided* (ALT-2, Engineer A, recorded by the App interface, not lapsed) and agrees with the constructed observation; PKG-2 stays *pending* although the agent's message claims a decision.
+- R-6, both ways: a later RS-valid A16 choosing ALT-1 becomes current, and the earlier one stays listed (two in the history); a correction with reason leaves one decision, shown in its corrected form.
+- P04-C, N-1…N-5: each decides nothing, for its named rule. N-1 is RS-valid and stopped by R-3. N-2's record is also refused by RS.
+- P04-D: the edited copy shows *lapsed*.
+- P04-E: an RS-valid A4 neither decides nor is required.
+- The fixture is unchanged afterwards.
+- Five EXP records are valid against EXP-v0.2.
 
-**The fixture's records are valid against the refrozen schemas.** This is not re-derived here. O-A's `E/run_e.py` (sha256 11ccd3197294374880b8adbbb78ed0ea6bd8dc5230a4d6c766c7d800b95dcd9c), rerun by O-C on 2026-10-03 into a scratch folder, holds **47/47**. It validates the two package `act_request` entries, the A16 `human_act`, the A16 `act_lapsed`, the offer and the capture evidence against the files as they are, recomputes the offer digest, and confirms the input set unchanged. This removes §6's earlier limit "not valid against the refrozen schemas".
+Earlier runs, kept as history: the first freeze of FX-DP1 (`e3c8c5ea…`) and the E-1 refreeze (`346191ff…`) each gave 19/19, with the check before these repairs.
+
+**The fixture's records are valid against the refrozen schemas.** O-A's `E/run_e.py` (sha256 81c973de992de646aeb57ddf7b0245e972b1657ca9345cccbb9c0feb78609774), rerun by O-C into a scratch folder, holds **56/56** on the R23-24 fixture. FW-04 now also validates the records itself (above).
 
 **Two derivations agree.** DEL-06-02's DV-v0.1 reports the same states on FX-DP1 (PKG-1 *decided* ALT-2; PKG-2 *pending*), from its own derivation (DV §8; O-A's `run_e.py` section D). This shows consistency between two implementations of one shared basis, not that the basis is sound (workflow §3). The shared basis is R23-8 and the RS/ACT/AAC rows; its own check is the RV review of O-A's E-1.
 
@@ -127,16 +136,20 @@ python3 -B prototype/fw04_check.py --fixture <run>/E/fixtures/FX-DP1 \
 - an actual person's act;
 - an examiner's observation;
 
+### 6.1 Reading DEL-06-02's waiting rows (rule for the joined witness)
+
+DEL-06-02's waiting view (`FLEET_VIEWS.md`, FV-v0.1, sha256 15e25a24f53feb2a1704733a84c8a07ad5c7cc59509bf0aa6abe89a6f18c1b85) labels a ready row either **ready** or **ready (qualified)**. The second is used while the child index holds an unassociated or orphaned child (FV-4a), with that cause listed first. No current DEL-09-05 code reads these rows: FW-04 reads only the decision records. **Rule RW-1, for the V4-EXM-13 joined witness (REQ-002's "independent ready work"; VER-002, VER-003):** wherever DEL-09-05 reads a waiting row's state, it recognizes both labels as ready (and the row's `readinessQualified` element where the view supplies it), and it keeps the qualifier and its first cause in its own observations and result records. A *ready (qualified)* row is never reported as bare *ready*, and the qualifier is never dropped when ready rows are counted or compared across a rebuild. An expected rebuilt state written for the witness names the label it expects, qualified or not.
+
 ## 7. Interfaces
 
 | With | What | Register | State |
 |---|---|---|---|
 | DEL-04-03 | `act_request` with alternatives and consequences; `human_act` A16; HA-1, HA-11; §7 lapse | DEP-09-05-010 (admitted) | RS-v0.10 adopted |
 | DEL-04-01 | A8, A16 rows; the adopted policy for the reserving instrument | DEP-09-05-009 (admitted) | ACT-POLICY-v0.10 adopted |
-| DEL-06-02 | The decision view (DV-1…DV-9); FX-DP1 | DEP-09-05-007 (admitted) | DV-v0.1 drafted |
+| DEL-06-02 | The decision view (DV-1…DV-9); FX-DP1; the waiting view's ready labels (FV-4a; §6.1 RW-1) | DEP-09-05-007 (admitted) | DV-v0.1 drafted |
 | DEL-06-01 | The package file the agent writes, within the undertaking's records | DEP-09-05-006 (admitted) | Later |
 | DEL-01-04 | The act control capturing A16 (AK-a…AK-f) | None: R23-2 makes the package a runtime value to the control, and DEL-09-05 consumes only the resulting record | AAC-v0.3 adopted |
-| DEL-09-01 | EXP result records and native-route forms | DEP-09-05-011 (admitted) | EXP repair in progress |
+| DEL-09-01 | EXP result records and native-route forms | DEP-09-05-011 (admitted) | EXP-v0.2 adopted (refrozen, READY) |
 | DEL-09-11 | Its reader reconstructs the same decision from files alone (early path) | None (no row; the early path shares the fixture only) | DEL-09-11 RRM-v0.1 |
 
 No register row is proposed.
@@ -145,7 +158,19 @@ No register row is proposed.
 
 | Item | Owner | Point of need | Effect |
 |---|---|---|---|
-| EXP refrozen | O-B | Before candidate records | §6 reads the format from the schema |
 | The V4-EXM-13 undertaking fixture whose decision FW-04 uses | O-C, a later unit (after the early path) | Before the joined witness | FW-04 is written against the package shape only |
 | The actual person and the examiner's observation form | DEP-09-05-012; DEL-09-01 native-route form | At execution | P04-B cannot pass without them |
 | App candidate | Later undertaking | At execution | — |
+
+## Changes at repair (review RV-EP; in place, version label unchanged)
+
+| Finding | Repair |
+|---|---|
+| EP-R2 (MINOR) agent-actor rule tested a shape RS refuses | R-3 compares the actor's names with the run's agent identities and the requester. Constructed `human_act` records are RS-validated. N-1 is RS-valid |
+| EP-R3 (MINOR) stale open matters | The "EXP refrozen" row is removed. EXP-v0.2 is pinned in the header, and §7's DEL-09-01 row says "adopted" |
+| EP-R4 (NOTE) basis by a phrase in `purpose` | P04-A reads `reservedBy` from the package file (R23-24) |
+| EP-R5 (NOTE) R-6 unratified | R-6 follows O-A's R23-25 decision and is exercised both ways |
+| §6 command path (from RV-EP) | The command now runs from the deliverable folder, where `--criterion ScopeOfWork.md` resolves |
+| R23-24 refreeze | Suppliers and fixture re-pinned; rerun 22/22 |
+| FV-4a (DEL-06-02 E2-R3, from the coordinator) | §6.1 RW-1: the joined witness recognizes *ready* and *ready (qualified)* and keeps the qualifier; no current code reads waiting rows |
+

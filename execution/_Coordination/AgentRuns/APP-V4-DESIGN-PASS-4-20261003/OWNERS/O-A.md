@@ -4,7 +4,47 @@ Owner O-A: Type 2 TASK, Claude Opus 5.5, high effort, standing assignment
 from HELP_HUMAN (run `APP-V4-DESIGN-PASS-4-20261003`). Read-only git; no
 network. Paths are relative to `projects/chirality-app-v4/execution`.
 
-## CURRENT — Unit E-1 refrozen after RV-E1 (2026-10-03), and Unit E-2 frozen
+## CURRENT — E-1 READY (RV confirmed); E-2 refrozen after RV-E2 (2026-10-03)
+
+This section is authoritative. Hash tables in the sections below it are
+history. The E-1 table in the next section stands as RV confirmed it, except
+`RECORD_SEMANTICS.md`, which changed for the R23-25 L-0 row below.
+
+### E-2 repairs (RV-E2)
+
+| Finding | Repair |
+|---|---|
+| **E2-R1 MAJOR** | The DEL-06-01 reader now reports every unread coordination-log line by number (RF-10, `logIncomplete`) and every orphaned observation, an observation of a child with no `dispatch_observed` (RF-12, `orphanChildren`, a limit). The DEL-06-02 views apply FV-8a: while a line is unread, every not-done row is *unknown* ("coordination log incomplete: line(s) ‹n› unread …", then what the readable records show), no row is *ready*, and `queueComplete` is false. The queue is also incomplete with an orphan or with no graph. A brief named in the graph but unreadable also gives *unknown*. VER-006 gains RV's probes, which lose a real record: **P1** (W8's return line truncated: queue not complete, W8 *unknown*, nothing *ready*) and **P2** (W2's dispatch line truncated: W2 *unknown*, the orphan reported). `run_fleet.py` checks RF-10 and RF-12 on the same truncation |
+| **E2-R2** | RS lines are read tolerantly (RF-11): a torn line is a limit, and a decision need with no satisfying act becomes *unknown* while any RS line is unread. Checked in `run_fleet.py` (RF-11) and as **P3** in `run_views.py` (the A16's RS line truncated: no crash, W4's need *unknown*) |
+| **E2-R3** | FV-4a: while an unassociated or orphaned child exists, every *ready* row names it ("a dispatch for this item may be unrecorded") and carries `readinessQualified`. The category stays *ready*, and FV-4a states why. In FX-FL1, W4 and W9 are qualified by `thr-cx` |
+| **E2-R4** (after RV confirmed READY) | A qualified row is labelled **ready (qualified)**, and the qualifier is its **first** cause. `run_views.py` checks that no qualified row renders as bare *ready* (by label, or by label and first cause), and that `readinessQualified` holds exactly when the label is *ready (qualified)*. 23/23 |
+| E2-N1 | FR §3.1: `enforced-by-host` is FR's own PROPOSED value, never handed from ROLE or NPTD |
+| E2-N2 | FR-D1 cites HOSTING-v0.9 L783 |
+| Coordinator (A16 in RS §7 L-0) | L-0 gains A16. It is lapse-evaluated as an App file and supersedes as A12 does (a later A16 on the same package; HA-11; R23-25). A correction is not a supersession. The RS-v0.10 change note names L-0 |
+
+**Checks.**
+- `run_fleet.py`: 34/34 (+2: RF-10/RF-12 and RF-11).
+- `run_views.py`: 23/23 after E2-R4 (22 before it: +6 for FV-4a, queue
+  completeness, P1 ×2, P2, P3).
+- DEL-04-03 `run_prototype.py`: 67 PASS.
+- `E/run_e.py`: 56/56.
+- Same inputs: FX-FL1 `0489bc61…`, FX-DP1 `9501ef81…`.
+
+**E-2 files and the changed RS file, current sha256:**
+
+| File | sha256 |
+|---|---|
+| DEL-06-01 `Design/FLEET_RECORDS.md` (FR-v0.1, repaired in place) | 3e3ba16c9c73f941336a626eed0e6817dfcb5943f5b35c65c78dea9d2b533d5c |
+| DEL-06-01 `Design/fleet.record.schema.json` | e4dd5100b96419078532bbc1144017a39f8a041842e78c6eebb01778a2b45abe (unchanged) |
+| DEL-06-01 `Design/prototype/fleet_store.py` | c88c13444b7355556e30659be17e88b58ea2fbf613a396de5bf8accb0b82bf38 |
+| DEL-06-01 `Design/prototype/run_fleet.py` | eac21c3b78e239ad85873614f643a76249615eb09bc9f9ed210663996f041e79 |
+| DEL-06-01 `Design/prototype/fixtures/FX-FL1/MANIFEST.sha256` | 0489bc6157e0e150e3fc080644fd5fa0f407c00bc53f4ee073c7fd79fa5d37d6 (unchanged) |
+| DEL-06-02 `Design/FLEET_VIEWS.md` (FV-v0.1, repaired in place; E2-R4) | 15e25a24f53feb2a1704733a84c8a07ad5c7cc59509bf0aa6abe89a6f18c1b85 |
+| DEL-06-02 `Design/prototype/fleet_views.py` (E2-R4) | 207de7a7b8e0720dcbdbee726cb8eadaed115112b374b269eee64d9b1f1b75d3 |
+| DEL-06-02 `Design/prototype/run_views.py` (E2-R4) | dc49bff047626a287fdfe5b8a3f4d7e4d516004d61b78218c495a7531fc30724 |
+| DEL-04-03 `Design/RECORD_SEMANTICS.md` (RS-v0.10, L-0 row and change note) | 2e7afb1bb8b872c0ba30a514a034b1aa7174e63ee782505438c95d7cd78430ff |
+
+## Unit E-1 refrozen after RV-E1 (2026-10-03; RV confirmed READY), and Unit E-2 first freeze (superseded above)
 
 This section is authoritative. Hash tables in the sections below it are
 history (E1-R6).

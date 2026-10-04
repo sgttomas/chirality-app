@@ -1,13 +1,16 @@
 # macOS packaging, signing and distribution evidence
 
-- **Contribution:** DEL-01-06/PKG-v0.1 (first Design file of this deliverable).
+- **Contribution:** DEL-01-06/PKG-v0.2. It supersedes PKG-v0.1 (frozen unit
+  U2, file sha256 `6920cd8c50b770772b15fe9665466cefb158f8c0d82e434b749006e8dc69b411`),
+  repaired for review `reviews/RV2-PKG-U2.md` under R23-22 and R23-26 (see
+  "Changes").
 - **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: two PROPOSED schemas (JSON Schema 2020-12) with valid,
   invalid and rule-violation example sets, and a design prototype
   (`prototype/read_tree.py`, `prototype/check_pkg.py`; not product code).
   No package has been built, signed or notarised.
 - **Run and node:** `APP-V4-DESIGN-PASS-4-20261003`, owner O-B (Type 2,
-  Claude Opus 5.5), 2026-10-03. Frozen for review by RV2.
+  Claude Opus 5.5), 2026-10-03. Repaired for RV2's confirmation.
 - **Serves:** OUT-001…OUT-004; REQ-001…REQ-005; designed cases for
   VER-001…VER-005 (§11).
 - **Basis, pinned by current bytes** (`shasum -a 256`):
@@ -24,30 +27,31 @@
     (V4-EXM-01, -03, -04); `docs/HOST_INTEGRATION.md`
     `d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f` (§1).
   - Supplier: DEL-01-01 `HOSTING_BOUNDARY.md` (HOSTING-v0.9)
-    `ce235650e8a9494c66ccd08677556e56a88983aa641b5ff22c576328bd8a93b6`
+    `5401f26d9a2a739a725771c8ce83c62ac5fa07be69b0338ee5670b9453d76d87` (C1 re-pin, R23-21 item 4)
     (§4.2 step 1, §7.1, §7.2, §8 S-5, §10 P-02, §11, U-17);
     `PIN_SPIKE_0.158.0.md`
     `0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115`
     (§2, §3, UNRESOLVED).
   - Examination support (SCC-003 M1): DEL-09-01 `EXAMINATION_PROTOCOL.md`
-    (EXP-v0.2, U1 as repaired for RV-EXP-U1)
-    `fc5b8230ec2ab81a9307bd58a573752194a859afbc28eda6bce1a12ee332a20d`
+    (EXP-v0.2, confirmed READY by RV; U-EXP-1 closed in place)
+    `ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93` (C1 re-pin, R23-21 item 4)
     and `exam.result-record.schema.json`
     `f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081`.
   - Bundle content designed by others (cross-references; §4.2):
     DEL-02-02 `WORKSPACE_AND_REGISTRATION.md` (WR-v0.2)
-    `c5332e9333ccb18c5b4a2a3d633e9d643362b88d0f87187c762a86b5317953c4`
+    `5ed5da8842b32b87ae68db3476192a55fc8ff151802684b10bdca16eaa8b8d8b` (C1 re-pin, R23-21 item 4)
     (§3 rows "Bundled workflows", "Shipped-revision manifest"; LS-5, LS-8);
     DEL-02-04 `ROLE_SUPPLY.md` (ROLE-v0.2)
-    `92bb421b7bccee9a02d33a037736a97bb4d4b1e2136246fa83f75c49291c7e2a`
+    `c8474d919bceec7d6b5b9dc328b03569b2c64f9d849ff950a2e33062cc1034cf` (C1 re-pin, R23-21 item 4)
     (§4.2 GS-1…GS-3); DEL-01-04 `APP_ACT_CONTROL.md` (AAC-v0.2)
     `062ce28c8a4ec0bc79fc6b6c421245057a59815df14b88fa779b61eeb98be7d7`
-    (AAC-v0.2 at `HEAD`, the version relied on, R23-21; §6.3 SEAL-2 is
-    unchanged in O-A's AAC-v0.3); DEL-01-05 `ACCOUNT_AND_PROVIDER_ACCESS.md` (ACCESS-v0.2)
-    `7a2ad8e4a7423943ef6b1ffdbce6048d7c30c9dcc98b515e94cd623f6c041965`
+    (AAC-v0.2, committed at `31d65b0be3`, the version relied on, R23-21
+    item 3; §6.3 SEAL-2 is unchanged in O-A's later versions, checked
+    against the working file 2026-10-03); DEL-01-05 `ACCOUNT_AND_PROVIDER_ACCESS.md` (ACCESS-v0.2)
+    `ff7f3a2bbb18fd93923b4fe45e4e822dae7691ca606de1ea262f6c52bd862ebb` (C2 re-pin, R23-21 item 4)
     (§0, §20).
   - Rulings, cited by ID (R23-21): R23-2, R23-3, R23-5, R23-7, R23-11,
-    R23-13, R23-17, R23-20, R23-21. Other run records:
+    R23-13, R23-17, R23-20, R23-21, R23-22, R23-26. Other run records:
     `OWNER_DECISIONS.md`
     `e4350f61a93edf0d2d4bfc588fcaa17ae23981baa6059617dcc430cda3008cd8`;
     O-B notes `OWNERS/O-B.md` (§ "K-4 facts", the observation record for
@@ -59,7 +63,8 @@
   `bin/codex` and `zsh` (the spike copy is otherwise pruned). The signing
   decision (§3) holds at both pins on those facts; a pin whose tree is not
   wholly signed by one supplier team with hardened runtime and timestamps
-  fails FP-0 and reopens §3.
+  fails FP-0 and reopens §3. The qualification pin is chosen by R23-22's
+  rule when a candidate is built (U-PKG-3); FP-0 runs at that pin.
 - **Receivers:** DEL-09-02 (DEP-09-02-014, admitted); DEL-09-01
   (DEP-09-01-016, held, SCC-003 M2); App PKG-09 (DEP-01-06-007, package);
   the owner's public-distribution decision (DEP-01-06-011, OUT-004).
@@ -103,7 +108,7 @@ reproduces the reading.
 
 | Pin | Tree | Mach-O | Signer | Hardened / timestamp | Entitlements |
 |---|---|---|---|---|---|
-| 0.160.0 | 42 files; manifest sha256 `327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12` | 30 | All team 2DC432GLL2 (OpenAI OpCo, LLC) | All yes | `bin/codex` and `bin/codex-code-mode-host`: `cs.allow-jit`, `cs.allow-unsigned-executable-memory`; `codex-resources/voice/bin/codex-voice-host`: `device.audio-input`; all others none |
+| 0.160.0 | 42 files (incl. `codex-package.json`), no links; manifest sha256 (§5.2) `327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12` | 30 | All team 2DC432GLL2; first Authority "Developer ID Application: OpenAI OpCo, LLC (2DC432GLL2)" on all 30 | All yes | `bin/codex` and `bin/codex-code-mode-host`: `cs.allow-jit`, `cs.allow-unsigned-executable-memory`; `codex-resources/voice/bin/codex-voice-host`: `device.audio-input`; all others none |
 | 0.158.0 | Partly read (PIN_SPIKE §3; spike copy pruned) | — | 2DC432GLL2 | yes (`bin/codex`, `zsh`) | `bin/codex`: the same two; `zsh`: none; others not read |
 
 The 0.160.0 executables named above: `bin/codex`
@@ -150,42 +155,71 @@ entitlement files, if reused at 0.160.0, would drop
 - G-6 A protected resource entitlement (`device.audio-input`) is usable only
   with a matching usage string in the responsible App's `Info.plist`.
 
-## 3. Signing decision (OI-011; R23-13.1)
+- G-7 **Quarantine and first launch.** Gatekeeper assesses an App at first
+  launch only when it carries the `com.apple.quarantine` attribute, which a
+  browser download sets and a local copy normally does not. Executables
+  inside a quarantined, notarised App are covered by its stapled ticket
+  when launched. *(Expected; the witness starts from a quarantined
+  installer and records it, §8.)*
+- G-8 **Key store and signing identity.** A key an App keeps in the
+  operating system's key store stays usable by a later release only if the
+  App's designated requirement (team and bundle identifier) is the same;
+  the data-protection keychain usually needs a keychain-access-group or
+  application-identifier entitlement, which for a Developer ID App also
+  needs a provisioning profile. *(Expected; confirmed at FP-2 once SEAL-2 is
+  implemented, §3 SIGN-3.)*
 
-**SIGN-1 (INTEGRATION: decided by O-B under R23-13.1, accepted by HELP_HUMAN): Option B — Codex's files
-keep OpenAI's signatures; only the App's own code is signed by the App, and
-the whole bundle is notarised.** Reasons:
+## 3. Signing decision (OI-011; R23-13.1; R23-26)
+
+**SIGN-1 (INTEGRATION; decided by O-B under R23-13.1, accepted by HELP_HUMAN;
+R23-26: it settles the App-side signing arrangement for design, while OI-011
+stays open in the register for its SWB co-owner part and for the next
+amendment): Option B — Codex's files keep OpenAI's signatures; only the
+App's own code is signed by the App, and the whole bundle is notarised.**
+Reasons:
 
 1. **HOSTING §7 stays as written.** The packaged tree is byte-equal to the
    published one, so §7.1's distribution content identity and §7.2's rule
    ("equals the expected identity") need no split. Option A would change
    both (§10).
 2. **Entitlements ship exactly as the supplier set them** at each pin
-   (§2.1). No per-pin entitlement list is maintained by the App, and the v3
-   failure mode (dropped entitlements) cannot occur.
+   (§2.1). No per-pin entitlement list is maintained by the App, and the
+   failure mode a reused v3 entitlement set would cause (dropped
+   entitlements; an inference in §2.2, not a recorded v3 failure) cannot
+   arise.
 3. **One team per process tree** for the voice host and its libraries (G-3).
 4. **V4-CST-03** ("used through its own published interface, unmodified and
    pinned") is met literally; no reading of "unmodified" is needed.
 5. The precondition is observed at both pins read (§2.1; FP-0 passes at
    0.160.0, §11).
 
-**Its risk** is G-2 and G-5, general knowledge only. The first package
-answers both before anything relies on B (FP-1, FP-3, §7).
+**Its risk** is G-2, G-5 and G-7, general knowledge only. The first package
+answers them before anything relies on B (FP-1, FP-3, FP-4, the witness;
+§7, §8). **Option B is not relied on until FP-1(a), FP-1(b) and FP-3 pass on
+the first package.** Before then an identity record may carry them as
+`not-run`, and it then carries the limit "option B not yet relied on:
+FP-1/FP-3 not passed" (PK-R9); such a package is not handed over as relying
+on B.
 
 **SIGN-2 Fallback: Option A** (the App re-signs every Codex Mach-O with its
 own Developer ID, applying exactly the supplier's per-file entitlements read
-at that pin, PK-R2). A is used only if FP-1 or FP-3 fails for a reason that
-configuration cannot repair, and the identity record says why
-(`fallback_reason`). **A would restructure HOSTING §7.1/§7.2** (a
-before/after-signing identity split, §10). That restructure is a
-first-increment Design change: it comes back to HELP_HUMAN before A is
-adopted, and DEL-01-06 does not edit HOSTING.
+at that pin, PK-R2). A is used only when a failure is attributed to
+signatures by its recorded cause (§7.3) and the configuration space of §7.2
+is exhausted; the identity record then names the fallback reason, the space
+tried and the ruling that adopted A (`fallback_reason`,
+`configuration_space_tried`, `escalation_ref`; PK-R7). **A would restructure
+HOSTING §7.1/§7.2** (a before/after-signing identity split, §10). That
+restructure is a first-increment Design change: it comes back to HELP_HUMAN
+before A is adopted, and DEL-01-06 does not edit HOSTING.
 
 **SIGN-3 The App's own signature (PROPOSED).** Developer ID Application,
 hardened runtime, secure timestamp, no `get-task-allow`. App entitlements:
-none known to be needed; any found necessary at FP-2/FP-4 is added with its
-reason in the identity record. **App Sandbox off**, because the App's Codex
-child works in the person's project folders, reads the person's
+none known to be needed now. **One possible need is named:** SEAL-2's key
+store (AAC §6.3) may need a keychain-access-group or application-identifier
+entitlement and a provisioning profile (G-8, general knowledge); it is
+confirmed at FP-2 once SEAL-2 is implemented and, if needed, recorded in the
+OUT-001 configuration with its reason. **App Sandbox off**, because the
+App's Codex child works in the person's project folders, reads the person's
 configuration through a symbolic link from an App-owned home (HOSTING §4.2
 step 3) and runs Codex's own command sandbox; under App Sandbox those
 children would inherit the App's container (general knowledge). App v3 also
@@ -202,9 +236,9 @@ unmodified tree but is not exercised (U-PKG-4).
 | Place | Content | Supplier | Notes |
 |---|---|---|---|
 | P-0 `Contents/MacOS/<App>` | The Tauri 2 App binary | App build | Signed by the App (SIGN-3) |
-| P-1 `Contents/Resources/codex/` | The Codex vendor tree, **verbatim**: `bin/`, `codex-path/`, `codex-resources/` with the same relative layout as published | DEL-01-01 (pin, distribution identity, S-5); DEP-005 | Copied as a resources directory, not as `externalBin` (G-5: a sidecar is renamed and signed by the bundler). Byte-equal to published (FP-1) |
+| P-1 `Contents/Resources/codex/` | **The vendor directory as published, verbatim**: `bin/`, `codex-path/`, `codex-resources/` and `codex-package.json` (42 files at 0.160.0), same relative layout, links and modes | DEL-01-01 (pin, distribution identity, S-5); DEP-005 | Mapped as a resources directory, not as `externalBin` (G-5: a sidecar is renamed and signed by the bundler). Equal to published (FP-1) |
 | P-2 `Contents/Resources/workflows/` | Bundled workflows and the shipped-revision manifest | DEL-02-02 (WR §3; LS-5, LS-8; L-4) | Read-only in the bundle |
-| P-3 `Contents/Resources/instructions/` | Product guidance `AGENTS.md` and the four role files | DEL-02-04 (ROLE §4.2 GS-1) | Seeded into App data at first start; the bundle copy is never edited |
+| P-3 `Contents/Resources/instructions/` | Product guidance `AGENTS.md`, the four role files and the role set `roles.json` | DEL-02-04 (ROLE §4.1, §4.2 GS-1) | Seeded into App data at first start; the bundle copy is never edited |
 | P-4 `Contents/Info.plist` | Bundle id, version, minimum macOS, no microphone string | App build | Version equals the identity record's |
 | — App data, project folders | App-owned Codex homes (H-acct, H-key, H-probe), records, seeded guidance | Runtime | **Never in the bundle**; nothing is written into the bundle at run time |
 
@@ -225,84 +259,168 @@ expects them. Running from the bundle is observed at FP-2.
 | Interface | Direction | Arc (DAG-004) | Contribution | If it fails |
 |---|---|---|---|---|
 | I-1 Codex distribution | DEL-01-01 → here | DEP-01-06-006, admitted | Pin, published tree, HOSTING §7.1 identity elements, S-5 signing facts | No package for that pin |
-| I-2 Packaging interfaces | Tauri 2 bundler; Apple tooling (DEP-005) | DEP-01-06-009, not topological | Bundling, signing, notarisation | FP-1/FP-3 decide B or A |
-| I-3 Bundle content | DEL-02-02, DEL-02-04 → placed here | **No row** (Design cross-reference) | P-2, P-3 bytes and their identities | Package lists the item `missing`; not released |
-| I-4 Signed App identity | Here → DEL-01-04 SEAL-2 | **No row** (AAC §6.3 relies on "the signed App") | A stable Developer ID identity per release | SEAL-2 unavailable on an unsigned build (AAC's own limit) |
-| I-5 Examination support | DEL-09-01 → here | DEP-09-01-021, held (SCC-003 M1) | EXP result record for the witness (§8) | Witness recorded without EXP form; not usable by PKG-09 |
-| I-6 Package and identity record | Here → DEL-09-01, DEL-09-02 | DEP-09-01-016 (held, M2); DEP-09-02-014 (admitted) | Package + OUT-002 record + OUT-003 witness | Native packaged cases `blocked` (EXP F-5) |
+| I-2 Packaging interfaces | Tauri 2 bundler; Apple tooling (DEP-005) | DEP-01-06-009, not topological | Bundling, signing, notarisation | §7.2 configuration space, then §7.3 |
+| I-3 Bundle content | DEL-02-02, DEL-02-04 bytes, **a build-time input** to a package candidate | **No row**, in either direction | P-2, P-3 bytes and their identities | That candidate is recorded incomplete (`complete: false`, the item `missing`; PK-R8) and is not handed over as a package. This is a property of the candidate, not a production dependency of DEL-01-06 on DEL-02-02/02-04 (as R23-2 treats a decision package as a runtime value) |
+| I-4 Signed App identity | Here → DEL-01-04 SEAL-2 | **No row** (AAC §6.3 relies on "the signed App") | **The same Developer ID team and bundle identifier across releases** (G-8), and any key-store entitlement SIGN-3 confirms | SEAL-2 unavailable on an unsigned build (AAC's own limit); a changed team or bundle id loses earlier keys |
+| I-5 Examination support | DEL-09-01 → here | DEP-09-01-021, held (SCC-003 M1) | EXP result record for FP-2, FP-4, FP-5 and the witness (§7, §8) | Those recorded without EXP form; not usable by PKG-09 |
+| I-6 Package and identity record | Here → DEL-09-01, DEL-09-02 | DEP-09-01-016 (held, M2); DEP-09-02-014 (admitted) | Package + OUT-002 record + OUT-003 witness | Native packaged cases `not-run` with the package as missing input (EXP U-EXP-5; R23-20) |
 | I-7 Terms record | Here → the owner's distribution decision | DEP-01-06-011, not topological | §9 | Public release not possible; owner use unaffected |
 
 **Rows for I-3 and I-4 (R23-2; none added here).** Framed as consumer →
 DEL-01-06 ("the package places and signs what I ship"). Reach over both
-DAG-004 layers, run 2026-10-03: DEL-01-06 reaches only DEL-01-01, DEL-01-05
-and DEL-09-01, so DEL-02-02 → DEL-01-06, DEL-02-04 → DEL-01-06 and
-DEL-01-04 → DEL-01-06 close no cycle. They are listed for the next amendment
+DAG-004 layers, run 2026-10-03 and confirmed by RV2: DEL-01-06 reaches only
+DEL-01-01, DEL-01-05 and DEL-09-01, so DEL-02-02 → DEL-01-06, DEL-02-04 →
+DEL-01-06 and DEL-01-04 → DEL-01-06 close no cycle; the reverse direction
+would (RV2 PKG-R9 shows the path). They are listed for the next amendment
 (§13), because adding a row is an escalation condition of this assignment.
+
+### 4.3 The OUT-001 configuration (elements)
+
+The configuration is one file kept with the App source, digested into the
+identity record (`configuration.sha256`). It holds:
+
+| Element | Value for B |
+|---|---|
+| CF-1 Signing identity | The Developer ID Application identity name and team, by name only (never a credential) |
+| CF-2 Bundler signing | **Disabled** for the bundling step (no identity configured; SP-1) |
+| CF-3 Resources mapping | P-1 from the published vendor directory; P-2, P-3 from their suppliers' build outputs |
+| CF-4 Outer signing command | `codesign --sign <CF-1> --options runtime --timestamp` on P-0, then on the `.app`, **without `--deep`**; App entitlements file (empty unless SIGN-3 adds one) |
+| CF-5 Info.plist keys | Bundle id (stable across releases, I-4), version, `LSMinimumSystemVersion` (U-PKG-5), no microphone string |
+| CF-6 Installer | `dmg`, built from the signed `.app`, itself signed with CF-1 |
+| CF-7 Notarisation | `xcrun notarytool submit --wait --keychain-profile <name>`; the profile is the owner's, stored in the owner's keychain; only its name is configured, no credential enters a file or record |
+| CF-8 Stapling | `xcrun stapler staple` on the installer |
 
 ## 5. Package identity record (OUT-002; SCC-003 M2) — `pkg.identity-record.schema.json`
 
-One record per package candidate. Elements: the App (revision, build
-identity, version, bundle id, target `macOS arm64`, its signature, cdhash,
-installer file and its sha256 before notarisation and after stapling); Codex
-(pin, published and packaged tree identities — file count, Mach-O count,
-manifest sha256 per `read_tree.py` —, launcher, and per Mach-O executable the
-published and packaged sha256, signature and the supplier's entitlements);
-bundle contents with supplier deliverable, place and sha256; signing (option,
-App identity, who performed it, who recorded it, fallback reason for A);
-notarisation (state, submission id, log, issues, submitter, stapled);
-Gatekeeper (verdict in spctl's words, deep strict verification); the
-examination support revision; date; limits.
+### 5.1 Elements
 
-Rules (`prototype/check_pkg.py`):
+One record per package candidate: the App (revision, build identity,
+version, bundle id, target `macOS arm64`, its signature with authority,
+cdhash, installer file and its sha256 before notarisation and after
+stapling); Codex (pin, published and packaged tree identities — file count,
+Mach-O count, manifest sha256 (§5.2) —, launcher, and **every** Mach-O file
+with its published and packaged sha256, signature (team, first authority,
+hardened runtime, timestamp, entitlements) and the supplier's entitlements);
+bundle contents with supplier deliverable, place, `present` or `missing`,
+and sha256 when present; `complete`; the OUT-001 configuration reference and
+digest; the first-package checks FP-0, FP-1(a), FP-1(b), FP-3 (§7.1); signing
+(option, App identity, who performed it, who recorded it, and for A the
+fallback reason, configuration space tried and the escalation ruling);
+notarisation (state, submission id, log, issues, submitter, stapled);
+Gatekeeper (verdict in spctl's words, deep strict verification, quarantine
+evidence); the examination support revision; date; limits.
+
+### 5.2 Manifest
+
+`manifest_sha256` is the sha256 of the lines `<sha256>  <relative path>\n`
+of every regular file of the tree, ordered by the relative path's UTF-8
+bytes (C collation), each line ending in one newline, the last included;
+equal to `find . -type f | sed 's|^./||' | LC_ALL=C sort | xargs shasum -a
+256 | shasum -a 256` run in the tree, and to `read_tree.py <tree>
+--manifest`. At 0.160.0 it is `327effb9…8d12` (§2.1).
+
+### 5.3 Where records live
+
+As EXP §8.4: files, no service. DEL-01-06 keeps
+`Evidence/PKG/<candidate key>/package-identity.json` (candidate key = App
+revision short form and build identity prefix) and
+`Evidence/PKG/terms/<supplier>.json`; its EXP records (FP-2, FP-4, FP-5, the
+witness) go under `Evidence/EXP/<candidate key>/` per EXP §8.4.
+
+### 5.4 Rules (`prototype/check_pkg.py`)
 
 - **PK-R1** Option B: the packaged tree equals the published tree (manifest
-  and every executable), and every executable carries the supplier team with
-  hardened runtime and timestamp.
-- **PK-R2** Option A: every re-signed executable carries the App's team,
-  hardened runtime, timestamp and **exactly** the supplier's entitlements for
-  that file.
+  and every executable); every executable carries the supplier team, a
+  Developer ID Application authority of that team, hardened runtime and
+  timestamp; FP-1(a) and FP-1(b) did not fail.
+- **PK-R2** Option A: every re-signed executable carries the App's team, a
+  Developer ID Application authority, hardened runtime, timestamp and
+  **exactly** the supplier's entitlements for that file.
 - **PK-R3** The recorder is not the actor of signing or notarising.
 - **PK-R4** (terms) The recorder is neither the obtainer of a response nor
   the decider of distribution.
 - **PK-R5** A "Notarized" Gatekeeper verdict needs an accepted notarisation.
+- **PK-R6** Every Mach-O file of the packaged tree is listed once
+  (`len(executables) == packaged.macho_files`), under either option.
+- **PK-R7** Option A records the whole configuration space CS-1…CS-4 as
+  tried (and, by schema, the escalation ruling).
+- **PK-R8** `complete` only when no bundle item is `missing`.
+- **PK-R9** Option B with any of FP-1(a), FP-1(b), FP-3 not `pass` carries
+  the limit "option B not yet relied on: FP-1/FP-3 not passed" (§3).
 
 ## 6. Operating sequence and failure behaviour
 
 | Step | Action | By | Failure → behaviour |
 |---|---|---|---|
-| PS-1 | Obtain the pinned platform package; read the published tree (`read_tree.py`) | Build | Pin mismatch with HOSTING §7.1 → stop; no package |
-| PS-2 | FP-0 on the published tree | Build | Fails → option B not available at this pin; §3 reopened |
-| PS-3 | Build the App; place P-0…P-4 | Build | A P-2/P-3 item missing → listed `missing`; package not handed over as complete |
-| PS-4 | FP-1: compare the tree inside the bundle with the published tree | Build | Differs → find the bundler step; repair the configuration; else SIGN-2 with reason |
-| PS-5 | Sign the App (P-0 and the bundle) | **The owner's Apple account** (R23-13.2) | Signing fails → no package |
-| PS-6 | `codesign --verify --deep --strict` on the `.app` | Build | Invalid → no package |
-| PS-7 | Submit for notarisation; read the log | **The owner** (or under the owner's direction, as evidenced) | Rejected → read `issues`; supplier-signature issues → SIGN-2 with reason; other issues → repair |
-| PS-8 | Staple; Gatekeeper assess (`spctl -a -vv`) | Build | Not "Notarized Developer ID" → record verdict; not a distributable package |
-| PS-9 | Install and launch witness (§8) | Examiner (N-1 or N-2) | EXP outcome; failed witness is a result, not a hidden retry |
-| PS-10 | Write the identity record; validate with `check_pkg.py`; hand over (I-6) | Recorder | Record invalid → not handed over |
+| PS-1 | Obtain the pinned platform package; read the published vendor directory (`read_tree.py`) | Build | Pin mismatch with HOSTING §7.1 → stop; no package |
+| PS-2 | **FP-0** on the published directory | Build | Fails → option B not available at this pin; §3 reopened |
+| PS-3 | **SP-1** `tauri build` with bundler signing disabled (CF-2), placing P-0…P-4 (CF-3) | Build | A P-2/P-3 item absent → that item `missing`, `complete: false`; candidate not handed over |
+| PS-4 | **FP-1(a)**: compare P-1 with the published directory | Build | Not equal → §7.2 configuration space |
+| PS-5 | **SP-2** sign P-0, then the `.app`, with CF-4 (no `--deep`) | **The owner's Apple account** (R23-13.2) | Signing fails → no package |
+| PS-6 | **FP-1(b)**: compare P-1 again; `codesign --verify --deep --strict` on the `.app` | Build | Not equal → §7.2; invalid → no package |
+| PS-7 | **SP-3** build and sign the installer (CF-6); submit for notarisation (CF-7); read the log (**FP-3**) | **The owner** (or under the owner's direction, as evidenced) | Rejected → classify by recorded cause (§7.3) |
+| PS-8 | **SP-4** staple (CF-8); `spctl -a -vv` on the `.app` | Build | Not "Notarized Developer ID" → record verdict; not a distributable package |
+| PS-9 | Write the identity record (FP-0, FP-1, FP-3 inside); validate with `check_pkg.py` | Recorder | Record invalid → not handed over |
+| PS-10 | From a **quarantined** installer: FP-2, FP-4, FP-5 and the witness (§8) as EXP records citing the identity record; hand over (I-6) | Examiner (N-1 or N-2) | EXP outcome; a failure is classified by §7.3 |
 
 The installer is never modified after PS-7 except by stapling; any rebuild is
 a new package candidate with a new record (V4-EXM-03).
 
 ## 7. First-package check: does option B work?
 
-Run on the first package. Each is an EXP result record (`case_id` FP-n,
-`owner_deliverable` DEL-01-06).
+### 7.1 The checks and where each is recorded
+
+FP-0, FP-1 and FP-3 run before a package record exists, so they are elements
+of the identity record (`first_package_checks`, each with an EXP outcome,
+evidence and, for `fail` or `blocked`, its cause). FP-2, FP-4, FP-5 and the
+witness run on the finished package and are EXP result records
+(`run_basis: candidate`, packaged subject citing the identity record,
+`route: native_packaged`; EXP-R2).
 
 | Check | Question | Method | Pass means |
 |---|---|---|---|
-| **FP-0** | Does the published tree meet B's precondition? | `check_pkg.py --tree <published tree>` (reads only) | Every Mach-O signed by one supplier team, hardened, timestamped, no `get-task-allow`, no links. **Run at 0.160.0 on 2026-10-03: pass** (§11) |
-| **FP-1** | Does the bundler leave the supplier's files alone? | `read_tree.py <app>/Contents/Resources/codex --compare <published tree>` after PS-3 and again after PS-5 | `byte_equal: true` at both points. Settles G-5 for the configuration used |
-| **FP-2** | Does Codex run from the bundle? | Launch the App; HOSTING §7.2 verification of the packaged tree; handshake reaches `ready` | Verification `verified`; handshake observed (relocation, HOSTING P-02) |
+| **FP-0** | Does the published tree meet B's precondition? | `check_pkg.py --tree <published directory>` (reads only) | Every Mach-O signed by the supplier team with a Developer ID Application authority, hardened, timestamped, no `get-task-allow`; no file or directory links. **Run at 0.160.0 on 2026-10-03: pass** (§11) |
+| **FP-1(a)** | Did bundling leave the supplier's files alone? | `read_tree.py <app>/Contents/Resources/codex --compare <published directory>` after SP-1 | `equal: true` (content, link targets, modes, no missing or extra entry). Settles G-5 for CF-2/CF-3 |
+| **FP-1(b)** | Did outer signing leave them alone? | The same comparison after SP-2 | `equal: true`. Settles that CF-4 without `--deep` does not re-sign nested code |
+| **FP-2** | Does Codex run from the bundle under quarantine? | From a quarantined installer: launch; HOSTING §7.2 verification of the packaged tree; the first `codex` child launch and handshake to `ready`; the child's cdhash (`codesign -dv` of the installed file) | Verification `verified`; the child starts and handshakes (relocation, HOSTING P-02; G-7) |
 | **FP-3** | Does notarisation accept another team's signatures inside the App? | PS-7 log: status and `issues` | Accepted, with no issue on any `Contents/Resources/codex/` path. Settles G-2 |
-| **FP-4** | Does the stapled package pass Gatekeeper and deep verification? | PS-6, PS-8 | "Notarized Developer ID"; deep strict valid |
-| **FP-5** | Do the supplier's entitlements take effect? | Read `codesign -d --entitlements` of the packaged files; exercise a Codex feature that uses the code-mode host if the App offers one | Entitlements present (FP-1 implies it); runtime use observed or recorded `not-run` with the reason |
+| **FP-4** | Does the stapled package pass Gatekeeper under quarantine, and deep verification? | `xattr -l` of the installer and the installed `.app`; `spctl -a -vv`; first-launch result | Quarantine present; "Notarized Developer ID"; deep strict valid; first launch not refused. A refusal is `fail`, classified by §7.3; no quarantine is `blocked` |
+| **FP-5** | Do the supplier's entitlements take effect? | `codesign -d --entitlements` of the installed files; exercise a Codex feature that uses the code-mode host if the App offers one | Entitlements present; runtime use observed, or `not-run` with the reason |
 
-**Decision rule.** FP-1 or FP-3 failing because of signatures, and not
-repairable by configuration, moves the package to SIGN-2 (A); that triggers
-the HOSTING §7 escalation (§10). FP-2 failing is a layout or launcher defect,
-not a signing one. FP-4 failing with FP-3 accepted is a stapling or
-distribution defect.
+### 7.2 Configuration space before the fallback
+
+A failure attributed to signatures (§7.3) is first met by trying, in order:
+
+- **CS-1** Placement after bundling: copy P-1 into the bundle after SP-1 and
+  before SP-2, instead of the resources mapping.
+- **CS-2** Outer signing strictly without `--deep`, P-0 signed explicitly
+  first (checks that no step adds deep signing).
+- **CS-3** Any bundler or signing-tool option that re-signs nested code
+  turned off, if one is found acting despite CF-2.
+- **CS-4** Placement of the tree under `Contents/Helpers/codex/` instead of
+  `Contents/Resources/codex/` (G-4), with the launcher path changed.
+
+The space is exhausted when CS-1…CS-4 have each been tried and the failure
+persists with the same recorded cause. Only then is SIGN-2 proposed to
+HELP_HUMAN (escalation, §10).
+
+### 7.3 Decision rule, by recorded cause
+
+Every failure at any FP check or in the witness is classified by its
+**recorded cause**, never by which check it occurred at: the termination or
+crash reason, `codesign`/`spctl` output, and the `syspolicyd`/`amfid` log
+lines around it.
+
+- **Attributed to signatures** (a nested signature invalid after placement;
+  notarisation issues on supplier paths; Gatekeeper refusing nested code
+  under quarantine; library validation; a JIT-dependent feature failing for
+  lack of an entitlement) → §7.2, then SIGN-2 if exhausted.
+- **Attributed to layout or launcher** (a missing sibling, a wrong path) →
+  repair the layout; B stands.
+- **Attributed to stapling or distribution** (ticket not stapled, installer
+  damaged) → repair; B stands.
+- **Cause not determinable** → the check is `inconclusive` with its limit;
+  B is not relied on for that candidate until the cause is found.
 
 ## 8. Install/launch witness (OUT-003; REQ-003)
 
@@ -314,19 +432,31 @@ contain no human act, so either native route applies: N-1 person-operated
 with the native-step form (EXP §8.2), or N-2 UI automation once the tool
 version has passed EXP-DC-N2 on this candidate (EXP §8.3).
 
+**It starts as a person receives the App (G-7):** the installer reaches the
+test Mac by a transfer that sets `com.apple.quarantine` (a download from the
+authorized test location), or the attribute is set on it and that is
+recorded. If quarantine cannot be produced, the witness is `blocked` with
+that cause, never `pass`.
+
 | Step | Observation | Evidence |
 |---|---|---|
-| W-1 | Mount or unzip the installer; Gatekeeper verdict on the `.app` | spctl output |
-| W-2 | Copy to `/Applications`; first launch shows no Gatekeeper block | Screen capture or form entry |
+| W-0 | The installer carries `com.apple.quarantine` | `xattr -l` of the installer |
+| W-1 | Mount the installer; Gatekeeper verdict on the `.app` | spctl output |
+| W-2 | Copy to `/Applications`; the installed `.app` carries quarantine; first launch is assessed and not refused | `xattr -l` of the `.app`; screen capture or form entry |
 | W-3 | The App starts; its version equals the identity record's | About view or bundle read |
 | W-4 | The App resolves and verifies its Codex (HOSTING §4.2 steps 1–2) | Verification result `verified` |
-| W-5 | Codex handshake reaches `ready` under an App-owned home | Lifecycle record |
-| W-6 | Entitlements of the running binaries as packaged | `codesign -d` of the installed files |
+| W-5 | The first `codex` child launches from inside the quarantined App and its handshake reaches `ready` under an App-owned home | Lifecycle record; child cdhash |
+| W-6 | Entitlements of the installed binaries as packaged | `codesign -d` of the installed files |
 
-Outcome by EXP §3.1 (R23-20): with no package the witness is `not-run` with the package as missing input; an attempt stopped at its start (e.g. Gatekeeper refuses to open it) is `blocked` with that cause. Configuration
-names the pin; model and model server are `not_applicable` (no conversation
-is needed). DEL-01-06's witness and DEL-09-01's packaged smoke (M3) are
-separate results on the same package.
+Outcome by EXP §3.1 (R23-20): with no package the witness is `not-run` with
+the package as missing input; an attempt stopped at its start because
+quarantine could not be produced is `blocked` with that cause. **Gatekeeper
+refusing to open the App, or refusing the `codex` child, is a `fail`**: it is
+the observation W-2, W-5 and FP-4 test, and §7.3 classifies it by its
+recorded cause (a refusal of nested code is attributed to signatures).
+Configuration names the pin; model and model server are `not_applicable`
+(no conversation is needed). DEL-01-06's witness and DEL-09-01's packaged
+smoke (M3) are separate results on the same package.
 
 ## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`
 
@@ -356,33 +486,40 @@ not gated by an `unresolved` record (TBD-002).
 
 | Case | Serves | Expected | Needs | Status 2026-10-03 |
 |---|---|---|---|---|
-| PKG-VC-01 Configuration and identities | VER-001, AC-001 | Layout P-0…P-4; launcher; Codex identity equals HOSTING §7.1 at the pin | package | Not run |
-| PKG-VC-02 Identity record against the package | VER-002, AC-002 | PK-R1 (or PK-R2 under A); no inherited v3 or SWBPIPE claim | model; package | Rules run on examples (below) |
-| PKG-VC-03 Install/launch witness | VER-003, AC-003 | §8 W-1…W-6 as an EXP record | package; person (signing) | Not run |
+| PKG-VC-01 Configuration and identities | VER-001, AC-001 | CF-1…CF-8; layout P-0…P-4; launcher; Codex identity equals HOSTING §7.1 at the pin | package | Not run |
+| PKG-VC-02 Identity record against the package | VER-002, AC-002 | PK-R1 (or PK-R2/PK-R7 under A), PK-R6, PK-R8; no inherited v3 or SWBPIPE claim | model; package | Rules run on examples (below) |
+| PKG-VC-03 Install/launch witness | VER-003, AC-003 | §8 W-0…W-6 from a quarantined installer, as an EXP record | package; person (signing) | Not run |
 | PKG-VC-04 Terms record | VER-004, AC-004, AC-005 | `unresolved` before a response; actors kept apart | model; then the owner's act | Examples valid; PK-R4 detected |
 | PKG-VC-05 Boundaries and substitutions | VER-005, AC-006 | Browser evidence, SWBPIPE success or a package's existence never claimed as the witness, terms or release | Review | Not run |
-| PKG-VC-06 FP-0 at the pin | §7 | Supplier precondition for B | model on the published tree | **Pass at 0.160.0** |
+| PKG-VC-06 FP-0 at the pin | §7 | Supplier precondition for B, incl. Developer ID authority | model on the published tree | **Pass at 0.160.0** |
+| PKG-VC-07 Tree comparison | FP-1 | Link targets, directory links and modes are compared, not only content | model on synthetic trees | Pass (TREE P6–P8) |
 
 **Prototype run** (`PYTHONDONTWRITEBYTECODE=1 python3 check_pkg.py --tree
-<VC's 0.160.0 published tree>` in `prototype/`, jsonschema 4.26.0, Draft
-2020-12; reads only), 2026-10-03: **TOTAL 36, FAIL 0** — two schemas valid;
-4 valid records pass and break no rule; 7 invalid records rejected; 7
-schema-valid violations each caught (PK-R1 ×2, R2, R3, R4 ×2, R5); FP-0's
-five checks pass on 42 files / 30 Mach-O. The Codex values in example
-PKG-EX-01 are the real 0.160.0 published values; App, installer and content
-identities are placeholders, labelled in the record's `limits`.
+<VC's 0.160.0 published vendor directory>` in `prototype/`, jsonschema
+4.26.0, Draft 2020-12; reads the vendor directory only; builds and removes
+small synthetic trees under `$TMPDIR`), 2026-10-03, at PKG-v0.2 with
+RV2's confirmation items: **TOTAL 66, FAIL 0** — two schemas valid; 6 valid records pass and break no rule; 13
+invalid records rejected; 14 schema-valid violations each caught (PK-R1 ×4,
+R2, R3, R4 ×2, R5, R6 ×2, R7, R8, R9); four tree-comparison cases (RV2
+P6–P8 and equality); FP-0's seven checks pass on 42 files and 10
+directories / 30 Mach-O, every first
+Authority "Developer ID Application: OpenAI OpCo, LLC (2DC432GLL2)", and the
+manifest reproduces `327effb9…8d12`. The Codex values in PKG-EX-01 are the
+real 0.160.0 published values (all 30 Mach-O); App, installer, configuration
+and content identities are placeholders, labelled in `limits`.
 
 ## 12. UNRESOLVED
 
 | ID | Item | Owner | Point of need |
 |---|---|---|---|
-| U-PKG-1 | G-2/G-5 confirmed (FP-1, FP-3) | DEL-01-06 at the first package | Before any reliance on B |
+| U-PKG-1 | G-2, G-5, G-7 confirmed (FP-1, FP-3, FP-4, the witness) | DEL-01-06 at the first package | Before any reliance on B |
 | U-PKG-2 | HOSTING U-17 launcher value (§4.1 proposes the vendor binary) | App implementation owner with DEL-01-06 (HOSTING U-17) | Before verification implementation |
-| U-PKG-3 | Qualification pin (OI-012); VC adoption boundary | HELP_HUMAN (R23-3, R23-17) | Before qualification |
+| U-PKG-3 | Qualification pin | **Decided by rule (R23-22):** 0.158.0 stays the definition and generation pin; 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built. FP-0 runs at that pin | When a candidate is built |
 | U-PKG-4 | Voice host shipped but unused; no microphone string | App implementation owner | If voice is ever offered |
-| U-PKG-5 | Minimum macOS version in `Info.plist` | App implementation owner | Before the first package |
-| U-PKG-6 | OI-011 SWB co-owner part | Waits with host joins (R23-13.2) | When joins resume |
+| U-PKG-5 | Minimum macOS version (CF-5) | App implementation owner | Before the first package |
+| U-PKG-6 | OI-011 SWB co-owner part | Waits with host joins (R23-13.2, R23-26) | When joins resume |
 | U-PKG-7 | OI-007 written position | Owner and supplier | Before public release beyond owner use |
+| U-PKG-8 | SEAL-2 key-store entitlement and profile (G-8) | DEL-01-06 with DEL-01-04, when SEAL-2 is implemented | FP-2 of that candidate |
 
 ## 13. For other owners and the next amendment (nothing of theirs edited)
 
@@ -390,15 +527,19 @@ identities are placeholders, labelled in the record's `limits`.
   FP-2; under B, §7 is unchanged.
 - **Rows for the next amendment (R23-11; reach-checked, none added):**
   DEL-02-02 → DEL-01-06 (bundled workflows, shipped-revision manifest placed
-  in P-2); DEL-02-04 → DEL-01-06 (guidance in P-3); DEL-01-04 → DEL-01-06
-  (SEAL-2 relies on the signed App identity). Also DEL-01-06's missing
-  counterpart for DEP-09-02-014 (S1-B §1.2).
+  in P-2); DEL-02-04 → DEL-01-06 (guidance and role set in P-3); DEL-01-04 →
+  DEL-01-06 (SEAL-2 relies on the signed App identity, I-4). Also
+  DEL-01-06's missing counterpart for DEP-09-02-014 (S1-B §1.2).
 - **ScopeOfWork wording (R23-11):** CLM-002 "App implementation owner with
-  SWB owner" now reads with L-7 and R23-13; TBD-003's "no version" reads
-  with D4.
+  SWB owner" now reads with L-7, R23-13 and R23-26; TBD-003's "no version"
+  reads with D4 and R23-22.
+- **OI-011 in the register:** stays open for its SWB part and its record at
+  the next amendment (R23-26); no executor edits the register.
 
 ## Changes
 
 | Version | Change |
 |---|---|
 | PKG-v0.1 (2026-10-03) | First Design file: signing decision B with fallback A, composition, identity record (M2), witness, terms record; two PROPOSED schemas; prototype 36/0 incl. FP-0 at 0.160.0 |
+| PKG-v0.2 (2026-10-03) | Repair for RV2-PKG-U2. PKG-R1: witness, FP-2 and FP-4 start from a quarantined installer (W-0, `xattr -l`, child cdhash); G-7. PKG-R2: signing path SP-1…SP-4 with bundler signing disabled and outer signing without `--deep`; FP-1(a)/(b); OUT-001 configuration CF-1…CF-8 (§4.3); configuration space CS-1…CS-4 (§7.2); P-1 is the published vendor directory incl. `codex-package.json`. PKG-R3: decision rule by recorded cause (§7.3). PKG-R4: FP-0 checks the Developer ID authority; `read_tree.py` records directory links, link targets and modes and compares them. PKG-R5: every Mach-O listed (PK-R6); `present`/`missing` bundle items and `complete` (PK-R8); option A carries the escalation ruling and space tried (PK-R7); role set; manifest defined (§5.2) and computed by `read_tree.py --manifest`; record placement (§5.3). PKG-R6: I-6 `not-run`; FP-0/1/3 in the identity record, FP-2/4/5 and the witness as EXP records (§7.1). PKG-R7: I-4 same team and bundle id across releases; SIGN-3 names SEAL-2's possible entitlement (G-8). PKG-R8: U-PKG-3 per R23-22. PKG-R9: I-3 is a build-time input. PKG-R10: SIGN-1 under R23-26. PKG-R11: SIGN-1 reason 2 reworded. Schemas `…:0.2`, records `PKG-v0.2`. Prototype 64/0 |
+| PKG-v0.2, in place (2026-10-03) | RV2 confirmation items: PKG-R12 Gatekeeper refusal is `fail` (§8, FP-4); PKG-R13 B not relied on until FP-1/FP-3 pass, PK-R9 limit (§3, §5.4); PKG-R14 FP-0 label counts 42 files and 10 directories. Prototype 66/0 |

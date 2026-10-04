@@ -1063,7 +1063,8 @@
    "support_revision": "EXP-v0.2",
    "date": "2026-10-03",
    "limits": [
-    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)"
+    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+    "option B not yet relied on: FP-1/FP-3 not passed"
    ]
   }
  },
@@ -1593,7 +1594,8 @@
    "support_revision": "EXP-v0.2",
    "date": "2026-10-03",
    "limits": [
-    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)"
+    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+    "option B not yet relied on: FP-1/FP-3 not passed"
    ]
   }
  },
@@ -2123,7 +2125,8 @@
    "support_revision": "EXP-v0.2",
    "date": "2026-10-03",
    "limits": [
-    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)"
+    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+    "option B not yet relied on: FP-1/FP-3 not passed"
    ]
   }
  },
@@ -3191,7 +3194,8 @@
    "support_revision": "EXP-v0.2",
    "date": "2026-10-03",
    "limits": [
-    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)"
+    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+    "option B not yet relied on: FP-1/FP-3 not passed"
    ]
   }
  },
@@ -3720,7 +3724,8 @@
    "support_revision": "EXP-v0.2",
    "date": "2026-10-03",
    "limits": [
-    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)"
+    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+    "option B not yet relied on: FP-1/FP-3 not passed"
    ]
   }
  },
@@ -5324,7 +5329,8 @@
    "support_revision": "EXP-v0.2",
    "date": "2026-10-03",
    "limits": [
-    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)"
+    "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+    "option B not yet relied on: FP-1/FP-3 not passed"
    ]
   }
  }

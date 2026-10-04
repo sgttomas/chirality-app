@@ -1,0 +1,10 @@
+HOLDS RC-1: every input-set item has its stated sha256
+HOLDS RC-2: the account names this input set
+HOLDS RC-3: the reader is not a run author (R23-10)
+HOLDS RC-4: every cited source is in the input set
+HOLDS RC-5: no claim rests on an item that is not authority, and no act or outcome claim on a definition (REQ-004)
+HOLDS RC-6: every package is reconstructed: its request, and its decision or the absence of one
+HOLDS RC-7: no claim contradicts the records (no fabricated, altered or denied decision)
+HOLDS RC-8: every reconstructed act keeps actor distinct from recorder
+HOLDS RC-9: nothing is claimed changed or achieved without a record of it; what is unknown stays unknown
+9 checks, 0 failed, 0 referred to the examiner

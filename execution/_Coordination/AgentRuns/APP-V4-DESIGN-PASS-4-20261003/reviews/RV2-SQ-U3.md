@@ -272,3 +272,120 @@ Scratch probes (`$TMPDIR/rv2/probe_sq.py`, importing the prototype unchanged) sh
 - Supplier cases' own prototypes. I did not rerun RECOVERY, NIR, AAC, WR or ACCESS prototypes.
 - Whether any cited model-only case has since run on a candidate. None can have, since no candidate exists.
 - The dossier example contents beyond the prototype run and my probes.
+
+## Repair confirmation (SQ-v0.2, 2026-10-03)
+
+### Verdict: **READY**: the repairs are confirmed
+
+All of SQ-R-A…SQ-R-K are adopted in the returned files. I raise two new MINOR findings (SQ-R-L, SQ-R-M) and one NOTE (SQ-R-N). There is no BLOCKING or MAJOR finding.
+
+**What I checked.**
+
+- **Bytes.** All 7 files match O-B.md "Repairs for RV2" (`shasum -a 256`). `STANDALONE_QUALIFICATION.md` is `f18f26c5…c458`.
+- **Prototype.** `PYTHONDONTWRITEBYTECODE=1 python3 check_sq.py` gives **TOTAL 108, FAIL 0** with 65 citations, as reported. No `__pycache__` was left.
+- **My round-1 probes, rerun unchanged** (`$TMPDIR/rv2/probe_sq.py`):
+  - Q1 fires SQ-R7, and the example set now holds it as SQ-RV-08.
+  - Q2's all-pass dossier now fires SQ-R9, because its steps lack the declared stimuli. The handover and independence case is SQ-RV-09, which fires SQ-R8.
+  - Q3 is schema-invalid.
+  - Q4 raises KeyError, because examples no longer carry an outcome before the examination opens. That is the intended repair.
+- **New probes** (`$TMPDIR/rv2/probe_sq2.py`): see SQ-R-L.
+- **Citations.** I extracted all 65 cited rows myself.
+  - For AAC, ACT, RS and EXEC I read each row at its pinned commit (`git show <commit>:`) and compared it with the current working file. All 65 rows exist and are unchanged.
+  - The HOSTING X-09 and X-10 rows exist in §9.4.
+- **Commit pins.** Each commit holds exactly the bytes cited, is the file's last change at that version, and is an ancestor of `HEAD`:
+  - `31d65b0be3`: AAC `062ce28c…`
+  - `dc61150559`: ACT `4ef8c042…`
+  - `61e7a0afec`: RS `a91882e7…`
+  - `61e7a0afec`: EXEC `69e6e79a…`
+- **Other pins.**
+  - NIR-v0.3 `aca40c0e…` is the current file.
+  - EXP `1371ddb2…` is the current file.
+  - Every other 64-hex value matches a current file, apart from the v0.1 self-reference, which equals `HEAD` `09ca67d094`.
+
+**Per finding.**
+
+| Finding | State | Evidence in v0.2 |
+|---|---|---|
+| SQ-R-A | **Confirmed** | See "SQ-R-A and SQ-R-B" below |
+| SQ-R-B | **Confirmed** | See "SQ-R-A and SQ-R-B" below |
+| SQ-R-C | **Confirmed** | J-6, J-8 and J-9 now join VC-AAC-08 and VC-AAC-13; J-6 also joins VC-AAC-07 and VC-AAC-03. VC-AAC-04 is gone, and the map check refuses an A4 case at a registration step |
+| SQ-R-D | **Confirmed** | NIR-v0.3 is adopted. The pin-basis paragraph names S11-1's dependence on Δ3. U-SQ-1 and §0 follow R23-22 |
+| SQ-R-E | **Confirmed** | J-8R and J-9R carry `counts: false` and an `added_reason`, and are never aggregated (SQ-R4, SQ-R10, SQ-EX-04). "Try" is restored in J-8 and J-9 |
+| SQ-R-F | **Confirmed** | See "SQ-R-F" below |
+| SQ-R-G | **Confirmed** | See "SQ-R-G" below |
+| SQ-R-H | **Confirmed** | Each step carries `core_loop_element` and `v3_reference`. The map check covers DEL-11-03 REQ-001's seven core-loop elements |
+| SQ-R-I | **Confirmed** | U-SQ-3 states SEAL-2's effect on AC-003 evidence |
+| SQ-R-J | **Confirmed** | SQ-RV-08 exists, and VC-R-14 is cited at every S11 step (map check) |
+| SQ-R-K | — | NOTE; no change was needed |
+
+**SQ-R-A and SQ-R-B (confirmed, under R23-27).**
+
+- §3.4 declares five stimuli in the digested pre-run case definition (`case_definition`, required by the schema):
+
+  | Stimulus | What it stages | Where |
+  |---|---|---|
+  | ST-1 | Revision condition | J-8 |
+  | ST-2 | Source collision, placed before J-5 | Observed at J-5 and J-7 |
+  | ST-3 | Unperformed-act negatives | J-6 and J-8 |
+  | ST-4 | Delegated child | Staged at J-2, stopped at S11-1, observed at S11-6 |
+  | ST-5 | Lost acknowledgment, by **required** replay | S11-6 |
+
+- The stimuli count toward their scenario (R23-27 item 2).
+- **Vacuous passes.** No step can now pass without its stimulus:
+  - SQ-R9 refuses a recorded counted step that omits a declared stimulus, and refuses `pass` when any stimulus is `not_produced`.
+  - SF-8 makes such a step `blocked`.
+  - The approval steps carry a declared settings precondition, and "no request raised" is `blocked` (SF-9).
+- **ST-4 without a delegating route.** ST-4 needs a model route that carries delegation (HOSTING U-22, confirmed: "delegation tools travel in the dropped `namespace` tool"). Its replay is "none exists yet" (U-SQ-5). So S11-6 is `blocked` unless RUN-A's model can delegate, which is honest under R23-27 item 3.
+
+**SQ-R-F (confirmed).**
+
+- The step states are EXP §6.1's seven.
+- An outcome or result record is allowed only on `recorded` steps (schema; my Q3 is now refused).
+- A scenario has an outcome only once every counted step is recorded.
+- `examination_opened` marks when steps become planned.
+- `handed_over` and `reported_as_independent` are governed by SQ-R8.
+
+**SQ-R-G (confirmed).**
+
+- The settings precondition is declared before the run.
+- S11-5 now combines only a live turn and a waiting request in J-8's try conversation. WR-VC-07 is not staged there, and the file says why.
+- S11-6 names the conversation it continues.
+
+### SQ-R-L — MINOR (new) — SQ-R9 accepts a replay where no replay counterpart exists, and a non-blocked outcome for a stimulus that was not produced
+
+Probes in `$TMPDIR/rv2/probe_sq2.py`, run on valid example SQ-EX-03:
+
+- **P-a.**
+  - **Probe.** J-6 records `ST-3` as `produced: replay`, and the step passes.
+  - **Result.** Schema-valid; no rule fires.
+  - **Why it matters.** The step map gives ST-1, ST-2 and ST-3 no replay counterpart (`replay_counterpart: null`; §3.4 "—"), so a replay claim for them has nothing behind it. That is a pass resting on a condition that was not actually staged.
+- **P-b.**
+  - **Probe.** S11-6 records `ST-4` as `not_produced` (cause: the route cannot delegate) with outcome `inconclusive`, and the scenario is aggregated.
+  - **Result.** Schema-valid; no rule fires.
+  - **Why it matters.** R23-27 item 3 and SF-8 say the dependent part is `blocked`. Under EXP-R1 a `blocked` part makes the step `fail` or `blocked`, never `inconclusive`.
+
+**Repair.**
+- Refuse `produced: replay` when the map's `replay_counterpart` is null.
+- When any stimulus is `not_produced`, require the step outcome to be `blocked` (or `fail`, if another part failed).
+
+### SQ-R-M — MINOR (new) — ST-5's required replay does not exist yet, and its content is not shown to contain the condition
+
+**Evidence.**
+- §3.4 ST-5: "**Required:** HOSTING X-09/X-10 recordings replayed on the supplier double (RECOVERY VC-R-04)".
+- HOSTING §9.4 is a "Seam regression set (designed)". Its X-09 row reads: "Child killed with one outstanding request and one un-responded client request | recorded-truncated | No (needs a live turn)".
+- No such recording exists. The X-09 scenario as written (an outstanding server request plus an un-responded client request) is not the same as RECOVERY VC-R-04's "a written answer whose acknowledgment never comes", which that case produces with "The double raises them".
+- ST-4's missing recording is listed as U-SQ-5. ST-5's is not listed anywhere.
+
+**Consequence.** If X-09/X-10 is not captured before RUN-A, or does not contain a written answer whose acknowledgment never comes, S11-6 is `blocked`. That is honest under R23-27. But the dependency is not on the UNRESOLVED list, and no owner or point of need is named for it.
+
+**Repair.**
+- Add an U-SQ item for ST-5's capture: owner DEL-01-01 §9.1 capture method (with DEL-01-02), needed before RUN-A.
+- Specify that the capture contains a written answer whose acknowledgment never arrives, or name VC-R-04's double fixture as the replay counterpart instead.
+
+### SQ-R-N — NOTE — replay evidence inside a candidate record
+
+§3.4 says a replayed condition "stands as evidence for the part that needs it … (EXP-R4 applies to parts that need native evidence; the ST-5 part is declared as not needing it)". This is consistent with R23-27 item 3 and VER-005 ("using supported recorded seam evidence where possible; compare with the joined observation"). The S11-6 record stays a `candidate` record, so EXP-R3 holds. No repair is needed. I note it because O-C's journeys may meet the same pattern.
+
+**Not checked in this round.**
+- The schema and examples beyond the prototype run and my probes.
+- The supplier prototypes; none was rerun.

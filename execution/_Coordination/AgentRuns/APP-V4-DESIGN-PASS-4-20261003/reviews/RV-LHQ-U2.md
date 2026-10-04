@@ -184,3 +184,65 @@ No BLOCKING or MAJOR finding is open. Two new MINOR findings and one NOTE are be
   - TOP §5 makes baseline resolution depend on B-0 having run.
   - **Repair:** add a conditional — `not_host_caused_baseline` requires B-0 *held* — and an invalid example.
 - **U2-R12 — NOTE — duplicate enum value.** The dossier schema's `applicability.changed` enum lists `operation_binding` twice. It is harmless for validation, but should be deduplicated.
+
+## Second repair confirmation: U2-R10…R12 and the LHQ header (2026-10-03)
+
+- **Bytes reviewed.** Each hash below was recomputed with `shasum -a 256` and matches O-C.md "Minor repairs after RV's confirmations…":
+  - TOP `49f028bc…b27eb125`
+  - DOS `83101523…4be750d1`
+  - traffic schema `f0886d5f…63951f89`, with its invalid examples `4d549b5f…320de3a2`
+  - dossier schema `88cd9948…bd7d7e88`
+  - LHQ `4ee7de26…c73931bc`
+- **Checks.** All three schemas pass `check_schema`.
+  - Valid examples validate (3/3) under both `jsonschema` and DEL-01-01's `jsonschema_subset`.
+  - Invalid examples are rejected under both validators: CIR 3/3, traffic 10/10, dossier 7/7.
+
+### Verdict: **CONFIRMED — READY**. LHQ-U2 has no open finding.
+
+| Finding | Status | Confirmed against |
+|---|---|---|
+| U2-R10 MINOR | **Repaired** | TOP §5 sequence: (3) OV-5 and B-0 with no host running; (4) the host is launched inside the capture window; (5) OV-1…OV-4 run on the running host. Calibration contacts go to the examiner's test endpoints. They are recorded with `calibration_check` (the schema adds it to `contact`) in a marked interval, and are excluded from §7 |
+| U2-R11 MINOR | **Repaired** | My probe P1 is now rejected under `jsonschema`: with B-0 `not_run`, a flag resolved as `not_host_caused_baseline` is refused. The invalid example for it is rejected under both validators |
+| U2-R12 NOTE | **Adopted** | The `applicability.changed` enum has no duplicates |
+| LHQ header slip | **Adopted** | LHQ L10 now says "EXEC's working tree has since changed one line under R23-23 item 2" |
+
+**Note (not a finding).** `calibration_check` may be set on any contact. The schema does not tie it to the declared test endpoints or to the calibration interval. A mis-tagged run contact would be excluded from §7 without a mechanical check. If O-C wants this enforced, two ways would work:
+- a reader rule: a contact tagged for calibration must fall inside the interval and go to a declared test endpoint;
+- record the test endpoints in the observation record so the rule has something to compare against.
+
+## CB-1 confirmation: calibration-contact binding (2026-10-03)
+
+**Bytes reviewed.** Recomputed with `shasum -a 256`; all match O-C.md:
+
+| File | sha256 |
+|---|---|
+| TOP | `a4cd945f…0189` |
+| traffic schema | `25afd32d…ba01` |
+| valid examples | `d17ed0b0…c43a` |
+| invalid examples | `829bc8d6…2815` |
+| CB-1 violation examples | `419d329d…651c` |
+| `prototype/top_check.py` | `c767c3fa…b650` |
+
+LHQ, DOS, the CIR schema and the dossier schema are unchanged.
+
+### Verdict: **CONFIRMED**. LHQ-U2 has no open item from me.
+
+**The rule.**
+- The schema now requires `calibration_setup`: declared `endpoints` (at least one) and an `interval`.
+- TOP §7 CB-1 (L120): a tagged contact is calibration only if its destination is a declared endpoint **and** its first and last times lie within the interval. Otherwise it is mis-tagged, reported, and compared as a run contact.
+- TOP §5 step 5 and the changes table (L151) agree.
+
+**`top_check.py`, rerun.**
+- On the valid example: `OK … run contacts compared: 4 of 5`, exit 0.
+- On the violation examples:
+  - `CB1-VIOL-destination` is reported, for both reasons.
+  - `CB1-VIOL-interval` is reported, "outside the calibration interval", with 5 of 5 contacts then compared.
+  - Exit 1.
+- Both violation examples are schema-valid, so CB-1 is the rule that catches them.
+
+**Schemas, rerun.**
+- The traffic schema passes `check_schema`.
+- Valid example: valid under `jsonschema` and under DEL-01-01's `jsonschema_subset` (0 errors).
+- Invalid examples: 11/11 rejected under both. This includes the example missing `calibration_setup`.
+
+**Note (not a finding).** `top_check.py` compares interval times "as written", by string order. That is correct only while every time uses one ISO-8601 UTC form, as in the examples. TOP or the schema should state that form (for example `…Z`) so the comparison stays valid on real records.

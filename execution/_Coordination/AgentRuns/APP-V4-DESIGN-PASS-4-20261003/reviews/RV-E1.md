@@ -124,3 +124,41 @@ Scratch probes are under `$TMPDIR/rv` (`additive.py`, `rs_probe.py`). Nothing wa
 - Regeneration of the Codex protocol types at either pin.
 - AAC §5.1's claim that the method is not RFC 8785, which is stated as unchecked.
 - O-A's list of pins on the old hashes (R23-21 item 4), beyond spot checks: ACT and RS `4ef8c042…` and `a91882e7…` in DEL-09-07, and AAC `062ce28c…` in DEL-09-01, are correct.
+
+## Repair confirmation (2026-10-03)
+
+- **Basis.** R23-24 (supersedes R23-18 item 3) and R23-25.
+- **Bytes reviewed.** Every file in the CURRENT table of `OWNERS/O-A.md`, recomputed with `shasum -a 256`; all match. Among them:
+  - ACT `1bf0ce8e…25c1`, RS `75a32e55…b234`, EXEC schema `a5271857…b45c`, EXEC `EXECUTION_COMPATIBILITY.md` `3add943d…eb84`;
+  - AAC `de39976e…cf65`, DECISION_VIEW `b944b0be…206d`;
+  - `E/run_e.py` `81c973de…9774`, `E/decision_view.py` `6fae1738…d65b`;
+  - FX-DP1 manifest `9501ef81b94c24b71a00c3611cbfa5b8eed2214eb575208283be4c3b46f034c5`.
+- **Additivity.** HEAD is now the coordinator's WIP checkpoint `09ca67d094`, which already contains E-1, so I re-ran the additivity check against the pre-pass base `cec590c5c3`. At that base, the examples that were valid and invalid are still valid and invalid under the current EXEC and AAC schemas. The EXEC schema diff from that base removes nothing except the replaced enum tails and the `$id` and description lines.
+
+### Verdict: **CONFIRMED — READY**. E-1 has no open BLOCKING, MAJOR or MINOR finding.
+
+| Finding | Status | Confirmed against (actual files) |
+|---|---|---|
+| **E1-R1 MAJOR (R23-24)** | **Repaired** | DEL-02-03 schema `$defs/decisionPackageFile`: `additionalProperties: false`. It requires format `chirality.decision-package`, formatVersion, packageId (`pkg:…`, "never a hash of the file"), actKind, subject, purpose, `reservedBy` and alternatives, each with one or more consequences. It has no recorder element and no self-hash. Its examples: the valid one validates, and INV-PKG-1…6 are rejected, including "the act_request body offered as the file". **FX-DP1:** PKG-1.json and PKG-2.json validate as package files. Each `act_request` validates as CE-4, and its `evidence.claimedIdentity` equals the sha-256 of the file. Each request equals a mapping I wrote from RS §13.6's text, not imported from O-A: actKind, subject, purpose, scope, alternatives {id, statement} in order, and consequences one per statement, with the recorder adding only requester, form, association, time and evidence; packageId and reservedBy are not copied. `request_from_file` (EXEC `run_all.py` L334) implements the same mapping. RS §13.6 (L1198–1226), DECISION_VIEW (basis line, §1, §7, §9) and the EXEC schema description cite R23-24 |
+| E1-R2 MINOR | **Repaired** | ACT A16 row (L342) now cites AAC-v0.3 §1.2, RS-v0.10 §6.1, HA-1 and HA-11, and the package shape. §4.1 (L795–797) names A16 outside the closed list |
+| E1-R3 MINOR | **Repaired** | EXEC L3 is split into separate sentences. It says the line was corrected in place under R23-23 item 2 without a new label |
+| E1-R4 MINOR | **Repaired** | AAC §5.1 (L240–273) now states object order, separators, string escapes (short forms, `\u00xx` lowercase, everything else as itself including U+007F and U+2028/2029), integers only, literals, and that the method is undefined on non-integers. The offer schema has no `"type": "number"` and one integer. I wrote my own serializer from the §5.1 text: FX-DP1's offer (with U+00FC ü, U+2248 ≈ and U+2028) gives `f0d82571…`, which equals the offer and the capture. AAC's A16 example also matches. Python `json.dumps(sort_keys, (",",":"), ensure_ascii=False)` produces the same bytes |
+| E1-R5 NOTE | Unchanged, as agreed | actClass is not bound per kind. This predates the unit |
+| E1-R6 NOTE | **Adopted** | O-A.md has a CURRENT section that marks the older tables as history |
+| E1-R7 NOTE (R23-25) | **Decided and coherent** | Stated consistently: a later A16 on the same package is a new decision that supersedes the earlier for current standing, both stay recorded, and a correction (RS OF-5, `corrects`) is not a new decision. Where it is stated: ACT §2.1 A16 row (L342) and §2.5 (L451, "on the same unchanged package"); RS HA-11 (L599–602); DV-6 (DECISION_VIEW L82–90); FR RF-6 (FLEET_RECORDS L217–221). Implemented in `E/decision_view.py` L108–139 and `fleet_store.py` `_decision_state`: corrected entries are dropped, then the latest holds. run_e RV-8 and RV-9 pass. RS's `corrects` element exists in the schema |
+| E1-R8 NOTE | No action needed | — |
+
+**Note (not a finding).** RS §7 L-0, cited as the model ("as L-0 for A12"), still names only A12, A13 and A15. The A16 rule lives in HA-11. A one-line cross-reference in L-0 would help a reader who starts from §7.
+
+**Checks rerun (not rebuilt), on the files as they are:**
+
+| Check | Result |
+|---|---|
+| DEL-04-03 `run_prototype.py` | 67 PASS, "all expectations held" |
+| DEL-02-03 `run_all.py` | 126 ok, "ALL CHECKS HOLD: 0 failure(s)" |
+| DEL-01-04 `run_cases.py` | "159 checks, 0 failed" |
+| DEL-04-01 `validate_policy.py` | all held |
+| `E/run_e.py` | "all expectations held (56/56)" |
+| FX-DP1 `shasum -a 256 -c` | 6/6 OK |
+
+**Consequence for O-C's EP units (`reviews/RV-EP.md`).** EP-R4 can now be repaired against `reservedBy` in the package file. FW-04 and RRM rerun on manifest `9501ef81…`.

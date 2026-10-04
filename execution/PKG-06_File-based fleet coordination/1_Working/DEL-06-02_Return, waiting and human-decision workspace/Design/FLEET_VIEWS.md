@@ -21,6 +21,12 @@
   reader `prototype/fleet_store.py`, consumed through DEP-06-02-008
   (admitted). It is a pass-4 file of the same owner, so this file pins it by
   label.
+- **Repairs after RV-E2 (in place, same label FV-v0.1, before acceptance).**
+  - E2-R1: FV-8a, and VER-006 probes P1 and P2 that lose a real record.
+  - E2-R2: P3, a torn RS line.
+  - E2-R3: FV-4a.
+  - E2-R4: the qualified label and first cause, with a check that no
+    qualified row renders as bare *ready*.
 - Pin (R23-3): no Codex fact is relied on directly. The views show Codex's
   status values unchanged, as DEL-06-01 records them.
 
@@ -86,9 +92,19 @@ DEL-06-01 recorded it; PEC.
 | in progress | Dispatch observed and the last observation is a running status | "Codex reports ‹status› (‹source›)" |
 | unknown | The child's observation ended; or Codex reports the child completed and no return is recorded; or a need cannot be established | "observation ended (‹cause›); last observed ‹status›; outcome unknown" · "Codex reports the child completed; no return recorded" · "cause not established: …" |
 | waiting | A need is outstanding, or an external owner has not returned | "waits for ‹item› (not integrated)" · "waits for the person's decision: decision pending on ‹request›" · "waits for input ‹file›" · "waits for the external owner ‹owner›" |
-| ready | All needs are satisfied, with no dispatch, return or integration | "ready: inputs satisfied" (plus "brief prepared, no dispatch observed" where it applies) |
+| ready · ready (qualified) | All needs are satisfied, with no dispatch, return or integration; *ready (qualified)* while an unassociated or orphaned child exists (FV-4a) | "ready: inputs satisfied" (plus "brief prepared, no dispatch observed" where it applies), with FV-4a's qualifier first when qualified |
 
 **Annotations, under any category except done:**
+- **FV-4a Ready, qualified (RV E2-R3).** While the child index holds a child
+  with no brief reference, or an orphaned observation (DEL-06-01 RF-12),
+  every *ready* row is labelled **ready (qualified)**. Its **first** cause is
+  "‹n› child(ren) observed without a brief reference or dispatch record
+  (‹threads›); a dispatch for this item may be unrecorded", and it carries
+  `readinessQualified` (RV E2-R4: no display of the label, or of the label
+  and first cause, can read as bare *ready*). It is not made *unknown*,
+  because no record ties that child to this item. Making every not-done item
+  *unknown* for any unassociated child would hide all readiness behind one
+  unreferenced spawn. The qualifier keeps the claim honest instead.
 - **FV-5** "basis changed since: ‹record›";
 - "related conversation: ‹thread› (continued from / forked from ‹source›)".
   It is shown as related work, never as a dispatch (R23-9).
@@ -105,6 +121,19 @@ DEL-06-01 recorded it; PEC.
 - **FV-8 Missing input never implies.** No current graph, a torn log line or
   absent RS records produce limits and *unknown* rows. They never produce an
   empty queue, readiness or permission (V4-HI-62; REQ-006).
+- **FV-8a Incomplete log (RV E2-R1).** While any coordination-log line is
+  unread (DEL-06-01 RF-10), an unread line could be any record of any item.
+  Therefore:
+  - every row that is not *done* becomes *unknown*, with "coordination log
+    incomplete: line(s) ‹n› unread; this item's state cannot be
+    established", followed by what the readable records show;
+  - no row is *ready*;
+  - the queue is marked **not complete** (`queueComplete` false), so an
+    empty or short queue is never presented as the whole.
+
+  The queue is also not complete when an observation is orphaned (RF-12) or
+  no current graph exists. *Done* rows stay done: their integration or
+  external-result record was read.
 - **FV-9 Derived only.** A rebuild writes nothing, and the input hashes are
   equal before and after.
 
@@ -133,13 +162,13 @@ DEL-06-01 recorded it; PEC.
 | VER | Cases |
 |---|---|
 | VER-001 | W8's return queued *awaiting review* with returner and examiner; a return on an item with no brief shows "examiner not established" (FV-2a); W7's child completed and an agent claims it done, but it is not queued and stays *unknown*; W1 left the queue only on its integration record |
-| VER-002 | W3 waits for W2, with basis-change and related-conversation annotations; W5 waits for the person's decision on PKG-2; W4 is ready with the A16 decision shown; W2 is *unknown* after quit; W9 is ready once W6's external result and its input exist; no item has a blank cause |
+| VER-002 | Ready rows are labelled *ready (qualified)*, with the unassociated child `thr-cx` as their first cause; no qualified row renders as bare *ready* (FV-4a). With every line read, the queue is complete. W3 waits for W2, with basis-change and related-conversation annotations; W5 waits for the person's decision on PKG-2; W4 is ready with the A16 decision shown; W2 is *unknown* after quit; W9 is ready once W6's external result and its input exist; no item has a blank cause |
 | VER-005 | A separate process rebuilds identical views; input hashes unchanged |
-| VER-006 | Without RS records, decision waits are "cause not established"; a torn log line is a limit that adds or removes nothing; with no graph selected, no rows and the reason; no PEC input |
+| VER-006 | Without RS records, decision waits are "cause not established". An extra torn line is a limit and marks the queue incomplete. **P1:** W8's return line is truncated: the queue is not complete, W8 is *unknown* (never *in progress*), and no item is *ready*. **P2:** W2's dispatch line is truncated: W2 is *unknown* (never "ready … no dispatch observed") and its orphaned observation is a limit. **P3:** the A16's RS line is truncated: no crash, a limit, and W4's decision need is *unknown*. With no graph selected, no rows and the reason. No PEC input |
 | VER-003, VER-004 | The decision view (DECISION_VIEW §8; run folder `E/`) |
 | VER-007 | §6 and DECISION_VIEW §7: inputs, owners, the runtime value, the handoff to DEL-09-05 without a joined claim |
 
-Result on 2026-10-03: 16/16.
+Result on 2026-10-03, after the RV-E2 repairs (with E2-R4): 23/23.
 
 ## 8. Open matters
 

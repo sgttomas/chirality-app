@@ -5,6 +5,7 @@
   b82e40395a4a19bcd0b4e5623fd62b1040b7110ab19cb01af58b15582d447da4)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Nothing here is qualified; no App candidate exists.
+- **Pass-4 closeout C2 (run `APP-V4-DESIGN-PASS-4-20261003`; R23-29 item 2; in place, no version step):** §13 gains DEP-01-05-017, the supplier-side counterpart of DEP-09-02-013 ruled in R22-7 (V22 m-7). **Re-pin (R23-5):** ScopeOfWork.md sha256 2e134b572f2676ed4fe6daa892047e21e53a637f9901cba20f482a6637f7f3d3 (SCA-V4-003 revision), was baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6. Blocks read: G-0105-01…16 (`SOW_REVISIONS_A.md` of run `APP-V4-SCA003-20261002`, sha256 42c9167a…fc07). Bearing: G-0105-02 (CLM-004: DEL-09-02 receives the account/provider inputs and focused checks), recorded by the §13 row. The other blocks carry into the ScopeOfWork what this file already designs (CLM-001, TBD-001, REQ-005: the decision record and item 6 below; REQ-002: §4; REQ-004, AC-004, VER-004: §5.4; OUT-002, REQ-010, AC-011, VER-011 and the matrix row: §8, §9; TBD-002: §10; TBD-003: item 2 below; AX-006 is the amendment reference), so none requires a change to the design text. "How this file reads the ScopeOfWork" below describes the ScopeOfWork before SCA-V4-003.
 - Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001` (Type 2 TASK,
   Claude Opus 5.5, high effort; does not delegate): v0.1 on 2026-10-01 at
   repository HEAD `dc031b5bec`; v0.2 (D round 2) on 2026-10-02 at HEAD
@@ -24,8 +25,8 @@
 amended by SCA-V4-001 and SCA-V4-002: `docs/PRD.md` bb6e786f…49bd
 (V4-APP-02), `docs/ARCHITECTURE.md` 317d5789…828c (V4-ARC-04, §3 "Left to
 the implementation session", §6), `docs/EXAMINATION.md` 471798bc…d0
-(V4-EXM-12). ScopeOfWork.md baf68c79b5b8fdf0…a6 (unchanged since
-initialization). Run records under
+(V4-EXM-12). ScopeOfWork.md 2e134b572f2676ed…d3 (SCA-V4-003 revision; re-pinned at pass-4 closeout C2 under R23-5, was
+`baf68c79b5b8fdf0…a6`, unchanged from initialization until SCA-V4-003; blocks read: see the pass-4 header line). Run records under
 `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`: `BRIEFS.md`
 b2613941…05c1 (row D4), `OWNER_DECISIONS.md` 9d18c40d…1b1b (DECISION-K3 as
 revised: K-1, K-2, K-3, K-11, K-12 bind this file), `R17_RESOLUTIONS.md`
@@ -769,6 +770,7 @@ as such, never hidden by a switch.
 | DEP-01-01-022 (mirror of -012) | — | DEL-01-01 | S-4 carriage, §8.1 |
 | DEP-01-01-024 (held, SCC-001; no counterpart here) | DEL-01-01 consumes | Sign-in and substitution evidence "when needed" | §12 (designed); return file proposes a mirror row |
 | DEP-09-02-013 (admitted) | DEL-09-02 consumes | Account/provider inputs; focused checks | I-9; VC-A01…A05 |
+| DEP-01-05-017 (DAG-004: mirror of DEP-09-02-013, which represents the arc, SR-6) | Downstream | DEL-09-02: account/provider inputs and the focused sign-in and concurrent-mode checks for V4-EXM-12; the witness stays with DEL-09-02 | I-9; VC-A01…A05. The supplier-side counterpart of DEP-09-02-013, from CLM-004 as revised by SCA-V4-003 G-0105-02 (ledger R3-01-05-b; R22-7; V22 m-7) |
 | (none yet; F0 §3 NR-07) | DEL-01-04 would consume | Access state for the start display; Codex account for CAP-8 | I-5, I-6; new row proposed (SCC-neutral: DEL-01-05 reaches only DEL-01-01) |
 
 ## 14. Owner and act boundary (REQ-009, AC-010)

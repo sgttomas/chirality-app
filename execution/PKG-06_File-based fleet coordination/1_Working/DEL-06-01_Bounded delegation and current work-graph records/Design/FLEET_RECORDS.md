@@ -30,6 +30,12 @@
   reports the delegation types and features unchanged at 0.160.0; the adapter
   run was not repeated there. Every supplier fact below carries its standing.
 - Labels: **SETTLED**, **DERIVED**, **INTEGRATION**, **PROPOSED** as R9.
+- **Repairs after RV-E2 (in place, same label FR-v0.1, before acceptance).**
+  - E2-R1: RF-10 and RF-12 report unread log lines and orphaned observations.
+  - E2-R2: RF-11 makes a torn RS line a limit.
+  - E2-N1: §3.1 marks `enforced-by-host` as FR's own value.
+  - E2-N2: FR-D1 gives the HOSTING line.
+  - R23-25: the latest decision holds (RF-6).
 
 ## 1. What these records are
 
@@ -51,7 +57,8 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   observes: `dispatch_observed`, `child_observed`, `observation_ended` and
   `related_conversation`. The schema refuses those from any other recorder
   (INV-FL-2). Reason: HOSTING §6.1 has no App-offered tool in this increment
-  ("none defined"), and adding one would change the whole App's tool set
+  ("none defined in this increment", the `item/tool/call` row at L783 of
+  HOSTING-v0.9), and adding one would change the whole App's tool set
   (ADAPTER F-9). Files written with ordinary tools keep the file-native route
   working with or without the App (DEL-10-02; REQ-005; AC-007). The App
   validates and reads them; it does not take over their authorship.
@@ -110,7 +117,11 @@ The values are:
 - `stated-not-enforced`;
 - `enforced-by-supplier` or `enforced-by-host`, each requiring the mechanism
   that enforces it (for example "Codex sandbox mode workspace-write, the
-  person's own setting");
+  person's own setting"). `enforced-by-host` is **FR's own value**
+  (PROPOSED), for a tool or write limit a host enforces. It is never handed
+  from ROLE's limit account or NPTD's export, which use only
+  `stated-not-enforced`, `enforced-by-supplier` and `unknown`. A delegating
+  role's limit stays within `stated-not-enforced` or `unknown` (ROLE LA-5);
 - `unknown`.
 
 The schema refuses an "enforced" standing without a mechanism (INV-FL-1). A
@@ -222,6 +233,18 @@ derives the facts only.
 - **RF-7** Basis changes are listed on the items they name.
 - **RF-8** The child index lists every observed child.
 - **RF-9** Reading writes nothing.
+- **RF-10 (RV E2-R1).** Every coordination-log line the reader could not
+  read (torn or nonconformant) is reported by line number with the facts
+  (`logIncomplete`). Such a line could be any record of any item, so a
+  consumer must not derive readiness, an empty queue or any not-done state
+  while one exists (DEL-06-02 FV-8a).
+- **RF-11 (RV E2-R2).** A torn RS line is a limit, not a failure. A decision
+  need with no satisfying act becomes *unknown*, not *outstanding*, while an
+  RS line is unread.
+- **RF-12 (RV E2-R1).** An observation (`child_observed`,
+  `observation_ended`) whose child has no `dispatch_observed` is an orphan.
+  It is a limit ("a dispatch record may be missing"), and the child is
+  reported with the facts (`orphanChildren`).
 - A torn or nonconformant log line is a limit and is not used. An unreadable
   brief or graph is a limit.
 
@@ -234,7 +257,7 @@ derives the facts only.
 | Observe a spawn | Spawn not completed; no reference; brief changed | No record until completed; *no brief reference*; *brief changed since* |
 | Observe a child | Codex process stops, App quits or relaunches (RECOVERY DEF-5/6/7) | `observation_ended` with the cause; after a relaunch the App re-reads children from the parent's history and `thread/read` (NPTD SQ-4) and appends new `child_observed` entries; nothing earlier is rewritten |
 | Receive a return | No evidence | Refused (schema) |
-| Read | Torn line; missing RS records | Limit; decision needs *unknown* |
+| Read | Torn log line; torn RS line; missing RS records; orphaned observation | RF-10 (reported by line; consumers derive no completeness); RF-11 (limit; decisions *unknown*); decision needs *unknown*; RF-12 (limit) |
 
 ## 7. Interfaces
 
@@ -291,10 +314,10 @@ reads FX-DP1's RS records for decisions.
 | VER-006 | §8 (review of the account; no executable case) |
 | VER-007 | Facts from files alone; reading writes nothing |
 | VER-008 | §10 (artifact and owner comparison) |
-| Writer, reader | W-1 refusal, W-2 no overwrite, RF-1 changed graph not used, torn line a limit; INV-FL-1…7 |
+| Writer, reader | W-1 refusal, W-2 no overwrite, RF-1 changed graph not used, torn line a limit; RF-10/RF-12 a truncated dispatch line reported unread with its child orphaned; RF-11 a torn RS line a limit with decisions unknown; INV-FL-1…7 |
 
-Result on 2026-10-03: 32/32 (31 on the first build, plus the
-committed-fixture check).
+Result on 2026-10-03, after the RV-E2 repairs: 34/34, including the
+committed-fixture check.
 
 ## 10. Owner boundary (REQ-006)
 

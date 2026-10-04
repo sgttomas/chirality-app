@@ -3,7 +3,8 @@
 - **Contribution:** DEL-09-01/EXP-v0.2. It supersedes EXP-v0.1 (frozen unit
   U1, file sha256 `dc6b6a0c24a3c780e017de3e078473d3303386961f3feb576604d134648ecbc0`),
   repaired for review RV-EXP-U1 (findings EXP-R-A…EXP-R-M; see "Changes")
-  under rulings R23-17, R23-19, R23-20 and R23-21. The schemas move to
+  under rulings R23-17, R23-19, R23-20 and R23-21; U-EXP-1 closed in place
+  under R23-22 after RV's confirmation. The schemas move to
   `…:0.2` with records in format `EXP-v0.2`.
 - **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: three PROPOSED schemas (JSON Schema 2020-12), each
@@ -30,20 +31,20 @@
     (V4-OPS-30…34); `docs/HOST_INTEGRATION.md`
     `d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f` (§1).
   - Supplier: DEL-01-01 `HOSTING_BOUNDARY.md` (HOSTING-v0.9)
-    `ce235650e8a9494c66ccd08677556e56a88983aa641b5ff22c576328bd8a93b6`
+    `5401f26d9a2a739a725771c8ce83c62ac5fa07be69b0338ee5670b9453d76d87` (C1 re-pin, R23-21 item 4)
     (§7.1, §9.1–§9.6); `PIN_SPIKE_0.158.0.md`
     `0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115`.
   - Receivers' files read to check the interface (cross-references, not
     reliance): DEL-09-06 `CONNECTED_ACTIVITY_CONTRACT.md` (CA-v0.7)
-    `eb133d4101ea50133e1c324dbc3d920faba93d6c89de4bd122cb572e110ee84f`
+    `44a9b288291c0716ba34945aae46163b69f5af96d0292ca03d343eec5811a9ee` (C1 re-pin, R23-21 item 4)
     and `w14-result-record.schema.json`
     `20d3c976912318dde2d189f6a3761796ee09f40f01b398dd2fe50ab91b429b91`;
     DEL-09-09 `EXTERNAL_TRACE_CASES.md`
-    `d973677bab5abdc03b170e10c0ad52a1135cc8dd5ad24afc7886271c97e7f456`
+    `cc1543619b767ede6af9fb614c82faa7430da634b4846fa263a1da619383808a` (C1 re-pin, R23-21 item 4)
     and `xt-result-record.schema.json`
     `3b0ff2bbd1da8dab61147218b6c512146b58b4dc13eea6a2b1c60f7c5b697b4b`;
     DEL-01-04 `APP_ACT_CONTROL.md` at AAC-v0.2, the version relied on
-    (R23-21 item 3; the committed bytes at `HEAD`)
+    (R23-21 item 3; committed at `31d65b0be3`)
     `062ce28c8a4ec0bc79fc6b6c421245057a59815df14b88fa779b61eeb98be7d7`.
     O-A's AAC-v0.3 (A16) leaves NA-3 and VC-AAC-03, the only parts cited,
     unchanged (`git diff` checked 2026-10-03).
@@ -53,7 +54,7 @@
     `3e5277f6535597eb39e0a750dcb16d11712b738065ece2275b9b33b599a364e2`.
   - Rulings, cited by ID (R23-21): R23-1, R23-2, R23-3, R23-5, R23-7,
     R23-11, R23-12, R23-13, R23-15 (partial capture, consistent with F-4),
-    R23-17, R23-19, R23-20, R23-21. Review: `reviews/RV-EXP-U1.md`.
+    R23-17, R23-19, R23-20, R23-21, R23-22. Review: `reviews/RV-EXP-U1.md`.
     Other run records:
     `OWNER_DECISIONS.md`
     `e4350f61a93edf0d2d4bfc588fcaa17ae23981baa6059617dcc430cda3008cd8`
@@ -656,7 +657,7 @@ written; it says nothing about a candidate.
 
 | ID | Item | Owner | Point of need | Effect here |
 |---|---|---|---|---|
-| U-EXP-1 | Qualification Codex pin (OI-012) and the boundary for adopting 0.160.0 facts | HELP_HUMAN names both when VC returns (R23-3, R23-17 item 2) | Before qualification | Records carry the pin; nothing qualified |
+| U-EXP-1 | Qualification Codex pin (OI-012) | **Closed by rule (R23-22):** 0.158.0 stays the definition and generation pin (D4); 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built. No owner decision is needed unless a check finds a changed relied-on behaviour | When a candidate is built | Records carry the pin; a pin change is a change of kind `codex_pin` (§6.2) |
 | U-EXP-2 | Interface runner and N-2 tool names and versions | The implementer chooses them against §8.3's definition checks; recorded as facts of the result (R23-17 item 3) | Before the first interface or N-2 run | Not a design gap: the admission criterion is §8.3 |
 | U-EXP-5 | M2 package and DEL-01-06's signing arrangement | DEL-01-06 (R23-13) | Before native packaged smoke | `native_packaged` cases `not-run` (AWAITING INPUT) until then |
 | U-EXP-6 | OI-016 validation period and activities | Owner | Before validation in use | `validation` records only on actual use |
@@ -692,3 +693,4 @@ schema now requires `sha256:` digests for criteria and declarations).
 |---|---|
 | EXP-v0.1 (2026-10-03) | First Design file: protocol, three PROPOSED schemas with example sets, prototype check (52/0) |
 | EXP-v0.2 (2026-10-03) | Repair for RV-EXP-U1. EXP-R-A: not-applicable parts declared before the run, listed apart, out of aggregation (R23-19; §3.1, schema `parts_not_applicable`). EXP-R-B: `blocked`/`not-run` per R23-20, labelled INTEGRATION; every planned case gets a record; `blocked` requires its cause (§3.1, §6.1, F-1a/b). EXP-R-C: a `native_packaged` result other than `not-run` needs a packaged candidate with its record (schema; EXP-INV-09 = RV P1). EXP-R-D: definition checks EXP-DC-RUNNER and EXP-DC-N2 given content (§8.3); placement and form layout decided (§8.2, §8.4); U-EXP-1/2/4 restated per R23-17; digests sha256. EXP-R-E: one rule table EXP-R1…R9 with EXP-R2 defined (§3.5). EXP-R-F: `reported_as_independent`; honest non-separation valid. EXP-R-G: `other` removed; `additional_person` review kind. EXP-R-H: no scenario on non-candidate bases (schema). EXP-R-I: held arcs place no case in HELD; packaged smoke AWAITING INPUT for the package. EXP-R-J: AAC pin kept at AAC-v0.2, the version relied on, with v0.3's effect checked (R23-21 item 3); rulings cited by ID (R23-21 item 1). EXP-R-K: WKWebView identity on native routes. Prototype 77/0 |
+| EXP-v0.2, in place (2026-10-03) | After RV's confirmation (READY): U-EXP-1 closed under R23-22 (§13). No rule, schema or example changed |

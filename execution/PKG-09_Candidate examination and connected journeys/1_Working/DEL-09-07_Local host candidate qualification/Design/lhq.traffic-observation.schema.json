@@ -19,7 +19,8 @@
     "system_unattributed",
     "app_codex_set_aside",
     "other_counts",
-    "limits"
+    "limits",
+    "calibration_setup"
   ],
   "additionalProperties": false,
   "properties": {
@@ -105,8 +106,7 @@
               "minLength": 1
             },
             "granted_at": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/utcTime"
             },
             "source": {
               "const": "stated_by_person"
@@ -262,12 +262,10 @@
       "additionalProperties": false,
       "properties": {
         "start": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/utcTime"
         },
         "end": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/utcTime"
         },
         "drop_count": {
           "type": "integer",
@@ -470,8 +468,7 @@
             "minLength": 1
           },
           "time": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/utcTime"
           },
           "possibly_caused_by_host": {
             "type": "boolean"
@@ -627,6 +624,41 @@
           }
         }
       }
+    },
+    "calibration_setup": {
+      "type": "object",
+      "required": [
+        "endpoints",
+        "interval"
+      ],
+      "additionalProperties": false,
+      "description": "TOP §5 (step 5) and §7 CB-1: the examiner's declared calibration test endpoints and the marked calibration interval. A contact tagged calibration_check counts as calibration only if its destination is a declared endpoint and it lies within the interval; otherwise it is a run contact (checked by prototype/top_check.py).",
+      "properties": {
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "interval": {
+          "type": "object",
+          "required": [
+            "start",
+            "end"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/utcTime"
+            },
+            "end": {
+              "$ref": "#/$defs/utcTime"
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -683,12 +715,10 @@
           ]
         },
         "first_seen": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/utcTime"
         },
         "last_seen": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/utcTime"
         },
         "comparison": {
           "enum": [
@@ -714,7 +744,7 @@
             "OV-3",
             "OV-4"
           ],
-          "description": "Present only on a calibration contact; such contacts are excluded from the §7 comparison (TOP §5)."
+          "description": "Present only on a calibration contact (TOP §5). Binding to the declared endpoints and interval is CB-1 (TOP §7), checked by prototype/top_check.py; a contact that fails CB-1 is compared as a run contact."
         }
       },
       "allOf": [
@@ -829,8 +859,28 @@
               }
             }
           }
+        },
+        {
+          "description": "A calibration contact is the host's (subject) contact to a test endpoint; it carries no host-record comparison of its own.",
+          "if": {
+            "required": [
+              "calibration_check"
+            ]
+          },
+          "then": {
+            "properties": {
+              "attribution": {
+                "const": "subject"
+              }
+            }
+          }
         }
       ]
+    },
+    "utcTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "description": "TOP §6: one ISO-8601 UTC form, YYYY-MM-DDThh:mm:ss[.fraction]Z."
     }
   },
   "allOf": [

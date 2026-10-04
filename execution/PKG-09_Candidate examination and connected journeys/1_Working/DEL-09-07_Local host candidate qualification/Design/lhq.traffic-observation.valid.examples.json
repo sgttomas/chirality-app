@@ -63,6 +63,20 @@
     ],
     "contacts": [
       {
+        "destination_address": "127.0.0.1:18081",
+        "name": "cal-1.test",
+        "name_source": "dns_answer",
+        "process_name": "example-host",
+        "pid": 4101,
+        "attribution": "subject",
+        "first_seen": "2026-10-03T00:00:30Z",
+        "last_seen": "2026-10-03T00:00:31Z",
+        "comparison": "matched_allowed",
+        "record_entry_ref": "R15-cal-1",
+        "allowing_entry": "named entry (calibration)",
+        "calibration_check": "OV-1"
+      },
+      {
         "destination_address": "127.0.0.1:1234",
         "name": "localhost",
         "name_source": "dns_answer",
@@ -140,6 +154,16 @@
         "vocabulary": "RS-v0.9 R11",
         "detail": "example-mcp is not sandboxed"
       }
-    ]
+    ],
+    "calibration_setup": {
+      "endpoints": [
+        "127.0.0.1:18081",
+        "127.0.0.1:18082"
+      ],
+      "interval": {
+        "start": "2026-10-03T00:00:20Z",
+        "end": "2026-10-03T00:00:50Z"
+      }
+    }
   }
 ]

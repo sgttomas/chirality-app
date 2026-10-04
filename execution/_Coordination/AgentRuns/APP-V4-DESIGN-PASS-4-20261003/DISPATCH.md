@@ -41,3 +41,21 @@ verified afterwards by `git status`.
 | RV2 | PKG-U2 REPAIR (2 MAJOR, 7 MINOR, 2 NOTE); SQ-U3 REPAIR (2 MAJOR, 6 MINOR, 3 NOTE). PKG-R10 ruled R23-26; SQ-R-A/B ruled R23-27. Routed to O-B |
 | RV | LHQ-U1 (R15/R16) READY; LHQ-U2 repair READY (+U2-R10/R11 MINOR, R12 NOTE); EP-05+EP-11 READY (3 MINOR, 4 NOTE). Minors routed to O-C; EP rerun waits for E-1 under R23-24 |
 | O-A | E-1 repaired under R23-24/R23-25 (run_e 56/56; FX-DP1 `9501ef81…`); E-2 frozen (FR 32/32, FV 16/16). Both to RV; new manifest to O-C |
+| RV | E-1 repair CONFIRMED READY (R23-24 adoption checked in files). E-2 REPAIR (1 MAJOR torn-line, 2 MINOR, 2 NOTE). Routed to O-A |
+| O-C | Minor repairs done; EP-05 22/0 and EP-11 on IS-FX-DP1-3 (standing check 17) on FX-DP1 `9501ef81…`. Queued to RV |
+| RR-F | Second isolated reader dispatched on IS-FX-DP1-3 (`E/RR-F/DISPATCH_RECORD.md`), to test the changed package shape and O-C's last-segment matching rule against a real account |
+| O-A | E-2 repaired (run_fleet 34/34, run_views 22/22 incl. RV probes; RS L-0 A16 row). E2-R3 qualified-ready accepted by HELP_HUMAN. Queued to RV |
+| RR-F | Reader returned; examiner comparison 9/9, 0 referred; digest recomputed from the rule (`E/RR-F/RESULT.md`) |
+| RV | LHQ-U2 READY (second confirmation); EP READY. Notes: `calibration_check` tagging unbounded; last-segment overlap gap. Both to O-C |
+| O-B | U2 → PKG-v0.2 (check_pkg 64/0) and U3 → SQ-v0.2 (check_sq 108/0) repaired; EXP-v0.2 U-EXP-1 closed in place (`1371ddb2…`). To RV2 for confirmation. Note: HELP_HUMAN's WIP checkpoint landed mid-repair and moved HEAD under owners' pins; later checkpoints wait for a quiet point or are announced |
+| RV | O-C minors + EP rerun READY; E-2 repair READY (+E2-R4 MINOR: qualifier must show in the label). E2-R4 to O-A |
+| RV | E2-R4 CONFIRMED; E-2 READY, no open findings. Downstream note (DEL-09-05 must read "ready (qualified)") to O-C |
+| O-C | RR-F added as second independent case (standing 19/19); last-segment and whole-identifier matching hardened; CB-1 calibration binding + top_check.py; DAC RW-1 for "ready (qualified)"; RS re-pinned to L-0 A16. To RV |
+| RV2 | PKG-v0.2 and SQ-v0.2 repairs CONFIRMED READY (+PKG-R12, SQ-R-L, SQ-R-M MINOR; 3 NOTE). To O-B |
+| RV | O-C hardenings CONFIRMED (fw04 22, standing 19, top_check). EP, LHQ-U1/U2 no open findings. ISO time-form note to O-C |
+| O-C | ISO-8601 UTC time form stated, schema-enforced, top_check parses instants (`cf128073…`). Small mechanical change; covered by the pre-merge integration review rather than a separate RV round. O-C done for tranche 1 |
+| S0 | Eight tranche-1 deliverables INITIALIZED → IN_PROGRESS by write_status.sh (R23-28) |
+| O-B | Last minors fixed (check_pkg 66/0, check_sq 114/0; ST-5 replay = real Codex capture, U-SQ-6 owned by DEL-01-01 with DEL-01-02, before RUN-A). O-B done for tranche 1 |
+| C1 | Integration closeout dispatched (fresh `type2-opus-high`): stale sibling pins (R23-21.4), SoW re-pins (R23-5), cross-owner interfaces, all prototypes once, fences. Write area: pin lines only + `closeout/C1_INTEGRATION.md` |
+| C1 | Closeout returned: 40 sibling re-pins, 17 SoW re-pins, DEL-09-06 W14 break found and repaired (44/0), all prototypes pass, fences hold. GUIDE pin check 22/25 (A16). Ruled R23-29; C2 dispatched |
+| C2 | GUIDE-v0.7 (A16; pin check 25/25), ACCESS §13 row + SoW re-pin, VERSION_ADVANCE §7.1 note; all counts held. Remaining cascade TOP/DOS→LHQ and RRM→DOS re-pinned by HELP_HUMAN with a script (mechanical). Pre-existing pins to older committed GUIDE/ACCESS versions (RELAY, ADAPTER, LOOP) predate this pass; noted for the pre-merge review |

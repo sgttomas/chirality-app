@@ -421,18 +421,279 @@ Folder: `PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02
   - whether reading "refines it twice" as two registered revisions (WR TT-7,
     K-7) is right.
 
-## Pending follow-ups (folded in with RV2's review of U2/U3)
+## Repairs for RV2 (2026-10-03), for RV2's confirmation
 
-- **U1 confirmed** by RV, CONFIRMED — READY (`reviews/RV-EXP-U1.md`, "Repair
-  confirmation").
-- **U-EXP-1 → close under R23-22.** At the next edit of EXP: cite R23-22,
-  keep 0.158.0 as the definition and generation pin (D4), record 0.160.0 as
-  checked and design-compatible, and state that the qualification pin is the
-  newest version that has passed a version-advance check when a candidate is
-  built. The same wording goes into PKG U-PKG-3 and SQ U-SQ-1 when U2 and U3
-  are repaired. No separate freeze for this.
+The v0.1 bytes of U2 and U3 are in the session scratchpad (`ob_u2_v01/`,
+`ob_u3_v01/`). Commit `09ca67d094` (the coordinator's checkpoint) holds the
+frozen v0.1 of U3 and of `PACKAGING_AND_DISTRIBUTION.md`. It was taken
+mid-repair, though, so the DEL-01-06 schemas, examples and prototype it
+holds are already the repaired ones listed below; I checked them byte-equal
+by script. Rulings applied: R23-22, R23-26,
+R23-27. The repair order followed the coordinator's list.
+
+### U2 repaired — DEL-01-06 PKG-v0.2
+
+| File | sha256 |
+|---|---|
+| `PACKAGING_AND_DISTRIBUTION.md` | `44c0ac8856e1e2c54384065d8140a5a105494c1e89690e56166ee578af029002` |
+| `pkg.identity-record.schema.json` | `a4d3e6c5199c06bf41efbed5b1b1ecc3c6d42995898baaca1b9901ca5f920dc5` |
+| `pkg.identity-record.valid.examples.json` | `e0e19cbc9b74651207a303ab1f494f05a853c912ba07c91a555c3f20680f312e` |
+| `pkg.identity-record.invalid.examples.json` | `51f00ce8d07f8d683f3f9613678d143d955ecd5b4c4d4e60a9c9a26f38b3d7f6` |
+| `pkg.identity-record.rule-violations.examples.json` | `65304ad5ff4009cd24ba399131bed6d9f8027a207be8ecbb81fa3499d251ebc3` |
+| `pkg.terms-record.schema.json` | `46ee0d3c0072fd3a94c45749fd8da14ad05e6322367f2df51500e754eb6e6af9` |
+| `pkg.terms-record.valid.examples.json` | `ffbd5648a776838ecc5112f32e9b73af80f9b48bd5e418445f2f3b42e183d38f` |
+| `pkg.terms-record.invalid.examples.json` | `b87e667ad34630c5cff96e15d7ccb44da276f3c0e0c20ee104325b91c16d7a84` |
+| `pkg.terms-record.rule-violations.examples.json` | `d11dca9a761085a3d2ff533a2b70f94c3d8abce2d7d7c4121763649d8dafea7a` |
+| `prototype/read_tree.py` | `6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb` |
+| `prototype/check_pkg.py` | `e20c11081e565596f6ec01bf4ef6071deea1b2ac52c6ad6a56518596bcd757dc` |
+
+**Checks.**
+- `check_pkg.py --tree <VC 0.160.0 vendor dir>`: **TOTAL 64, FAIL 0** (was 36).
+- `read_tree.py --manifest` reproduces `327effb9…8d12`.
+- RV2's probes (`$TMPDIR/rv2/probe_pkg.py`) rerun unchanged:
+
+  | Probe | Result |
+  |---|---|
+  | P1, P2 | Now `PK-R6` |
+  | P3, P3b | Invalid. The proper form is `state: missing` (PKG-INV-06, -07; valid PKG-EX-03) |
+  | P4 | The probe reads the valid A example, which now carries `escalation_ref`. The schema requires it (PKG-INV-05) |
+  | P5 | The enum has `role_set` |
+  | P6 | Link targets differ, detected |
+  | P7 | The directory link is recorded and reported as `extra`. The probe's second expression tests a key (`'symlink' in x`) the new entry form replaced with `kind`; the FP-0 no-links check now uses `kind == "symlink"` |
+  | P8 | The mode change is detected |
+
+- Pins checked by script. AAC is pinned at AAC-v0.2, committed at
+  `31d65b0be3`, the version relied on (R23-21 item 3); §6.3 is unchanged
+  in the current file.
+
+**Replies.**
+- **PKG-R1 (MAJOR): repaired.**
+  - New general-knowledge item G-7.
+  - The witness (§8) starts from a quarantined installer: W-0 `xattr -l` of
+    the installer, W-2 of the installed `.app`, W-5 the first `codex` child
+    launch with its cdhash.
+  - If quarantine cannot be produced, the witness is `blocked`.
+  - FP-2 and FP-4 run under quarantine (§7.1).
+  - The identity record's Gatekeeper element requires quarantine evidence
+    when assessed (PKG-INV-08).
+- **PKG-R2 (MAJOR): repaired.**
+  - The signing path is SP-1…SP-4, folded into §6 (PS-3, PS-5, PS-7, PS-8):
+    `tauri build` with bundler signing disabled; then `codesign
+    --options runtime --timestamp` on P-0 and then on the `.app`,
+    **without `--deep`**; then installer, `notarytool` with the owner's
+    keychain profile, and `stapler`.
+  - FP-1 is split: FP-1(a) after bundling, FP-1(b) after outer signing.
+  - OUT-001 configuration elements CF-1…CF-8 are listed (§4.3).
+  - The configuration space CS-1…CS-4 is defined, with an exhaustion
+    criterion (§7.2).
+  - P-1 is "the vendor directory as published" including
+    `codex-package.json`.
+- **PKG-R3 (MINOR): repaired.** §7.3 classifies every failure, at any FP
+  check or in the witness, by recorded cause (termination reason,
+  `codesign`/`spctl` output, `syspolicyd`/`amfid` lines). A cause not
+  determinable makes the check `inconclusive`.
+- **PKG-R4 (MINOR): repaired.**
+  - FP-0 checks the first Authority (all 30 are "Developer ID Application:
+    OpenAI OpCo, LLC (2DC432GLL2)").
+  - `read_tree.py` records directory links, link targets and modes, and
+    compares all three.
+  - New tree cases TREE P6/P7/P8 in `check_pkg.py`, run on synthetic trees
+    under `$TMPDIR` and removed afterwards.
+- **PKG-R5 (MINOR): repaired.**
+  - PK-R6: every Mach-O is listed (P1/P2).
+  - `state: present|missing` with `complete`, and PK-R8 (P3).
+  - Option A requires `escalation_ref` and `configuration_space_tried`
+    (PK-R7; P4).
+  - `role_set` is a bundle item and P-3 lists `roles.json` (P5).
+  - The manifest is defined (§5.2) and computed by `read_tree.py
+    --manifest`: path-byte order, C collation, final newline. That ordering
+    reproduces `327effb9…`; ordering by the whole line does not.
+  - Placement is stated in §5.3.
+- **PKG-R6 (MINOR): repaired.**
+  - I-6: `not-run` with the package as missing input.
+  - FP-0, FP-1(a/b) and FP-3 are elements of the identity record
+    (`first_package_checks`).
+  - FP-2, FP-4, FP-5 and the witness are EXP records on `native_packaged`,
+    citing the record (§7.1).
+- **PKG-R7 (MINOR): repaired.**
+  - I-4 requires the same team and bundle identifier across releases.
+  - G-8 is labelled general knowledge.
+  - SIGN-3 names SEAL-2's possible key-store entitlement and profile, to be
+    confirmed at FP-2 (U-PKG-8).
+- **PKG-R8 (MINOR): repaired.** U-PKG-3 is stated per R23-22, and FP-0 runs
+  at the qualification pin.
+- **PKG-R9 (MINOR): repaired.** I-3 is a build-time input to a package
+  candidate. An absent item makes that candidate incomplete; it is not a
+  production dependency and implies no row in either direction.
+- **PKG-R10 (NOTE): applied.** SIGN-1 now cites R23-26, and OI-011 stays
+  open in the register for its SWB part (§3, §13).
+- **PKG-R11 (NOTE): applied.** SIGN-1 reason 2 is reworded.
+
+### U3 repaired — DEL-09-02 SQ-v0.2
+
+| File | sha256 |
+|---|---|
+| `STANDALONE_QUALIFICATION.md` | `f18f26c5c77c593c3b2db9eb2260c3a59b4c34403b3b3b5e3402f4e42db5c458` |
+| `sq.dossier.schema.json` | `16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6` |
+| `sq.dossier.valid.examples.json` | `86675c152d33367852dcba564216657aca2301bcac3dc0ad829f96cfc64d91b0` |
+| `sq.dossier.invalid.examples.json` | `99e154f4a57b42848852ef42fa23d286e517752ed6813468d02124b89843fb28` |
+| `sq.dossier.rule-violations.examples.json` | `b1975da675f92aa3490a5885c85eaacdbf174c7ec6512bb9bbbb8e09922a47af` |
+| `sq.step-map.json` | `be50ec917f953a3ed649d0c1ea094b744efb678a433d8000f02adc4594bfc893` |
+| `prototype/check_sq.py` | `a677cc9cc2fc9ed1ccfd8ed8a9a750093343aea1f3c7df0dd1773453d20db37c` |
+
+**Checks.**
+- `check_sq.py`: **TOTAL 108, FAIL 0** (was 72), with 65 citations, each a
+  designed-case row in its file.
+- RV2's probes (`$TMPDIR/rv2/probe_sq.py`) rerun unchanged:
+
+  | Probe | Result |
+  |---|---|
+  | Q1 | `SQ-R7` (now also example SQ-RV-08) |
+  | Q2 | The probe's dossier claims neither handover nor independence, so only `SQ-R9` fires (its passing steps lack declared stimuli); the handover/independence case is SQ-RV-09 (`SQ-R8`) |
+  | Q3 | Schema-invalid (SQ-INV-05) |
+  | Q4 | The probe now raises a KeyError, because SQ-EX-01's scenarios carry no outcome; an outcome with nothing recorded is SQ-RV-05 (`SQ-R4`) |
+  | Q5, Q6 | Answered by the new enum and properties |
+
+- Pins:
+  - NIR-v0.3 is adopted (`aca40c0e…`).
+  - ACT, RS and EXEC are pinned at the commits holding the version relied
+    on (`dc61150559`, `61e7a0afec`), with the cited rows checked unchanged
+    in the current files. The coordinator's checkpoint commit `09ca67d094`
+    moved `HEAD`, so "`HEAD`" wording was replaced by commit ids.
+
+**Replies.**
+- **SQ-R-A (MAJOR): repaired under R23-27.**
+  - ST-1 is the revision condition at J-8: J-7's record still names
+    revision 1, whose bytes are unchanged.
+  - ST-2 is a source collision placed before J-5 and observed at J-5 and
+    J-7.
+  - ST-3 is the unperformed-act negatives at J-6 and J-8: silence and
+    timeout, the agent's claim, tool success.
+  - All are declared in the digested case definition and count toward
+    their scenario.
+- **SQ-R-B (MAJOR): repaired under R23-27.**
+  - ST-4 is a delegated child, staged at J-2, stopped with S11-1 and
+    observed at S11-6. It needs a model route that carries delegation
+    (HOSTING U-22); otherwise its replay is required (U-SQ-5).
+  - ST-5 is a lost acknowledgment, supplied by the **required** replay of
+    HOSTING X-09/X-10 on the supplier double. That replay is recorded as an
+    EXP rehearsal, cited as `recorded_replay` evidence of S11-6's part and
+    compared with the native observation.
+  - A stimulus that is neither produced natively nor by replay leaves its
+    step `blocked`; that step can never pass (SQ-R9, SF-8).
+- **SQ-R-C (MINOR): repaired.** J-6, J-8 and J-9 join VC-AAC-08 and
+  VC-AAC-13; J-6 also joins VC-AAC-07 and VC-AAC-03 with ST-3. VC-AAC-04 is
+  dropped, and the step-map check now refuses it.
+- **SQ-R-D (MINOR): repaired.**
+  - NIR-v0.3 is adopted for S11-1, which observes TO-4, including an
+    interrupted turn carrying `Turn.error` at 0.160.0.
+  - The pin-basis sentence now names that one pin-dependent fact.
+  - U-SQ-1 and §0's OI-012 are stated per R23-22.
+- **SQ-R-E (MINOR): repaired.**
+  - J-8R and J-9R are the TT-7 runs, recorded but `counts: false` with a
+    reason, and never aggregated. SQ-EX-04 shows an added step failing
+    while the scenario passes.
+  - "Try" is restored in J-8 and J-9.
+- **SQ-R-F (MINOR): repaired.**
+  - Step states are EXP §6.1's.
+  - An outcome or result record is allowed only on `recorded` steps
+    (schema).
+  - A scenario outcome is allowed only when every counted step is recorded
+    (SQ-R4).
+  - `examination_opened` marks when steps become planned.
+  - `handoff.handed_over` and `reported_as_independent` are governed by
+    SQ-R8.
+- **SQ-R-G (MINOR): repaired.**
+  - The settings precondition is declared; "no request raised" means
+    `blocked` (SF-9).
+  - S11-5 combines only a live turn and a waiting request in J-8's try
+    conversation; WR-VC-07's process-loss reconciliation is not staged
+    there.
+  - S11-6 names the conversation it continues.
+- **SQ-R-H (MINOR): repaired.** Each step carries `core_loop_element` (all
+  seven of DEL-11-03 REQ-001's elements are covered, checked) and
+  `v3_reference`.
+- **SQ-R-I (NOTE): applied.** U-SQ-3 states SEAL-2's effect on a development
+  build.
+- **SQ-R-J (NOTE): applied.**
+  - SQ-RV-08 is the example for SQ-R7.
+  - VC-R-14 is cited at every S11 step (checked).
+- **SQ-R-K (NOTE):** no change.
+
+### U-EXP-1 under R23-22 (folded in, no separate freeze)
+
+`EXAMINATION_PROTOCOL.md` closes U-EXP-1 in place under R23-22. The same
+edit replaces "`HEAD`" with AAC-v0.2's commit `31d65b0be3`. No rule, schema
+or example changed, and `check_exp.py` still gives 77/0. The file is now
+`1371ddb22f72e80aef6dcac734ae6cf288fa3a478bbac5cc607be9e7814a6b9e`, and the
+PKG and SQ pins point to it. U-PKG-3 and U-SQ-1 carry the same wording.
+
+## RV2 confirmation items (2026-10-03), repaired in place, for RV2
+
+RV2 confirmed U2 and U3 READY and raised PKG-R12…R14 and SQ-R-L, SQ-R-M.
+
+### U2 — DEL-01-06 PKG-v0.2 (in place)
+
+| File | sha256 |
+|---|---|
+| `PACKAGING_AND_DISTRIBUTION.md` | `95722979a8fe963782702e4ca459bc124556c43c0a5c4e0ba439559bed7077fa` |
+| `pkg.identity-record.schema.json` | `efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a` |
+| `pkg.identity-record.valid.examples.json` | `39aa4a5c98699a9ba533b88cdc5be6eed3500cc66ddabb83bc22edc360d13fbc` |
+| `pkg.identity-record.invalid.examples.json` | `8fe3237bc10604c24c6d0a5921878877e414031bfb894d1f0a8a0570b245b1f2` |
+| `pkg.identity-record.rule-violations.examples.json` | `e24265aeda4f89a754e23590d3fd3669d40bc9d1c7f94063a446fff24b2df14d` |
+| `prototype/check_pkg.py` | `1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23` |
+
+The terms files and `read_tree.py` are unchanged.
+`check_pkg.py --tree <VC 0.160.0 vendor dir>` gives **TOTAL 66, FAIL 0**.
+
+- **PKG-R12: repaired.** In §8 and FP-4, Gatekeeper refusing to open the
+  App, or refusing the `codex` child, is now `fail`, classified by §7.3.
+  Missing quarantine stays `blocked`.
+- **PKG-R13: repaired.**
+  - §3 states that option B is not relied on until FP-1(a), FP-1(b) and
+    FP-3 pass on the first package.
+  - Before then the record may carry them as `not-run`, with the limit
+    "option B not yet relied on: FP-1/FP-3 not passed".
+  - New rule PK-R9 enforces that limit. The examples carry it, and
+    PKG-RV-12 is RV2's probe.
+- **PKG-R14: repaired.** The FP-0 label now prints "42 files, 10
+  directories, 30 Mach-O", and §11 says so.
+
+### U3 — DEL-09-02 SQ-v0.2 (in place)
+
+| File | sha256 |
+|---|---|
+| `STANDALONE_QUALIFICATION.md` | `a2ad48cf6803c9e9690e89672582b1a5228ed771fdeb7176968cb88453af552e` |
+| `sq.step-map.json` | `e57ff599c169aee2c45fc676fe579d3f2fabdfd4085f15616acf01965e826fc7` |
+| `sq.dossier.valid.examples.json` | `426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db` |
+| `sq.dossier.rule-violations.examples.json` | `eb75db6c3990d7d8488244819271359d16932ab819b9240f918c5a18bf871514` |
+| `prototype/check_sq.py` | `4a141a8c3f36620aec3f54ba5ace6d193c5cbfd00129f0d7e6fff7ef1b7ef2ea` |
+
+The schema (`16f7f232…`) and the invalid set (`99e154f4…`) are unchanged.
+`check_sq.py` gives **TOTAL 114, FAIL 0**, with 65 citations.
+
+- **SQ-R-L: repaired.**
+  - SQ-R9 refuses `produced: replay` for any stimulus whose map has no
+    replay counterpart (ST-1…ST-3). That is P-a, now SQ-RV-11.
+  - A `not_produced` stimulus requires the step to be `blocked` (or `fail`,
+    if another part failed). That is P-b, now SQ-RV-12.
+  - New valid example SQ-EX-05: ST-4 not produced, S11-6 `blocked`.
+- **SQ-R-M: repaired. I chose the capture route, and the reason is recorded
+  in §3.4.**
+  - RECOVERY VC-R-04 does stage "a written answer whose acknowledgment
+    never comes". But it does so on RECOVERY's stub, whose behaviour beyond
+    recorded frames is `constructed`.
+  - VER-005 asks for "supported recorded seam evidence", and R23-27's
+    counterpart stands in for a condition on the real supplier.
+  - So ST-5's counterpart is a recording of the real Codex at the
+    candidate's pin. It is in X-09's form and must contain an answer
+    written to a server request, with the process ended before any
+    acknowledgment arrives. It is replayed with X-10's recovery read.
+  - VC-R-04 stays a definition check of the rules.
+  - New U-SQ-6 records the capture: owner DEL-01-01 (§9.1 capture method)
+    with DEL-01-02 (RQ-05); point of need before RUN-A; without it S11-6 is
+    `blocked`.
 
 ## Next
 
-- Wait for RV's confirmation of U1 and RV2's review of U2/U3; repair in place
-  as findings arrive.
+- Wait for RV2's confirmation of the U2/U3 repairs.

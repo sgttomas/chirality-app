@@ -6,10 +6,10 @@ Owner: O-C (Type 2 TASK, Claude Opus 5.5, high effort; the S1-C survey agent). M
 
 | Unit | Deliverable | Path (from `projects/chirality-app-v4/execution/`) | sha256 | State |
 |---|---|---|---|---|
-| LHQ-U1 | DEL-09-07 | `PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/LOCAL_HOST_QUALIFICATION.md` | `430539276f6232f1b052346e29b6587376b8b902ab91716d7dc19cdea8166a71` | **CONFIRMED** by RV; LHQ-R15, LHQ-R16 repaired (for RV's confirmation) |
-| LHQ-U2 | DEL-09-07 | TOP, DOS and three schemas with examples | see "LHQ-U2 — repaired" | **Repaired** for RV-LHQ-U2; awaiting RV's confirmation |
-| EP-05 | DEL-09-05 | DAC-v0.1 and prototype | see "EP — refrozen" | **FROZEN for review** with EP-11 |
-| EP-11 | DEL-09-11 | RRM-v0.1, schemas and prototype | see "EP — refrozen" | **FROZEN for review** with EP-05 |
+| LHQ-U1 | DEL-09-07 | `…/DEL-09-07_Local host candidate qualification/Design/LOCAL_HOST_QUALIFICATION.md` | `4ee7de2630b7ed9ea1870bca938c434971f71e5413b60bb2e3247c5fc73931bc` | READY (RV); header wording fixed (R23-23) |
+| LHQ-U2 | DEL-09-07 | TOP, DOS and three schemas with examples | see "Minor repairs after RV's confirmations" | READY (RV); U2-R10…R12 repaired, for RV's confirmation |
+| EP-05 | DEL-09-05 | DAC-v0.1 and prototype | see "Minor repairs after RV's confirmations" | READY (RV); EP-R2…R5 repaired, rerun on the R23-24 fixture: 22/22 |
+| EP-11 | DEL-09-11 | RRM-v0.1, schemas and prototype | see "Minor repairs after RV's confirmations" | READY (RV); EP-R1, R3, R6 repaired, rerun on `IS-FX-DP1-3` |
 
 ## LHQ-U1 — frozen
 
@@ -311,3 +311,81 @@ The earlier freeze came before HELP_HUMAN's ordering note. Since then:
 - The V4-EXM-13 undertaking fixture (a later unit).
 - The candidate-only inputs.
 - No reader has yet run on `IS-FX-DP1-2`. Not required: RR-E stands for the method. A run would test the digest check.
+
+## Minor repairs after RV's confirmations, and the rerun on the R23-24 fixture (2026-10-03)
+
+**Replies.**
+
+| Finding | Reply | Where |
+|---|---|---|
+| U2-R10 MINOR | Accepted. The host is launched after B-0 and before OV-1…OV-4, inside the capture window. Calibration contacts are recorded in a marked calibration interval, carry their check, and are excluded from the §7 comparison | TOP §5; traffic schema `calibration_check` |
+| U2-R11 MINOR | Accepted. A flag resolved "by baseline" requires B-0 *held*. The new invalid example (RV's probe P1) is rejected under both validators | Traffic schema `allOf`; invalid examples |
+| U2-R12 NOTE | Accepted. The duplicate enum value is removed | Dossier schema |
+| LHQ header | Accepted. The EXEC change is attributed to R23-23 item 2 | LHQ header |
+| EP-R1 MINOR | Accepted. Judgment format 0.2 binds a judgment to its account by id and file sha256, and names the examiner. An unbound file is ignored, with the reason recorded as a limit. The judgment's hash goes into the EXP evidence. The standing check gains two unbound-judgment cases | `rrm_compare.py` `bind_judgments`; RRM §5 RC-9; judgments files |
+| EP-R2 MINOR | Accepted. R-3 compares the actor's names with the run's agent identities and the requester. Every constructed `human_act` is validated against RS (DEL-04-03 `minischema.py`, with the AS and CE-4 references). N-1 is RS-valid, with agreeing capture evidence, and is stopped only by R-3 | DAC §3 R-3, §6; `fw04_check.py` |
+| EP-R3 MINOR | Accepted. Stale rows are removed from both files. DAC pins EXP-v0.2 | DAC header, §7, UNRESOLVED; RRM UNRESOLVED |
+| EP-R4 NOTE | Adopted after R23-24. P04-A reads `reservedBy` from the package file and checks that the file's alternatives match its request | DAC §4, `fw04_check.py` |
+| EP-R5 NOTE | Adopted after R23-25. R-6 follows O-A's decision: a later A16 supersedes for current standing, and a correction is not a decision. Exercised both ways | DAC §3 R-6, §6 |
+| EP-R6 NOTE | Adopted. RC-5 refuses a decision, acceptance, change or outcome claim resting on a `definition` item. A standing-check case covers it | RRM §5; `rrm_compare.py` |
+| EP-R7 NOTE | Kept as designed. On a host journey, expect the examiner's referral workload to grow | RRM changes table |
+| DAC §6 command path | Accepted. The command now runs from the deliverable folder | DAC §6 |
+
+**Rerun on FX-DP1 `9501ef81…` (R23-24).**
+- **EP-05:** `fw04_check.py` gives **22 expectations, 0 failed**.
+  - It now includes RS validation of the fixture records and of every constructed act, P04-A from `reservedBy`, and R-6 both ways.
+  - O-A's `run_e.py` (`81c973de…`) gives 56/56, rerun by me.
+- **EP-11:**
+  - New input set **`IS-FX-DP1-3`** (`18b9e49b…`): all six fixture files plus a refreshed digest definition (AAC-v0.3 §5.1 lines 240–273, `ad6a148d…`). It is assembled for a reader in `prototype/fixtures/IS-FX-DP1-3-input/`, every item hash-checked.
+  - The digest recomputes from the rule.
+  - Subject rule: a namespaced `packageId` is also named by its last segment, when that segment is unique among the packages.
+- **Results.**
+  - Constructed good account on `IS-FX-DP1-3`: 9/9.
+  - RR-E-shaped account re-pointed at `IS-FX-DP1-3`: no failures; C-09 referred, because the judgment is bound to RR-E's own account.
+  - RR-E evidence on its supplied bytes, with its bound judgment: 9/9.
+  - **Standing check: 17 cases, 0 unexpected.**
+- No independent reader has run on `IS-FX-DP1-3`.
+
+**Files now (sha256).**
+- DEL-09-07: `LOCAL_HOST_QUALIFICATION.md` `4ee7de26…31bc`, `TRAFFIC_OBSERVATION_PLAN.md` `49f028bc…b125`, `QUALIFICATION_DOSSIER.md` `83101523…50d1`, `lhq.traffic-observation.schema.json` `f0886d5f…1f89`, its invalid examples `4d549b5f…a3a2`, `lhq.dossier-manifest.schema.json` `88cd9948…7e88`. The other example files and the CIR schema are unchanged.
+- DEL-09-05: `DECISION_ATTRIBUTION_CASE.md` `bf0ddb6a…8d62`, `prototype/fw04_check.py` `e57359d3…29b9`.
+- DEL-09-11: `READER_METHOD.md` `7446d056…c343`, `prototype/rrm_compare.py` `d445740e…a8d8`, `prototype/run_standing_check.py` `6ff45447…13d6`, `fixtures/judgments.independent.RR-E.json` `1b2952bf…ac24`, `fixtures/judgments.bad2.json` `c22e0ab1…eb99`, `fixtures/IS-FX-DP1-3.input-set.json` `18b9e49b…c17f`, `fixtures/account.good.IS-FX-DP1-3.json` `f977804d…b01`, `fixtures/account.rre-shape.IS-FX-DP1-3.json` `0aece549…d7a`. The schemas are unchanged.
+
+**Checks.**
+- Every pin in the five Design files matches a current file, or the committed bytes named for ACT, RS and EXEC in LHQ.
+- All DEL-09-07 schemas: valid examples validate and invalid examples are rejected, under `jsonschema` and DEL-01-01's subset validator.
+- The DEL-09-11 input sets and accounts validate.
+
+## RR-F and RV's two hardenings (2026-10-03)
+
+| Item | Reply | Where |
+|---|---|---|
+| RR-F as a second independent case | Done. `E/RR-F/account.json` (`8188caba…92c0`) is kept byte-identical as `fixtures/account.independent.RR-F.json`. RR-F's `SUPPLIED.sha256` verifies against `fixtures/IS-FX-DP1-3-input/`. On that input it holds 9/9 with nothing referred, and it is SC-1's second independent case | RRM §8; `run_standing_check.py` |
+| Last-segment rule | Hardened. A namespaced id's last segment is admitted only when it is distinctive: unique, not contained in any identifier of another package, and containing none of them nor another package's segment. Identifiers now match only as whole identifiers (`-`, `_` and `:` continue an identifier), so `pkg:t:PKG-1` is not found inside `pkg:t:PKG-1-b`. A new SC-2 case covers overlapping tails (PKG-1 / PKG-1-b admit no short form; PKG-1 / PKG-2 do) | `rrm_compare.py` `package_identifiers`, `mentions`; RRM §4 |
+| `calibration_check` binding | Bound. The traffic schema requires `calibration_setup` (declared test endpoints and the marked calibration interval) and keeps calibration contacts in the subject class. New rule CB-1 (TOP §7): a tagged contact is calibration only if its destination is a declared endpoint and its times lie within the interval. Otherwise it is mis-tagged and compared as a run contact. The new `Design/prototype/top_check.py` applies it: the valid example passes with 4 of 5 contacts compared, and two schema-valid violation examples (a run contact tagged as calibration; an endpoint contact outside the interval) are both reported. A schema-invalid example (no `calibration_setup`) is added | TOP §5, §7; traffic schema; `lhq.traffic-observation.cb1-violations.examples.json` |
+| Supplier drift found by the pin check | RS changed after the checkpoint commit: §7 L-0 now states A16 supersession (R23-25), which R-6 relies on. DAC and RRM adopt the current RS, `2e7afb1b…30ff`, and FW-04 reruns 22/22 on it. EXP's protocol changed only to close U-EXP-1. DAC, RRM and DOS keep `fc5b8230…`, the bytes committed at `09ca67d094` (checked with `git show`) | DAC and RRM headers |
+
+**Checks.**
+- Standing check: **19 cases, 0 unexpected**. That includes RR-E (with its bound judgment), RR-F, the overlap case and the definition case.
+- FW-04: 22/22 on FX-DP1 `9501ef81…`.
+- DEL-09-07 schemas: all three pass `check_schema`. Valid examples validate and invalid examples are rejected, under both `jsonschema` and DEL-01-01's subset validator. The CB-1 violation examples are schema-valid, and `top_check.py` reports both.
+- Every pin in the five Design files matches a current file, or committed bytes named in the file.
+
+**Files now (sha256).**
+- DEL-09-07: `TRAFFIC_OBSERVATION_PLAN.md` `a4cd945f…0189`; `lhq.traffic-observation.schema.json` `25afd32d…ba01`; its valid examples `d17ed0b0…c43a`, invalid examples `829bc8d6…2815`, CB-1 violations `419d329d…651c`; `prototype/top_check.py` `c767c3fa…b650`. LHQ, DOS, the CIR and the dossier schemas are unchanged.
+- DEL-09-05: `DECISION_ATTRIBUTION_CASE.md` `77991d61…1521` (RS re-pin only); `fw04_check.py` unchanged.
+- DEL-09-11: `READER_METHOD.md` `3a4a1462…7673`; `prototype/rrm_compare.py` `48630745…57be8`; `prototype/run_standing_check.py` `8eb1bd19…3b46`; `fixtures/account.independent.RR-F.json` `8188caba…92c0`.
+
+**FV-4a (coordinator).** No current DEL-09-05 code reads DEL-06-02's waiting rows: FW-04 reads only decision records. So DAC §6.1 now states rule **RW-1** for the V4-EXM-13 joined witness. Wherever DEL-09-05 reads a waiting row, it treats both *ready* and *ready (qualified)* (and `readinessQualified`) as ready. It keeps the qualifier and its first cause in its observations and result records, never reports a qualified row as bare *ready*, and names the expected label in any expected rebuilt state. The rule cites DEL-06-02 `FLEET_VIEWS.md` (FV-v0.1, `15e25a24…1b85`). `DECISION_ATTRIBUTION_CASE.md` is now `1fc4fd272c4f155c04f6367fb2e2562071536c78dea579dd1cfedbb889d5756c`.
+
+**Time form (RV note).**
+- TOP §6 states one ISO-8601 UTC form, `YYYY-MM-DDThh:mm:ss[.fraction]Z`. The traffic schema enforces it with a pattern on every time field: window, calibration interval, contacts, annex entries and privilege grant. A new invalid example is rejected under both validators.
+- `top_check.py` now parses times as instants rather than comparing strings, and refuses a time without an offset.
+- Rerun: the valid example is OK (4 of 5 contacts compared). Both CB-1 violation examples are reported mis-tagged; both remain schema-valid.
+
+| File | sha256 |
+|---|---|
+| `prototype/top_check.py` | `cf128073437772b3f14f2d7f5c42b2043087f19a1f4a9b82ba487a839b135139` |
+| `lhq.traffic-observation.schema.json` | `b7401e1f1e0e1b010bba2c2ac3c3c32a0f281db0e10a40ea19ef8a9bea4eab95` |
+| invalid examples | `0a651f0f5e97a8d1f5fbb629b15b108dbc72054d211b435e27f9812e681e0fe0` |
+| `TRAFFIC_OBSERVATION_PLAN.md` | `5d147be4c0b441b34017933c84a195b905c24f01d2764e4fc669e36aef6d0324` |

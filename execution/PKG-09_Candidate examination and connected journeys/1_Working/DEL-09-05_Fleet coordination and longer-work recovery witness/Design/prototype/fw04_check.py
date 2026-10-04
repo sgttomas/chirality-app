@@ -37,13 +37,35 @@ def packages(records):
 
 PERSON_RECORDER_ROLES = {'App interface (capturing surface)', 'App writer', 'host facility'}
 
+def agent_identities(records):
+    """RV-EP EP-R2: RS's decisionActor ($defs/person) has no 'kind'. An agent actor shows up as an
+    identity the run knows as an agent's: every requester of an act_request whose kind is 'agent'."""
+    return {r['body']['requester']['identity'] for r in records
+            if r.get('kind') == 'act_request' and r.get('body', {}).get('requester', {}).get('kind') == 'agent'}
+
+def actor_names(actor):
+    return {v for k, v in actor.items() if k in ('displayName', 'osAccount', 'codexAccount') and isinstance(v, str)}
+
 def decision_for(pkg, records, fx, captures):
-    """FW rules R-1…R-6 (DAC §4.3). Returns (decision record or None, list of (record id, reason not counted))."""
+    """FW rules R-1…R-6 (DAC §3). Returns (current decision or None, not-counted list, counted history)."""
     body = pkg['body']; alts = {a['id'] for a in body['alternatives']}
-    counted, not_counted = None, []
+    agents = agent_identities(records)
+    # R-6 (R23-25, O-A): a correction (entry-level `corrects`, RS OF-5/W-3) is not a new decision; it takes
+    # the place of the entry it corrects, and the latest correction is used. A later A16 that is not a
+    # correction is a new decision and supersedes the earlier for current standing; both stay listed.
+    corrected_by = {}
     for r in records:
-        if r.get('kind') != 'human_act':
+        if r.get('corrects'):
+            corrected_by[r['corrects']] = r
+    def current_version(r):
+        while r.get('recordId') in corrected_by:
+            r = corrected_by[r['recordId']]
+        return r
+    history, not_counted = [], []
+    for r0 in records:
+        if r0.get('kind') != 'human_act' or r0.get('corrects'):
             continue
+        r = current_version(r0)
         b = r.get('body', {}); rel = b.get('relations', {})
         if rel.get('requestRef') != pkg['recordId']:
             continue
@@ -51,9 +73,11 @@ def decision_for(pkg, records, fx, captures):
         if b.get('actKind') != body.get('actKind'):
             not_counted.append((rid, 'R-2 act of another kind than the package names')); continue
         actor = b.get('decisionActor') or {}
-        if not actor.get('displayName') or actor.get('kind') == 'agent':
-            not_counted.append((rid, 'R-3 no person as decision actor')); continue
-        if r.get('recorder', {}).get('role') not in PERSON_RECORDER_ROLES or r.get('recorder', {}).get('identity') == actor.get('displayName'):
+        names = actor_names(actor)
+        if not actor.get('displayName') or names & agents or names & {body['requester']['identity']}:
+            not_counted.append((rid, 'R-3 decision actor is an agent of the run or the requester, not a person')); continue
+        rec = r.get('recorder', {})
+        if rec.get('role') not in PERSON_RECORDER_ROLES or rec.get('identity') in names:
             not_counted.append((rid, 'R-3 recorder not distinct from actor')); continue
         if body.get('actKind') == 'A16' and rel.get('alternativeChosen') not in alts:
             not_counted.append((rid, 'R-4 alternative not named by the package')); continue
@@ -61,15 +85,15 @@ def decision_for(pkg, records, fx, captures):
         cap = captures.get(caps[0]['ref']) if caps else None
         if cap is None:
             not_counted.append((rid, 'R-5 no resolvable capture evidence')); continue
-        agree = (cap.get('requestRef') == pkg['recordId'] and cap.get('recordId') == rid
+        agree = (cap.get('requestRef') == pkg['recordId'] and cap.get('recordId') in (rid, r0.get('recordId'))
                  and cap.get('actKind') == b.get('actKind')
                  and cap.get('alternativeChosen') == rel.get('alternativeChosen')
                  and cap.get('actor', {}).get('displayName') == actor.get('displayName')
                  and cap.get('boundContent') == b.get('boundContent'))
         if not agree:
             not_counted.append((rid, 'R-5 capture evidence disagrees with the record')); continue
-        counted = r  # R-6: the latest in written order is shown
-    return counted, not_counted
+        history.append(r)
+    return (history[-1] if history else None), not_counted, history
 
 def lapse(pkg, decision, fx):
     if decision is None:
@@ -84,7 +108,7 @@ def lapse(pkg, decision, fx):
 def derive(records, fx, captures):
     out = {}
     for p in packages(records):
-        d, nc = decision_for(p, records, fx, captures)
+        d, nc, _ = decision_for(p, records, fx, captures)
         out[p['body']['evidence']['ref']] = {
             'state': 'decided' if d else 'pending',
             'alternative': d['body']['relations'].get('alternativeChosen') if d else None,
@@ -98,6 +122,8 @@ def main():
     ap.add_argument('--fixture', required=True); ap.add_argument('--observation', required=True)
     ap.add_argument('--exp-schema', required=True); ap.add_argument('--criterion', required=True)
     ap.add_argument('--out', required=True)
+    ap.add_argument('--rs-design', required=True, help="DEL-04-03's Design folder (RS_RECORD.schema.json and prototype/minischema.py, read-only)")
+    ap.add_argument('--as-design', required=True, help="DEL-04-02's Design folder (AS_SETTINGS_IN.schema.json, which RS references)")
     a = ap.parse_args()
     fx = a.fixture; os.makedirs(a.out, exist_ok=True)
     results = []  # (part, expectation, held, note)
@@ -116,15 +142,29 @@ def main():
     obs = json.load(open(a.observation))
     view = derive(records, fx, captures)
 
-    # P04-A package exactness (REQ-001; V4-PM-04)
+    # RS validation of the fixture's records, and of every record this check constructs (RV-EP EP-R2)
+    sys.path.insert(0, os.path.join(a.rs_design, 'prototype'))
+    from minischema import Registry, validate as ms_validate
+    reg = Registry(); rs_schema = reg.by_id[reg.load(os.path.join(a.rs_design, 'RS_RECORD.schema.json'))]
+    reg.load(os.path.join(a.as_design, 'AS_SETTINGS_IN.schema.json'))
+    def rs_errors(rec):
+        return ms_validate(rec, rs_schema, reg)
+    bad_fx = [(r['recordId'], rs_errors(r)[:1]) for r in records if rs_errors(r)]
+    expect('setup', 'every fixture record is valid against RS (with its CE-4 and AS references)', not bad_fx, str(bad_fx)[:200])
+
+    # P04-A package exactness (REQ-001; V4-PM-04). The reserving basis is read from the package file's
+    # own `reservedBy` element (R23-24 item 1; RV-EP EP-R4), through the file the request cites.
     for p in packages(records):
         b = p['body']; ids = [x['id'] for x in b['alternatives']]
+        f = json.load(open(os.path.join(fx, b['evidence']['ref'])))
+        basis = f.get('reservedBy') or []
         ok = (b.get('actKind') and b.get('subject') and b.get('purpose') and b.get('scope') and len(ids) >= 2
               and len(set(ids)) == len(ids) and all(c['alternative'] in ids for c in b['consequences'])
               and set(ids) <= {c['alternative'] for c in b['consequences']}
-              and p.get('body', {}).get('requester', {}).get('kind') == 'agent'
-              and 'reserved to the person by' in b.get('purpose', ''))
-        expect('P04-A', 'package %s names the exact act, subject, purpose, scope, two or more alternatives, a consequence for each, its requester and the basis that reserves it' % p['recordId'], ok)
+              and b.get('requester', {}).get('kind') == 'agent'
+              and len(basis) >= 1 and all(x.get('ref') and x.get('statement') for x in basis)
+              and [x['id'] for x in f.get('alternatives', [])] == ids)
+        expect('P04-A', 'package %s names the exact act, subject, purpose, scope, two or more alternatives, a consequence for each and its requester; its file names the basis that reserves it (reservedBy) and the same alternatives' % p['recordId'], ok)
 
     # P04-B faithful positive record vs observation
     for o in obs['observations']:
@@ -140,26 +180,52 @@ def main():
     expect('P04-C', "an agent message claiming a decision does not decide PKG-2", 'chose' in msg and view['project/decisions/PKG-2.json']['state'] == 'pending')
     pkg1 = [p for p in packages(records) if p['body']['evidence']['ref'] == 'project/decisions/PKG-1.json'][0]
     act = [r for r in records if r.get('kind') == 'human_act'][0]
-    def variant(mutate, extra=None):
+    def variant(mutate, extra=None, cap_mutate=None):
         rs = copy.deepcopy([r for r in records if r is not act]); x = copy.deepcopy(act); mutate(x)
         rs.append(x)
         if extra: rs.extend(extra)
-        d, nc = decision_for(pkg1, rs, fx, captures)
-        return d, nc
-    d, nc = variant(lambda x: x['body'].__setitem__('decisionActor', {'kind': 'agent', 'displayName': 'thread:fx-u1-manager'}))
-    expect('P04-C', 'N-1 an act whose actor is the agent decides nothing', d is None, nc[0][1] if nc else '')
-    d, nc = variant(lambda x: x['body'].__setitem__('captureEvidence', []))
-    expect('P04-C', 'N-2 a record without resolvable capture evidence decides nothing', d is None, nc[0][1] if nc else '')
-    d, nc = variant(lambda x: x['body'].__setitem__('actKind', 'A5'))
+        caps = copy.deepcopy(captures)
+        if cap_mutate: cap_mutate(caps)
+        errs = rs_errors(x)
+        d, nc, _ = decision_for(pkg1, rs, fx, caps)
+        return d, nc, errs
+    agent_id = pkg1['body']['requester']['identity']
+    def agent_actor(x):
+        x['body']['decisionActor'] = {'displayName': agent_id, 'identityVerified': False}
+    def agent_capture(caps):
+        for c in caps.values():
+            if c.get('requestRef') == pkg1['recordId']:
+                c['actor'] = {'displayName': agent_id, 'identityVerified': False}
+    d, nc, errs = variant(agent_actor, cap_mutate=agent_capture)
+    expect('P04-C', "N-1 an RS-valid act whose actor is the requesting agent's own identity, with agreeing capture evidence, decides nothing", not errs and d is None, (nc[0][1] if nc else '') + (' RS: %s' % errs[:1] if errs else ''))
+    d, nc, errs = variant(lambda x: x['body'].__setitem__('captureEvidence', []))
+    expect('P04-C', 'N-2 a record without resolvable capture evidence decides nothing', d is None, (nc[0][1] if nc else '') + (' (RS refuses this record too)' if errs else ''))
+    d, nc, errs = variant(lambda x: x['body'].__setitem__('actKind', 'A5'))
     expect('P04-C', 'N-3 an act of another kind citing the package decides nothing', d is None, nc[0][1] if nc else '')
-    d, nc = variant(lambda x: x['body']['relations'].__setitem__('alternativeChosen', 'ALT-9'))
-    expect('P04-C', 'N-4 an alternative the package does not name decides nothing', d is None, nc[0][1] if nc else '')
+    d, nc, errs = variant(lambda x: x['body']['relations'].__setitem__('alternativeChosen', 'ALT-9'))
+    expect('P04-C', 'N-4 an alternative the package does not name decides nothing', not errs and d is None, (nc[0][1] if nc else '') + (' RS: %s' % errs[:1] if errs else ''))
+    # N-5's entries are non-act events; they are stand-ins whose only relevant property is that they are not
+    # a human_act (R-1), so they are not RS-validated.
     rs = [r for r in records if r is not act] + [
         {'recordId': 'syn:op-1', 'kind': 'operation_entry', 'body': {'result': 'success', 'relations': {'requestRef': pkg1['recordId']}}},
         {'recordId': 'syn:close-1', 'kind': 'request_closed', 'body': {'cause': 'timeout', 'relations': {'requestRef': pkg1['recordId']}}},
         {'recordId': 'syn:ret-1', 'kind': 'return_received', 'body': {'relations': {'requestRef': pkg1['recordId']}}}]
-    d, _ = decision_for(pkg1, rs, fx, captures)
+    d, _, _ = decision_for(pkg1, rs, fx, captures)
     expect('P04-C', 'N-5 tool success, a timeout, a return arriving and silence decide nothing', d is None)
+
+    # R-6 (R23-25, O-A): a later A16 supersedes for current standing; a correction is not a new decision.
+    later = copy.deepcopy(act); later['recordId'] = 'rec:app:coord:0099'; later['seq'] = 99; later['writtenAt'] = 'w099'
+    later['body']['relations']['alternativeChosen'] = 'ALT-1'
+    later['body']['captureEvidence'] = [{'kind': 'capture evidence', 'ref': 'cap:later', 'resolutionAtWrite': 'resolved'}]
+    caps2 = copy.deepcopy(captures); c0 = [c for c in caps2.values() if c.get('requestRef') == pkg1['recordId']][0]
+    c1 = copy.deepcopy(c0); c1.update({'captureId': 'cap:later', 'recordId': 'rec:app:coord:0099', 'alternativeChosen': 'ALT-1'}); caps2['cap:later'] = c1
+    d, _, hist = decision_for(pkg1, records + [later], fx, caps2)
+    expect('P04-B', 'R-6: ' + 'a later A16 on the same package supersedes for current standing (ALT-1), and the earlier decision stays listed', not rs_errors(later) and d and d['recordId'] == 'rec:app:coord:0099' and len(hist) == 2)
+    corr = copy.deepcopy(act); corr['recordId'] = 'rec:app:coord:0098'; corr['seq'] = 98; corr['writtenAt'] = 'w098'
+    corr['corrects'] = act['recordId']; corr['correctionReason'] = 'scope text mis-recorded (invented)'
+    corr['body']['scope'] = corr['body']['scope'] + ' — corrected'
+    d, _, hist = decision_for(pkg1, records + [corr], fx, captures)
+    expect('P04-B', 'R-6: ' + 'a correction (corrects, with reason) is not a new decision: one decision, shown in its corrected form', not rs_errors(corr) and d and d['recordId'] == 'rec:app:coord:0098' and len(hist) == 1, str(rs_errors(corr)[:1]))
 
     # P04-D lapse: the package file edited after the decision (on a scratch copy)
     import shutil
@@ -168,11 +234,13 @@ def main():
         f.write('\n')
     expect('P04-D', 'the decision shows lapsed after its package changes, and is still listed', lapse(pkg1, decision_for(pkg1, records, scratch, captures)[0], scratch) == 'lapsed')
 
-    # P04-E other acts keep their own standing, no invented sequence
-    other = {'recordId': 'syn:a4-1', 'kind': 'human_act', 'recorder': {'role': 'App interface (capturing surface)'},
-             'body': {'actKind': 'A4', 'decisionActor': {'displayName': 'Engineer A'}, 'relations': {}}}
-    d, _ = decision_for(pkg1, [other] + records, fx, captures)
-    expect('P04-E', 'an unrelated A4 neither decides the package nor is required before the decision', d is not None and d['recordId'] == act['recordId'])
+    # P04-E other acts keep their own standing, no invented sequence: an RS-valid A4 by the person on another
+    # App file, written before the decision.
+    other = copy.deepcopy(act); other['recordId'] = 'rec:app:coord:0000'; other['seq'] = 1; other['writtenAt'] = 'w000'
+    other['body']['actKind'] = 'A4'; other['body']['boundSubject'] = ['App file reports/stage-1.md (invented)']
+    other['body']['relations'] = {}
+    d, _, _ = decision_for(pkg1, [other] + records, fx, captures)
+    expect('P04-E', 'an unrelated RS-valid A4 neither decides the package nor is required before the decision', not rs_errors(other) and d is not None and d['recordId'] == act['recordId'], str(rs_errors(other)[:1]))
 
     after = {rel: sha256_file(os.path.join(fx, rel)) for rel in before}
     expect('setup', 'the fixture is unchanged after the check', after == before)

@@ -14,7 +14,7 @@ Exit 0 when every verdict is as expected.
 import argparse, copy, json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from rrm_compare import compare, bind_judgments
+from rrm_compare import compare, bind_judgments, package_identifiers, mentions
 import jsonschema
 
 F = os.path.join(HERE, 'fixtures')
@@ -94,6 +94,31 @@ def main():
     exp = {'failed': ['RC-5'], 'referred': ['RC-9']}
     ok = got == exp; bad += not ok; corpus.append(None)
     print(('AS EXPECTED ' if ok else 'UNEXPECTED  ') + 'SC-2 a decision claim resting only on a definition item: ' + json.dumps(got) + ('' if ok else ' expected ' + json.dumps(exp)))
+    # SC-3 on the R23-24 refreeze: input set IS-FX-DP1-3 (namespaced packageId; the subject rule's last-segment form).
+    ism3p = os.path.join(F, 'IS-FX-DP1-3.input-set.json'); root3 = os.path.join(F, 'IS-FX-DP1-3-input')
+    for name, fn, exp in [('SC-3 constructed good on IS-FX-DP1-3', 'account.good.IS-FX-DP1-3.json', {'failed': [], 'referred': []}),
+                          ('SC-3 RR-E-shaped account on IS-FX-DP1-3 ("PKG-1 …" subjects; no bound judgment)', 'account.rre-shape.IS-FX-DP1-3.json', {'failed': [], 'referred': ['RC-9']})]:
+        acc = load(fn)
+        res = compare(root3, json.load(open(ism3p)), acc, ism3p, {})
+        got = {'failed': sorted(c[0] for c in res if c[2] is False), 'referred': sorted(c[0] for c in res if c[2] is None)}
+        ok = got == exp; bad += not ok; corpus.append(None)
+        print(('AS EXPECTED ' if ok else 'UNEXPECTED  ') + name + ': ' + json.dumps(got) + ('' if ok else ' expected ' + json.dumps(exp)))
+    # SC-1 (second independent reader): RR-F's account on IS-FX-DP1-3, exactly the files it was given.
+    acc = load('account.independent.RR-F.json')
+    res = compare(root3, json.load(open(ism3p)), acc, ism3p, {})
+    got = {'failed': sorted(c[0] for c in res if c[2] is False), 'referred': sorted(c[0] for c in res if c[2] is None)}
+    exp = {'failed': [], 'referred': []}
+    ok = got == exp; bad += not ok; corpus.append(None)
+    print(('AS EXPECTED ' if ok else 'UNEXPECTED  ') + 'SC-1 independent RR-F account on IS-FX-DP1-3 (no judgment needed): ' + json.dumps(got) + ('' if ok else ' expected ' + json.dumps(exp)))
+    # SC-2 overlapping tails (RV hardening): PKG-1 and PKG-1-b admit no short form; distinct tails do.
+    ov = package_identifiers({'a.json': ('pkg:t:PKG-1', 'rec:1'), 'b.json': ('pkg:t:PKG-1-b', 'rec:2')})
+    ds = package_identifiers({'a.json': ('pkg:t:PKG-1', 'rec:1'), 'b.json': ('pkg:t:PKG-2', 'rec:2')})
+    ok = ('PKG-1' not in ov['a.json'] and 'PKG-1-b' not in ov['b.json'] and 'pkg:t:PKG-1' in ov['a.json']
+          and 'PKG-1' in ds['a.json'] and 'PKG-2' in ds['b.json']
+          and not mentions('pkg:t:PKG-1-b decision', 'pkg:t:PKG-1') and mentions('pkg:t:PKG-1-b decision', 'pkg:t:PKG-1-b')
+          and mentions('PKG-1 decision.', 'PKG-1') and not mentions('PKG-1-b decision', 'PKG-1'))
+    bad += not ok; corpus.append(None)
+    print(('AS EXPECTED ' if ok else 'UNEXPECTED  ') + 'SC-2 overlapping tails PKG-1 / PKG-1-b admit no short form, and the full id pkg:t:PKG-1 is not found inside pkg:t:PKG-1-b; PKG-1 / PKG-2 admit their tails: ' + json.dumps({'overlap': ov, 'distinct': ds}))
     print('%d cases, %d unexpected' % (len(corpus), bad))
     sys.exit(1 if bad else 0)
 

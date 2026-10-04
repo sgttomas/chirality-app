@@ -131,7 +131,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -267,7 +277,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -401,7 +421,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -537,7 +567,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -672,7 +712,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -818,7 +868,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -964,7 +1024,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -1107,7 +1177,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -1252,7 +1332,17 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
-      ]
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   },
   {
@@ -1398,7 +1488,347 @@
           "vocabulary": "RS-v0.9 R11",
           "detail": "example-mcp is not sandboxed"
         }
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
+    }
+  },
+  {
+    "violates": "CB-1: no declared calibration endpoints and interval",
+    "instance": {
+      "record_kind": "lhq_traffic_observation",
+      "format": "TOP-v0.1",
+      "record_id": "INVALID-no-calibration-setup",
+      "cir_ref": "LHQ-CIR-EXAMPLE",
+      "run_ref": "LHQ-20-EXAMPLE-RUN",
+      "capture": {
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "retained": "examination_machine_only",
+        "tool": {
+          "name": "tcpdump",
+          "version": "4.99.1 (Apple version 158)"
+        },
+        "os": "macOS 26.6.2",
+        "interfaces": "pktap,all",
+        "snap_length": 512,
+        "privilege": {
+          "granted_by": "Engineer A (invented)",
+          "granted_at": "2026-10-03T00:00:00Z",
+          "source": "stated_by_person"
+        }
+      },
+      "calibration": {
+        "OV-1": {
+          "outcome": "held"
+        },
+        "OV-2": {
+          "outcome": "held"
+        },
+        "OV-3": {
+          "outcome": "held"
+        },
+        "OV-4": {
+          "outcome": "held"
+        },
+        "OV-5": {
+          "outcome": "held"
+        },
+        "B-0": {
+          "outcome": "held"
+        }
+      },
+      "window": {
+        "start": "2026-10-03T00:00:01Z",
+        "end": "2026-10-03T00:30:00Z",
+        "drop_count": 0,
+        "complete": true
+      },
+      "subject_processes": [
+        {
+          "pid": 4101,
+          "name": "example-host",
+          "lineage_source": "pktap_metadata",
+          "role": "host"
+        },
+        {
+          "pid": 4120,
+          "name": "example-mcp",
+          "lineage_source": "host_outside_process_record",
+          "role": "outside_process"
+        }
+      ],
+      "contacts": [
+        {
+          "destination_address": "127.0.0.1:18081",
+          "name": "cal-1.test",
+          "name_source": "dns_answer",
+          "process_name": "example-host",
+          "pid": 4101,
+          "attribution": "subject",
+          "first_seen": "2026-10-03T00:00:30Z",
+          "last_seen": "2026-10-03T00:00:31Z",
+          "comparison": "matched_allowed",
+          "record_entry_ref": "R15-cal-1",
+          "allowing_entry": "named entry (calibration)",
+          "calibration_check": "OV-1"
+        },
+        {
+          "destination_address": "127.0.0.1:1234",
+          "name": "localhost",
+          "name_source": "dns_answer",
+          "process_name": "example-host",
+          "pid": 4101,
+          "attribution": "subject",
+          "first_seen": "2026-10-03T00:01:00Z",
+          "last_seen": "2026-10-03T00:29:00Z",
+          "comparison": "matched_allowed",
+          "record_entry_ref": "R15-entry-1",
+          "allowing_entry": "model choice (local)"
+        },
+        {
+          "destination_address": "192.0.2.10:443",
+          "name": "api.example.test",
+          "name_source": "tls_server_name",
+          "process_name": "example-host",
+          "pid": 4101,
+          "attribution": "subject",
+          "first_seen": "2026-10-03T00:10:00Z",
+          "last_seen": "2026-10-03T00:10:01Z",
+          "comparison": "matched_allowed",
+          "record_entry_ref": "R15-entry-2",
+          "allowing_entry": "in-work grant: once"
+        },
+        {
+          "destination_address": "198.51.100.7:443",
+          "name_source": "not_observed",
+          "process_name": "example-network-helper",
+          "pid": 312,
+          "effective_process_name": "example-host",
+          "effective_pid": 4101,
+          "attribution": "system_attributed",
+          "first_seen": "2026-10-03T00:12:00Z",
+          "last_seen": "2026-10-03T00:12:02Z",
+          "comparison": "unmatched_name_not_observed"
+        },
+        {
+          "destination_address": "192.0.2.44:443",
+          "name": "declared.example.test",
+          "name_source": "tls_server_name",
+          "process_name": "example-mcp",
+          "pid": 4120,
+          "attribution": "outside_process_unsandboxed",
+          "first_seen": "2026-10-03T00:15:00Z",
+          "last_seen": "2026-10-03T00:15:01Z",
+          "comparison": "reported_within_limit"
+        }
+      ],
+      "record_without_capture": [],
+      "system_unattributed": [
+        {
+          "kind": "system_process",
+          "process_name": "example-system-daemon",
+          "destination_address": "203.0.113.5:80",
+          "time": "2026-10-03T00:10:00Z",
+          "possibly_caused_by_host": true,
+          "limit": "possibly caused by the host, not attributed",
+          "resolution": "not_host_caused_baseline",
+          "resolution_ref": "B-0 window 2026-10-03T00:00:01Z–00:00:59Z (invented)"
+        }
+      ],
+      "app_codex_set_aside": [],
+      "other_counts": {
+        "processes": 0,
+        "packets": 0
+      },
+      "limits": [
+        {
+          "label": "illustrative example; no capture was made",
+          "vocabulary": "TOP-v0.1"
+        },
+        {
+          "label": "process network not observed",
+          "vocabulary": "RS-v0.9 R11",
+          "detail": "example-mcp is not sandboxed"
+        }
       ]
+    }
+  },
+  {
+    "violates": "TOP §6: a time not in the one ISO-8601 UTC form",
+    "instance": {
+      "record_kind": "lhq_traffic_observation",
+      "format": "TOP-v0.1",
+      "record_id": "INVALID-time-form",
+      "cir_ref": "LHQ-CIR-EXAMPLE",
+      "run_ref": "LHQ-20-EXAMPLE-RUN",
+      "capture": {
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "retained": "examination_machine_only",
+        "tool": {
+          "name": "tcpdump",
+          "version": "4.99.1 (Apple version 158)"
+        },
+        "os": "macOS 26.6.2",
+        "interfaces": "pktap,all",
+        "snap_length": 512,
+        "privilege": {
+          "granted_by": "Engineer A (invented)",
+          "granted_at": "2026-10-03T00:00:00Z",
+          "source": "stated_by_person"
+        }
+      },
+      "calibration": {
+        "OV-1": {
+          "outcome": "held"
+        },
+        "OV-2": {
+          "outcome": "held"
+        },
+        "OV-3": {
+          "outcome": "held"
+        },
+        "OV-4": {
+          "outcome": "held"
+        },
+        "OV-5": {
+          "outcome": "held"
+        },
+        "B-0": {
+          "outcome": "held"
+        }
+      },
+      "window": {
+        "start": "2026-10-03T00:00:01Z",
+        "end": "2026-10-03T00:30:00Z",
+        "drop_count": 0,
+        "complete": true
+      },
+      "subject_processes": [
+        {
+          "pid": 4101,
+          "name": "example-host",
+          "lineage_source": "pktap_metadata",
+          "role": "host"
+        },
+        {
+          "pid": 4120,
+          "name": "example-mcp",
+          "lineage_source": "host_outside_process_record",
+          "role": "outside_process"
+        }
+      ],
+      "contacts": [
+        {
+          "destination_address": "127.0.0.1:18081",
+          "name": "cal-1.test",
+          "name_source": "dns_answer",
+          "process_name": "example-host",
+          "pid": 4101,
+          "attribution": "subject",
+          "first_seen": "2026-10-03 00:00:30+00:00",
+          "last_seen": "2026-10-03T00:00:31Z",
+          "comparison": "matched_allowed",
+          "record_entry_ref": "R15-cal-1",
+          "allowing_entry": "named entry (calibration)",
+          "calibration_check": "OV-1"
+        },
+        {
+          "destination_address": "127.0.0.1:1234",
+          "name": "localhost",
+          "name_source": "dns_answer",
+          "process_name": "example-host",
+          "pid": 4101,
+          "attribution": "subject",
+          "first_seen": "2026-10-03T00:01:00Z",
+          "last_seen": "2026-10-03T00:29:00Z",
+          "comparison": "matched_allowed",
+          "record_entry_ref": "R15-entry-1",
+          "allowing_entry": "model choice (local)"
+        },
+        {
+          "destination_address": "192.0.2.10:443",
+          "name": "api.example.test",
+          "name_source": "tls_server_name",
+          "process_name": "example-host",
+          "pid": 4101,
+          "attribution": "subject",
+          "first_seen": "2026-10-03T00:10:00Z",
+          "last_seen": "2026-10-03T00:10:01Z",
+          "comparison": "matched_allowed",
+          "record_entry_ref": "R15-entry-2",
+          "allowing_entry": "in-work grant: once"
+        },
+        {
+          "destination_address": "198.51.100.7:443",
+          "name_source": "not_observed",
+          "process_name": "example-network-helper",
+          "pid": 312,
+          "effective_process_name": "example-host",
+          "effective_pid": 4101,
+          "attribution": "system_attributed",
+          "first_seen": "2026-10-03T00:12:00Z",
+          "last_seen": "2026-10-03T00:12:02Z",
+          "comparison": "unmatched_name_not_observed"
+        },
+        {
+          "destination_address": "192.0.2.44:443",
+          "name": "declared.example.test",
+          "name_source": "tls_server_name",
+          "process_name": "example-mcp",
+          "pid": 4120,
+          "attribution": "outside_process_unsandboxed",
+          "first_seen": "2026-10-03T00:15:00Z",
+          "last_seen": "2026-10-03T00:15:01Z",
+          "comparison": "reported_within_limit"
+        }
+      ],
+      "record_without_capture": [],
+      "system_unattributed": [
+        {
+          "kind": "system_process",
+          "process_name": "example-system-daemon",
+          "destination_address": "203.0.113.5:80",
+          "time": "2026-10-03T00:10:00Z",
+          "possibly_caused_by_host": true,
+          "limit": "possibly caused by the host, not attributed",
+          "resolution": "not_host_caused_baseline",
+          "resolution_ref": "B-0 window 2026-10-03T00:00:01Z–00:00:59Z (invented)"
+        }
+      ],
+      "app_codex_set_aside": [],
+      "other_counts": {
+        "processes": 0,
+        "packets": 0
+      },
+      "limits": [
+        {
+          "label": "illustrative example; no capture was made",
+          "vocabulary": "TOP-v0.1"
+        },
+        {
+          "label": "process network not observed",
+          "vocabulary": "RS-v0.9 R11",
+          "detail": "example-mcp is not sandboxed"
+        }
+      ],
+      "calibration_setup": {
+        "endpoints": [
+          "127.0.0.1:18081",
+          "127.0.0.1:18082"
+        ],
+        "interval": {
+          "start": "2026-10-03T00:00:20Z",
+          "end": "2026-10-03T00:00:50Z"
+        }
+      }
     }
   }
 ]

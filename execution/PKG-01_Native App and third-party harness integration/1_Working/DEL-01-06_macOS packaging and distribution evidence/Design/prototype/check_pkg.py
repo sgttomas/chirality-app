@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """DEL-01-06 PKG-v0.2 design prototype: checks the two PROPOSED schemas, their
-example sets and the rules PK-R1...PK-R8 a schema cannot express; checks
+example sets and the rules PK-R1...PK-R9 a schema cannot express; checks
 read_tree.py's comparison on small synthetic trees (links, directory links,
 modes) built in a temporary folder under $TMPDIR and removed afterwards.
 With --tree <vendor-tree> it also runs FP-0 of PKG §7 on a published Codex
@@ -68,6 +68,11 @@ def identity_violations(r):
     # PK-R6 every Mach-O of the packaged tree is listed
     if len(c["executables"]) != c["packaged"]["macho_files"] or len({e["path"] for e in c["executables"]}) != len(c["executables"]):
         v.append("PK-R6")
+    # PK-R9 option B is not relied on until FP-1(a), FP-1(b) and FP-3 pass (PKG §3)
+    if opt.startswith("B") and any(r.get("first_package_checks", {}).get(k, {}).get("outcome") != "pass"
+                                   for k in ("fp1a", "fp1b", "fp3")) \
+            and "option B not yet relied on: FP-1/FP-3 not passed" not in r.get("limits", []):
+        v.append("PK-R9")
     # PK-R8 complete only with no missing bundle item
     if r.get("complete") and any(b.get("state") == "missing" for b in r["bundle_contents"]):
         v.append("PK-R8")
@@ -116,7 +121,9 @@ def fp0(tree_dir):
     """FP-0 (PKG §7): the published tree meets option B's preconditions."""
     t = read_tree.read(tree_dir)
     m = [r for r in t if "macho" in r]
-    check(f"FP-0 published tree read ({len(t)} files, {len(m)} Mach-O)", m)
+    nf = sum(1 for r in t if r["kind"] == "file")
+    nd = sum(1 for r in t if r["kind"] == "dir")
+    check(f"FP-0 published tree read ({nf} files, {nd} directories, {len(m)} Mach-O)", m)
     check("FP-0 every Mach-O signed by the supplier team", all(r["macho"]["team"] == SUPPLIER_TEAM for r in m),
           str({r["macho"]["team"] for r in m}))
     check("FP-0 every Mach-O's first Authority is the supplier's Developer ID Application",

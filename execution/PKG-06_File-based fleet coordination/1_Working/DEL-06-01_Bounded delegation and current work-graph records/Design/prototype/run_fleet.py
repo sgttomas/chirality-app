@@ -246,6 +246,32 @@ def main():
     check(t["items"] == [] and any("differs" in n for n in t["notes"]) and any("partial" in l for l in t["limits"]),
           "RF-1 a graph changed after selection is not used; a torn log line is a limit")
 
+    # RV E2-R1 / E2-R2: lost records are reported, not silently dropped.
+    lost = os.path.join(scratch, "FX-FL1-lost")
+    if os.path.exists(lost):
+        shutil.rmtree(lost)
+    shutil.copytree(root, lost)
+    lp = os.path.join(lost, "coordination.fleet.jsonl")
+    with open(lp, encoding="utf-8") as fh:
+        lines = fh.readlines()
+    lines[3] = lines[3][:40] + "\n"          # W2's dispatch_observed, truncated
+    with open(lp, "w", encoding="utf-8") as fh:
+        fh.writelines(lines)
+    lf = Reader(lost, RS_LOG).item_facts(U)
+    check(lf["logIncomplete"] == [4] and lf["orphanChildren"] == ["thr-c2"],
+          "RF-10/RF-12 a truncated dispatch line is reported as unread, and its child's later observations as orphans")
+    rs_torn = os.path.join(scratch, "rs-torn.jsonl")
+    with open(RS_LOG, encoding="utf-8") as fh:
+        rl = fh.readlines()
+    rl[2] = rl[2][:40] + "\n"                 # the A16 on PKG-1, truncated
+    with open(rs_torn, "w", encoding="utf-8") as fh:
+        fh.writelines(rl)
+    rf = Reader(root, rs_torn)
+    tf = {f["itemId"]: f for f in rf.item_facts(U)["items"]}
+    check(any("RS records line 3" in l for l in rf.limits) and tf["W4"]["needs"][0]["state"] == "unknown"
+          and tf["W5"]["needs"][0]["state"] == "unknown",
+          "RF-11 (E2-R2) a torn RS line is a limit, not a crash; decision needs it could hold are unknown")
+
     print("\n== invalid records (schema) ==")
     disp = next(e for e in rd.log if e["kind"] == "dispatch_observed")
     inv = []

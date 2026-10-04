@@ -227,3 +227,106 @@ Scratch probes, against the prototype's own validator and rules:
 - 0.158.0's other Mach-O files (pruned, as O-B says).
 - The terms-record example contents beyond the prototype run.
 - DEL-09-01 EXP-v0.2 itself. RV confirmed it READY (`DISPATCH.md`); I checked only the elements PKG uses.
+
+## Repair confirmation (PKG-v0.2, 2026-10-03)
+
+### Verdict: **READY** — repairs confirmed
+
+All of PKG-R1…PKG-R11 are adopted in the returned files. I raise one new MINOR (PKG-R12) and two NOTEs (PKG-R13, PKG-R14). There is no BLOCKING or MAJOR finding.
+
+**What I checked.**
+
+- **Bytes.** All 11 files match O-B.md "Repairs for RV2" (`shasum -a 256`). `PACKAGING_AND_DISTRIBUTION.md` is `44c0ac88…9002`.
+- **Prototype.** `PYTHONDONTWRITEBYTECODE=1 python3 check_pkg.py --tree <VC 0.160.0 vendor dir>` gives **TOTAL 64, FAIL 0**, as reported. `read_tree.py --manifest` gives `327effb9…8d12`, which equals my own computation from round 1. No `__pycache__` was left.
+- **Earlier probes.** I reran my round-1 probes (`$TMPDIR/rv2/probe_pkg.py`) unchanged:
+  - P1 and P2 now fire PK-R6.
+  - P3 is refused. `state: missing` is the form for an absent item.
+  - P4: `signing` now holds `escalation_ref` and `configuration_space_tried`, and option A requires both.
+  - P5: `role_set` is in the enum.
+  - P6 detects the different link target and reports the directory link as `extra`.
+  - P8 detects the stripped mode.
+  - P7's second expression tests a key that the new entry form replaced with `kind`. O-B is right about that, and FP-0 now tests `kind == "symlink"`.
+- **New probes** (`$TMPDIR/rv2/probe_pkg2.py`):
+  - An option-B record whose packaged manifest differs fires PK-R1.
+  - An option-A record with only CS-1 tried fires PK-R7.
+  - The remaining gap is in PKG-R13.
+- **Pins.**
+  - The AAC pin names commit `31d65b0be3`. `git show 31d65b0be3:<AAC>` hashes to `062ce28c…`. That commit is the file's last change before v0.3 and is an ancestor of `HEAD`.
+  - I checked every other 64-hex value by script. They match current files, or the VC-tree values I recomputed in round 1, or `HEAD` for the v0.1 self-reference (`09ca67d094` holds v0.1).
+
+**Per finding.**
+
+| Finding | State | Evidence in v0.2 |
+|---|---|---|
+| PKG-R1 | **Confirmed** | See "PKG-R1" below |
+| PKG-R2 | **Confirmed** | See "PKG-R2" below |
+| PKG-R3 | **Confirmed** | §7.3 classifies every failure by its recorded cause (termination reason, `codesign`/`spctl`, `syspolicyd`/`amfid`), not by which FP check it occurred at. "Cause not determinable" gives `inconclusive`, and B is not relied on for that candidate |
+| PKG-R4 | **Confirmed** | FP-0 checks the first Authority; all 30 Mach-O are "Developer ID Application: OpenAI OpCo, LLC (2DC432GLL2)" in the rerun. `read_tree.py` records directories, links with their targets, and modes. The new TREE P6/P7/P8 cases pass |
+| PKG-R5 | **Confirmed** | PK-R6, PK-R7 and PK-R8 are added. `role_set` is added and P-3 lists `roles.json`. §5.2 defines the manifest (byte order, final newline) and `read_tree.py --manifest` computes it. §5.3 states the placement |
+| PKG-R6 | **Confirmed** | I-6 is now `not-run` with the package as missing input. FP-0, FP-1(a/b) and FP-3 are `first_package_checks` in the identity record, each with outcome, evidence and cause (cause required for `fail`/`blocked`). FP-2, FP-4, FP-5 and the witness are EXP records citing the identity record |
+| PKG-R7 | **Confirmed** | I-4 requires the same team and bundle identifier across releases. G-8 is labelled general knowledge. SIGN-3 names the possible key-store entitlement and profile, and U-PKG-8 tracks it |
+| PKG-R8 | **Confirmed** | U-PKG-3 is restated as "Decided by rule (R23-22)". FP-0 runs at the qualification pin |
+| PKG-R9 | **Confirmed** | I-3 is "a build-time input to a package candidate". An absent item makes that candidate incomplete; the file says this "is a property of the candidate, not a production dependency", with no row in either direction |
+| PKG-R10 | **Confirmed** | SIGN-1 cites R23-26. U-PKG-6 keeps OI-011's SWB part open |
+| PKG-R11 | **Confirmed** | SIGN-1 reason 2 now reads "an inference in §2.2, not a recorded v3 failure" |
+
+**PKG-R1 (confirmed).**
+
+- §8 now opens with the quarantine requirement: "It starts as a person receives the App (G-7)", by a transfer that sets `com.apple.quarantine`, or with the attribute set and that recorded.
+- The steps record it:
+  - W-0 records `xattr -l` of the installer;
+  - W-2 records `xattr -l` of the installed `.app` and checks that the first launch was "assessed and not refused";
+  - W-5 records the first `codex` child launched "from inside the quarantined App", with its cdhash.
+- "If quarantine cannot be produced, the witness is `blocked` …, never `pass`".
+- FP-2 and FP-4 run "From a quarantined installer". The schema requires quarantine evidence whenever Gatekeeper is assessed.
+- Gatekeeper's behaviour stays labelled as general knowledge. G-7 sits under §2.3 "(general knowledge; confirmed or refuted by §7)", is marked "*(Expected …)*", and is listed in U-PKG-1.
+
+**PKG-R2 (confirmed).**
+
+- **Signing sequence.**
+  - PS-3/SP-1 runs `tauri build` with bundler signing disabled (CF-2).
+  - PS-5/SP-2 signs P-0 and then the `.app` with `codesign --options runtime --timestamp`, "**without `--deep`**" (CF-4).
+  - PS-7/SP-3 builds the installer and submits it with `notarytool --keychain-profile`. Only the profile's name is configured, and no credential enters a file or record (CF-7).
+  - PS-8/SP-4 staples and runs `spctl`.
+- **The double FP-1 comparison.**
+  - FP-1(a) runs after SP-1 and settles G-5 for CF-2/CF-3.
+  - FP-1(b) runs after SP-2 and settles that CF-4 does not re-sign nested code.
+  - Each compares content, link targets and modes, and reports missing or extra entries. Any change found can therefore be attributed to the bundling step or the signing step.
+- **The bound on "repairable by configuration".** CS-1…CS-4 are, in order:
+  - placement after bundling;
+  - signing strictly without `--deep`;
+  - turning off any option found to re-sign;
+  - the `Contents/Helpers` placement.
+
+  The space is "exhausted when CS-1…CS-4 have each been tried and the failure persists with the same recorded cause". Only then is SIGN-2 proposed to HELP_HUMAN, and PK-R7 requires all four on any option-A record.
+- **Other parts.** P-1 now includes `codex-package.json`, and the eight OUT-001 configuration elements CF-1…CF-8 are listed.
+
+### PKG-R12 — MINOR (new) — §8 records a Gatekeeper refusal as `blocked`
+
+- **Evidence.**
+  - §8: "an attempt stopped at its start (no quarantine, or Gatekeeper refuses to open it) is `blocked` with that cause".
+  - W-2 expects "first launch is assessed and not refused".
+  - FP-4 passes when the "first launch not refused".
+  - R23-20: `blocked` is for a stated precondition or dependency that stopped the case. EXP §3.1: `fail` is "evaluated on the actual subject and not met".
+  - The same clause was in v0.1 and I missed it in round 1. Its effect is larger now that the witness exists to test this exact behaviour.
+- **Consequence.** A Gatekeeper refusal is the observation W-2 and FP-4 test, and §7.3 already treats "Gatekeeper refusing nested code under quarantine" as a failure attributed to signatures. Recording it as `blocked` would show B's main risk as a precondition gap rather than a `fail`. Under EXP-R1 a `fail` outranks `blocked`, so this mislabels the witness rather than producing a false pass.
+- **Repair.**
+  - "No quarantine" stays `blocked`.
+  - "Gatekeeper refuses to open it" becomes `fail` at W-2, classified by §7.3.
+
+### PKG-R13 — NOTE — a `complete` option-B record does not need FP-1 or FP-3 to have passed (PK-R1)
+
+- **Evidence.**
+  - PK-R1 tests only that FP-1(a)/(b) "did not fail". Valid example PKG-EX-01 is `complete: true` with `fp1a`, `fp1b` and `fp3` all `not-run`.
+  - My probe: setting `fp1b: not-run` on a complete B record is schema-valid and fires no rule.
+- **Assessment.**
+  - Manifest equality between the packaged and published trees still covers the files themselves.
+  - §3 says B is not relied on until the first package answers FP-1 and FP-3, but a handed-over record does not show whether that has happened.
+- **Repair (optional).** Either require `pass` for `fp1a`, `fp1b` and `fp3` on a record handed over under I-6 for the first package under B, or add an explicit "B not yet relied on" limit.
+
+### PKG-R14 — NOTE — FP-0's label counts entries, not files
+
+- **Evidence.** `check_pkg.py` now prints "FP-0 published tree read (52 files, 30 Mach-O)". The tree has 42 regular files and 10 directories (`find -type f`, `find -type d`), and §2.1 and the record's `files` say 42.
+- **Repair.** Label it "52 entries (42 files)". This is cosmetic.
+
+**Not checked in this round.** The schema and terms-record changes beyond the probes and the prototype run. No network was used and nothing was built or executed.

@@ -77,12 +77,25 @@ def main():
           "VER-002 W3 waits for W2, with its basis change and a related conversation shown (not a dispatch)")
     check(W["W5"]["category"] == "waiting" and any("person's decision" in c and "rec:app:coord:0002" in c for c in W["W5"]["causes"]),
           "VER-002 W5 waits for the person's decision on PKG-2")
-    check(W["W4"]["category"] == "ready" and any("decision recorded" in c and "A16, ALT-2" in c for c in W["W4"]["causes"]),
+    check(W["W4"]["category"] == "ready (qualified)" and any("decision recorded" in c and "A16, ALT-2" in c for c in W["W4"]["causes"]),
           "VER-002 W4 is ready: its decision is recorded (A16 on PKG-1, ALT-2 shown, not interpreted)")
     check(W["W2"]["category"] == "unknown" and any("observation ended" in c and "outcome unknown" in c for c in W["W2"]["causes"]),
           "VER-002 W2: observation ended at quit; outcome unknown, never 'in progress' or 'done'")
-    check(W["W9"]["category"] == "ready" and W["W6"]["category"] == "done",
+    check(W["W9"]["category"] == "ready (qualified)" and W["W6"]["category"] == "done",
           "VER-002 W9 ready once W6's external result and its input exist; W6 done by its external result")
+    check(W["W9"]["readinessQualified"] and any("thr-cx" in c and "may be unrecorded" in c for c in W["W9"]["causes"])
+          and W["W4"]["readinessQualified"],
+          "VER-002 FV-4a (E2-R3) ready rows say a child without a brief reference (thr-cx) exists; a dispatch may be unrecorded")
+    check(v["queueComplete"], "VER-002 with every log line read and no orphan, the queue is complete")
+    def renders_bare_ready(view):
+        """E2-R4: a row 'renders as bare ready' if its label is 'ready' or its label and first cause carry no qualifier."""
+        bad = []
+        for r in view["waiting"]:
+            if r["readinessQualified"] and (r["category"] == "ready" or "may be unrecorded" not in r["causes"][0]):
+                bad.append(r["item"])
+        return bad
+    check(not renders_bare_ready(v) and all(r["readinessQualified"] == (r["category"] == "ready (qualified)") for r in v["waiting"]),
+          "VER-002 FV-4a (E2-R4) no qualified row renders as bare 'ready': the label says 'ready (qualified)' and the qualifier is the first cause")
     check(all(r["causes"] for r in v["waiting"]), "VER-002 every selected item shows a cause or state; none is blank")
 
     print("\n== VER-005 cross-session reconstruction ==")
@@ -112,6 +125,42 @@ def main():
     check(gone["queue"] == [] and gone["waiting"] == [] and gone["notes"] == ["no current graph selected"],
           "VER-006 with the log missing there is no current graph: the views say so and show no empty-work conclusion")
     check(not any("PEC" in json.dumps(x) for x in (v["queue"], v["waiting"])), "VER-006 no PEC input exists in the views")
+    def lose(name, line_no, rs=False):
+        """RV-E2's probes: truncate an EXISTING record line, so a real record is lost (not an extra torn line)."""
+        root = os.path.join(scratch, name)
+        if os.path.exists(root):
+            shutil.rmtree(root)
+        shutil.copytree(FX_FL1, root)
+        path = os.path.join(root, "coordination.fleet.jsonl")
+        rs_path = RS_LOG
+        if rs:
+            rs_path = os.path.join(root, "rs.jsonl")
+            shutil.copyfile(RS_LOG, rs_path)
+            path = rs_path
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.readlines()
+        lines[line_no - 1] = lines[line_no - 1][:40] + "\n"
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.writelines(lines)
+        return build(root, rs_path)
+
+    p1 = lose("P1-lost-W8-return", 16)
+    P1 = {r["item"]: r for r in p1["waiting"]}
+    check(not p1["queueComplete"] and P1["W8"]["category"] == "unknown"
+          and P1["W8"]["causes"][0].startswith("coordination log incomplete: line(s) [16]"),
+          "VER-006 P1 (E2-R1) W8's return line truncated: the queue is marked incomplete and W8 is unknown, never 'in progress'")
+    check(all(r["category"] in ("unknown", "done") for r in p1["waiting"]) and not any(r["category"].startswith("ready") for r in p1["waiting"]),
+          "VER-006 P1 no item is ready while a log line is unread; done items stay done")
+    p2 = lose("P2-lost-W2-dispatch", 4)
+    P2 = {r["item"]: r for r in p2["waiting"]}
+    check(P2["W2"]["category"] == "unknown" and any("thr-c2" in l and "dispatch record may be missing" in l for l in p2["limits"])
+          and not p2["queueComplete"],
+          "VER-006 P2 (E2-R1) W2's dispatch line truncated: W2 is unknown, never 'ready … no dispatch observed'; the orphaned observation is a limit")
+    p3 = lose("P3-lost-RS-A16", 3, rs=True)
+    P3 = {r["item"]: r for r in p3["waiting"]}
+    check(any("RS records line 3" in l for l in p3["limits"]) and P3["W4"]["category"] == "unknown"
+          and any("were not read" in c for c in P3["W4"]["causes"]),
+          "VER-006 P3 (E2-R2) the A16's RS line truncated: no crash; a limit; W4's decision need is unknown, not outstanding or ready")
 
     ok = all(RESULTS)
     print(f"\nscratch: {scratch}\nRESULT: {'all expectations held' if ok else 'SOME EXPECTATIONS FAILED'} ({sum(RESULTS)}/{len(RESULTS)})")

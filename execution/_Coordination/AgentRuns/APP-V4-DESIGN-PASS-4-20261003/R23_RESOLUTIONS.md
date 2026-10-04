@@ -280,3 +280,47 @@ evidence rules and the owner's earlier decisions already settle them.
      the replay counterpart, which is then required, not optional. If
      neither is possible, the part is `blocked` with its cause (R23-20). It
      never passes vacuously.
+
+## Lifecycle
+
+- **R23-28 Tranche-1 deliverables to IN_PROGRESS. DERIVED** from root
+  SPEC §3 (`INITIALIZED → IN_PROGRESS`: "Human, WORKING_ITEMS (when
+  semantic step is skipped)"). It applies to DEL-06-01, 06-02, 01-06,
+  09-01, 09-02, 09-05, 09-07 and 09-11.
+  1. Design work is actively under way, and HELP_HUMAN is coordinating as
+     the WORKING_ITEMS function under the recorded consultation. The
+     transition was made with `tools/scaffolding/write_status.sh`.
+  2. It is not an owner question (owner direction "Scope of owner
+     questions"). SCA-V4-003 Q-13 had put the earlier six to the owner
+     only because they were moved inside an amendment checkpoint.
+  3. The old `_STATUS.md` hashes appear only in historical input baselines
+     and closed manifests (DAG-001, SCA-V4-001/002/003 closure inputs and
+     initial-setup records). Those are verified at their own commits; a
+     lifecycle file is expected to change after them, as the six SCA-V4-003
+     transitions did.
+
+## On the integration closeout (C1)
+
+- **R23-29 C1's open items. INTEGRATION.**
+  1. **GUIDE and A16.** GUIDE's M5.1 says "Canonical acts A1–A15", which the
+     A16 rows have overtaken. A content edit is needed: GUIDE-v0.7 adds A16
+     wherever its act lists or act-dependent rules require it, rows only.
+     ACT, RS and AAC are then re-pinned, and the GUIDE pin check must end at
+     25/25. Done by C2.
+  2. **ACCESS.** Add the §13 register-table row already ruled in R22-7 (V22
+     m-7; SCA-V4-003 block G-0105-02), then the ScopeOfWork re-pin (R23-5).
+     Done by C2.
+  3. **VERSION_ADVANCE §7.1** stays a dated record of the bytes VC read. C2
+     adds one note line: its rows hash the working bytes at 04:04 UTC; six
+     of them (AAC, ACT, RS, EXP, LHQ, TOP) are held by no commit and cannot
+     be re-verified from git; the current versions are named in the R23
+     rulings.
+  4. **No action, recorded as limits** (workflow §6: no agreed condition
+     requires them):
+     - the 17 re-pinned files' `Dependencies.csv` pins and "Receivers"
+       lines from before SCA-V4-003's register update;
+     - PIN_SPIKE stays on its original ScopeOfWork (a dated observation,
+       R9-10);
+     - DOS's record-set standings omit RRM's `definition` standing (not a
+       conflict);
+     - an optional CA W14 narrative note for DEL-09-06's owner.

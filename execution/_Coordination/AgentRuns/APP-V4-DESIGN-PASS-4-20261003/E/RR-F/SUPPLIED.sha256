@@ -1,0 +1,10 @@
+18b9e49b61398d814e9d4371198d117b76155c46f434901385b22acb6978c17f  ./IS-FX-DP1-3.input-set.json
+9b7d6a0ee4d875e20a664db2396904beedfcb8df83ad856fc6da229f85979951  ./READER_BRIEF.FX-DP1.md
+15ace8c4d6bbdad064630196a6d2bee4e168e323514d7972502c8c133c6304a5  ./aac/cap-decide-PKG-1.json
+83374d6c4cbc90980e1a62d72b552c1e4c9121c4b4d23ea9deca119fdb8006ea  ./aac/offer-PKG-1.json
+bae74df5a2e2e03b656dcf81806970a4dd483ab9244a1145e396a809be892ac9  ./conversation/agent-message.txt
+ad6a148d5971f37646880f784d28dc9e2967602b479d135cca2a23d15f44889f  ./definitions/aac-offer-digest-0.1.md
+2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b  ./project/decisions/PKG-1.json
+5ac1b4fbb9d4676c8263d3b134dc8a5201d5170e2e5cb10426051d63d877dd96  ./project/decisions/PKG-2.json
+3d6da8a510b59de558bf6bb4fd7ca6f9f348b595a5eb00237c30e958add5f05a  ./records/coordination.rs.jsonl
+26d0d2e08e06c8cf74cccd537474e096e17848bf0a3c06b10b0486e29341791e  ./rrm.reconstruction-account.schema.json

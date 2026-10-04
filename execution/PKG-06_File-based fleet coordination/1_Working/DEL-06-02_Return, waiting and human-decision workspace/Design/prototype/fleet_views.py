@@ -107,6 +107,9 @@ def waiting(facts):
             elif f["owner"]["kind"] == "external":
                 category = "waiting"
                 causes.append(f"waits for the external owner {owner_label(f['owner'])}; no result recorded")
+            elif f["brief"] and f["brief"]["state"] != "prepared":
+                category = "unknown"
+                causes.append(f"brief {f['brief']['brief']} named in the graph but not readable; dispatch cannot be established")
             elif f["brief"] and f["brief"]["state"] == "prepared":
                 category = "ready"
                 causes.append("ready: inputs satisfied, brief prepared, no dispatch observed")
@@ -117,8 +120,23 @@ def waiting(facts):
                 causes.append("related conversation: " + ", ".join(f"{r['thread']} ({r['relation']} {r['source']})" for r in f["related"]))
         if f["basisChanged"] and not done:
             causes.append("basis changed since: " + ", ".join(f["basisChanged"]))
+        qualified = False
+        if not done and facts.get("logIncomplete"):
+            # FV-8a (RV E2-R1): an unread log line could be any record of any item; no not-done row keeps a state.
+            causes = [f"coordination log incomplete: line(s) {facts['logIncomplete']} unread; this item's state cannot be "
+                      f"established"] + [f"readable records show: {c}" for c in causes]
+            category = "unknown"
+        unassociated = [c["child"] for c in facts.get("childIndex", []) if c["brief"] is None] + list(facts.get("orphanChildren", []))
+        if category == "ready" and unassociated:
+            # FV-4a (RV E2-R3): a child spawned without a brief reference may be doing this item.
+            # FV-4a (RV E2-R4): the qualifier is in the label and is the first cause, so no display shows a bare "ready".
+            causes.insert(0, f"{len(unassociated)} child(ren) observed without a brief reference or dispatch record "
+                             f"({', '.join(unassociated)}); a dispatch for this item may be unrecorded")
+            category = "ready (qualified)"
+            qualified = True
         rows.append({"item": f["itemId"], "outcome": f["outcome"], "category": category,
-                     "owner": owner_label(f["owner"]), "causes": causes, "sources": sources})
+                     "owner": owner_label(f["owner"]), "causes": causes, "sources": sources,
+                     "readinessQualified": qualified})
     return rows
 
 
@@ -127,5 +145,8 @@ def build(root, rs_records=None):
     facts = reader.item_facts("FX-U1")
     return {"views": "return-review queue and waiting (DEL-06-02; derived, not authority)",
             "graph": facts.get("graph"), "revision": facts.get("revision"),
-            "queue": queue(facts, reader), "waiting": waiting(facts),
+            "queue": queue(facts, reader),
+            # FV-8a: the queue is complete only if every coordination-log line was read and no observation is orphaned.
+            "queueComplete": not facts.get("logIncomplete") and not facts.get("orphanChildren") and "items" in facts and bool(facts["items"]),
+            "waiting": waiting(facts),
             "notes": facts["notes"], "limits": facts["limits"]}
