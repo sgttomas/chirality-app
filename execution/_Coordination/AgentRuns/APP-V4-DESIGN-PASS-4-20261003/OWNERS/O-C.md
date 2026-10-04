@@ -581,3 +581,45 @@ These files are unchanged since LHQ2-R1:
 Any fixture that relies on that example's hand-over to DEL-09-11 should take `DOS-EXAMPLE-INVENTED-POPULATED` instead.
 
 **Frozen.** All DEL-09-07 files listed above are frozen at these hashes for the coordinator to commit and for RV3 to confirm. No git writes and no network.
+
+## Tranche 2: RV3 N8 (Addendum 5): an unchecked DX-3 no longer exits 0
+
+**Change.** Run without `--outcomes`, `prototype/dos_check.py` printed "DX-3 not checked" but exited 0. Its exit status is now:
+
+| Exit | Meaning |
+|---|---|
+| 1 | Any manifest breaks DX-1, DX-2 or DX-3 |
+| 2 | No rule is broken, but DX-3 could not be checked for some manifest (an LHQ-20 outcome was not supplied) |
+| 0 | Every rule was checked and none is broken |
+
+The docstring states this. In DOS §1, the quoted `dos_check` hash and the exit-status sentence are updated, and a changes row is added.
+
+**Rerun.**
+
+| Run | Exit |
+|---|---|
+| Valid examples with `--outcomes` | 0 |
+| Valid examples without `--outcomes` | 2 |
+| Schema-invalid examples with `--outcomes` | 0 |
+| DX violations, with or without `--outcomes` | 1 |
+
+All three DEL-09-07 schemas pass under both validators. Valid examples have 0 errors, invalid examples are rejected, and all violation examples are schema-valid. A grep confirms DOS quotes the new `dos_check` hash and not the old one.
+
+| File (DEL-09-07 `Design/`) | Before | After |
+|---|---|---|
+| `prototype/dos_check.py` | `bf20d8fca2623c6fb1d4036ba4b59074dd32ed8dbb8345e298ce6a98ecfe84b1` | `c845bed87d155ab5f1a047c456d923c48c33e8495f38c0c3f6bfca47f60cdb6e` |
+| `QUALIFICATION_DOSSIER.md` | `8c4f4fa1593a22bdce93ff59c647785b0e81c72627a5aa4b07d253c4f13f6d7d` | `72f7324cf1013b6bf42969ffa6c5c43d5c57c69b05c865f374c648b58ebd9bec` |
+
+**Unchanged.**
+
+| File | Hash |
+|---|---|
+| dossier schema | `88cd9948…` |
+| dossier valid examples | `dbf8463f…` |
+| dossier invalid examples | `571e7ddb…` |
+| `dx-violations` examples | `8a183339…` |
+| `exp-outcomes` examples | `15d9ae2d…` |
+
+All other DEL-09-07 files are as recorded at RR-EUF3.
+
+**Frozen.** No git writes and no network.

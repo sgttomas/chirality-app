@@ -114,3 +114,4 @@ Practice from UC P-E6: a reviewer of a unit that also has a cold reader receives
 | O-C | DOS run-artefact fix + DX-3 (dos_check --outcomes). Committed by path; to RV3. O-F's vendored DOS copies stay pinned to the old example (R23-44); O-F re-pins if it relies on the hand-over |
 | O-E | Froze DEL-10-03 RA-v0.1 (ra_check 31/0, self-test 5/5). All four PKG-10 deliverables now have a frozen unit. F-RA1 (missing mirror rows DEL-04-01/05-01/05-02 → 10-03) → next amendment. ACT §10.3 row request forwarded to O-A. Committed by path; to RV3 |
 | RV3 | RP-v0.3 READY (3 MINOR for O-F's next unit); DA-v0.1 READY (DA1-R1/R2 MINOR); UC-v0.2 READY; EB-v0.4 READY; O-C DX-3 confirmed (N8: 'not checked' exits 0). Routed |
+| O-C | N8 fixed: dos_check exits 2 when DX-3 unchecked. Mechanical; covered by the pre-merge review. Committed by path |

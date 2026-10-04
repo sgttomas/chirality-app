@@ -27,7 +27,7 @@ The dossier is a set of files linked by one **dossier manifest**. Evidence is li
 | Limitations | Every limit from the results and observations, in its owner's vocabulary (RS R11, TOP, EXP) | Kept with the result it limits |
 | Handoffs | §4 to DEL-11-03; §5 to DEL-09-11 | — |
 
-**Cross-reference rules (EUF1-S1; RR-EUF3, R23-49; checked by `prototype/dos_check.py`, sha256 bf20d8fca2623c6fb1d4036ba4b59074dd32ed8dbb8345e298ce6a98ecfe84b1).** A schema cannot compare one part of the manifest with another, or with the EXP records it cites, so these are checked by script:
+**Cross-reference rules (EUF1-S1; RR-EUF3, R23-49; checked by `prototype/dos_check.py`, sha256 c845bed87d155ab5f1a047c456d923c48c33e8495f38c0c3f6bfca47f60cdb6e).** A schema cannot compare one part of the manifest with another, or with the EXP records it cites, so these are checked by script:
 
 - **DX-1** Every receipt named in either hand-over (§4 `receipts`, §5 `receipt_refs`) is listed in the host-evidence index as a `host_receipt`, with the same resolution status at write.
 - **DX-2** When both hand-overs are present, they carry the same receipt set, because both concern the one LHQ-20 journey.
@@ -35,7 +35,7 @@ The dossier is a set of files linked by one **dossier manifest**. Evidence is li
   - there is no DEL-09-11 hand-over, because its required journey, run authors and record set would name a run;
   - the DEL-11-03 hand-over names no acceptance act and no receipt, and does not count as the completed witness.
 
-  The script reads the outcomes from EXP result records passed with `--outcomes`. When an outcome is not supplied, it reports DX-3 as not checked rather than passing it.
+  The script reads the outcomes from EXP result records passed with `--outcomes`. When an outcome is not supplied, it reports DX-3 as not checked rather than passing it. Its exit status is 1 for a broken rule, 2 when DX-3 could not be checked, and 0 only when every rule was checked and none is broken (RV3 N8).
 
 The manifest examples satisfy all three:
 - `DOS-EXAMPLE-INVENTED` (no case run) names no receipt and no run, and has no DEL-09-11 hand-over.
@@ -157,4 +157,5 @@ DEL-09-11 consumes "the actual identified V4-EXM-20 host-run evidence and host r
 | U2-R12 (NOTE, from the confirmation) | The duplicate `operation_binding` value is removed from the schema's `applicability.changed` enum |
 | EUF1-S1 (O-F, via the coordinator; tranche 2) | The example's DEL-09-11 hand-over named RC-1 while the index and the DEL-11-03 hand-over were empty. DOS §1 already required the index to list every cited receipt, but nothing checked it. The not-run example now names no receipt. A second, populated example lists RC-1 (*unresolvable*) in all three places. The new rules DX-1 and DX-2 are checked by `prototype/dos_check.py`, with three violation examples. The schema-invalid examples, derived from the old example, no longer carry the inconsistency, so each fails only for its stated rule |
 | RR-EUF3 (R23-49; tranche 2) | `DOS-EXAMPLE-INVENTED` recorded LHQ-20 as not run, yet its DEL-09-11 hand-over named a journey run, its record set and its run authors. That hand-over is removed, and a limitation says why. New rule DX-3 (a not-run case names no run) is checked by `dos_check.py --outcomes`. Two violation examples and an outcome-stub file are added. The populated example and the schema-invalid examples now cite the run (inconclusive) LHQ-20 result, so their limitation and withheld labels no longer say that no case has run, and each fails only for its stated rule. The schema is unchanged |
+| RV3 N8 (Addendum 5; tranche 2) | Run without `--outcomes`, `dos_check.py` printed "DX-3 not checked" but exited 0. It now exits 2 when DX-3 could not be checked. Exit 1 still means a rule is broken, and 0 means every rule was checked and none is broken |
 

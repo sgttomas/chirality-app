@@ -13,7 +13,8 @@ DX-3  A not-run case names no run (RR-EUF3, R23-49). Only LHQ-20 has hand-overs,
       When an LHQ-20 outcome is not supplied, DX-3 is reported as not checked; it is never passed silently.
 
 Usage: python3 -B dos_check.py [--outcomes <EXP records file>]... <manifest or examples file> [...]
-Exit 0 when no manifest breaks DX-1, DX-2 or DX-3.
+Exit status (RV3 N8): 1 when any manifest breaks DX-1, DX-2 or DX-3; otherwise 2 when DX-3 could not be checked for
+any manifest (an LHQ-20 outcome was not supplied); 0 only when every rule was checked and none is broken.
 """
 import json, sys
 
@@ -59,13 +60,13 @@ def manifests(doc):
     return [x.get('instance', x) for x in doc]
 
 if __name__ == '__main__':
-    bad = False
+    bad = unchecked = False
     args, outcomes = sys.argv[1:], {}
     while args and args[0] == '--outcomes':
         outcomes.update(load_outcomes(args[1])); args = args[2:]
     for path in args:
         for m in manifests(json.load(open(path))):
-            p, notes = problems(m, outcomes); bad |= bool(p)
+            p, notes = problems(m, outcomes); bad |= bool(p); unchecked |= bool(notes)
             print(('FAILS ' if p else 'OK    ') + m.get('dossier_id', '?') + ('' if not p else ' — ' + '; '.join(p))
                   + ('' if not notes else ' [' + '; '.join(notes) + ']'))
-    sys.exit(1 if bad else 0)
+    sys.exit(1 if bad else 2 if unchecked else 0)
