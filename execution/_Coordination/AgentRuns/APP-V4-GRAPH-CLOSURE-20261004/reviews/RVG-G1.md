@@ -175,3 +175,54 @@
 - **G2: READY.** It is usable as the basis for the owner checkpoint and the register work. Add the circularity limit (G2-m1) when it is next touched.
 
 **Counts.** BLOCKING 0, MAJOR 4, MINOR 8 (G1 7, G2 1), NOTE 6 (G1 4, G2 2).
+
+---
+
+## Addendum A — confirmation of G1 r2 (2026-10-04)
+
+- **Subject.** `SURVEY/G1.md` r2, commit `c0a892137a`, sha256 `8afa6093cbd0f09dccc6ef53e1a0c6fb35efbbe17729f5b0ca0407792ffcfc61`.
+- **Read.** §1, §2.2 and §2b in full, §3.1 and §6, with the kinds of all 212 rows parsed from §2 and Appendix A.
+- **Same reviewer, same constraints.** Read-only. My own scripts in `$TMPDIR/rvg/` (`r2.py`, `r2opts.py`).
+
+### A.1 What I confirmed
+
+- **Repair map.** §6 maps every finding of this review to a change, and each mapped change is present in the body.
+- **Kinds as parsed.** Held: I 71, V 5, P 3, L 3, E 1. Admitted: I 85, P 39, L 3, E 2, V 0. The 23 held kind changes from r1 are exactly those §6 describes.
+- **Whole-graph option table (§1.3).** It reproduces exactly from my code over all 212 arcs with the r2 kinds:
+
+  | Option | Arcs leaving (held + admitted) | SCCs | Moves | Interface or production | V/L/E |
+  |---|---|---|---:|---:|---:|
+  | O-1 | 0 + 0 | 6 | 27 | 19 | 8 |
+  | O-2 | 5 + 0 | 4 | 22 | 19 | 3 |
+  | O-3 | 8 + 3 | 2: 002 (12), 004 (3) | 20 | 19 | 1 |
+  | O-4 | 9 + 5 | 2 | 19 | 19 | 0 |
+
+  The three admitted arcs leaving under O-3 are DEP-06-01-011, DEP-07-02-015 and DEP-10-01-020. O-4 adds DEP-02-04-013 and DEP-09-12-012. The 17 I–I pairs are as listed.
+- **The four new pairs' deciding sentences**, checked at source:
+  - **P10 (DEP-02-03-026).** ADAPTER owns `checkpoint_observation.schema.json`, which has no external `$ref`, and EXEC l.1255 creates arrivals from it. The supplier defines the format, so I.
+  - **P18 (DEP-04-02-008).** The SourceRef includes CLM-002 as well as VER-002 and VER-004. The lapse vocabulary is RS §7. I/V under the K-1/K-5 precedence.
+  - **P19 (DEP-04-02-018).** `LOOP_DESTINATION_REQUEST.schema.json` is LOOP's, and AS §3.1 takes the request states from "DEL-05-01/LOOP-v0.8 §5.3 DF-5 and DF-6". I.
+  - **P20 (DEP-04-03-028).** RS's destination bodies are RS's own, but their state values are LOOP DF-6's (schema description "LOOP-v0.8 §5.3 DF-6"). The consumer does not define the meanings it records, so I.
+- **No over-correction of E.** The three remaining E rows each pass r2's own test:
+  - DEP-02-03-022: EXEC §9.1 *supplies* DEL-05-01 "the current-phase recorder (§2.4), whose event meanings LP-3 shares", so the consumer defines both format and meaning;
+  - DEP-02-04-013 and DEP-09-12-012 go into the consumer's existing interfaces.
+
+  The rows that became I each have a supplier-side definition, a schema `$ref` or a cited meaning. The rule now amounts to "E only where the consumer defines both format and meaning". At INITIALIZED that is the defensible reading, and §1.3 states its consequence: O-4 differs from O-3 by one cycle-closing row.
+- **No admitted V.** A SourceRef scan finds one admitted row whose only cited point of need is VER: DEP-06-01-007, "when implementing and exercising". K-5's exception makes it I. Consistent.
+
+### A.2 Findings on r2
+
+| ID | Severity | Finding | Evidence | Consequence |
+|---|---|---|---|---|
+| G1r2-M1 | MAJOR | **A2 and A3 are still E, and Q-5 is still cited as an owner decision, against r2's own K-3.** ACT §5.1 "Inputs (semantic)" takes "*grant state* for the class" from "DEL-04-02 (R-8; R2-6)", listing AS §3's seven states, and "*checkpoint state*" from DEL-02-01, DEL-02-03 and DEL-05-01. §5.3 rule 7 is rule-bearing on the grant states. ACT does not define them, so r2's K-3 makes A3 I. §2b (l.421, reading point 3) says A2 and A3 "contradict an accepted owner decision (Q-5)". The owner's Q-5 is "the App act control in DEL-01-04, with REQ-008 as adjusted …" (`APP-V4-SCA003-20261002/OWNER_DECISIONS.md` l.53). "DEL-04-01 gains no supplier" describes that one adjustment (DISPATCH P2-A); it is not an owner rule. My original review accepted that framing without checking it | Read with A3 as I, the grant-state input alone forms an SCC containing DEL-04-01: 15 members under O-4 and 16 under O-1 (r2 kinds, computed) | §2b.2 understates the exposure, and §2b reading point 3 misattributes authority. This is also the premise of C2's four re-targets (RVG-C2 C2-M2). Repair: classify A3 by K-3 (I for the grant-state and checkpoint-state inputs), state Q-5's actual scope, and add the A3-as-I line to §2b.2 |
+| G1r2-m1 | MINOR | DEP-06-01-011 is L by the deciding sentence "before relying on that changed consumer path". r2's K-6 says "before … reliance" wording names the consumer's part and does not make L | Appendix A l.620; §3.1 K-6 | If the intended condition is the row's "A proposed format change shall …", cite that and say why it governs the whole row. Otherwise the row is I or P, and the admitted arcs leaving fall to 2 under O-3 and 4 under O-4. No SCC effect |
+| G1r2-n1 | NOTE | K-3's text exempts DEL-04-03's whole CLM-004 list by blanket. Per item, the design test agrees: EXEC (19 `$ref`s), DEL-04-02 (`$ref`), LOOP (DF-6 cited), ROLE (§6.3 cited), ADAPTER (`external_dispatch_record.schema.json`) and WR (ID-3 string). I did not check DEP-04-03-024 (DEL-03-02 outcomes) | — | Replace the blanket with per-item bases, so case agents apply the test rather than the exemption |
+| G1r2-n2 | NOTE | The "19 interface or production rows under every option" are exact minima under the r2 kinds. C2's analysis shows that most can be closed by agent moves, under conditions RVG-C2 sets out. The owner should read the 19 as the count of design moves, not of owner rulings | RVG-C2 | Presentation only |
+
+### A.3 Verdict on r2
+
+**REPAIR (narrow).** The computation, the four new pairs, the option table, the admitted-arc lists and the r2 rules are sound and consistently applied, with the one exception of A2/A3 in §2b (G1r2-M1).
+
+The owner checkpoint can use §1.3 and §2 as they stand. Before G1 goes to the owner as a whole, §2b's treatment of A2/A3 and of Q-5 must be corrected, because it concerns how an owner decision is presented to the owner. The fix is local: §2b.1 rows A2 and A3, §2b.2 with an A3-as-I line, and reading point 3. G1r2-m1 can be fixed in the same pass.
+
+**Addendum counts.** BLOCKING 0, MAJOR 1, MINOR 1, NOTE 2.
