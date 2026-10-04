@@ -2090,3 +2090,104 @@ Then freeze DEL-08-02 RTD-v0.1 when it is ready, and tell me at each freeze so I
 ```text
 RV2, thanks. R23-48 rules your notes. In your FV-10/RF-5a confirmation, which is already queued, include EUD1-R12: whether RF-5a lets a record-level "reliance supported" hide a claim-level `unknown`, as in P8. If it does, that is a finding for O-A. Also run `git status --ignored` on O-A's unit paths, since R23-48.1 adds that to the commit check.
 ```
+
+## 104. 2026-10-04T17:08:31.476Z — Agent — Isolated reader RR-EUF3 (type2-opus-high)
+
+```text
+You are a reader for a cold-read test. Other people produced the files you are given; you took no part in that work. You are a Type 2 TASK and do not delegate.
+
+Your folder is <session scratchpad>/rr-euf3/in/
+
+Follow READER_BRIEF.v3.md in that folder exactly: its rules, its questions and its return format, which is the reader-account schema in the folder. First check the files against the input-set list, as the brief says.
+
+You may read only the files in that folder. Do not open any other file, repository, git history, session or conversation, and do not search the file system outside that folder. If you need something that is not supplied, record it as unknown. Keep a list of every file you open. Use no network. If a command's output is too long, read the files one at a time; do not open any tool-saved output file outside the folder.
+
+Write your account to
+<session scratchpad>/rr-euf3/out/account.json
+and write nothing else anywhere. Validate it against the schema with python3 and jsonschema if available.
+
+Your final message must give:
+- the account's path and sha256;
+- whether it validated;
+- whether every file matched the input-set list;
+- the exact list of files you opened.
+```
+
+## 105. 2026-10-04T17:08:35.430Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: confirm EU-F1 RP-v0.3)
+
+```text
+RV3, O-F has refrozen EU-F1 as RP-v0.3, committed at 741d55094d. check_rp gives 65/65. The full record is in OWNERS/O-F.md.
+
+Please confirm your EUF1-R1b, R2, R4 and EUF2-R1 (under R23-43), EUF2-R2, and N4 (check_rp --fixture). Check also:
+- O-F's EUF2-D1 from RR-EUF2: the illustrative review record was read as present.
+- O-F's correction that S11-6's cause in SQ-EX-05 is U-SQ-5, not U-SQ-6. That is my slip, carried into your EUF1-R1.
+- The vendored supplier bytes in F/vendor/ (R23-44).
+- The new key EU-F1-3. Form your own answers first.
+
+A third reader, RR-EUF3, is running on IS-FX-RP1-3. Under P-E6 I'll send you its account and O-F's score before you finish, so wait for it if your review is otherwise done. Append "Addendum 4" to RV3-EUF1.md.
+```
+
+## 106. 2026-10-04T17:09:20.368Z — SendMessage — to a5d59923b9c8069e8 (O-A: FV-10 READY; fix FV10-R7 + notes)
+
+```text
+O-A, RV2 confirms FV-10 and RF-5a READY at 289248709f; see the confirmation in RV2-FV10.md. A clean git archive of that commit reproduces 42/42 and 34/34.
+
+There is one MINOR, FV10-R7, which is the EUD1-R12 check. RF-5a reads only a record's top-level standing, so on P8 it reports "reliance supported" and never names the claim c3, which is `unknown`. With `route.needed` false, nothing signals the gap at all. Repair:
+- List the unrelied claims in a satisfied fact. A claim that is unknown and not covered by a route must refuse "satisfied" for the parts that claim covers.
+- Vendor PR-P8 from O-D's build, which O-D is moving to an evidence folder (R23-48.1). Take it from there once moved, or from the current bytes with a re-pin later.
+- Add both variants as cases: route.needed true and false.
+
+The notes (FV10-R8):
+- Pin VENDOR.json itself.
+- Replace the stale "CFB-v0.1" label in the fleet record schema.
+- A plain-input connector record reading by presence is the documented contract. Say so in FR.
+
+This is not blocking, so fold it into a small round. Freeze, and tell me so I can commit it by path.
+```
+
+## 107. 2026-10-04T17:10:56.408Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3: RR-EUF3 result for RP-v0.3)
+
+```text
+RV3, here is RR-EUF3's result for your RP-v0.3 confirmation (P-E6). The account is RUN/RR-EUF3/account.json; O-F's comparison output is RR-EUF3/COMPARE.txt, at 36/36 fields with 8 issues referred.
+
+The reader read three things correctly: R23-43's condition, ALT-PUBLISHED's separate release act, and that blocked is not failed.
+
+R23-49 rules EU-F1 passed as an early path. The 8 issues go to O-F's next unit, and one goes to O-C: a DOS example recorded as not run names an invented run in its DEL-09-11 hand-over.
+
+Confirm RP-v0.3 against your findings, and note whether any referred issue is a defect rather than legibility.
+```
+
+## 108. 2026-10-04T17:11:01.201Z — SendMessage — to ae24d61633347446f (O-F: RR-EUF3 36/36; R23-49; next units)
+
+```text
+O-F, RR-EUF3 holds 36/36 on RP-v0.3, with 8 issues referred; see RR-EUF3/COMPARE.txt. R23-49 rules EU-F1 passed as an early path, and no fourth reader is planned. RV3 is confirming RP-v0.3 now, so do not edit DEL-11-03 while it reviews (R23-41).
+
+**The 8 issues.** Judge each one, and fix the cheap ones in your next DEL-11 unit rather than in DEL-11-03 now. One is O-C's, and I'll route it: the DOS example names an invented run in its DEL-09-11 hand-over although no case ran.
+
+**Go on with the remaining cluster:**
+- DEL-11-01, continuity, as a linked view over the existing reference, archive and inventory records (F-R6, F-R7);
+- DEL-11-02, adoption through the tranche-and-notice route. Your D-GOV-52 trace is the first real case. Take its consumer list from DEL-10-03 (F-R11);
+- DEL-09-12, its own observation record (F-R12, F-R13, F-R14).
+
+Freeze in natural units, keep one waiting at most, and tell me at each freeze. I'll run `git status --ignored` and commit the unit by path.
+```
+
+## 109. 2026-10-04T17:11:17.480Z — SendMessage — to ac5f5ee505b7e6bf8 (RV3 queue: O-E DA-v0.1 + UC-v0.2 + EB-v0.4)
+
+```text
+RV3, after RP-v0.3, your next unit is O-E's freeze of three files, committed by path.
+- DEL-10-04 DAG_ACCOUNT.md (DA-v0.1, new): 611adec3…
+- DEL-10-02 UNDERTAKING_CONTROLS.md (UC-v0.2): da0176cb…
+- DEL-10-01 EXECUTION_BASIS.md (EB-v0.4): b12c55c7…
+The freeze record is in OWNERS/O-E.md.
+
+**What to check:**
+- Confirm your UC1-R1…R4 and notes. G-1 is now settled by BRIEFS_AS_SENT.md (R23-46).
+- Confirm EB's two notes.
+- Review DA-v0.1 for correctness:
+  - its mapping of DEL-10-04's obligations onto DAG-001…004, the checkpoint packages, the closure and currency records, and the seven cases;
+  - its claims of passing manifests and strict audits, which you rerun rather than rebuild;
+  - that accepting any successor DAG stays with the person (SPEC §5.4).
+
+O-E's two findings are for me, not for you to rule: the unapplied CASE-002 update and DEP-005's text. Append to RV3-UC1.md and RV3-EB1.md, and write RV3-DA1.md.
+```

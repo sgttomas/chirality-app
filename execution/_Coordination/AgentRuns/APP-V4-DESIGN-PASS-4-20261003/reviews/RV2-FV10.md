@@ -173,3 +173,81 @@ FV only words them (`fleet_views.waiting` uses `n["why"]` and adds the record to
 - **Not done:**
   - I did not check O-D's CFB repair; that confirmation follows O-D's refreeze.
   - I did not rerun DEL-04-03's or E's checks, because this unit does not touch them.
+
+## Repair confirmation (FV-10 + RF-5a refrozen; commit `289248709f`; 2026-10-04)
+
+**Reviewer.** RV2, Claude Opus 5.5 (`claude-opus-5-5`).
+
+### Verdict: **READY.** The repairs are confirmed.
+
+FV10-R1…R5 are adopted in the committed files. R12 (P8) yields one new MINOR for O-A, FV10-R7. There are three NOTEs (FV10-R8). Nothing is BLOCKING or MAJOR.
+
+### What I checked
+
+**Hashes.** All 12 files in O-A "CURRENT" match the working tree, including the five vendored files and `VENDOR.json` (`0cba60f4…`).
+
+**Commit check under R23-48.1.** `git status --short --ignored` on the PKG-06 paths prints nothing: no untracked or ignored file. `git ls-files` lists the five vendored files.
+
+**Clean checkout under R23-44.**
+- Method: `git archive 289248709f projects/chirality-app-v4 | tar -x` into `$TMPDIR/rv2/clean`. This is read-only git, with no worktree.
+- From there, `run_fleet.py` gives **42/42** and `run_views.py` gives **34/34**.
+- A grep of the prototypes finds no absolute path, home path or `RUN/D/build` reference. The DEL-07-02 folder is not read.
+- The unit is reproducible from git alone.
+
+**Vendored bytes (FV10-R2).**
+- `connector.standing.schema.json` is `bf4cef4d…0719`. It equals `git show 25054b04df:` of DEL-07-02's schema (CFB-v0.2).
+- `PR-P1` (`b9cd7cce…`), `PR-P3` (`fcacb91a…`) and `PR-P6` (`98aa1d8e…`) equal O-D's records. They are listed with those hashes in O-D's reader-input manifest. That manifest is on disk as `e68154c6…`, the value O-D's committed "CURRENT" table names. (The `build/` folder itself is not in git; see EUD1-R9.)
+- `fleet_store.vendored()` hashes each file against `VENDOR.json` before use and raises `VendoredInputChanged` on a mismatch. A case in `run_fleet.py` tests that refusal.
+- The re-pin from v0.1 is stated in `VENDOR.json`.
+
+### Per finding
+
+| Finding | State | Evidence |
+|---|---|---|
+| FV10-R1 (MAJOR) | **Confirmed** | See below |
+| FV10-R2 (MAJOR) | **Confirmed** | See "What I checked" above |
+| FV10-R3 | **Confirmed** | A satisfied need whose record has `route.needed` says "reliance covers only the record's covered parts: the source-file route ra:EUD1-Q1 is still needed for the rest" and sets `routeNeeded`. FV C9 checks this on W13, and `run_fleet` checks it on C8b |
+| FV10-R4 | **Confirmed** | The vendored v0.2 schema refuses cross-connector tiers. My probe's PR-P1 with tier `admitted` reads *unknown* (nonconformant). RF-5a also checks the declared connector: a record whose standing says `domains` under a declared `pec` need reads *unknown* |
+| FV10-R5 | **Confirmed** | FV-10 now points to "DEL-07-02 CFB-v0.2 §3". At `cf805bb8…` that section holds "Prohibited conclusions" |
+
+**FV10-R1 in detail.**
+- `fleet.record.schema.json` adds need kind `connector`, with a required `connector` field.
+  - INV-FL-8 refuses a connector need that omits it.
+  - INV-FL-9 refuses `connector` on a plain input.
+- I re-ran my probes against the committed `fleet_store` (`$TMPDIR/rv2/probe_fv10b.py`), with declared `pec` needs:
+
+  | Record | State |
+  |---|---|
+  | Half-truncated PR-P6 | *unknown* ("unreadable (torn or not JSON)") |
+  | Standing key renamed | *unknown* ("has no standing") |
+  | Missing | *outstanding*, with the connector named |
+  | Unaltered PR-P1 | *satisfied*, with the route note |
+
+- The presence reading never applies to a declared connector need.
+- RF-5b makes a connector record named as a plain input *unknown*. Both checks carry the probes as cases.
+
+### FV10-R7 — MINOR (new; EUD1-R12 as R23-48 directs): RF-5a lets record-level reliance hide a claim-level `unknown`
+
+**Evidence.**
+- `connector_need()` reads only `response_standing`, plus `route`. It never reads the claims.
+- Probe `$TMPDIR/rv2/probe_p8.py` used O-D's PR-P8, in which c3 is `unknown` under PR-7 (an unresolvable anchor):
+  - **As built.** The result is "connector reliance supported (pec: envelope adopted, condition current, claim tier record; pr:EUD1-P8); reliance covers only the record's covered parts: the source-file route ra:EUD1-Q1 is still needed for the rest". c3 is not named.
+  - **With `route.needed` set to false and nothing else changed.** The result is a bare "connector reliance supported … condition current", with `routeNeeded: false`. No signal remains.
+
+**Consequence.**
+- In O-D's builds, PR-6 sends any part with an unrelied claim to the route, so the route note appears. In practice the user is told that files are still needed, but not that a claim is `unknown`.
+- Under CS-R5 an `unknown` is never shown as current. RF-5a's fact still says "condition current" for a record that holds an `unknown` claim. The only safeguard is the record's `route.needed` value, which neither the standing schema nor RF-5a cross-checks.
+
+**Repair (O-A).** Either:
+- have RF-5a list, in the satisfied fact, every record-tier claim whose standing does not support reliance (id and condition, for example "c3 unknown: PR-7"); or
+- refuse *satisfied*, making it *unknown*, when such a claim exists but `route.needed` is false.
+
+Vendor PR-P8 (O-D's frozen bytes) and add both probe variants as cases.
+
+### FV10-R8 — NOTES
+
+- **`VENDOR.json` is not pinned.** It holds the pins but is not itself pinned: editing a vendored file and its entry together would pass `vendored()`. FR or FV could record `VENDOR.json`'s sha256 (`0cba60f4…`), or the check scripts could compare it.
+- **Stale schema label.** In `fleet.record.schema.json`, the description of `connector` still says "DEL-07-02 CFB-v0.1 §2". The vendored schema is CFB-v0.2's.
+- **RF-5b cannot see a torn record.** RF-5b recognises a connector record named as a plain input only if the record parses. A torn connector record used as a plain input still reads by presence. Declaring the need is the contract, and INV-FL-9 and RF-5b cover the readable case. Recorded only.
+
+**Not done.** I did not re-read DEL-04-03's or E's checks; this unit does not change them.

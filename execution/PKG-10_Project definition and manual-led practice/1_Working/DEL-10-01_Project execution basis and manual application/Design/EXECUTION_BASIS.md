@@ -1,8 +1,11 @@
 # Project execution basis and manual application — the account
 
-- **Contribution:** DEL-10-01/EB-v0.3. It supersedes EB-v0.2 (sha256
+- **Contribution:** DEL-10-01/EB-v0.4. It supersedes EB-v0.3 (sha256
+  `e9f7e9a6100f805d1bfd992bc681056d3ef68b21c203750d69b1a3def6f904ee`,
+  committed at `d0e88a52f1`; RV3: READY, addendum 2), which superseded
+  EB-v0.2 (sha256
   `f9b8911f027880a72ca08149a42b19c4dc814c35cac7153f64db6cd8778cd61f`,
-  committed at `d43665498d`; RV3: READY). That superseded EB-v0.1 (sha256
+  committed at `d43665498d`). That superseded EB-v0.1 (sha256
   `e24101b210b9ef16347d9747169034b19b1f1ef5971e7cc31039b97cbc013baa`,
   which the isolated reader RR-EB1 read). See "Changes". It serves OUT-001
   (§2, §3), OUT-002 (§4, §5) and OUT-003 (§6); verification design is in §8.
@@ -70,7 +73,7 @@ authentication.
 | B-16 | D-GOV-52 application approved, 2026-10-04 | Owner | "I approve A1 and B1, go ahead" | HELP_HUMAN; `RUN/OWNER_DECISIONS_2.md`. Also in tranche `docs/governance_harness/tranche_manifests/ROOT-DGOV52-APPLICATION-20261004.yaml`, `m2_gate`, which does not name its own writer | `AGENTS.proposed.patch` (A1 + B1) applied to Root `AGENTS.md` (result sha256 `f96feb19…`, as the manifest states) | App v4's adoption (HELP_HUMAN's R23-30); U-A9 (HELP_HUMAN); App v3's and Runtime's receiving decisions (R23-32 F-R16: "notice delivered; receiving decision not recorded") |
 | B-17 | Tranche 2 started, 2026-10-04 | Owner | "Proceed accordingly." | HELP_HUMAN; `RUN/OWNER_DECISIONS_2.md` | Tranche 2 under the same method and rulings | — |
 | B-18 | Review independence for design units, 2026-10-04 | Owner | "Same-session review is acceptable.  It's a practical concession to making the logistics easier." | HELP_HUMAN; `RUN/OWNER_DECISIONS_2.md` "Review independence for design units" | R23-31.5 confirmed as the owner's practice for design units: a same-model reviewer instance in the HELP_HUMAN session is acceptable when it did not author the work and its identity is reported | A claim of model-family independence; V4-OPS-34 for product candidates (EXP §7, R23-12), which is unchanged |
-| B-19 | App v4 loop entry revised, 2026-09-28 (listed last; it predates B-8) | Owner (Ryan) | The tranche manifest records the owner's request: "Owner copied init/ and loop/ from chirality-app-dev, reset receipts, and requested: Revise the documents accordingly for the new project folder." | `docs/governance_harness/tranche_manifests/APP-V4-LOOP-ENTRY-20260928.yaml` `m2_gate`: `authorized_by: Ryan`, `integration_owner: Codex HELP_HUMAN /root`, `merge_gate: owner-authorized-pr`, `self_merge: true`; committed in `afc65e2b22` and merged in PR #1037 | The revision of `init/` and `loop/` for App v4, including LOOP_INIT's v4 text (whose bytes have not changed since that commit) | **Not stated by any record: that the owner reviewed or approved the resulting text** (R23-42.1). The owner requested the revision; Codex HELP_HUMAN wrote and self-merged it under the owner-authorized PR gate |
+| B-19 | App v4 loop entry revised, 2026-09-28 (listed last; it predates B-8) | Owner (Ryan) | The tranche manifest records the owner's request: "Owner copied init/ and loop/ from chirality-app-dev, reset receipts, and requested: Revise the documents accordingly for the new project folder." | `docs/governance_harness/tranche_manifests/APP-V4-LOOP-ENTRY-20260928.yaml` `m2_gate`: `authorized_by: Ryan`, `integration_owner: Codex HELP_HUMAN /root`, `merge_gate: owner-authorized-pr`, `self_merge: true`. **The manifest does not name its own writer.** Committed in `afc65e2b22` and merged in PR #1037 | The revision of `init/` and `loop/` for App v4, including LOOP_INIT's v4 text (whose bytes have not changed since that commit) | **Not stated by any record: that the owner reviewed or approved the resulting text** (R23-42.1). The owner requested the revision; Codex HELP_HUMAN wrote and self-merged it under the owner-authorized PR gate |
 
 **Order of the DAG successors (states, from the records and Git).**
 - DAG-002 was accepted 2026-09-29, between B-8 and B-9. It was published
@@ -274,7 +277,7 @@ supplied record states it.
 | VER | How | Status |
 |---|---|---|
 | VER-001 | Follow each B-row to its record; check actor, subject and limits | RR-EB1 (EB-v0.1): `eb1/EB1_COMPARISON.md` |
-| VER-002 | `prototype/eb1_check.py` P-1…P-4. After a read, run it in `--post-dispatch` mode. In default mode, M-2 reports the drift since the read (the account and R23), which is intended, not a regression | PASS at freeze (mode named in `RUN/OWNERS/O-E.md`) |
+| VER-002 | `prototype/eb1_check.py` P-1…P-4. After a read, run it in `--post-dispatch` mode. In default mode, M-2 fails on every input-set item changed since the read, which is intended, not a regression | PASS at freeze (mode named in `RUN/OWNERS/O-E.md`) |
 | VER-003 | Walk §4 as an arriving reader | RR-EB1 Q6: all MATCH |
 | VER-004 | §5 compared with Field Book §1, Consolidated §1.7, User Manual §5 | Field Book §1 checked by O-E. RV3 spot-checked M §1.7 and U §5 (no conflict apart from the DAG timing, now repaired). O-E's own record of M §1.7 and U §5 is open |
 | VER-005 | §6 compared with the three manuals and V4-OPS-10…13 | Rows sourced; per-row manual-section comparison open |
@@ -290,6 +293,13 @@ supplied record states it.
 | OI-018 (remainder), OI-019, OI-020, OI-024, DEP-006 | As `Open_Issues.csv` and `External_Dependencies.csv` state | Their own points of need |
 
 ## Changes
+
+**EB-v0.4 (2026-10-04), RV3-EB1 addendum 2 notes (EB-v0.3 READY):**
+
+| Change | Cause |
+|---|---|
+| B-19's recorder cell: "The manifest does not name its own writer", as B-16 says of the D-GOV-52 manifest | N-b |
+| §8 VER-002: default-mode M-2 "fails on every input-set item changed since the read" | N-a |
 
 **EB-v0.3 (2026-10-04), after RV3-EB1 and its addendum (EB-v0.2 READY;
 residuals planned in `RUN/OWNERS/O-E.md`), R23-38 and R23-42:**

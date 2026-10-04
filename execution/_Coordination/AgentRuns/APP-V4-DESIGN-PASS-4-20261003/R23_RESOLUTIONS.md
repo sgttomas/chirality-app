@@ -717,3 +717,20 @@ evidence rules and the owner's earlier decisions already settle them.
   4. **EUD1-R12 goes to O-A.** RF-5a reads the record-level standing, so a
      claim-level `unknown` (P8) must not be hidden by a record that still
      says reliance is supported. **EUD1-R13** goes to O-D.
+
+- **R23-49 EU-F1 after its third reader. INTEGRATION.**
+  1. **Passed as an early path.** RR-EUF3 holds 36/36 fields against the
+     EU-F1-3 key (`RR-EUF3/COMPARE.txt`). It read correctly that:
+     - the packet may be put to the owner while it claims no qualification
+       (R23-43);
+     - only ALT-PUBLISHED needs the separate public-release act;
+     - blocked is not failed.
+  2. **No fourth reader.** The eight issues it referred are legibility points
+     on a fixture: no real candidate; invented run artefacts in the DOS
+     example; HC "answered" standing; an unresolved review labelled
+     independent; no measured v3.0.1 baseline; an unverified remote
+     fallback; unsupplied cited clauses; and the refinement-step mapping.
+     O-F judges each and fixes the cheap ones with its next DEL-11 unit.
+     The DOS example's invented run artefacts in its DEL-09-11 hand-off go
+     to O-C, because a case recorded as not run should name no run.
+  3. RV3's confirmation of RP-v0.3 takes this result into account (P-E6).

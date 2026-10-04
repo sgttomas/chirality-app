@@ -1,0 +1,293 @@
+{
+  "record_kind": "eu_f1_reader_account",
+  "format": "EU-F1-v0.1",
+  "reader": {
+    "identity": "RR-EUF3 isolated cold reader (Type 2 TASK, no delegation)",
+    "kind": "agent",
+    "model_identity": "claude-opus-5-5 (Claude Opus 5.5)",
+    "separation": "Took no part in producing the files. Read only the 14 files in the supplied input folder; opened no repository, git history, session, conversation or network resource, and used no outside project knowledge."
+  },
+  "input_set": {
+    "input_set_id": "IS-FX-RP1-3",
+    "sha256": "537d8b8173fb6843917af323b66cf1ea83bdc52125d5ebd35cd5a894259f83a7",
+    "all_hashes_checked": true
+  },
+  "answers": {
+    "Q-1": {
+      "fields": {
+        "decider": "the_owner",
+        "package_id": "pkg:app-v4:replacement:FX-RP1-3",
+        "act_kind": "A16"
+      },
+      "statement": "The owner decides, under act kind A16 ('decide': choose exactly one of the package's four alternatives), whether the identified v4 candidate replaces the v3.0.1 fallback. The package is pkg:app-v4:replacement:FX-RP1-3.",
+      "sources": [
+        "package/PKG-REPLACEMENT-FX-RP1-3.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "packet/basis-excerpts.md"
+      ]
+    },
+    "Q-2": {
+      "fields": {
+        "subject_revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+        "joined_journey_app_candidate": "not_supplied",
+        "reconciliation": "not_established"
+      },
+      "statement": "The package and the packet give the candidate's revision only as the placeholder copied from the standalone dossier example, not as a real revision. The journey's candidate identification record does not supply an App candidate, so the files do not establish one candidate across both obligations.",
+      "sources": [
+        "package/PKG-REPLACEMENT-FX-RP1-3.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "supplied/sq-dossier.SQ-EX-05.json",
+        "supplied/lhq-cir.LHQ-CIR-EXAMPLE-STATE-2026-10-03.json"
+      ]
+    },
+    "Q-3": {
+      "fields": {
+        "elements": {
+          "planning": "not_evidenced",
+          "execution": "not_evidenced",
+          "workflow saving": "not_evidenced",
+          "reuse": "not_evidenced",
+          "approvals": "not_evidenced",
+          "interruption": "not_evidenced",
+          "restart": "not_evidenced"
+        },
+        "obligation": "not_evidenced",
+        "established": false,
+        "outside_scenarios": [
+          "V4-EXM-12"
+        ]
+      },
+      "statement": "All seven elements are not_evidenced: the dossier records passes for six, and for restart it records one pass and one blocked step (S11-6, a missing result rather than a failure), but none of the 15 counted results resolves to a record of an identified candidate, and the dossier's review record is named but not supplied. The obligation is therefore not_evidenced and not established. V4-EXM-12 (model access) is set outside the core loop.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "supplied/sq-dossier.SQ-EX-05.json",
+        "legend/rp.packet-manifest.schema.json"
+      ]
+    },
+    "Q-4": {
+      "fields": {
+        "status": "incomplete",
+        "counts_as_completed_witness": false,
+        "acceptance_acts": 0,
+        "independent_review": "absent"
+      },
+      "statement": "The journey obligation is incomplete. P20-A is not counted as a completed V4-EXM-20 witness (its result reference is a 'not-run' example), no acceptance act is cited, and there is no independent review record for the journey.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "supplied/lhq-dossier-manifest.DOS-EXAMPLE-INVENTED.json"
+      ]
+    },
+    "Q-5": {
+      "fields": {
+        "replacement_evidence_complete": false
+      },
+      "statement": "The replacement evidence is not complete: the core loop and the journey are not established, and the candidate is not reconciled across them.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    "Q-6": {
+      "fields": {
+        "gap_ids": [
+          "G-CL-RESTART",
+          "G-CL-EVIDENCE",
+          "G-J-WITNESS",
+          "G-CAND-JOINED",
+          "G-CONT",
+          "G-ADOPT"
+        ],
+        "gap_supplier_deliverables": [
+          "DEL-09-02",
+          "DEL-09-07",
+          "DEL-11-01",
+          "DEL-11-02"
+        ],
+        "practitioner_validation_is_a_gap": false
+      },
+      "statement": "The packet names six gaps. The first four hold back a claim of replacement qualification and come from DEL-09-02 and DEL-09-07, with the SWBPIPE owner (DEP-001, which is not a deliverable) also named for G-J-WITNESS. The last two, continuity (DEL-11-01) and adoption (DEL-11-02), are carried for the owner and are not replacement conditions. Practitioner validation is not listed as a gap.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    "Q-7": {
+      "fields": {
+        "ALT-OWN-USE": {
+          "performs_public_release_act": false,
+          "requires_separate_release_act": false,
+          "v3_0_1_remains_fallback_without_further_act": true,
+          "retires_anything": false
+        },
+        "ALT-PUBLISHED": {
+          "performs_public_release_act": false,
+          "requires_separate_release_act": true,
+          "v3_0_1_remains_fallback_without_further_act": true,
+          "retires_anything": false
+        },
+        "ALT-DEFER": {
+          "performs_public_release_act": false,
+          "requires_separate_release_act": false,
+          "v3_0_1_remains_fallback_without_further_act": true,
+          "retires_anything": false
+        },
+        "ALT-DECLINE": {
+          "performs_public_release_act": false,
+          "requires_separate_release_act": false,
+          "v3_0_1_remains_fallback_without_further_act": true,
+          "retires_anything": false
+        }
+      },
+      "statement": "None of the four alternatives performs the public-release act or retires anything, and under each v3.0.1 remains the fallback unless a further act follows. Only ALT-PUBLISHED needs the owner's separate public-release act before it takes full effect. ALT-OWN-USE moves only the owner's own work; publishing v4 would be a separate act that this alternative does not call for.",
+      "sources": [
+        "package/PKG-REPLACEMENT-FX-RP1-3.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "packet/basis-excerpts.md"
+      ]
+    },
+    "Q-8": {
+      "fields": {
+        "decision_state": "not_presented",
+        "owner_act_recorded": false,
+        "v3_0_1_status": "remains_fallback"
+      },
+      "statement": "The disposition record's state is not_presented: the fixture was prepared for the consumption check only, and no owner act is recorded or implied. The disposition record and the continuity hand-off both say v3.0.1 remains the fallback.",
+      "sources": [
+        "records/RPD-FX-RP1-3.disposition.json",
+        "legend/rp.disposition.schema.json",
+        "supplied/continuity-handoff.json"
+      ]
+    },
+    "Q-9": {
+      "fields": {
+        "standing": "not_agreed",
+        "is_replacement_condition": false
+      },
+      "statement": "No practitioner validation period or activities have been agreed and no practitioner use has occurred (standing not_agreed, OI-016 open). The packet states that practitioner validation is not a replacement condition (R23-32 F-R3).",
+      "sources": [
+        "supplied/practitioner-standing.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    "Q-10": {
+      "fields": {
+        "never_established": [
+          "replacement_decision",
+          "public_release",
+          "retirement",
+          "professional_reliance",
+          "consumer_adoption",
+          "practitioner_validation"
+        ]
+      },
+      "statement": "Whatever the evidence, the packet lists six things it never establishes: the replacement decision, public release, retirement, professional reliance, consumer adoption and practitioner validation.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "legend/rp.packet-manifest.schema.json"
+      ]
+    },
+    "Q-11": {
+      "fields": {
+        "thesis_identity": "matches",
+        "fallback_identity_remote_rechecked": false,
+        "continuing_obligations": "not_supplied",
+        "adoption_status": "not_supplied"
+      },
+      "statement": "The thesis tree identity matches at the named commit (a committed-tree check only; working bytes were not compared). The fallback's identity was not re-checked against the remote release, the archive check was not run, and the continuing-obligation dispositions and consumer adoption status are not supplied.",
+      "sources": [
+        "supplied/continuity-handoff.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    "Q-12": {
+      "fields": {
+        "evidence_standing": "illustrative"
+      },
+      "statement": "The packet's evidence standing is illustrative: it was built from schema examples and first-cut stand-ins, so nothing in it can establish an obligation.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "legend/rp.packet-manifest.schema.json"
+      ]
+    },
+    "Q-13": {
+      "fields": {
+        "may_be_put_to_owner": "any_time",
+        "claims_replacement_qualification": false,
+        "owner_choice": "owners_act_on_evidence_as_presented"
+      },
+      "statement": "The files say such a packet may be put to the owner at any time, and no gap holds that back; it may claim replacement qualification only when both witnesses hold, and this one does not claim it. Choosing any alternative is the owner's own act on the evidence as presented; the package neither forbids nor recommends a choice.",
+      "sources": [
+        "package/PKG-REPLACEMENT-FX-RP1-3.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "legend/rp.packet-manifest.schema.json",
+        "packet/basis-excerpts.md"
+      ]
+    }
+  },
+  "issues": [
+    {
+      "about": "No identifiable candidate in the decision subject",
+      "statement": "The package's subject names the candidate's revision and build only as 'ILLUSTRATIVE (SQ example; not a real candidate)'. A decision maker therefore has no concrete candidate identity to decide on. This is expected in a fixture, but the alternatives (for example ALT-PUBLISHED) are written as though a specific candidate exists.",
+      "sources": [
+        "package/PKG-REPLACEMENT-FX-RP1-3.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    {
+      "about": "Journey dossier: 'not run' versus run artefacts",
+      "statement": "The LHQ dossier says no case has run, and its P20-A result reference is 'EXP-LHQ-20-not-run-example'. Yet its DEL-09-11 hand-off names a journey run (LHQ-20-EXAMPLE-RUN), a run record set with placeholder hashes, and run authors. All are marked invented, but a reader could take them as signs that a run took place. The packet's gap G-J-WITNESS says the journey was not run.",
+      "sources": [
+        "supplied/lhq-dossier-manifest.DOS-EXAMPLE-INVENTED.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    {
+      "about": "CIR contributions marked 'answered'",
+      "statement": "The candidate identification record lists 13 host contributions (HC-1 to HC-13) with standing 'answered', which can look like progress on the journey. Only the packet's terms explain that 'answered' commits, delivers and adopts nothing. Meanwhile every candidate element and every activity binding in the CIR is not_supplied or unbound.",
+      "sources": [
+        "supplied/lhq-cir.LHQ-CIR-EXAMPLE-STATE-2026-10-03.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    {
+      "about": "Dossier labelled independent while its review is unresolved",
+      "statement": "The SQ dossier says it was handed over with reported_as_independent true and names the review record EXP-RX-02. The packet records that review as named_not_resolved, because the record is not supplied. A decision maker reading only the dossier could overrate its independence.",
+      "sources": [
+        "supplied/sq-dossier.SQ-EX-05.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    {
+      "about": "No measured v3.0.1 baseline for 'at least at v3.0.1's level'",
+      "statement": "v3.0.1 is not rerun. The v3 references attached to each element come from a v3.0.0-era development candidate that is not an ancestor of the v3.0.1 source, and they serve only as context. The comparison rests entirely on V4-EXM-10/11 passing on the candidate. A decision maker should know that no direct v3.0.1 comparison exists.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    },
+    {
+      "about": "Fallback identity and ALT-PUBLISHED update consequence not re-checked",
+      "statement": "The fallback's identity was not re-checked against the remote release. ALT-PUBLISHED's statement that v3.0.x installs would be offered v4 is an inference from historical App v3 records, and the excerpt itself says that record does not assert the latest remote release.",
+      "sources": [
+        "package/PKG-REPLACEMENT-FX-RP1-3.json",
+        "packet/basis-excerpts.md",
+        "supplied/continuity-handoff.json"
+      ]
+    },
+    {
+      "about": "Cited rules and clauses not supplied",
+      "statement": "Several cited authorities are not in the input set and can be read only through the packet's one-line glosses: R23-43 (the 'any time' ruling), R23-32 F-R2/F-R3, the RP-R1 to RP-R8 rules in REPLACEMENT_PACKET.md, ACT-POLICY (A16), DEL-11-03 REQ-006 and VER-004, and DEL-11-01 VER-003. The terms entry says DEL-11-03's clauses 'are excerpted', but only CLM-001, CLM-003, REQ-004, REQ-005 and AX-001 appear in basis-excerpts.md.",
+      "sources": [
+        "packet/RP-FX-RP1.v3.packet-manifest.json",
+        "packet/basis-excerpts.md",
+        "records/RPD-FX-RP1-3.disposition.json",
+        "supplied/continuity-handoff.json"
+      ]
+    },
+    {
+      "about": "Element mapping of refinement steps",
+      "statement": "Steps J-8 and J-9, whose v3 references are refinement and reuse runs (J07), count toward 'workflow saving'. The re-runs J-8R and J-9R are tagged 'reuse' but are not counted. As a result, 'reuse' rests on the single step J-7. The rationale for this split is only partly explained, through a proposed rule (TT-7).",
+      "sources": [
+        "supplied/sq-dossier.SQ-EX-05.json",
+        "packet/RP-FX-RP1.v3.packet-manifest.json"
+      ]
+    }
+  ]
+}

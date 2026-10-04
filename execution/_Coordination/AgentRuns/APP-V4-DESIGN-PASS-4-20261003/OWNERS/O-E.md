@@ -370,3 +370,88 @@ units rely on.
 - UC VER-007 (stage discussion).
 - EB VER-005, VER-007 and O-E's own VER-004 record (M §1.7, U §5).
 - RA §2–§5 and DA §4/§7: drafts, next units.
+
+## Brief received, 2026-10-04 (labelled transcription; the brief as sent is `BRIEFS_AS_SENT.md` entry 100, R23-46)
+
+- **EB-v0.3:** READY. Next touch carries N-a (§8 wording) and N-b (B-19's
+  writer).
+- **UC-v0.1:** REPAIR per RV3-UC1:
+  - UC1-R1 → R23-46: G-1 restated; VER-002's second case partial;
+  - UC1-R2: branch, with R23-47's wording;
+  - UC1-R3: class vs applied; SPEC §9.8 for PN-8;
+  - UC1-R4: PN-1 loci;
+  - notes: §5/§11 PRACTICE_NOTES, §7 range, PN-9.
+- **Folding:** all of it goes into the next freeze, with DEL-10-03 or
+  DEL-10-04.
+
+## Freeze — DA-v0.1 + UC-v0.2 + EB-v0.4, for RV3 (2026-10-04)
+
+**Paths for the path-limited commit (R23-41, R23-44, R23-48).** All under
+`projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/`:
+
+| Path | sha256 |
+|---|---|
+| `DEL-10-04_Project production dependency DAG/Design/DAG_ACCOUNT.md` (DA-v0.1, new) | `611adec3d58bfa6a2789090ff3cb15dd08b9d82619525d036b1292ce0a1aa29d` |
+| `DEL-10-02_Proportionate undertaking controls and practice feedback/Design/UNDERTAKING_CONTROLS.md` (UC-v0.2) | `da0176cbf2ae806dc1c4e98b9fbd8bb7af635639c7cac4e114b7da42d0d8b533` |
+| `DEL-10-01_Project execution basis and manual application/Design/EXECUTION_BASIS.md` (EB-v0.4) | `b12c55c7b585aa0b1720b0a2426693627c9439eecad5856f74acbe1d74277392` |
+
+**Not in this freeze:** `DEL-10-03_…/Design/RESPONSIBILITY_ACCOUNT.md`, a
+draft; keep it out of the commit.
+
+**Commit-readiness checks.**
+- `git status --short --ignored` on the PKG-10 paths shows no ignored file
+  (R23-48).
+- No executable check is new in this unit. EB's checker and its inputs are
+  unchanged and committed.
+
+**PN-1 applied before freeze.** I re-hashed the records relied on.
+- **Changed, then re-read:**
+  - R23 (`aa281119…`): R23-45…R23-48; only R23-48's ignored-path check
+    bears on this freeze;
+  - DISPATCH (`757b781d…`): its tail and capability section (R23-47
+    wording);
+  - BRIEFS_AS_SENT (`159eb64f…`): structure and O-E's entries;
+  - RV3-EB1 (`d187914a…`): addendum 2;
+  - RV3-UC1 (`071f142f…`): read in full.
+- **Unchanged:** `OWNER_DECISIONS.md` `e4350f61…`, `OWNER_DECISIONS_2.md`
+  `3a861c52…`, `BASIS_BINDING.md` `93160e1d…`.
+
+**Claims.**
+1. **DA-v0.1** maps OUT-001/002 and REQ-001…009 onto DAG-001…004, their
+   checkpoint packages, closure and currency records, and the seven cases.
+   It sets the currency procedure for the rest of the pass, keeping
+   successor acceptance reserved to the person. It writes nothing under
+   `_DAG/` or `_Evaluation/`.
+2. **UC-v0.2** repairs UC1-R1…R4 and N1–N4 under R23-46/47 and adds PN-9.
+   Each repair is listed in its "Changes".
+3. **EB-v0.4** carries addendum 2's N-a and N-b, nothing else.
+
+**Checks run.**
+- **DA:**
+  - each `MANIFEST.sha256` (DAG-001…004) passes `shasum -c`;
+  - `audit_dag.py --canonical --strict` (`830d0d53…`) exits 0 on all four
+    (109, 124, 124 and 129 admitted edges; 0 SCCs), output to scratch only;
+  - CSV record counts equal the handoffs;
+  - DAG-004 `SOURCE_MANIFEST` is 128 of 130 from `E/`, the two failures
+    being the recorded DEL-01-03 drift;
+  - each successor's `CHECKPOINT_C.md` hash equals its acceptance record's
+    "Package presented";
+  - frozen vs current `External_Dependencies.csv`, field by field: only
+    DEP-002 changed;
+  - each case's `Ruling_Register.csv` holds CP1-20260928 only;
+  - `check_boundary_owner_resolution.py` gives 1 checked, 0 failing.
+- **UC:** each changed quotation (PN-1, PN-8, PN-9 loci) was re-checked
+  against F §5.4, M §5.4, SPEC §9.8 and U §10.
+
+**Findings for HELP_HUMAN in DA §8 (records only; no edit by O-E):**
+- CASE-002's drafted evidence update for DAG-004 is not yet applied: last
+  committed change `b547125dbe` (2026-09-29), with the proposal still in
+  SCA003's `DAG_PREP/`.
+- DEP-005's row text predates D4 and R23-22; its owner updates it at the
+  next amendment.
+
+**Open.**
+- UC VER-002 unit-brief case, against `BRIEFS_AS_SENT.md`.
+- UC VER-005; VER-007 at the stage discussion.
+- DA §5 step 2 at the pass closeout.
+- RA §2–§5 (DEL-10-03), next unit.

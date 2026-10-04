@@ -1,0 +1,61 @@
+set 3: IS-FX-RP1-3, fixture FX-RP1-3, key EU-F1-3.answer-key.json
+HOLDS account valid against rp.reader-account.v3.schema.json
+HOLDS account names input set IS-FX-RP1-3 by its sha256
+HOLDS Q-1.decider
+HOLDS Q-1.package_id
+HOLDS Q-1.act_kind
+HOLDS Q-2.subject_revision
+HOLDS Q-2.joined_journey_app_candidate
+HOLDS Q-2.reconciliation
+HOLDS Q-3.elements
+HOLDS Q-3.obligation
+HOLDS Q-3.established
+HOLDS Q-3.outside_scenarios
+HOLDS Q-4.status
+HOLDS Q-4.counts_as_completed_witness
+HOLDS Q-4.acceptance_acts
+HOLDS Q-4.independent_review
+HOLDS Q-5.replacement_evidence_complete
+HOLDS Q-6.gap_ids
+HOLDS Q-6.gap_supplier_deliverables
+HOLDS Q-6.practitioner_validation_is_a_gap
+HOLDS Q-7.ALT-OWN-USE
+HOLDS Q-7.ALT-PUBLISHED
+HOLDS Q-7.ALT-DEFER
+HOLDS Q-7.ALT-DECLINE
+HOLDS Q-8.decision_state
+HOLDS Q-8.owner_act_recorded
+HOLDS Q-8.v3_0_1_status
+HOLDS Q-9.standing
+HOLDS Q-9.is_replacement_condition
+HOLDS Q-10.never_established
+HOLDS Q-11.thesis_identity
+HOLDS Q-11.fallback_identity_remote_rechecked
+HOLDS Q-11.continuing_obligations
+HOLDS Q-11.adoption_status
+HOLDS Q-12.evidence_standing
+HOLDS Q-13.may_be_put_to_owner
+HOLDS Q-13.claims_replacement_qualification
+HOLDS Q-13.owner_choice
+REFERRED Q-1 statement: The owner decides, under act kind A16 ('decide': choose exactly one of the package's four alternatives), whether the identified v4 candidate replaces the v3.0.1 fallback. The package is pkg:app-v4:replacement:FX-RP1-3.
+REFERRED Q-10 statement: Whatever the evidence, the packet lists six things it never establishes: the replacement decision, public release, retirement, professional reliance, consumer adoption and practitioner validation.
+REFERRED Q-11 statement: The thesis tree identity matches at the named commit (a committed-tree check only; working bytes were not compared). The fallback's identity was not re-checked against the remote release, the archive check was not run, and the continuing-obligation dispositions and consumer adoption status are not supplied.
+REFERRED Q-12 statement: The packet's evidence standing is illustrative: it was built from schema examples and first-cut stand-ins, so nothing in it can establish an obligation.
+REFERRED Q-13 statement: The files say such a packet may be put to the owner at any time, and no gap holds that back; it may claim replacement qualification only when both witnesses hold, and this one does not claim it. Choosing any alternative is the owner's own act on the evidence as presented; the package neither forbids nor recommends a choice.
+REFERRED Q-2 statement: The package and the packet give the candidate's revision only as the placeholder copied from the standalone dossier example, not as a real revision. The journey's candidate identification record does not supply an App candidate, so the files do not establish one candidate across both obligations.
+REFERRED Q-3 statement: All seven elements are not_evidenced: the dossier records passes for six, and for restart it records one pass and one blocked step (S11-6, a missing result rather than a failure), but none of the 15 counted results resolves to a record of an identified candidate, and the dossier's review record is named but not supplied. The obligation is therefore not_evidenced and not established. V4-EXM-12 (model access) is set outside the core loop.
+REFERRED Q-4 statement: The journey obligation is incomplete. P20-A is not counted as a completed V4-EXM-20 witness (its result reference is a 'not-run' example), no acceptance act is cited, and there is no independent review record for the journey.
+REFERRED Q-5 statement: The replacement evidence is not complete: the core loop and the journey are not established, and the candidate is not reconciled across them.
+REFERRED Q-6 statement: The packet names six gaps. The first four hold back a claim of replacement qualification and come from DEL-09-02 and DEL-09-07, with the SWBPIPE owner (DEP-001, which is not a deliverable) also named for G-J-WITNESS. The last two, continuity (DEL-11-01) and adoption (DEL-11-02), are carried for the owner and are not replacement conditions. Practitioner validation is not listed as a gap.
+REFERRED Q-7 statement: None of the four alternatives performs the public-release act or retires anything, and under each v3.0.1 remains the fallback unless a further act follows. Only ALT-PUBLISHED needs the owner's separate public-release act before it takes full effect. ALT-OWN-USE moves only the owner's own work; publishing v4 would be a separate act that this alternative does not call for.
+REFERRED Q-8 statement: The disposition record's state is not_presented: the fixture was prepared for the consumption check only, and no owner act is recorded or implied. The disposition record and the continuity hand-off both say v3.0.1 remains the fallback.
+REFERRED Q-9 statement: No practitioner validation period or activities have been agreed and no practitioner use has occurred (standing not_agreed, OI-016 open). The packet states that practitioner validation is not a replacement condition (R23-32 F-R3).
+REFERRED issue (No identifiable candidate in the decision subject): The package's subject names the candidate's revision and build only as 'ILLUSTRATIVE (SQ example; not a real candidate)'. A decision maker therefore has no concrete candidate identity to decide on. This is expected in a fixture, but the alternatives (for example ALT-PUBLISHED) are written as though a specific candidate exists.
+REFERRED issue (Journey dossier: 'not run' versus run artefacts): The LHQ dossier says no case has run, and its P20-A result reference is 'EXP-LHQ-20-not-run-example'. Yet its DEL-09-11 hand-off names a journey run (LHQ-20-EXAMPLE-RUN), a run record set with placeholder hashes, and run authors. All are marked invented, but a reader could take them as signs that a run took place. The packet's gap G-J-WITNESS says the journey was not run.
+REFERRED issue (CIR contributions marked 'answered'): The candidate identification record lists 13 host contributions (HC-1 to HC-13) with standing 'answered', which can look like progress on the journey. Only the packet's terms explain that 'answered' commits, delivers and adopts nothing. Meanwhile every candidate element and every activity binding in the CIR is not_supplied or unbound.
+REFERRED issue (Dossier labelled independent while its review is unresolved): The SQ dossier says it was handed over with reported_as_independent true and names the review record EXP-RX-02. The packet records that review as named_not_resolved, because the record is not supplied. A decision maker reading only the dossier could overrate its independence.
+REFERRED issue (No measured v3.0.1 baseline for 'at least at v3.0.1's level'): v3.0.1 is not rerun. The v3 references attached to each element come from a v3.0.0-era development candidate that is not an ancestor of the v3.0.1 source, and they serve only as context. The comparison rests entirely on V4-EXM-10/11 passing on the candidate. A decision maker should know that no direct v3.0.1 comparison exists.
+REFERRED issue (Fallback identity and ALT-PUBLISHED update consequence not re-checked): The fallback's identity was not re-checked against the remote release. ALT-PUBLISHED's statement that v3.0.x installs would be offered v4 is an inference from historical App v3 records, and the excerpt itself says that record does not assert the latest remote release.
+REFERRED issue (Cited rules and clauses not supplied): Several cited authorities are not in the input set and can be read only through the packet's one-line glosses: R23-43 (the 'any time' ruling), R23-32 F-R2/F-R3, the RP-R1 to RP-R8 rules in REPLACEMENT_PACKET.md, ACT-POLICY (A16), DEL-11-03 REQ-006 and VER-004, and DEL-11-01 VER-003. The terms entry says DEL-11-03's clauses 'are excerpted', but only CLM-001, CLM-003, REQ-004, REQ-005 and AX-001 appear in basis-excerpts.md.
+REFERRED issue (Element mapping of refinement steps): Steps J-8 and J-9, whose v3 references are refinement and reuse runs (J07), count toward 'workflow saving'. The re-runs J-8R and J-9R are tagged 'reuse' but are not counted. As a result, 'reuse' rests on the single step J-7. The rationale for this split is only partly explained, through a proposed rule (TT-7).
+36/36 fields held; 8 issues referred

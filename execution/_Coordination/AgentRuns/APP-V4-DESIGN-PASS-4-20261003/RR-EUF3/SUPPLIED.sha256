@@ -1,0 +1,15 @@
+537d8b8173fb6843917af323b66cf1ea83bdc52125d5ebd35cd5a894259f83a7  ./IS-FX-RP1-3.input-set.sha256
+ca5c86654fbdaf52f9428edb69c2cd9313cc0dfb5f0657b68da4c79b2639452a  ./MANIFEST.sha256
+9167cc57f7565159ffd1622790f5ce19d30bb24468de11b3332d83ae31bbce0e  ./READER_BRIEF.v3.md
+d5a69bc24d9ca346f4210c1a2ad9dee1407c6fb9f96af650f003258badbc99cf  ./legend/rp.disposition.schema.json
+20de252d9b766d43c365a236c8e17c6f1d35ae4acbfc24a4cfdf5e2a2c768b64  ./legend/rp.packet-manifest.schema.json
+47ee064a09a3c919250b044d69de9c323f4ac967f09e762baea8c8224c5b361d  ./package/PKG-REPLACEMENT-FX-RP1-3.json
+a3274e75bfecdc93f709a875a5e8ad1ec95948d50c4e4ddf81f753e7090cdb31  ./packet/RP-FX-RP1.v3.packet-manifest.json
+fe927917e5bfc5f3faba257feb51346202392761d2ba44fcae0a9d1bf99d3e4a  ./packet/basis-excerpts.md
+e4839c918bc8fbbf9f7eaefe9c1da06d782473a97cd117a12808f261e824d110  ./records/RPD-FX-RP1-3.disposition.json
+e163fff30c7c8d98034e2fc47f16ba408267cce705c1e7e00e876396113d7c9b  ./rp.reader-account.v3.schema.json
+97ba911baec400ae68c59dfd73ff2bfd7e25954abd0c45691bb746b489750e5b  ./supplied/continuity-handoff.json
+9ed9cddc34a3db0255a9216dbf3e38c3d8fb25721e2dedb893188869ee0f3800  ./supplied/lhq-cir.LHQ-CIR-EXAMPLE-STATE-2026-10-03.json
+29417ea2ff534dc976d30437d3912e37a6de5c1fe2f47ec492a863fda731bcce  ./supplied/lhq-dossier-manifest.DOS-EXAMPLE-INVENTED.json
+b5547e77d8c5311c28424c2e5a04713584d00d20875affdfb3b9f88829375360  ./supplied/practitioner-standing.json
+e9c71982a17b95cdb22428af07cb0faadd5ce1f997ca74de799049f4148634b0  ./supplied/sq-dossier.SQ-EX-05.json
