@@ -623,3 +623,79 @@ All three DEL-09-07 schemas pass under both validators. Valid examples have 0 er
 All other DEL-09-07 files are as recorded at RR-EUF3.
 
 **Frozen.** No git writes and no network.
+
+## Tranche 2 closeout: own pins (R23-21 item 4; LHQ2-R2, R23-42 item 4)
+
+**Basis.** Base `origin/main` 75604b3c49; HEAD 0d23f45985. For each pin, I read the supplier's diff myself and re-pinned by hand, not by script.
+
+### Items 1 and 2: ACT-POLICY, FLEET_VIEWS and DOS pins
+
+**ACT-POLICY v0.10 → v0.11**, pinned at DAC line 12 and RRM line 19.
+- Read with `git diff 09ca67d094 0bd6e4b4e9` on `ACT_AND_POLICY_CONTRACT.md`. Three lines change: the version label, the v0.11 change note, and the §10.3 DEL-10-03 receiver row. The A16 rows, §2.1, §2.4, §2.5 and §9 are byte-identical. This agrees with the coordinator's correction relaying O-A's check: the claim-connector check is in DEL-06-01's `fleet_store.py`, not in ACT.
+- Re-pinned to `597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2`, with a note naming the version step.
+
+**FLEET_VIEWS**, pinned at DAC line 141 (§6.1).
+- Read `git diff d150856784 HEAD`. The label is still FV-v0.1, changed in place on 2026-10-04. It adds FV-10 (the connector waiting cause) and reads DEL-06-01's RF-5a/5b.
+- Unchanged: the *ready* / *ready (qualified)* row, FV-4a and `readinessQualified`. These are what RW-1 relies on. FV-10's "satisfying a need is not readiness" does not contradict RW-1.
+- Re-pinned to `8c4e83781262d1212c5e462c5b9b2ce65c8b8c5c03fc3aaa5191b18e35a54645`.
+
+**DOS**, pinned at RRM line 15.
+- Read `git diff d150856784 HEAD`. Since `b2ffba71…`, DOS has gained DX-1…DX-3, the LHQ-v0.2 pin and the CIR-schema pin (item 3 below). §5 and DJ-1…DJ-3, which RRM relies on, are unchanged.
+- DX-3 (no DEL-09-11 hand-over when LHQ-20 is not run) agrees with RRM's RF-2, which records EXP *not-run* with the missing input. The pin note says so.
+- Re-pinned to DOS's final bytes, `b4de982f…`, given in the hash table below.
+
+Each re-pinned file has a changes row.
+
+### Items 3 and 4: LHQ and CIR-schema pins
+
+**LHQ2-R2.** The line RV3 asked for is added to CI-5 in place, with a changes row: a CIR carrying `app_candidate_subject` validates only under LHQ-v0.2's CIR schema (`3fb8f586…`), not v0.1's (`194f8419…`); a CIR without the mapping validates under both; `format` stays `LHQ-v0.1` (R23-23 item 3). I verified this:
+- `194f8419…` is the schema at `09ca67d094`, recomputed from git.
+- Under that schema the mapped valid example fails with "Additional properties are not allowed ('app_candidate_subject' was unexpected)", and the unmapped example passes.
+- The CIR schema itself is unchanged.
+
+The coordinator also pointed to R23-53. That ruling concerns P-H1d (situation 2) and does not bear on LHQ2-R2. The governing text is R23-42 item 4, at R23_RESOLUTIONS.md line 613.
+
+**LHQ-v0.1 → v0.2**, pinned at DOS line 9 and TOP line 7.
+- Read `git diff d150856784 HEAD`. Only §3 changes (the App candidate row's pointer and CI-5), plus the header and the changes section. §2.1, CI-4, §5 (with §5.4 and LHQ-23) and §7 are unchanged.
+- Re-pinned to LHQ's final bytes, `d59a1ea0…`, which include the LHQ2-R2 line.
+- TOP's "Serves" line now cites "LHQ §5.4 (unchanged from v0.1 to v0.2)".
+
+**DOS's CIR-schema pin.** On its merits, DOS now pins the v0.2 CIR schema `3fb8f586…` explicitly at line 7. Dossier CIRs may carry the mapping, and a mapped CIR fails the v0.1 schema.
+
+### Checks rerun
+
+| Check | Result |
+|---|---|
+| `fw04_check.py` (`e57359d3…`), on FX-DP1 (`MANIFEST.sha256` `9501ef81…`; all files OK under `shasum -c`) | 22 expectations, 0 failed |
+| RRM `run_standing_check.py` (`8eb1bd19…`; `rrm_compare.py` `48630745…`) | 19 cases, 0 unexpected |
+| RRM schemas | Both pass `check_schema` |
+| RRM input sets IS-FX-DP1, -2 and -3 | 0 errors each |
+| DEL-09-07 schemas, under `jsonschema` 4.26 and the DEL-01-01 subset validator | Dossier, CIR and traffic: valid examples give 0 errors, invalid examples are rejected, and the 5 DX, 2 CI-5 and 2 CB-1 violation examples are schema-valid |
+| `dos_check --outcomes`: valid examples | exit 0 |
+| `dos_check`: valid examples, without `--outcomes` | exit 2 |
+| `dos_check --outcomes`: schema-invalid examples | exit 0 |
+| `dos_check --outcomes`: DX violations | exit 1 |
+| `cir_check` | valid exit 0; CI-5 violations exit 1 |
+| `top_check` | valid exit 0; CB-1 violations exit 1 |
+
+### Hashes
+
+| File | Before | After |
+|---|---|---|
+| DEL-09-05 `DECISION_ATTRIBUTION_CASE.md` | `1fc4fd272c4f155c04f6367fb2e2562071536c78dea579dd1cfedbb889d5756c` | `8810b9570bc653bf75e591fa22ab0a6a1f24b30d84e6e3d646390ba18f52db57` |
+| DEL-09-11 `READER_METHOD.md` | `fcaa654437127306c1560fb5fba8dd5edfae3853af9de47a66ffb4c10963ff32` | `3e24df2764bf881d40dda3c7e31588a5fccc16a68a4886b9aab449ce47316d33` |
+| DEL-09-07 `LOCAL_HOST_QUALIFICATION.md` | `90f461cbbe98de20cdd19e13be6adb82818fa23ea55166cab04833108df8523e` | `d59a1ea011fd860139603fb78c20a3f66b04984f1bc2501ac0af74083876b8f1` |
+| DEL-09-07 `QUALIFICATION_DOSSIER.md` | `72f7324cf1013b6bf42969ffa6c5c43d5c57c69b05c865f374c648b58ebd9bec` | `b4de982f84e8f77aea1678084d40fae23e3a40bbb5614ab111fd2f5482cfd1fe` |
+| DEL-09-07 `TRAFFIC_OBSERVATION_PLAN.md` | `f82a58f6f0681f20bc5dd93af7a9fb456c2fa6cfa642689b675db97e82c000e4` | `dcfcddf0fcdcf56e54b84d1ebd30c0f728aac7082c59462fa4ea12393481f9c8` |
+
+Unchanged: every schema, example file and prototype in the three Design folders. The CIR schema is still `3fb8f586…` and `dos_check` is still `c845bed8…`.
+
+### For other owners (not edited)
+
+- **DEL-11-03 (O-F).** `REPLACEMENT_PACKET.md` line 26 pins LHQ at `90f461cb…`. The LHQ2-R2 line moves LHQ to `d59a1ea0…`. Only CI-5's text changed; the CIR schema and examples it vendors are unchanged. This goes to O-F for their own pin pass.
+- **Older pins in LHQ line 10, not listed by HELP_HUMAN's scan.**
+  - ACT-POLICY-v0.9, RS-v0.9 and EXEC-v0.7 are stated keeps: the line pins "the versions relied on, their committed bytes at commit `cec590c5c3`" (R23-21 item 3).
+  - GUIDE-v0.7 at `a656682e…` is **not** a stated keep. O-A changed GUIDE in place at `48df7404c7` (2026-10-04), today's closeout, re-pinning only GUIDE's own ACT row from v0.10 to v0.11; GUIDE is now `5050658818c2…`. HC-7.3 and HC-7.9, which LHQ relies on, are untouched by that diff.
+  - I left the GUIDE pin unchanged because it was outside the listed items. Re-pinning it would move LHQ again, and with it the LHQ pins in DOS and TOP and the DOS pin in RRM. The coordinator decides.
+
+**Frozen.** No git writes and no network.
