@@ -78,6 +78,13 @@ introduced if integration work starts delaying owner-facing work.
 
 **Reporting.** Usable results and material gaps, not agent rosters.
 
+**Adjustments (2026-10-04, HELP_HUMAN self-review against the method).**
+- Owners break each rule a checker claims to enforce, keep the refused cases, and list in the freeze record which claimed rules have none (three findings shared this cause: the tranche-1 comparison checker, EUF4-R1, AA1-R1).
+- A consequential ruling quotes its governing source line and rules no more than that line settles.
+- No new process record unless it fixes an observed defect.
+- Prototypes stop at the design question they resolve.
+- The tranche-2 closeout gives the owner a 60% position statement, not only a run receipt; each closeout item names the condition still unestablished.
+
 ## Nodes
 
 | ID / outcome | Write scope | Needs | Check | State |
