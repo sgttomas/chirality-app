@@ -279,8 +279,13 @@ def main():
         shutil.rmtree(croot)
     shutil.copytree(root, croot)
     os.makedirs(os.path.join(croot, "connectors"))
-    for name in ("PR-P6", "PR-P3", "PR-P1"):
+    for name in ("PR-P6", "PR-P3", "PR-P1", "PR-P8"):
         shutil.copyfile(fleet_store.vendored(name + ".json"), os.path.join(croot, "connectors", name + ".json"))
+    with open(fleet_store.vendored("PR-P8.json"), encoding="utf-8") as fh:
+        p8 = json.load(fh)
+    p8["route"]["needed"] = False                      # RV2's P8 variant: nothing else changed
+    with open(os.path.join(croot, "connectors", "PR-P8-noroute.json"), "w", encoding="utf-8") as fh:
+        json.dump(p8, fh)
     with open(fleet_store.vendored("PR-P3.json"), encoding="utf-8") as fh:
         forged = json.load(fh)
     forged["response_standing"]["supports_reliance"] = True
@@ -301,7 +306,9 @@ def main():
              item("C8a", "absent connector", MGR, needs=[cneed("PR-P6")]), item("C8b", "adopted, current", MGR, needs=[cneed("PR-P1")]),
              item("C8c", "plain input", MGR, needs=[{"kind": "input", "ref": "inputs/STYLE.md"}]),
              item("H1", "half-truncated", MGR, needs=[cneed("PR-P6-half")]), item("H2", "renamed key", MGR, needs=[cneed("PR-P6-renamed")]),
-             item("H3", "missing", MGR, needs=[cneed("PR-P9")]), item("H4", "undeclared", MGR, needs=[{"kind": "input", "ref": "connectors/PR-P1.json"}])]
+             item("H3", "missing", MGR, needs=[cneed("PR-P9")]), item("H4", "undeclared", MGR, needs=[{"kind": "input", "ref": "connectors/PR-P1.json"}]),
+             item("P8a", "claim c3 unknown, route needed", MGR, needs=[cneed("PR-P8")]),
+             item("P8b", "claim c3 unknown, no route", MGR, needs=[cneed("PR-P8-noroute")])]
     gp = cw.graph(hdr("fl:graph:FX-U1:r3", "work_graph", MGR, "g3", {"revision": 3, "supersedes": "fl:graph:FX-U1:r2",
                                                                      "projectDagRef": r2["body"]["projectDagRef"],
                                                                      "items": r2["body"]["items"] + extra}))
@@ -320,6 +327,12 @@ def main():
     check(cf["H1"]["state"] == "unknown" and cf["H2"]["state"] == "unknown" and cf["H3"]["state"] == "outstanding"
           and "not present" in cf["H3"]["why"] and cf["H4"]["state"] == "unknown",
           "RF-5a/RF-5b (FV10-R1) half-truncated or renamed-key record: unknown; missing: outstanding; undeclared connector record as input: unknown")
+    check(cf["P8a"]["state"] == "satisfied" and any(u.startswith("c3 unknown") for u in cf["P8a"]["unreliedClaims"])
+          and "claim(s) not relied: c3 unknown" in cf["P8a"]["why"] and "ra:EUD1-Q1 is still needed" in cf["P8a"]["why"]
+          and cf["P8a"]["advisoryClaims"] == ["c8 presence advisory"],
+          "RF-5a (FV10-R7) PR-P8 with route.needed true: satisfied, naming claim c3 unknown and the route that covers it; c8 advisory")
+    check(cf["P8b"]["state"] == "unknown" and "c3 unknown" in cf["P8b"]["why"] and "names no source-file route" in cf["P8b"]["why"],
+          "RF-5a (FV10-R7) PR-P8 with route.needed false: record-level reliance does not hide claim c3 unknown; the need is unknown")
     saved = fleet_store.VENDORED
     tam = os.path.join(scratch, "vendored-tampered")
     if os.path.exists(tam):
@@ -335,6 +348,31 @@ def main():
     finally:
         fleet_store.VENDORED = saved
     check(refused, "R23-44 a vendored input whose bytes differ from VENDOR.json is refused before use")
+    # FV10-R8: edit a vendored file AND its VENDOR.json entry together: the pinned VENDOR.json hash refuses it.
+    tam2 = os.path.join(scratch, "vendored-tampered-2")
+    if os.path.exists(tam2):
+        shutil.rmtree(tam2)
+    shutil.copytree(saved, tam2)
+    sp = os.path.join(tam2, "connector.standing.schema.json")
+    with open(sp, "a", encoding="utf-8") as fh:
+        fh.write(" ")
+    vj = os.path.join(tam2, "VENDOR.json")
+    with open(vj, encoding="utf-8") as fh:
+        vm = json.load(fh)
+    for f in vm["files"]:
+        if f["file"] == "connector.standing.schema.json":
+            with open(sp, "rb") as fh2:
+                f["sha256"] = __import__("hashlib").sha256(fh2.read()).hexdigest()
+    with open(vj, "w", encoding="utf-8") as fh:
+        json.dump(vm, fh, indent=2, ensure_ascii=False)
+    fleet_store.VENDORED = tam2
+    try:
+        fleet_store.connector_need(croot, cneed("PR-P1")); refused2 = False
+    except fleet_store.VendoredInputChanged:
+        refused2 = True
+    finally:
+        fleet_store.VENDORED = saved
+    check(refused2, "FV10-R8 a vendored file edited together with its VENDOR.json entry is refused (VENDOR.json is pinned)")
 
     print("\n== invalid records (schema) ==")
     disp = next(e for e in rd.log if e["kind"] == "dispatch_observed")

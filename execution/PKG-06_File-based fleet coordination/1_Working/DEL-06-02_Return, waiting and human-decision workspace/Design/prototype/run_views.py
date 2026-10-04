@@ -170,8 +170,13 @@ def main():
         shutil.rmtree(croot)
     shutil.copytree(FX_FL1, croot)
     os.makedirs(os.path.join(croot, "connectors"))
-    for name in ("PR-P6", "PR-P3", "PR-P1"):
+    for name in ("PR-P6", "PR-P3", "PR-P1", "PR-P8"):
         shutil.copyfile(vendored(name + ".json"), os.path.join(croot, "connectors", name + ".json"))
+    with open(vendored("PR-P8.json"), encoding="utf-8") as fh:
+        p8 = json.load(fh)
+    p8["route"]["needed"] = False
+    with open(os.path.join(croot, "connectors", "PR-P8-noroute.json"), "w", encoding="utf-8") as fh:
+        json.dump(p8, fh)
     with open(vendored("PR-P3.json"), encoding="utf-8") as fh:
         p3 = json.load(fh)
     forged = json.loads(json.dumps(p3)); forged["response_standing"]["supports_reliance"] = True
@@ -206,7 +211,9 @@ def main():
         {"itemId": "W18", "outcome": "Q1 (record missing)", "owner": mgr, "needs": [need_c("PR-P9-missing")], "selected": True},
         {"itemId": "W19", "outcome": "Q1 (connector record as plain input)", "owner": mgr,
          "needs": [{"kind": "input", "ref": "connectors/PR-P1.json"}], "selected": True},
-        {"itemId": "W20", "outcome": "Q1 (declared domains, record is pec)", "owner": mgr, "needs": [need_c("PR-P1", "domains")], "selected": True}]
+        {"itemId": "W20", "outcome": "Q1 (declared domains, record is pec)", "owner": mgr, "needs": [need_c("PR-P1", "domains")], "selected": True},
+        {"itemId": "W21", "outcome": "Q1 (P8: claim c3 unknown, route needed)", "owner": mgr, "needs": [need_c("PR-P8")], "selected": True},
+        {"itemId": "W22", "outcome": "Q1 (P8: claim c3 unknown, no route)", "owner": mgr, "needs": [need_c("PR-P8-noroute")], "selected": True}]
     r3 = {"format": "chirality.fleet.record", "formatVersion": "0.1", "recordId": "fl:graph:FX-U1:r3", "kind": "work_graph",
           "undertaking": "FX-U1", "recorder": mgr, "writtenAt": "g3",
           "body": {"revision": 3, "supersedes": "fl:graph:FX-U1:r2", "projectDagRef": r2["body"]["projectDagRef"],
@@ -243,10 +250,15 @@ def main():
     check(C["W19"]["category"] == "unknown" and any("named as a plain input" in c for c in C["W19"]["causes"])
           and C["W20"]["category"] == "unknown" and any("not the declared domains" in c for c in C["W20"]["causes"]),
           "FV10-R1 a connector record named as a plain input, or declared under the wrong connector, is unknown; presence never applies")
+    check(C["W21"]["category"] == "ready (qualified)" and any("claim(s) not relied: c3 unknown" in c and "ra:EUD1-Q1 is still needed" in c
+                                                              for c in C["W21"]["causes"]),
+          "FV10-R7 C13 PR-P8 with route.needed true: the row names claim c3 unknown and the route covering it")
+    check(C["W22"]["category"] == "unknown" and any("c3 unknown" in c and "names no source-file route" in c for c in C["W22"]["causes"]),
+          "FV10-R7 C14 PR-P8 with route.needed false: unknown, never a bare 'reliance supported'")
     from fleet_store import Reader as _R
     raw = {f["itemId"]: f for f in _R(croot, RS_LOG).item_facts("FX-U1")["items"]}
     expect = {"W10": "outstanding", "W11": "outstanding", "W13": "satisfied", "W14": "unknown", "W15": "unknown",
-              "W16": "unknown", "W17": "unknown", "W18": "outstanding", "W20": "unknown"}
+              "W16": "unknown", "W17": "unknown", "W18": "outstanding", "W20": "unknown", "W21": "satisfied", "W22": "unknown"}
     agree = all(raw[i]["needs"][0]["state"] == s and raw[i]["needs"][0].get("connectorNeed") for i, s in expect.items())
     check(agree and C["W10"]["category"] == "waiting",
           "FV-10 C8 (R23-39) DEL-06-01's facts (RF-5a) now read connector needs by CS-R1; FV-10 words them, no override")

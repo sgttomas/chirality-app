@@ -44,6 +44,9 @@
     and re-pinned to EU-D1 v0.2 (CFB-v0.2: schema `bf4cef4d…`) from v0.1
     (`589f2c5d…`);
   - cases C9–C12 are added.
+
+  Later on 2026-10-04 (RV2 FV10-R7): claim-level gaps are named, and a gap
+  no route covers is *unknown*; cases C13–C14 (PR-P8, vendored) are added.
   Also on 2026-10-04, FV-10's CS-R2 wording was restated to R23-40: FV's
   categories come from files only, satisfying a need is not readiness, and
   "done" points to CFB §3. Behaviour is unchanged (C1–C8).
@@ -167,7 +170,11 @@ DEL-06-01 recorded it; PEC.
     says "connector reliance supported (‹connector›: ‹facets›; ‹record›)".
     Where the record says the source-file route is still needed for part of
     its question, the row adds that reliance covers only the covered parts
-    and names the route (FV10-R3).
+    and names the route (FV10-R3). Where a record-tier claim inside the
+    record does not support reliance (e.g. PR-P8's c3 *unknown*), the row
+    names it: "claim(s) not relied: c3 unknown: …" (FV10-R7). If the record
+    names no route for that claim, the need is *unknown* instead
+    (DEL-06-01 RF-5a).
   - **Unknown** ("cause not established") in these cases:
     - the condition is *unknown* (CS-R5);
     - the record is unreadable or has no standing;
@@ -231,12 +238,12 @@ DEL-06-01 recorded it; PEC.
 | VER-001 | W8's return queued *awaiting review* with returner and examiner; a return on an item with no brief shows "examiner not established" (FV-2a); W7's child completed and an agent claims it done, but it is not queued and stays *unknown*; W1 left the queue only on its integration record |
 | VER-002 | Ready rows are labelled *ready (qualified)*, with the unassociated child `thr-cx` as their first cause; no qualified row renders as bare *ready* (FV-4a). With every line read, the queue is complete. W3 waits for W2, with basis-change and related-conversation annotations; W5 waits for the person's decision on PKG-2; W4 is ready with the A16 decision shown; W2 is *unknown* after quit; W9 is ready once W6's external result and its input exist; no item has a blank cause |
 | VER-005 | A separate process rebuilds identical views; input hashes unchanged |
-| VER-002, VER-006 (FV-10) | Over a scratch copy of FX-FL1 with revision r3 and O-D's example records (`RUN/D/build/records/`, read as they are):<br>• C1: W10 on PR-P6 (absent, envelope unknown) waits, with the route ra:EUD1-Q1;<br>• C2: W11 on PR-P3 (adopted, stale) waits, reliance not supported;<br>• C3: W12 on PR-P1 (adopted, current) still waits for W2, with reliance shown supported;<br>• C4: W13 on PR-P1 alone is ready (qualified, FV-4a);<br>• C5: a PR-P3 standing altered to claim reliance is nonconformant, so *unknown*;<br>• C6: condition *unknown* stays *unknown*;<br>• C7: no other row changes (CS-R2);<br>• C9 (FV10-R3): W13's satisfied need names the route ra:EUD1-Q1 still needed;<br>• C10 (FV10-R1, RV2 probes): a half-truncated record and a renamed standing key give *unknown*;<br>• C11: a missing declared record is *outstanding* (waiting), with the connector named;<br>• C12: a connector record used as a plain input, or declared under the wrong connector, is *unknown*;<br>• C8: DEL-06-01's facts (RF-5a) give the same states (absent and stale outstanding, adopted and current satisfied, nonconformant and unknown *unknown*) and FV adds no override |
+| VER-002, VER-006 (FV-10) | Over a scratch copy of FX-FL1 with revision r3 and O-D's example records (`RUN/D/build/records/`, read as they are):<br>• C1: W10 on PR-P6 (absent, envelope unknown) waits, with the route ra:EUD1-Q1;<br>• C2: W11 on PR-P3 (adopted, stale) waits, reliance not supported;<br>• C3: W12 on PR-P1 (adopted, current) still waits for W2, with reliance shown supported;<br>• C4: W13 on PR-P1 alone is ready (qualified, FV-4a);<br>• C5: a PR-P3 standing altered to claim reliance is nonconformant, so *unknown*;<br>• C6: condition *unknown* stays *unknown*;<br>• C7: no other row changes (CS-R2);<br>• C9 (FV10-R3): W13's satisfied need names the route ra:EUD1-Q1 still needed;<br>• C10 (FV10-R1, RV2 probes): a half-truncated record and a renamed standing key give *unknown*;<br>• C11: a missing declared record is *outstanding* (waiting), with the connector named;<br>• C12: a connector record used as a plain input, or declared under the wrong connector, is *unknown*;<br>• C13 (FV10-R7): W21 on PR-P8 (record-level reliance, claim c3 *unknown*, route needed) is ready (qualified) and its row names c3 and the route;<br>• C14: W22 on the same record with `route.needed` false is *unknown*;<br>• C8: DEL-06-01's facts (RF-5a) give the same states (absent and stale outstanding, adopted and current satisfied, nonconformant and unknown *unknown*) and FV adds no override |
 | VER-006 | Without RS records, decision waits are "cause not established". An extra torn line is a limit and marks the queue incomplete. **P1:** W8's return line is truncated: the queue is not complete, W8 is *unknown* (never *in progress*), and no item is *ready*. **P2:** W2's dispatch line is truncated: W2 is *unknown* (never "ready … no dispatch observed") and its orphaned observation is a limit. **P3:** the A16's RS line is truncated: no crash, a limit, and W4's decision need is *unknown*. With no graph selected, no rows and the reason. No PEC input |
 | VER-003, VER-004 | The decision view (DECISION_VIEW §8; run folder `E/`) |
 | VER-007 | §6 and DECISION_VIEW §7: inputs, owners, the runtime value, the handoff to DEL-09-05 without a joined claim |
 
-Result on 2026-10-04, after RV2's FV10 repairs: 34/34 (31 before; +C9…C12).
+Result on 2026-10-04, after FV10-R7: 36/36 (34 before; +C13, C14).
 
 ## 8. Open matters
 

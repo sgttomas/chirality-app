@@ -109,3 +109,4 @@ Practice from UC P-E6: a reviewer of a unit that also has a cold reader receives
 | RV2 | FV-10 + RF-5a CONFIRMED READY (clean git-archive extract reproduces 42/42, 34/34). FV10-R7 MINOR (RF-5a hides a claim-level unknown, P8) + notes → O-A |
 | RR-EUF3 | Third reader: 36/36 fields, 8 legibility issues referred (`RR-EUF3/COMPARE.txt`). R23-49: EU-F1 passed as early path; issues → O-F (next unit), DOS run-artefact note → O-C. To RV3 |
 | O-E | Froze DA-v0.1 (DEL-10-04; strict audit 0 on DAG-001…004), UC-v0.2 (RV3-UC1 repairs; PN-9), EB-v0.4. Findings: CASE-002 DAG-004 evidence update not applied (carried from SCA-V4-003; closeout item); DEP-005 row text predates D4/R23-22 (next amendment). Committed by path; to RV3 |
+| O-A | FV10-R7/R8 round frozen (run_fleet 45/45, run_views 36/36; PR-P8 vendored from O-D's uncommitted evidence folder — re-pin if O-D's committed bytes differ). Committed by path; to RV2 |

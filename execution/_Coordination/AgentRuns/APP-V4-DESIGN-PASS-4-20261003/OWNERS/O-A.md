@@ -4,7 +4,55 @@ Owner O-A: Type 2 TASK, Claude Opus 5.5, high effort, standing assignment
 from HELP_HUMAN (run `APP-V4-DESIGN-PASS-4-20261003`). Read-only git; no
 network. Paths are relative to `projects/chirality-app-v4/execution`.
 
-## CURRENT — FV-10 + RF-5a refrozen after RV2-FV10 (2026-10-04), with vendored inputs
+## CURRENT — FV10-R7/R8 round frozen (2026-10-04); FV-10 + RF-5a READY at 289248709f before it
+
+Commit by path:
+- the eight changed files below;
+- the new `vendored/EU-D1/PR-P8.json`;
+- the changed `VENDOR.json`.
+
+`git status --short --ignored` on PKG-06 lists exactly these, with no ignored
+file.
+
+- **FV10-R7 (MINOR).** RF-5a now reads each claim's own standing when the
+  record supports reliance:
+  - a record- or admitted-tier claim that does not support reliance is
+    listed in the fact (`unreliedClaims`, e.g. "c3 unknown: …");
+  - if the record's `route.needed` is false, the need is **unknown**, not
+    satisfied, so record-level reliance never hides a claim-level gap;
+  - presence-advisory claims are listed as advisory, not as gaps.
+
+  Cases on vendored PR-P8:
+  - `route.needed` true → satisfied, naming c3 and the route (run_fleet P8a;
+    FV C13);
+  - `route.needed` false, nothing else changed → unknown (run_fleet P8b;
+    FV C14).
+- **FV10-R8 (notes).**
+  - `VENDOR.json` is pinned in `fleet_store.py` (`VENDOR_SHA256`). A case
+    edits a vendored file and its entry together, and it is refused.
+  - The schema's connector label now says CFB-v0.2.
+  - FR RF-5b states that the declaration is the contract: a torn record used
+    as a plain input reads by presence, as any plain input does.
+- **PR-P8 vendored** from O-D's `D/evidence/records/` (`174e1291…`), after
+  the R23-48.1 move. It was not yet in git when I copied it, so if O-D's
+  committed bytes differ I re-pin (VENDOR.json says so).
+- **Checks.** `run_fleet.py` 45/45 (42 before); `run_views.py` 36/36 (34
+  before). FX-FL1 is unchanged. No `__pycache__`.
+
+| File | sha256 |
+|---|---|
+| DEL-06-01 `Design/FLEET_RECORDS.md` | 0af6a1893801936dd51cbbfa8ca215cc904afc1da12a202e354a5cd5cc65e66f |
+| DEL-06-01 `Design/fleet.record.schema.json` | 191ca7b16912a095ee2650d975d60b1ab65d0e3f585d2391d6b8e6db288b0918 |
+| DEL-06-01 `Design/prototype/fleet_store.py` | eb391dbbd61c34b5d7b16aa20662188865f077b25a6b6b939f5bd7767d010016 |
+| DEL-06-01 `Design/prototype/run_fleet.py` | efffb67b19bdc559b6dacf52c09f89b6c5c92d5f54919abac8b1ccabe21063ad |
+| … `vendored/EU-D1/VENDOR.json` (pinned as `VENDOR_SHA256`) | d02ffe5d90c2a96292f085194860313cbeb33e3fe26fa0a4355b8846d1ebe811 |
+| … `vendored/EU-D1/PR-P8.json` (new) | 174e129146ad13932211a5c1407eb5089969c62fca5f53f5fb299ef44bbe4fec |
+| … `vendored/EU-D1/` schema, PR-P1, PR-P3, PR-P6 | unchanged (`bf4cef4d…`, `b9cd7cce…`, `fcacb91a…`, `98aa1d8e…`) |
+| DEL-06-02 `Design/FLEET_VIEWS.md` | 8c4e83781262d1212c5e462c5b9b2ce65c8b8c5c03fc3aaa5191b18e35a54645 |
+| DEL-06-02 `Design/prototype/fleet_views.py` | 6be29240168e2fff3305277e41dbb3a319c0df4fc1a2b16f727b4fd2fb30a8ec (unchanged) |
+| DEL-06-02 `Design/prototype/run_views.py` | a831199c6c9dc8bda020f5b4023e74602c52174ce318246e4ee9e5342ed999da |
+
+## FV-10 + RF-5a refrozen after RV2-FV10 (READY at 289248709f) (2026-10-04), with vendored inputs
 
 This section supersedes the FV-10 and RF-5a sections below. Commit the unit
 **with** `DEL-06-01 Design/prototype/fixtures/vendored/EU-D1/` (5 files).

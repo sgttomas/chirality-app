@@ -32,10 +32,20 @@ class VendoredInputChanged(Exception):
     pass
 
 
+# FV10-R8: VENDOR.json is itself pinned, so a vendored file and its entry cannot be edited together unnoticed.
+# Changing a vendored input is a deliberate re-pin: update VENDOR.json and this constant together.
+VENDOR_SHA256 = "d02ffe5d90c2a96292f085194860313cbeb33e3fe26fa0a4355b8846d1ebe811"
+
+
 def vendored(name):
-    """R23-44: a vendored input's path, after checking its bytes against VENDOR.json (raises if they differ)."""
-    with open(os.path.join(VENDORED, "VENDOR.json"), encoding="utf-8") as fh:
-        pins = {f["file"]: f["sha256"] for f in json.load(fh)["files"]}
+    """R23-44: a vendored input's path, after checking VENDOR.json against VENDOR_SHA256 and the input's bytes against
+    VENDOR.json (raises VendoredInputChanged if either differs)."""
+    vpath = os.path.join(VENDORED, "VENDOR.json")
+    with open(vpath, "rb") as fh:
+        raw = fh.read()
+    if hashlib.sha256(raw).hexdigest() != VENDOR_SHA256:
+        raise VendoredInputChanged(f"VENDOR.json: sha256 {hashlib.sha256(raw).hexdigest()} differs from the pinned {VENDOR_SHA256}")
+    pins = {f["file"]: f["sha256"] for f in json.loads(raw.decode("utf-8"))["files"]}
     path = os.path.join(VENDORED, name)
     with open(path, "rb") as fh:
         got = hashlib.sha256(fh.read()).hexdigest()
@@ -91,10 +101,36 @@ def connector_need(root, need):
         (f", claim tier {st['claim_tier']}" if "claim_tier" in st else "")
     reasons = "; ".join(f"{r['facet']} {r['value']}: {r['basis']}" for r in st["reasons"])
     if st["supports_reliance"]:
+        # FV10-R7 (EUD1-R12): record-level reliance must not hide an unrelied claim. Each claim's own standing is read;
+        # a record- or admitted-tier claim (or one whose tier is unknown) that does not support reliance is listed.
+        # Without a route covering it, the need is unknown, not satisfied; presence-advisory claims are listed as advisory.
+        validator = _standing_validator()
+        unrelied, advisory = [], []
+        for c in rec.get("claims") or []:
+            cs = c.get("standing") if isinstance(c, dict) else None
+            cid = c.get("claim_id", "?") if isinstance(c, dict) else "?"
+            if not isinstance(cs, dict) or list(validator.iter_errors(cs)):
+                unrelied.append(f"{cid} standing not readable or nonconformant")
+            elif not cs["supports_reliance"]:
+                why = next((r["basis"] for r in cs["reasons"] if r["facet"] == "condition" and cs["condition"] != "current"), None) \
+                    or next((r["basis"] for r in cs["reasons"] if r["facet"] == "claim_tier"), "")
+                if cs.get("claim_tier") == "presence_advisory":
+                    advisory.append(f"{cid} presence advisory")
+                else:
+                    unrelied.append(f"{cid} {cs['condition']}" + (f": {why}" if why else ""))
+        notes = ""
+        if unrelied and not route.get("needed"):
+            return dict(base, state="unknown", unreliedClaims=unrelied, advisoryClaims=advisory,
+                        why=f"connector record {rid} supports reliance at record level ({facets}), but claim(s) "
+                            f"{'; '.join(unrelied)} do not, and the record names no source-file route for them")
+        if unrelied:
+            notes += f"; claim(s) not relied: {'; '.join(unrelied)}"
+        if advisory:
+            notes += f"; advisory only: {'; '.join(advisory)}"
         part = (f"; reliance covers only the record's covered parts: the source-file route {route.get('account_ref')} "
                 f"is still needed for the rest" if route.get("needed") else "")
-        return dict(base, state="satisfied", why=f"connector reliance supported ({st['connector']}: {facets}; {rid}){part}",
-                    routeNeeded=bool(route.get("needed")))
+        return dict(base, state="satisfied", why=f"connector reliance supported ({st['connector']}: {facets}; {rid}){notes}{part}",
+                    routeNeeded=bool(route.get("needed")), unreliedClaims=unrelied, advisoryClaims=advisory)
     state = "unknown" if st["condition"] == "unknown" else "outstanding"
     return dict(base, state=state,
                 why=f"connector {st['connector']} does not support reliance ({facets}; {rid}): {reasons}"
