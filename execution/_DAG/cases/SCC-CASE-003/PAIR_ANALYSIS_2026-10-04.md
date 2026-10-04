@@ -215,3 +215,68 @@ None.
 | The 3 SCC-002 rows whose kind my parser did not find in G1 (DEP-02-01-020, -021, DEP-05-01-020) | Defaulted to I. They cannot affect SCC-003's members, which no SCC-002 arc reaches in DAG-004 (checked: no SCC contains 01-06 or 09-01 except their own) |
 | Whether N08, N26 and N27 will be registered, and with what moves | Other cases and owners (G1 §2b) |
 | The rewordings themselves | Proposed here, not applied. Each is a design-agent task with its own review |
+
+## 7. 2026-10-04 note after review RVG2-CASE-003 (append-only)
+
+This section adds to §1–§6; it does not edit them.
+- **Review.** `E/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/reviews/RVG2-CASE-003.md` (sha256 `5935d45e5572eb2c5134f37993b5e9dbc17d138d0eea5efa53571537a207dba3`), verdict READY: 3 MINOR, 4 NOTE.
+- **Current basis.** `GC_RULINGS.md` at sha256 `7fcbb551ea4605f77eb09d70ff3b57549d01f07e2b7992be04feb8beade9c65b`, now including GC-5. Read at HEAD `0d338dd7b1`.
+- **Moves file.** The superseding rows are M3-01a and M3-02a.
+
+### 7.1 C3-m1: the checks move; they are not removed
+
+§4.1's "No check is removed, narrowed or bypassed" overstates it. Two checks leave DEL-01-06 and are applied at DEL-09-01's mapping (M3) instead, later than before:
+- PKG-VC-03's expectation that the witness is written "as an EXP record", which is EXP-schema conformance at write time;
+- PKG §8's gate that N-2 automation is used only "once the tool version has passed EXP-DC-N2".
+
+After M3-01:
+- An automation-operated witness with no EXP-DC-N2 still meets DEL-01-06's AC-003.
+- DEL-09-01 maps it to `not-run` until the tool passes EXP-DC-N2 on that candidate (EXP F-5a).
+
+This is the relocation GC-1 (b) asks for. It is a **relocation, not a removal**, and the move stands.
+
+**Keeping OUT-003 "usable by App PKG-09"** (DEL-01-06 OUT-003). This adds one line to the PKG §8 rewording:
+
+> "The witness is operated by a person by default. If an automation tool operates it, the record names the tool and its version, and states that PKG-09 relies on it only once that tool has passed its own definition check on the candidate."
+
+The admission criterion stays DEL-09-01's. DEL-01-06 states only the risk, so no EXP content is used (GC-1 (a)).
+
+### 7.2 C3-m2: the PKG rewording list, completed (GC-5 item 3)
+
+§4.1's list misses four EXP uses in PKG-v0.2. Under GC-5 item 3, any use left in the Design would have to be carried into DEL-01-06's ScopeOfWork as an I row 01-06 → 09-01, which re-forms the cycle under every option. So all four are reworded together with §4.1's list:
+
+| PKG-v0.2 place | Now | Rewording |
+|---|---|---|
+| Header, basis line "Examination support (SCC-003 M1): DEL-09-01 `EXAMINATION_PROTOCOL.md` …" | A basis pin on EXP | Removed |
+| §1 owner table, row "Joined examination of the packaged candidate \| DEL-09-01 support; DEL-09-02 and other journeys" | Names DEL-09-01's support as a part of DEL-01-06's act boundary | "Joined examination of the packaged candidate \| PKG-09 (DEL-09-01, DEL-09-02 and other journeys) \| §8 hands the package and its witness over". This is an attribution only (GC-5 item 2) |
+| §6 PS-10 | "FP-2, FP-4, FP-5 and the witness (§8) as EXP records citing the identity record … EXP outcome" | "… as elements of the identity record (§7.1); outcome by the HOSTING §9.3 labels (R23-1) with R23-20's meanings" |
+| §8 "Outcome by EXP §3.1 (R23-20)" | Cites EXP | "Outcome by R23-20", citing the ruling whose own text carries the meanings (GC-5 item 2) |
+
+After these and §4.1's rewordings, PKG-v0.2 has no use of DEL-09-01 content. A grep for "EXP" in PKG and its schema should then find nothing; that is the check to run when the rewording is applied.
+
+### 7.3 C3-m3: the kept arc becomes I/V, and M3-02's rationale is restated
+
+**What the kept arc becomes.** After M3-01, DEL-09-01 "maps" DEL-01-06's witness "in its own form". So it needs DEL-01-06's witness-record definition (G1 K-2), as well as the actual package for its smoke (V). A refreshed DEP-09-01-016, or a new row on the same arc, therefore reads **I/V**, with I primary under K-5's last sentence. This has two consequences:
+
+1. **Under O-2…O-4 the arc 09-01 → 01-06 now sequences**, where before it left with the V class. It closes no cycle: SCC-003's 2-cycle needs DEP-09-01-021, which M3-01 retires. RVG2 computed this too. The ordering it adds (DEL-09-01's mapping after DEL-01-06's witness definition) is the order EXP §10 already describes.
+2. **M3-02 restated.** After M3-01, a cut of DEP-09-01-016 would remove an arc that carries an interface need (the witness definition), not only a witness input. §4.3's "the only row in SCC-003 whose kind makes a cut natural" no longer holds after M3-01. What M3-02 now is:
+   - It is the smallest owner act that keeps DEL-01-06 out of the large component **if** N08, N26 or N27 are registered uninverted under O-1.
+   - The cut would cover both parts of the row.
+   - The interface need would stay a register obligation at its point of need ("before relying on that witness", VER-008).
+   - If the owner prefers not to cut an I row, the alternative is to accept DEL-01-06's membership in that component until those items' own moves resolve it.
+
+### 7.4 Notes taken in
+
+- **C3-n1: the K-5 reading of CLM-005.** Read with CLM-005 as P (K-5's letter), DEP-09-01-016 is not V, and SCC-003 persists under O-2…O-4 without a move. M3-01 still closes it under every option. §4.2 and §5's "No move … is needed under O-2…O-4; M3-01 is optional" holds only on G1 r3's V reading. M3-01 is the move that is **robust to the kind reading**, and is proposed under every option on that ground.
+- **C3-n2: self-review.** Acknowledged. The reversal of my own EXP §10 M1 and PKG I-5 relocates checks (§7.1) and softens nothing else.
+- **C3-n3.** Agreed.
+- **C3-n4: GC-5 item 4.** The "no row is added" conclusion in §4.1 is provisional until G2b reports.
+
+### 7.5 Effect on §5
+
+- **Pair verdict and closure:** unchanged.
+- **M3-01:** proposed under every option, because of C3-n1. It takes the completed rewording list (§4.1 plus §7.2) and the relocation statement (§7.1).
+- **M3-02:** a conditional owner cut, under O-1 only, with the restated rationale (§7.3).
+- **Owner acts per option:**
+  - O-1: SCA acceptance, plus M3-02 only in the conditional case;
+  - O-2…O-4: SCA acceptance, if M3-01 is taken; otherwise none on G1 r3's reading.
