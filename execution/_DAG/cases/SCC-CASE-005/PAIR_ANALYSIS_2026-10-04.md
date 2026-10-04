@@ -305,3 +305,106 @@ DRC is rule-bearing on CFB's vocabulary, which makes DEP-08-01-009 a definitiona
 | Whether `dependency-extract` stops reading DEL-07-01 AC-005's "handed to DEL-07-02" as a contract input once CFB carries records by reference | If it does not, the conditional S1 on AC-005 is needed |
 | Whether the owner prefers narrowing DEL-07-02 VER-006 to a per-edge cut under O-1 | Owner's choice. Both are listed |
 | Review of the proposed CFB and DRC rewordings | They are proposals. Each is reviewed when applied |
+
+## 8. 2026-10-04 repair (RVG-CASE-005: C5-M1, C5-m1)
+
+**Standing and scope.**
+- This section repairs §1–§7 under review RVG-CASE-005 (`reviews/RVG-CASE-005.md`, sha256 `a86c9a959696a54146c2d3c77cd8ebd866782b67f8b72ea2341e767736c738cd`, commit `e987d34d2c`, verdict REPAIR, narrow).
+- It is append-only. Nothing above is deleted. Where this section and an earlier one differ, **this section supersedes** it.
+- **Superseded:**
+  - §2.5's "Residual" and "Closes the arc under" lines;
+  - §3.5's same two lines;
+  - the M-01 rewording sentence for CFB §1 ("It reads only the standing …");
+  - §5's closure table and "What remains";
+  - §6's owner-acts paragraph;
+  - the CSV rows M-01, M-02, M-03 and M-04, superseded by M-01-R, M-02-R and M-03-R.
+- **What stands, as RVG confirmed:**
+  - both artefact verdicts;
+  - the rewordings' direction;
+  - R23-34 item 1's vocabulary ownership;
+  - the GC-1 (b) claim;
+  - leaving DEP-07-01-014 and DEP-08-01-009 unmoved;
+  - the GC-4 entry for R23-34 item 1.
+
+### 8.1 C5-M1: the runtime hand-over is an E row on both arcs
+
+**Finding accepted.** The rewording withdraws the *contract* input (I) but keeps a *runtime* flow on both arcs:
+- **Arc DEL-07-02 → DEL-07-01.**
+  - DEL-07-01 REQ-005 ("connect the affected coordination question to the source-file route supplied by `DEL-07-02`") and AC-005 (the responsibility "handed to DEL-07-02") send each affected question to DEL-07-02's route at runtime.
+  - The proposed CFB §6 row ("Receives at runtime, by reference | DEL-07-01 | Receiving records") says so in terms.
+- **Arc DEL-07-02 → DEL-08-01.** The proposed DRC §8 ("Its receiving records reach DEL-07-02's route only by reference at runtime") and the CFB §6 row for DEL-08-01 keep the same flow.
+
+**Kind.** The consumer, DEL-07-02, defines the format of what it receives: the route-account trigger, in CFB's own schema. By G1 r3 K-3 each arc is therefore **E**, not removed. This is the same pattern as RVG-C2 B2-M1, accepted in SCC-CASE-002 §23. On pair A the arc also keeps the **V** residual (DEL-07-02 VER-006).
+
+**Can an S1 wording remove the runtime receipt without moving ScopeOfWork ownership? No.**
+- The runtime receipt is DEL-07-02's assigned obligation, not wording that a consumption sentence carries:
+  - DEL-07-02 OUT-001: "App connector receiving behavior that shows standing, freshness and limitations, distinguishes absent/stale/partial/failing conditions, and connects affected questions to source recovery independently for PEC and Domains."
+  - REQ-001: "The App shall show the source identity, standing, available coverage/freshness information and limitations of connector-supplied material."
+  - AC-001: "Receiving evidence distinguishes qualified/current, absent, stale, partial and failing material, shows the available source/standing/coverage/freshness information and names unsupported conclusions".
+- DEL-07-02 can show the standing of connector-supplied material, and route the affected question, only if it receives that material's standing at runtime.
+- Removing the receipt would move the showing and routing obligation to DEL-07-01 and DEL-08-01. That is **S2**, an ownership move (IV-O), or a decomposition. Either is the owner's.
+- The conditional S1 on DEL-07-01 AC-005 (§2.5) rewords the hand-over but keeps it, as RVG notes.
+- **No S1 wording removes it.**
+
+### 8.2 C5-m1: the CFB §1 sentence, reworded
+
+**Finding accepted.** "It reads only the standing those records carry, in this vocabulary" would read `response_standing`, `claims` and `conclusions`. Those fields belong to DEL-07-01's record structure (`pec.receiving-record.schema.json` properties), even though their values are CFB `$def`s. That breaks GC-1 (a).
+
+**Replacement for the M-01 CFB §1 sentence** (design agent: O-D, for DEL-07-02; proposed, not applied):
+> "DEL-07-02 consumes none of their rules and reads no field of a receiving record. The trigger of a route account (the connector, the standing in this vocabulary, why, and the identities of the receiving records concerned) is supplied in this file's route-account format by the connector owner that sends the question. The record identities are uninterpreted strings resolved by their writers, DEL-07-01 for PEC and DEL-08-01 for Domains (GC-3)."
+
+**Consequences in CFB, for the same rewording:**
+- **§4's trigger bullet:**
+  > "the trigger, as supplied by the sending connector owner in this format: which connector, the standing in this vocabulary (§2), why, and the record identities (uninterpreted; GC-3)".
+- **`connector.route-account.schema.json`:** `trigger` gains `standing` (`$ref` to this file's own `#/$defs/standing`). Its `receiving_records` stays an uninterpreted string array.
+- **The REQ-001 display** shows the standing carried in that trigger, in CFB's own format. DEL-07-01's fields are not read.
+
+With this text, (a) holds:
+- the connector owners write CFB's format, on the existing arcs DEP-07-01-014 and DEP-08-01-009;
+- DEL-07-02 reads only its own format.
+
+It does not remove the E row of §8.1. It makes the remaining flow cleanly E, with no I part.
+
+### 8.3 Closure, repaired (supersedes §5)
+
+**Model.**
+- As §5: the whole DAG-004 graph, both layers, every arc outside the component kept.
+- DEP-07-01-014 and DEP-08-01-009 stay I.
+- Arc DEL-07-02 → DEL-07-01 is E, with a V residual. Arc DEL-07-02 → DEL-08-01 is E.
+- Script: `$TMPDIR/scc004_repair.py`.
+
+| Scenario | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| R1: M-01-R + M-02-R (E on both arcs; V also on pair A) | 3 members, 2 rows | 3, 2 | 3, 2 | **acyclic** |
+| R2: R1 + owner cuts of arcs DEL-07-02 → DEL-07-01 and DEL-07-02 → DEL-08-01 | acyclic | acyclic | acyclic | acyclic |
+| R3: E on pair A only (pair B removed) | 2 {07-01, 07-02}, 1 | 2, 1 | 2, 1 | acyclic |
+| ALT-DEC: DEL-07-02 split into (a) vocabulary and route definition and (b) runtime receiving and display. Conservative model: every outer arc of DEL-07-02 is given to both parts | acyclic | acyclic | acyclic | acyclic |
+
+This reproduces RVG's computation (C5-M1).
+
+**Owner acts and what remains, by option, given M-01-R and M-02-R:**
+
+| Option | Owner acts needed | What remains without them |
+|---|---|---|
+| **O-4** | **None** | Nothing: E and V both leave |
+| **O-3** | **2 arc cuts:** DEL-07-02 → DEL-07-01 (covering DEP-07-02-010, -012 and DEP-07-01-015; the E residual) and DEL-07-02 → DEL-08-01 (covering DEP-07-02-011 and DEP-08-01-010; the E residual) | 3 members, 2 rows |
+| **O-2** | The same 2 arc cuts | 3 members, 2 rows |
+| **O-1** | The same 2 arc cuts. The first also covers VER-006's V residual on that arc (RVG C5-n2). Narrowing VER-006 alone no longer suffices | 3 members, 2 rows |
+
+- **Relation to M-ALT.** These are the same two arcs as M-ALT. Under O-1…O-3 the rewording changes *what* the cut reclassifies, a runtime hand-over instead of an interface. It does not change how many owner acts are needed. Under O-4 it removes both, with no owner act.
+- **Owner alternative to the cuts under O-1…O-3: a decomposition of DEL-07-02** (ALT-DEC).
+  - Split DEL-07-02 into a definition part (CFB §2–§5: vocabulary, route-account format, route method) and a runtime part (OUT-001/REQ-001 receiving behaviour and display, the route's execution).
+  - The connectors consume the definition part. The runtime part consumes the connectors' material.
+  - It closes under every option with no cut. It is a decomposition change through `scope-change`, so it is the owner's. It is listed, not recommended: two cuts are smaller.
+- **The VER-001 extraction question (§7, S1/S2)** no longer decides anything for pair B, because the E residual is there either way (RVG C5-n3).
+
+### 8.4 Summary (supersedes §6 where they differ)
+
+| Pair | Verdict | Move | Residual on the arc | Closes with no owner act under | Owner act under the others |
+|---|---|---|---|---|---|
+| A: DEL-07-01 ↔ DEL-07-02 | Projection artefact (stands) | **M-01-R**: IV by design rewording (the §2.5 text, with §8.2's CFB §1, §4 and schema wording); S1 as §2.5 | **E** (runtime hand-over, DEL-07-02 OUT-001/REQ-001 and DEL-07-01 REQ-005/AC-005) and **V** (VER-006) | **O-4** | O-1…O-3: owner cut of arc DEL-07-02 → DEL-07-01 (M-03-R), or ALT-DEC |
+| B: DEL-07-02 ↔ DEL-08-01 | Projection artefact (stands) | **M-02-R**: IV by design rewording (§3.5, with §8.2); S1 as §3.5 | **E** (runtime hand-over, DEL-07-02 OUT-001/REQ-001 and DRC §8) | **O-4** | O-1…O-3: owner cut of arc DEL-07-02 → DEL-08-01 (M-03-R), or ALT-DEC |
+
+**Not established (adds to §7):**
+- whether `dependency-extract` would record the E rows as one row per arc or several, which does not change the arc arithmetic;
+- the owner's choice between the two cuts and ALT-DEC under O-1…O-3.
