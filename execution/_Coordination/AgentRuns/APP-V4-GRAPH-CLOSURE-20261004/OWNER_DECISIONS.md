@@ -191,3 +191,12 @@ the Agent User Manual's headings, with the Field Book after it.
 The owner replied:
 
 > Your suggestion about presenting just the Agent User Manual's headings and the Field Book is excellent and accepted.  Also your understanding of what the LOOP_INIT is (and the other documents for that matter) is also good and accepted as a basis for you to audit and edit them as needed - doing so from the perspective of the LOOP_INIT - not expecting a wholesale review and revision.  But don't leave matters until later if you find them in the course of your work and they ought to be resolved, take care of it in this session at the appropriate sequence.
+
+## Merge hold (owner, exact, 2026-10-04)
+
+> Note, of great importance, you can continue with your work but you MUST NOT MERGE PRs until I say you can resume.  You can commit locally and carry on.  Any concerns?
+
+**Effect.** From this point no PR is merged, no auto-merge is enabled, and
+commits stay local, each until the owner says to resume. This hold takes
+precedence over the standing Git authorization (Root AGENTS.md: "Explicit
+holds and later owner directions take precedence").
