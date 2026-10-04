@@ -288,6 +288,8 @@ RVG Addendum B holds that "An invert removes the consumer's definitional need. I
 
 ## 6. Other ACT passages with the same exposure (not in G2; inventory, not analysed to the same depth)
 
+> **Note added 2026-10-04 (repair, §8.5).** This list is **incomplete**, per RVG-ACT51 ACT-M1 (a). ACT cites sibling Designs in 26 sections. Under GC-5 item 4, the complete inventory is G2b's, and ACT's full list will be disposed of when G2b reports.
+
 G2 surveyed ACT §5.1, §10.1 and §10.3 (G2 l.64). A read of the rest of ACT finds design-level use of the same suppliers. None is a register row today. Each, if entered as an I row, would re-form a cycle through the admitted reverse rows above. Computed for DEL-04-01 → DEL-03-02 (P §9, I): a 3-member component {03-01, 03-02, 04-01}, 1 row, under O-2…O-4, inside the 15-member component under O-1.
 
 | ACT passage | What it takes, and from whom | Likely kind | Treatment in the same pattern (design agent: DEL-04-01) | Ruling |
@@ -315,3 +317,162 @@ G2 surveyed ACT §5.1, §10.1 and §10.3 (G2 l.64). A read of the rest of ACT fi
 | Whether `dependency-extract` would enter rows from the §6 passages | That is the workflow's call. The figures here assume no row once reworded |
 | §13 fixture subjects and §2.7 network rules | Inventoried, not analysed |
 | The kinds of rows not read here | G1 r3's, taken as RVG confirmed them. My parse reproduces G1's counts and arc directions |
+
+## 8. 2026-10-04 repair (RVG-ACT51; GC-5)
+
+**Standing.**
+- This section responds to review RVG-ACT51 (`reviews/RVG-ACT51.md`, sha256 `0037b1fa38398fc6e4d1a2a43ed854f152a889e9afc1c4442ff7b4641ee36eb0`, commit `35f2d2ca38`, verdict REPAIR).
+- It applies HELP_HUMAN's ruling GC-5 (`GC_RULINGS.md`, sha256 `7fcbb551ea4605f77eb09d70ff3b57549d01f07e2b7992be04feb8beade9c65b`).
+- It is append-only. The only other change is the one-line note at the head of §6.
+- **Where this section and an earlier one differ, this section supersedes.** It supersedes §2.2's definition of checkpoint standing and its AP-10 basis, the condition-free "Yes … None" cells of §1 and §5, and the §7 row for R8-11.
+- **Rulings read at source for this repair:**
+  - R8-1 and R8-11 (`APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md`, sha256 `44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b`, l.21–63 and l.219);
+  - R9-1 (`APP-V4-DESIGN-PASS-2-20260930/R9_RESOLUTIONS.md`, sha256 `a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8`, l.11–52);
+  - R4-6 (sha256 in §0).
+- What RVG confirmed stands unchanged:
+  - the numbers;
+  - the operation-identity rewording (§2.3);
+  - grant standing as a genuine inversion (§2.1);
+  - the "no E residual" reasoning (§3);
+  - the fallback (§2.4).
+
+### 8.1 ACT-m1: checkpoint standing is a reported value, not ACT's evaluation
+
+**The defect.** §2.2 defined "open arrival requiring ⟨act⟩" as an arrival whose act is "not yet *performed* in §4.3's sense". ACT §4.3 adopts WD §4.3.7 and EXEC's disposition rules by citation (F-14), and R4-7 directs that "WD §4.3.7 adds MX-3 … MX-8". So ACT would still compute *performed* by WD's and EXEC's rules. In RVG's words, that is a relabelling, and the dependency runs the wrong way.
+
+**Corrected definition** (supersedes §2.2's ACT §5.1 row, *checkpoint standing* values, and its rule 2 row):
+
+| Value | Meaning in ACT §5.1 (design agent: DEL-04-01) | Who computes it |
+|---|---|---|
+| **none** | The executor reports no arrival open on this operation | The executor |
+| **arrival waiting ⟨act⟩** | The executor reports an arrival whose disposition, **under the executor's own disposition rules**, is *waiting*. ⟨act⟩ is the required act it reports, one of §4.1's closed list (A4, A5, A6, A7, A12) | The executor: the host loop under DEL-05-01's contract, or DEL-02-03's recorder App-side. *waiting* is R-5's word, and R-5's text carries the six dispositions. This contract does not evaluate it |
+| **A5 constraint in force** | The host route reports a host-held §4.4 constraint on this operation (R2-12; R4-14; R5-2) | The host route |
+| **binding: yes / no**, on each value | Whether the checkpoint was declared for enforcement. R8-1: "A workflow opts in by declaring its checkpoints **governed**, a new optional declaration flag in WD, PROPOSED. Phase 1 honours the flag only as guidance. The governance phase enforces it." DEL-02-01 maps `governed` onto *binding* | Reported with the arrival. The flag is DEL-02-01's |
+
+**What ACT keeps and reads.**
+- The supplier cell reads: "This contract reads these values and computes none of them. It receives no instance (§3)."
+- ACT keeps only what it defines: §4.1's list, §4.4's rule (an A5 checkpoint forces *propose*) and the treatment effects in rule 2.
+- **Rule 2, restated.**
+  - *arrival waiting ⟨act⟩* → *request the person's act*.
+  - *A5 constraint in force* → *propose*.
+  - "binds on the host route only where *binding* is yes, in the governance phase".
+  - Per R9-1 and ACT AP-12 (SETTLED, K1-1), requesting the act is the agent's, in every phase. R9-1: "The **agent carrying out the workflow** asks the person for the act when its work reaches the checkpoint." The rewording must keep that and must not turn the request into a host-route treatment.
+
+**Test (RVG's N13 tests).**
+- **(i) Own terms.** Yes. The values are reported, not computed. ACT's own terms are §4.1 and §4.4.
+- **(ii) Grounding in basis.** Yes:
+  - R-5 carries *waiting* and the reached-when kinds;
+  - R8-1 carries `governed`;
+  - R9-1 and R9-2 carry the request.
+- **(iii) Change direction.** Now right. A change to WD §4.3.7's item rules changes when the executor reports *waiting*, not what ACT means.
+- **Consequence for §2.2's tests.** §2.2 made GC-1 (a) for rule 2 depend on re-anchoring ACT §4.0 and §4.3. That condition is withdrawn. §4.3 stays an exposure of ACT as a whole (§8.5), not of §5.1.
+
+**Precondition for both standings: the A12 relation.**
+- Grant standing's "direct in force" needs an A12 whose control relation is *established*. Checkpoint standing's A12 arrivals rely on the same relation through the executor's report.
+- **Anchor: R4-6, not EXEC §4.10.** ACT §2.4's heading "(R4-6; EXEC §4.10 AR-1…AR-4)" becomes "(R4-6)". §2.8 LC-3a cites R4-6 likewise.
+- R4-6's own text carries the effects. Its title is "A12 supersedes only when established", and its body reads: "A refused A12 does not count at a checkpoint, and it does not supersede a setting that is in force. A pending A12 leaves the checkpoint *waiting*. A lost confirmation makes it *unknown*."
+- Under GC-5 item 2, a citation of a ruling whose own text carries the content is not a dependency. EXEC §4.10, under SCC-002's P11 invert (§21.3), cites the same ruling, and neither file claims the other's ownership.
+- This is DEL-04-01's design agent's change. A matching citation line in EXEC §4.10 is DEL-02-03's design agent's.
+
+### 8.2 ACT-m2: the `governed` → *binding* basis is R8-1
+
+- §2.2 cited "R8-11 item 5" as unread. RVG read it at source, and I confirmed it (R8_RESOLUTIONS l.219): it is about fixtures ("Fixture values read as if governed"), not about who owns `governed`. It is **withdrawn** as a citation.
+- The basis is **R8-1** (quoted in §8.1). It makes `governed` "a new optional declaration flag in WD", which supports DEL-02-01 mapping `governed` onto ACT's *binding*.
+- R8-11 item 2 and R9-2 are consistent with *binding* (RVG §5).
+- No integrator amendment is needed for §2.2 as repaired.
+- §7's first row is closed. R9-1 was read at source (above). R9-2 was read by RVG and is consistent.
+
+### 8.3 ACT-n1: grant standing's anchor
+
+- Grant standing's direct-branch rule is anchored on **R-3 point 3** (owner DEL-04-01): "A request to apply directly without an effective *direct* treatment → **not permitted**".
+- R-8 ("The direct branch applies only in the **effective** direct state") and R2-6 corroborate it.
+- R-8's header assigns owners DEL-04-02 and DEL-04-03, so anchoring on R-3 places the rule in a ruling whose owner is DEL-04-01. §2.1's change table reads accordingly. Nothing else in §2.1 changes.
+
+### 8.4 ACT-m3: the conditions, carried into §1 and §5
+
+**§1, corrected short answer** (supersedes the condition-free cells of §1's table):
+
+| Input | Reword so it is DEL-04-01's own vocabulary? | Conditions | Owner act for §5.1 |
+|---|---|---|---|
+| Grant state | Yes (§2.1; anchor R-3 point 3, §8.3) | ACT §2.4's A12 relation anchored on R4-6 (§8.1). The "Requested by agent" reading settled by the design agents (§2.1) | None, under any option |
+| Checkpoint state, including P §3.3 | Yes, **as repaired in §8.1**: reported values, not ACT's evaluation | §8.1's definition. The A12 relation anchored on R4-6. DEL-02-01 maps `governed` onto *binding* (R8-1). Request wording kept per R9-1 | None, under any option |
+| Operation identity and class | Yes (§2.3) | None beyond §2.3 | None, under any option |
+
+**Two further conditions apply to all three.**
+- **(1) Provisional on G2b.** "DEL-04-01 gains no supplier" holds for §5.1 under these rewordings. For DEL-04-01 as a whole it is **provisional until G2b reports**, because GC-5 item 4 says "Each case's 'no new row' conclusion is provisional until G2b reports". ACT's other uses (§6, §8.5) are dependencies under GC-5 item 1 unless a move removes them or they are carried into ScopeOfWork.
+- **(2) REQ-007's receipt** is disposed of in §8.6.
+
+**§5, corrected** (supersedes §5's "None" column heading). With the three rewordings, as conditioned above, ACT §5.1 needs **no owner act** under O-1…O-4. M-Q-ACT-N becomes a design outcome **for §5.1**. Whether DEL-04-01 has any supplier at all is open until G2b's list is disposed of (§8.5).
+
+### 8.5 ACT-M1 deferred to G2b (recorded per HELP_HUMAN)
+
+**§6's list is incomplete** (RVG-ACT51 ACT-M1 (a)). RVG names further rule-bearing or definitional uses:
+- §2.4 and §2.5: RS's lapse-state vocabulary; A16 "Lapse-evaluated as an App file (RS L-1, L-6)"; A15's "WR ID-2" and "RS-v0.9 §6.1";
+- §2.6: AAC and EXEC CAP-1…CAP-3;
+- §2.8: "RS-v0.8 §3";
+- §4.7 RC-3: AAC and EXEC CAP-2;
+- §4.6: EXEC §3.6, L (governance phase).
+
+RVG computed each as an I row, on the C model with the five E residuals:
+
+| Added as I | O-1 | O-2 | O-3 | O-4 |
+|---|---|---|---|---|
+| DEL-04-01 → DEL-04-03 | 15/11 | 13/6 | 13/6 | 9/1 |
+| DEL-04-01 → DEL-01-04 | 15/11 | 14/6 | 14/6 | 13/1 |
+| DEL-04-01 → DEL-02-02 | 15/11 | 7/1 | 7/1 | 7/1 |
+
+**The re-anchoring test, adopted from ACT-M1 (b) and GC-5 item 2.** Re-anchoring fixes a dependency only when the ruling's own text states the rule or vocabulary. Applied to §6's rows:
+
+| §6 row | Ruling | Effect of re-anchoring |
+|---|---|---|
+| §2.4 A12 relation | R4-6 | Real (§8.1) |
+| §4.3 dispositions | R-5 | Real for the six words |
+| §6 non-success outcomes | R-3 point 2 | Real |
+| §4.3 mixed-item rules | R4-7 | **Hides the dependency**: the ruling directs to WD §4.3.7 |
+| §6 P §9 outcomes | R-7 | **Hides the dependency**: the ruling names P §9 without the list |
+| RS lapse vocabulary, WR identity, AAC surface | None carries them | Cannot be re-anchored. They need invert, GC-3 opacity, or an owner act |
+
+So §6's re-anchoring column stands only where the ruling carries the content. The R4-7 and R-7 cases are dependencies under GC-5 item 1, judged against WD and P.
+
+**Disposition is deferred.** ACT's complete list waits for G2b, as HELP_HUMAN directs. When G2b reports, each use gets one of: a rewording that meets GC-1 and GC-3, an invert, an S1 carry into DEL-04-01's ScopeOfWork as a depended-on interface (GC-5 item 3), or an owner act.
+
+### 8.6 REQ-007's "receiving attributable evidence" (G2 A2): disposition
+
+**Text.** DEL-04-01 REQ-007 ends: "Supplying policy requirements and receiving attributable evidence remain this deliverable's work."
+
+**What the register already holds.** The receipt is already extracted, with targets outside the project. In DEL-04-01's `Dependencies.csv`:
+- DEP-04-01-021: EXECUTION, EXTERNAL, "Person performing the human act — attributable evi…". Its EQ is VER-002's "Include a positive case faithfully recording an actually performed human act, with the human decision actor distinct from the agent recorder".
+- DEP-04-01-019: EXTERNAL, the SWBPIPE implementation owner, "a host enforcement assertion requires actual host evidence from DEP-001".
+- DEP-04-01-020: EXTERNAL, "the recorded person-set scope".
+
+These are not deliverable arcs and close no cycle.
+
+**Point of need.** Only VER-002, VER-004, VER-006 and VER-009: the fixture runs "against the identified candidate" that bind OUT-003's results. No REQ or CLM of DEL-04-01 defines anything from the received evidence. ACT §2.4 states the evidence meaning (actor, subject, evidence; R-1; R-5's "capturing surface").
+
+**Under GC-5 item 1, it is not a definitional dependency.** DEL-04-01 does not need DEL-01-04's capture-evidence format to define its contract. DEL-01-04 conforms to ACT through the admitted DEP-01-04-011. Item 1 still bites on ACT §2.6's naming of AAC as the capturing surface (§8.5); that is a different use.
+
+**If re-extracted against DEL-01-04** (G2 A2, for App-content acts captured by the App act control):
+- The kind is **V, secondary L**, by K-5 and G1's own precedent. X-1, DEP-02-03-027, DEL-02-03 → DEL-01-04 "for the App-side positive capture fixtures (OUT-003, VER-003)", is V/L in G1 r3 §3.2 case 10.
+- Computed on the C model with the five E residuals, against the admitted DEP-01-04-011 (I):
+
+  | Kind of the re-extracted row | O-1 | O-2 | O-3 | O-4 |
+  |---|---|---|---|---|
+  | V | 15/11 | acyclic | acyclic | acyclic |
+  | L | 15/11 | 14/6 | acyclic | acyclic |
+  | E | 15/11 | 14/6 | 14/6 | acyclic |
+  | I or P | 15/11 | 14/6 | 14/6 | 13/1 |
+
+**Disposition proposed.**
+1. **Keep it as registered:** EXTERNAL rows DEP-04-01-019, -020 and -021. No deliverable arc. This is the register owner's existing reading, consistent with CLM-003 (the host offers and records acts) and CLM-004 (the person performs them).
+2. **Recommended S1 clarification**, by `scope-of-work` under an owner-accepted SCA. DEL-04-01 REQ-007's last clause would read: "… receiving attributable evidence of the person's acts and of host conformance, from their actual sources (CLM-003, CLM-004; DEP-001), for the fixture results of OUT-003 (VER-002, VER-009), remain this deliverable's work."
+   - It moves no ownership. It names the point of need, so that a re-extraction reads the row as V.
+   - If a V row against DEL-01-04 is still entered, it leaves under O-2…O-4. Under O-1 it needs an owner per-edge cut, the same class as X-1.
+3. **Owner acts.** None under O-2…O-4. Under O-1, a per-edge cut only if a row against DEL-01-04 is entered.
+
+### 8.7 Not established (repair)
+
+| Item | Why |
+|---|---|
+| Whether ACT §4.4's "only host-held carriage satisfies R2-12" remains ACT's rule or becomes the host route's reported fact | Not needed for §8.1's values. It is a design reading for DEL-04-01's agent |
+| Whether DEP-04-01-019/-020/-021's EXTERNAL targeting survives GC-5 | The register owner's call. GC-5 governs Design uses, and these are ScopeOfWork rows |
+| ACT's full exposure | Deferred to G2b (§8.5) |
