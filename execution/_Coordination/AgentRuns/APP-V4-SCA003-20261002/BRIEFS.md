@@ -67,3 +67,30 @@ present (package roles, supersession bindings, propagation plan, ISSUED
 check); the owner items are complete, neutral and decidable. Findings
 BLOCKING / MAJOR / MINOR; verdict READY FOR CHECKPOINT or HOLD. Write only
 `reviews/V23.md`.
+
+## AK1 — record the group 1–2 decisions, then apply the direct writes (one Type 2, two stages)
+
+Authority: DECISION-1 (OWNER_DECISIONS.md, committed `5b16bb6831`). Model:
+SCA-V4-002's `_ScopeChange/checkpoint_snapshots/SCA-V4-002_GROUP-1_2026-09-29/`
+and `…_GROUP-2_…` (DECISION.md, ACCEPTED_MANIFEST.csv, Handoff_State.md),
+its candidate snapshot folder `_ScopeChange/SCA-V4-002_2026-09-29_1901/`,
+and its DISPATCH rows AK1 and V14. Method: `workflows/scope-change`
+resources/method.md, group 3 preparation.
+
+- **Stage 1 (then return; HELP_HUMAN commits):** write
+  `_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-1_2026-10-03/` and
+  `…_GROUP-2_2026-10-03/` (DECISION.md transcribing DECISION-1 with custody
+  and hashes; ACCEPTED_MANIFEST.csv binding the accepted packet files by
+  sha256; Handoff_State.md). The group-2 snapshot binds the final
+  `Amendment_Actions.csv` (from the draft, as accepted) by hash.
+- **Stage 2 (after HELP_HUMAN's commit):** create the candidate snapshot
+  folder `_ScopeChange/SCA-V4-003_2026-10-03_<HHMM>/` in SCA-V4-002's layout;
+  apply only the accepted direct writes (`_Decomposition/Open_Issues.csv`
+  OI-009 option B and OI-018, exact bytes from BASIS_AMENDMENT.md); write
+  `Supersession_Delta.csv` (D-021) and the accumulated map; write the
+  SCA-V4-002 effective-state note (C-02 text, with V23b's n-1 correction);
+  run the post-change audit (reuse P3's `BASELINE/audit_checks.py` and scope)
+  and compare with the baseline, attributing the Q-13 shift (16 INFO → WARNING)
+  and the OI-009 change. Do not touch any ScopeOfWork, register, DAG,
+  Decision Log or `_ScopeChange/_LATEST.md` (those follow group 3).
+  Records in `RUN/Application/` and `RUN/POSTCHANGE/`.
