@@ -338,3 +338,165 @@ exact.
 - **Version.** It follows `_DAG/_LATEST.md`, or `--dag`, and prints the
   version it read. Its self-test is pinned to DAG-004. G1 r3 cites the same
   bytes (`6325957…`).
+
+## 9. 2026-10-04 repair (RVG2-CASE-006: REPAIR; C6-M1, C6-M2, C6-m1, C6-m2)
+
+- **Status of earlier text.** Sections §0–§8 above are unchanged, as
+  committed at `c9885b8f71` (sha256 `4024c924…`). Where this section differs,
+  **it supersedes them.** The superseding CSV rows are appended to
+  `MOVES_PROPOSED_2026-10-04.csv`.
+- **Review read.** `reviews/RVG2-CASE-006.md`, sha256 `dc175da2…`, at HEAD
+  `0d338dd7b1`.
+- **Basis added.** GC-5 (`GC_RULINGS.md` now sha256 `7fcbb551…`; GC-1…GC-4
+  unchanged).
+- **Scratch check.** `$TMPDIR/scc005/repair.py`, sha256 `5db8ec43…`, over
+  DAG-004's 212 arcs with G1 r3's kinds.
+
+### 9.1 C6-M1 accepted: DEP-10-04-006 keeps an E part
+
+**The reviewer is right, and the evidence is in my own Design text.** DA-v0.3
+takes acceptance custody and review records from undertaking run records:
+- §2's "Recorder of the act → record writer" column runs each acceptance
+  through a run's DECISION record and node D2;
+- §3's REQ-005 row cites the runs' `DAG_PREP/` checkpoint packages, review
+  packets and separate reviewers.
+
+Those records are kept under DEL-10-02's controls (UC §1, §2, §4; R23-31.1,
+R23-31.6). DEL-10-04 REQ-006 requires the relay provenance they carry.
+
+M-01 as first written removed the P reading (records as graph content). It
+did not, and could not, remove that runtime receipt.
+
+**Kind of the residual.** **E** under K-3. DEL-10-04 needs instances only.
+The formats it records are `project-dag`'s (the acceptance record, the
+independent review). If a reviewer or the owner reads the custody records as
+evidence needed to produce OUT-002 (K-4, P), see §9.5.
+
+### 9.2 C6-M2 accepted: the S1 wording keeps a row, and the row is E
+
+**My proposed sentence restated a reliance** ("under the accepted
+undertaking practice that `DEL-10-02` indexes"). A conservative extractor
+would keep that row. I take the reviewer's second option: **the row stays,
+as E**, and the wording says so.
+
+**Revised S1 wording for DEL-10-04 CLM-002.** Applied by `scope-of-work`
+under an owner-accepted SCA; replaces the sentence "This deliverable
+consumes their applicable records at their points of need; it does not
+replace those contributions":
+
+> This deliverable consumes the applicable records of `DEL-10-01` and
+> `DEL-10-03` at their points of need. From `DEL-10-02`'s undertaking
+> records it receives, as evidence of actual acts, the decision
+> transcriptions, checkpoint packages, review records and capability and
+> check accounts of its own graph undertakings. It does not take them as
+> graph content. Graph production follows the selected `project-dag`
+> method and Root SPEC §9.8. It does not replace those contributions.
+
+**Expected extraction (not established; the extractor judges).**
+- DEP-10-04-006 keeps its ID under match rule 2. Its Statement narrows to
+  an evidence handoff: kind E, not P.
+- DEP-10-04-005 and -007 keep their IDs, but their EvidenceQuote is
+  refreshed (RVG2 C6-n2).
+- No row to DEL-10-02 for "practice" arises, because the wording names Root
+  sources directly.
+
+### 9.3 C6-m1 accepted: M-01 is a narrowing by SCA, not an invert
+
+Nothing reverses, and no contract is interposed. The move now:
+- removes the production (P) reading of DEP-10-04-006;
+- retargets the method content to Root (`project-dag`, SPEC §9.8);
+- leaves the row as E.
+
+**Re-coded:** `NARROW (P→E; SCA)`. The owner sees it as part of an SCA they
+accept, not as an agent-only refinement. It does not close the component
+under O-1 or O-2 by itself (§9.5).
+
+### 9.4 C6-m2 accepted: A9 is a real E flow; GC-3 does not carry M-03
+
+- **EB takes content, not just identifiers.**
+  - B-11's Subject ("The 33 files of `REVIEW_PACKET.md` …") comes from
+    DAG-004's `ACCEPTANCE_RECORD.md`.
+  - So does its "What it did not decide" cell, from "This acceptance does
+    not:".
+  - EB therefore needs that content to produce its rows.
+- **Under GC-5 item 1, A9 is a dependency** (DEL-10-01 needs DEL-10-04's
+  acceptance-record content to produce B-7 and B-11). It is not an
+  attribution under item 2.
+- **Under GC-5 item 3, it cannot stay a Design-only use.** It is either
+  removed by an accepted move or carried into DEL-10-01's ScopeOfWork (S1)
+  and so into the register.
+- **EB §4's pointers stay out.** Its pointers to `_DAG/_LATEST.md` and the
+  DAG-004 handoff are cross-references (GC-5 item 2) and are not counted.
+- **The `ACCEPTANCE_RECORD.md` content cannot be sourced elsewhere.** Taking
+  the owner's words from the run OWNER_DECISIONS transcriptions instead would
+  make EB consume DEL-10-02's run records. That would close 10-01 → 10-02
+  against DEP-10-02-011 (P). Not proposed.
+
+**M-03 is withdrawn.** Its DA §6 deletion of the DEL-10-01 reader row and its
+GC-3 claim for EB were both a narrowing of my own text. It is replaced by:
+- **M-03-R.** Carry A9 into DEL-10-01's ScopeOfWork as an E evidence handoff
+  (S1), for example:
+
+  > It records the owner's graph acceptance acts after they occur, from
+  > `DEL-10-04`'s acceptance records, as evidence.
+
+  Under O-1…O-3, the closing move is then an **owner cut** of that E row
+  (runtime, after-the-fact evidence: the doctrine's "runtime" class). Under
+  O-4 it leaves with its class.
+- **DA §6** keeps DEL-10-01 in its consumers table.
+- **Provisional.** GC-5 item 4 makes this provisional until G2b reports.
+
+### 9.5 Closure and owner acts, restated (supersedes §5 and §6)
+
+**Component SCC-005 alone (A9 not yet a row):**
+
+| Option | After M-01-R (E residual stays) | Owner act that closes it |
+|---|---|---|
+| O-1 | {10-02, 10-04} | **One cut:** M-04, the E residual DEP-10-04-006 (recommended), or M-02, DEP-10-02-012 with DEP-10-04-014 |
+| O-2 | {10-02, 10-04} | **One cut:** M-04 or M-02, as for O-1 |
+| O-3 | acyclic (L leaves) | None |
+| O-4 | acyclic (L and E leave) | None |
+
+**With A9 carried as an E row (GC-5 item 3):**
+
+| Option | Component | Minimum owner cuts (computed) |
+|---|---|---|
+| O-1 | {10-01, 10-02, 10-03, 10-04} | **2:** {E residual, A9} or {DEP-10-02-012, A9} |
+| O-2 | the same | **2:** as O-1 |
+| O-3 | {10-01, 10-02, 10-03, 10-04} | **1:** A9 |
+| O-4 | acyclic | 0 |
+
+**Why M-04 is recommended over M-02** (both are the owner's; agent opinion):
+- M-04 reclassifies a runtime, after-the-fact evidence row. That is the
+  doctrine's own cut example: "runtime/test/optional".
+- It keeps DEP-10-02-012, the real production direction: selection waits for
+  an accepted current DAG. That is also `project-dag`'s stated interface,
+  "`construct-local-work-graph` … within the accepted current version".
+- If the residual is read as P (K-4), M-04 is not a doctrine cut, and M-02 is
+  the cut.
+
+### 9.6 Recheck of my own earlier design (narrowings), as asked
+
+| Earlier text (mine) | Narrowing? | Repair |
+|---|---|---|
+| M-01's S1 sentence "takes no `DEL-10-02` record as a graph input" | **Yes.** It dropped CLM-002's consumption of DEL-10-02's applicable records, including custody, review and capability-account evidence that DA §2–§3 use | §9.2 wording keeps them as E evidence |
+| M-01's DA §6 rewording "Graph production takes no DEL-10-02 record as an input" | **Yes**, the same | New DA §6 wording, for the design step: "From DEL-10-02's undertaking records DA takes, as evidence, the decision transcriptions, checkpoint packages, review records and capability and check accounts of the graph undertakings (DEP-10-04-006, E). None is graph content." |
+| M-01's UC §8 rewording "DEL-10-04 takes no record of this deliverable as a graph input" | Partly. "As a graph input" is accurate for content, but the sentence hid the evidence flow | New UC §8 wording: "DEL-10-04 reads this deliverable's undertaking records as evidence of acts and reviews (E), never as graph content" |
+| CLM-002's "practice-feedback" consumption | **Yes.** It was dropped by the original M-01 | Kept: practice notes that bear on a graph undertaking are among the applicable records DEL-10-04 may cite as evidence (E). Their dispositions remain the owner's at stage discussions (UC §7) |
+| M-03's deletion of the DEL-10-01 reader row from DA §6 | **Yes** | Withdrawn (§9.4) |
+| M-03's EB note relying on GC-3 ("takes no structure") | **Yes**, overstated | Withdrawn (§9.4) |
+| Checks: DEL-10-04 REQ-005/006, VER-005/006/009 | No | Intact: the E row keeps the custody and review evidence those checks examine (RVG2 C6-n2) |
+| DEL-10-02 REQ-001 / VER-001 (selection uses the accepted DAG) | No | Intact. DEP-10-02-012 is unchanged unless the owner takes M-02 |
+
+**I found no other narrowing.** The kinds (§2), the isolation result (§0)
+and the reading of `dag_reach.py` (§8) are unaffected.
+
+### 9.7 Not established (adds to §7)
+
+- **The extraction outcome of the §9.2 wording.** That it yields
+  DEP-10-04-006 as E with no other row to DEL-10-02 is not established.
+- **The final kind of the residual.** Whether a reviewer or the owner reads
+  it as E (M-04 applies) or as P (M-02 applies) is not settled.
+- **A9 is provisional under GC-5 item 4** until G2b reports.
+- **The DA, UC and EB rewordings** are still unwritten. They wait for a
+  design assignment.
