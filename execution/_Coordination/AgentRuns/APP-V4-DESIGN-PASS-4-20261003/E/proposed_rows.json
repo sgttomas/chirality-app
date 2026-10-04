@@ -1,0 +1,61 @@
+{
+  "description": "PROPOSED rows (owner O-A, run APP-V4-DESIGN-PASS-4-20261003, R23-8) for two schema files outside O-A's write boundary. Nothing here is applied to those files. run_e.py applies them in memory only, to show the early path working with them; the same harness first validates against the files as they are, to show the gap. Each row adds; none removes, narrows or relaxes an existing constraint.",
+  "files": {
+    "EXEC": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/checkpoint-record-entries.schema.json",
+    "AAC_OFFER": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.offer.schema.json",
+    "AAC_CAPTURE": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.capture-evidence.schema.json"
+  },
+  "rows": [
+    {"id": "PR-1", "file": "EXEC", "op": "append-enum", "pointer": "/$defs/actRequest/properties/actKind/oneOf/0/enum", "value": "A16",
+     "why": "A package may name A16 decide (ACT §2.1 A16 row; R23-8 item 3)."},
+    {"id": "PR-2", "file": "EXEC", "op": "append-enum", "pointer": "/$defs/actRequest/properties/form/enum", "value": "decision package file",
+     "why": "How a package is identified: a file the agent writes, observed by the App writer, never message text (EXEC RC-5; RS §13.6)."},
+    {"id": "PR-3", "file": "EXEC", "op": "add-property", "pointer": "/$defs/actRequest/properties", "name": "alternatives",
+     "value": {"description": "Decision package (V4-PM-04; R23-8): the alternatives, two or more, each with an identity unique within the package and a statement.", "type": "array", "minItems": 2,
+               "items": {"type": "object", "additionalProperties": false, "required": ["id", "statement"],
+                         "properties": {"id": {"$ref": "#/$defs/nonempty"}, "statement": {"$ref": "#/$defs/nonempty"}}}},
+     "why": "R23-8 item 1: the first added element."},
+    {"id": "PR-4", "file": "EXEC", "op": "add-property", "pointer": "/$defs/actRequest/properties", "name": "consequences",
+     "value": {"description": "Decision package (V4-PM-04; R23-8): the stated consequences, each tied to one alternative by its identity.", "type": "array", "minItems": 1,
+               "items": {"type": "object", "additionalProperties": false, "required": ["alternative", "statement"],
+                         "properties": {"alternative": {"$ref": "#/$defs/nonempty"}, "statement": {"$ref": "#/$defs/nonempty"}}}},
+     "why": "R23-8 item 1: the second added element."},
+    {"id": "PR-5", "file": "EXEC", "op": "add-allOf", "pointer": "/$defs/actRequest",
+     "value": {"description": "A decision package file carries alternatives and consequences; alternatives and consequences appear only on a package (R23-8).",
+               "anyOf": [
+                 {"required": ["form", "alternatives", "consequences"], "properties": {"form": {"const": "decision package file"}}},
+                 {"properties": {"form": {"not": {"const": "decision package file"}}}, "not": {"anyOf": [{"required": ["alternatives"]}, {"required": ["consequences"]}]}}
+               ]},
+     "why": "Keeps the two elements to packages and makes them required there."},
+    {"id": "PR-13", "file": "EXEC", "op": "append-enum", "pointer": "/$defs/actRef/properties/actKind/enum", "value": "A16",
+     "why": "An A16 whose package changes is lapse-evaluated (RS §7 L-1, L-6; DECISION_VIEW DV-7); the act_lapsed body (CE-10) cites the act through actRef, whose kind list lacks A16."},
+    {"id": "PR-6", "file": "AAC_OFFER", "op": "append-enum", "pointer": "/properties/actKind/enum", "value": "A16", "why": "AAC §1.2 A16 row."},
+    {"id": "PR-7", "file": "AAC_OFFER", "op": "append-enum", "pointer": "/properties/wording/enum", "value": "decide", "why": "Canonical wording (ACT §2.1)."},
+    {"id": "PR-8", "file": "AAC_OFFER", "op": "add-property", "pointer": "/properties", "name": "alternatives",
+     "value": {"description": "A16 (R23-8): the package's alternatives as shown, each with its consequences.", "type": "array", "minItems": 2,
+               "items": {"type": "object", "additionalProperties": false, "required": ["id", "statement", "consequences"],
+                         "properties": {"id": {"type": "string", "minLength": 1}, "statement": {"type": "string", "minLength": 1},
+                                        "consequences": {"type": "array", "items": {"type": "string", "minLength": 1}}}}},
+     "why": "The person sees the alternatives and consequences in the control (V4-PM-04)."},
+    {"id": "PR-9", "file": "AAC_OFFER", "op": "add-allOf", "pointer": "",
+     "value": {"description": "A16 (R23-8): one package as subject, its request, its alternatives; wording 'decide'; no decline. Alternatives belong to A16 only.",
+               "allOf": [
+                 {"anyOf": [{"properties": {"actKind": {"not": {"const": "A16"}}}},
+                            {"required": ["subject", "requestRef", "alternatives"], "properties": {"wording": {"const": "decide"}, "declineAvailable": {"const": false}}}]},
+                 {"anyOf": [{"properties": {"actKind": {"const": "A16"}}}, {"not": {"required": ["alternatives"]}}]},
+                 {"anyOf": [{"properties": {"wording": {"not": {"const": "decide"}}}}, {"properties": {"actKind": {"const": "A16"}}}]}
+               ]},
+     "why": "Same pattern as the A4/A6/A7 and A15 rules beside it."},
+    {"id": "PR-10", "file": "AAC_CAPTURE", "op": "append-enum", "pointer": "/properties/actKind/enum", "value": "A16", "why": "AAC §1.2 A16 row."},
+    {"id": "PR-11", "file": "AAC_CAPTURE", "op": "add-property", "pointer": "/properties", "name": "alternativeChosen",
+     "value": {"description": "A16 (R23-8): the identity of the alternative the person chose.", "type": "string", "minLength": 1},
+     "why": "The capture holds what the person chose; RS's A16 record cites it."},
+    {"id": "PR-12", "file": "AAC_CAPTURE", "op": "add-allOf", "pointer": "",
+     "value": {"description": "A16 (R23-8) names its request and the alternative chosen; alternativeChosen is A16's only.",
+               "allOf": [
+                 {"anyOf": [{"properties": {"actKind": {"not": {"const": "A16"}}}}, {"required": ["requestRef", "alternativeChosen"]}]},
+                 {"anyOf": [{"properties": {"actKind": {"const": "A16"}}}, {"not": {"required": ["alternativeChosen"]}}]}
+               ]},
+     "why": "Same pattern as the A15 rules beside it."}
+  ]
+}
