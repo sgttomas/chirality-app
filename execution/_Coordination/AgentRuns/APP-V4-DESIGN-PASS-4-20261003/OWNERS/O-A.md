@@ -4,7 +4,37 @@ Owner O-A: Type 2 TASK, Claude Opus 5.5, high effort, standing assignment
 from HELP_HUMAN (run `APP-V4-DESIGN-PASS-4-20261003`). Read-only git; no
 network. Paths are relative to `projects/chirality-app-v4/execution`.
 
-## CURRENT — ACT-POLICY-v0.11 (O-E's request, R23-31.10) and the FV10-R9 case, frozen (2026-10-04)
+## CURRENT — GUIDE ACT re-pin (tranche-2 closeout item), done (2026-10-04)
+
+DEL-03-04 `HOST_INTEGRATION_GUIDE.md`.
+
+- **Reliance unaffected.** v0.10 (`1bf0ce8e…`, git `09ca67d094`) → v0.11
+  (`597f13bd…`, git `0bd6e4b4e9`) changes exactly three lines, by
+  `git diff -U0`:
+  - L2: the label;
+  - L4: the change note;
+  - L1749: the §10.3 DEL-10-03 receiver row.
+
+  The A16 rows the GUIDE adopted at v0.7 (§2.1, §2.4, §2.5, §4.1, §9, §10.1)
+  are byte-identical. A correction to the coordinator's summary: v0.11 does
+  not contain the claim-connector check. That was DEL-06-01's
+  `fleet_store.py`, a separate change in the same commit.
+- **Edit.**
+  - L26: the ACT row now reads ACT-POLICY-v0.11 with sha256 `597f13bd…`,
+    and its version cell names the v0.10→v0.11 step.
+  - L75: a new one-paragraph re-pin note after the last one (closeout G),
+    in the GUIDE's own re-pin-note style.
+
+  No GUIDE version step. Nothing else changed (`git diff -U0`: `@@ -26
+  +26`, `@@ -74,0 +75,2`).
+- **Pin check.** B8's `pins.py` (sha256 `b943319d…5423`, unchanged;
+  `$TMPDIR/c1/pins.py`), check mode: 24/25 before (ACT differed),
+  **25/25 after**.
+- **Other GUIDE rows pinning a file changed in tranche 2: none.** Every other
+  row's pin equals its file's current bytes (24/25 before the edit).
+- **GUIDE sha256:** `a656682e…fdae59` before, **`5050658818c24a8600e53686d16a7f6ca6aba9724ee558ecc17d3d9a184b113b`** after.
+
+## ACT-POLICY-v0.11 (O-E's request, R23-31.10) and the FV10-R9 case, frozen (2026-10-04)
 
 Two independent changes. Commit them by path.
 
