@@ -81,3 +81,4 @@ verified afterwards by `git status`.
 | RV2 | EU-D1 REPAIR (1 MAJOR EUD1-R1 cross-owner, 4 MINOR, 3 NOTE). Ruled R23-40 (CS-R2 restated; FV wording). Routed to O-D and O-A |
 | RV3 | EB-v0.2 READY (EB2-R1/R2 MINOR → O-E); EU-F1 v0.1 REPAIR (EUF1-R1 MAJOR, largely what O-F's RP-v0.2 repairs; R2–R4 → O-F); LHQ-v0.2 READY (LHQ2-R1 → O-C). Process issue: unit edited under review → R23-41 (path-limited commit at each freeze). R23-42 |
 | O-A | FV-10 wording restated to R23-40 (run_views 31/31). FV-10 + RF-5a → RV2 |
+| RR-EUF2 | Second reader returned (`RR-EUF2/account.json` `0d53d089…`; valid; all 13 OK). Did not read 'blocked' as not_met; raised whether an alternative may be chosen on incomplete evidence. (The brief file is READER_BRIEF.v2.md; HELP_HUMAN's prompt named the old file.) To O-F for the combined RP-v0.3 repair |
