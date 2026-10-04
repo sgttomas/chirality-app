@@ -122,3 +122,26 @@ item Q-10, option B, bound to register row 21.
   (method step 5) has not run. `Handoff_State.md` and `RUN_SUMMARY.md` are
   written before it, as the dispatcher directed. The review may require them
   to be revised before group 3 is presented.
+- **E-12 · Review and record fix (2026-10-03, node AK1-R).** The candidate
+  was committed at `fa16393978`. Independent review `RUN/reviews/V24.md`
+  (`64a01f0c4c`) found it READY FOR GROUP 3 after M-1, with no blocking
+  finding. E-11 above stays as history.
+  - **What changed:** only `Handoff_State.md` and `RUN_SUMMARY.md` were
+    revised.
+  - **M-1:**
+    - a parsable `**Closure verdict:**` line (proposed) was added;
+    - V24 and `fa16393978` are cited;
+    - stale statements were replaced;
+    - the finalization edits F-1 to F-4 (group-3 snapshot, this log's
+      group-3 entry, the accepted status lines) were listed beside H-1 to
+      H-3.
+  - **Minors:**
+    - m-1: H-3 runs the baseline script unchanged;
+    - m-2: the `{ACCEPT_DATE}` rule and the H-1 result rule;
+    - m-3, m-5: one-line notes;
+    - m-6: all 13 artifact hashes in
+      `RUN/Application/CANDIDATE_ARTIFACTS.sha256`;
+    - m-4, O-1 and O-2 are noted for the group-3 package.
+  - **Simulated post-acceptance audit:**
+    `RUN/Application/SIMULATED_POSTACCEPT.md`.
+  - No applied, accepted or group-bound byte changed.
