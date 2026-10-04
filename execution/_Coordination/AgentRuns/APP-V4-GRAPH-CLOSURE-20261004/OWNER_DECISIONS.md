@@ -86,3 +86,18 @@ The owner wrote:
 the work. Development continues through local work graphs, each taking one
 group or several. Completion of individual deliverables, acceptance and
 release remain separate.
+
+## Manual revisions and renderer download (owner, exact, 2026-10-04)
+
+> Can you add to the richness and accuracy of the Project Management manual and Agent User Manual around this transitionary phase and how to discern it, what criteria to watch for, and how to pass through it and handoff to the 90% phase?
+
+HELP_HUMAN asked to download the renderer's pinned dependencies,
+markdown_it_py-4.2.0 (about 90 KB) and mdurl-0.1.2 (about 10 KB), from
+PyPI into a throwaway venv at /tmp/chirality-manual-renderer. The owner
+replied:
+
+> download what you need for this.
+
+They were installed into that venv (`pip install -r
+docs/alignment-manual/requirements.txt`). `--check` against the committed
+v3 HTML confirmed that the renderer reproduces it.
