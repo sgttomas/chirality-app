@@ -97,3 +97,24 @@ The closure claim must be restated:
 Fix the CFB §1 sentence as in C5-m1.
 
 **Counts.** BLOCKING 0, MAJOR 1, MINOR 1, NOTE 3.
+
+---
+
+## Addendum A — review of the CASE-005 repair, §8 (2026-10-04)
+
+- **Subject:** commit `d9dcee38ff`.
+  - `PAIR_ANALYSIS_2026-10-04.md`, sha256 `e9805802adc8329eb178f7c36f6a13fa39ea7e2bb2a23d0094db7d392912f134`. It is append-only: the diff from `bb81cedb6a` deletes nothing.
+  - `MOVES_PROPOSED_2026-10-04.csv`, sha256 `618b0a48babda7bd81447659010589a725666108ea0857b3639b424fd7c6a2f7`, with M-01-R, M-02-R and M-03-R superseding M-01…M-04.
+
+| Finding | §8 | Status |
+|---|---|---|
+| C5-M1, the E residual on both arcs | §8.1 records E on both arcs, and V as well on pair A | **Resolved.** The "no S1 removes it" reasoning is sound. DEL-07-02 OUT-001, REQ-001 and AC-001 (REQ-001 verified at source, l.44) assign the runtime showing and routing to DEL-07-02. Removing the receipt would move that obligation (S2) |
+| C5-m1, the CFB §1 sentence | §8.2 now reads "reads no field of a receiving record". The trigger is supplied in CFB's own route-account format, and `trigger.standing` `$ref`s CFB's own `#/$defs/standing` | **Resolved.** The connector owners write CFB's format on the existing arcs DEP-07-01-014 and DEP-08-01-009, so GC-1 (a) holds for DEL-07-02. The remaining flow is cleanly E |
+| Closure | §8.3 | **Reproduced.** R1 is 3 members / 2 rows under O-1…O-3 and acyclic under O-4. R3 is {07-01, 07-02} / 1 under O-1…O-3 and acyclic under O-4. Both match my C5-M1 figures. R2 (two arc cuts) closes everywhere |
+| Owner acts | §8.3 and §8.4: O-4 none; O-1…O-3 two arc cuts (the M-ALT arcs), the first also covering VER-006's V | **Confirmed**, with C5-n2 and C5-n3 carried |
+
+**ALT-DEC (new).** It closes on the stated conservative model, because the definition part depends on no runtime part. It is correctly labelled an owner-level decomposition, listed but not recommended.
+
+**Verdict: CONFIRMED — READY.**
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 0, NOTE 0.

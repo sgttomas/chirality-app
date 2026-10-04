@@ -79,3 +79,42 @@ decides no more than that source settles.
   3. R-8, R2-6 and R-3 point 6 already allow P17's rewording, so no
      amendment is needed for them. R12-4 already allows the rewording that
      closes P10.
+
+- **GC-5 When a Design-to-Design use counts as a dependency (RVG-ACT51
+  ACT-M1). INTEGRATION.**
+  Sources:
+  - `loop/LOOP_INIT.md`: "keep the ScopeOfWork at the level of
+    obligations, depended-on interfaces and examination";
+  - DEL-10-04 ScopeOfWork: "A reference or ownership link becomes a
+    production dependency only when the cited source establishes the
+    specific required exchange or constraint";
+  - DAG-004 edge semantics;
+  - the owner's criterion: work proceeds "in parallel … without many or
+    any conflicting outcomes".
+  1. **A dependency.** A consumer's Design use of another deliverable's
+     content is a dependency, whether or not any ScopeOfWork states it,
+     when the consumer needs that content to define or produce its own
+     part. These are G1 r3's K-2 and K-4 tests: rules, vocabularies,
+     states, identity schemes or artifacts that the consumer's own rules
+     or outputs depend on.
+  2. **Not a dependency.** These are not dependencies:
+     - an attribution, cross-reference or example;
+     - an uninterpreted identifier under GC-3;
+     - a citation of an integrator or owner ruling whose own text carries
+       the content.
+
+     A citation of a ruling that only directs where the content lives
+     (for example R4-7 or R-7) does not count under this item. The use is
+     then judged by item 1 against the Design that holds the content.
+  3. **What happens to a dependency.** A use that is a dependency under
+     item 1 is either removed by an accepted move (a rewording, invert,
+     cut or merge), or carried into the consumer's ScopeOfWork as a
+     depended-on interface (S1) and so into the register. Leaving it in
+     the Design while absent from ScopeOfWork and register is not
+     acceptable: the graph would change as soon as it was found.
+  4. **Consequence for this run.** G2 matched by `DEL-` identifier and
+     section labels. Its own limits note that abbreviation-only citations
+     (for example "RS R3") could be missed, and ACT shows the gap is
+     material. A complete, abbreviation-aware inventory of cross-
+     deliverable Design uses (G2b) is therefore a closure condition. Each
+     case's "no new row" conclusion is provisional until G2b reports.
