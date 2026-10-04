@@ -4,7 +4,61 @@ Owner O-A: Type 2 TASK, Claude Opus 5.5, high effort, standing assignment
 from HELP_HUMAN (run `APP-V4-DESIGN-PASS-4-20261003`). Read-only git; no
 network. Paths are relative to `projects/chirality-app-v4/execution`.
 
-## CURRENT — FV10-R7/R8 round frozen (2026-10-04); FV-10 + RF-5a READY at 289248709f before it
+## CURRENT — ACT-POLICY-v0.11 (O-E's request, R23-31.10) and the FV10-R9 case, frozen (2026-10-04)
+
+Two independent changes. Commit them by path.
+
+### ACT-POLICY-v0.11 (DEL-04-01)
+
+- **§10.3, DEL-10-03 row.** It now maps what DEL-10-03 RA-v0.1 (`caed56b8ea`,
+  entry S-6) reads:
+  - §2.1: the acts, with decision actor, subject and evidence;
+  - §3: S1–S12;
+  - §8: DECISION-1's reserved acts (§8.2) and the values still open (§8.4).
+
+  It also notes that ACT shapes nothing for DEL-10-03, and that the missing
+  ScopeOfWork receiver and mirror row are RA F-RA1, for the next amendment.
+  Not fixed here.
+- **Version label (R23-21).** v0.10 → **v0.11**, with a one-line change note.
+  No rule, act or value changed, so v0.10 pins keep their reliance (R23-21
+  item 3).
+- **Changed lines:** L2 (label), L4 (change note), L1749 (the row).
+- **Check.** `validate_policy.py`: 6 PASS, all expectations held. ACT's
+  schema is unchanged.
+- **sha256:** `ACT_AND_POLICY_CONTRACT.md`
+  597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2
+  (v0.10 was `1bf0ce8e…`).
+- **Files that pin v0.10's hash `1bf0ce8e…`.** Found by a script search of
+  prefixes 64/16/12/10 over the project. Not edited; for the closeout:
+  - DEL-03-04 `HOST_INTEGRATION_GUIDE.md`;
+  - DEL-09-05 `DECISION_ATTRIBUTION_CASE.md`;
+  - DEL-09-11 `READER_METHOD.md`;
+  - run records `SURVEY/S2-D.md`, `S2-E.md`, `S2-F.md` (historical);
+  - this file.
+
+  ACT's own line 2 names it as the superseded version.
+
+### FV10-R9 claim-connector case (DEL-06-01, offered for the closeout; separate case)
+
+- RF-5a now counts a claim tagged with a connector other than the declared
+  one as not relied ("c1 tagged domains, not the declared pec").
+- New case P8x: PR-P8 without c3, with `route.needed` false, and with c1
+  tagged `domains`/`admitted`. The need is *unknown*.
+- FR records the other FV10-R9 limit (a claim missing from the record), which
+  stays with the record's producer (PRC PR-6).
+- **Checks.** `run_fleet.py` 46/46 (45 before); `run_views.py` 36/36,
+  unchanged. No vendored file changed. No `__pycache__`.
+
+| File | sha256 |
+|---|---|
+| DEL-06-01 `Design/FLEET_RECORDS.md` | dbfcaf9a53c8e3913967eaf0809977cc42ee2bcd2e551834644cf50e8455f4a1 |
+| DEL-06-01 `Design/prototype/fleet_store.py` | 68032697fd25b583259bd97a14efe247b54892630326fa0296c4f85da087bda9 |
+| DEL-06-01 `Design/prototype/run_fleet.py` | caa28faea23bf6a2240a2483048654da080e9c4b7bfaf3bb35f1281735663cac |
+
+`git status --short --ignored` on PKG-04 and PKG-06 lists exactly these four
+files: ACT plus the three above.
+
+## FV10-R7/R8 round frozen (2026-10-04); FV-10 + RF-5a READY at 289248709f before it
 
 Commit by path:
 - the eight changed files below;

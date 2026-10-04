@@ -111,6 +111,9 @@ def connector_need(root, need):
             cid = c.get("claim_id", "?") if isinstance(c, dict) else "?"
             if not isinstance(cs, dict) or list(validator.iter_errors(cs)):
                 unrelied.append(f"{cid} standing not readable or nonconformant")
+            elif cs["connector"] != declared:
+                # FV10-R9 (offered for closeout): a claim tagged with another connector is never counted as relied.
+                unrelied.append(f"{cid} tagged {cs['connector']}, not the declared {declared}")
             elif not cs["supports_reliance"]:
                 why = next((r["basis"] for r in cs["reasons"] if r["facet"] == "condition" and cs["condition"] != "current"), None) \
                     or next((r["basis"] for r in cs["reasons"] if r["facet"] == "claim_tier"), "")

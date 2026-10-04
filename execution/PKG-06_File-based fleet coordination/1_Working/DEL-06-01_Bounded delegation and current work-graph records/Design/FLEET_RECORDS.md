@@ -52,6 +52,8 @@
   - `VENDOR.json` is pinned in code.
   - The schema's connector label now says CFB-v0.2.
   - RF-5b states that the declaration is the contract.
+  - Later the same day (FV10-R9, offered for closeout): a claim tagged with
+    another connector counts as not relied, with case P8x.
 
 ## 1. What these records are
 
@@ -264,7 +266,11 @@ derives the facts only.
 
   Presence-advisory claims (PEC `presence_advisory`) are listed as advisory
   (`advisoryClaims`); they are not reliance gaps. A claim whose standing does
-  not read or conform counts as not relied. The fact carries `connectorNeed`,
+  not read or conform counts as not relied. So does a claim tagged with a
+  connector other than the declared one (FV10-R9; closes RV2's
+  "claim tagged with the other connector" limit). The other FV10-R9 limit
+  stays recorded: a claim missing from the record cannot be detected by the
+  consumer. That account is the record's own (PRC PR-6). The fact carries `connectorNeed`,
   `connector`, the record id and the route reference. DEL-06-02's FV-10
   words these facts and does not re-read them.
 - **RF-5b (FV10-R1).** A plain input need whose file is a connector receiving
@@ -384,7 +390,7 @@ reads FX-DP1's RS records for decisions.
 | VER-008 | §10 (artifact and owner comparison) |
 | Writer, reader | W-1 refusal, W-2 no overwrite, RF-1 changed graph not used, torn line a limit; RF-10/RF-12 a truncated dispatch line reported unread with its child orphaned; RF-11 a torn RS line a limit with decisions unknown; INV-FL-1…7 |
 
-Result on 2026-10-04, after FV10-R7/R8: 45/45 (42 before), including the
+Result on 2026-10-04, after FV10-R7/R8 and the FV10-R9 claim-connector case: 46/46 (42 before), including the
 committed-fixture check. RF-5a's cases run on a scratch copy of FX-FL1 with
 revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 - C2: an adopted but stale record is outstanding, with its route account;
@@ -402,6 +408,9 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 - FV10-R7: PR-P8 with `route.needed` true is satisfied and names c3
   *unknown* and the route. With `route.needed` false (nothing else changed)
   it is *unknown*.
+- FV10-R9 (P8x): PR-P8 without c3, with `route.needed` false, and with c1
+  tagged `domains`/`admitted` is *unknown*, because c1 is never counted as
+  relied.
 - INV-FL-8 and INV-FL-9: the need kind's schema rules.
 
 ## 10. Owner boundary (REQ-006)
