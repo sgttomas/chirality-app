@@ -203,3 +203,22 @@ v7 is unchanged. No HTML, DOCX or PDF file was edited.
 - All 17 fragment links from the field book into v8 resolve to explicit `<a id>` anchors. These are `ch_1_6`, `1_7`, `1_9`, `1_10`, `2_1`, `2_9`, `3_1`, `3_9`, `4_1`, `4_3`, `4_7`, `4_12`, `5_2`, `5_5`, `5_6`, `5_9` and `ch_6`.
 - All 30 internal fragment links in the AUM resolve to its own explicit anchors.
 - No anchor is unresolved. The anchors are explicit ids, not ids derived from headings, so the changed headings do not affect them.
+
+## 9. LOOP_INIT audit additions, per GC-9 (MW, 2026-10-04)
+
+The source is `LOOP_INIT_MAPPING.md`, "Additions needed elsewhere", as decided by ruling GC-9. The drafted text was applied verbatim to `CHIRALITY_AGENT_USER_MANUAL_v3.md`.
+
+| Item | Placement | Change |
+|---|---|---|
+| A1 | §13, "Index the run without duplicating its decisions", before the MEMORY table | Receipt content paragraph: a single central receipt at the location named by the method, as a derivative account. |
+| A2 | End of §14, new subsection "Enter App v4 development", anchor `#app-v4` | App v4 entry and its separation from App development. The `[app-v4-loop]` link definition already existed and was reused, not duplicated. The README's AUM description now reads "across App, App v4, Piping, Runtime, and PEC". |
+| A3 | §5 `#gate-60` | "reserves the 60% assessment" now reads "reserves each stage-gate assessment to the human". |
+| A5 | §13, after "silence is no ruling." | Each decision is recorded with the human's exact words, source and custody, kept apart from the agent's interpretation, and implying no review the human did not perform. |
+| Revision line | AUM header | Now also names §13 (receipt content and decision recording) and the App v4 entry in §14. |
+
+A4 and A6 were not applied, as GC-9 directs.
+
+**Checks.**
+- All internal anchors in the AUM resolve, including `#app-v4`.
+- Every reference-style link is defined.
+- Code fences are balanced.
