@@ -167,3 +167,17 @@ decides no more than that source settles.
      In doubt, ask.
   5. **No fixed thresholds.** This ruling sets none. It rests on one
      project's experience and is to be revisited as loops report.
+
+- **GC-8 Cross-group relationships go in the affected work graphs, not a
+  new list (supersedes GC-7 item 2's "shared list"). INTEGRATION.**
+  Source: the owner's words, "I don't want to create a new type of record
+  that needs to be updated to maintain current state. … The present forms
+  of governance presumed sufficient until shown otherwise."
+  - A relationship found between two groups is recorded in the work graph of
+    each affected loop: the one that found it, and the other group's.
+    There, each loop sees it at entry.
+  - Where the other group has no active work graph yet, the relationship is
+    recorded in the finding loop's graph. It is carried into the other
+    group's graph when that loop constructs it.
+  - No `CROSS_GROUP_RELATIONSHIPS.md` or other new standing list is created.
+  - GC-7's other items stand.

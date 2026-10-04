@@ -47,8 +47,8 @@ Two items stay recorded:
   cut removes.
 
 **Recording relationships found later.** See GC-7. Within a group, the
-group's work graph records them. Across groups, they go in the shared list
-`CROSS_GROUP_RELATIONSHIPS.md` (in the handoff location). Bring the human in at
+group's work graph records them. Across groups, they are recorded in the work graph of each
+affected loop (GC-8); no separate list is kept. Bring the human in at
 once when something seems to run against the order, forms a cycle across
 groups, changes the deliverable set, would make another group's finished
 work wrong, or suggests the grouping is wrong. In doubt, ask (GC-7). A
