@@ -94,3 +94,14 @@ resources/method.md, group 3 preparation.
   and the OI-009 change. Do not touch any ScopeOfWork, register, DAG,
   Decision Log or `_ScopeChange/_LATEST.md` (those follow group 3).
   Records in `RUN/Application/` and `RUN/POSTCHANGE/`.
+
+## V24 — independent review of the group-3 candidate (one Type 2, read-only)
+
+As SCA-V4-002's V14: review the candidate `_ScopeChange/SCA-V4-003_2026-10-03_1827/`,
+the applied Open_Issues edits, the supersession delta and map, the SCA-V4-002
+effective-state note, `RUN/Application/` and `RUN/POSTCHANGE/` against the
+accepted group-1/2 snapshots and DECISION-1. Verify every applied byte
+against the accepted exact text; that nothing outside the boundary changed;
+the audit comparison's attributions; the Handoff_State's H-1…H-3 and the
+expected closure verdict; and that the group-3 presentation can rest on
+these records. Verdict READY FOR GROUP 3 or HOLD. Write only `reviews/V24.md`.

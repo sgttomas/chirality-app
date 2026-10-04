@@ -1,0 +1,29 @@
+{
+  "candidate": "projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827",
+  "files": {
+    "Amendment_Actions.csv": {
+      "source": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-2_2026-10-03/Amendment_Actions.csv",
+      "bound_in": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-2_2026-10-03/ACCEPTED_MANIFEST.csv",
+      "sha256": "9b7c2ce8fbf97ec0cf829c5024e03d19b4117c1ca50abaea4ec0b2c340346d1c",
+      "kind": "byte copy"
+    },
+    "Impact_Assessment.md": {
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/AMENDMENT_PACKET/IMPACT_ASSESSMENT.md",
+      "bound_in": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-1_2026-10-03/ACCEPTED_MANIFEST.csv",
+      "sha256": "46ea15e5b2930c66d97bdc9d10ed5224633e946ba47eb2b2b30897c05f5435f3",
+      "kind": "byte copy"
+    },
+    "Pre_Change_Coverage.json": {
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/BASELINE/coverage_summary.json",
+      "bound_in": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-1_2026-10-03/ACCEPTED_MANIFEST.csv",
+      "sha256": "99f016cc3c3d40f73822ebf625305960a7b77728d20d503195e1ab004f8de37f",
+      "kind": "byte copy"
+    },
+    "Supersession_Delta.csv": {
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/AMENDMENT_PACKET/BASIS_AMENDMENT.md Part D csv block",
+      "sha256": "9c84814a942ce0bae4157c9ea65b9825fbd7cd01f4a645b0010a6f4857eeb19c",
+      "rows": 1,
+      "kind": "exact packet block"
+    }
+  }
+}

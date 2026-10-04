@@ -1,0 +1,8 @@
+{
+  "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/AMENDMENT_PACKET/BASIS_AMENDMENT.md",
+  "source_sha256": "151bc6fffcac482f6f8e77bf3d7b2822ec65f94012e0b66720f14644efbe35bf",
+  "C02_UTC": "20261004T002903Z",
+  "HEAD": "ec267bdb9f9c61c1f7ecc3a9ebe2b0466a7a53ce",
+  "output": "projects/chirality-app-v4/execution/_ScopeChange/_PostAcceptanceValidation/SCA-V4-002_20261004T002903Z_EFFECTIVE_STATE/EFFECTIVE_STATE.md",
+  "output_sha256": "ef2c22d74707a34b7804e2a3a6e83fa56f7f4f0219002b18e6b831e8abee6385"
+}
