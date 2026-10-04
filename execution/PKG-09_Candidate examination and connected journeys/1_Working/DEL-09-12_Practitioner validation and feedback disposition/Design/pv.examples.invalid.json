@@ -976,8 +976,8 @@
       "decision": {
         "state": "decided",
         "decider": "owner_with_affected_consumers",
-        "actor": "O-F (design owner agent)",
-        "recorder": "O-F (design owner agent)",
+        "actor": "design agent O-F",
+        "recorder": "design agent O-F",
         "recorder_stated_by_record": true,
         "recording_mode": "direct capture",
         "record_ref": "OWNER_DECISIONS_n.md (INVENTED)",
@@ -1164,6 +1164,108 @@
         "proposed_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
         "actor": "the owner",
         "record_ref": "INVENTED"
+      }
+    }
+  },
+  {
+    "why": "PV2-R1 (RV2 probe G): an agreement recorded by 'The owner' (the actor, capitalised)",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_arrangement",
+      "format": "PV-v0.3",
+      "arrangement_id": "PV-ARR-91",
+      "version": 1,
+      "open_issue": "OI-016 (App v4)",
+      "state": "agreed",
+      "expressions": [
+        {
+          "expression": "app",
+          "candidate": {
+            "app_candidate": {
+              "revision": "ILLUSTRATIVE (PV example; not a real candidate)",
+              "build_identity": "ILLUSTRATIVE (PV example; not a real candidate)"
+            }
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-app",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        },
+        {
+          "expression": "swbpipe",
+          "candidate": {
+            "host_candidate": "ILLUSTRATIVE (PV example; not a real host candidate or LHQ identification record)",
+            "app_candidate": null
+          },
+          "activities": [
+            {
+              "activity_id": "ACT-EX-swbpipe",
+              "description": "ILLUSTRATIVE owner-selected activity",
+              "selected_by": "the owner"
+            }
+          ],
+          "material": "invented",
+          "availability": {
+            "state": "available",
+            "cause": "ILLUSTRATIVE"
+          }
+        }
+      ],
+      "period": {
+        "kind": "per_expression",
+        "value": "ILLUSTRATIVE: four weeks each"
+      },
+      "agreement": {
+        "actor": "the owner",
+        "recorder": "The owner",
+        "recorder_stated_by_record": true,
+        "record_ref": "OWNER_DECISIONS_n.md (INVENTED)",
+        "exact_text": "INVENTED",
+        "custody": "INVENTED: the owner's chat message, transcribed by the recorder"
+      },
+      "prepared_by": "DEL-09-12 coordinator (ILLUSTRATIVE)",
+      "limits": [
+        "illustrative example of an agreed arrangement; the owner's agreement is INVENTED"
+      ]
+    }
+  },
+  {
+    "why": "PV2-R1 (RV2 probe E8): a method decision by the owner recorded by 'The  owner' (case and spacing)",
+    "refused_by": "schema",
+    "record": {
+      "record_kind": "pv_disposition",
+      "format": "PV-v0.3",
+      "disposition_id": "PV-DSP-EX-4",
+      "observation_ref": "PV-OBS-EX-1",
+      "kind": "method",
+      "owning_commitment": {
+        "ref": "V4-OPS-20",
+        "source": "docs/OPERATING_METHOD.md#V4-OPS-20",
+        "manual_section": "ILLUSTRATIVE: Field Book §n (edition per CURRENT_EXECUTION_BASIS)",
+        "work_graph_node": "ILLUSTRATIVE node"
+      },
+      "recipient": [
+        "DEL-10-02"
+      ],
+      "routed_by": "method_feedback_to_DEL-10-02",
+      "proposed_treatment": "no_change",
+      "decision": {
+        "state": "decided",
+        "decider": "owner_at_stage_decision",
+        "actor": "the owner",
+        "recorder": "The  owner",
+        "recorder_stated_by_record": true,
+        "recording_mode": "faithful recording",
+        "record_ref": "OWNER_DECISIONS_n.md (INVENTED), the DEL-10-02 stage decision",
+        "scope": "ILLUSTRATIVE: Field Book §n, this undertaking only"
       }
     }
   }

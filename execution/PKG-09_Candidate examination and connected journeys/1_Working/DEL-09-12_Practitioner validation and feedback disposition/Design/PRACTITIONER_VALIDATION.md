@@ -1,12 +1,12 @@
 # Practitioner validation and feedback disposition
 
-- **Contribution:** DEL-09-12/PV-v0.3, the repair of PV-v0.2 (sha256 `2240ab360eeb5e5f5ac5c6375e7bfe20b7805bb9943d517a5b980ce75e0708f4`, unit EU-F4, commit `0e3591a65d`) for RV2's review RV2-PV1 (PV1-R1 MAJOR; PV1-R2…R6 MINOR; PV1-R7 NOTE). Unit **EU-F4R**. The record format steps to PV-v0.3 (§9).
+- **Contribution:** DEL-09-12/PV-v0.4 (unit **EU-F4R2**): RV2's PV2-R1 (an owner act's recorder is never the owner in any case or spacing) and PV2-N2 ("design agent O-F"). The real arrangement's `prepared_by` changes, so the version steps; the record format stays PV-v0.3. PV-v0.3 (sha256 `16718ee59275e915b2ab124bbd6846f81b7ce8d13906d4492a03ec78e4f36871`, unit EU-F4R, commit `9ba5dfe49c`, READY) stays in git as history. PV-v0.3 was the repair of PV-v0.2 (sha256 `2240ab360eeb5e5f5ac5c6375e7bfe20b7805bb9943d517a5b980ce75e0708f4`, unit EU-F4, commit `0e3591a65d`) for RV2's review RV2-PV1 (PV1-R1 MAJOR; PV1-R2…R6 MINOR; PV1-R7 NOTE). Unit **EU-F4R**. The record format steps to PV-v0.3 (§9).
 - **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it are:
   - the PROPOSED schema `pv.practitioner-validation.schema.json`, with five record kinds;
-  - illustrative examples `pv.examples.valid.json` (12) and `pv.examples.invalid.json` (27).
+  - illustrative examples `pv.examples.valid.json` (12) and `pv.examples.invalid.json` (29).
 
   The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/pv/` (RUN/F/pv): `pvlib.py` builds the current real records and holds the rules; `check_pv.py` checks them. The real records state what is true now: **no validation is agreed, and no practitioner use has occurred**. Every example is labelled ILLUSTRATIVE or INVENTED and is not a practitioner observation (VER-003).
-- **Run and assignment:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; prepared by O-F (design owner agent; Type 2, Claude Opus 5.5); 2026-10-04. In this file "the owner" is always the person; agents and deliverables are named as such.
+- **Run and assignment:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; prepared by design agent O-F (Type 2, Claude Opus 5.5); 2026-10-04. In this file "the owner" is always the person; agents and deliverables are named as such.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-006 (§8).
 - **Rulings (cited by ID):**
   - R23-32: F-R3 (practitioner validation is not a replacement condition), F-R12 (DEL-09-12 keeps its own observation record, not an EXP outcome), F-R13 (observations route to their owning deliverable through the ScopeLedger), F-R14 (always "OI-016 (App v4)" or "SWBPIPE OI-016"); P-2, P-3 and P-6 as the person's acts;
@@ -80,7 +80,7 @@ DEL-11-03's first cut therefore refuses this record as it stands. Its next revis
 - **States:** `not_agreed`, `proposed`, `agreed`, `in_use`, `ended`. **Nothing before `agreed` counts as validation.**
 - **Agreement.** `agreement` must be null in `not_agreed` and `proposed`. In `agreed`, `in_use` and `ended` it must be an owner act with:
   - actor "the owner";
-  - a recorder other than the owner;
+  - a recorder other than the owner (never "the owner" in any case or spacing; PV2-R1);
   - `recorder_stated_by_record`;
   - `record_ref`, `exact_text` and custody.
 
@@ -122,7 +122,7 @@ DEL-11-03's first cut therefore refuses this record as it stands. Its next revis
   | `method` | `owner_at_stage_decision` | Actor "the owner" (schema), at the DEL-10-02 stage decision (UC §7, "reserved to the person"), recorded in an OWNER_DECISIONS file (PV-R5). OI-020 still applies before any manual revision (P-6) |
   | `successor_basis_proposal`, any kind | `owner_with_affected_consumers` | Actor "the owner" (schema), plus `adoption_ref`, the adoption's own record, which must differ from the decision's `record_ref` (PV-R5). `adoption_ref` appears only here (schema) |
 
-- **Recorder.** When the actor is "the owner", the recording is `faithful recording` and the recorder is someone else (schema). Otherwise a `faithful recording` names a recorder other than the actor, and a `direct capture` names the actor as recorder (PV-R5). Both are string comparisons.
+- **Recorder.** When the actor is "the owner", the recording is `faithful recording` and the recorder is someone else: never "the owner" in any case or spacing (schema; PV2-R1). Otherwise a `faithful recording` names a recorder other than the actor, and a `direct capture` names the actor as recorder (PV-R5). Both are string comparisons.
 - An `unresolved` disposition stays `proposed` (schema).
 - **PV-R5 (PROPOSED):** the cross-field parts of the above that the schema cannot express.
 
@@ -193,11 +193,11 @@ DEL-11-03's first cut therefore refuses this record as it stands. Its next revis
 |---|---|---|---|
 | U-PV-1 | The agreement on period and activities | The owner, the person (OI-016 (App v4); P-2) | Before validation in use; possible only when candidates exist |
 | U-PV-2 | Candidates for each expression | Supplied by DEL-09-02 (App) and DEL-09-07 with SWBPIPE (host) (DEP-001, OI-021; host joins deferred) | Before use in that expression |
-| U-PV-3 | DEL-11-03 adopts `practitioner_standing` in place of its first cut, taking the stated differences (§2 O-3: format, `arrangement_ref`, `is_replacement_condition`) | Assigned to O-F (design owner agent) at DEL-11-03's next revision | — |
+| U-PV-3 | DEL-11-03 adopts `practitioner_standing` in place of its first cut, taking the stated differences (§2 O-3: format, `arrangement_ref`, `is_replacement_condition`) | Assigned to design agent O-F at DEL-11-03's next revision | — |
 | U-PV-4 | EXP §3.3's `activity: validation` is not used by DEL-09-12 (F-R12) | DEL-09-01's next revision (recorded by HELP_HUMAN; RV2 PV1-R8) | EXP's next revision |
 | U-PV-5 | OI-020 before any manual revision proposed from feedback | The owner (P-6) | When one is proposed |
 
-## 8. Verification (designed; `check_pv.py` 38/38 at freeze)
+## 8. Verification (designed; `check_pv.py` 38/38 at freeze; 29 invalid examples)
 
 Each rule about the real records is one function in `check_pv.py`; each negative case breaks a real record (or, for F-R12, UC §5 and the hand-over, the schema text) in memory and runs the same function, naming the rule that must refuse it. Where no real record of a kind exists (observations, dispositions), the rule is broken on the examples (K-6) or on an in-memory record built for the case (PV-R4: P-1, N-20…N-23). K-6 checks each schema refusal against the record kind's own `$def`.
 
@@ -205,17 +205,17 @@ Each rule about the real records is one function in `check_pv.py`; each negative
 |---|---|---|
 | VER-001 | The real arrangement is `not_agreed`, with causes; an illustrative proposal and an agreed arrangement validate; a plan offered as agreement and a self-recorded agreement are refused; exactly the two expressions; an agreed arrangement with unselected activities, or an available expression with no candidate or material, is refused | K-1, K-4, K-5; K-6 (invalid 3, 4, 15, 16; PV-R2 invalid 12); N-1, N-2, N-15, N-16 |
 | VER-002 | An observation with four aims, no score or outcome; "not observed" holding statements is refused; actual use on a placeholder, outside an agreed arrangement, on an unselected activity or on another candidate is refused; a SWBPIPE observation names its host candidate | K-5, K-7; K-6 (invalid 1, 2, 9, 19; PV-R1 invalid 11; PV-R4 invalid 18); P-1, N-20…N-24 |
-| VER-003 | Illustrative cases are marked as such and are never practitioner observations; acts keep actor and recorder apart | Examples' `standing`; K-6 (invalid 4, 24; PV-R5 invalid 26) |
+| VER-003 | Illustrative cases are marked as such and are never practitioner observations; acts keep actor and recorder apart | Examples' `standing`; K-6 (invalid 4, 24, 28, 29; PV-R5 invalid 26) |
 | VER-004 | Observation → commitment → recipient through the real ScopeLedger; unresolved is reported; a decided disposition names the decider its case requires, a recorder, and its record; a method decision is the owner's at the stage decision; a successor basis stays proposed until its own decision and adoption; an agent never decides; a method observation goes to DEL-10-02 with section and node | K-10, K-11; K-6 (invalid 5, 6, 20, 21, 23, 27; PV-R3 invalid 13, 14; PV-R5 invalid 22, 25) |
 | VER-005 | OI-016 (App v4), OI-021 and OI-024 carried; no invented period; validation is not a replacement condition; F-R14 qualification everywhere; the hand-over to DEL-11-03 differs from the first cut only as stated | K-4, K-8, K-9, K-12; K-6 (invalid 7, 8, 10, 17); N-17, N-18, N-19 |
 | VER-006 | Act boundary (§1) | Review |
 
-**RV2's probes, rebuilt from RV2-PV1.md:** A (two `app` expressions) is invalid 15 and N-15; B (agreed, available, no candidate or material) is invalid 16 and N-16; C (actual use under not-agreed PV-ARR-1, activity in no arrangement) is invalid 18 and N-24; E (a successor basis "decided" by an agent on one reference) is invalid 20, with invalid 21 hardening it; H (`in_use` with no agreement reference) is invalid 17 and N-17. D and G still pass, as listed below.
+**RV2's probes, rebuilt from RV2-PV1.md:** A (two `app` expressions) is invalid 15 and N-15; B (agreed, available, no candidate or material) is invalid 16 and N-16; C (actual use under not-agreed PV-ARR-1, activity in no arrangement) is invalid 18 and N-24; E (a successor basis "decided" by an agent on one reference) is invalid 20, with invalid 21 hardening it; H (`in_use` with no agreement reference) is invalid 17 and N-17. G (agreement recorder "The owner") is now invalid 28, and RV2's E8 (a method decision recorded by "The owner") is invalid 29, here with doubled spacing (PV2-R1). D still passes, as listed below.
 
 **Claimed rules with a negative case:**
-- schema, arrangement: a plan offered as agreement (N-1; invalid 3), a self-recorded agreement (invalid 4), the two expressions (N-15; invalid 15), candidate and material when available in an agreed arrangement (N-16; invalid 16), an unqualified open issue (N-6; invalid 10).
+- schema, arrangement: a plan offered as agreement (N-1; invalid 3), a self-recorded agreement (invalid 4; in any case or spacing, invalid 28), the two expressions (N-15; invalid 15), candidate and material when available in an agreed arrangement (N-16; invalid 16), an unqualified open issue (N-6; invalid 10).
 - schema, observation: outcome or score (invalid 1, 2), not-observed with statements (invalid 9), the SWBPIPE host candidate (invalid 19).
-- schema, disposition: a decision needs its decider, recorder and record (invalid 5, 24, 20), a method decision by an agent (invalid 23), a successor basis decided by an agent (invalid 20, 21), a proposal shown as a decision (invalid 27), method routing (invalid 6).
+- schema, disposition: a decision needs its decider, recorder and record (invalid 5, 24, 20), a method decision by an agent (invalid 23), an owner's decision recorded by the owner in any case or spacing (invalid 29), a successor basis decided by an agent (invalid 20, 21), a proposal shown as a decision (invalid 27), method routing (invalid 6).
 - schema, standing: observations or an agreement while not agreed (N-3, N-4; invalid 8), an agreement reference once agreed (N-17; invalid 17), a replacement condition (N-5; invalid 7), the observation ids' type (N-18).
 - PV-R1 (invalid 11); PV-R2 (N-2, schema-valid; invalid 12); PV-R3 (invalid 13, 14); PV-R4 (N-20…N-24; invalid 18; P-1 the positive control); PV-R5 (invalid 22, 25, 26).
 - K-2 (N-12); K-3 (N-13); K-4 (N-5, N-8); K-7 F-R12 (N-9); K-8 F-R14 (N-6, N-7; K-9 tests the rule both ways); K-11 UC §5 fields (N-10); K-12 hand-over (N-11, N-18, N-19); K-13 (N-14).
@@ -223,7 +223,7 @@ Each rule about the real records is one function in `check_pv.py`; each negative
 **Without a negative case on a real record, or not enforced:**
 - No real observation or disposition exists. PV-R1, PV-R3, PV-R4 and PV-R5 are broken only on examples and in-memory records; K-10 runs PV-R3's routing on the real ScopeLedger, including an unknown anchor.
 - PV-R1's placeholder test is keyword-based (§3.2): RV2's probe D ("TBD") passes it. PV-R4 then requires the arrangement's candidate to be the same string, so a placeholder in both still passes.
-- Actor-not-recorder tests are string comparisons (the agreement, and a decision by the owner: schema; other decisions: PV-R5). RV2's probe G (recorder "The owner", capitalised) passes, and a false recorder name passes.
+- Actor-not-recorder tests are string comparisons. Where the actor is the owner, any case or spacing of "the owner" is refused (schema; PV2-R1), but another name for the person ("Ryan") passes. For other decisions (PV-R5) the comparison is exact, so a recorder differing from the actor only by case passes (RV2's E7). A false recorder name passes.
 - PV-R5's "the owning deliverable's own record" is textual: `record_ref` must contain the deliverable's id. Whether the cited record exists and says what it is cited for is not checked; nor is whether the actor is that deliverable's accountable party.
 - PV-R5's method check looks for "OWNER_DECISIONS" in `record_ref`; it does not read the file or the stage.
 - A successor basis's `adoption_ref` is checked as present and different from `record_ref`; whose adoption it records (the affected consumers) is not checked.
@@ -235,6 +235,7 @@ Each rule about the real records is one function in `check_pv.py`; each negative
 
 | Version | Change |
 |---|---|
+| PV-v0.4 (2026-10-04) | Unit EU-F4R2, the last tranche-2 round: PV2-R1, the owner-as-recorder refusal in any case or spacing for the agreement and for an owner's decision (schema pattern), with RV2's probes G and E8 as invalid 28 and 29; PV2-N2, "design agent O-F" in this file, the examples and the real arrangement's `prepared_by`. Records rebuilt at `b2fbfdbac8`; record format PV-v0.3 unchanged |
 | PV-v0.3 (2026-10-04) | RV2-PV1 repair (unit EU-F4R):
 - PV1-R1: a decision has a decider fixed by its case, a recorder and a recording mode; method and successor-basis decisions are the owner's; a successor basis needs its own adoption record; a proposal carries only `proposed_by`; PV-R5 added. Probe E is invalid 20.
 - PV1-R2: exactly one `app` and one `swbpipe` expression (schema).

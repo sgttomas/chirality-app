@@ -122,6 +122,8 @@ def separation_errors(acct):
                                 % (cid, a["act_id"], cid, a["kind"], a.get("act_class"), a.get("consumer_id"), record))
                 if not adoption_text(a["exact_text"]):
                     errs.append("SR-4 %s: %s's text does not state an adoption" % (cid, a["act_id"]))
+                if record in routed_notices(acct, rn):  # AA3-R1: the sending tranche's notice is never the receiving loop's act (F-R10)
+                    errs.append("SR-3 %s: %s's record is a notice %s's change routes, not the loop's own act" % (cid, a["act_id"], r["renewal_id"]))
                 entry = entry_of(blob_or_none(acct["at_commit"], record)[1], a["exact_text"])
                 if not any(n in entry for n in renewal_names(rn)):
                     errs.append("SR-3 %s: %s's record entry does not name %s (%s)" % (cid, a["act_id"], r["renewal_id"], ", ".join(sorted(renewal_names(rn)))))
@@ -442,6 +444,19 @@ def main():
         v["status"] = copy.deepcopy(s)
     neg("N-31 RV3 AA2-R1 construction 2: App v3 'consumer adopted' by a real, unrelated App v3 sentence ('UPD-133 adopts …'), status updated to match",
         n31, "SR-3")
+    def n32(v, s):
+        v["acts"].append({"act_id": "AD-X", "kind": "agent_act", "act_class": "adoption", "recording_mode": "direct capture", "consumer_id": "APP-V3",
+                          "actor": "App v3 loop", "recorder": "App v3 loop", "recorder_stated_by_record": True,
+                          "subject": "App v3 adopts D-GOV-52", "record_ref": "projects/chirality-app-dev/" + B.NOTICE,
+                          "exact_text": "Your loop decides whether to adopt, amend or decline.", "custody": "AA3-R1 construction"})
+        r = row(v, "APP-V3")
+        r["facts"]["consumer_adopted"] = {"state": "established", "evidence": [{"kind": "act", "ref": "AD-X"}]}
+        r["adoption_point"] = "the notice"
+        s["instruction_changes"][0]["adopted_by"] = ["APP-V3", "APP-V4"]
+        v["status"] = copy.deepcopy(s)
+    neg("N-32 RV3 AA3-R1: App v3 'consumer adopted' by the routed D-GOV-52 notice's own sentence ('Your loop decides whether to adopt, amend or decline.'), status updated",
+        n32, "SR-3")
+
     expect("P-4 the real adoption AD-1's entry names RN-1 (R23-30's head names D-GOV-52); the UPD-133 entry does not",
            any(n in entry_of(B.blob(at, B.RUN + "/R23_RESOLUTIONS.md")[1], "App v4 adopts the changed Root text.")
                for n in renewal_names(acct["renewals"][0]))

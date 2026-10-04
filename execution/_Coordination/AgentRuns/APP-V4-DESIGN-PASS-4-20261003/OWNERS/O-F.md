@@ -21,9 +21,11 @@ Escalate only for:
 | EU-F2 | DEL-11-01 CA-v0.1 + DEL-11-03 RP-v0.4 | DEL-11-01 `Design/`, DEL-11-03 `Design/`, `F/` (incl. `F/ca/`) | see "EU-F2 — frozen" | **READY** (RV3-CA1.md; RV3-EUF1.md Addendum 6); MINORs carried into EU-F3 |
 | EU-F3 | DEL-11-02 AA-v0.1 + DEL-11-01 CA-v0.2 + DEL-11-03 RP-v0.5 | the three `Design/` folders; `F/` (incl. `F/aa/`, `F/ca/`) | see "EU-F3 — frozen" | Committed `b2fbfdbac8`; **REPAIR** (RV3-AA1: AA1-R1 MAJOR); superseded by EU-F3R |
 | EU-F3R | DEL-11-02 AA-v0.2 + DEL-11-01 CA-v0.3 + DEL-11-03 RP-v0.6 | as EU-F3, plus `F/fixtures/FX-RP1-6/` | see "EU-F3R — frozen" | Committed `0e0036b685`; **READY** (RV3-AA1 addendum, `0d23f45985`); AA2-R1 MINOR and CA2-N1 taken in EU-F3R2 |
-| EU-F3R2 | DEL-11-02 AA-v0.3 + DEL-11-01 CA-v0.4 (checker and Design only; AA-1 v2, CA-1 v3, RP-v0.6 and FX-RP1-6 unchanged) | DEL-11-02 and DEL-11-01 `Design/`; `F/aa/check_aa.py`, `F/ca/check_ca.py`, `F/README.md` | see "EU-F3R2 — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then RV3 to confirm AA2-R1** |
+| EU-F3R2 | DEL-11-02 AA-v0.3 + DEL-11-01 CA-v0.4 (checker and Design only; AA-1 v2, CA-1 v3, RP-v0.6 and FX-RP1-6 unchanged) | DEL-11-02 and DEL-11-01 `Design/`; `F/aa/check_aa.py`, `F/ca/check_ca.py`, `F/README.md` | see "EU-F3R2 — frozen" | Committed `821f236649`; **READY** (RV3-AA1 addendum, `a1734df11e`); AA3-R1 taken in EU-F3R3 |
+| EU-F3R3 | DEL-11-02 AA-v0.3, amended in place (checker and Design only; AA-1 v2 unchanged) | DEL-11-02 `Design/ADOPTION_ACCOUNT.md`; `F/aa/check_aa.py`; `F/README.md` | see "EU-F3R3 and EU-F4R2 — frozen" | **FROZEN 2026-10-04 (last tranche-2 round); for HELP_HUMAN to commit by path, then RV3 to confirm AA3-R1** |
 | EU-F4 | DEL-09-12 PV-v0.2 | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4 — refrozen" | Committed `0e3591a65d`; **REPAIR** (RV2-PV1, `a3b91c843f`: PV1-R1 MAJOR) |
-| EU-F4R | DEL-09-12 PV-v0.3 | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4R — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then RV2 to confirm** |
+| EU-F4R | DEL-09-12 PV-v0.3 | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4R — frozen" | Committed `9ba5dfe49c`; **READY** (RV2-PV1 addendum, `c4577c333a`); PV2-R1 and PV2-N2 taken in EU-F4R2 |
+| EU-F4R2 | DEL-09-12 PV-v0.4 (record format PV-v0.3) | DEL-09-12 `Design/`; `F/pv/` | see "EU-F3R3 and EU-F4R2 — frozen" | **FROZEN 2026-10-04 (last tranche-2 round); for HELP_HUMAN to commit by path, then RV2 to confirm** |
 
 ## EU-F1 — frozen (RP-v0.1; superseded by the refreeze below, kept as the record RR-EUF1 read)
 
@@ -731,3 +733,44 @@ Superseded: AA-v0.2 `3d4ba2ec…`, CA-v0.3 `8f47aa08…` (from `git show 0e0036b
 **Waiting units:** two (EU-F4R for RV2, EU-F3R2 for RV3), each with its own reviewer, as the coordinator directed.
 
 **Next.** DEL-11-03's next revision: adopt `practitioner_standing` with the stated differences (U-PV-3).
+
+## EU-F3R3 and EU-F4R2 — frozen (last tranche-2 round)
+
+Both earlier units are READY: EU-F3R2 (RV3, `a1734df11e`) and EU-F4R (RV2, `c4577c333a`). This round takes only the three items the coordinator named. The coordinator has ruled no further checker hardening in tranche 2; the remaining textual limits stay listed in AA §7 and PV §8 and pass to implementation.
+
+**Items.**
+1. **AA3-R1 (MINOR; RV3).** SR-3 now refuses an adoption act whose record is a notice the renewal's change record routes. The sending tranche's text is never the receiving loop's act (F-R10). This is one check in `separation_errors`, reusing `routed_notices`. RV3's construction is N-32: App v3's routed D-GOV-52 notice, with its sentence "Your loop decides whether to adopt, amend or decline.", and the status updated. I printed the refusal: SR-3 only.
+   - Checker and Design only; AA-1 v2 is byte-identical. Per your rule, there is no version step: AA-v0.3 is amended in place with a change row, and the frozen EU-F3R2 bytes are named in its header.
+2. **PV2-R1 (MINOR; RV2).** Where the actor is "the owner", the recorder is refused if it matches `^\s*the\s+owner\s*$` in any case. This applies to the agreement and to a decision whose actor is the owner, and is enforced by the schema pattern, which replaces the exact `const`.
+   - RV2's probe G (agreement recorded by "The owner") is invalid 28.
+   - RV2's probe E8 (method decision recorded by "The owner", here also with doubled spacing) is invalid 29.
+   - Both are refused by their kind's own `$def`. 28's only change from valid example 2 is the recorder.
+   - PV §8 still lists as passing: another name for the person, and RV2's E7 (exact comparison for non-owner actors).
+3. **PV2-N2 (NOTE).** "design agent O-F" now replaces "O-F (design owner agent)" in PRACTITIONER_VALIDATION.md (header, U-PV-3), the invalid examples, and the real arrangement's `prepared_by`. **Built content changes** (PV-ARR-1), so PV steps to **PV-v0.4**; the record format stays PV-v0.3.
+
+**Checks run.**
+- Checkers: `check_aa.py` **47/47**; `check_pv.py` **38/38** (12 valid, 29 invalid); `check_ca.py` 37/37 and `check_rp.py` 99/99 unchanged.
+- Rebuilds: AA and PV rebuilt twice, with identical bytes. The AA records are unchanged against `821f236649`. The PV records changed only in `prepared_by`.
+- Hygiene: `git status --ignored` shows nothing ignored on the unit paths. There are no home paths, and no "design owner agent" remains in DEL-09-12 or `F/pv/`.
+- Not touched: the CA and RP Design files and prototypes.
+
+**Files (sha256)** — paths for the R23-41 commit (from `projects/chirality-app-v4/execution/`):
+
+| File | sha256 |
+|---|---|
+| `PKG-11_…/DEL-11-02_…/Design/ADOPTION_ACCOUNT.md` (AA-v0.3, amended) | `b8fe830bc03d63031c00559067de5854da20fee7c687df3d1ae2ff14b213e755` |
+| `RUN/F/aa/check_aa.py` | `84b79bc811a3aaf7e50bf831bf5a05bbb765124cbaf90c760da700ee093500f0` |
+| `PKG-09_…/DEL-09-12_…/Design/PRACTITIONER_VALIDATION.md` (PV-v0.4) | `f928f5fd96c5d2bff07da3311ba17bfc4ebef939dc095e6aaf0d6ad970254fdd` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.practitioner-validation.schema.json` | `dfe8249b343ac50d0367fd39e63c9ce48d7afdd8fcd33448f2f1a29f03732135` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.examples.invalid.json` (29) | `bc4844dbb1ad46e9440dc135c9f7708e7c24b7047768764fc59330cb6ac5a1ef` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.examples.valid.json` (12; unchanged) | `5e2204d55795694f7c05de708fc8f6e2da37a6588e205c5810492f0475c2a683` |
+| `RUN/F/pv/pvlib.py` | `74079c8e65f582b83c97ccab8c75fb7df91b5ea21c77a951f481965287f2ea07` |
+| `RUN/F/pv/check_pv.py` | `d971852e760173eba646a6febe85b1cb9346a15f8bee4df40ceef4d2130554bf` |
+| `RUN/F/pv/records/MANIFEST.sha256` | `94340b9638fdcf70ac77a78bed5fa70bc917c0f707379f26fe79eda6b2133783` |
+| `RUN/F/README.md` (shared) | `733247a14c95d14141275cf8c4cfd1e93fa8385cd67f999284a3b282a9dec40b` |
+
+Superseded: AA-v0.3 as frozen `c17c5d8c…` (`821f236649`); PV-v0.3 `16718ee5…` (`9ba5dfe49c`).
+
+**Carried past tranche 2:**
+- U-PV-3: DEL-11-03's next revision takes `practitioner_standing` with its stated differences.
+- The textual limits listed in AA §7, CA §8, RP §8 and PV §8.

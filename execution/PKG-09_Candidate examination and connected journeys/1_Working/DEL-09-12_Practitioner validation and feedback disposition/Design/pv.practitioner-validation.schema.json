@@ -295,7 +295,7 @@
               "not": {
                 "properties": {
                   "recorder": {
-                    "const": "the owner"
+                    "pattern": "^\\s*[Tt][Hh][Ee]\\s+[Oo][Ww][Nn][Ee][Rr]\\s*$"
                   }
                 },
                 "required": [
@@ -1082,13 +1082,14 @@
                 "not": {
                   "properties": {
                     "recorder": {
-                      "const": "the owner"
+                      "pattern": "^\\s*[Tt][Hh][Ee]\\s+[Oo][Ww][Nn][Ee][Rr]\\s*$"
                     }
                   },
                   "required": [
                     "recorder"
                   ]
-                }
+                },
+                "description": "PV2-R1: when the actor is the owner, the recorder is never the owner, in any case or spacing."
               }
             }
           ]

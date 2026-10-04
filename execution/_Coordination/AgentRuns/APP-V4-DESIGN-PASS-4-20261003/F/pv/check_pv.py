@@ -1,4 +1,4 @@
-"""Check DEL-09-12's records and rules (PV-v0.3). Prototype, not product code. Reads only.
+"""Check DEL-09-12's records and rules (PV-v0.4). Prototype, not product code. Reads only.
 
 K-1..K-13 check the real records and the examples. Each rule about the real records is a function of them;
 each N-case breaks a real record (or the schema text, for F-R12) in memory and runs the same function, naming

@@ -1,6 +1,6 @@
 """DEL-09-12 practitioner validation: builder and rules PV-R1..PV-R5 (prototype; not product code).
 
-Design: DEL-09-12 Design/PRACTITIONER_VALIDATION.md (PV-v0.3; record format PV-v0.3). Rulings: R23-32 (F-R3, F-R12, F-R13,
+Design: DEL-09-12 Design/PRACTITIONER_VALIDATION.md (PV-v0.4; record format PV-v0.3). Rulings: R23-32 (F-R3, F-R12, F-R13,
 F-R14; P-2, P-3, P-6), R23-33. Reads git at a named commit (read-only); writes only F/pv/records/.
 
 Usage: python3 -B pvlib.py --at <commit>      (builds the current real records)
@@ -177,7 +177,7 @@ def build(at):
              "availability": {"state": "blocked", "cause": "no SWBPIPE candidate; the owner deferred the host joins (DECISION-3: 'defer the host joins'); OI-021 is open"}},
         ],
         "period": None, "agreement": None,
-        "prepared_by": "DEL-09-12 coordinator (O-F, design owner agent; prototype)",
+        "prepared_by": "DEL-09-12 coordinator (design agent O-F; prototype)",
         "limits": ["OI-016 (App v4) is open: Owner 'Owner', point of need 'Before practitioner validation in use' (Open_Issues.csv at %s)" % at[:10],
                    "no activity is proposed here: the activities are the owner's choice (V4-EXM-40), and none can run before a candidate exists",
                    "no observation exists; none is invented"],
