@@ -307,3 +307,85 @@ There is one exception within this change. The field book reference that sends r
 | NOTE | 6 |
 
 Both MAJOR repairs are wording changes in v8, with matching edits in the field book and AUM. They need no new sources. Once MAJOR-1 and MAJOR-2 are repaired, the manuals will be consistent with the governing texts and faithful to the App v4 record. The MINOR items are recommended in the same pass.
+
+---
+
+## Addendum A: confirmation of repairs (2026-10-04)
+
+**Reviewer:** MR, the same Claude Opus 5.5 instance (`claude-opus-5-5`). I used read-only git and no network, and I edited only this file.
+
+**Candidate:** `db25aa3256`, on the same branch. The diffs I checked are `a8d835ad7b..HEAD` for the three manuals and `OWNER_DECISIONS.md`, and `b935a016a6..HEAD` for this review file, which was unchanged until I appended this addendum.
+
+| File | sha256 (prefix) |
+|---|---|
+| v8 | `ebae260fd5ac…` |
+| Field book | `60634b937881…` |
+| AUM | `858e1a822eeb…` |
+| `OWNER_DECISIONS.md` | `21c781f92244…` |
+| v7, still unchanged | `0aafefb12e9a…` |
+
+The map I checked against is `MANUAL_CHANGES.md` §5.
+
+### MAJOR-1 ("grouping for development"): repaired
+
+- **v8 §4.12, SCC paragraph.** It now names **grouping for development** and says the human accepts it, "typically together with the gate". It also says the grouping "is not a merge ruling under the cycle-resolution doctrine, and it does not resolve the component in the graph's terms". Held rows stay non-gating, "their resolution cases remain open", and "a recorded merge, cut, or other move … follows the doctrine's rules and produces a successor graph". The gate asks for "an accepted treatment … not that every SCC be resolved". "An SCC is resolved when…" has been removed.
+- **v8 §3.11.** It now contrasts a merge with grouping, "which leaves the cycle unresolved in the graph".
+- **v8 §4.7.** "…while the component remains unresolved in the graph".
+- **v8 Figure 4.10.** "their relationships still held and their cases open".
+- **Field book.** DISCERN reads "Grouping is not a merge ruling: SCC rows stay held and their cases stay open", and §4 reads "Grouping co-designed members for development is not a merge".
+- **AUM.** `#gate-60` names CDR §2 rule 3, project-dag selection and `SCC_UNRESOLVED`, and §8 reads "leaves the SCC held and is not a merge ruling".
+- **Leftover terms.** A grep for "planning purposes", "for planning" and "an SCC is resolved" finds no remaining use in the 60% guidance. The two hits at v8 l.456 and l.616 are unrelated text that was already there.
+- **Consistency.** The repaired text is now consistent with CDR §2 rules 3–4, project-dag SR-4 and SR-7, and the SPEC §5.4 blockers row. It also describes App v4 truly: DAG-004 holds 83 rows as `SCC_UNRESOLVED` with open cases, and B0 was dropped.
+
+### MAJOR-2 (SPEC §5.4 path): repaired in all four quoted passages and the related ones
+
+1. **§1.7.** "commonly" is restored. The passage now reads: "An added or removed production relationship, or a changed cycle, is a departure from the accepted graph; the human decides it under the project's adopted rules, and several departures can be decided together in one successor. Keep that distinct from a structural change…". The second paragraph adds: "Departures in finer relationships continue to arrive and are decided as before."
+2. **§4.7.** "…usually is not, although a relationship it adds or removes is still a departure under the project's rules."
+3. **§4.12, after the level table.** This now uses my proposed wording exactly: "Some still require a decision under the project's departure rules. None is a reason to withhold the transition unless it crosses the group order or closes a cycle between groups."
+4. **§4.12, App v4 example.** "No successor was needed to pass the gate; the dependencies found in the designs are carried through the departure rules as the loops register them."
+
+Related passages:
+- §3.12 reads "commonly … several successor DAGs".
+- The chapter 4 introduction reads "are common".
+- The structural-change paragraph in §4.12 and the chapter 5 introduction now carry the departure statement.
+- The §4.12 handoff paragraph sets out the proportionate path: batch per scope amendment, examine currency once, and prepare one small successor.
+
+I checked the App v4 claim in the handoff paragraph against the records. It says three successors were accepted "during its 60% phase, each adding relationships without changing the Deliverable set". The `GRAPH_BASIS.md` files of DAG-002, DAG-003 and DAG-004 record 37, 4 and 10 added arcs, with inventory unchanged, after DAG-001 completed 30% on 2026-09-28.
+
+AUM step 4 now puts the scope-amendment route first, then `dependency-extract` and the currency audit, and adds batching with the DAG-002 to DAG-004 example. The field book handoff block and §5 step 2 now state the departure rule, with batching.
+
+Ruling 1 is therefore satisfied. All three manuals now say that registering a row inside a group can be a departure for the human to decide. None implies that registering rows is free of that rule.
+
+### MINOR and NOTE items
+
+| Item | Status | Evidence |
+|---|---|---|
+| MINOR-1 | Repaired | Field book DISCERN: "…is settled, contained as a residual risk with an owner, or accepted by the human as a stated qualification." |
+| MINOR-2 | Repaired | Field book check 4 now carries the "identified join that follows the group order" clause. |
+| MINOR-3 | Repaired | Field book: "Groups and members recorded; grouping for development proposed for the human's decision, which may be given with the gate." |
+| MINOR-4 | Repaired | The field book's §1 references now point to v8 `#ch_1_7` and `#ch_4_12`; both anchors exist (v8 l.240 and l.2314). The other v7 links are left for the edition decision, as ruling 4 advised. |
+| MINOR-5 | Repaired | Both manuals now carry a dated revision line. The AUM's line names §5 and §8 and says the rest of its basis is unchanged. The notice to the App v4 loop is still listed for HELP_HUMAN. |
+| MINOR-6 | Repaired | The edge-semantics premise is added in the v8 handoff and in the AUM's ruling summary. |
+| MINOR-7 | Repaired | Order in §4.12: "Examine…", then the phase-names paragraph (l.2387), then Figure 4.10 (l.2423), then "Prepare the assessment…" (l.2425), then "Hand the work into 90%". |
+| MINOR-8 | Repaired | Every manual now says "the group order accepted at the gate". Groups and their members are in the assessment, in the decision record (v8 and the AUM), in Figure 4.10 and in the field book DISCERN list. Committing App v4's own A–E membership remains with HELP_HUMAN. |
+| MINOR-9 | Repaired | The AUM now reads "with few or no conflicting outcomes". |
+| MINOR-10 | Repaired | The v8 example now says the host joins touched the core and the fleet group, in group order, and that the other two risks lay within the core. |
+| MINOR-11 | Repaired | The 10,584/536 figures and the 16–26 range are removed. The outline and the quotes are kept. |
+| NOTE-1 | Repaired | No "towards" remains in the new text. The only remaining instance is the title of the Polanyi entry in the bibliography. |
+| NOTE-2 | Repaired | "replied". |
+| NOTE-3 | Repaired | §1.7 and §4.7 are shortened to a pointer. |
+| NOTE-4 | Open, as intended | Rendering and the README belong to the publication step. |
+| NOTE-5, NOTE-6 | No change needed | Anchors rechecked for the new links. |
+
+**`OWNER_DECISIONS.md` correction.** It is appended below the existing entries and leaves the owner's quoted words unchanged. It places the SWBPIPE joins at A and D, in group order, and placement OI-013/014 and DEL-04-01 within A, which matches LESSONS §3 and ruling 2. It is labelled as HELP_HUMAN's correction, not as an owner statement.
+
+**Residual note (R-1, NOTE, not a condition).** The opening paragraph of v8 §4.12 still reads the owner's "resolved" as "a treatment under which each SCC's work can proceed". The repaired SCC paragraph says "accepted treatment". Changing "a treatment" to "an accepted treatment" would make the two consistent. The current wording is not wrong.
+
+### Verdict
+
+**READY.** Both MAJOR findings and all eleven MINOR findings are repaired, and no new defect was found. The rendering and Word/PDF production may proceed.
+
+This verdict covers the content of the guidance only. Making v8 the current edition is still a separate decision, as ruling 4 said: that means README "Current editions", the remaining v7 links and App v4's `LOOP_INIT` pin. Three items remain with HELP_HUMAN:
+- commit App v4's A–E group membership;
+- send the notice to the App v4 loop;
+- make the edition decision.
