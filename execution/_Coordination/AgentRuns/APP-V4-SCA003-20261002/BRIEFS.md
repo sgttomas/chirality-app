@@ -105,3 +105,23 @@ against the accepted exact text; that nothing outside the boundary changed;
 the audit comparison's attributions; the Handoff_State's H-1…H-3 and the
 expected closure verdict; and that the group-3 presentation can rest on
 these records. Verdict READY FOR GROUP 3 or HOLD. Write only `reviews/V24.md`.
+
+## AK2 part 2 — the 19 ScopeOfWork REVISEs (two Type 2, parallel, disjoint)
+
+Authority: DECISION-1 (groups 1–2) and DECISION-2 (group 3); accepted
+snapshot `_ScopeChange/SCA-V4-003_2026-10-03_1827/`, register
+`checkpoint_snapshots/SCA-V4-003_GROUP-2_2026-10-03/Amendment_Actions.csv`
+(sha256 `9b7c2ce8…`). Route (Q-3): `project-setup` INCREMENTAL hands each
+MODIFY to `scope-of-work` MODE=REVISE, then VERIFY, `STATUS_POLICY=NO_STATUS_TOUCH`.
+Apply exactly the accepted blocks of `AMENDMENT_PACKET/SOW_REVISIONS_A.md`
+(RA) or `_B.md` (RB), filling `{AMENDMENT_ID}` = `SCA-V4-003` and
+`{AMENDMENT_SNAPSHOT}` = `SCA-V4-003_2026-10-03_1827`; check each prior hash
+first and the revised file against the dry-run's revised hash where recorded;
+run the three validators. Model: SCA-V4-002's AK2 Part 2 (its DISPATCH row
+and `RV/` records). No register, `_DEPENDENCIES.md`, `_STATUS.md`, DAG or
+Design file change. Records in `RUN/RV/RA.md` / `RB.md`.
+
+| ID | ScopeOfWork files |
+|---|---|
+| RA | DEL-01-01…DEL-01-05 (63 blocks) |
+| RB | the 14 others (84 blocks) |
