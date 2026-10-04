@@ -8,9 +8,7 @@ Read `{REPO_ROOT}/agents/AGENT_HELP_HUMAN.md`.
 
 Act as `HELP_HUMAN` for `{WORKING_ROOT}`.
 
-Read `{WORKING_ROOT}/loop/LOOP_INIT.md` and follow it within the owner's
-steering and live authority. Use its Project Management manual and Agent User
-Manual guidance; the Field Book is a summary.
+Read `{WORKING_ROOT}/loop/LOOP_INIT.md` and follow it.
 
 Steer (this run): <none>
 </init-prompt>

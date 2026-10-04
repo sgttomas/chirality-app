@@ -160,3 +160,41 @@ No change is needed. The steer line is where the merge hold (NOTE-L4) and the un
 The mapping is accurate and loses no load-bearing rule. The draft meets the owner's test apart from the duplications noted. Its paths and method identifiers are correct, and its constraints match the owner's directions. The init prompt is READY as drafted.
 
 The LOOP_INIT draft becomes READY once MAJOR-L1 is added. I recommend fixing L2–L4 in the same pass. L5's README change can travel with the close-out.
+
+---
+
+## Addendum A: confirmation of repairs
+
+**Candidate:** `b30cef06a0`, a local commit under the merge hold.
+
+| File | sha256 (prefix) |
+|---|---|
+| `LOOP_INIT_PROPOSED.md` | `0aaabcdbefea…` |
+| `app/README.md` | `a9357153a464…` |
+
+The reviewer is the same MR instance (Claude Opus 5.5). I used read-only git and no network.
+
+### Repairs
+
+| Item | Status | Evidence |
+|---|---|---|
+| MAJOR-L1 | Repaired | Entry step 2: "When you construct or resume a group's graph, read the other groups' graphs under `execution/_Coordination/WorkGraphs/` for relationships recorded against your group (GC-8)." |
+| L2 | Repaired | The App v3 line now covers `projects/chirality-app-dev` "and its tools, checks and decision register" and no longer names AUM §14. |
+| L3 | Repaired | One "Owner decisions" bullet names `Acceptances/` and each run's `OWNER_DECISIONS.md`, says to record new decisions in the run's file, and says there is no central register. The duplicate standing constraint is removed. |
+| L4 | Repaired | Conventions keeps only the MEMORY creation grant and LOOP_RECEIPTS. The Methods line still binds App v4's adoption of the construct conventions for graph, closeout, receipt and MEMORY. |
+| L5 | Repaired | Draft: "When you run Codex for development or tests, use a scratch home…". |
+| L5 (README) | Repaired | `app/README.md` "Run the App" now gives the `config.toml`. I checked it line by line against `src-tauri/tests/handshake.rs` and it is identical: provider `skeleton_local` at `http://127.0.0.1:9/v1`, `wire_api = "responses"`, plugins off, analytics off. Its cross-references EVIDENCE.md N-1 and CONTRACT_ISSUES.md CI-8 both exist. |
+| NOTE-L1 | Done | Mapping row 58 now cites Field Book §3. |
+
+**Codex identity.** `app/README.md` now states version 0.158.0 (darwin-arm64) and the full sha256 as `CHIRALITY_CODEX_EXPECTED_SHA256`. It says the binary's location "is not recorded here". This matches my §4 view. I did not re-hash the binary myself; the coordinator reports that check, and the `npm test` rerun of 3/3.
+
+### NOTE-L2 and NOTE-L3: no change needed
+
+- **NOTE-L2, "App v4 has no `software-workflow.json`".** No change. The line is project-specific and stops agents borrowing App v3 commands. If App v4 later adds a profile, that change will need its own LOOP_INIT edit anyway, so the line will not stay wrong unnoticed.
+- **NOTE-L3, "Record what you read in the run evidence".** No change required. It is consistent with Root AGENTS.md, and it reinforces the read-further guidance the owner invited. Appending "as Root AGENTS.md requires" would be a harmless improvement but is optional.
+
+### Verdict
+
+**READY.** The LOOP_INIT draft, the mapping and the init prompt are ready for the close-out replacement of `loop/LOOP_INIT.md`.
+
+Carried forward from MR-MANUAL Addendum C, MINOR-C3: land the replacement in the same PR as the AUM sentence "reserves each stage-gate assessment", and convey the merge hold through the next steer (NOTE-L4).

@@ -572,3 +572,32 @@ The readiness caveat is kept. No text still mentions the shared list or `CROSS_G
 - MINOR-C2 and MINOR-C3 can be fixed in the same pass.
 
 Rendering and producing the Word and PDF files can proceed.
+
+---
+
+## Addendum D: C2 and C4 fixes and the rendered HTML
+
+**Candidate:** `b30cef06a0` (local; the HTML was rendered at `f3c49c341e`). The reviewer is the same MR instance. I used read-only git and no network; the renderer was run with `--check` only.
+
+**C2: repaired.** The AUM App v4 entry now reads "Read a project `AGENTS.md` if one is established."
+
+**C4: repaired in all three places.** The clause "the loop constructing or resuming a group's graph reads the other groups' graphs for relationships recorded against its group" is now in:
+- v8 §4.12, in the handoff;
+- AUM §5, step 4;
+- the field book HAND OFF block.
+
+It matches the LOOP_INIT draft's entry step 2.
+
+**HTML: verified.**
+- `render_manual.py --check`, run with the README's new basis (2026-10-04, `1cb9fd536e…`), verified both committed HTML editions against their sources. Both exited 0.
+- AUM: source `08ca0e40…`, HTML `8903bb2e…`.
+- Field book: source `02d53a39…`, HTML `850f56f4…`.
+- No Markdown source changed after `1cb9fd536e`; the later commits touched only the README's render lines and the LOOP_INIT drafts.
+
+**Still open:**
+- **C1 (before merge).** `Project_Management_for_Human_Agent_Teams_Consolidated_v8.docx` and `.pdf` do not exist yet, but the README links to them.
+- **C3 (sequencing).** Land the AUM's "each stage-gate assessment" together with the LOOP_INIT replacement.
+
+### Verdict
+
+**READY.** C2 and C4 are closed, and the HTML is current. Merging, when the owner lifts the hold, still requires C1 (the v8 Word and PDF files) and C3 (same-PR sequencing).
