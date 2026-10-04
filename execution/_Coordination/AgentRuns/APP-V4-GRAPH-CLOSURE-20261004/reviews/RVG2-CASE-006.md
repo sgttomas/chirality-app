@@ -64,3 +64,61 @@
 Either repair both and show the residual-free wording at source, or present M-01 with an E residual and M-02 (owner cut) as the closing act under O-1/O-2.
 
 **Counts.** BLOCKING 0, MAJOR 2, MINOR 2, NOTE 4.
+
+---
+
+## Addendum A — review of the §9 repair (2026-10-04)
+
+- **Subject:** HEAD `c2931f954d` (repair commit `eb59468020`), by O-E.
+  - `PAIR_ANALYSIS_2026-10-04.md`, sha256 `2216bff17fce3b624198755d8b69dca2bfb43f323b7309aee0f0af8151e28a2c`. Append-only: the diff from `c9885b8f71` adds §9 (162 lines) and deletes nothing.
+  - `MOVES_PROPOSED_2026-10-04.csv`, sha256 `a672dbd4712af9f57fa23c0fa1448f202879ed522f4cb98f34b6fd139a4e7b82`. Append-only, with rows M-01-R, M-04, M-02-R and M-03-R.
+  - No PKG-10 file changed.
+- **Also rechecked:** DA-v0.3 for every use of work graphs, practice notes and capability accounts (§2, §3, §6); DEL-10-04 REQ-005, REQ-009, OUT-002; DEL-10-02 REQ-008; UC §1.
+
+### A.1 Disposition of the findings
+
+| Finding | §9 | Status |
+|---|---|---|
+| C6-M1, the E part | §9.1 accepts it from DA §2–§3 and keeps DEP-10-04-006 as E. M-04 (cut of the E residual) or M-02-R closes the component under O-1 and O-2 | **Resolved** |
+| C6-M2, the S1 sentence | §9.2 takes the second repair route: the row stays, worded as E. "Practice … that `DEL-10-02` indexes" is replaced by direct Root citations (`project-dag`, SPEC §9.8), so no I row to DEL-10-02 arises from it | **Resolved**, subject to A.2 C6A-m1 |
+| C6-m1, the "IV" label | Re-coded `NARROW (P→E; SCA)`; not presented as closing | Resolved |
+| C6-m2, A9 and GC-3 | M-03 withdrawn. A9 is carried as an E row under GC-5 item 3 (M-03-R), DA §6 keeps DEL-10-01 as a reader, and EB's content use is stated as a GC-5 item-1 dependency | Resolved |
+
+**Closure, reproduced.** Every cell of §9.5 reproduces from my code (G1 r3 kinds, 212 arcs).
+- **SCC-005 alone, after M-01-R:** {10-02, 10-04}, 1 row under O-1 and O-2; acyclic under O-3 and O-4. M-04 or M-02-R makes it acyclic.
+- **With A9 as an E row:**
+  - O-1 and O-2: 4 members, minimum 2. Both {M-04, A9} and {M-02-R, A9} close it. A9 alone, M-04 alone or M-02-R alone does not.
+  - O-3: 4 members, 1 row. A9 alone closes it.
+  - O-4: acyclic.
+- **Residual read as P:** the same figures, with M-02-R the cut. §9.5's fallback is right.
+- **§9.4's EB claim:** sourcing EB from run OWNER_DECISIONS would close 10-01 → 10-02 against DEP-10-02-011 (P). This holds.
+
+**Owner acts are now correct.** O-1 and O-2 need one cut, or two with A9 carried. O-3 needs none, or one (A9) when it is carried. O-4 needs none. Each cut is the owner's. M-04's recommendation is labelled as agent opinion, and its doctrine basis ("runtime/test/optional") fits an E row. M-02-R stays available.
+
+### A.2 The five narrowings (§9.6), and whether "NARROW P→E" is truthful
+
+- **The five corrections are genuine.** Each listed narrowing is real and is reversed in §9.2–§9.4:
+  - the S1 sentence;
+  - the DA §6 rewording;
+  - the UC §8 rewording;
+  - the practice-feedback consumption;
+  - the M-03 deletion and GC-3 note.
+- **No check is narrowed.** DEL-10-04 REQ-005, REQ-006, VER-005, VER-006 and VER-009, and DEL-10-02 REQ-001 and VER-001 are intact.
+- **"NARROW (P→E; SCA)" is truthful.** It narrows a row's stated content from production input to evidence handoff, not a check. It is routed through an owner-accepted SCA. §9.3 and the CSV say it closes nothing by itself. It is not presented as one of the doctrine's four moves.
+
+Two residual points remain in the new wording:
+
+| ID | Severity | Finding | Evidence | Consequence |
+|---|---|---|---|---|
+| C6A-m1 | MINOR | The §9.2 S1 sentence names "checkpoint packages" and "review records" among what DEL-10-04 **receives from** DEL-10-02's records. Their content is DEL-10-04's own OUT-002: REQ-005 "Prepare the selected project-dag checkpoints as concrete decision packages … An instance that did not assemble the graph independently examines it"; AC-005 and VER-005. DEL-10-02 REQ-008 excludes "production-DAG construction". What DEL-10-04 does take from DEL-10-02's records is narrower: the owner-act transcriptions (UC §1), the work-graph node identities that carry custody (DA §2 "node D2"), and the capability and check accounts (DEL-10-02 OUT-002; UC §2, §4). **My own C6-M1 listed the packages and review packets loosely as undertaking records; that imprecision is mine** | DEL-10-04 REQ-005, OUT-002; DEL-10-02 REQ-008; DA §2, §3 | No closure effect: the row is E either way. But as worded, the Statement an extractor writes would attribute DEL-10-04's own packages and reviews to DEL-10-02, against both deliverables' REQ-008/REQ-009. Reword to receipt of "the owner-act transcriptions, work-graph node and custody records, and capability and check accounts of its graph undertakings", and keep packages and reviews as DEL-10-04's own records kept in those runs |
+| C6A-m2 | MINOR | §9.6 row 4 says practice-feedback consumption is "Kept: practice notes … among the applicable records DEL-10-04 may cite as evidence (E)". The §9.2 sentence does not mention practice-feedback records. DA uses none today (checked: no practice-note use in DA-v0.3) | §9.2 text; §9.6 row 4; DA-v0.3 grep | Small residual inconsistency in the narrowing account. Either add practice-feedback records to the §9.2 evidence list, or state in §9.6 that DEL-10-04 does not consume them and that CLM-002's first sentence (unchanged) keeps DEL-10-02's ownership visible for VER-009. Either is truthful; the current pair is not |
+
+**Notes.**
+- C6A-n1: M-03-R's DEL-10-01 S1 sentence ("from `DEL-10-04`'s acceptance records, as evidence") reads as E under K-3: EB defines its basis-chain format and takes instances. Under GC-5 item 4 it stays provisional until G2b reports, as §9.4 says.
+- C6A-n2: Self-review. O-E reports and reverses its own narrowings, including one I had not raised (UC §8). Apart from C6A-m2, I found no remaining narrowing.
+
+### A.3 Verdict
+
+**READY.** C6-M1, C6-M2 and both minors are resolved. Every closure figure reproduces, and the owner acts per option are complete and correctly attributed. Apply the two wording corrections (C6A-m1, C6A-m2) when the S1 sentence is drafted for the SCA. Neither affects closure.
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 2, NOTE 2.

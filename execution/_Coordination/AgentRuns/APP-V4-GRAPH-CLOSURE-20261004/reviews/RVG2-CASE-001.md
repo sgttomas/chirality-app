@@ -70,3 +70,55 @@
 - the N08 interaction under O-2/O-3, once SCC-002's §23 residuals are applied (C1-M2).
 
 **Counts.** BLOCKING 0, MAJOR 2, MINOR 3, NOTE 3.
+
+---
+
+## Addendum A — review of the repair (SCC-CASE-001 §6; SCC-CASE-002 §24) (2026-10-04)
+
+- **Subject:** HEAD `f488e61119`.
+  - `SCC-CASE-001/PAIR_ANALYSIS_2026-10-04.md`, sha256 `c2e80f1d88c25d7958c98c1b7cba9a6779914e75c308990cbe38d8ea0a74e995`. Append-only: the diff from `fdc713c439` adds §6 (96 lines) and deletes nothing.
+  - `SCC-CASE-001/MOVES_PROPOSED_2026-10-04.csv`, sha256 `ba61c2a2a7dcfeeebec5d74ac65071ed6bfd9321801040e65051fa355d6b24e4`. Append-only, with rows M-01-R, M-02-R and M-N08-R.
+  - `SCC-CASE-002/PAIR_ANALYSIS_2026-10-04.md`, sha256 `f61761202c779161d0db358c394b1560b4eaeb7856905f7bcad816b9fd992f0d`. Append-only: §24 (12 lines) withdraws §23.3.
+  - No PKG source changed.
+- **Also checked at source:**
+  - ACCESS-v0.2 §1 I-3 ("Conversation start: explicit `modelProvider` and `model` on `thread/start`", "DEL-01-05 → DEL-01-01 S-4");
+  - ACCESS I-4 ("DEL-01-05 → DEL-01-01 §8.3 → DEL-04-03 RS R5");
+  - DEL-04-03 ScopeOfWork CLM-004 (the "observed supplier facts … model and destination … from `DEL-01-01`" wording);
+  - HOSTING §8.3 ("keeping requested and effective values separate (R5-4)");
+  - R5-4 at source (`APP-V4-FIRST-INCREMENT-20260928/R5_RESOLUTIONS.md` l.65).
+
+  All quotes occur at source.
+
+### A.1 Disposition of the findings
+
+| Finding | Repair | Status |
+|---|---|---|
+| C1-M1, the E/V residual | §6.1 records the residual as E (I-3 carriage and I-4 class) with V (VC-26 live part) on DEL-01-01 → DEL-01-05. It withdraws M-01 as a closing move and turns it into a GC-5 item-3 S1 carry-in (M-01-R). M-02-R, an owner per-edge cut of the whole arc, is the closing act under O-1…O-3. The reasons given for why no rewording removes the flow (DEL-01-01 sends `thread/start`; R5-4) are sound and quoted correctly. SCC-002 §24 withdraws §23.3 and states the effect on SCC-001 correctly | **Resolved** |
+| C1-M2, N08 after §23 | §6.2 recomputes against group 1 with §23's E residuals, for B and C, and with and without the SCC-001 cut. Readings 2 and 3 are restated, and N08's own invert is now needed under O-1…O-3 | **Resolved** |
+| C1-m1, check narrowed | No clause is withdrawn, so VER-005 keeps its named input | Resolved |
+| C1-m2, "none" cells | Cells now say "no N08 component" and are defined | Resolved |
+| C1-m3, "IV" label | No IV is claimed. M-01-R is coded "S1 carry-in … not a closing move" | Resolved |
+
+**Closure, reproduced.** Every cell of §6.1 and §6.2 reproduces from my code (G1 r3 kinds, 212 arcs; group 1 = SCC-002 §22 with §23's five E residuals):
+- §6.1: residual E gives a 2-cycle under O-1…O-3 and none under O-4; the arc cut gives acyclic.
+- §6.2, B: 18/14, 6/6, 6/6; with the residual, 18/14, 13/8, 12/7; with the cut, 13/12, 6/6, 6/6.
+- §6.2, C: 18/13, 12/7, 12/7 with the residual; 13/11, 6/6, 6/6 with the cut.
+- Every O-4 cell shows no N08 component.
+- Adding P19's E residual changes no cell, as §6.2 says.
+
+**Owner acts are now correct.** O-4 needs none. O-1, O-2 and O-3 need one per-edge cut of the arc, and no agent move closes the arc. The cut is presented as the owner's.
+
+### A.2 New observations on the repair
+
+| ID | Severity | Finding | Evidence | Consequence |
+|---|---|---|---|---|
+| C1A-m1 | MINOR | The O-4 result depends on how the S1 carry-in is worded, and that wording is not drafted. M-01-R describes it as "the depended-on interface" (GC-5 item 3's phrase). If the sentence reads as DEL-01-01 depending on DEL-01-05's *definition*, for example access-entry kinds or the provider-selection contract, the extracted row is I under K-2. The 2-cycle then persists under O-4 too, through DEP-01-05-012 (P) | M-01-R; §6.1 table ("O-4: acyclic") assumes E with V; G1 K-2, K-3 | Draft the S1 sentence so it states runtime values only, with the format owners named: the supplier pin for the requested provider and model; RS R5's `destinationClass` for the class. Keep VC-26's configuration need as a verification input. Otherwise "O-4: none" does not hold |
+| C1A-n1 | NOTE | M-02-R's cut must list every row on the arc. That is DEP-01-01-024 and the carried-in row, which would be a `SAME_ARC` UPSTREAM row in DEL-01-01's register under SR-6 tie-breaking, plus any DEL-01-05 DOWNSTREAM mirror | `graph-version.md` SR-6; G1 K-7 | Name them in the ruling when it is made |
+| C1A-n2 | NOTE | HOSTING §8.3 restates DEL-01-05's access-entry-kind → class mapping ("`chatgpt-account` and `api-key` → `user-chosen cloud`; `local-provider` → `local model server`") while saying DEL-01-05 derives it. As written it is a cross-reference (GC-5 item 2), not a rule HOSTING applies. It would become I if HOSTING ever applied the mapping itself | HOSTING-v0.9 §8.3 | Keep it as a cross-reference when the carry-in is drafted (relates to C1A-m1) |
+| C1A-n3 | NOTE | The author is not a design agent of either member, and the repair restores rather than narrows checks. I found no softening | — | — |
+
+### A.3 Verdict
+
+**READY.** C1-M1, C1-M2 and the three minors are resolved, and every number reproduces. The component closes only by the option choice (O-4) or one owner cut (O-1…O-3), and the repair says so. C1A-m1 is a drafting condition on the S1 carry-in: word it as runtime values with named format owners, or the O-4 result changes.
+
+**Addendum counts.** BLOCKING 0, MAJOR 0, MINOR 1, NOTE 3.
