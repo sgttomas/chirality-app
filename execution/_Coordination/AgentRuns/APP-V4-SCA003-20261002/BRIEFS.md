@@ -125,3 +125,14 @@ Design file change. Records in `RUN/RV/RA.md` / `RB.md`.
 |---|---|
 | RA | DEL-01-01…DEL-01-05 (63 blocks) |
 | RB | the 14 others (84 blocks) |
+
+## DX — dependency-extract UPDATE for the 20 registers (one Type 2)
+
+As SCA-V4-002's DX (`APP-V4-SCA002-20260929/DX/`): run `workflows/dependency-extract`
+in UPDATE mode for the 20 registers the accepted register names (19 revised
+ScopeOfWork deliverables plus DEL-02-04's counterpart where named), from the
+revised ScopeOfWork text only. Expected: exactly the 10 new arcs (ARC_EFFECT),
+the mirror groups and the 15 Q-17 mirrors, statement refreshes; nothing
+else. Apply the extraction guards of SOW_REVISIONS_A/B and the Handoff_State.
+Run the register validators; recompute the closure (arcs, SCCs) and compare
+with ARC_EFFECT. Records in `RUN/DX/`.
