@@ -1,6 +1,6 @@
 # Preserved history and coexistence account
 
-- **Contribution:** DEL-11-01/CA-v0.3, part of unit **EU-F3R** with DEL-11-02 AA-v0.2 and DEL-11-03 RP-v0.6. It carries AA-v0.2's corrected adoption statement (RV3 AA1-R2: "delivered", not "received") and the coordinator's checker audit (§8); nothing else in the account changes. CA-v0.2 (unit EU-F3, commit `b2fbfdbac8`) stays in git as history. CA-v0.2 superseded CA-v0.1 (sha256 `1a4a0ca6b1b6e74fe11e3c41b0c6b3d1316624e41c8aa4adb28f2c7d050f6ab2`, unit EU-F2, READY in RV3-CA1.md). It is repaired for RV3's CA1-R1, CA1-R2 and CA1-N1, and it records DEL-11-02's adoption status. It is part of unit **EU-F3**, with DEL-11-02 AA-v0.1 and DEL-11-03 RP-v0.5.
+- **Contribution:** DEL-11-01/CA-v0.4, part of unit **EU-F3R2**: it adds RV3's CA2-N1 case (a negative that breaks K-14 alone) and makes K-11 read the recorded eligibility, leaving the RE-1 comparison to K-14. CA-1 v3 is unchanged. CA-v0.3 (sha256 `8f47aa080b4767f2d4c6f44bfc2ead12e53ca982060bcd19242851eb9fde0a87`, unit EU-F3R, commit `0e0036b685`, READY) stays in git as history. CA-v0.3 was part of unit **EU-F3R** with DEL-11-02 AA-v0.2 and DEL-11-03 RP-v0.6. It carries AA-v0.2's corrected adoption statement (RV3 AA1-R2: "delivered", not "received") and the coordinator's checker audit (§8); nothing else in the account changes. CA-v0.2 (unit EU-F3, commit `b2fbfdbac8`) stays in git as history. CA-v0.2 superseded CA-v0.1 (sha256 `1a4a0ca6b1b6e74fe11e3c41b0c6b3d1316624e41c8aa4adb28f2c7d050f6ab2`, unit EU-F2, READY in RV3-CA1.md). It is repaired for RV3's CA1-R1, CA1-R2 and CA1-N1, and it records DEL-11-02's adoption status. It is part of unit **EU-F3**, with DEL-11-02 AA-v0.1 and DEL-11-03 RP-v0.5.
 - **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it is the PROPOSED schema `ca.continuity-account.schema.json`. The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/ca/` (RUN/F/ca): `build_ca.py`, `check_ca.py`, and the built account `records/CA-1.continuity-account.json` with its hand-over `records/CA-1.handoff.json`. The account's checks are **real**, run against this repository and the original checkout; only the lane obligations are absent, because their owners have not supplied them.
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-007 (§8).
@@ -137,7 +137,7 @@ A fabricated act whose text is not in its record fails the rule, and an act whos
 | CF-4 | A lane owner supplies obligations | A new row version with a disposition only if evidenced; eligibility only under RE-1 | — |
 | CF-5 | DEL-10-03's consumer list changes after the vendored RA-v0.2 | V-1 prints a NOTICE (live moved since vendoring) | Re-pin deliberately (R23-21), as was done for RA-v0.1 → RA-v0.2 |
 
-## 8. Verification (designed; `check_ca.py` 36/36 at freeze)
+## 8. Verification (designed; `check_ca.py` 37/37 at freeze)
 
 Each rule about the account is one function of the account in `check_ca.py` (`rule_errors`). Each negative case breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it.
 
@@ -154,10 +154,10 @@ Each rule about the account is one function of the account in `check_ca.py` (`ru
 
 **Claimed rules with a negative case:**
 - schema: standing values (N-8), retention (N-6), the v3.0.1 fallback kept while pending (N-7), RE-1's eligibility conditions (N-2, N-3), an act's recorder not its actor (N-4).
-- RE-1, the recorded eligibility equals the rule (K-14): N-2, N-3.
+- RE-1, the recorded eligibility equals the rule (K-14): N-2, N-3 (overstated; the schema also refuses them), N-21 (understated: every condition met, eligibility recorded false; schema-valid, refused by K-14 alone; RV3 CA2-N1).
 - K-2 manifest: N-18. K-3 rebuild: N-19. K-4 linked identities: N-12 (sha256), N-13 (commit). K-7 PRD's statement: N-17 (altered text, in memory).
 - K-9 owner acts: N-4, N-5 (fabricated), N-9 (altered behind the placeholder), N-10 (OD-09 short a sentence), N-11 (a recorder the record does not name).
-- K-10 lane coverage: N-14. K-11 hand-over: N-15. K-12 home path: N-20. K-13 adoption status: N-16.
+- K-10 lane coverage: N-14. K-11 hand-over (the hand-over equals the account's, and no lane is *recorded* eligible): N-15, N-2, N-3. K-12 home path: N-20. K-13 adoption status: N-16.
 - K-8 is itself the negative test of VER-003's listing detector (omitted, added, changed).
 
 **Claimed rules without a negative case, or not enforced:**
@@ -183,6 +183,7 @@ Each rule about the account is one function of the account in `check_ca.py` (`ru
 
 | Version | Change |
 |---|---|
+| CA-v0.4 (2026-10-04) | RV3 CA2-N1 (unit EU-F3R2): N-21 breaks K-14 alone; K-11 now checks the recorded eligibility, and K-14 alone compares it with RE-1. Checker and Design only; CA-1 v3 unchanged |
 | CA-v0.3 (2026-10-04) | AA1-R2 carried: the adoption status is AA-v0.2's statement ("a notice was delivered to App v3's and Runtime's coordination folders, and no receiving decision is recorded"). Version step because the record's content changes (CA-1 version 3; record format CA-v0.1 unchanged). Coordinator's checker audit: account rules computed by one function each; negatives N-10…N-20 added; RE-1 record-against-rule check K-14 added; covered and uncovered rules listed in §8. Built at `122c5abcf5`. Unit EU-F3R |
 | CA-v0.2 (2026-10-04) | CA1-R1: OD-09's recorder not named where the record names none; custody OPENING_BRIEF.md; K-9's string-comparison limit stated. CA1-R2: OD-09's three sentences, each with its classes. CA1-N1: RA re-pinned to v0.2. DEL-11-02's adoption status recorded (U-CA-4 closed). Built at `122c5abcf5`. Unit EU-F3 |
 | CA-v0.1 (2026-10-04) | First Design file; unit EU-F2 with DEL-11-03 RP-v0.4 |

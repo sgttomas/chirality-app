@@ -1,4 +1,4 @@
-"""Check DEL-11-01's continuity account CA-1 (CA-v0.3). Prototype, not product code. Reads only.
+"""Check DEL-11-01's continuity account CA-1 (CA-v0.4 checks; CA-1 v3). Prototype, not product code. Reads only.
 
 K-1..K-13 check the account as written against the schema, git at the recorded commit, the working tree,
 the owner records and DEL-10-03's consumer list. Each rule about the account is one function of the account
@@ -111,8 +111,8 @@ def handoff_errors(acct, handoff):
         errs.append("K-11 the hand-over file differs from the account's hand-over")
     if handoff["thesis_check"] != acct["classes"][3]["identity_check"] or handoff["archives"]["verify"] != acct["classes"][2]["identity_check"]["result"]:
         errs.append("K-11 the hand-over's checks differ from the account's")
-    if any(retirement_eligible(o) for o in acct["obligations"]):
-        errs.append("K-11 a lane is eligible for retirement")
+    if any(o["retirement_eligible"] for o in acct["obligations"]):
+        errs.append("K-11 a lane is recorded eligible for retirement")  # whether the record agrees with RE-1 is K-14's
     return errs
 
 
@@ -260,6 +260,15 @@ def main():
     def n16(v, h):
         v["adoption_status"]["ref"] = v["adoption_status"]["ref"].replace("a notice was delivered to", "a notice was received by")
     neg("N-16 an adoption status that is not AA-1's statement (AA1-R2's 'received' wording)", n16, "adoption")
+
+    def n21(v, h):
+        v["obligations"][0].update({"retirement_intended": True, "continuing_obligations": "supplied", "retirement_eligible": False,
+                                    "disposition": {"by": "INVENTED lane owner", "record_ref": "INVENTED record", "evidence": ["INVENTED evidence"]}})
+    v = copy.deepcopy(acct)
+    n21(v, None)
+    only = {k for k, e in rule_errors(v, handoff, V, x1, aa).items() if e}
+    expect("N-21 RV3 CA2-N1: every RE-1 condition met but eligibility recorded false (understated) [refused by: RE-1 (K-14) only]",
+           only == {"RE-1"}, sorted(only))
 
     expect("N-17 PRD text without the thesis standing statement [refused by: K-7]",
            thesis_statement_errors(B.text_at(at, B.PRD).replace("nonbinding stated standing", "binding standing")))

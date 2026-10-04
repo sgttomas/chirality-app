@@ -1,6 +1,6 @@
 # Consumer-specific renewed-basis adoption
 
-- **Contribution:** DEL-11-02/AA-v0.2, the repair of AA-v0.1 for RV3's review RV3-AA1 (AA1-R1 MAJOR; AA1-R2, AA1-R3 MINOR; notes N1–N3). Frozen as unit **EU-F3R**, together with DEL-11-01 CA-v0.3 and DEL-11-03 RP-v0.6, which consume its status hand-over. AA-v0.1 (unit EU-F3, commit `b2fbfdbac8`) stays in git as history.
+- **Contribution:** DEL-11-02/AA-v0.3. It binds delivery and adoption evidence to the renewal (RV3 AA2-R1, in the addendum to RV3-AA1.md; unit **EU-F3R2**). The built account AA-1 v2 and its record format AA-v0.2 are unchanged, so DEL-11-01's and DEL-11-03's built content is unchanged. AA-v0.2 (sha256 `3d4ba2ec9fbd614a1e36c897aca45b7f4ed33cb859cb506f6af833d4639edba3`, unit EU-F3R, commit `0e0036b685`, READY) stays in git as history. AA-v0.2 was the repair of AA-v0.1 for RV3's review RV3-AA1 (AA1-R1 MAJOR; AA1-R2, AA1-R3 MINOR; notes N1–N3). Frozen as unit **EU-F3R**, together with DEL-11-01 CA-v0.3 and DEL-11-03 RP-v0.6, which consume its status hand-over. AA-v0.1 (unit EU-F3, commit `b2fbfdbac8`) stays in git as history.
 - **Status:** DRAFT DEFINITION — proposed, not accepted. Beside it is the PROPOSED schema `aa.adoption-account.schema.json`. The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/aa/` (RUN/F/aa): `build_aa.py`, `check_aa.py`, and the built account `records/AA-1.adoption-account.json` with its status hand-over `records/AA-1.status.json`. Its one instruction-change entry (D-GOV-52) is **real**: every fact cites evidence read from git at commit `122c5abcf516f31ffdb1fdb17d9d5b0f96603154` (unchanged from AA-v0.1; the repair changes the rules, the act fields, the Root search and the status wording, not the commit read).
 - **Run and owner:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; owner O-F (Type 2, Claude Opus 5.5); 2026-10-04.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-007; designed cases for VER-001…VER-006 (§7).
@@ -87,8 +87,8 @@ A fact's state is `established`, `not_established`, `unknown` or `not_applicable
 
 **Separation rules (PROPOSED, checked by `check_aa.py` K-6; each with negative cases, §7):**
 - **SR-1:** an established fact's evidence is only of the kinds its row above accepts.
-- **SR-2:** `delivered` is shown only by a file inside the receiving consumer's lane. A routing statement, or a file in another lane, is not delivery.
-- **SR-3:** `consumer_adopted` rests only on an adoption act of that consumer's own loop: the cited act is an `agent_act` (never a person's `human_act`, F-R10), its `act_class` is `adoption`, its `consumer_id` is the row's consumer, and its record lies inside that consumer's lane. A file cited beside it must be that act's record. App v4's adoption is never another loop's, and the owner's approval of a change is never any loop's adoption. The schema also requires the `act` evidence kind and an adoption point.
+- **SR-2:** `delivered` is shown only by a file inside the receiving consumer's lane **that the renewal's own change record routes** (the notice paths listed in its tranche manifest; AA-v0.3, AA2-R1). A routing statement, a file in another lane, or any other in-lane file (for example the lane's README) is not delivery. A renewal with no change record (RN-2) routes nothing, so its `delivered` cannot be established.
+- **SR-3:** `consumer_adopted` rests only on an adoption act of that consumer's own loop: the cited act is an `agent_act` (never a person's `human_act`, F-R10), its `act_class` is `adoption`, its `consumer_id` is the row's consumer, and its record lies inside that consumer's lane. A file cited beside it must be that act's record. **The act's record entry must name the renewal** (AA-v0.3, AA2-R1): the entry is the text from the last heading or top-level bold item (`- **…`) before the act's exact text, and it must contain one of the renewal's names (the identifiers in its `what`, such as D-GOV-52, or its change record's file stem, such as ROOT-DGOV52-APPLICATION-20261004). AD-1's entry is R23-30's head, "R23-30 Adopting D-GOV-52 in App v4". App v4's adoption is never another loop's, and the owner's approval of a change is never any loop's adoption. The schema also requires the `act` evidence kind and an adoption point.
 - **SR-4:** the act's exact text states an adoption: it contains "adopt", "adopts", "adopted" or "adoption", and no negation ("not", "no", "never", "without"). A status statement such as F-R16's "notice delivered; receiving decision not recorded" is not an adoption. This test is **keyword-based**: it cannot read meaning, so a text such as "App v3 adopts nothing" would pass it (§7, not enforced).
 
 `unknown` stays unknown. It is never filled from a manifest's rationale. For example, "Piping and PEC … read Root AGENTS.md live" is the tranche's statement about a supply route, not an observation, and not an adoption.
@@ -146,9 +146,9 @@ DEL-11-01's CA-v0.3 records it as `supplied`, and DEL-11-03's RP-v0.6 carries it
 3. The account is checked (`check_aa.py`) and its status handed over.
 4. A consumer's later record (an adoption ruling, a declined adoption, a Design revision) makes a new account version. Earlier versions stay as history.
 
-## 7. Verification (designed; `check_aa.py` 43/43 at freeze)
+## 7. Verification (designed; `check_aa.py` 46/46 at freeze)
 
-`check_aa.py` computes every rule this file claims as a function of the account (`rule_errors`). Each negative case N-1…N-29 breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it; a negative never re-derives its rule. P-1…P-3 are positive controls for the repair.
+`check_aa.py` computes every rule this file claims as a function of the account (`rule_errors`). Each negative case N-1…N-31 breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it; a negative never re-derives its rule. P-1…P-4 are positive controls for the repairs.
 
 | VER | Case | Held by |
 |---|---|---|
@@ -162,8 +162,8 @@ DEL-11-01's CA-v0.3 records it as `supplied`, and DEL-11-03's RP-v0.6 carries it
 **Claimed rules with a negative case** (each breaks the real account; the named check refuses it):
 - schema: adoption needs an act (N-1), an adoption point (N-19); a human act's recorder is not its actor (N-5); `established` needs evidence (N-6); the per-fact evidence kinds (N-8…N-11).
 - SR-1 per-fact evidence kinds: N-2, N-8, N-9, N-10, N-11.
-- SR-2 delivery only by a file in the receiving lane: N-11 (a manifest statement), N-17 (another lane's file).
-- SR-3 adoption only by the consumer's own loop's act, in its lane: N-1, N-3, N-8, N-12, N-13, N-14, N-15 (a person's act with every other field made right), N-18 (a file that is not the act's record).
+- SR-2 delivery only by a routed notice in the receiving lane: N-11 (a manifest statement), N-17 (another lane's file), N-30 (RV3's AA2-R1 construction 1: App v3's README, a real in-lane file).
+- SR-3 adoption only by the consumer's own loop's act, in its lane, whose entry names the renewal: N-1, N-3, N-8, N-12, N-13, N-14, N-15 (a person's act with every other field made right), N-18 (a file that is not the act's record), N-31 (RV3's AA2-R1 construction 2: a real, unrelated App v3 sentence, "UPD-133 adopts the stricter live rule …", with the status updated to match). P-4 is the positive control (AD-1's entry names D-GOV-52).
 - SR-4 adoption text: N-12 (F-R16's status statement), N-13, N-14, N-16 (App v4's own act with a negated text).
 - K-2 manifest: N-27. K-3 rebuild: N-28. K-4 evidence: N-20 (sha256), N-21 (quote), N-22 (commit). K-5 act text in its record: N-4, N-16. K-7 coverage: N-23. K-8 routing: N-11, N-24. K-9 status: N-7 (RN-1), N-26 (RN-2). K-10 trace: N-25. K-11 home path: N-29.
 
@@ -171,7 +171,9 @@ DEL-11-01's CA-v0.3 records it as `supplied`, and DEL-11-03's RP-v0.6 carries it
 - SR-4 is keyword-based: an act text that says "adopt" without a listed negation passes whatever it means ("App v3 adopts nothing"). Not enforced beyond the keywords.
 - K-5's recorder test is a string comparison. It cannot tell whether a named recorder is true; `recorder_stated_by_record` says whether the record names the recorder. Not enforced.
 - `candidate_record` and `observation_record` evidence is accepted by kind only; no check resolves its content, because none exists yet. Not enforced.
-- `act_class` and `recording_mode` are checked against the act's fields, not against its record: a record could be mislabelled `adoption` and still pass SR-3 if its lane and text pass. SR-4 limits this only by keywords.
+- `act_class` and `recording_mode` are checked against the act's fields, not against its record: a record could be mislabelled `adoption` and still pass SR-3 if its lane, entry and text pass. SR-4 limits this only by keywords.
+- SR-3's renewal test is textual: an in-lane entry that names the renewal and says "adopts" passes, whatever it decides about it (for example "adopts nothing from D-GOV-52" passes SR-3 and fails only if SR-4's negation list catches it). The entry boundary is a heading or a top-level bold item; a record without either uses the whole text before the quote.
+- SR-4's negation list also refuses a genuine adoption phrased with "without" or "no" (for example "adopts … without amendment"; RV3 AA2-N1). This errs towards refusing.
 - K-8 checks the RN-1 notices against the one tranche manifest; it does not check RN-2 (no notice exists) or `prepared_notice` against the manifest's text beyond the quote (K-4).
 - K-10 recomputes only `applied`. REQ-004's other states (`proposed`, `checked`) and "each needs its own evidence" are not enforced.
 - Packaging's established / not established states and the currency rule (§4) have no check beyond the packaging quote; they are read by inspection.
@@ -200,4 +202,5 @@ DEL-11-01's CA-v0.3 records it as `supplied`, and DEL-11-03's RP-v0.6 carries it
 | Version | Change |
 |---|---|
 | AA-v0.1 (2026-10-04) | First Design file; unit EU-F3 with CA-v0.2 and RP-v0.5 |
+| AA-v0.3 (2026-10-04) | RV3 AA2-R1 (unit EU-F3R2): SR-2 accepts only a notice the renewal's change record routes; SR-3 requires the adoption act's record entry to name the renewal. RV3's two constructions are N-30 and N-31; P-4 the positive control. The uncovered list states SR-3's textual limit and AA2-N1. Checker and Design only: AA-1 v2, its record format AA-v0.2 and the schema are unchanged, so CA and RP are unchanged |
 | AA-v0.2 (2026-10-04) | RV3-AA1 repair, unit EU-F3R with CA-v0.3 and RP-v0.6. AA1-R1: per-fact evidence kinds (§3 table; schema and SR-1), delivery only by a lane file (SR-2), adoption only by the consumer's own loop's adoption act in its lane (SR-3), adoption text (SR-4, keyword-based); acts gain `act_class` and `recording_mode`; evidence kinds `candidate_record`, `observation_record` added; RV3's five variants are N-9…N-13. AA1-R2: "received a notice" replaced by delivery wording (F-R16), carried to CA and RP. AA1-R3: Root's RN-2 search covers the whole repository outside App v4, with RV3's search cited as a second one. N1: AD-1 named as direct capture. Coordinator's audit: every claimed rule computed by one function and broken on the real account; covered and uncovered rules listed in §7. Record format AA-v0.2, AA-1 version 2 |

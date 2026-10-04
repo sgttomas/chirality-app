@@ -1,4 +1,4 @@
-"""Check DEL-11-02's adoption account AA-1 (AA-v0.2). Prototype, not product code. Reads only.
+"""Check DEL-11-02's adoption account AA-1 (AA-v0.3 rules; record format AA-v0.2). Prototype, not product code. Reads only.
 
 K-1..K-11 check the real account against its schema and against git at the recorded commit. Every rule the
 Design says this file enforces is a function of the account (rule_errors); each N-case breaks the real account
@@ -58,13 +58,46 @@ def adoption_text(text):
     return bool(ADOPT_RE.search(t)) and not NEGATION_RE.search(t)
 
 
+ENTRY_HEAD_RE = re.compile(r"^(#{1,6} |- \*\*)")
+ID_RE = re.compile(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b")
+
+
+def renewal_names(rn):
+    """AA2-R1: what names a renewal: the identifiers in its `what`, and its change record's file stem."""
+    names = set(ID_RE.findall(rn["what"]))
+    if rn.get("change_record"):
+        names.add(os.path.splitext(os.path.basename(rn["change_record"]))[0])
+    return names
+
+
+def routed_notices(acct, rn):
+    """AA2-R1: the notice paths the renewal's own change record (a tranche manifest) routes; none without one."""
+    if not rn.get("change_record"):
+        return set()
+    man = blob_or_none(acct["at_commit"], rn["change_record"])[1]
+    return set(re.findall(r"^    - (projects/\S+NOTICE_\S+\.md)$", man, flags=re.M))
+
+
+def entry_of(text, quote):
+    """The record entry holding a quote: from the last heading or top-level bold item ('- **') before it."""
+    lines = text.split("\n")
+    nq = B.norm(quote)
+    for i in range(len(lines)):
+        if nq in B.norm("\n".join(lines[i:i + 12])):
+            start = max([j for j in range(i + 1) if ENTRY_HEAD_RE.match(lines[j])], default=0)
+            return "\n".join(lines[start:i + 12])
+    return ""
+
+
 def separation_errors(acct):
     """The separation rules (ADOPTION_ACCOUNT.md §3, SR-1..SR-4), enforced, not only stated (RV3 AA1-R1)."""
     errs = []
     acts = {a["act_id"]: a for a in acct["acts"]}
     lanes = {c["consumer_id"]: c["lane"] for c in acct["consumers"]}
+    renewals = {rn["renewal_id"]: rn for rn in acct["renewals"]}
     for r in acct["rows"]:
         cid = r["consumer_id"]
+        rn = renewals[r["renewal_id"]]
         for f, fact in r["facts"].items():
             if fact["state"] != "established":
                 continue
@@ -74,6 +107,8 @@ def separation_errors(acct):
         dl = r["facts"]["delivered"]
         if dl["state"] == "established" and not all(e["kind"] == "file_at_commit" and in_lane(e["ref"], lanes[cid]) for e in dl["evidence"]):
             errs.append("SR-2 %s/delivered: delivery is shown only by a file inside the receiving lane (%s)" % (cid, lanes[cid]))
+        if dl["state"] == "established" and not all(e["ref"] in routed_notices(acct, rn) for e in dl["evidence"]):
+            errs.append("SR-2 %s/%s delivered: the file is not a notice that %s's change record routes" % (cid, r["renewal_id"], r["renewal_id"]))
         ca = r["facts"]["consumer_adopted"]
         if ca["state"] == "established":
             cited = [acts.get(e["ref"]) for e in ca["evidence"] if e["kind"] == "act"]
@@ -87,6 +122,9 @@ def separation_errors(acct):
                                 % (cid, a["act_id"], cid, a["kind"], a.get("act_class"), a.get("consumer_id"), record))
                 if not adoption_text(a["exact_text"]):
                     errs.append("SR-4 %s: %s's text does not state an adoption" % (cid, a["act_id"]))
+                entry = entry_of(blob_or_none(acct["at_commit"], record)[1], a["exact_text"])
+                if not any(n in entry for n in renewal_names(rn)):
+                    errs.append("SR-3 %s: %s's record entry does not name %s (%s)" % (cid, a["act_id"], r["renewal_id"], ", ".join(sorted(renewal_names(rn)))))
             records = {a["record_ref"].split(", ")[0] for a in cited if a}
             if any(e["kind"] == "file_at_commit" and e["ref"] not in records for e in ca["evidence"]):
                 errs.append("SR-3 %s: a file cited for adoption is not the adoption act's record" % cid)
@@ -380,6 +418,35 @@ def main():
     v["limits"] = v["limits"] + ["edited"]
     expect("N-28 an account edited after its build [refused by: K-3]", lambda: B.build(at) != v)
     expect("N-29 a home path in a record [refused by: K-11]", home_errors({"x": "see /" + "Users/someone/notes"}))
+
+    # RV3 AA2-R1's two constructions (reviews/RV3-AA1.md addendum), reproduced as RV3 built them
+    def n30(v, s):
+        readme = "projects/chirality-app-dev/README.md"
+        row(v, "APP-V3")["facts"]["delivered"]["evidence"] = [{"kind": "file_at_commit", "ref": readme, "sha256": B.blob(at, readme)[0],
+                                                              "note": "AA2-R1 construction 1"}]
+    neg("N-30 RV3 AA2-R1 construction 1: App v3 'delivered' shown by App v3's README (a real in-lane file, not the routed notice)", n30, "SR-2")
+
+    upd = ("projects/chirality-app-dev/execution/PKG-07_Filesystem_Execution_Lifecycle_and_Dependencies/1_Working/"
+           "DEL-07-05_Dependencies_csv_v3_1_Reader_Writer_and_Linter/ScopeOfWork.md")
+
+    def n31(v, s):
+        v["acts"].append({"act_id": "AD-X", "kind": "agent_act", "act_class": "adoption", "recording_mode": "direct capture", "consumer_id": "APP-V3",
+                          "actor": "App v3 loop", "recorder": "App v3 loop", "recorder_stated_by_record": True,
+                          "subject": "App v3 adopts D-GOV-52", "record_ref": upd + ", CLM-017",
+                          "exact_text": "UPD-133 adopts the stricter live rule: every ACTIVE dependency row requires both `EvidenceFile` and `SourceRef`.",
+                          "custody": "AA2-R1 construction 2"})
+        r = row(v, "APP-V3")
+        r["facts"]["consumer_adopted"] = {"state": "established", "evidence": [{"kind": "act", "ref": "AD-X"}]}
+        r["adoption_point"] = "CLM-017"
+        s["instruction_changes"][0]["adopted_by"] = ["APP-V3", "APP-V4"]
+        v["status"] = copy.deepcopy(s)
+    neg("N-31 RV3 AA2-R1 construction 2: App v3 'consumer adopted' by a real, unrelated App v3 sentence ('UPD-133 adopts …'), status updated to match",
+        n31, "SR-3")
+    expect("P-4 the real adoption AD-1's entry names RN-1 (R23-30's head names D-GOV-52); the UPD-133 entry does not",
+           any(n in entry_of(B.blob(at, B.RUN + "/R23_RESOLUTIONS.md")[1], "App v4 adopts the changed Root text.")
+               for n in renewal_names(acct["renewals"][0]))
+           and not any(n in entry_of(B.blob(at, upd)[1], "UPD-133 adopts the stricter live rule")
+                       for n in renewal_names(acct["renewals"][0])))
 
     expect("P-1 positive control: App v4's real adoption AD-1 passes SR-3 and SR-4; F-R16's statement is not adoption text",
            not [e for e in real["SR-3"] + real["SR-4"] if "APP-V4" in e]

@@ -20,8 +20,10 @@ Escalate only for:
 | EU-F1 | DEL-11-03 (early path for PKG-11 and DEL-09-12) | RP-v0.1…v0.3 | as recorded below | **PASSED as an early path (R23-49); RP-v0.3 READY (RV3 Addendum 4)** |
 | EU-F2 | DEL-11-01 CA-v0.1 + DEL-11-03 RP-v0.4 | DEL-11-01 `Design/`, DEL-11-03 `Design/`, `F/` (incl. `F/ca/`) | see "EU-F2 — frozen" | **READY** (RV3-CA1.md; RV3-EUF1.md Addendum 6); MINORs carried into EU-F3 |
 | EU-F3 | DEL-11-02 AA-v0.1 + DEL-11-01 CA-v0.2 + DEL-11-03 RP-v0.5 | the three `Design/` folders; `F/` (incl. `F/aa/`, `F/ca/`) | see "EU-F3 — frozen" | Committed `b2fbfdbac8`; **REPAIR** (RV3-AA1: AA1-R1 MAJOR); superseded by EU-F3R |
-| EU-F3R | DEL-11-02 AA-v0.2 + DEL-11-01 CA-v0.3 + DEL-11-03 RP-v0.6 | as EU-F3, plus `F/fixtures/FX-RP1-6/` | see "EU-F3R — frozen" | **FROZEN 2026-10-04 (repair round); for HELP_HUMAN to commit by path, then RV3 to confirm** |
-| EU-F4 | DEL-09-12 PV-v0.2 (PV-v0.1 frozen, never sent for review) | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4 — refrozen" | **FROZEN 2026-10-04; not yet committed or reviewed. Second unit waiting; RV3 takes EU-F3R first** |
+| EU-F3R | DEL-11-02 AA-v0.2 + DEL-11-01 CA-v0.3 + DEL-11-03 RP-v0.6 | as EU-F3, plus `F/fixtures/FX-RP1-6/` | see "EU-F3R — frozen" | Committed `0e0036b685`; **READY** (RV3-AA1 addendum, `0d23f45985`); AA2-R1 MINOR and CA2-N1 taken in EU-F3R2 |
+| EU-F3R2 | DEL-11-02 AA-v0.3 + DEL-11-01 CA-v0.4 (checker and Design only; AA-1 v2, CA-1 v3, RP-v0.6 and FX-RP1-6 unchanged) | DEL-11-02 and DEL-11-01 `Design/`; `F/aa/check_aa.py`, `F/ca/check_ca.py`, `F/README.md` | see "EU-F3R2 — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then RV3 to confirm AA2-R1** |
+| EU-F4 | DEL-09-12 PV-v0.2 | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4 — refrozen" | Committed `0e3591a65d`; **REPAIR** (RV2-PV1, `a3b91c843f`: PV1-R1 MAJOR) |
+| EU-F4R | DEL-09-12 PV-v0.3 | DEL-09-12 `Design/`, `F/pv/` | see "EU-F4R — frozen" | **FROZEN 2026-10-04; for HELP_HUMAN to commit by path, then RV2 to confirm** |
 
 ## EU-F1 — frozen (RP-v0.1; superseded by the refreeze below, kept as the record RR-EUF1 read)
 
@@ -626,3 +628,106 @@ PV-v0.1 (`f917357a…`, record above) was frozen and not yet reported. PV-v0.2 a
 | `RUN/F/pv/records/MANIFEST.sha256` | `32256269ea3ed1f470793ae01d7a28bfc74f1a72c2befd3cbb63cb62a337b538` |
 
 **Next.** Resume DEL-09-12 (its review findings, when routed), and DEL-11-03's adoption of `practitioner_standing` (U-PV-3) at its next revision.
+
+## EU-F4R — frozen (DEL-09-12 PV-v0.3, repair for RV2-PV1)
+
+RV2-PV1 (`a3b91c843f`): REPAIR, nothing BLOCKING. RV2's probe script was in its temp directory, so probes A, B, C, D, E, G and H were rebuilt from the review text. Only DEL-09-12 `Design/` and `F/pv/` were edited; every AA, CA and RP path was left alone for this repair.
+
+**Repairs.**
+- **PV1-R1 (MAJOR).** A disposition's decision is now someone else's act, recorded as such:
+  - `proposed` carries only `proposed_by`; a proposal carrying a decider, actor, recorder or record is refused (schema).
+  - `decided` requires `decider`, `actor`, `recorder`, `recorder_stated_by_record`, `recording_mode`, `record_ref` and `scope` (schema).
+  - The decider is fixed by the case: feature or workflow, `owning_deliverable`, with `deliverable` among the recipients and named by `record_ref` (PV-R5); method, `owner_at_stage_decision`, actor "the owner" (schema; UC §7), recorded in an OWNER_DECISIONS file (PV-R5); successor basis, `owner_with_affected_consumers`, actor "the owner", plus `adoption_ref` (schema) different from `record_ref` (PV-R5).
+  - An agent never decides a method or a successor basis: probe E is invalid 20, and invalid 21 hardens it (every other field made right). Both are refused by the schema.
+  - Actor "the owner" forces a faithful recording by someone else (schema); otherwise faithful recording needs recorder ≠ actor and direct capture recorder = actor (PV-R5).
+- **PV1-R2.** Exactly one `app` and one `swbpipe` expression (`contains` each, two items). Probe A is invalid 15 and N-15 on the real PV-ARR-1.
+- **PV1-R3.**
+  - PV-R4 ties actual use to a supplied arrangement that is `agreed` or `in_use`, an `available` expression, an owner-selected activity for that expression, and that expression's candidate. Probe C is invalid 18 and N-24 on the real PV-ARR-1. P-1 is the positive control, and N-20…N-23 break it each way.
+  - An agreed arrangement's `available` expressions need a candidate and material: probe B is invalid 16 and N-16.
+  - A standing past `not_agreed` needs `agreement_ref`: probe H is invalid 17 and N-17.
+- **PV1-R4.** Candidates by expression: `app` is `{app_candidate}`; `swbpipe` is `{host_candidate, app_candidate|null}` (EXP `host_candidate`, e.g. the LHQ identification record). A SWBPIPE observation must name its host candidate (invalid 19). `configuration.host_candidate` is removed.
+- **PV1-R5.** `observations` is now an array of observation ids, matching RP's first cut. The remaining differences are stated in §2 O-3: format `PV-v0.3` against `RP-v0.1-first-cut`, plus the added `arrangement_ref` and `is_replacement_condition`, which the closed first cut refuses. K-12 reads RP's first-cut `$def` at the build commit, compares every field's name, type, const and enum, checks the added fields equal the stated list, and validates the real record against the first cut with the stated differences undone. N-11, N-18 and N-19 break it. **RP is not changed in this round.** U-PV-3 now says DEL-11-03's next revision must take the format and the two added fields.
+- **PV1-R6.** "Owner" is kept for the person: the header ("prepared by O-F (design owner agent)"), §1's rows, §7's column ("Decided or done by"; U-PV-2 "supplied by"; U-PV-3 "assigned to O-F (design owner agent)"), and the real record's `prepared_by`.
+- **PV1-R7.**
+  - N-2 is now schema-valid, so it tests PV-R2 with the schema passing.
+  - §8's example numbers are corrected.
+  - Valid example 2's limit now reads "illustrative example of an agreed arrangement; the owner's agreement is INVENTED".
+  - The docstring names PV-R1…PV-R5 and PV-v0.3.
+  - K-6 checks each schema refusal against the kind's own `$def`.
+- **PV1-R8.** Carried to DEL-09-01's next revision, as recorded by HELP_HUMAN (U-PV-4).
+
+**Audit rechecked.** RV2's three probes broke rules my PV-v0.2 list omitted. §8's lists are rewritten against the repaired rules:
+- **Probes refused:** A, B, C, E and H.
+- **Probes that still pass**, stated as limits:
+  - D ("TBD" placeholder): PV-R1 is keyword-based, and PV-R4 then requires the same string in the arrangement.
+  - G (recorder "The owner", capitalised): actor-not-recorder tests are string comparisons.
+- **Also stated as not enforced:**
+  - PV-R5's deliverable and OWNER_DECISIONS checks are textual;
+  - `adoption_ref` is checked as present and distinct, not whose adoption it is;
+  - PV-R4 does not compare dates with the period;
+  - K-12 cannot show DEL-11-03 will take the differences;
+  - no real observation or disposition exists, so PV-R1 and PV-R3…R5 are broken only on examples and in-memory records.
+
+**Checks run.**
+- `check_pv.py` **38/38**, with 12 valid and 27 invalid examples. I printed each new invalid example's own-`$def` or rule refusal and confirmed it is the reason its `why` names.
+- Records rebuilt at `b2fbfdbac8`; twice gives identical bytes. The content changes are the format, `observations: []` and `prepared_by`.
+- `git status --ignored`: nothing ignored on the unit paths.
+- No home paths.
+
+**Files (sha256)** — paths for the R23-41 commit (from `projects/chirality-app-v4/execution/`):
+
+| File | sha256 |
+|---|---|
+| `PKG-09_…/DEL-09-12_…/Design/PRACTITIONER_VALIDATION.md` (PV-v0.3) | `16718ee59275e915b2ab124bbd6846f81b7ce8d13906d4492a03ec78e4f36871` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.practitioner-validation.schema.json` (0.3) | `181c0c5bcc5e1f5f47ea60a2c4305ad7965152c2e000946cfabbaf67ce2c0303` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.examples.valid.json` (12) | `5e2204d55795694f7c05de708fc8f6e2da37a6588e205c5810492f0475c2a683` |
+| `PKG-09_…/DEL-09-12_…/Design/pv.examples.invalid.json` (27) | `e176c3741117e45fedf65eea2bc33617fa0e8aab72d5c04bd723b09c79c64b3c` |
+| `RUN/F/pv/pvlib.py` | `1c46fba0a879d4513aa34cdee1bd0646c9b8e08218f2373a22cddb4ccbe76245` |
+| `RUN/F/pv/check_pv.py` | `e6fdb064c38266089a0f33f9b1bb190e2c3e5ca2c525138b08d1c6c0d3f1b166` |
+| `RUN/F/pv/records/MANIFEST.sha256` (PV-ARR-1, PV-STANDING-1, BUILT_AT) | `02fa9aab1161a55632afac4d530b843c9f83548fdb7753fe24b5e5b5fe6dda32` |
+
+Superseded: PV-v0.2 `2240ab36…` (from `git show 0e3591a65d:…`).
+
+## EU-F3R2 — frozen (RV3 AA2-R1 and CA2-N1; DEL-11-02 AA-v0.3, DEL-11-01 CA-v0.4)
+
+RV3 found EU-F3R READY (`0d23f45985`), with one MINOR (AA2-R1) and two NOTEs.
+
+**Repairs.**
+- **AA2-R1: evidence bound to the renewal, not just the lane.**
+  - SR-2 now also requires `delivered` evidence to be a notice that the renewal's own change record routes, i.e. the paths listed in its tranche manifest. A renewal with no change record (RN-2) cannot have `delivered` established.
+  - SR-3 now also requires the adoption act's record entry to name the renewal. The entry runs from the last heading or top-level bold item before the exact text, and it must contain an identifier from the renewal's `what` or its change record's stem.
+  - AD-1's entry is R23-30's head ("R23-30 Adopting D-GOV-52 in App v4"), so it passes (P-4).
+  - RV3's two constructions, rebuilt as RV3 described them, are N-30 and N-31:
+    - N-30, App v3's README offered as delivery: refused by SR-2 only (I printed it).
+    - N-31, the real "UPD-133 adopts the stricter live rule …" sentence in App v3's DEL-07-05 ScopeOfWork, with the status updated to match: refused by SR-3's renewal test.
+  - Both are checker and Design changes only. AA-1 v2, its record format AA-v0.2 and the schema are unchanged, so CA-1 and FX-RP1-6 are byte-identical (rebuilt and compared). **RP is not stepped.**
+- **CA2-N1.** N-21 is RV3's understated case: every RE-1 condition met, eligibility recorded false, schema-valid. To make it break K-14 alone, K-11 now checks the *recorded* eligibility, and only K-14 compares it with RE-1. Printed: only `RE-1` errors. CA-1 v3 is unchanged.
+- **AA2-N1.** No change, as directed; it is stated in AA §7's uncovered list.
+- **LHQ re-pin (closeout).** O-C changed LHQ in place at `18d6eae3e4` (`90f461cb…` → `d59a1ea0…`). I read the diff: one CI-5 sentence (LHQ2-R2) and its change row, saying a mapped CIR validates only under the v0.2 CIR schema `3fb8f586…`. That is the schema RP already vendors (`F/vendor/VENDOR.json`, unchanged) and validates with (A-7, B-19). **Re-pinned** in REPLACEMENT_PACKET.md's supplier pins with a one-line note. The pin appears only in that Design text; no fixture, vendored file or check reads it, so RP's built content is unchanged (`check_rp.py` 99/99; FX-RP1-6 and `F/vendor/` unchanged against `0d23f45985`). It is a pin note in place, and RP stays RP-v0.6.
+
+**Uncovered, stated plainly (AA §7).**
+- SR-3's renewal test is textual: an in-lane entry that names the renewal and says "adopts" passes whatever it decides.
+- The entry boundary is a heading or a bold item.
+- The negation list refuses "adopts … without amendment".
+
+**Checks run.**
+- `check_aa.py` **46/46**; `check_ca.py` **37/37** (with archives); `check_rp.py` **99/99** (unchanged code).
+- AA, CA, RP and FX-RP1-6 built content is unchanged: rebuilt twice, identical to the committed `0e0036b685` bytes.
+- `git diff 0d23f45985` is empty for the RP schema, prototype, fixture and vendor, and for the AA and CA builders and records. The only RP change is the pin line.
+
+**Files (sha256):**
+
+| File | sha256 |
+|---|---|
+| `PKG-11_…/DEL-11-02_…/Design/ADOPTION_ACCOUNT.md` (AA-v0.3) | `c17c5d8ceed3d32a39f44d460b7321e0a4641fd4ac5641679e595a968fc37f4a` |
+| `PKG-11_…/DEL-11-01_…/Design/CONTINUITY_ACCOUNT.md` (CA-v0.4) | `ea171162a236043ef625bf6716242e051240122a28195017034ff9a6abd84e64` |
+| `RUN/F/aa/check_aa.py` | `2e1fb631c1417fe684e2156a4d18d6e30ccc6ea70fe7b97b649a804d915395e5` |
+| `RUN/F/ca/check_ca.py` | `42b8fa67b83dd59354b57cdb254de30b80e33005d37175110e8c539c0dbbd3fa` |
+| `RUN/F/README.md` (shared with EU-F4R) | `7b0a4c9b6b2697b7e9d945bc93da98a050ab2e83820f939c28b134bfe5d82b89` |
+| `PKG-11_…/DEL-11-03_…/Design/REPLACEMENT_PACKET.md` (RP-v0.6, LHQ pin note only) | `42eef807a5fbcecb256495b9f1a2e0797f97ed83c5b0142c7d733396106e3d02` |
+
+Superseded: AA-v0.2 `3d4ba2ec…`, CA-v0.3 `8f47aa08…` (from `git show 0e0036b685:…`). Unchanged: the AA schema, `build_aa.py`, `build_ca.py`, the AA and CA records, and every RP path except the one pin line in REPLACEMENT_PACKET.md (superseded text `71eb2881…`).
+
+**Waiting units:** two (EU-F4R for RV2, EU-F3R2 for RV3), each with its own reviewer, as the coordinator directed.
+
+**Next.** DEL-11-03's next revision: adopt `practitioner_standing` with the stated differences (U-PV-3).
