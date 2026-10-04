@@ -389,3 +389,58 @@ Probes in `$TMPDIR/rv2/probe_sq2.py`, run on valid example SQ-EX-03:
 **Not checked in this round.**
 - The schema and examples beyond the prototype run and my probes.
 - The supplier prototypes; none was rerun.
+
+### Confirmation of SQ-R-L and SQ-R-M at candidate commit `d150856784` (2026-10-03)
+
+**Verdict: READY.** SQ-R-L and SQ-R-M are adopted. Nothing is open. One NOTE (SQ-R-O) is optional.
+
+**What I reviewed.** The committed bytes (`git show d150856784:<path>`). The working tree for `projects/chirality-app-v4` is the same as the commit.
+
+**Hashes.**
+- The five files O-B lists match at the commit, and so do the unchanged schema `16f7f232…` and invalid set `99e154f4…`.
+- `STANDALONE_QUALIFICATION.md` at the commit is `3e5d0f12…8391`, not O-B's `a2ad48cf…552e`.
+
+**The closeout changed only pin lines.**
+- The closeout chain is `a2ad48cf…` →C1→ `c317a925…` →C2→ `3e5d0f12…`.
+- I reversed the recorded edits in the committed file (`$TMPDIR/rv2/recon.py`):
+  - the six C1 pins (RECOVERY, NPTD, WD, WR, HOSTING, EXP) and the C2 pin (ACCESS) set back to their old values;
+  - the re-pin markers removed.
+- The result hashes to exactly `a2ad48cf…`, so the commit adds nothing beyond those pin edits.
+- Every pin names current bytes, apart from:
+  - the commit pins for AAC, ACT, RS and EXEC, checked last round;
+  - the v0.1 self-reference.
+
+**Prototype.** `python3 -B check_sq.py` gives **TOTAL 114, FAIL 0**, with 65 citations. My probes `$TMPDIR/rv2/probe_sq2.py` now fire SQ-R9:
+- P-a: ST-3 claimed as replayed.
+- P-b: ST-4 not produced, with S11-6 left `inconclusive`.
+
+**Per finding.**
+
+| Finding | State | Evidence |
+|---|---|---|
+| SQ-R-L | **Confirmed** | SQ-R9 now refuses `produced: replay` for any stimulus whose map has no replay counterpart (ST-1…ST-3; SQ-RV-11). With a `not_produced` stimulus, SQ-R9 accepts the step only as `blocked` or `fail` (SQ-RV-12). Valid example SQ-EX-05 shows S11-6 `blocked` with ST-4 not produced |
+| SQ-R-M | **Confirmed** | See below |
+
+**SQ-R-M: the choice of capture over the double.**
+
+What §3.4 now says:
+- ST-5 and §3.4 "Why ST-5 is a capture" record the choice.
+- ST-5's counterpart is a recording captured with HOSTING §9.1's method at the candidate's pin, in X-09's form. It must contain "an answer written to a server request and the process ended before any acknowledgment arrives".
+- The recording is replayed with X-10's recovery read and cited as `recorded_replay` evidence beside the native observation.
+
+The choice is sound. I checked the sources it rests on:
+- HOSTING §9.6 says of the supplier double: "**Not claimed.** The double is not the supplier: every behaviour it shows beyond the recorded frames is constructed".
+- RECOVERY VC-R-04 is a model-level case on that stub.
+- VER-005 asks for "supported recorded seam evidence", and R23-27 item 3 has the counterpart stand in for a condition on the candidate's real supplier.
+
+A constructed stub behaviour would only re-check the recovery rules, which VC-R-04 already does and which §3.4 keeps citing as a definition check. It would not show what the real Codex sends when an answer's acknowledgment never comes.
+
+U-SQ-6 names the owner and the point of need, and both fit:
+- **Owner.** DEL-01-01, whose §9.1 capture method and §9.4 X-09/X-10 regression set this is, together with DEL-01-02, whose RECOVERY RQ-05 row reads "a reply was written … and no acknowledgment was observed" and records `acknowledgment_not_observed`.
+- **Point of need.** "Before RUN-A". Without the capture, S11-6 is `blocked` (SF-8). That is consistent with R23-27 and honest: §9.1 captures "on an identified candidate", so the capture can only follow the candidate's build, and the ST-5 part waits for it without passing vacuously.
+
+### SQ-R-O — NOTE (optional) — producing the ST-5 capture depends on timing
+
+The condition depends on ending the Codex process after the App writes its answer frame and before Codex's acknowledgment arrives. At 0.158.0 that acknowledgment appears as `serverRequest/resolved` (HOSTING X-14). X-09's fixture standing, "recorded-truncated", suggests a robust way to produce it: capture a full exchange and truncate it after the answer frame, recording the truncation. That way the capture does not rely on winning a race.
+
+U-SQ-6 could say which method is used, and that a truncated recording is labelled as such and never claims byte identity (§9.1). No repair is required.

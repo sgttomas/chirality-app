@@ -85,9 +85,10 @@ introduced if integration work starts delaying owner-facing work.
 | S0 Direction, graph, briefs | Run folder; this graph | Owner direction | Committed | COMPLETE |
 | S1 Scoping surveys (A, B, C) | `SURVEY/S1-*.md` | S0 | Obligations, joins, owner choices, design scope | COMPLETE |
 | R23 Rulings on the surveys | `R23_RESOLUTIONS.md` | S1 | — | COMPLETE |
-| VC Codex version-advance check to 0.160.0 | Scratch; a DEL-01-01 drift record | Owner's yes (given) | Types regenerated and compared; OBS harnesses rerun; affected statements listed | ACTIVE |
+| VC Codex version-advance check to 0.160.0 | Scratch; a DEL-01-01 drift record | Owner's yes (given) | Types regenerated and compared; OBS harnesses rerun; affected statements listed | COMPLETE (R23-22) |
 | K Questions for tranche 1 | `DECISIONS_PENDING.md`; R23-8…R23-14 | S1 | Owner returned them; ruled | COMPLETE |
-| E Early path: one decision package decided | Owners' Design folders; ACT §2.1, RS §6.1/§13.6 and schema, AAC §1.2 (rows only, O-A); prototype under the run folder | R23-8…R23-10 | Schema-valid act record; isolated reader reconstructs the decision | ACTIVE |
-| O-B1 DEL-09-01 design | DEL-09-01 `Design/` | R23 | RV review | READY |
-| O-C1 DEL-09-07 design (designable-now set) | DEL-09-07 `Design/` | R23 | RV review | READY |
-| D Remaining tranche-1 design, review, closeout | Per LOOP_INIT | E | RV; pre-merge review | PLANNED |
+| E Early path: one decision package decided | Owners' Design folders; ACT §2.1, RS §6.1/§13.6 and schema, AAC §1.2 (rows only, O-A); prototype under the run folder | R23-8…R23-10 | Schema-valid act record; isolated reader reconstructs the decision | COMPLETE (RR-E, RR-F) |
+| O-B1 DEL-09-01 design | DEL-09-01 `Design/` | R23 | RV review | COMPLETE |
+| O-C1 DEL-09-07 design (designable-now set) | DEL-09-07 `Design/` | R23 | RV review | COMPLETE |
+| D Remaining tranche-1 design, review, closeout | Per LOOP_INIT | E | RV, RV2; C1, C2; P1 MERGE | COMPLETE (PR) |
+| T2 Tranche 2 (PKG-07, PKG-08, PKG-10, PKG-11, DEL-09-10, DEL-09-12) | Per LOOP_INIT | Tranche 1 merged | — | PLANNED |

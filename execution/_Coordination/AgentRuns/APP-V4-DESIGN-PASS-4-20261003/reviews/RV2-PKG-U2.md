@@ -330,3 +330,32 @@ All of PKG-R1…PKG-R11 are adopted in the returned files. I raise one new MINOR
 - **Repair.** Label it "52 entries (42 files)". This is cosmetic.
 
 **Not checked in this round.** The schema and terms-record changes beyond the probes and the prototype run. No network was used and nothing was built or executed.
+
+### Confirmation of PKG-R12…PKG-R14, at candidate commit `d150856784` (2026-10-03)
+
+**Verdict: READY.** PKG-R12, PKG-R13 and PKG-R14 are adopted. There are no open findings.
+
+**What I reviewed.** I reviewed the committed bytes (`git show d150856784:<path>`). For `projects/chirality-app-v4`, the working tree equals the commit (`git diff --quiet d150856784` returned clean).
+
+**Hashes.** The six files O-B lists match at the commit: schema, the three example sets, `check_pkg.py`, and `read_tree.py` (unchanged). `PACKAGING_AND_DISTRIBUTION.md` at the commit is `0d8d14d2…42b4`, not O-B's `95722979…77fa`.
+
+**Closeout changed only pin lines.**
+- The closeout records the chain `95722979…` →C1→ `33aa12a5…` →C2→ `0d8d14d2…` (C1_INTEGRATION §7; C2 §1).
+- I reversed the recorded edits in the committed file with my own script (`$TMPDIR/rv2/recon.py`):
+  - the four C1 pins (HOSTING, EXP, WR, ROLE) and the C2 pin (ACCESS) set back to their old values;
+  - the "(C1/C2 re-pin, R23-21 item 4)" markers removed.
+- The result hashes to exactly `95722979…`. So the commit's bytes are O-B's repaired file plus those pin edits, and nothing else.
+- Every pin in the committed file names current bytes, apart from:
+  - the AAC-v0.2 commit pin (`31d65b0be3`, checked last round);
+  - the VC-tree values;
+  - the v0.1 self-reference.
+
+**Prototype.** `python3 -B check_pkg.py --tree <VC 0.160.0 vendor dir>` gives **TOTAL 66, FAIL 0**. FP-0 now prints "42 files, 10 directories, 30 Mach-O". PKG-RV-12 is detected as PK-R9.
+
+**Per finding.**
+
+| Finding | State | Evidence |
+|---|---|---|
+| PKG-R12 | **Confirmed** | §8: "**Gatekeeper refusing to open the App, or refusing the `codex` child, is a `fail`**", classified under §7.3. Only "quarantine could not be produced" stays `blocked`. FP-4's pass column says the same. W-5 is now covered too, which goes beyond my finding |
+| PKG-R13 | **Confirmed** | §3: "Option B is not relied on until FP-1(a), FP-1(b) and FP-3 pass on the first package". PK-R9 requires the limit "option B not yet relied on: FP-1/FP-3 not passed" whenever any of the three is not `pass` under B. Examples: PKG-EX-01 and -03 carry the limit; PKG-EX-04 has all three passing; PKG-RV-12 is my probe |
+| PKG-R14 | **Confirmed** | The FP-0 label now reads "42 files, 10 directories, 30 Mach-O" |
