@@ -584,3 +584,28 @@ My three MINOR findings from Addendum 4 and N9 are resolved, each with one quali
 
 - The builders' determinism.
 - `--fixture` on FX-RP1…3 (O-F reports 8/22, 11/22 and 13/22, as expected under the current rules).
+
+---
+
+# Addendum 7 — RP-v0.5 (unit EU-F3; committed `b2fbfdbac8`), 2026-10-04
+
+- **Subject.** Re-hashed:
+  - `REPLACEMENT_PACKET.md` `f928cd02…7644`;
+  - schema `90629f17…`;
+  - `F/rplib.py` `52e64564…`, `check_rp.py` `71987a46…`, `build_fx_rp1.py` `0754e56b…`;
+  - FX-RP1-5 `MANIFEST.sha256` `c8a267ff…`.
+- **Checks.** `check_rp.py`: **76/76**.
+
+## Verdict on RP-v0.5: **READY**
+
+**EUF4-R1 is confirmed resolved.**
+
+- **My probe** (Addendum 6), rerun unchanged against RP-v0.5, is FX-RP1-5's package with the fixture notice removed, and a manifest declaring `fixture: false`, `evidence_standing: "established"` and `identified: true`. It is now refused three ways:
+  1. "the manifest's declared standing or identification disagrees with what its supplied items and subject derive (EUF4-R1)";
+  2. the illustrative-candidate refusal;
+  3. the missing fixture notice.
+- **Derivation.** `derive_standing` derives `identified` from a mapped subject with no placeholder marker and no unresolved steps, and `evidence_standing` from the supplied items' standings. A-9 recomputes them.
+- **Presentation.** `check_disposition` refuses `presented_no_decision` for a fixture package: "RP-R7: a fixture package is never presented or decided (EUF4-R1)". I tested this myself; it corresponds to B-51/B-52.
+- **Limit (NOTE).** `PLACEHOLDER_RE` is keyword-based (`illustrative|invented|example|placeholder`). The other derivation conditions still hold any illustrative fixture (see RV3-AA1 N3).
+
+**DEL-11-02's hand-over.** S-6 `supplied/adoption-status.AA-1.json` is byte-identical (`cmp`) to `F/aa/records/AA-1.status.json`, and `adoption.status` is `supplied`. RV3-AA1 AA1-R2's wording point ("received" should read "delivered") applies to the repeated statement. RV3-AA1 N2 ("owner_record" undefined) applies to S-4 and S-6.

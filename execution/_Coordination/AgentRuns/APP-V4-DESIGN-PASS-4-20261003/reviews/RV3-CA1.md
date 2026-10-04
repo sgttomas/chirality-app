@@ -81,3 +81,27 @@ The account is a linked view (F-R6): it links the primary records by git identit
 - `build_ca.py`'s determinism.
 - The five schema negatives individually: they ran inside `check_ca.py`, 21/21.
 - The thesis front matter (U-CA-5, declared).
+
+---
+
+# Addendum — CA-v0.2 (unit EU-F3; committed `b2fbfdbac8`), 2026-10-04
+
+- **Subject.** Re-hashed:
+  - `CONTINUITY_ACCOUNT.md` `ecde63b4…1c8d`;
+  - schema `b575dd4e…`;
+  - `F/ca/build_ca.py` `7b33c8ac…`, `check_ca.py` `2ba5c7d0…`;
+  - `vendor/VENDOR.json` `f608edcf…`;
+  - `records/MANIFEST.sha256` `0382842e…`.
+- **Checks.** `check_ca.py`: **23/23**, with no drift NOTICE.
+
+## Verdict on CA-v0.2: **READY**
+
+All my EU-F2 findings are **confirmed resolved**:
+
+| Finding | State | Checked |
+|---|---|---|
+| CA1-R1 (OD-09 recorder) | **Resolved.** The record reads `"recorder": "not named by the record: DECISIONS.md quotes the owner's opening message to HELPS_HUMANS and states 'the grouping and IDs are the agent's'"`, with `recorder_stated_by_record: false`. Custody is OPENING_BRIEF.md (`af88327a…`, verified), and K-9's string-comparison limit is stated in the Design and the check | Record; DECISIONS.md l.14–17; OPENING_BRIEF.md hash |
+| CA1-R2 (OD-09 in part) | **Resolved.** All three sentences are recorded as `parts`, each with its classes: "Pin …" → C-1, C-5; "Inventory …" → C-3; "Preserve …" → C-1, C-2, C-3, C-7. Each sentence is found in OPENING_BRIEF.md (verified). The home path in sentence 2 is replaced by `<archive root>`, and N-9 refuses an altered sentence | Script against DECISIONS.md row OD-09 and OPENING_BRIEF.md |
+| CA1-N1 (re-pin) | **Resolved.** The vendored RA is `811c868c…` (RA-v0.2, `ce64a97a2a`; the vendored file hash is verified). The stale "not frozen" wording is corrected in VENDOR.json, the header and CF-5, with the history stated | `shasum`; diff |
+
+DEL-11-02's adoption status is now recorded as `supplied` from AA-1, closing U-CA-4. Its `ref` repeats AA-1's statement, so RV3-AA1 AA1-R2 ("received a notice" should read "a notice was delivered") applies here too, and flows in at CA's next build.
