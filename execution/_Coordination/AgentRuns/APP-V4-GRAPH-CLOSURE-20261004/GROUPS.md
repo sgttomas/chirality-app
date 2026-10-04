@@ -53,4 +53,4 @@ once when something seems to run against the order, forms a cycle across
 groups, changes the deliverable set, would make another group's finished
 work wrong, or suggests the grouping is wrong. In doubt, ask (GC-7). A
 ready or blocked verdict read from the DAG does not cover relationships
-recorded only in work graphs or the shared list.
+recorded only in work graphs.

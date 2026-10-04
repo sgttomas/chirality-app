@@ -181,3 +181,23 @@ decides no more than that source settles.
     group's graph when that loop constructs it.
   - No `CROSS_GROUP_RELATIONSHIPS.md` or other new standing list is created.
   - GC-7's other items stand.
+
+- **GC-9 Decisions for the LOOP_INIT revision (LI audit). INTEGRATION.**
+  1. **Change control covers every deliverable.** It is not limited to
+     group A. Agreed interfaces in any deliverable's Design are changed only
+     through named, reviewed changes that are propagated to their consumers.
+     This replaces LI's inference that "the contract core is group A". The
+     owner's approval named the co-designed core, and the manuals already
+     state "Agreed contracts frozen under change control" in general terms.
+  2. **GROUPS.md stays in this run's folder**, as the record of the gate
+     decision. LOOP_INIT points to it. A later regrouping decision is
+     recorded by its own run, and LOOP_INIT's pointer is updated then. No
+     standing current-state file is created; see the owner's "I don't want
+     to create a new type of record".
+  3. **Agent User Manual additions:**
+     - adopted: A1 (receipt content, §13), A2 (App v4 entry, §14, plus the
+       README description), A3 (gate sentence) and A5 (decision recording,
+       §13);
+     - not adopted: A4, a workflow change that is not needed because
+       LOOP_INIT states App v4's adoption of the receipt location; and A6,
+       because the principles paragraph stays in LOOP_INIT.
