@@ -202,3 +202,14 @@ The owner should not be asked to cut DEP-09-11-006 under any option. It is P, an
 - The DOS-class names in §5 are proposals. Their final names, and whether the host-agent conversation class needs a host-specific identity form, are for the rewording, not this analysis.
 - That RV, or another reviewer, accepts that a DOS-owned enum which maps one-to-one onto RRM's classes is an inversion and not a relabelling. The test applied is GC-1 (a), "uses no … state value … that the supplier defines". DOS would define the values, and DEL-09-11 would map them.
 - No DAG version, register or Design file was changed or re-read for drift after HEAD `0c815a8cdf`.
+
+## 11. 2026-10-04 note: RVG-N13 minors recorded as conditions on M-01
+
+RVG reviewed this analysis and marked it READY, with BLOCKING 0, MAJOR 0, MINOR 2 and NOTE 3 (`E/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/reviews/RVG-N13.md`, sha256 `24f1f51f043afa2c784fc5d6441c0ababcb472b5a56051dc5e7c6840af5620e7`, committed at `e987d34d2c`). It agrees that M-01 is a genuine inversion. Nothing above is changed. The two minors are conditions on the rewording, in addition to those in §5 and §6:
+
+1. **N13-m1.** Every record-set item keeps a required DOS `class`. Both U2-R2 invalid examples stay:
+   - "U2-R2: a record-set item without its input-set standing" is restated as "a record-set item without its DOS class";
+   - "U2-R2 / DJ-1: a derived view (the dossier's case result) supplied in the record set" stays as written.
+2. **N13-m2.** RRM §9's new failure row is worded as DEL-09-11 blocking its own witness and reporting the unmappable item (R23-20). It does not say the item is "returned to DEL-09-07", and it states no act or receipt by DEL-09-07. Otherwise it would create a runtime row that re-closes the cycle. Any repair of the handoff stays DEL-09-07's ordinary design work. This replaces §5's wording "the item is returned to DEL-09-07".
+
+The LHQ F-4 "supply only" condition (§4) is carried into the R23-11 amendment list by HELP_HUMAN, not by this file.
