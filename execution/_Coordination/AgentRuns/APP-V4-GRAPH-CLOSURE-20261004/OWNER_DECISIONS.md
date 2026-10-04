@@ -157,3 +157,17 @@ exceptions. HELP_HUMAN recommended two moves:
 The owner replied:
 
 > Yes to both moves.  Record that then let's discuss the LOOP_INIT further.
+
+## How LOOP_INIT steers agents through the guidance (owner, exact, 2026-10-04)
+
+> Consider how the LOOP_INIT points to these instruction documents and propose a more effective way to steer the agent through the information it needs without dumping everything into context at once.  You don't need to make any changes here, I just want to discuss it with you first.
+
+HELP_HUMAN proposed a situation router. The owner replied:
+
+> No routers.  You can't possibly imagine all the scenarios up front and any categorization scheme will be incomplete and probably woefully so.  But each document has a topical structure.  The Table of Contents, two or three layers deep ought to be loaded into context and then the agent decides when to visit it (and here guidance can be given around this level of decision making if done right).
+
+HELP_HUMAN asked two questions: whether the 90% handoff should serve as a
+"current phase" card, and whether LOOP_INIT should pin manual editions. The
+owner replied:
+
+> I don't want to create a new type of record that needs to be updated to maintain current state.  The handoff is ephemeral.  The present forms of governance presumed sufficient until shown otherwise.  No don't pin to editions. No to both.
