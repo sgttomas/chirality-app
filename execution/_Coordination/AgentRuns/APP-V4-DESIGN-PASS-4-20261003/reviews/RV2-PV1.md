@@ -341,3 +341,45 @@ Record in §7 or §8, as an implementation rule, that `actual_use` requires the 
 The header and U-PV-3 call O-F "design owner agent". The header also says "'the owner' is always the person", so the phrase is not ambiguous, but it still puts "owner" on an agent. "Design agent O-F" or "assigned agent O-F" would keep the word for the person, as the coordinator directs.
 
 **Not done:** I did not rebuild the records (K-3 does), and I did not review DEL-11-03's adoption (carried, U-PV-3).
+
+## Addendum 2: PV2-R1 and PV2-N2 (commit `158c0b2859`, PV-v0.4; 2026-10-04)
+
+**Reviewer:** RV2, Claude Opus 5.5 (`claude-opus-5-5`). By the coordinator's ruling in DISPATCH.md, this is the last checker round, so I checked only these two items and their stated scope.
+
+### Verdict: **READY**
+
+PV2-R1 and PV2-N2 are confirmed. There are no new findings. One NOTE records the residual variants, which fall within the limits now listed.
+
+**What I checked.**
+- The DEL-09-12 and `F/pv/` paths equal the commit, and `git status --short --ignored` prints nothing.
+- `python3 -B check_pv.py` gives **38/38** (12 valid, 29 invalid).
+- `git diff 9ba5dfe49c 158c0b2859` touches only the schema's two recorder tests, the examples (invalid 28 and 29), the Design text, the docstring, and `prepared_by`.
+
+**PV2-R1: confirmed.** Both owner-act recorder tests changed from `const "the owner"` to `pattern ^\s*[Tt][Hh][Ee]\s+[Oo][Ww][Nn][Ee][Rr]\s*$`. They are the agreement's `not`, and the decision's `not` that applies when the actor is "the owner".
+
+My probes (`$TMPDIR/rv2/probe_pv3.py`) ran on v0.4's valid examples 2 and 10:
+
+| Recorder | Agreement (probe G) | Method decision (probe E8) |
+|---|---|---|
+| "The owner" | refused | refused |
+| "THE OWNER" | refused | refused |
+| "the  owner" | refused | refused |
+| " the owner " | refused | refused |
+| "the\towner" | refused | refused |
+| "the owner" | refused | refused |
+
+Invalid 28 and 29 are G and E8 with doubled spacing.
+
+**PV2-N2: confirmed.**
+- "Design agent O-F" now appears in the header, in U-PV-3, in the change text and in the real record's `prepared_by`.
+- "Owner agent" no longer appears in the Design files or the prototype (grep).
+
+**PV2-N3 — NOTE: residual variants, inside the listed limits.**
+- These still pass:
+  - "the owner." (trailing punctuation);
+  - "Owner" and "owner";
+  - a feature decision with actor "The owner" and recorder "the owner".
+- The last of these is an exact comparison on the actor side, so the owner-act constraints do not trigger. It is the E7 class.
+- §8 lists both cases: "another name for the person" passes, and other decisions compare exactly (E7).
+- A schema cannot refuse a false name in general. The capture surface must establish the recorder's identity at implementation, as already recorded.
+- No change is needed for 60%.
