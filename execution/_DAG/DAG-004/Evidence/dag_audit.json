@@ -1,0 +1,135 @@
+{
+  "edges_path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/DependencyEdges.csv",
+  "nodes_path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SCA003-20261002/DAG_PREP/DAG-004/DeliverableNodes.csv",
+  "canonical_mode": true,
+  "edge_schema": {
+    "valid": true,
+    "required_column_count": 29,
+    "column_count": 33,
+    "missing_columns": [],
+    "extension_columns": [
+      "SourceRegister",
+      "SourceRegisterSHA256",
+      "SourceRecord",
+      "SelectionRule"
+    ]
+  },
+  "canonical_finding_count": 0,
+  "canonical_findings": [],
+  "node_header_column_count": 8,
+  "edge_row_count": 129,
+  "node_row_count": 41,
+  "package_count": 11,
+  "status_counts": {
+    "ACTIVE": 129
+  },
+  "active_edge_count": 129,
+  "candidate_edge_count": 0,
+  "active_dependency_type_counts": {
+    "CONSTRAINT": 4,
+    "HANDOVER": 10,
+    "INTERFACE": 70,
+    "PREREQUISITE": 45
+  },
+  "candidate_dependency_type_counts": {},
+  "endpoint_issue_count": 0,
+  "endpoint_issues": [],
+  "edge_row_width_issue_count": 0,
+  "edge_row_width_issues": [],
+  "node_row_width_issue_count": 0,
+  "node_row_width_issues": [],
+  "active_graph": {
+    "node_count": 41,
+    "edge_count": 129,
+    "scc_count": 0,
+    "sccs": [],
+    "duplicate_edge_count": 0,
+    "duplicate_edges": {},
+    "bidirectional_pair_count": 0,
+    "bidirectional_pairs": [],
+    "hub_threshold": 20,
+    "hub_count": 1,
+    "hubs": [
+      {
+        "DeliverableID": "DEL-04-01",
+        "InDegree": 20,
+        "OutDegree": 0,
+        "TotalDegree": 20
+      }
+    ]
+  },
+  "active_plus_candidate_graph": {
+    "node_count": 41,
+    "edge_count": 129,
+    "scc_count": 0,
+    "sccs": [],
+    "duplicate_edge_count": 0,
+    "duplicate_edges": {},
+    "bidirectional_pair_count": 0,
+    "bidirectional_pairs": [],
+    "hub_threshold": 20,
+    "hub_count": 1,
+    "hubs": [
+      {
+        "DeliverableID": "DEL-04-01",
+        "InDegree": 20,
+        "OutDegree": 0,
+        "TotalDegree": 20
+      }
+    ]
+  },
+  "dev001_projection": {
+    "definition": "Excludes PKG-00 endpoints and ARCHITECTURE_BASIS rows; candidate rows remain non-gating.",
+    "node_count": 41,
+    "edge_row_count": 129,
+    "active_edge_count": 129,
+    "candidate_edge_count": 0,
+    "active_dependency_type_counts": {
+      "CONSTRAINT": 4,
+      "HANDOVER": 10,
+      "INTERFACE": 70,
+      "PREREQUISITE": 45
+    },
+    "candidate_dependency_type_counts": {},
+    "active_graph": {
+      "node_count": 41,
+      "edge_count": 129,
+      "scc_count": 0,
+      "sccs": [],
+      "duplicate_edge_count": 0,
+      "duplicate_edges": {},
+      "bidirectional_pair_count": 0,
+      "bidirectional_pairs": [],
+      "hub_threshold": 20,
+      "hub_count": 1,
+      "hubs": [
+        {
+          "DeliverableID": "DEL-04-01",
+          "InDegree": 20,
+          "OutDegree": 0,
+          "TotalDegree": 20
+        }
+      ]
+    },
+    "active_plus_candidate_graph": {
+      "node_count": 41,
+      "edge_count": 129,
+      "scc_count": 0,
+      "sccs": [],
+      "duplicate_edge_count": 0,
+      "duplicate_edges": {},
+      "bidirectional_pair_count": 0,
+      "bidirectional_pairs": [],
+      "hub_threshold": 20,
+      "hub_count": 1,
+      "hubs": [
+        {
+          "DeliverableID": "DEL-04-01",
+          "InDegree": 20,
+          "OutDegree": 0,
+          "TotalDegree": 20
+        }
+      ]
+    }
+  }
+}

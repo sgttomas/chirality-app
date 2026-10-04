@@ -160,3 +160,19 @@ verify placement of every ACTIVE EXECUTION row, the 10 links and their
 layers, the representative changes, the mirror maturity findings, the
 owner questions and the carried obligations. Verdict READY FOR CHECKPOINT C
 or HOLD. Write only `reviews/V25.md`.
+
+## FX — repair DEL-01-03's absolute TargetLocation (one Type 2)
+
+DECISION-3 effect 4. Through `workflows/dependency-extract` UPDATE on
+DEL-01-03's register only: replace the 14 absolute TargetLocation values
+under a personal home path with the project-relative paths the other
+registers use; no other cell changes. Validators; then a currency audit
+against DAG-004 (expected `CURRENT_WITH_EVIDENCE_DRIFT`, as the handoff
+says), placed in `_Evaluation/DAGCurrency/` with its pointer. Records in
+`RUN/DX/FX.md`.
+
+## CA — closure audit of SCA-V4-003 (one Type 2, after FX)
+
+As SCA-V4-002's CA2: `workflows/audit-scope-closure` on SCA-V4-003; verdict
+expected `CLOSED_WITH_OBSERVATIONS` or `OPEN_PENDING_DERIVATIVE_CLOSURE`
+(Coverage_Telemetry, Design re-pins); write under `_Evaluation/ScopeClosureAudit/`.

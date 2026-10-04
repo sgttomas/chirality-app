@@ -1,0 +1,42 @@
+SourceRegister,DeliverableID,TotalRows,AnchorRows,RetiredRows,ActiveExecution,DependencyEdges.csv,CandidateEdges.csv,ExcludedRows.csv
+PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Dependencies.csv,DEL-01-01,32,15,0,17,0,1,16
+PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Dependencies.csv,DEL-01-02,26,17,0,9,3,0,6
+"PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Dependencies.csv",DEL-01-03,22,10,0,12,2,0,10
+"PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Dependencies.csv",DEL-01-04,26,6,1,19,5,5,9
+"PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Dependencies.csv",DEL-01-05,17,11,0,6,0,1,5
+PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Dependencies.csv,DEL-01-06,12,5,0,7,1,0,6
+PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv,DEL-02-01,40,16,0,24,2,6,16
+PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Dependencies.csv,DEL-02-02,24,11,1,12,3,4,5
+PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv,DEL-02-03,40,8,2,30,3,9,18
+PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv,DEL-02-04,19,9,0,10,2,1,7
+PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv,DEL-03-01,42,21,1,20,1,3,16
+"PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv",DEL-03-02,34,15,0,19,1,3,15
+PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv,DEL-03-03,20,5,0,15,3,5,7
+PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/Dependencies.csv,DEL-03-04,23,4,0,19,18,0,1
+"PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Dependencies.csv",DEL-04-01,33,11,0,22,0,0,22
+"PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv",DEL-04-02,28,6,0,22,1,5,16
+"PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv",DEL-04-03,45,10,0,35,2,9,24
+PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv,DEL-05-01,27,13,0,14,2,7,5
+PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Dependencies.csv,DEL-05-02,20,4,2,14,1,7,6
+PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/Dependencies.csv,DEL-06-01,13,6,0,7,4,0,3
+"PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/Dependencies.csv",DEL-06-02,16,7,0,9,3,0,6
+PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Dependencies.csv,DEL-07-01,15,8,0,7,0,1,6
+PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Dependencies.csv,DEL-07-02,15,9,0,6,1,2,3
+"PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Dependencies.csv",DEL-08-01,16,7,0,9,1,1,7
+PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv,DEL-08-02,12,4,0,8,2,0,6
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv,DEL-09-01,30,12,0,18,5,2,11
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Dependencies.csv,DEL-09-02,31,8,0,23,12,0,11
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/Dependencies.csv,DEL-09-05,13,5,0,8,6,0,2
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv,DEL-09-06,35,11,0,24,13,0,11
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Dependencies.csv,DEL-09-07,25,10,0,15,1,0,14
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Dependencies.csv,DEL-09-09,24,6,0,18,2,7,9
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/Dependencies.csv,DEL-09-10,11,4,0,7,3,0,4
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/Dependencies.csv,DEL-09-11,10,4,0,6,2,0,4
+PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/Dependencies.csv,DEL-09-12,14,6,0,8,2,0,6
+PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Dependencies.csv,DEL-10-01,22,11,0,11,1,0,10
+PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/Dependencies.csv,DEL-10-02,13,10,0,3,1,1,1
+PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Dependencies.csv,DEL-10-03,20,7,0,13,10,0,3
+PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/Dependencies.csv,DEL-10-04,14,4,0,10,2,1,7
+PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/Dependencies.csv,DEL-11-01,12,7,0,5,3,0,2
+PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/Dependencies.csv,DEL-11-02,22,7,0,15,2,0,13
+PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/Dependencies.csv,DEL-11-03,16,5,0,11,3,2,6

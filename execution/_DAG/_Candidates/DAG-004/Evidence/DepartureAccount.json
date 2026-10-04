@@ -1,0 +1,1125 @@
+{
+  "predecessor": "DAG-003",
+  "added": 10,
+  "removed": 0,
+  "removed_arcs": [],
+  "added_admitted": 5,
+  "added_candidate": 5,
+  "added_arcs": [
+    "NR-05 DEL-01-04 -> DEL-01-03 (admitted, no SCC)",
+    "NR-07 DEL-01-04 -> DEL-01-05 (admitted, no SCC)",
+    "NR-09 DEL-01-04 -> DEL-02-03 (candidate, SCC-002)",
+    "NR-4 DEL-01-04 -> DEL-02-04 (candidate, SCC-002)",
+    "NR-08 DEL-01-04 -> DEL-04-02 (candidate, SCC-002)",
+    "NR-04 DEL-02-02 -> DEL-01-02 (admitted, no SCC)",
+    "NR-01 DEL-02-03 -> DEL-01-02 (admitted, no SCC)",
+    "NR-02 DEL-03-03 -> DEL-01-02 (admitted, no SCC)",
+    "R2-04-03-e DEL-04-03 -> DEL-02-01 (candidate, SCC-002)",
+    "R20-10 DEL-04-03 -> DEL-02-02 (candidate, SCC-002)"
+  ],
+  "existing_arcs_changing_layer": [],
+  "representative_changes": [
+    {
+      "arc": "DEL-02-03 -> DEL-04-02",
+      "dag003": "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv#DEP-04-02-023 (DOWNSTREAM)",
+      "dag004": "PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv#DEP-02-03-029@29 (UPSTREAM)",
+      "layer": "candidate",
+      "ledger": "R2-02-03-a (N-07)",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    },
+    {
+      "arc": "DEL-03-02 -> DEL-04-02",
+      "dag003": "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv#DEP-04-02-021 (DOWNSTREAM)",
+      "dag004": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv#DEP-03-02-034@34 (UPSTREAM)",
+      "layer": "candidate",
+      "ledger": "R-02-3 (N-05)",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-02-01",
+      "dag003": "PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv#DEP-02-01-027 (DOWNSTREAM)",
+      "dag004": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv#DEP-03-03-017@17 (UPSTREAM)",
+      "layer": "candidate",
+      "ledger": "R-03-4 (N-20)",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-04-02",
+      "dag003": "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv#DEP-04-02-022 (DOWNSTREAM)",
+      "dag004": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv#DEP-03-03-016@16 (UPSTREAM)",
+      "layer": "candidate",
+      "ledger": "R-03-4 (N-06)",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-02-04",
+      "dag003": "PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv#DEP-02-04-012 (DOWNSTREAM)",
+      "dag004": "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv#DEP-04-03-036@36 (UPSTREAM)",
+      "layer": "candidate",
+      "ledger": "R22-7-reg",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-01-05",
+      "dag003": "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Dependencies.csv#DEP-01-05-014 (DOWNSTREAM)",
+      "dag004": "PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv#DEP-05-01-026@26 (UPSTREAM)",
+      "layer": "admitted",
+      "ledger": "R-0501-4 (F0 M-5)",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-09-01",
+      "dag003": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv#DEP-09-01-024 (DOWNSTREAM)",
+      "dag004": "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv#DEP-09-06-035@35 (UPSTREAM)",
+      "layer": "admitted",
+      "ledger": "R-0906-3",
+      "reason": "SR-6: the consumer register now has an UPSTREAM row on this arc, which ranks before the supplier DOWNSTREAM row; the former representative becomes a MIRROR"
+    }
+  ],
+  "existing_representatives_with_changed_core_fields": {
+    "LastSeen": 83,
+    "LastSeen;Notes": 11,
+    "Statement;SourceRef;LastSeen;Notes": 6,
+    "Statement;LastSeen;Notes": 10,
+    "Statement;SourceRef;EvidenceQuote;LastSeen;Notes": 6,
+    "EvidenceQuote;LastSeen;Notes": 1,
+    "RequiredMaturity;LastSeen;Notes": 2,
+    "SourceRef;EvidenceQuote;LastSeen;Notes": 1
+  },
+  "existing_representatives_with_changed_core_fields_rows": [
+    {
+      "arc": "DEL-01-01 -> DEL-01-05",
+      "row": "DEP-01-01-024",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-02 -> DEL-01-01",
+      "row": "DEP-01-02-018",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-02 -> DEL-04-01",
+      "row": "DEP-01-02-021",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-03 -> DEL-01-01",
+      "row": "DEP-01-03-011",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-03 -> DEL-01-02",
+      "row": "DEP-01-03-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-01-01",
+      "row": "DEP-01-04-007",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-01-02",
+      "row": "DEP-01-04-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-02-02",
+      "row": "DEP-01-04-009",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-04-01",
+      "row": "DEP-01-04-011",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-04-03",
+      "row": "DEP-01-04-012",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-05 -> DEL-01-01",
+      "row": "DEP-01-05-012",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-01-01",
+      "row": "DEP-02-01-025",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-02-03",
+      "row": "DEP-02-01-026",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-03-01",
+      "row": "DEP-02-01-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-03-02",
+      "row": "DEP-02-01-029",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-04-01",
+      "row": "DEP-02-01-018",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-04-03",
+      "row": "DEP-02-01-019",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-05-01",
+      "row": "DEP-02-01-020",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-05-02",
+      "row": "DEP-02-01-021",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-01-03",
+      "row": "DEP-02-02-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-01-04",
+      "row": "DEP-02-02-013",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-02-01",
+      "row": "DEP-02-02-014",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-02-03",
+      "row": "DEP-02-02-015",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-04-01",
+      "row": "DEP-02-02-016",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-04-03",
+      "row": "DEP-02-02-017",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-01-01",
+      "row": "DEP-02-03-023",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-01-04",
+      "row": "DEP-02-03-027",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-02-01",
+      "row": "DEP-02-03-009",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-02-02",
+      "row": "DEP-02-03-010",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-03-01",
+      "row": "DEP-02-03-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-03-02",
+      "row": "DEP-02-03-025",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-03-03",
+      "row": "DEP-02-03-026",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-04-01",
+      "row": "DEP-02-03-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-04-03",
+      "row": "DEP-02-03-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-05-01",
+      "row": "DEP-02-03-022",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-04 -> DEL-01-01",
+      "row": "DEP-02-04-010",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-04 -> DEL-02-01",
+      "row": "DEP-02-04-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-01 -> DEL-03-02",
+      "row": "DEP-03-01-026",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-01 -> DEL-04-01",
+      "row": "DEP-03-01-024",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-01 -> DEL-04-03",
+      "row": "DEP-03-01-031",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-01 -> DEL-09-09",
+      "row": "DEP-03-01-030",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-02 -> DEL-02-01",
+      "row": "DEP-03-02-027",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-02 -> DEL-03-01",
+      "row": "DEP-03-02-016",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-02 -> DEL-04-01",
+      "row": "DEP-03-02-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-01-01",
+      "row": "DEP-03-03-013",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-02-03",
+      "row": "DEP-03-03-014",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-03-01",
+      "row": "DEP-03-03-006",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-03-02",
+      "row": "DEP-03-03-007",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-04-01",
+      "row": "DEP-03-03-008",
+      "fields": [
+        "RequiredMaturity",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-01-01",
+      "row": "DEP-03-04-021",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-02-01",
+      "row": "DEP-03-04-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-02-03",
+      "row": "DEP-03-04-009",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-02-04",
+      "row": "DEP-03-04-010",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-03-01",
+      "row": "DEP-03-04-005",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-03-02",
+      "row": "DEP-03-04-006",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-03-03",
+      "row": "DEP-03-04-007",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-04-01",
+      "row": "DEP-03-04-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-04-02",
+      "row": "DEP-03-04-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-04-03",
+      "row": "DEP-03-04-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-05-01",
+      "row": "DEP-03-04-014",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-05-02",
+      "row": "DEP-03-04-015",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-07-01",
+      "row": "DEP-03-04-016",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-07-02",
+      "row": "DEP-03-04-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-08-01",
+      "row": "DEP-03-04-018",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-08-02",
+      "row": "DEP-03-04-019",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-09-06",
+      "row": "DEP-03-04-022",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-04 -> DEL-09-09",
+      "row": "DEP-03-04-023",
+      "fields": [
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-02-03",
+      "row": "DEP-04-02-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-03-01",
+      "row": "DEP-04-02-016",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-03-02",
+      "row": "DEP-04-02-015",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-04-01",
+      "row": "DEP-04-02-007",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-04-03",
+      "row": "DEP-04-02-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-05-01",
+      "row": "DEP-04-02-018",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-01-01",
+      "row": "DEP-04-03-027",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-01-02",
+      "row": "DEP-01-02-020",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-02-03",
+      "row": "DEP-04-03-025",
+      "fields": [
+        "Statement",
+        "SourceRef",
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-03-01",
+      "row": "DEP-04-03-023",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-03-02",
+      "row": "DEP-04-03-024",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-03-03",
+      "row": "DEP-04-03-026",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-04-01",
+      "row": "DEP-04-03-021",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-04-02",
+      "row": "DEP-04-03-022",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-05-01",
+      "row": "DEP-04-03-028",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-02-01",
+      "row": "DEP-05-01-016",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-02-03",
+      "row": "DEP-05-01-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-03-01",
+      "row": "DEP-05-01-014",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-03-02",
+      "row": "DEP-05-01-015",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-04-01",
+      "row": "DEP-05-01-018",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-04-02",
+      "row": "DEP-05-01-025",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-04-03",
+      "row": "DEP-05-01-019",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-01 -> DEL-05-02",
+      "row": "DEP-05-01-020",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-02-01",
+      "row": "DEP-05-02-005",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-02-03",
+      "row": "DEP-05-02-020",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-03-01",
+      "row": "DEP-05-02-006",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-03-02",
+      "row": "DEP-05-02-007",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-04-01",
+      "row": "DEP-05-02-008",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-04-02",
+      "row": "DEP-05-02-019",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-04-03",
+      "row": "DEP-05-02-009",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-05-02 -> DEL-05-01",
+      "row": "DEP-05-02-010",
+      "fields": [
+        "Statement",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-01-01",
+      "row": "DEP-09-06-032",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-02-01",
+      "row": "DEP-09-06-025",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-02-02",
+      "row": "DEP-09-06-026",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-02-03",
+      "row": "DEP-09-06-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-03-01",
+      "row": "DEP-09-06-027",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-03-02",
+      "row": "DEP-09-06-028",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-03-03",
+      "row": "DEP-09-06-029",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-04-01",
+      "row": "DEP-09-06-030",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-04-02",
+      "row": "DEP-09-06-031",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-04-03",
+      "row": "DEP-09-06-015",
+      "fields": [
+        "RequiredMaturity",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-05-01",
+      "row": "DEP-09-06-016",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-06 -> DEL-05-02",
+      "row": "DEP-09-06-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-02-03",
+      "row": "DEP-09-09-023",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-03-01",
+      "row": "DEP-09-09-007",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-03-02",
+      "row": "DEP-09-09-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-03-03",
+      "row": "DEP-09-09-009",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-04-01",
+      "row": "DEP-09-09-010",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-04-02",
+      "row": "DEP-09-09-022",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-04-03",
+      "row": "DEP-09-09-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-05-01",
+      "row": "DEP-09-09-021",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-09-09 -> DEL-09-01",
+      "row": "DEP-09-09-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-11-02 -> DEL-02-04",
+      "row": "DEP-02-04-013",
+      "fields": [
+        "LastSeen"
+      ]
+    }
+  ],
+  "expected_arc_set": {
+    "DEL-01-04 -> DEL-01-03": "NR-05",
+    "DEL-01-04 -> DEL-01-05": "NR-07",
+    "DEL-01-04 -> DEL-04-02": "NR-08",
+    "DEL-01-04 -> DEL-02-03": "NR-09",
+    "DEL-01-04 -> DEL-02-04": "NR-4",
+    "DEL-02-03 -> DEL-01-02": "NR-01",
+    "DEL-03-03 -> DEL-01-02": "NR-02",
+    "DEL-02-02 -> DEL-01-02": "NR-04",
+    "DEL-04-03 -> DEL-02-01": "R2-04-03-e",
+    "DEL-04-03 -> DEL-02-02": "R20-10"
+  },
+  "accepted_arcs_not_produced": [],
+  "added_outside_accepted_set": [],
+  "expected_layers_hold": true,
+  "guard_arcs_present": [],
+  "del_04_01_suppliers": [],
+  "scc002_members_consuming_del_09_06": [],
+  "del_09_06_consumers": [
+    "DEL-03-04",
+    "DEL-09-07"
+  ],
+  "r17_10": {
+    "DEL-01-02_reaches": [
+      "DEL-01-01",
+      "DEL-01-05",
+      "DEL-04-01"
+    ],
+    "DEL-01-03_reaches": [
+      "DEL-01-01",
+      "DEL-01-02",
+      "DEL-01-05",
+      "DEL-04-01"
+    ],
+    "holds": true
+  },
+  "reciprocal_pairs": 27,
+  "dag_pending_resolved_by_this_candidate": [
+    "DEL-01-02",
+    "DEL-01-03",
+    "DEL-01-04",
+    "DEL-01-05",
+    "DEL-02-01",
+    "DEL-02-02",
+    "DEL-02-03",
+    "DEL-02-04",
+    "DEL-03-03",
+    "DEL-04-02",
+    "DEL-04-03"
+  ],
+  "advice_renewed_examination_not_pending": {
+    "DEL-03-04": [
+      "NR-01 DEL-02-03 -> DEL-01-02",
+      "NR-02 DEL-03-03 -> DEL-01-02",
+      "NR-04 DEL-02-02 -> DEL-01-02"
+    ],
+    "DEL-09-02": [
+      "NR-01 DEL-02-03 -> DEL-01-02",
+      "NR-04 DEL-02-02 -> DEL-01-02",
+      "NR-05 DEL-01-04 -> DEL-01-03",
+      "NR-07 DEL-01-04 -> DEL-01-05"
+    ],
+    "DEL-09-06": [
+      "NR-01 DEL-02-03 -> DEL-01-02",
+      "NR-02 DEL-03-03 -> DEL-01-02",
+      "NR-04 DEL-02-02 -> DEL-01-02"
+    ],
+    "DEL-09-07": [
+      "NR-01 DEL-02-03 -> DEL-01-02",
+      "NR-02 DEL-03-03 -> DEL-01-02",
+      "NR-04 DEL-02-02 -> DEL-01-02"
+    ],
+    "DEL-09-11": [
+      "NR-01 DEL-02-03 -> DEL-01-02",
+      "NR-02 DEL-03-03 -> DEL-01-02",
+      "NR-04 DEL-02-02 -> DEL-01-02"
+    ],
+    "DEL-10-03": [
+      "NR-01 DEL-02-03 -> DEL-01-02"
+    ],
+    "DEL-10-04": [
+      "NR-01 DEL-02-03 -> DEL-01-02"
+    ],
+    "DEL-11-01": [
+      "NR-01 DEL-02-03 -> DEL-01-02"
+    ],
+    "DEL-11-02": [
+      "NR-01 DEL-02-03 -> DEL-01-02"
+    ],
+    "DEL-11-03": [
+      "NR-01 DEL-02-03 -> DEL-01-02",
+      "NR-02 DEL-03-03 -> DEL-01-02",
+      "NR-04 DEL-02-02 -> DEL-01-02",
+      "NR-05 DEL-01-04 -> DEL-01-03",
+      "NR-07 DEL-01-04 -> DEL-01-05"
+    ]
+  },
+  "admitted_consumers_gaining_admitted_supplier": {
+    "DEL-01-04": [
+      "NR-05 DEL-01-04 -> DEL-01-03",
+      "NR-07 DEL-01-04 -> DEL-01-05"
+    ],
+    "DEL-02-02": [
+      "NR-04 DEL-02-02 -> DEL-01-02"
+    ],
+    "DEL-02-03": [
+      "NR-01 DEL-02-03 -> DEL-01-02"
+    ],
+    "DEL-03-03": [
+      "NR-02 DEL-03-03 -> DEL-01-02"
+    ]
+  }
+}

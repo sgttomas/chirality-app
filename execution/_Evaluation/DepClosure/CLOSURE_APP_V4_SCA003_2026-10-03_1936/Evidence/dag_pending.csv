@@ -1,0 +1,12 @@
+DeliverableID,Reasons
+DEL-01-02,arc added: DEL-02-02 -> DEL-01-02; arc added: DEL-02-03 -> DEL-01-02; arc added: DEL-03-03 -> DEL-01-02
+DEL-01-03,arc added: DEL-01-04 -> DEL-01-03
+DEL-01-04,arc added: DEL-01-04 -> DEL-01-03; arc added: DEL-01-04 -> DEL-01-05; arc added: DEL-01-04 -> DEL-02-03; arc added: DEL-01-04 -> DEL-02-04; arc added: DEL-01-04 -> DEL-04-02
+DEL-01-05,arc added: DEL-01-04 -> DEL-01-05
+DEL-02-01,arc added: DEL-04-03 -> DEL-02-01
+DEL-02-02,arc added: DEL-02-02 -> DEL-01-02; arc added: DEL-04-03 -> DEL-02-02
+DEL-02-03,arc added: DEL-01-04 -> DEL-02-03; arc added: DEL-02-03 -> DEL-01-02
+DEL-02-04,arc added: DEL-01-04 -> DEL-02-04
+DEL-03-03,arc added: DEL-03-03 -> DEL-01-02
+DEL-04-02,arc added: DEL-01-04 -> DEL-04-02
+DEL-04-03,arc added: DEL-04-03 -> DEL-02-01; arc added: DEL-04-03 -> DEL-02-02
