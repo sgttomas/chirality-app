@@ -105,8 +105,9 @@ author's constructed accounts.
 
 # Tranche 2
 
-Thirteen deliverables were designed to the 60% level and reviewed:
-PKG-07, PKG-08, PKG-10, PKG-11, DEL-09-10 and DEL-09-12. Tranche 1's merge
+Thirteen deliverables were designed and reviewed in this tranche: PKG-07,
+PKG-08, PKG-10, PKG-11, DEL-09-10 and DEL-09-12. This is design progress
+toward 60%, not the 60% position (R23-55.1; see "The 60% position" below). Tranche 1's merge
 was PR #1077, and the D-GOV-52 application was PR #1079.
 
 ## Owner acts
@@ -135,7 +136,7 @@ No other owner decision was needed. HELP_HUMAN ruled R23-31…R23-55.
   (the D-GOV-52 case is read from git) and REPLACEMENT_PACKET RP-v0.6.
 - **DEL-09-12 (O-F):** PRACTITIONER_VALIDATION PV-v0.4. No real practitioner
   observation exists, and none is claimed.
-- **Cross-owner rows:**
+- **Rows across design agents:**
   - O-A: FV-10, RF-5a/5b and ACT-POLICY-v0.11.
   - O-C: LHQ-v0.2 (CI-5, LHQ2-R2), the DOS DX-1…DX-3 rules, and the
     closeout re-pins in DAC, RRM, DOS and TOP.
@@ -150,13 +151,13 @@ No other owner decision was needed. HELP_HUMAN ruled R23-31…R23-55.
 - **Standing reviewers.** RV2 and RV3 reviewed every unit. The reviewer who
   raised a finding confirmed its repair.
 - **Recurring defect.** Three times, a checker accepted records its own
-  author built: EUF4-R1, AA1-R1 and PV1-R1. Owners now break each rule they
+  author built: EUF4-R1, AA1-R1 and PV1-R1. Design agents now break each rule they
   claim a checker enforces before freezing, and list the rules they cannot
   break (WORK_GRAPH adjustments, 2026-10-04). Checker hardening stopped
   after AA3-R1 and PV2-R1. The remaining textual limits are disclosed.
 - **Closeout.**
-  - Stale pins were found by scan and re-pinned by their owners after
-    reading the supplier diffs.
+  - Stale pins were found by scan and re-pinned by their design agents
+    after reading the supplier diffs.
   - LHQ line 10 keeps its pin by ruling.
   - DA §5 step 2: 128/130, with both failures the recorded drift.
   - No ScopeOfWork, register, DAG or Open_Issues file changed.

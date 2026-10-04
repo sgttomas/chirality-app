@@ -41,7 +41,8 @@ section.
   actual Design text where the inventory cites it. Pass 4 added the shared
   rows: the A16 "decide" act across ACT, RS, AAC, DEL-02-03 and GUIDE, and
   the connector standing vocabulary across PKG-06, -07, -08 and DEL-09-10.
-  It then took one connected path end to end and had it read cold:
+  It then took four early units end to end, each read cold by an isolated
+  reader:
   - a decision package decided by the person;
   - the connector standing;
   - the execution basis;
@@ -81,7 +82,6 @@ section.
 | G-18, G-19 | DEL-08-01 §6–§8 with a VER map; DEL-09-10's dossier |
 | G-20 | DEL-10-01 runs VER-004, 005, 007 and 008. Its own file says this comes before the 60% review |
 | G-22 | DEL-02-01's declared chaining |
-| G-25 | A record mapping each role-named owner ("integrator", "shared contract owner", …) to you or to an agent, for you to confirm |
 | G-29 | SCA-V4-003's derivative closure, plus CASE-002's drafted DAG-004 evidence update (R23-55.3) |
 
 ### B. Decisions reserved to you
@@ -97,6 +97,9 @@ each, after A. None is asked now.
 | G-02 | Accept a DAG-005 for the three bundle-seam arcs into DEL-01-06, or decide no rows. They form no cycle (checked) | DA §5; SPEC §5.4 (successor acceptance is yours) |
 | G-03 | How each of the six SCC cases is treated. Each recommends R1 | scc-resolution-case |
 | G-04, G-08 | Placement (OI-013, OI-014) and the first connected operation (OI-021). Both are shared with the SWB side | Open_Issues |
+| G-15 | Accept the next register amendment: the mirror rows, F-RA1, the missing counterparts and V25 m-1. Agents draft it in A's pass | scope-change (amendment acceptance is yours) |
+| G-25 | Confirm a mapping, drafted by agents in A's pass, of each role-named owner ("integrator", "shared contract owner", …) to you or to an agent | The role names in the Design files |
+| G-23 | Whether 60% needs the numbered items marked "before implementation" (HOSTING, RECOVERY, ACCESS, ROLE, WR, NIR). I recommend not: R23-54.4 sorts them when the implementation increment is planned | The inventory: "whether 60% requires them is the owner's reading" |
 
 R23-54 also settles G-24. Under L-7 the "App implementation owner" is you;
 genuine choices labelled that way come to you, and items already settled by

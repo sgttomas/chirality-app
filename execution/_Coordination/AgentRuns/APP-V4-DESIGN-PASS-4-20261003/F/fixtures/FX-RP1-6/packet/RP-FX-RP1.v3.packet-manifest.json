@@ -58,7 +58,7 @@
   ],
   "basis_excerpts": {
     "path": "packet/basis-excerpts.md",
-    "sha256": "7914abedda4ee54d9c1614cfdc67493928e61d4476c32f8b17bf8918967bf677"
+    "sha256": "54979f49d67181b2fa3ac538a077a6b83a0c8fca798b9451b98e4e8ec7eca0e3"
   },
   "candidate": {
     "change_impact_refs": [],

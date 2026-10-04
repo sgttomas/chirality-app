@@ -59,6 +59,6 @@
   "scope": "the v3.0.1 fallback only; old projects, archives, active work and continuing obligations are outside this decision (OI-024)",
   "subject": [
     "whether, and at what scope (see the alternatives), App v4 candidate (revision: ILLUSTRATIVE (SQ example; not a real candidate); build: ILLUSTRATIVE (SQ example; not a real candidate)) replaces Chirality v3.0.1, the published fallback",
-    "packet manifest sha256:b7b14721e9d145b37759a8634a1faceb4b4b94b7583927215c62e8dee6bc1dd5"
+    "packet manifest sha256:4b76584d0100fca97e0ee21bcf48ba91a523cc94e92f34b6a5f833209c618229"
   ]
 }

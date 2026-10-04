@@ -820,3 +820,22 @@ evidence rules and the owner's earlier decisions already settle them.
      them: design agents, the person, or outside parties.
   3. CASE-002's drafted DAG-004 evidence update, carried from SCA-V4-003,
      is not a tranche-2 condition. It joins the continuation.
+
+- **R23-56 Pre-merge review P2 (HOLD). INTEGRATION.**
+  1. **P2-F1 (BLOCKING).** HELP_HUMAN's R23-54/55 append changed
+     R23_RESOLUTIONS.md, which FX-RP1-6's basis excerpts pin as a whole
+     file. That broke A-14. It is the same defect class as tranche 1's
+     mid-repair checkpoint. Repair: make every record edit for this round
+     first, then rerun `build_fx_rp1.py`, then commit. Carried to RP's next
+     revision: pin the excerpted lines rather than the whole append-only
+     file, so a later ruling cannot break the fixture.
+  2. **P2-F2 and P2-F3 (MAJOR).** These are HELP_HUMAN's errors in the
+     owner-facing records. G-15, G-23 and G-25 now sit under the person's
+     decisions in the statement. The receipt says "design progress toward
+     60%", not "designed to the 60% level".
+  3. **P2-F8 and the RECEIPT part of P2-F7 (MINOR)** are repaired in the
+     same edit.
+  4. **P2-F4…F6 and the DOS/LHQ part of P2-F7 (MINOR)** are wording and
+     path slips in design agents' files. They change no interface or claim
+     a consumer relies on, so they go to the continuation's first pass
+     rather than another round now.

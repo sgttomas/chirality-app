@@ -2820,3 +2820,106 @@ Two clarifications:
 
 Keep everything else as it is. Mark the file's header "read at 161f8a0d0d". Write only that file, and hand back the new sha256 plus a one-line list of what changed.
 ```
+
+## 146. 2026-10-04T18:51:08.421Z — Agent — P2 pre-merge review tranche 2 (type2-opus-high)
+
+```text
+You are a Chirality Type 2 TASK executor working for HELP_HUMAN (Agent 0). Your job is the independent pre-merge review of design pass 4, tranche 2. The candidate is the branch claude/app-v4-design-pass-4-t2 at c7f9fe4073 in this worktree, against origin/main (merge-base 75604b3c49). You do not delegate. You did not author any of this work.
+
+## Why this review exists
+The repository's merge policy (Root AGENTS.md, "Execution and governance") says: merge "when required CI passes and independent review has no unresolved blocking findings, with review and validation covering the actual candidate revision."
+
+Every design unit already has a standing reviewer's READY. RV2 and RV3 confirmed each repair; see the run's reviews/ folder and DISPATCH.md. Do not redo unit reviews. Check only what those unit reviews did not establish (coordinated-knowledge-work §3, §6).
+
+## Run folder
+projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/ (RUN below). Key records:
+- RECEIPT.md, Tranche 2 section;
+- DISPATCH.md, from the "O-D"/"O-E"/"O-F" tranche-2 rows onward;
+- R23_RESOLUTIONS.md, R23-31…R23-55;
+- OWNERS/O-*.md;
+- POSITION_60/;
+- WORK_GRAPH.md under _Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/.
+
+Tranche 1's pre-merge review is RUN/reviews/P1_PREMERGE.md. Use it as a model for scope and format.
+
+## What to establish
+
+1. **Placement and fences.**
+   - Every changed file (`git diff --name-only 75604b3c49 c7f9fe4073`) lies inside projects/chirality-app-v4/execution.
+   - No ScopeOfWork.md, Dependencies.csv, _DEPENDENCIES.md, register, _DAG/**, _Decomposition/** (including Open_Issues.csv), Root, docs/ or other-project file changed.
+   - RUN/OWNER_DECISIONS.md is unchanged; it is pinned by Design files.
+   - R23_RESOLUTIONS.md and OWNER_DECISIONS_2.md changed only by appending.
+   - No file bound by a closed tranche manifest changed.
+2. **Hygiene.**
+   - No absolute home paths (`/Users/`, `/private/tmp/`, `-Users-`) in changed files. BRIEFS_AS_SENT.md's redaction placeholders such as `<owner>` are fine.
+   - `git status --ignored` shows no ignored file needed by a committed record. Check build/, out/, evidence/ and similar under RUN and the Design prototype folders.
+3. **Pins and vendored copies.**
+   - For every sha256 pin (64-hex, and the 8–12-char prefixes used in pin context) in Design files changed on this branch, classify it as:
+     - current;
+     - deliberate supersession or history (a "supersedes"/"read at"/"relied on" note);
+     - a ruled exception (LHQ line 10's GUIDE-v0.7 pin, per DISPATCH's O-C closeout row);
+     - stale.
+   - Do the same for pins in first-increment and pass-3 Design files that point at files changed on this branch.
+   - Each vendored copy must equal its source's pinned bytes, and its VENDOR.json/manifest must hash correctly: RUN/F/ca/vendor, DEL-06-01 prototype/fixtures/vendored/EU-D1, and the RP fixtures' vendored LHQ schema.
+4. **Cross-owner interfaces changed in tranche 2.** For each join, check both sides' current text agree on the exchanged fields and terms:
+   - AA ↔ RA (X-1 consumers);
+   - CA ↔ AA and RA (status hand-over);
+   - RP ↔ CA, AA and PV (S-6 and U-PV-3's stated differences);
+   - RTD ↔ CFB, DRC and PRC;
+   - CW ↔ DRC;
+   - FV and FR ↔ the connector standing vocabulary (envelope, condition, claim tier, "unknown");
+   - LHQ ↔ DOS, TOP, RRM and RP;
+   - ACT-POLICY-v0.11 §10.3 ↔ RA §2;
+   - DA §5 ↔ dag_reach.py.
+
+   One-sided items already disclosed as carried (U-PV-3, U-PV-4/PV1-R8, F-RA1) are not findings, but do confirm they are disclosed.
+5. **Mechanical rounds no unit reviewer confirmed.** Check these directly:
+   - ACT-POLICY-v0.11 (only the §10.3 DEL-10-03 row changed from v0.10);
+   - RA-v0.2 and DA-v0.3, the final MINOR round for RV3's RA1-R1/R2 and DA2-R1. Read RV3-RA1.md and RV3-DA1.md and confirm each repair;
+   - the FV10-R9 claim-connector check in DEL-06-01's prototype;
+   - O-C's dos_check N8 exit-code fix;
+   - O-C's closeout re-pins (DAC, RRM, DOS, TOP);
+   - O-A's GUIDE re-pin.
+6. **Rerun every prototype at the candidate** and compare with the recorded counts. Find the commands in the READMEs, OWNERS files and DISPATCH. Recorded results:
+
+   | Owner | Check | Recorded |
+   |---|---|---|
+   | O-A | run_fleet | 46/46 |
+   | O-A | run_views | 36/36 |
+   | O-A | validate_policy | 6 PASS |
+   | O-D | run_d | 297/297 |
+   | O-D | check_rtd | 19/19 |
+   | O-D | sensitivity | 19/19 |
+   | O-E | ra_check | 31/0 |
+   | O-E | dag_reach --self-test | 5/5 |
+   | O-F | check_aa | 47/47 |
+   | O-F | check_ca | 37/37 |
+   | O-F | check_rp | 99/99 |
+   | O-F | check_pv | 38/38 |
+   | O-C | fw04_check | 22/0 |
+   | O-C | RRM run_standing_check | 19/0 |
+   | O-C | cir_check, dos_check (with and without --outcomes), top_check | exit codes as in O-C.md's closeout table |
+   | C1 | DEL-09-06 W14 rehearsal | 44/0 |
+   | C2 | GUIDE pins.py check mode | 25/25 |
+
+   If a command's location is unclear, record that rather than guessing. Use scratch output directories outside the repository, under $TMPDIR. Never write into the worktree.
+
+   Also rerun `shasum -c _DAG/DAG-004/SOURCE_MANIFEST.sha256` from projects/chirality-app-v4/execution. Expected: 128/130, with the 2 failures in DEL-01-03.
+7. **The owner-facing records are truthful.** Check RECEIPT.md's Tranche 2 section, POSITION_60/POSITION_STATEMENT.md, and R23-54/R23-55:
+   - every owner quote is exact against OWNER_DECISIONS_2.md and the pass-3 OWNER_DECISIONS.md (L-7);
+   - nothing overclaims evidence (no built, qualified or observed product claim);
+   - the statement's sorting of gaps into design agents / owner / outside parties matches the inventory's cited sources, and nothing reserved to the person is put in the agents' list, or the reverse;
+   - "Owner" is used only for the person in owner-facing text.
+8. **CI.** Find the repository's CI workflows (.github/workflows) that trigger on these paths. Run their local equivalents where cheap, or state what they would run.
+
+## Output
+Write exactly one file: RUN/reviews/P2_PREMERGE.md. Content:
+- the candidate commit;
+- what you checked and how;
+- findings with severity (BLOCKING / MAJOR / MINOR / NOTE), each with its evidence and consequence;
+- a verdict, MERGE or HOLD.
+
+Give your model identity. Write nothing else. Make no git writes and use no network, except read-only git.
+
+Return a short summary: verdict, counts by severity, each BLOCKING or MAJOR in one line, and any prototype count that differed.
+```

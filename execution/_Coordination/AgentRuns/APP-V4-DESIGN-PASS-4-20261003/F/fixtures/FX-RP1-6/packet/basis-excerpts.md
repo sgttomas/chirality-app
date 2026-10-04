@@ -82,7 +82,7 @@ component checks do not stand in for the applicable connected witnesses.
 - **AX-001** — The two replacement obligations are preserved independently. A packet may accurately report partial or adverse evidence, but cannot claim replacement qualification until both applicable witnesses hold; even then the actual owner act remains separate. Setup/decomposition acceptance, contract validation and ordinary Git integration grant no replacement, product release or professional reliance. [S1–S5, S10]
 ```
 
-## projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md, lines 391-408 (sha256 f0055836aa961a5751a602d4ac8c15fa65a31bd7a0f0ff4783db2a964b373bc0)
+## projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md, lines 391-408 (sha256 21b2ccfa0f63d61671eddcebe5c2a41dccd2fc5f901e529808605bd017b3fc11)
 
 ```text
 - **R23-32 PKG-11 and DEL-09-12 (S2-F).** No item is a question for the
@@ -105,7 +105,7 @@ component checks do not stand in for the applicable connected witnesses.
      changed.
 ```
 
-## projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md, lines 617-632 (sha256 f0055836aa961a5751a602d4ac8c15fa65a31bd7a0f0ff4783db2a964b373bc0)
+## projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md, lines 617-632 (sha256 21b2ccfa0f63d61671eddcebe5c2a41dccd2fc5f901e529808605bd017b3fc11)
 
 ```text
 - **R23-43 When the replacement packet may be put to the owner (RV3
