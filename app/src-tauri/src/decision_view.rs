@@ -4,6 +4,9 @@
 //! behaviour. A port of the Pass 4 prototype `E/decision_view.py`. It reads the RS
 //! log and the package files the records cite; it writes nothing (DV-9).
 
+#[path = "record_relations.rs"]
+pub mod record_relations;
+
 use crate::act_policy::ContentIdentity;
 use crate::records;
 use crate::standing::{compare, CurrentContent, Lapse};
@@ -229,6 +232,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         entries.extend(read);
         limits.extend(found_limits);
     }
+    let record_corrections = record_relations::project_from_read_claims(&source_claims, &complete_logs);
     let mut grouped: HashMap<String, Vec<&Value>> = HashMap::new();
     for e in &entries {
         if let Some(id) = e["recordId"].as_str() {
@@ -882,5 +886,5 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             }
         }
     }
-    json!({"view": "decision packages (DEL-06-02; derived, not authority)", "rows": rows, "limits": limits, "unresolvedRecords": entries.iter().filter(|e| duplicates.contains(e["recordId"].as_str().unwrap_or("")) || invalid_corrections.contains(e["recordId"].as_str().unwrap_or(""))).collect::<Vec<_>>()})
+    json!({"view": "decision packages (DEL-06-02; derived, not authority)", "rows": rows, "recordCorrections":record_corrections, "limits": limits, "unresolvedRecords": entries.iter().filter(|e| duplicates.contains(e["recordId"].as_str().unwrap_or("")) || invalid_corrections.contains(e["recordId"].as_str().unwrap_or(""))).collect::<Vec<_>>()})
 }
