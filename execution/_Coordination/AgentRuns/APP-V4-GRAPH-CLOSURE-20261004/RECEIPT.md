@@ -72,8 +72,9 @@ Owner acts, with their exact words and custody:
 
 ## Limits
 
-- **Merge hold.** The owner placed it on 2026-10-04, and these commits are
-  local and unpushed. No PR has been opened or merged.
+- **Merge hold.** The owner placed it on 2026-10-04 and lifted it the same
+  day ("You are allowed to merge your PRs again."). While it stood, these
+  commits stayed local and no PR was opened.
 - **Graph status.** The SCCs are still `SCC_UNRESOLVED` in DAG-004. They are
   treated by grouping for development, which is not a merge ruling.
 - **Rewordings not applied.** The case analyses' proposed rewordings are

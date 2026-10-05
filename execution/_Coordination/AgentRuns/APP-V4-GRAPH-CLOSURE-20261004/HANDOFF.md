@@ -9,9 +9,9 @@ to.
 Use `projects/chirality-app-v4/init/dev-loop-init-prompt.md`. A suggested
 steer:
 
-> Steer (this run): Group A (runtime and contract core) development loop, starting from the walking skeleton in `app/`. First: resolve the nine contract issues in `app/CONTRACT_ISSUES.md` through change control with the affected deliverables' design agents; then fan out within group A. The owner's merge hold of 2026-10-04 still applies unless lifted: commit locally, do not merge.
+> Steer (this run): Group A (runtime and contract core) development loop, starting from the walking skeleton in `app/`. First: resolve the nine contract issues in `app/CONTRACT_ISSUES.md` through change control with the affected deliverables' design agents; then fan out within group A.
 
-Change or drop the last sentence once the hold is lifted. Groups B and C can
+The owner's merge hold of 2026-10-04 was lifted the same day. Groups B and C can
 start their own loops in parallel against group A's agreed contracts.
 
 ## Where things are

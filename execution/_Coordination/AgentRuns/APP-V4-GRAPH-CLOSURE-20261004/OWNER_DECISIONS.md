@@ -200,3 +200,12 @@ The owner replied:
 commits stay local, each until the owner says to resume. This hold takes
 precedence over the standing Git authorization (Root AGENTS.md: "Explicit
 holds and later owner directions take precedence").
+
+## Merge hold lifted (owner, exact, 2026-10-04)
+
+> You are allowed to merge your PRs again.
+
+**Effect.** The hold above ends. The standing Git authorization applies
+again: push, open the PR, and merge once required CI passes and the
+independent pre-merge review of the actual candidate has no unresolved
+blocking finding.
