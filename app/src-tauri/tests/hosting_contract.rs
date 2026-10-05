@@ -83,8 +83,126 @@ fn identity_separates_instances_homes_and_spawns_and_frames_stay_native() {
     let g3 = first.start(&other_home, "test").unwrap()["generation"].clone();
     assert_eq!(g1["appSession"], g3["appSession"]);
     assert_ne!(g1["home"], g3["home"]);
-    assert_eq!(g3["spawnCounter"], 2);
+    // H5 scopes the counter to session/home; distinct homes need distinct full G.
+    assert_ne!(g1, g3);
+    assert_ne!(g2, g3);
     first.stop("test", "done").unwrap();
+}
+
+// Exercise real scoped admission and exported frame attribution using the owned
+// supplier double. No synthetic generation is installed in production state.
+fn assert_current_generation_rejects_stale_scope(host: &Host, current: &serde_json::Value, stale: &serde_json::Value) {
+    let matching = host.observe(current, 0);
+    assert_eq!(matching["generation"], *current);
+    assert_eq!(matching["gap"], false);
+    let frames = matching["frames"].as_array().unwrap();
+    assert!(!frames.is_empty());
+    assert!(frames.iter().all(|entry| entry["generation"] == *current));
+    assert!(frames.iter().any(|entry| entry["frame"] == json!({"method":"test/early","params":{"native":true},"emittedAtMs":1})));
+    let stale_observation = host.observe(stale, 0);
+    assert_eq!(stale_observation["gap"], true);
+    assert_eq!(stale_observation["generation"], *current);
+    assert!(stale_observation["frames"].as_array().unwrap().iter().all(|entry| entry["generation"] == *current));
+    let requests = host.client_requests().len();
+    let frames = host.journal().len();
+    assert!(host.thread_start_with_guidance_dispatch(stale, ".", "configured-model", "configured-provider", "test guidance").is_err());
+    assert!(host.stop_scoped(stale, "test", "codex-stop").is_err());
+    assert_eq!(host.client_requests().len(), requests);
+    assert_eq!(host.journal().len(), frames);
+    assert_eq!(host.state(), "ready");
+    assert_eq!(host.snapshot()["generation"], *current);
+}
+
+#[test]
+fn generation_is_unique_per_session_home_and_advances_through_real_app_custody() {
+    let root = ScratchDirectory::new("hostgenerationcustody");
+    let cfg = config(&root);
+    let mut other_home = cfg.clone();
+    other_home.codex_home = root.join("other-home");
+    std::fs::create_dir(&other_home.codex_home).unwrap();
+    let original = Arc::new(Host::new());
+    let g1 = original.start(&cfg, "test").unwrap()["generation"].clone();
+    let custody = original.app_runtime_custody().unwrap();
+    assert!(Arc::ptr_eq(&custody, &original.app_runtime_custody().unwrap()));
+    original.stop_scoped(&g1, "test", "codex-stop").unwrap();
+
+    // A restart advances only the actual same session/home allocator.
+    let g2 = original.start(&cfg, "test").unwrap()["generation"].clone();
+    assert_eq!(g2["appSession"], g1["appSession"]);
+    assert_eq!(g2["home"], g1["home"]);
+    assert_eq!(g2["spawnCounter"].as_u64().unwrap(), g1["spawnCounter"].as_u64().unwrap() + 1);
+    assert_current_generation_rejects_stale_scope(&original, &g2, &g1);
+    original.stop_scoped(&g2, "test", "codex-stop").unwrap();
+
+    // Another home has an independent counter, under the same genuine session.
+    let g3 = original.start(&other_home, "test").unwrap()["generation"].clone();
+    assert_eq!(g3["appSession"], g1["appSession"]);
+    assert_ne!(g3["home"], g1["home"]);
+    assert_current_generation_rejects_stale_scope(&original, &g3, &g2);
+    original.stop_scoped(&g3, "test", "codex-stop").unwrap();
+    let g4 = original.start(&cfg, "test").unwrap()["generation"].clone();
+    assert_eq!(g4["appSession"], g2["appSession"]);
+    assert_eq!(g4["home"], g2["home"]);
+    assert_eq!(g4["spawnCounter"].as_u64().unwrap(), g2["spawnCounter"].as_u64().unwrap() + 1);
+    assert_current_generation_rejects_stale_scope(&original, &g4, &g3);
+    original.stop_scoped(&g4, "test", "codex-stop").unwrap();
+    drop(original);
+
+    // Recreate both Host sources using the actual App capability, not JSON.
+    let recreated = Arc::new(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
+    let independent_home = Arc::new(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
+    let g5 = recreated.start(&cfg, "test").unwrap()["generation"].clone();
+    let g6 = independent_home.start(&other_home, "test").unwrap()["generation"].clone();
+    assert_eq!(g5["appSession"], g4["appSession"]);
+    assert_eq!(g5["home"], g4["home"]);
+    assert_eq!(g5["spawnCounter"].as_u64().unwrap(), g4["spawnCounter"].as_u64().unwrap() + 1);
+    assert_eq!(g6["appSession"], g3["appSession"]);
+    assert_eq!(g6["home"], g3["home"]);
+    assert_eq!(g6["spawnCounter"].as_u64().unwrap(), g3["spawnCounter"].as_u64().unwrap() + 1);
+    assert_current_generation_rejects_stale_scope(&recreated, &g5, &g4);
+    assert_current_generation_rejects_stale_scope(&independent_home, &g6, &g5);
+    assert_current_generation_rejects_stale_scope(&recreated, &g5, &g6);
+
+    // Same stable home in an independent App session cannot alias prior G.
+    let fresh = Arc::new(Host::new());
+    let g7 = fresh.start(&cfg, "test").unwrap()["generation"].clone();
+    assert_ne!(g7["appSession"], g5["appSession"]);
+    assert_eq!(g7["home"], g5["home"]);
+    assert_eq!(g7["spawnCounter"], g1["spawnCounter"]);
+    assert_current_generation_rejects_stale_scope(&fresh, &g7, &g1);
+    assert_current_generation_rejects_stale_scope(&recreated, &g5, &g7);
+
+    // Equal native RPC labels stay bound to their actual source/full G.
+    let mut receipts = Vec::new();
+    for (host, generation) in [(&recreated, &g5), (&independent_home, &g6), (&fresh, &g7)] {
+        let response = host.request("test/source", json!({}), json!({"kind":"person-directed"})).unwrap();
+        let receipt = host.source_request(generation, &response["id"]).unwrap();
+        assert_eq!(receipt.generation(), generation);
+        assert_eq!(host.source_request_status(&receipt).unwrap()["response"], response);
+        receipts.push(receipt);
+    }
+    assert_eq!(receipts[0].request_id(), receipts[1].request_id());
+    assert_eq!(receipts[0].request_id(), receipts[2].request_id());
+    for (index, (host, generation)) in [(&recreated, &g5), (&independent_home, &g6), (&fresh, &g7)].iter().enumerate() {
+        for (other_index, receipt) in receipts.iter().enumerate() {
+            if index != other_index {
+                assert!(host.source_request_status(receipt).is_err());
+                assert!(host.source_request(receipt.generation(), receipt.request_id()).is_err());
+            }
+        }
+        assert!(host.observe(generation, 0)["frames"].as_array().unwrap().iter().all(|entry| entry["generation"] == **generation));
+    }
+    let generations = [&g1, &g2, &g3, &g4, &g5, &g6, &g7];
+    for (index, generation) in generations.iter().enumerate() {
+        assert_eq!(generation.as_object().unwrap().len(), 3);
+        assert!(!generation["appSession"].as_str().unwrap().is_empty());
+        assert!(!generation["home"].as_str().unwrap().is_empty());
+        assert!(generation["spawnCounter"].as_u64().unwrap() > 0);
+        assert!(generations[index + 1..].iter().all(|other| generation != other));
+    }
+    recreated.stop_scoped(&g5, "test", "codex-stop").unwrap();
+    independent_home.stop_scoped(&g6, "test", "codex-stop").unwrap();
+    fresh.stop_scoped(&g7, "test", "codex-stop").unwrap();
 }
 
 #[test]

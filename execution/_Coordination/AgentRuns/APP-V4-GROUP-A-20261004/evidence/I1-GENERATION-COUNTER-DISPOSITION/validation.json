@@ -1,0 +1,28 @@
+{
+  "actor": "/root/group_a_execution/generation_counter_disposition",
+  "command": "CHIRALITY_SKIP_CODEX=1 CARGO_HOME=/tmp/chirality-app-v4-group-a-cargo-home cargo test --offline --locked --test hosting_contract",
+  "cwd": "projects/chirality-app-v4/app/src-tauri",
+  "manager_grant": "explicit exclusive Cargo grant on stationary product sources after source disposition; lane released before reporting polish",
+  "exit_code": 0,
+  "compile_seconds": 17.85,
+  "run_seconds": 1.33,
+  "passed": 6,
+  "failed": 0,
+  "first_attempt": true,
+  "source_unchanged": [
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "6c48be0e0fdd32a8446095d4681cc11ff5e756ac8cc9d51df1b460ef0b51c82c"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/recovery.rs",
+      "sha256": "f0fff309d2f8eec23046b5349e4969308ef26319a4e5b6eedf46b3c4da50bc31"
+    }
+  ],
+  "test_sha256": "b01c4add526a68fd550c149978bd60484b27bb70ee20b12ddb143d87dd69ca21",
+  "log_sha256": "729b46c24bdf2e77093ad4a8c832e463aae9d2191c9035e1f42d5a38d61797d6",
+  "original_preservation": "Reconstruction removes new helper/test and restores only g3 expected2 assertion; all remaining original c47 bytes equal after trailing whitespace trim. No original unrelated assertion changed.",
+  "original_failure_unchanged": true,
+  "qualification": "Owned fake supplier mechanical check only; no native supplier/auth/model/UI qualification. Independent review remains parent-owned.",
+  "helper_cleanup": "Actual scoped Stop ran for every started source; ScratchDirectory drops emitted no cleanup failure. Targeted read-only pgrep attempted afterward but exit3/sysmond unavailable; no independent process census claim."
+}

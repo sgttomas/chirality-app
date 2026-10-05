@@ -72,3 +72,14 @@ Refreshed direct reading fingerprints:
 ## SEAL-2 explicit deferral — 2026-10-05
 
 HELP_HUMAN `/root` asked the concrete existing SEAL-2 architecture/staged A-code → B-signed-build → A-native-proof → B qualification question in the active human chat. Actual direct owner answer, relayed with active-chat custody: **“Keep SEAL-2 deferred; continue other work”**. SEAL-2 is now expressly deferred, not an unanswered question or scope removal. No seal/schema/keychain/signing adoption is authorized by this act. Trustworthy restart replay remains unfinished with its recorded cold-unverified limitation; other authorized Group A work proceeds. CI bootstrap exception and exact unsigned UI launch still have no owner answer.
+
+## Coordinated receiving entry after main integration — 2026-10-05
+
+HELP_HUMAN normally merged main `0d151c64692ec2f213afc8e798d50752f28947c4` into candidate `c47d63c5af4f74778c9c70afeeed85d75f733e26`; all App code/Design bytes remain equal to reviewed `5d836d0b29`. WORKING_ITEMS read the three merged App v4 notices and, at this coordinated entry boundary, read/adopted the actual updated LOOP_INIT and selected bundled graph workflow. The LOOP reading decision now stays with the agent (“If you are unsure whether a section matters, read it”); method wording now recognizes binding loops and explicitly includes App v4 in the existing receipt convention. No change to method, template, scope, acceptance or completed product warrants follows.
+
+Receiving disposition follows the latest pins notice: **leave the seven instruction/policy-standing consultation hashes unchanged**. They preserve actual historical partial readings and candidate provenance; no product instructions or policy basis were re-authored from changed material. No notice was duplicated and no silent re-pin occurred. AUM headings and README current editions were reread; existing full Field Book reading remains at the unchanged source fingerprint. Actual direct loaded fingerprints at this entry:
+- `projects/chirality-app-v4/loop/LOOP_INIT.md`: `c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd`
+- `workflows/construct-local-work-graph/WORKFLOW.md`: `aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6`
+- `docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md`: `2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7`
+- `docs/alignment-manual/README.md`: `5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d`
+- `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md`: `02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3`

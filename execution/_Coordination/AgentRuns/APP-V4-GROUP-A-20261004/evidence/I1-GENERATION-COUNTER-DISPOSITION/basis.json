@@ -1,0 +1,84 @@
+{
+  "task": "/root/group_a_execution/generation_counter_disposition",
+  "parent": "/root/group_a_execution",
+  "mechanism": "delegated-harness-native descendant; replacement TASK, no historical identity",
+  "source_basis": [
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "origin": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "origin": ".agents/skills/software-defect-diagnosis/SKILL.md",
+      "sha256": "7e423dfd24132c33d3aa8fe6994bf17a1def966c396723f6bd72ac8d2442112b"
+    },
+    {
+      "origin": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "origin": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md",
+      "sha256": "8c97696d70d631f4d095bc612ebad0ef6eba7ee5702cf61a9f0be13ca6ad3e5f"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "6c48be0e0fdd32a8446095d4681cc11ff5e756ac8cc9d51df1b460ef0b51c82c"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/recovery.rs",
+      "sha256": "f0fff309d2f8eec23046b5349e4969308ef26319a4e5b6eedf46b3c4da50bc31"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/tests/hosting_contract.rs",
+      "sha256": "b01c4add526a68fd550c149978bd60484b27bb70ee20b12ddb143d87dd69ca21"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
+      "sha256": "9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/EXECUTION_AND_RECOVERY.md",
+      "sha256": "e78b9ead452b0a1adb20cf07493a1eccbd2ee651e68d4f75772c440a6a228056"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/I1-SHARED-APP-CUSTODY.md",
+      "sha256": "31af9afa1efa98b582970843887964d7e21a84d417dc19fb95a3c69bf98408cf"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-REC-GEN.md",
+      "sha256": "56964ea266cd6ebe5d0285fb69915f28337e67a94ac8f2d108a33bb0ec0b8f00"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V1-I1-SHARED-APP-CUSTODY-R1.md",
+      "sha256": "85c50659c92af30ce78d631e39dc668ce0fb74b9041d941b0536759237d6dca8"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-REC-OAUTH-CONTROL-CUSTODY.md",
+      "sha256": "690accb9e829f4226724bee797602bc25f8cb9320afc3942f8b6517f421ee6f0"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/validation/ACCESS_ARCHIVE_c47d63c5_FAILED.json",
+      "sha256": "ee1633299bc495803ede54ca4bb85c4cb93ac8b1575901d917c7b739270c5164"
+    }
+  ],
+  "original_candidate": "c47d63c5af4f74778c9c70afeeed85d75f733e26",
+  "original_test_source": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-candidate-fxu8mnlu/projects/chirality-app-v4/app/src-tauri/tests/hosting_contract.rs",
+  "original_test_sha256": "ffb1aeefb0b7336a556059f21e2bf1ab4155d6f425d45efe7aaf6a66ac66ae7e",
+  "original_failure_record_sha256": "ee1633299bc495803ede54ca4bb85c4cb93ac8b1575901d917c7b739270c5164",
+  "cargo": "not run; awaiting manager lane"
+}
