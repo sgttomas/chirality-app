@@ -6,8 +6,9 @@
 //! with `mktemp -d` below `std::env::temp_dir()`; never a real Codex home; no sign-in;
 //! no credential. The scratch home's config.toml stands in for the person's own
 //! configuration: plugins off, analytics off, and a model provider on 127.0.0.1
-//! port 9 where no server runs, so Codex makes no outside connection (see
-//! EVIDENCE.md, observation N-1). No model turn is started.
+//! port 9 where no server runs. This configures the model target; it does not
+//! enforce network isolation. Actual sampled socket observations are described
+//! in EVIDENCE.md, observation N-1. No model turn is started.
 
 mod common;
 use common::{evidence_output, ScratchDirectory};
