@@ -16,6 +16,7 @@ pub mod external_observation;
 pub mod external_trace;
 pub mod trace_receiving;
 pub mod hosting;
+pub mod home_resources;
 pub mod native_items;
 pub mod native_history;
 pub mod role_lifecycle;
@@ -40,49 +41,48 @@ use tauri::{Manager, State};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 pub struct AppState {
-    host: Arc<Host>,
-    host_config: Result<HostConfig, String>,
     workspace: Option<PathBuf>,
     act: Mutex<Option<ActControl>>,
     decision_writer_status: Mutex<Value>,
     person_name: Mutex<Option<String>>,
-    runtime: Mutex<runtime_session::RuntimeSession>,
-    history: Mutex<runtime_session::HistorySession>,
-    access_selection: Mutex<Option<access::ConversationSelection>>,
     instructions_root: Mutex<Result<PathBuf, String>>,
     app_user_data_root: Mutex<Result<PathBuf, String>>,
-    recovery_startup: Arc<Mutex<runtime_session::RecoveryStartup>>,
-    role_supply_status: Mutex<Value>,
     external_observation: Mutex<runtime_session::ExternalObservationSession>,
     trace_selection: Mutex<runtime_session::TraceSelectionSession>,
     attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
-    attachment_custody: Mutex<Result<Arc<hosting::attachment_custody::AttachmentCustody>,String>>,
     project_context: recovery::ExplicitAppProjectContext,
     project_context_limit: Option<String>,
-    thread_home_kinds: Mutex<std::collections::HashMap<String,&'static str>>,
+    homes: Mutex<runtime_session::HomeRouter>,
+    home_bootstrap: Mutex<Result<Arc<runtime_session::HomeBootstrapSet>,String>>,
+    key_setup: Mutex<()>,
+    root_home_inputs: Value,
+}
+
+impl AppState {
+    fn validate_home_source(&self,home:&runtime_session::HomeSession)->Result<(),String>{
+        match &*self.home_bootstrap.lock().unwrap(){
+            Ok(set)=>set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?),
+            Err(_) if home.class()==home_resources::HomeClass::Account=>Ok(()),
+            Err(error)=>Err(error.clone()),
+        }
+    }
 }
 
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
-fn probe_home() -> PathBuf {
-    let n = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let p = std::env::temp_dir().join(format!("cxp.{}.{}", std::process::id(), n));
-    let _ = std::fs::create_dir_all(&p);
-    p
+fn probe_home() -> Result<PathBuf,String> {
+    runtime_session::allocate_fresh_probe(&std::env::temp_dir())
 }
 
 /// Configuration comes only from the environment; no path is built in (owner rule).
 pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    let bin = std::env::var("CHIRALITY_CODEX_BIN").map_err(|_| {
+    let bin = std::env::var_os("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
     })?;
-    let home = std::env::var("CHIRALITY_CODEX_HOME").map_err(|_| {
+    let home = std::env::var_os("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
     })?;
     let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
-    let mut cfg = HostConfig::new(bin.into(), home.into(), probe_home(), cwd);
+    let mut cfg = HostConfig::new(bin.into(), home.into(), probe_home()?, cwd);
     cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();
     cfg.allow_unverified_dev = std::env::var("CHIRALITY_ALLOW_UNVERIFIED")
         .map(|v| v == "1")
@@ -92,28 +92,28 @@ pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, S
 
 #[tauri::command]
 fn host_status(state: State<'_, AppState>) -> Value {
-    let mut runtime = state.runtime.lock().unwrap();
+    let home = state.homes.lock().unwrap().active();
+    let mut runtime = home.runtime.lock().unwrap();
     let (generation, position) = runtime.cursor();
-    let observation = state.host.observe(generation, position);
+    let observation = home.host.observe(generation, position);
     let received = runtime.receive(&observation);
     let mut s = observation["snapshot"].clone();
     for (key, value) in received.as_object().unwrap() {
         s[key] = value.clone();
     }
-    s["accessSelection"] = state
-        .access_selection
+    s["accessSelection"] = home.access_selection
         .lock()
         .unwrap()
         .as_ref()
         .map(access::ConversationSelection::snapshot)
         .map_or(Value::Null, |v| v);
-    s["recoveryInitialization"] = state.recovery_startup.lock().unwrap().snapshot();
-    if let Err(e) = &state.host_config {
+    s["recoveryInitialization"] = home.recovery_startup.lock().unwrap().snapshot();
+    if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }
-    s["roleSupply"] = state.role_supply_status.lock().unwrap().clone();
-    let mut history = state.history.lock().unwrap();
-    history.reconcile(&state.host);
+    s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
+    let mut history = home.history.lock().unwrap();
+    history.reconcile(&home.host);
     let root = state.instructions_root.lock().unwrap().clone();
     s["nativeHistory"] = history.snapshot(root.as_deref().ok());
     s["roleSupply"]["originalStartReceipts"] = s["nativeHistory"]["startReceipts"].clone();
@@ -133,14 +133,18 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["steeringTargets"] = json!(targets);
     s["externalObservation"] = state.external_observation.lock().unwrap().snapshot();
     s["traceReceiving"] = state.trace_selection.lock().unwrap().snapshot();
-    let custody = state.attachment_custody.lock().unwrap().clone();
+    let custody = home.attachment_custody.lock().unwrap().clone();
     let mut selections = state.attachment_selection.lock().unwrap();
-    if let (Ok(selection),Ok(custody)) = (selections.as_mut(),custody.as_ref()) { selection.refresh_submissions(&state.host,custody); }
+    if let (Ok(selection),Ok(custody)) = (selections.as_mut(),custody.as_ref()) { selection.refresh_submissions(&home.host,custody); }
     s["attachmentSelections"] = match selections.as_ref() {
         Ok(selection) => selection.snapshot(),
         Err(error) => json!({"state":"unavailable","reason":error,"submissionStanding":"nothing selected/sent; plain text controls remain independent"}),
     };
     s["attachmentCustody"] = match custody {Ok(custody)=>json!({"state":"opened","root":custody.root().display().to_string()}),Err(error)=>json!({"state":"unavailable","error":error,"scope":"attachment-bearing operations only"})};
+    s["homeResources"] = match &*state.home_bootstrap.lock().unwrap() { Ok(set)=>set.inspect(),Err(error)=>json!({"state":"topology/resource descriptors unavailable","limit":error,"existingAccount":"legacy native account path remains available; no shared-source claim"}) };
+    s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
+    s["homeRouting"] = state.homes.lock().unwrap().snapshot();
+    s["homeAccess"] = home.account_view();
     s["currentAppProjectContext"] = state.project_context.view();
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
@@ -149,22 +153,93 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s
 }
 
+fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
+    match mode { "account"=>Ok(home_resources::HomeClass::Account),"api-key"=>Ok(home_resources::HomeClass::ApiKey),_=>Err("Unknown active home class; no default/fallback".into()) }
+}
+#[tauri::command]
+fn select_home(state: State<'_,AppState>, mode_home_class:String)->Result<Value,String>{
+    let class=home_class(&mode_home_class)?;
+    let mut homes=state.homes.lock().unwrap();
+    homes.activate(class)?;
+    Ok(homes.snapshot())
+}
 #[tauri::command(async)]
-fn host_start(state: State<'_, AppState>) -> Result<Value, String> {
-    let cfg = state.host_config.clone()?;
+fn read_home_access(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    if home.class()!=home_class(&mode_home_class)? {return Err("Selected class differs from the actual full-generation source".into());}
+    state.validate_home_source(&home)?;
+    let result=runtime_session::read_native_home_access(&home,&generation);
+    state.validate_home_source(&home)?;
+    result
+}
+
+#[tauri::command(async)]
+fn logout_home(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    if home.class()!=home_class(&mode_home_class)? {return Err("Logout mode differs from its actual source; no other-home fallback".into());}
+    state.validate_home_source(&home)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
+    runtime_session::logout_native_home(&home,bootstrap.as_deref(),&generation,|assessment|app.dialog().message(format!("Log out through Codex for this exact native home?\n{}",serde_json::to_string_pretty(assessment).unwrap_or_else(|_|"Assessment unavailable".into()))).title("Native home logout / remove key").buttons(MessageDialogButtons::OkCancel).blocking_show())
+}
+
+#[tauri::command(async)]
+fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
+    let _operation=state.key_setup.try_lock().map_err(|_|"Another explicit key operation is pending; no duplicate/retry")?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+    bootstrap.key_plan()?;
+    if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
+    bootstrap.prepare_key()?;
+    let existing=state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey);
+    let home={
+        match existing{
+            Ok(home)=>home,
+            Err(_)=>{
+                let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+                let mut config=account.host_config.clone()?;
+                config.codex_home=bootstrap.key_plan()?.native_path().to_path_buf();
+                bootstrap.validate_binding(home_resources::HomeClass::ApiKey,&config)?;
+                let custody=account.host.app_runtime_custody()?;
+                let host=Arc::new(Host::new_with_app_custody(custody)?);
+                let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
+                let data=state.app_user_data_root.lock().unwrap().clone()?;
+                *home.attachment_custody.lock().unwrap()=hosting::attachment_custody::AttachmentCustody::open(&data,&config.codex_home).map(Arc::new);
+                home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
+                bootstrap.validate_binding(home.class(),&config)?;
+                state.homes.lock().unwrap().bind_key(home.clone())?;
+                home
+            }
+        }
+    };
+    let config=home.host_config.clone()?;
+    bootstrap.validate_binding(home.class(),&config)?;
+    if home.host.snapshot()["state"]!="ready" {
+        let data=state.app_user_data_root.lock().unwrap().clone()?;
+        runtime_session::start_with_recovery(&home.host,&home.recovery_startup,Ok(data.as_path()),Some(&config.codex_home),||home.host.start(&config,"the person: add-key"))?;
+    }
+    bootstrap.validate_binding(home.class(),&config)?;
+    let generation=home.host.snapshot()["generation"].clone();
+    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
+}
+
+#[tauri::command(async)]
+fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
+    let cfg = home.host_config.clone()?;
+    state.validate_home_source(&home)?;
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
-        &state.host,
-        &state.recovery_startup,
+        &home.host,
+        &home.recovery_startup,
         root.as_deref().map_err(String::as_str),
         Some(&cfg.codex_home),
-        || state.host.start(&cfg, "the person"),
+        || home.host.start(&cfg, "the person"),
     )
 }
 
 #[tauri::command(async)]
-fn host_stop(state: State<'_, AppState>) -> Result<Value, String> {
-    state.host.stop("the person", "Stop Codex")
+fn host_stop(state: State<'_, AppState>, generation:Value) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    home.host.stop_scoped(&generation,"the person", "Stop Codex")
 }
 
 #[tauri::command(async)]
@@ -173,46 +248,48 @@ fn thread_start(
     model: String,
     model_provider: String,
     entry_id: String,
+    mode_home_class: String,
     role: Option<role_supply::Role>,
 ) -> Result<Value, String> {
-    let cwd = state
-        .host_config
+    let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
+    let cwd = home.host_config
         .as_ref()
-        .map(|c| c.cwd.display().to_string())
-        .map_err(|e| e.clone())?;
-    if !matches!(entry_id.as_str(), "chatgpt-account" | "local-provider") {
-        return Err("entry unavailable: this path owns only the configured account home; API-key home not connected".into());
-    }
+        .map_err(Clone::clone)?
+        .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
+    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::Probe=>false };
+    if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
+    if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
+    else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
     let root = state.instructions_root.lock().unwrap().clone()?;
     let composition = runtime_session::compose_role(&root, role)?;
     composition.verify()?;
-    let generation = state.host.snapshot()["generation"].clone();
+    let generation = home.host.snapshot()["generation"].clone();
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
     selection.choose(&entry_id, &model_provider, &model, false)?;
-    selection.start_params(&generation, "account", false)?;
+    selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
     // Serialize the claim; fallible no-effect preparation completes before
     // either shared state publishes Starting. Transport waits hold no slot lock.
     let supply_ref = {
-        let mut slot = state.access_selection.lock().unwrap();
+        let mut slot = home.access_selection.lock().unwrap();
         let supply_ref = runtime_session::claim_start(&mut slot, selection, || util::opaque_id("sup:"))?;
-        *state.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
         supply_ref
     };
     // Freeze the verified original composition before native dispatch. Actual
     // Host receipt IDs, exact sent bytes and correlated results bind its role.
-    let dispatch = state.host.thread_start_with_guidance_dispatch(&generation, &cwd, &model, &model_provider, &composition.text);
+    let dispatch = home.host.thread_start_with_guidance_dispatch(&generation, &cwd, &model, &model_provider, &composition.text);
     // All post-claim failures flow through finalization; ? cannot strand Starting.
     let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {
-            state.history.lock().unwrap().start_dispatched(receipt.clone(), &composition, &supply_ref)
+            home.history.lock().unwrap().start_dispatched(receipt.clone(), &composition, &supply_ref)
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
-            let waited = state.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
-            state.history.lock().unwrap().reconcile(&state.host);
+            let waited = home.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
+            home.history.lock().unwrap().reconcile(&home.host);
             match waited {
-                Ok(evidence) if state.history.lock().unwrap().start_admitted(&receipt) => Ok(evidence["response"].clone()),
+                Ok(evidence) if home.history.lock().unwrap().start_admitted(&receipt) => Ok(evidence["response"].clone()),
                 Ok(evidence) => Err(format!("Native start remains {} (write {}); no automatic retry", evidence["outcome"], evidence["writeResult"])),
                 Err(error) => Err(error),
             }
@@ -220,12 +297,12 @@ fn thread_start(
         Err(error) => Err(error),
     } })();
     let result = {
-        let mut slot = state.access_selection.lock().unwrap();
+        let mut slot = home.access_selection.lock().unwrap();
         let result = match slot.as_mut() {
-            Some(selection) => runtime_session::finalize_start_attempt(selection, &attempt_id, &generation, &state.host.snapshot()["generation"], result),
+            Some(selection) => runtime_session::finalize_start_attempt(selection, &attempt_id, &generation, &home.host.snapshot()["generation"], result),
             None => Err("Start selection unavailable; native effect remains as observed in retained receipts".into()),
         };
-        let mut status = state.role_supply_status.lock().unwrap();
+        let mut status = home.role_supply_status.lock().unwrap();
         if status["attemptId"] == attempt_id && status["generation"] == generation {
             *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
         }
@@ -233,8 +310,8 @@ fn thread_start(
     };
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
-            if let Some(home) = recovery_home { state.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home); }
-            let _ = state.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
+            if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
+            let _ = home.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
         }
     }
     result
@@ -248,25 +325,27 @@ fn history_action(
     action: String, cursor: Option<String>, direction: String,
     reference: Option<String>,
 ) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
     let query = {
-        let mut history = state.history.lock().unwrap();
-        history.reconcile(&state.host);
-        history.prepare(&state.host.snapshot(), &generation, selection_epoch, &action, cursor.as_deref(), match direction.as_str() { "asc" => native_history::Direction::Asc, "desc" => native_history::Direction::Desc, _ => return Err("Invalid history paging direction".into()) }, reference.as_deref())?
+        let mut history = home.history.lock().unwrap();
+        history.reconcile(&home.host);
+        history.prepare(&home.host.snapshot(), &generation, selection_epoch, &action, cursor.as_deref(), match direction.as_str() { "asc" => native_history::Direction::Asc, "desc" => native_history::Direction::Desc, _ => return Err("Invalid history paging direction".into()) }, reference.as_deref())?
     };
-    let receipt = state.host.history_dispatch(&query)?;
-    state.history.lock().unwrap().dispatched(receipt.clone());
-    let waited = state.host.history_wait(&receipt, std::time::Duration::from_secs(20));
-    let mut history = state.history.lock().unwrap();
-    history.reconcile(&state.host);
+    let receipt = home.host.history_dispatch(&query)?;
+    home.history.lock().unwrap().dispatched(receipt.clone());
+    let waited = home.host.history_wait(&receipt, std::time::Duration::from_secs(20));
+    let mut history = home.history.lock().unwrap();
+    history.reconcile(&home.host);
     waited?;
     let root = state.instructions_root.lock().unwrap().clone();
     Ok(history.snapshot(root.as_deref().ok()))
 }
 #[tauri::command]
 fn history_select(state: State<'_, AppState>, generation: Value, selection_epoch: u64, thread_id: String) -> Result<Value, String> {
-    let mut history = state.history.lock().unwrap();
-    history.reconcile(&state.host);
-    history.select(&state.host.snapshot(), &generation, selection_epoch, &thread_id)?;
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    let mut history = home.history.lock().unwrap();
+    history.reconcile(&home.host);
+    history.select(&home.host.snapshot(), &generation, selection_epoch, &thread_id)?;
     let root = state.instructions_root.lock().unwrap().clone();
     Ok(history.snapshot(root.as_deref().ok()))
 }
@@ -278,12 +357,13 @@ fn conversation_send_text(
     thread_id: String,
     text: String,
 ) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
     runtime_session::send_conversation_text(
-        &state.host.snapshot(),
+        &home.host.snapshot(),
         &generation,
         &thread_id,
         &text,
-        |generation, thread, text| state.host.turn_start_text(generation, thread, text),
+        |generation, thread, text| home.host.turn_start_text(generation, thread, text),
     )
 }
 
@@ -292,9 +372,10 @@ fn conversation_steer_text(
     state: State<'_, AppState>, generation: Value, thread_id: String,
     expected_turn_id: String, text: String,
 ) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
     runtime_session::steer_conversation_turn(
-        &state.host.snapshot(), &generation, &thread_id, &expected_turn_id, &text,
-        |generation, thread, expected, text| state.host.turn_steer_text(generation, thread, expected, text),
+        &home.host.snapshot(), &generation, &thread_id, &expected_turn_id, &text,
+        |generation, thread, expected, text| home.host.turn_steer_text(generation, thread, expected, text),
     )
 }
 
@@ -305,22 +386,24 @@ fn conversation_interrupt(
     thread_id: String,
     turn_id: String,
 ) -> Result<Value, String> {
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
     runtime_session::interrupt_conversation_turn(
-        &state.host.snapshot(),
+        &home.host.snapshot(),
         &generation,
         &thread_id,
         &turn_id,
-        |generation, thread, turn| state.host.turn_interrupt(generation, thread, turn),
+        |generation, thread, turn| home.host.turn_interrupt(generation, thread, turn),
     )
 }
 
 /// Paths come exclusively from native file selection; no path/origin is an IPC argument.
 #[tauri::command(async)]
 fn submit_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_refs:Vec<String>,generation:Value,thread_id:String,expected_turn_id:Option<String>,text:String)->Result<Value,String>{
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
     let context=state.project_context.clone();
-    let home=state.thread_home_kinds.lock().unwrap().get(&serde_json::to_string(&json!([generation,thread_id])).unwrap()).copied();
-    let custody=state.attachment_custody.lock().unwrap().clone()?;
-    runtime_session::submit_selected_attachments(&state.attachment_selection,&state.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,home)
+    let recovery_home=home.thread_home_kinds.lock().unwrap().get(&serde_json::to_string(&json!([generation,thread_id])).unwrap()).copied();
+    let custody=home.attachment_custody.lock().unwrap().clone()?;
+    runtime_session::submit_selected_attachments(&state.attachment_selection,&home.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,recovery_home)
 }
 
 /// The native selector is the only attachment path/body authority. JS carries
@@ -399,17 +482,22 @@ fn select_external_observation(
 /// Public reattachment is read-only and always uses the complete owning tuple.
 #[tauri::command]
 fn host_observe(state: State<'_, AppState>, generation: Value, after: u64) -> Value {
-    state.host.observe(&generation, after)
+    let home = match state.homes.lock().unwrap().for_generation(&generation) { Ok(home)=>home,Err(error)=>return json!({"error":error,"generation":generation,"frames":[]}) };
+    home.host.observe(&generation, after)
 }
 
 /// Attribution consumes the Host's current atomic observation rather than the
 /// last one-second UI poll. The returned context is frozen for confirmation.
 fn current_actor_context(state: &AppState) -> (Value, Value) {
+    let home = state.homes.lock().unwrap().active();
+    current_actor_context_for(state, &home)
+}
+fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSession) -> (Value, Value) {
     let name = state.person_name.lock().unwrap().clone();
     let os = util::os_account();
-    let mut runtime = state.runtime.lock().unwrap();
+    let mut runtime = home.runtime.lock().unwrap();
     let (generation, position) = runtime.cursor();
-    let observation = state.host.observe(generation, position);
+    let observation = home.host.observe(generation, position);
     let context = runtime.actor_context(&observation, name.as_deref(), os.as_deref());
     (observation["snapshot"].clone(), context)
 }
@@ -423,7 +511,8 @@ fn answer_native_request(
     request_id: Value,
     answer: Value,
 ) -> Result<Value, String> {
-    let (snapshot, context) = current_actor_context(&state);
+    let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    let (snapshot, context) = current_actor_context_for(&state, &home);
     let actor = runtime_session::actor_reference(
         context["displayName"].as_str(),
         context["osAccount"].as_str(),
@@ -447,12 +536,12 @@ fn answer_native_request(
     if !confirmed {
         return Ok(json!({"state":"dismissed","replyWriteResult":"not-attempted"}));
     }
-    let (snapshot, current) = current_actor_context(&state);
+    let (snapshot, current) = current_actor_context_for(&state, &home);
     if current != context {
         return Err("Attribution or owning host context changed during confirmation; review and confirm again".into());
     }
     runtime_session::answer_preview(&snapshot, &generation, &request_id, &answer, &actor)?;
-    state.host.answer_server_request(
+    home.host.answer_server_request(
         &generation,
         &request_id,
         &answer,
@@ -546,39 +635,42 @@ fn decide(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let workspace = std::env::var("CHIRALITY_WORKSPACE").ok().map(PathBuf::from);
+    let workspace = std::env::var_os("CHIRALITY_WORKSPACE").map(PathBuf::from);
     let host_config = host_config_from_env(workspace.as_ref());
     let project = runtime_session::freeze_configured_project(workspace.as_deref());
     let project_context_limit = project.as_ref().err().cloned();
     let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
+    let home = Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),host_config.clone()).expect("account entry"));
+    let key_path = std::env::var_os("CHIRALITY_KEY_HOME").map(PathBuf::from);
+    let shared_paths = ["CHIRALITY_SHARED_CONFIG","CHIRALITY_SHARED_AGENTS","CHIRALITY_SHARED_SKILLS"].map(|key|std::env::var_os(key).map(PathBuf::from));
     let state = AppState {
-        host: Arc::new(Host::new()),
-        host_config: host_config.clone(),
         act: Mutex::new(workspace.as_ref().map(|w| ActControl::new(w))),
         decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
         workspace: workspace.clone(),
         person_name: Mutex::new(None),
-        runtime: Mutex::new(runtime_session::RuntimeSession::default()),
-        history: Mutex::new(runtime_session::HistorySession::default()),
-        access_selection: Mutex::new(None),
         instructions_root: Mutex::new(Err("App instruction root not initialized".into())),
         app_user_data_root: Mutex::new(Err("App user-data root not initialized".into())),
-        recovery_startup: Arc::new(Mutex::new(runtime_session::RecoveryStartup::default())),
-        role_supply_status: Mutex::new(json!({"state":"not-supplied","adoption":"unknown"})),
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
-        attachment_custody: Mutex::new(Err("Attachment custody not initialized".into())),
         project_context, project_context_limit,
-        thread_home_kinds: Mutex::new(std::collections::HashMap::new()),
+        homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
+        home_bootstrap: Mutex::new(Err("Explicit Root home descriptors not initialized".into())),
+        key_setup: Mutex::new(()),
+        root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
     };
-    let host = Arc::clone(&state.host);
+    let host = Arc::clone(&home.host);
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(state)
         .setup(move |app| {
             let data = app.path().app_data_dir().map_err(|e| e.to_string());
             let state = app.state::<AppState>();
+            *state.home_bootstrap.lock().unwrap() = (|| {
+                let data=data.as_ref().map_err(Clone::clone)?;
+                let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
+                runtime_session::freeze_root_home_descriptors(data,cfg,key_path.clone(),shared_paths.clone()).map(Arc::new)
+            })();
             // Startup owns this separate writer continuation. Neither decision
             // view reads nor host/status polling invokes the writer.
             if let Some(ws) = state.workspace.as_ref() {
@@ -586,11 +678,11 @@ pub fn run() {
                 *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
-            *state.attachment_custody.lock().unwrap() = data.as_ref().map_err(Clone::clone).and_then(|data| {
-                let cfg=state.host_config.as_ref().map_err(Clone::clone)?;
+            *home.attachment_custody.lock().unwrap() = data.as_ref().map_err(Clone::clone).and_then(|data| {
+                let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
                 hosting::attachment_custody::AttachmentCustody::open(data,&cfg.codex_home).map(Arc::new)
             });
-            state.recovery_startup.lock().unwrap().initialize(
+            home.recovery_startup.lock().unwrap().initialize(
                 &host,
                 data.as_deref().map_err(String::as_str),
                 host_config
@@ -607,7 +699,7 @@ pub fn run() {
             // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
             if let Ok(cfg) = host_config {
                 let h = Arc::clone(&host);
-                let recovery = Arc::clone(&state.recovery_startup);
+                let recovery = Arc::clone(&home.recovery_startup);
                 std::thread::spawn(move || {
                     let _ = runtime_session::start_with_recovery(
                         &h,
@@ -624,6 +716,10 @@ pub fn run() {
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
             host_status,
+            select_home,
+            read_home_access,
+            add_api_key,
+            logout_home,
             host_observe,
             select_external_observation,
             select_trace_record,
@@ -653,7 +749,13 @@ pub fn run() {
             // A confirmed App quit is a deliberate stop (DEF-6 -> DEF-5a).
             if let tauri::RunEvent::Exit = event {
                 let st: State<'_, AppState> = app.state();
-                let _ = st.host.stop("the person", "App quit");
+                let homes=st.homes.lock().unwrap().entries();
+                for home in &homes { let _=home.host.stop("the person","App quit"); }
+                // DEF-5 native process-stop facts remain in each actual Host's
+                // lifecycle. They are not DEF-3 REC stopRequestId references.
+                // Empty here means no owned REC stop references supplied, not
+                // no interrupted work, child stop or successful termination.
+                if let Some(account)=homes.iter().find(|home|home.class()==home_resources::HomeClass::Account){if let Ok(custody)=account.host.app_runtime_custody(){let _=custody.record_app_session_end(&[]);}}
             }
         });
 }

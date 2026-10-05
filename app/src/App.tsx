@@ -256,6 +256,27 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
   </section>;
 }
 
+export function HomeAccessPanel({ routing, access, resources, generation, act }: { routing: Json; access: Json; resources: Json; generation: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const action = async (command: string, args: Record<string, unknown>) => {
+    setBusy(true); setError("");
+    try { await act(command, args); } catch (e) { setError(String(e)); } finally { setBusy(false); }
+  };
+  const entries: Json[] = routing?.entries ?? [];
+  return <section><h2>Separate Codex homes and access</h2>
+    <p>Active home class: {routing?.activeModeHomeClass ?? "unavailable"}. The full native generation identifies its owning source; switching homes does not transfer a conversation.</p>
+    {entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.modeHomeClass} · {entry.state} · {JSON.stringify(entry.generation)} · {entry.configurationLimit}</p><button disabled={busy || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
+    <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("read_home_access", {generation, modeHomeClass:routing.activeModeHomeClass})}>Read native login policy and account</button>
+    <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Log out / remove key with native live-work warning…</button>
+    <button disabled={busy || !resources?.keyConfigured || !!resources?.wholeSetLimit} onClick={() => action("add_api_key", {})}>Add or replace key in native secure field…</button>
+    {error && <p role="alert">{error}</p>}
+    <details open><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
+    <details><summary>Explicit receiving homes and shared-resource observations</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}, null, 2)}</pre></details>
+    <p>Native login acknowledgment reports presence with validity unknown until actual use. Credential fields, browser URLs and device codes are never accepted through this webview. Resource links do not establish native discovery or authorize a future configuration write.</p>
+  </section>;
+}
+
 export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -445,6 +466,8 @@ export function App() {
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
 
+      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} resources={host?.homeResources} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
+
       <section>
         <h2>Codex host</h2>
         {host?.configurationProblem && <p>Configuration: {host.configurationProblem}</p>}
@@ -458,16 +481,16 @@ export function App() {
           <label>Model <input value={model} onChange={(e) => setModel(e.target.value)} /></label>{" "}
           <label>Configured Codex provider <input value={modelProvider} onChange={(e) => setModelProvider(e.target.value)} /></label>
         </p>
-        <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option><option value="chatgpt-account">ChatGPT account in configured account home</option><option value="local-provider">Configured local provider</option></select></label></p>
-        <p>Choose a model, provider and entry for this new conversation. API-key home is not connected.</p>
+        <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{host?.homeRouting?.activeModeHomeClass === "api-key" ? <option value="api-key">API key in separate configured key home</option> : <><option value="chatgpt-account">ChatGPT account in configured account home</option><option value="local-provider">Configured local provider</option></>}</select></label></p>
+        <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
         <p><label>Conversation role <select value={role} onChange={e => setRole(e.target.value)}><option value="">No role selected</option><option value="HELP_HUMAN">HELP_HUMAN</option><option value="HELPS_HUMANS">HELPS_HUMANS</option><option value="WORKING_ITEMS">WORKING_ITEMS</option></select></label></p>
         <p>Role guidance: {JSON.stringify(host?.roleSupply)} {host?.instructionsProblem}</p>
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>
-          <button onClick={() => act("thread_start", { model, modelProvider, entryId, role: role || null })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>{" "}
-          <button onClick={() => act("host_start")}>Start Codex</button>{" "}
-          <button onClick={() => act("host_stop")}>Stop Codex</button>
+          <button onClick={() => act("thread_start", { model, modelProvider, entryId, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: role || null })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>{" "}
+          <button onClick={() => act("host_start", {modeHomeClass:host?.homeRouting?.activeModeHomeClass})}>Start Codex</button>{" "}
+          <button onClick={() => act("host_stop", {generation:host?.generation})}>Stop Codex</button>
         </p>
         <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
 

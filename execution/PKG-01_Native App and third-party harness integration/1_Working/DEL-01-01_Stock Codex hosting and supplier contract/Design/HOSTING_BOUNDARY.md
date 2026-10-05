@@ -735,6 +735,17 @@ Each client request is one record of `hosting.client-request-record.schema.json`
 | read record | The caller; DEL-04-03 (S-7) | The record with initiator and carried-guidance identities (§8.2) | — |
 | (inbound) uncorrelated response | The boundary | Surfaced as `uncorrelated-response` with generation and position | Never dropped and never attributed to a request |
 
+For account login/start/cancel, client-request/public evidence follows ACCESS
+CR-2/§7.1 (CC-ACCESS-OAUTH-CONTROL-CUSTODY): actual native loginId is kept only
+in private pending control under full H5/original typed start RPC/expected mode.
+Public/durable observations retain method/type/scoped request/receipt facts,
+explicit redaction and a non-capability App pointer; they cannot hydrate native
+cancel/presentation or claim original secret/control bytes. This is a privacy
+projection of existing custody, not a new client schema/kind/wire field. The
+source installs pending correlation before reflection; fast matched completion
+must be applied before any obsolete presentation. Same generation/source and
+actual-write/unknown rules remain; no replay or cross-home transfer.
+
 ### 5.1.1 Attachment submission association (CC-H-ATTACHMENT-CORRELATION)
 
 For an attachment-bearing `turn/start` or `turn/steer`, the owning NIR source
@@ -1655,7 +1666,8 @@ A recording tap at the main-process stdio boundary records, for one
 controlled scenario on an identified candidate:
 
 - each frame in both directions, unchanged, with direction, generation,
-  receipt/send position and a relative time offset;
+  receipt/send position and a relative time offset, except explicitly named
+  redaction below (redacted bytes never claim original byte identity);
 - capture metadata: version identity record (§7.1), declared capabilities,
   App candidate identity, scenario name, provider kind, the tool-permission
   and sandbox settings actually in effect (the user's own, H9), date
@@ -1669,7 +1681,19 @@ controlled scenario on an identified candidate:
   `account/login/start` parameters `apiKey`, `accessToken`,
   `secretAccessKey`, `sessionToken` and the response elements `authUrl`,
   `verificationUrl`, `userCode` are replaced by a redaction marker before
-  anything is written; supplier error texts from account methods are
+  anything is written. **CC-ACCESS-OAUTH-CONTROL-CUSTODY (ACCESS CR-2/§7.1):**
+  native loginId in start/cancel/completion/error reflection is also redacted;
+  actual operational ID stays private under full H5/typed start RPC/mode, with
+  only non-capability scoped observation pointers in public/durable evidence.
+  This applies before SourceRequest/public accessor, notification, journal,
+  snapshot/debug/diagnostic reflection, including unexpected echo fields/keys;
+  original secret/control material is explicitly unavailable, never fabricated
+  unchanged. Browser URL is one-shot native system-browser handoff; device
+  values only pending native display. Display dismissal retains live pending
+  operational Cancel control; actual terminal/cancel/source teardown clears
+  it with honest unknown/lifecycle limits. Missing/null completion loginId is
+  unmatched; account/read null alone never proves prior pending cancellation.
+  No new schema/kind or filtering of unrelated notifications. Supplier error texts from account methods are
   redacted as text; the `account/read` `email` is an identity category;
   answer values to questions marked `isSecret` are never kept (§6.1);
   every model request carries the installation identifier and the thread,

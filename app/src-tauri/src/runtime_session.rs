@@ -453,6 +453,12 @@ pub struct RecoveryStartup {
     status: Value,
 }
 impl RecoveryStartup {
+    /// Adopt the genuine shared App source, never reopen another writer/path or
+    /// infer restored native state from pointer metadata.
+    pub fn adopt_shared_source(&mut self,host:&crate::hosting::Host)->Value {
+        if !self.attempted {self.attempted=true;let observed=host.shared_recovery_observation();self.status=json!({"state":if observed["configured"]==true{"shared-source-configured"}else{"shared-source-unavailable"},"sourceObservation":observed,"blocksSupplierStart":false,"standing":"same actual App custody; no new ledger/session or cold live reconstruction"});}
+        self.snapshot()
+    }
     pub fn snapshot(&self) -> Value {
         if self.status.is_null() {
             json!({"state":"not-initialized","blocksSupplierStart":false})
@@ -1378,6 +1384,9 @@ impl AttachmentSelectionSession {
         custody: &std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>,
     ) {
         for submission in &mut self.submissions {
+            let source = submission.prepared.source().generation();
+            let current = host.snapshot()["generation"].clone();
+            if source["home"] != current["home"] || source["appSession"] != current["appSession"] { continue; }
             submission.outcome["resolution"] =
                 host.resolve_attachment_submission(custody, submission.prepared.submission_ref());
         }
@@ -1760,4 +1769,763 @@ pub fn submit_selected_attachments(
         return Err("Attachment submission not currently acknowledged by a matching native source; outcome retained, no automatic resend".into());
     }
     Ok(resolved)
+}
+
+/// Explicit Root-supplied receiving set. Paths retain native bytes; this object
+/// is not a registry, credential authority or native discovery witness.
+pub struct HomeBootstrapSet {
+    account: crate::home_resources::ExistingHomeReference,
+    key: Option<crate::home_resources::OwnedHomePlan>,
+    probe: crate::home_resources::ExistingHomeReference,
+    shared_root_targets: Option<crate::home_resources::SharedResourceTargets>,
+}
+impl HomeBootstrapSet {
+    pub fn new(
+        account: crate::home_resources::ExistingHomeReference,
+        key: Option<crate::home_resources::OwnedHomePlan>,
+        probe: crate::home_resources::ExistingHomeReference,
+    ) -> Result<Self, String> {
+        use crate::home_resources::HomeClass;
+        if account.class() != HomeClass::Account
+            || key
+                .as_ref()
+                .is_some_and(|key| key.class() != HomeClass::ApiKey)
+            || probe.class() != HomeClass::Probe
+        {
+            return Err("Incorrect explicit home mode classes".into());
+        }
+        let set = Self {
+            account,
+            key,
+            probe,
+            shared_root_targets: None,
+        };
+        set.revalidate()?;
+        Ok(set)
+    }
+    pub fn revalidate(&self) -> Result<(), String> {
+        use crate::home_resources::HomeBinding;
+        let mut bindings = vec![
+            HomeBinding::Existing(&self.account),
+            HomeBinding::Existing(&self.probe),
+        ];
+        if let Some(key) = &self.key {
+            bindings.push(HomeBinding::Owned(key));
+        }
+        crate::home_resources::validate_home_bindings(&bindings)
+    }
+    pub fn key_plan(&self) -> Result<&crate::home_resources::OwnedHomePlan, String> {
+        self.key.as_ref().ok_or_else(|| {
+            "Key home/resource descriptors not explicitly configured; no account fallback".into()
+        })
+    }
+    pub fn prepare_key(&self) -> Result<Value, String> {
+        self.revalidate()?;
+        let prepared = self.key_plan()?.prepare();
+        self.revalidate()?;
+        prepared.map(|observation| home_resource_view(&observation))
+    }
+    pub fn inspect(&self) -> Value {
+        let mut rows = vec![];
+        for reference in [&self.account, &self.probe] {
+            rows.push(match reference.inspect() {
+                Ok(observation) => home_resource_view(&observation),
+                Err(error) => json!({"modeHomeClass":reference.class().as_str(),"limit":error}),
+            });
+        }
+        rows.push(match self.key_plan().and_then(|key| key.inspect()) {
+            Ok(observation) => home_resource_view(&observation),
+            Err(error) => json!({"modeHomeClass":"api-key","limit":error}),
+        });
+        json!({"homes":rows,"keyConfigured":self.key.is_some(),"wholeSetLimit":self.revalidate().err(),"existingAccountResources":"setup/link ownership not established by existing reference; no legacy startup veto","standing":"current physical source/resource observations only; no credential or native discovery qualification"})
+    }
+    pub fn validate_binding(
+        &self,
+        class: crate::home_resources::HomeClass,
+        config: &crate::hosting::HostConfig,
+    ) -> Result<(), String> {
+        self.revalidate()?;
+        let path = match class {
+            crate::home_resources::HomeClass::Account => self.account.native_path(),
+            crate::home_resources::HomeClass::ApiKey => self.key_plan()?.native_path(),
+            crate::home_resources::HomeClass::Probe => {
+                return Err("Probe is not an active Host entry".into())
+            }
+        };
+        if config.codex_home != path || config.probe_home != self.probe.native_path() {
+            return Err(
+                "Actual Host home/probe differs from explicit source descriptors; no fallback"
+                    .into(),
+            );
+        }
+        Ok(())
+    }
+}
+fn home_resource_view(observation: &crate::home_resources::HomeObservation) -> Value {
+    json!({"modeHomeClass":observation.class.as_str(),"homeIdentity":observation.opaque_home_id,"nativePath":crate::attachments::native_path_identity(&observation.native_path),"displayPath":observation.display_path(),"resources":observation.resources.iter().map(|resource| json!({"name":resource.name,"destination":crate::attachments::native_path_identity(&resource.destination),"intendedTarget":resource.intended_target.as_ref().map(|path|crate::attachments::native_path_identity(path)),"state":format!("{:?}",resource.state),"limit":resource.limit})).collect::<Vec<_>>(),"limit":"resource relationship is a current observation; resolved config target is not future write authority"})
+}
+
+/// Disposable state for one actual native home. A mode label selects a source;
+/// it never substitutes for the Host's opaque full generation or transfers threads.
+pub struct HomeSession {
+    pub(crate) class: crate::home_resources::HomeClass,
+    pub(crate) host: std::sync::Arc<crate::hosting::Host>,
+    pub(crate) host_config: Result<crate::hosting::HostConfig, String>,
+    pub(crate) runtime: std::sync::Mutex<RuntimeSession>,
+    pub(crate) history: std::sync::Mutex<HistorySession>,
+    pub(crate) access_selection: std::sync::Mutex<Option<crate::access::ConversationSelection>>,
+    pub(crate) recovery_startup: std::sync::Arc<std::sync::Mutex<RecoveryStartup>>,
+    pub(crate) role_supply_status: std::sync::Mutex<Value>,
+    pub(crate) attachment_custody: std::sync::Mutex<
+        Result<std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>, String>,
+    >,
+    pub(crate) thread_home_kinds: std::sync::Mutex<std::collections::HashMap<String, &'static str>>,
+    pub(crate) account_sources: std::sync::Mutex<Vec<crate::hosting::SourceRequest>>,
+}
+impl HomeSession {
+    pub fn new(
+        class: crate::home_resources::HomeClass,
+        host: std::sync::Arc<crate::hosting::Host>,
+        config: Result<crate::hosting::HostConfig, String>,
+    ) -> Result<Self, String> {
+        if class == crate::home_resources::HomeClass::Probe {
+            return Err("Probe is not an active conversation/account entry".into());
+        }
+        Ok(Self {
+            class,
+            host,
+            host_config: config,
+            runtime: std::sync::Mutex::new(RuntimeSession::default()),
+            history: std::sync::Mutex::new(HistorySession::default()),
+            access_selection: std::sync::Mutex::new(None),
+            recovery_startup: std::sync::Arc::new(
+                std::sync::Mutex::new(RecoveryStartup::default()),
+            ),
+            role_supply_status: std::sync::Mutex::new(
+                json!({"state":"not-supplied","adoption":"unknown"}),
+            ),
+            attachment_custody: std::sync::Mutex::new(Err(
+                "Attachment custody not initialized for this home".into(),
+            )),
+            thread_home_kinds: std::sync::Mutex::new(std::collections::HashMap::new()),
+            account_sources: std::sync::Mutex::new(vec![]),
+        })
+    }
+    pub fn source(&self) -> &std::sync::Arc<crate::hosting::Host> {
+        &self.host
+    }
+    pub fn class(&self) -> crate::home_resources::HomeClass {
+        self.class
+    }
+    pub fn account_view(&self) -> Value {
+        let sources = self.account_sources.lock().unwrap();
+        json!({"modeHomeClass":self.class.as_str(),"observations":sources.iter().map(|source|self.host.account_rpc_observation(source).unwrap_or_else(|error|json!({"limit":error,"source":source.evidence()}))).collect::<Vec<_>>(),"limit":"native source facts; credential validity and actor identity are not inferred"})
+    }
+}
+pub struct HomeRouter {
+    account: std::sync::Arc<HomeSession>,
+    key: Option<std::sync::Arc<HomeSession>>,
+    active: crate::home_resources::HomeClass,
+}
+impl HomeRouter {
+    pub fn new(account: std::sync::Arc<HomeSession>) -> Result<Self, String> {
+        if account.class != crate::home_resources::HomeClass::Account {
+            return Err("Primary entry must be the explicit account source".into());
+        }
+        Ok(Self {
+            account,
+            key: None,
+            active: crate::home_resources::HomeClass::Account,
+        })
+    }
+    pub fn active(&self) -> std::sync::Arc<HomeSession> {
+        self.entry(self.active).expect("active entry is retained")
+    }
+    pub fn entry(
+        &self,
+        class: crate::home_resources::HomeClass,
+    ) -> Result<std::sync::Arc<HomeSession>, String> {
+        match class {
+            crate::home_resources::HomeClass::Account => Ok(self.account.clone()),
+            crate::home_resources::HomeClass::ApiKey => self
+                .key
+                .clone()
+                .ok_or_else(|| "Separate key entry is not configured; no account fallback".into()),
+            crate::home_resources::HomeClass::Probe => {
+                Err("Probe is not a conversation entry".into())
+            }
+        }
+    }
+    pub fn activate(&mut self, class: crate::home_resources::HomeClass) -> Result<(), String> {
+        self.entry(class)?;
+        self.active = class;
+        Ok(())
+    }
+    pub fn bind_key(&mut self, key: std::sync::Arc<HomeSession>) -> Result<(), String> {
+        if self.key.is_some() || key.class != crate::home_resources::HomeClass::ApiKey {
+            return Err("Key entry already bound or wrong mode; no source replacement".into());
+        }
+        let account = self.account.host_config.as_ref().map_err(Clone::clone)?;
+        let config = key.host_config.as_ref().map_err(Clone::clone)?;
+        if account.codex_home == config.codex_home {
+            return Err("Account/key native source paths are identical".into());
+        }
+        let original = self.account.host.app_runtime_custody()?;
+        let receiving = key.host.app_runtime_custody()?;
+        if !std::sync::Arc::ptr_eq(&original, &receiving) {
+            return Err("Key source does not share the actual App session/sole writer custody; no source substitution".into());
+        }
+        self.key = Some(key);
+        Ok(())
+    }
+    /// Resolve an actual full tuple, including retained closed generations in its
+    /// owning App session. Stale/closed operational admission remains Host-owned.
+    pub fn for_generation(
+        &self,
+        generation: &Value,
+    ) -> Result<std::sync::Arc<HomeSession>, String> {
+        crate::recovery::generation_ref(generation)?;
+        let matches = self
+            .entries()
+            .into_iter()
+            .filter(|entry| {
+                let current = entry.host.snapshot()["generation"].clone();
+                current["home"] == generation["home"]
+                    && current["appSession"] == generation["appSession"]
+            })
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err(
+                "Full native home/session has no unique owning App source; no active-home fallback"
+                    .into(),
+            );
+        }
+        Ok(matches[0].clone())
+    }
+    pub fn entries(&self) -> Vec<std::sync::Arc<HomeSession>> {
+        let mut entries = vec![self.account.clone()];
+        if let Some(key) = &self.key {
+            entries.push(key.clone());
+        }
+        entries
+    }
+    pub fn snapshot(&self) -> Value {
+        json!({"activeModeHomeClass":self.active.as_str(),"entries":self.entries().iter().map(|entry|json!({"modeHomeClass":entry.class.as_str(),"generation":entry.host.snapshot()["generation"],"state":entry.host.snapshot()["state"],"configurationLimit":entry.host_config.as_ref().err()})).collect::<Vec<_>>(),"limit":"mode selection does not transfer native threads; each source retains its full generation/home"})
+    }
+}
+
+/// Native secure-field delivery only. No renderer argument or replayable value.
+/// Tests do not invoke this platform control; source is not a UI witness.
+pub(crate) fn native_api_key_entry(app: &tauri::AppHandle) -> Result<Option<String>, ()> {
+    #[cfg(target_os = "macos")]
+    {
+        let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+        app.run_on_main_thread(move || {
+            let value = unsafe { mac_secure_entry::show() };
+            let _ = sender.send(value);
+        })
+        .map_err(|_| ())?;
+        receiver.recv().map_err(|_| ())?
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        Err(())
+    }
+}
+#[cfg(target_os = "macos")]
+mod mac_secure_entry {
+    use std::ffi::{c_char, c_void};
+    type Id = *mut c_void;
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct Point {
+        x: f64,
+        y: f64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct Size {
+        width: f64,
+        height: f64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct Rect {
+        origin: Point,
+        size: Size,
+    }
+    #[link(name = "AppKit", kind = "framework")]
+    extern "C" {}
+    #[link(name = "objc")]
+    extern "C" {
+        fn objc_getClass(name: *const c_char) -> Id;
+        fn sel_registerName(name: *const c_char) -> Id;
+        fn objc_msgSend();
+    }
+    unsafe fn selector(name: &'static [u8]) -> Id {
+        sel_registerName(name.as_ptr().cast())
+    }
+    unsafe fn class(name: &'static [u8]) -> Id {
+        objc_getClass(name.as_ptr().cast())
+    }
+    unsafe fn id(receiver: Id, name: &'static [u8]) -> Id {
+        let f: unsafe extern "C" fn(Id, Id) -> Id = std::mem::transmute(objc_msgSend as *const ());
+        f(receiver, selector(name))
+    }
+    unsafe fn object(receiver: Id, name: &'static [u8], value: Id) {
+        let f: unsafe extern "C" fn(Id, Id, Id) = std::mem::transmute(objc_msgSend as *const ());
+        f(receiver, selector(name), value);
+    }
+    unsafe fn string(text: &'static [u8]) -> Id {
+        let f: unsafe extern "C" fn(Id, Id, *const c_char) -> Id =
+            std::mem::transmute(objc_msgSend as *const ());
+        f(
+            class(b"NSString\0"),
+            selector(b"stringWithUTF8String:\0"),
+            text.as_ptr().cast(),
+        )
+    }
+    unsafe fn release(value: Id) {
+        let f: unsafe extern "C" fn(Id, Id) = std::mem::transmute(objc_msgSend as *const ());
+        f(value, selector(b"release\0"));
+    }
+    pub(super) unsafe fn show() -> Result<Option<String>, ()> {
+        let pool = id(class(b"NSAutoreleasePool\0"), b"new\0");
+        let alert = id(class(b"NSAlert\0"), b"new\0");
+        let allocated = id(class(b"NSSecureTextField\0"), b"alloc\0");
+        let initialize: unsafe extern "C" fn(Id, Id, Rect) -> Id =
+            std::mem::transmute(objc_msgSend as *const ());
+        let field = initialize(
+            allocated,
+            selector(b"initWithFrame:\0"),
+            Rect {
+                origin: Point { x: 0., y: 0. },
+                size: Size {
+                    width: 360.,
+                    height: 26.,
+                },
+            },
+        );
+        if pool.is_null() || alert.is_null() || field.is_null() {
+            if !field.is_null() {
+                release(field);
+            }
+            if !alert.is_null() {
+                release(alert);
+            }
+            if !pool.is_null() {
+                release(pool);
+            }
+            return Err(());
+        }
+        object(
+            alert,
+            b"setMessageText:\0",
+            string(b"Add or replace API key through Codex\0"),
+        );
+        object(alert,b"setInformativeText:\0",string(b"The key is delivered once to this separate App key home. Native acknowledgment does not establish validity until actual use.\0"));
+        object(alert, b"setAccessoryView:\0", field);
+        let add: unsafe extern "C" fn(Id, Id, Id) -> Id =
+            std::mem::transmute(objc_msgSend as *const ());
+        add(
+            alert,
+            selector(b"addButtonWithTitle:\0"),
+            string(b"Submit key\0"),
+        );
+        add(
+            alert,
+            selector(b"addButtonWithTitle:\0"),
+            string(b"Cancel\0"),
+        );
+        let modal: unsafe extern "C" fn(Id, Id) -> isize =
+            std::mem::transmute(objc_msgSend as *const ());
+        let accepted = modal(alert, selector(b"runModal\0")) == 1000;
+        let result = if accepted {
+            let value = id(field, b"stringValue\0");
+            let length: unsafe extern "C" fn(Id, Id, usize) -> usize =
+                std::mem::transmute(objc_msgSend as *const ());
+            let n = length(value, selector(b"lengthOfBytesUsingEncoding:\0"), 4);
+            let pointer: unsafe extern "C" fn(Id, Id) -> *const u8 =
+                std::mem::transmute(objc_msgSend as *const ());
+            let bytes = pointer(value, selector(b"UTF8String\0"));
+            if bytes.is_null() || n == 0 {
+                Err(())
+            } else {
+                std::str::from_utf8(std::slice::from_raw_parts(bytes, n))
+                    .map(|text| Some(text.to_owned()))
+                    .map_err(|_| ())
+            }
+        } else {
+            Ok(None)
+        };
+        // Release the secure field before the caller receives its one transient
+        // buffer. Ordinary drop/release is not allocator/OS physical erasure.
+        object(field, b"setStringValue:\0", string(b"\0"));
+        release(field);
+        release(alert);
+        release(pool);
+        result
+    }
+}
+
+/// Explicit native source read; no credential/config filesystem access or automatic refresh.
+pub fn read_native_home_access(home: &HomeSession, generation: &Value) -> Result<Value, String> {
+    for method in ["configRequirements/read", "account/read"] {
+        let source = match method {
+            "configRequirements/read" => home.host.account_requirements_read_scoped(generation)?,
+            _ => home.host.account_read_scoped(generation)?,
+        };
+        home.account_sources.lock().unwrap().push(source.clone());
+        home.host
+            .source_request_wait(&source, std::time::Duration::from_secs(20))?;
+    }
+    Ok(home.account_view())
+}
+
+/// Consumes explicit Root OS paths. Existing account/probe are observations,
+/// never relocated or claimed as newly App-owned plans to fit this constructor.
+pub fn freeze_root_home_descriptors(
+    app_data: &std::path::Path,
+    config: &crate::hosting::HostConfig,
+    key_path: Option<std::path::PathBuf>,
+    targets: [Option<std::path::PathBuf>; 3],
+) -> Result<HomeBootstrapSet, String> {
+    use crate::home_resources::{
+        ExistingHomeReference, HomeClass, OwnedHomePlan, SharedResourceTargets,
+    };
+    let account = ExistingHomeReference::new(config.codex_home.clone(), HomeClass::Account)?;
+    let probe = ExistingHomeReference::new(config.probe_home.clone(), HomeClass::Probe)?;
+    let shared_root_targets=match &targets {
+        [Some(config),Some(agents),Some(skills)]=>Some(SharedResourceTargets{config_toml:config.clone(),global_agents_md:agents.clone(),skills:skills.clone()}),
+        _=>None,
+    };
+    let key = match key_path {
+        None => None,
+        Some(path) => {
+            let [config_toml, global_agents_md, skills] = targets;
+            let shared = SharedResourceTargets {
+                config_toml: config_toml.ok_or("Explicit shared config source not supplied")?,
+                global_agents_md: global_agents_md
+                    .ok_or("Explicit shared global AGENTS source not supplied")?,
+                skills: skills.ok_or("Explicit shared skills source not supplied")?,
+            };
+            Some(OwnedHomePlan::new(
+                app_data.to_path_buf(),
+                path,
+                HomeClass::ApiKey,
+                Some(shared),
+            )?)
+        }
+    };
+    let mut set=HomeBootstrapSet::new(account,key,probe)?;
+    set.shared_root_targets=shared_root_targets;
+    Ok(set)
+}
+
+/// Genuine private native-entry submission; source binding is checked before
+/// opening the field and again before giving its transient buffer to Host.
+pub fn submit_native_home_key<F: FnOnce() -> Result<Option<String>, ()>>(
+    home: &HomeSession,
+    bootstrap: &HomeBootstrapSet,
+    generation: &Value,
+    entry: F,
+) -> Result<Value, String> {
+    if home.class() != crate::home_resources::HomeClass::ApiKey {
+        return Err("Native key entry requires the separate configured key source".into());
+    }
+    let config = home.host_config.as_ref().map_err(Clone::clone)?;
+    bootstrap.validate_binding(home.class(), config)?;
+    let policy = home.host.account_requirements_read_scoped(generation)?;
+    home.account_sources.lock().unwrap().push(policy.clone());
+    home.host
+        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+    let source =
+        home.host
+            .account_login_api_key_from_native_entry(generation, Some(&policy), || {
+                let input = entry()?;
+                if bootstrap.validate_binding(home.class(), config).is_err() {
+                    return Err(());
+                }
+                Ok(input)
+            })?;
+    match source {
+        None => Ok(
+            json!({"state":"native secure entry cancelled; no key RPC or resend","home":home.class().as_str()}),
+        ),
+        Some(source) => {
+            home.account_sources.lock().unwrap().push(source.clone());
+            home.host
+                .source_request_wait(&source, std::time::Duration::from_secs(20))?;
+            Ok(home.account_view())
+        }
+    }
+}
+
+/// Source-created immutable runtime assessment, not a durable record or a
+/// deserializable native authorization. Its comparison excludes clock passage.
+pub struct HomeLogoutAssessment {
+    generation: Value,
+    material: Value,
+    view: Value,
+}
+impl HomeLogoutAssessment {
+    pub fn snapshot(&self) -> Value {
+        self.view.clone()
+    }
+}
+pub fn assess_native_home_work(
+    home: &HomeSession,
+    generation: &Value,
+) -> Result<HomeLogoutAssessment, String> {
+    crate::recovery::generation_ref(generation)?;
+    let mut runtime = home.runtime.lock().unwrap();
+    let (cursor, position) = runtime.cursor();
+    let observation = home.host.observe(cursor, position);
+    let snapshot = &observation["snapshot"];
+    if snapshot["generation"] != *generation || snapshot["state"] != "ready" {
+        return Err("Selected native home/full generation is unavailable for assessment; no window/home fallback".into());
+    }
+    let received = runtime.receive(&observation);
+    drop(runtime);
+    let mut live = vec![];
+    let mut unresolved_turns = vec![];
+    for thread in snapshot["threads"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|thread| thread["generation"] == *generation)
+    {
+        let Some(id) = thread["threadId"].as_str() else {
+            continue;
+        };
+        match observed_steering_target(snapshot,generation,id){
+            Ok(target)=>live.push(json!({"generation":generation,"threadId":id,"turnId":target["turnId"],"status":"inProgress","source":target["source"]})),
+            Err(error)=>if snapshot["conversationTurns"].as_array().into_iter().flatten().any(|turn|turn["generation"]==*generation&&turn["threadId"]==id&&turn["nativeTurn"]["status"]=="inProgress") {unresolved_turns.push(json!({"threadId":id,"limit":error}));},
+        }
+    }
+    for turn in snapshot["conversationTurns"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|turn| {
+            turn["generation"] == *generation && turn["nativeTurn"]["status"] == "inProgress"
+        })
+    {
+        if !live
+            .iter()
+            .any(|row| row["threadId"] == turn["threadId"] && row["turnId"] == turn["turnId"])
+        {
+            unresolved_turns.push(json!({"threadId":turn["threadId"],"turnId":turn["turnId"],"reportedStatus":turn["nativeTurn"]["status"],"terminalEventObserved":turn["terminalEventObserved"],"observationEnded":turn["observationEnded"],"limit":"progress memo lacks current target warrant or is contradictory; activity not established, no ended inference"}));
+        }
+    }
+    let requests=snapshot["serverRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&request["state"]=="outstanding").map(|request|json!({"generation":request["generation"],"requestIdentity":request["requestIdentity"],"method":request["method"],"state":request["state"],"threadId":request["nativeParameters"]["threadId"],"turnId":request["nativeParameters"]["turnId"]})).collect::<Vec<_>>();
+    let native = &received["nativeView"];
+    let valid_view =
+        native["generation"] == *generation && received["nativeViewObservationEnded"] != true;
+    let mut children = vec![];
+    let mut unknown = vec![];
+    if valid_view {
+        for child in native["descendants"].as_array().into_iter().flatten() {
+            let state = child["lastObservedStatus"]["status"].as_str();
+            let row = json!({"generation":native["generation"],"threadId":child["threadId"],"parentThreadId":child["parentThreadId"],"reportedStatus":state,"source":child["statusSource"],"limit":"last native reported activity; no complete process/child census"});
+            if child["observationEnded"] != true && matches!(state, Some("running" | "pendingInit"))
+            {
+                children.push(row);
+            } else {
+                unknown.push(row);
+            }
+        }
+    }
+    let history = home.history.lock().unwrap().snapshot(None);
+    if history["generation"] == *generation {
+        for child in history["selected"]["knownChildren"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if !children
+                .iter()
+                .chain(unknown.iter())
+                .any(|row| row["threadId"] == child["threadId"])
+            {
+                unknown.push(json!({"generation":history["generation"],"threadId":child["threadId"],"parentThreadId":child["parentThreadId"],"source":"selected native stored-history edge","reportedStatus":null,"limit":"history-only relation; current activity unknown"}));
+            }
+        }
+    }
+    // Set ordering only makes material comparison stable; it assigns no
+    // chronology, precedence, winner or authority to an identity.
+    for rows in [
+        &mut live,
+        &mut unresolved_turns,
+        &mut children,
+        &mut unknown,
+    ] {
+        rows.sort_by_key(Value::to_string);
+    }
+    let mut requests = requests;
+    requests.sort_by_key(Value::to_string);
+    let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
+    let namespace_events=snapshot["journal"].as_array().into_iter().flatten().filter(|event|event["generation"]==*generation&&event["frame"]["method"]=="account/updated").map(|event|json!({"generation":event["generation"],"receiptPosition":event["position"],"method":event["frame"]["method"]})).collect::<Vec<_>>();
+    let operations=snapshot["clientRequests"].as_array().into_iter().flatten().filter(|request|request["generation"]==*generation&&matches!(request["method"].as_str(),Some("account/login/start"|"account/login/cancel"|"account/logout"))).map(|request|json!({"requestIdentity":request["requestIdentity"],"method":request["method"],"writeResult":request["writeResult"],"outcome":request["outcome"]})).collect::<Vec<_>>();
+    let latest_read = snapshot["clientRequests"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .rev()
+        .find(|request| request["generation"] == *generation && request["method"] == "account/read")
+        .and_then(|request| {
+            home.host
+                .source_request(generation, &request["requestIdentity"])
+                .ok()
+        })
+        .map(|source| source.evidence());
+    let read_availability = match latest_read.as_ref() {
+        Some(evidence)
+            if evidence["outcome"] == "response-observed-result"
+                && evidence["authResponseShapeValid"] == true =>
+        {
+            "typed native account read observed"
+        }
+        Some(evidence) if evidence["outcome"] == "response-observed-error" => {
+            "native account read error; current account unknown"
+        }
+        Some(_) => "native account read pending/shape unavailable; prior report only",
+        None => "no source-bound account read available",
+    };
+    let current_account=latest_read.as_ref().filter(|evidence|evidence["outcome"]=="response-observed-result"&&evidence["authResponseShapeValid"]==true).map(|evidence|match evidence["response"]["result"].get("account"){
+        None=>json!({"state":"account omitted; unknown/unavailable","nativeType":null}),
+        Some(Value::Null)=>json!({"state":"native null account reported; not pending-login cancellation","nativeType":null}),
+        Some(account) if matches!(account["type"].as_str(),Some("chatgpt"|"apiKey"|"chatgptAuthTokens"))=>json!({"state":"native type reported; identity not established","nativeType":account["type"]}),
+        Some(_)=>json!({"state":"redacted/unavailable account; unknown","nativeType":null}),
+    }).unwrap_or_else(||json!({"state":"current native report unavailable; previous read is only last observed","nativeType":null}));
+    let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceEvents":namespace_events,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
+    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
+    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
+    Ok(HomeLogoutAssessment {
+        generation: generation.clone(),
+        material,
+        view,
+    })
+}
+pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
+    home: &HomeSession,
+    bootstrap: Option<&HomeBootstrapSet>,
+    generation: &Value,
+    confirm: F,
+) -> Result<Value, String> {
+    let config = home.host_config.as_ref().map_err(Clone::clone)?;
+    if let Some(bootstrap) = bootstrap {
+        bootstrap.validate_binding(home.class(), config)?;
+    } else if home.class != crate::home_resources::HomeClass::Account {
+        return Err("Key source physical binding unavailable; no fallback".into());
+    }
+    let frozen = assess_native_home_work(home, generation)?;
+    if !confirm(&frozen.view) {
+        return Ok(
+            json!({"state":"native confirmation cancelled; no logout request","assessment":frozen.view}),
+        );
+    }
+    if let Some(bootstrap) = bootstrap {
+        bootstrap.validate_binding(home.class(), config)?;
+    }
+    let current = assess_native_home_work(home, &frozen.generation)?;
+    if current.material != frozen.material {
+        return Err("Selected source/account or observed work/coverage changed during native confirmation; refresh and confirm again, no logout sent".into());
+    }
+    let source = home.host.account_logout_scoped(&frozen.generation)?;
+    home.account_sources.lock().unwrap().push(source.clone());
+    let waited = home
+        .host
+        .source_request_wait(&source, std::time::Duration::from_secs(20));
+    let evidence = source.evidence();
+    if evidence["authResponseShapeValid"] == true
+        && evidence["outcome"] == "response-observed-result"
+        && evidence["sourceCurrent"] == true
+    {
+        if let Some(selection) = home.access_selection.lock().unwrap().as_mut() {
+            let entry = selection.snapshot()["selection"]["entryId"].clone();
+            let affected = (home.class == crate::home_resources::HomeClass::Account
+                && entry == "chatgpt-account")
+                || (home.class == crate::home_resources::HomeClass::ApiKey && entry == "api-key");
+            if affected && selection.owning_generation() == Some(&frozen.generation) {
+                let _=selection.unavailable("Codex reported logout for this entry; no home transfer or credential-file inspection");
+            }
+        }
+    }
+    // Allowed native read reconciles the report; it is not a retry/removal or a
+    // token-refresh/credential-store inspection, and never uses another home.
+    let after_read = match home.host.account_read_scoped(&frozen.generation) {
+        Ok(read) => {
+            home.account_sources.lock().unwrap().push(read.clone());
+            let wait = home
+                .host
+                .source_request_wait(&read, std::time::Duration::from_secs(20));
+            json!({"observation":home.host.account_rpc_observation(&read).ok(),"waitError":wait.err()})
+        }
+        Err(error) => json!({"state":"same-source account reread unavailable","limit":error}),
+    };
+    Ok(
+        json!({"assessment":frozen.view,"source":home.host.account_rpc_observation(&source)?,"waitError":waited.err(),"accountReadAfterLogout":after_read,"limit":"Native send/acknowledgment/account observation are separate; no credential inspection, turn/child ending, history deletion or automatic resend"}),
+    )
+}
+
+/// Allocate a new probe using the physical OS temp parent and mktemp -d. This
+/// resolves an allocation source, never relocates an existing received home.
+pub fn allocate_fresh_probe(temp_parent: &std::path::Path) -> Result<std::path::PathBuf, String> {
+    let parent = std::fs::canonicalize(temp_parent)
+        .map_err(|_| "OS scratch parent unavailable; no probe default")?;
+    crate::storage::check_path(&parent)?;
+    let before =
+        std::fs::metadata(&parent).map_err(|_| "OS scratch parent metadata unavailable")?;
+    if !before.is_dir() {
+        return Err("OS scratch parent is not a directory".into());
+    }
+    let output = std::process::Command::new("mktemp")
+        .arg("-d")
+        .arg(parent.join("chirality-codex-probe.XXXXXX"))
+        .output()
+        .map_err(|_| "Fresh mktemp probe allocation unavailable")?;
+    if !output.status.success() {
+        return Err("Fresh mktemp probe allocation failed; no fallback".into());
+    }
+    let bytes = output
+        .stdout
+        .strip_suffix(b"\n")
+        .ok_or("mktemp probe result is not newline closed")?;
+    #[cfg(unix)]
+    let path = {
+        use std::os::unix::ffi::OsStringExt;
+        std::path::PathBuf::from(std::ffi::OsString::from_vec(bytes.to_vec()))
+    };
+    #[cfg(not(unix))]
+    let path = std::path::PathBuf::from(
+        std::str::from_utf8(bytes)
+            .map_err(|_| "Probe path cannot be represented losslessly on this platform")?,
+    );
+    if path.parent() != Some(parent.as_path()) {
+        return Err("mktemp result is outside the actual supplied scratch parent".into());
+    }
+    crate::storage::check_path(&path)?;
+    let after =
+        std::fs::metadata(&parent).map_err(|_| "OS scratch parent changed during allocation")?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if before.dev() != after.dev() || before.ino() != after.ino() {
+            return Err(
+                "Actual OS scratch parent changed during allocation; probe binding unavailable"
+                    .into(),
+            );
+        }
+    }
+    if !after.is_dir()
+        || std::fs::canonicalize(&parent)
+            .map_err(|_| "Scratch parent unavailable after allocation")?
+            != parent
+        || !path.is_dir()
+    {
+        return Err("Probe/parent physical binding unavailable after allocation".into());
+    }
+    Ok(path)
 }

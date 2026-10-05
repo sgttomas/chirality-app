@@ -178,9 +178,126 @@ fn owning_lock(path: &Path, create: bool) -> Result<CustodyOwnership, String> {
     reject_hard_alias(&guard.0)?;
     Ok(guard)
 }
+/// Actual Root descriptors only; neither this type nor its binding is hydrated
+/// from a renderer snapshot, H5 digest, or a claimed completeness Boolean.
+#[derive(Clone)]
+pub struct NativeHomeNamespace {
+    source: NamespaceHomeSource,
+    received_targets: Option<crate::home_resources::SharedResourceTargets>,
+}
+#[derive(Clone)]
+enum NamespaceHomeSource {
+    Received(crate::home_resources::ExistingHomeReference),
+    Planned(crate::home_resources::OwnedHomePlan),
+}
+impl NativeHomeNamespace {
+    pub fn received(home:&crate::home_resources::ExistingHomeReference,targets:Option<&crate::home_resources::SharedResourceTargets>)->Self {
+        Self{source:NamespaceHomeSource::Received(home.clone()),received_targets:targets.cloned()}
+    }
+    pub fn planned(home:&crate::home_resources::OwnedHomePlan)->Self {
+        Self{source:NamespaceHomeSource::Planned(home.clone()),received_targets:None}
+    }
+    fn observe(&self)->Result<(PathBuf,String,crate::home_resources::HomeClass,Vec<(String,Option<PathBuf>)>,bool),String>{
+        match &self.source {
+            NamespaceHomeSource::Planned(plan)=>{
+                let observed=plan.inspect()?;
+                if observed.resources.iter().any(|r|matches!(r.state,crate::home_resources::ResourceState::Conflict|crate::home_resources::ResourceState::TargetMissing|crate::home_resources::ResourceState::TargetTypeMismatch)){return Err("owned fixed native resource relationship is conflicted/unavailable".into());}
+                let targets=observed.resources.iter().map(|r|(r.name.to_owned(),r.intended_target.clone())).collect();
+                Ok((observed.native_path,observed.opaque_home_id,observed.class,targets,observed.class!=crate::home_resources::HomeClass::Probe))
+            },
+            NamespaceHomeSource::Received(home)=>{
+                let observed=home.inspect()?;
+                let targets=match &self.received_targets{Some(t)=>vec![("config.toml".into(),Some(t.config_toml.clone())),("AGENTS.md".into(),Some(t.global_agents_md.clone())),("skills".into(),Some(t.skills.clone()))],None=>vec![("config.toml".into(),None),("AGENTS.md".into(),None),("skills".into(),None)]};
+                Ok((observed.native_path,observed.opaque_home_id,observed.class,targets,false))
+            }
+        }
+    }
+}
+/// Finite explicitly known current/prospective native set. Re-observes only
+/// the three named entries/declared sources, never native directory contents.
+pub struct NativeNamespaceBindings { homes:Vec<NativeHomeNamespace> }
+#[derive(Clone)]
+struct ProtectedNamespace { path:PathBuf, resolved:PathBuf, directory:bool }
+impl NativeNamespaceBindings {
+    pub fn from_root(homes:Vec<NativeHomeNamespace>)->Result<std::sync::Arc<Self>,String>{
+        if homes.is_empty(){return Err("Root native namespace set is absent; no empty-set safety claim".into());}
+        let binding=std::sync::Arc::new(Self{homes});binding.protected()?;Ok(binding)
+    }
+    fn protected(&self)->Result<Vec<ProtectedNamespace>,String>{
+        let mut output=vec![];let mut ids=HashSet::new();let mut home_paths:Vec<(PathBuf,PathBuf)>=vec![];let mut classes=HashSet::new();
+        for home in &self.homes {
+            let(path,id,class,targets,required)=home.observe()?;
+            if !ids.insert(id)||!classes.insert(class.as_str()){return Err("Root native home ID/class duplicated; no map-last interpretation".into());}
+            storage::check_path(&path)?;let actual=resolved(&path)?;
+            for (prior_path,prior) in &home_paths{if overlap(&actual,prior)||physical_alias(&path,prior_path)?{return Err("Root native homes alias/overlap".into());}}
+            home_paths.push((path.clone(),actual.clone()));output.push(ProtectedNamespace{path:path.clone(),resolved:actual,directory:true});
+            for(name,target)in targets{
+                let slot=path.join(&name);let directory=name=="skills";
+                if required&&target.is_none(){return Err(format!("required M-A source {name} not configured; native metadata closure unavailable"));}
+                let declared=match target{
+                    Some(target)=>{
+                        let actual_target=target.canonicalize().map_err(|e|format!("declared native {name} source closure unavailable: {e}"))?;
+                        let meta=std::fs::metadata(&actual_target).map_err(|e|e.to_string())?;
+                        if (directory&&!meta.is_dir())||(!directory&&!meta.is_file()){return Err(format!("declared native {name} source type differs"));}
+                        output.push(ProtectedNamespace{path:target.clone(),resolved:actual_target.clone(),directory});Some(actual_target)
+                    },None=>None,
+                };
+                match std::fs::symlink_metadata(&slot){
+                    Ok(meta)if meta.file_type().is_symlink()=>{
+                        let actual_slot=slot.canonicalize().map_err(|e|format!("fixed native {name} target closure unavailable: {e}"))?;
+                        let Some(expected)=declared.as_ref() else{return Err(format!("foreign fixed native {name} link has no declared source closure"));};
+                        if actual_slot!=*expected{return Err(format!("fixed native {name} link drifted from declared source"));}
+                        let actual_meta=std::fs::metadata(&actual_slot).map_err(|e|e.to_string())?;
+                        if (directory&&!actual_meta.is_dir())||(!directory&&!actual_meta.is_file()){return Err(format!("fixed native {name} target type differs"));}
+                        output.push(ProtectedNamespace{path:slot,resolved:actual_slot,directory});
+                    },
+                    Ok(meta)=>{
+                        if required{return Err(format!("required M-A fixed native {name} link missing/wrong-type"));}
+                        if (directory&&!meta.is_dir())||(!directory&&!meta.is_file()){return Err(format!("direct native {name} entry type differs"));}
+                        output.push(ProtectedNamespace{path:slot.clone(),resolved:slot.canonicalize().map_err(|e|e.to_string())?,directory});
+                    },
+                    Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{
+                        if required&&path.try_exists().map_err(|e|e.to_string())?{return Err(format!("required M-A fixed native {name} entry absent in existing home"));}
+                        // Planned links may not exist before setup; their actual
+                        // declared targets remain protected now. Received absent
+                        // slots are an observation, not invented M-A sharing.
+                    },
+                    Err(e)=>return Err(format!("fixed native {name} observation unavailable: {e}")),
+                }
+            }
+        }Ok(output)
+    }
+    /// Independent per-feature actual domains/leaf check, not a reusable safe
+    /// Boolean. No arbitrary write to the shared App-data ancestor is granted.
+    pub(crate) fn guard_domains(&self,domains:&[PathBuf])->Result<(),String>{
+        let protected=self.protected()?;
+        for domain in domains {
+            storage::check_path(domain)?;let actual=resolved(domain)?;
+            for native in &protected {
+                if overlap(domain,&native.path)||overlap(&actual,&native.resolved)||physical_alias(domain,&native.path)? {
+                    return Err(format!("owning metadata namespace intersects native protected {}",if native.directory{"directory"}else{"file"}));
+                }
+            }
+        }Ok(())
+    }
+    pub(crate) fn guard_app_root(&self,app_root:&Path)->Result<(),String>{
+        for home in &self.homes{let(path,_,_,_,_)=home.observe()?;let h=resolved(&path)?;if app_root==h||app_root.starts_with(&h){return Err("App data root is equal to/inside a native home".into());}}Ok(())
+    }
+    pub(crate) fn contains_home_id(&self,id:&str)->Result<(),String>{self.protected()?;if self.homes.iter().any(|home|home.observe().map(|h|h.1==id).unwrap_or(false)){Ok(())}else{Err("receiving generation home is absent from actual Root namespace bindings".into())}}
+    pub fn snapshot(&self)->Value {
+        match self.protected(){Ok(protected)=>json!({"state":"current fixed native namespace metadata observed","protectedLocations":protected.len(),"standing":"Root descriptors/current metadata only; no contents/census/native proof or future race guarantee"}),Err(error)=>json!({"state":"native metadata closure unavailable","limit":error})}
+    }
+}
+fn overlap(a:&Path,b:&Path)->bool{a==b||a.starts_with(b)||b.starts_with(a)}
+fn physical_alias(a:&Path,b:&Path)->Result<bool,String>{
+    use std::os::unix::fs::MetadataExt;
+    let read=|p:&Path|->Result<Option<std::fs::Metadata>,String>{match std::fs::metadata(p){Ok(m)=>Ok(Some(m)),Err(e)if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())}};
+    match(read(a)?,read(b)?){(Some(a),Some(b))=>Ok(a.dev()==b.dev()&&a.ino()==b.ino()),_=>Ok(false)}
+}
 /// Root comes from the integrating native host, never a renderer path or fallback.
 pub struct AttachmentCustody {
     root: PathBuf,
+    namespaces:Option<std::sync::Arc<NativeNamespaceBindings>>,
 }
 impl AttachmentCustody {
     pub fn open(app_data: &Path, codex_home: &Path) -> Result<Self, String> {
@@ -191,18 +308,29 @@ impl AttachmentCustody {
             return Err("App attachment custody and Codex home overlap".into());
         }
         storage::ensure_directory(&root.join("runtime"))?;
-        Ok(Self { root })
+        Ok(Self { root, namespaces:None })
     }
+    pub fn open_with_namespaces(app_data:&Path,namespaces:std::sync::Arc<NativeNamespaceBindings>)->Result<Self,String>{
+        storage::check_path(app_data)?;let root=resolved(app_data)?;namespaces.guard_app_root(&root)?;
+        let owner=Self{root,namespaces:Some(namespaces)};owner.guard_scope()?;storage::ensure_directory(&owner.root.join("runtime"))?;owner.guard_scope()?;Ok(owner)
+    }
+    fn guard_scope(&self)->Result<(),String>{
+        if let Some(bindings)=&self.namespaces{bindings.guard_app_root(&self.root)?;bindings.guard_domains(&[self.root.join("runtime/nir/attachment-supplies"),self.root.join("runtime/hosting/client-requests"),self.lock_path()])?;}Ok(())
+    }
+    fn guard_generation(&self,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;if let Some(bindings)=&self.namespaces{bindings.contains_home_id(g["home"].as_str().unwrap())?;}Ok(())}
+    fn guard_leaf(&self,path:&Path)->Result<(),String>{self.guard_scope()?;if let Some(bindings)=&self.namespaces{bindings.guard_domains(&[path.to_owned()])?;}Ok(())}
     pub fn root(&self) -> &Path {
         &self.root
     }
     pub fn supplies_path(&self, submission: &str) -> Result<PathBuf, String> {
+        self.guard_scope()?;
         Ok(self
             .root
             .join("runtime/nir/attachment-supplies")
             .join(format!("{}.json", submission_key(submission)?)))
     }
     pub fn client_path(&self, g: &Value, id: &Value) -> Result<PathBuf, String> {
+        self.guard_scope()?;self.guard_generation(g)?;
         Ok(self
             .root
             .join("runtime/hosting/client-requests")
@@ -213,7 +341,7 @@ impl AttachmentCustody {
         self.root.join("runtime/hosting/.client-custody.lock")
     }
     pub(crate) fn lock_sources(&self) -> Result<CustodyOwnership, String> {
-        owning_lock(&self.lock_path(), true)
+        self.guard_leaf(&self.lock_path())?;owning_lock(&self.lock_path(), true)
     }
     pub fn publish_prepared(&self, records: &[Value], client: &Value) -> Result<(), String> {
         validate_client(client)?;
@@ -223,6 +351,7 @@ impl AttachmentCustody {
         {
             return Err("prewrite observation differs".into());
         }
+        self.guard_scope()?;self.guard_generation(&client["generation"])?;
         let association = &client["submissionAssociation"];
         validate_list(records, association)?;
         let _lock = self.lock_sources()?;
@@ -237,7 +366,7 @@ impl AttachmentCustody {
         self.check_prepared(records, client)
     }
     pub fn check_prepared(&self, records: &[Value], client: &Value) -> Result<(), String> {
-        validate_client(client)?;
+        self.guard_scope()?;validate_client(client)?;
         let actual =
             read_metadata(&self.client_path(&client["generation"], &client["requestIdentity"])?)?;
         if actual != *client {
@@ -296,7 +425,7 @@ impl AttachmentCustody {
     /// Source reader. Disk claims never create a hot capability/native turn proof.
     pub fn resolve_cold(&self, submission: &str) -> Value {
         let result = (|| -> Result<Value, String> {
-            submission_key(submission)?;
+            submission_key(submission)?;self.guard_scope()?;
             let _read_lock = owning_lock(&self.lock_path(), false)?;
             let clients = self.root.join("runtime/hosting/client-requests");
             let mut found = vec![];

@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-05",
+  "actor": "/root HELP_HUMAN",
+  "sourceCommit": "4a5fd9bb260947de44f35b75c07915347321f17d",
+  "source": "complete Git archive used for reviewed candidate validation",
+  "purpose": "bounded offline native UI test",
+  "buildAndProcessLaunch": "succeeded; cargo tauri dev --offline --locked, 13.53s build",
+  "testConfiguration": {
+    "freshCodexHome": "actual mktemp -d; no saved login used",
+    "provider": "skeleton_local at http://127.0.0.1:9/v1",
+    "plugins": false,
+    "analytics": false,
+    "workspace": "synthetic workspace only",
+    "overlaySha256": "b54995abc75c41aa0d1a58bc4780c32e3dbacc2ed8ce79b16d9857fd256cd08b"
+  },
+  "uiToolObservations": [
+    "Initial listApps call timed out and reset kernel.",
+    "Retry getState returned app/browser inventory; unrelated inventory is not retained here.",
+    "Running development executable was absent from native app inventory.",
+    "getApp by executable name and exact running executable path both returned Invalid app."
+  ],
+  "uiActionsPerformed": 0,
+  "uiAssertionsEstablished": false,
+  "credentialOrModelOperationPerformed": false,
+  "cleanup": {
+    "devRunner": "stopped with Ctrl-C; launcher KeyboardInterrupt exit1 retained as intentional stop",
+    "matchingAppOrSupplierProcess": "identity-only ps query found no matching process after stop",
+    "port1420": "lsof found no listening process after stop"
+  },
+  "limits": [
+    "Build/process launch is not native UI interaction or responsiveness evidence.",
+    "Current UI tool cannot bind this bare development executable; this is not a demonstrated App defect.",
+    "No witness transfers to later auth/home source.",
+    "No human-act, provider, qualification or gate acceptance claim."
+  ]
+}

@@ -1,0 +1,27 @@
+# Independent REC native-namespace guard definition review — 2026-10-05
+
+**READY as the bounded REC physical-namespace guard/input definition before its named code adoption.** No actionable source conflict or reserved input blocks ordinary implementation. This is not readiness of existing configure_recovery/AppRuntimeCustody, actual filesystem checks, native home/auth operation or factory/product qualification.
+
+TASK `/root/group_a_execution/hosting_contract_review`, parent `/root/group_a_execution`; no delegation. Software-code-review source-admission assessment. Only this report written. Read actual packet, REC §7/ledger allocation and final NIR resource-closure definition already reviewed; no code/Design/Cargo/Git/native/auth/real-home/content/network operation or tests. Retained Root/TASK/project/skill origins; no additional role activated.
+
+| Exact named basis | SHA-256 |
+| --- | --- |
+| CC-REC-NATIVE-NAMESPACE-GUARD.md | `8f348991da3f927910bea3bdeb13391bfc4b2ee49b5459a0d4a81c35320847ad` |
+| REC ledger allocation | `48238c3cde939f81279fa59ed6ced2b1106f9af5baa63089ccbc6a999573be64` |
+| EXECUTION_AND_RECOVERY.md source | `e78b9ead452b0a1adb20cf07493a1eccbd2ee651e68d4f75772c440a6a228056` |
+| final related NIR fit definition | `5df0554883cb4ff7d89b0b480733b197f11ac03e0a02d3a2163aa3a820e9831e` |
+| NIR independent definition review | `8659df7131ed956e321115fc21c9c21c30aea8e771a0d61c5a90a99870bb464b` |
+
+Packet independently hashed; actual REC §7 read confirms fixed App-own-user-data/runtime/recovery.ledger.jsonl outside Codex homes, pointer-only, durable append/source limits, no fallback and mandatory reply independence. Packet's current code pins are gap snapshots, not certified guard implementations.
+
+H5 opaque home ID/session/counter and a sole-ledger capability cannot prove physical L separation. Definition correctly requires actual finite Root-owned existing/proposed native directory/owner bindings plus declared M-A source/fixed-link/actual target closure before open/configuration and each owning use. Empty list/caller-safe Boolean/serialized data cannot mint completeness; unknown/not-configured observations carry their actual reasons. Resolve only declared roots/fixed names/targets/ancestors and actual descriptor suitability, without home census, native config/guidance/skill/credential contents or ambient discovery.
+
+Actual fixed ledger leaf/write/lock/publication namespaces must remain outside every declared home and protected resource source/target subtree, with appropriate containment/alias/redirection/regular single-link/source association checks. Merely sharing a harmless ancestor is not permission for arbitrary A writes or a new whole-container-disjointness rule; compare actual owning domains/operations. NIR S/C/L success cannot certify L. Missing required closure, physical overlap or use-time change is REC scope fault/unavailability, not a success inferred from digest/absence/another component.
+
+Prospective H=A/runtime must be refused before home creation/binding, because it contains the selected ledger leaf. A failed candidate must not poison active bindings or truncate/reopen/relocate/copy old L, create per-home ledger, reset old counters or disable healthy account/ledger. This is required allocation preflight, not a policy veto or optional-ledger excuse to knowingly admit a bad new home. Later external drift has different consequences: suspend unsafe metadata use, expose persistence/history unavailability and retain captured queued pointer facts/old observations; valid native startup, mandatory replies and captured-source Stop continue independently. No failure becomes logout/cancel/turn/run/history deletion.
+
+Known source inputs follow the final finite resource-closure interpretation: declared M-A refs are required; actual observed direct/absent fixed entries protected by an existing received H may establish their own relation without fabricated shared setup. Unestablished sharing alone is not a new census/empty-home/global native hold. Exposed foreign links need actual closure. Prospective/current-use unknowns remain limits. No source guard promises universal future hostile-filesystem isolation or a new hard filesystem deadline.
+
+Required actual implementation tests are source-faithful: H=A/runtime zero creation/binding with old bytes/availability retained; safe disjoint leaf/home/resource positive; unknown required input versus genuine no-configuration; native fixed resource/target alias into L/lock/domain; prospective parent/case/symlink/hard alias and use-time changes; refusal before unsafe reads/writes; queued failed persistence and valid native reply/Stop liveness; one App session/ledger writer, same-home replacement counter retention and no global capture chronology inference. These are future code controls, not executed source-review passes or a Boolean durability callback.
+
+Release the named Root/Core namespace-binding, prospective admission and current-leaf guard work using this exact existing ledger/store/path/kind. Keep schema/source-owned pointer semantics, captured facts and source-specific availability limits; no relocation/default owner/service/sidecar or native capability from cold rows. Existing mechanics/factory source needs a separate exact implementation review after adopting the inputs/guard; real-home/auth/native/provider/product qualification remains open. No new human approval gate is introduced by this ordinary owning invariant.

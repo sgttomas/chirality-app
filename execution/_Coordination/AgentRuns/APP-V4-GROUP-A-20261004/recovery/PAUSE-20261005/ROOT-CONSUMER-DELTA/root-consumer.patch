@@ -1,0 +1,171 @@
+--- a/app/src-tauri/src/lib.rs
++++ b/app/src-tauri/src/lib.rs
+@@ -54,6 +54,8 @@
+     project_context_limit: Option<String>,
+     homes: Mutex<runtime_session::HomeRouter>,
+     home_bootstrap: Mutex<Result<Arc<runtime_session::HomeBootstrapSet>,String>>,
++    native_namespaces: Mutex<Result<Arc<hosting::attachment_custody::NativeNamespaceBindings>,String>>,
++    key_namespace_admission: Mutex<Value>,
+     key_setup: Mutex<()>,
+     root_home_inputs: Value,
+ }
+@@ -142,6 +144,8 @@
+     };
+     s["attachmentCustody"] = match custody {Ok(custody)=>json!({"state":"opened","root":custody.root().display().to_string()}),Err(error)=>json!({"state":"unavailable","error":error,"scope":"attachment-bearing operations only"})};
+     s["homeResources"] = match &*state.home_bootstrap.lock().unwrap() { Ok(set)=>set.inspect(),Err(error)=>json!({"state":"topology/resource descriptors unavailable","limit":error,"existingAccount":"legacy native account path remains available; no shared-source claim"}) };
++    s["nativeNamespaces"] = match &*state.native_namespaces.lock().unwrap(){Ok(binding)=>binding.snapshot(),Err(error)=>json!({"state":"storage namespace closure unavailable","limit":error,"ordinaryNativeOperations":"independent of persistence availability"})};
++    s["keyNamespaceAdmission"] = state.key_namespace_admission.lock().unwrap().clone();
+     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
+     s["homeRouting"] = state.homes.lock().unwrap().snapshot();
+     s["homeAccess"] = home.account_view();
+@@ -188,7 +192,30 @@
+     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+     bootstrap.key_plan()?;
+     if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
++    let data=state.app_user_data_root.lock().unwrap().clone()?;
++    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
++    let app_custody=account.host.app_runtime_custody()?;
++    let namespace_candidate=(|| {
++        let namespaces=bootstrap.native_namespaces(true)?;
++        let rec_preflight=app_custody.preflight_native_namespaces(&namespaces)?;
++        let attachment=hosting::attachment_custody::AttachmentCustody::open_with_namespaces(&data,namespaces.clone()).map(Arc::new)?;
++        Ok::<_,String>((namespaces,attachment,rec_preflight))
++    })();
++    let (namespaces,attachment,rec_preflight)=match namespace_candidate {
++        Ok(candidate)=>candidate,
++        Err(error)=>{*state.key_namespace_admission.lock().unwrap()=json!({"state":"prospective key namespace refused before native home creation/adoption","limit":error,"existingAccount":"current ledger/custody bindings retained"});return Err(error);}
++    };
+     bootstrap.prepare_key()?;
++    // Repeat actual complete closure and own REC leaf checks after physical
++    // setup. A rejected candidate never replaces healthy existing bindings.
++    let namespaces_after=bootstrap.native_namespaces(true)?;
++    app_custody.preflight_native_namespaces(&namespaces_after)?;
++    let attachment=hosting::attachment_custody::AttachmentCustody::open_with_namespaces(&data,namespaces_after.clone()).map(Arc::new)?;
++    let committed=app_custody.bind_native_namespaces(namespaces_after.clone())?;
++    *state.native_namespaces.lock().unwrap()=Ok(namespaces_after.clone());
++    *state.key_namespace_admission.lock().unwrap()=json!({"state":"actual namespace candidate received","preflight":rec_preflight,"rec":committed,"qualification":"metadata geometry only; no native/auth/discovery claim"});
++    let _ = namespaces;
++    for entry in state.homes.lock().unwrap().entries(){*entry.attachment_custody.lock().unwrap()=Ok(attachment.clone());}
+     let existing=state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey);
+     let home={
+         match existing{
+@@ -201,8 +228,7 @@
+                 let custody=account.host.app_runtime_custody()?;
+                 let host=Arc::new(Host::new_with_app_custody(custody)?);
+                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
+-                let data=state.app_user_data_root.lock().unwrap().clone()?;
+-                *home.attachment_custody.lock().unwrap()=hosting::attachment_custody::AttachmentCustody::open(&data,&config.codex_home).map(Arc::new);
++                *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
+                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
+                 bootstrap.validate_binding(home.class(),&config)?;
+                 state.homes.lock().unwrap().bind_key(home.clone())?;
+@@ -656,6 +682,8 @@
+         project_context, project_context_limit,
+         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
+         home_bootstrap: Mutex::new(Err("Explicit Root home descriptors not initialized".into())),
++        native_namespaces: Mutex::new(Err("Root native namespace bindings not initialized".into())),
++        key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
+         key_setup: Mutex::new(()),
+         root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
+     };
+@@ -678,17 +706,23 @@
+                 *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
+             }
+             *state.app_user_data_root.lock().unwrap() = data.clone();
+-            *home.attachment_custody.lock().unwrap() = data.as_ref().map_err(Clone::clone).and_then(|data| {
++            // Current account/probe protection is independent of a bad new key
++            // candidate; do not create/adopt K or replace an existing L binding.
++            let namespaces=(|| {
++                let data=data.as_ref().map_err(Clone::clone)?;
+                 let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
+-                hosting::attachment_custody::AttachmentCustody::open(data,&cfg.codex_home).map(Arc::new)
+-            });
+-            home.recovery_startup.lock().unwrap().initialize(
++                runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
++            })();
++            *state.native_namespaces.lock().unwrap()=namespaces.clone();
++            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_with_namespaces(data,namespaces.clone()?).map(Arc::new));
++            home.recovery_startup.lock().unwrap().initialize_with_namespaces(
+                 &host,
+                 data.as_deref().map_err(String::as_str),
+                 host_config
+                     .as_ref()
+                     .ok()
+                     .map(|cfg| cfg.codex_home.as_path()),
++                namespaces,
+             );
+             let root = data.clone().and_then(|data| {
+                 let root = data.join("instructions");
+--- a/app/src-tauri/src/runtime_session.rs
++++ b/app/src-tauri/src/runtime_session.rs
+@@ -467,11 +467,19 @@
+         }
+     }
+     pub fn initialize(
+-        &mut self,
+-        host: &crate::hosting::Host,
+-        app_data: Result<&std::path::Path, &str>,
+-        codex_home: Option<&std::path::Path>,
+-    ) -> Value {
++        &mut self, host:&crate::hosting::Host,
++        app_data:Result<&std::path::Path,&str>, codex_home:Option<&std::path::Path>,
++    )->Value { self.initialize_inner(host,app_data,codex_home,Ok(None)) }
++    pub fn initialize_with_namespaces(
++        &mut self, host:&crate::hosting::Host,
++        app_data:Result<&std::path::Path,&str>, codex_home:Option<&std::path::Path>,
++        namespaces:Result<std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>,String>,
++    )->Value { self.initialize_inner(host,app_data,codex_home,namespaces.map(Some)) }
++    fn initialize_inner(
++        &mut self, host:&crate::hosting::Host,
++        app_data:Result<&std::path::Path,&str>, codex_home:Option<&std::path::Path>,
++        namespaces:Result<Option<std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>>,String>,
++    )->Value {
+         if self.attempted {
+             return self.snapshot();
+         }
+@@ -481,6 +489,7 @@
+         let mut existing = false;
+         let result = (|| -> Result<(), String> {
+             let root = app_data.map_err(str::to_string)?;
++            let binding=namespaces.as_ref().map_err(Clone::clone)?;
+             let path = reviewed_ledger_path(root);
+             selected_path = Some(path.clone());
+             if !root.is_absolute() {
+@@ -526,7 +535,7 @@
+                     .ok_or("Ledger directory has no existing ancestor")?;
+             }
+             std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
+-            host.configure_recovery(path)?;
++            match binding { Some(binding)=>host.configure_recovery_with_namespaces(path,std::sync::Arc::clone(binding))?,None=>host.configure_recovery(path)? };
+             configured = true;
+             // Core syncs appended file data. Publish the file and any new directory
+             // entries before reporting initialization configured. No crash proof inferred.
+@@ -1814,6 +1823,17 @@
+         }
+         crate::home_resources::validate_home_bindings(&bindings)
+     }
++    pub fn native_namespaces(&self,include_key:bool)->Result<std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>,String>{
++        use crate::hosting::attachment_custody::{NativeHomeNamespace,NativeNamespaceBindings};
++        // Received direct/absent slots can close themselves without asserting
++        // M-A setup. Only a foreign-link closure needs the supplied references.
++        let build=|targets:Option<&crate::home_resources::SharedResourceTargets>| {
++            let mut homes=vec![NativeHomeNamespace::received(&self.account,targets),NativeHomeNamespace::received(&self.probe,None)];
++            if include_key { homes.push(NativeHomeNamespace::planned(self.key_plan()?)); }
++            NativeNamespaceBindings::from_root(homes)
++        };
++        match build(None){Ok(binding)=>Ok(binding),Err(original)=>match self.shared_root_targets.as_ref(){Some(targets)=>build(Some(targets)),None=>Err(original)}}
++    }
+     pub fn key_plan(&self) -> Result<&crate::home_resources::OwnedHomePlan, String> {
+         self.key.as_ref().ok_or_else(|| {
+             "Key home/resource descriptors not explicitly configured; no account fallback".into()
+--- a/app/src/App.tsx
++++ b/app/src/App.tsx
+@@ -466,7 +466,7 @@
+     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
+       <h1>Chirality App v4 — walking skeleton</h1>
+ 
+-      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} resources={host?.homeResources} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
++      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
+ 
+       <section>
+         <h2>Codex host</h2>

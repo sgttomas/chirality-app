@@ -296,7 +296,7 @@ exclude ChatGPT: `ConfigRequirements.allowedLoginMethods`, or the person's
 | AE-3 | unknown | `read:other-kind` | signed-out | H-acct holds another kind; shown as "this App home holds an <kind> account, not a ChatGPT sign-in" |
 | AE-4 | signed-out | `policy:excluded` | not-permitted | The reason and the layer that set it (`config/read` origins) are shown |
 | AE-5 | not-permitted | `policy:permitted` | signed-out | After a configuration re-read |
-| AE-6 | signed-out | `person:sign-in` | signing-in | Person's act; `account/login/start` `chatgpt` or `chatgptDeviceCode`; `loginId` kept |
+| AE-6 | signed-out | `person:sign-in` | signing-in | Person's act; `account/login/start` `chatgpt` or `chatgptDeviceCode`; actual `loginId` kept privately under full H5/original typed RPC/mode (§7.1) |
 | AE-7 | signed-out | `start:error` | signed-out | Error response to the start; text shown after redaction (CR-4) |
 | AE-8 | signing-in | `completed:success` | signed-in | `account/login/completed` with the kept `loginId`, then `account/read` confirms |
 | AE-9 | signing-in | `completed:failure` | signed-out | `success: false`; `error` shown after redaction |
@@ -312,8 +312,13 @@ exclude ChatGPT: `ConfigRequirements.allowedLoginMethods`, or the person's
 | AE-19 | signed-out | `generation:closed` | unknown | — |
 | AE-20 | needs-reauth | `person:sign-in` | signing-in | As AE-6 |
 
-Rules: a `account/login/completed` naming another `loginId` changes nothing
-and is shown as "a sign-in the App did not start" (AR-1). Every
+Rules: a `account/login/completed` is matched only to the private pending
+control of the same full H5 and actual loginId (§7.1). Missing/null loginId
+changes nothing and is shown as "sign-in matching not established (identity
+unavailable)"; the pending outcome remains unknown/unmatched, never a claim
+that the App did not start it. An actual other loginId, compared with the
+source's known private pending ID under the same full H5, changes nothing and
+is shown as "a sign-in the App did not start" (AR-1). Every
 `account/updated` triggers one `account/read`; the notification alone never
 moves a state (AR-2). Whether `account/updated` arrives on token refresh is
 not observed.
@@ -532,10 +537,12 @@ operate it.
 2. `account/login/start {type: "chatgpt"}`; the optional elements
    (`codexStreamlinedLogin`, `useHostedLoginSuccessPage`, `appBrand`) are left
    absent (supplier defaults; U-A4). Error → AE-7.
-3. Response `{loginId, authUrl}`: the App opens `authUrl` in the person's
+3. Response `{loginId, authUrl}`: the private source installs the scoped pending control before redacted publication or presentation (§7.1); the App opens `authUrl` once in the person's
    default browser, never in an App webview (CR-3), and shows "waiting for
    sign-in in your browser" with Cancel. The URL is not recorded or logged.
-4. `account/login/completed {loginId, success, error}` → AE-8 or AE-9.
+4. Scoped matching `account/login/completed {loginId, success, error}` under
+   the same full H5/private pending ID (§7.1) → AE-8 or AE-9; missing/null or
+   unmatched identity does not establish that transition.
    The local callback the browser returns to is Codex's own (`inference`);
    the App does not handle it.
 5. No completion within the App's wait → nothing happens automatically; the
@@ -547,7 +554,7 @@ operate it.
 the App shows both to the person for the duration of the sign-in only, never
 records them (CR-3).
 
-**Q-4 Cancel.** `account/login/cancel {loginId}`; `canceled` or `notFound`
+**Q-4 Cancel.** The person-directed native interface uses the still-live private pending control (§7.1) to send `account/login/cancel {loginId}`; no public pointer supplies the native ID. Actual `canceled` or `notFound`
 both end in `signed-out` (AE-10); `notFound` is shown as "Codex had no
 pending sign-in".
 
@@ -632,7 +639,7 @@ outside change applies at the next child start unless observed otherwise.
 | ID | Rule |
 |---|---|
 | CR-1 | An API key exists in App memory only between the person's entry and the written `account/login/start` frame; the interface field is cleared and the buffer released after the write. Never stored, cached, logged, recorded, put in an error, a URL, a command line or an environment variable (DERIVED from V4-ARC-04: credentials held by Codex) |
-| CR-2 | The recording tap (HOSTING §9.1) and the client-request record (`hosting.client-request-record`) keep, for `account/login/start`, the method, `type` and `loginId`; the parameters `apiKey`, `accessToken`, `secretAccessKey`, `sessionToken` and the response elements `authUrl`, `verificationUrl`, `userCode` are replaced by a redaction marker before anything is written (join to HOSTING §9.1) |
+| CR-2 | For `account/login/start`, the source keeps actual native `loginId` privately for operational matching/cancel under full H5, original typed RPC and expected mode (§7.1). The recording tap (HOSTING §9.1), public projections and client-request evidence keep method/type/scoped observation reference; native `loginId` is redacted and any App observation pointer is non-capability, never native control. Parameters `apiKey`, `accessToken`, `secretAccessKey`, `sessionToken`, response `authUrl`, `verificationUrl`, `userCode`, and native loginId in cancel/completion/error reflection are redacted before exposed/durable evidence is written. Original secret/control bytes are explicitly unavailable, never falsely claimed unchanged |
 | CR-3 | `authUrl` opens in the system browser; `verificationUrl` and `userCode` are shown only while the sign-in is pending |
 | CR-4 | Supplier error texts from account methods are shown and recorded after the CR-2 redaction is applied to them as text (a key echoed in an error is removed) |
 | CR-5 | `getAuthStatus` (TS-only) is never called with `includeToken: true`; `account/read` is not called with `refreshToken: true` by an App rule |
@@ -641,6 +648,46 @@ outside change applies at the next child start unless observed otherwise.
 | CR-8 | The App never writes a credential into any configuration file or `-c` flag (sets K2-2/K2-3 aside) |
 | CR-9 | External-token login (`chatgptAuthTokens`) is not offered: the App would hold tokens. So `account/chatgptAuthTokens/refresh` stays **known-app-unsupported** with an explicit error (confirms HOSTING §6.1's row; U-20 for that kind) |
 | CR-10 | The credential store mode (`cli_auth_credentials_store`: `file`, `keyring`, `auto`, `ephemeral`) is the person's setting in the shared configuration, carried unchanged (H9); the App shows it and what it means for the App (with `ephemeral`, the App's sign-in ends with each start) |
+
+### 7.1 OAuth operational control and pending presentation (CC-ACCESS-OAUTH-CONTROL-CUSTODY)
+
+The source-owned private pending control binds actual native loginId to the
+same full H5, original typed login/start RPC and expected chatgpt or
+chatgptDeviceCode mode. It is installed before public projection/presentation;
+a fast matched terminal completion is retained/applied and suppresses obsolete
+URL/code presentation. Public/durable pointers cannot construct, rehydrate,
+move, cancel or present a native control. No additional schema, ledger kind,
+wire field, auth store or credential cache is introduced.
+
+Browser authUrl is handed once to the person's system browser, never an App
+webview/public snapshot. Device verificationUrl/userCode belong only to the
+native pending display and its bounded buffer. Presentation dismissal clears
+that display/buffer; while full H5 remains live and pending it preserves the
+sole private loginId/control and the accepted Q-4 Cancel ability. Dismissal
+is not cancel success, source teardown or permission to replace the pending
+sign-in. Keep the one-at-a-time Q-2 lifecycle; never silently replace a login.
+
+Private operational control ends on matched terminal success/failure, actual
+cancel canceled/notFound, or actual owning control/source teardown (loss,
+Stop, closed generation). Teardown leaves pending outcome unavailable/unknown;
+clearing a buffer is not native cancellation or signed-out proof. No automatic
+resend/restart or cold pointer rehydration. Missing/null/unmatched completion
+loginId cannot make a terminal match; account/read null/absence alone does not
+prove a prior pending login ended/canceled. Existing account-read confirmation
+and AE/AR source transitions remain, including notification availability.
+
+Method-sensitive redaction precedes request/response/notification/error,
+journal/snapshot/debug/diagnostic reflection, including unexpected echoed
+fields/JSON keys. Retain full scoped method/receipt/outcome facts with explicit
+redaction/original-unavailable limits; do not filter unrelated notifications,
+fabricate original frames or infer a turn/run end, actor verification or grant.
+Use active transient material only during its defined operational/presentation
+lifetime; no persistent/long-lived duplicate solely for redaction matching.
+If safe text cannot be carried, use fixed sanitized diagnostics and actual safe
+code/availability limits (CR-4), not raw echoes. No OS/browser memory-erasure
+guarantee follows from field clearing/buffer release. This source definition
+requires affected implementation review and synthetic controls before OAuth
+support; it establishes no native sign-in/browser/device qualification.
 
 ## 8. What the App shows of an account, and identity supply (K1-4)
 

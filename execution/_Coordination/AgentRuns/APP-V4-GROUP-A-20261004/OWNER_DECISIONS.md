@@ -41,3 +41,17 @@ Prepared question: App-local project/library storage per current PLACEMENT_DECIS
 ## Native-confirmation implementation allocation
 
 Separate prepared question: Rust host owns authoritative capture/writer; webview presents/chooses; host-native Decide/Cancel displays full immutable selected act statement/consequences; only native confirmation captures; no per-act OS presence/identity check. Human active-chat answer relayed parent `/root`: “Approve native-confirmation implementation (recommended)”. This selects P-2/Rust allocation for Group A implementation. It is not authenticity qualification, a verified identity claim, evidence a human acted, or final stage acceptance.
+
+## CommonMark two-file download and integration — 2026-10-05
+
+Parent `/root` relays direct active-chat owner authorization for the prepared
+bounded question: pulldown-cmark0.13.4 (155043 compressed bytes) and unicase2.9.0
+(24368 bytes), total179411, exact static.crates.io URLs/checksums in
+`dependencies/COMMONMARK_DOWNLOAD_SET.json`; pin/default-feature/lock-drift
+consequences were supplied in the packet. Exact human answer:
+“Approve the two-file download and integration (recommended)”. Parent owns
+retrieval/checksum admission and will return its verified result. Original I2
+owner resumes parser integration only after that actual result; this authorizes
+only these files/scoped integration, not broader downloads, native/model calls
+or final workflow/gate acceptance. Orchestration descendants remain
+`gpt-6.1-sol` / `medium`.

@@ -5,7 +5,8 @@ use serde_json::{json, Value};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{Arc,OnceLock};
+use crate::hosting::attachment_custody::NativeNamespaceBindings;
 
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
@@ -240,12 +241,19 @@ pub fn submission_context_plan(
 pub struct RecoveryLedger {
     path: PathBuf,
     entries: Vec<Value>,
+    namespaces:Option<Arc<NativeNamespaceBindings>>,
 }
 impl RecoveryLedger {
-    pub fn open(path: PathBuf) -> Result<Self, String> {
+    pub fn open(path: PathBuf) -> Result<Self, String> {Self::open_inner(path,None)}
+    pub fn open_with_namespaces(path:PathBuf,namespaces:Arc<NativeNamespaceBindings>)->Result<Self,String>{Self::open_inner(path,Some(namespaces))}
+    fn open_inner(path:PathBuf,namespaces:Option<Arc<NativeNamespaceBindings>>)->Result<Self,String>{
+        if let Some(binding)=&namespaces{binding.guard_domains(&[path.clone()])?;crate::storage::check_path(&path)?;}
         let mut entries = Vec::new();
-        match File::open(&path) {
+        let mut options=OpenOptions::new();options.read(true);
+        if namespaces.is_some(){use std::os::unix::fs::OpenOptionsExt;options.custom_flags(libc::O_NONBLOCK|libc::O_NOCTTY|libc::O_NOFOLLOW);}
+        match options.open(&path) {
             Ok(file) => {
+                if let Some(binding)=&namespaces{Self::guard_descriptor(&path,binding,&file)?;}
                 let mut reader = BufReader::new(file);
                 let mut line = Vec::new();
                 loop {
@@ -270,20 +278,31 @@ impl RecoveryLedger {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(format!("App history unavailable: {e}")),
         }
-        Ok(Self { path, entries })
+        Ok(Self { path, entries, namespaces })
+    }
+    pub(crate) fn preflight_namespaces(&self,binding:&Arc<NativeNamespaceBindings>)->Result<(),String>{
+        Self::preflight_path(&self.path,binding)
+    }
+    pub(crate) fn preflight_path(path:&std::path::Path,binding:&Arc<NativeNamespaceBindings>)->Result<(),String>{
+        binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;
+        match std::fs::symlink_metadata(path){Ok(meta)=>{use std::os::unix::fs::MetadataExt;if !meta.is_file()||meta.nlink()!=1{return Err("REC owning leaf is not a regular single-link source".into());}},Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(format!("REC owning leaf metadata unavailable: {e}"))}Ok(())
+    }
+    pub(crate) fn bind_namespaces(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<(),String>{self.preflight_namespaces(&binding)?;self.namespaces=Some(binding);Ok(())}
+    fn guard_descriptor(path:&std::path::Path,binding:&Arc<NativeNamespaceBindings>,file:&File)->Result<(),String>{
+        use std::os::unix::fs::MetadataExt;binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;let fd=file.metadata().map_err(|e|e.to_string())?;let named=std::fs::symlink_metadata(path).map_err(|e|e.to_string())?;
+        if !fd.is_file()||fd.nlink()!=1||!named.is_file()||named.nlink()!=1||fd.dev()!=named.dev()||fd.ino()!=named.ino(){return Err("REC owning regular leaf/descriptor association is redirected or hard-aliased".into());}Ok(())
     }
     pub fn append(&mut self, entry: Value) -> Result<(), String> {
+        if let Some(binding)=&self.namespaces{self.preflight_namespaces(binding)?;}
         validator()?
             .validate(&entry)
             .map_err(|e| format!("recovery ledger validation refused: {e}"))?;
         let mut bytes = serde_json::to_vec(&entry).map_err(|e| e.to_string())?;
         bytes.push(b'\n');
-        let mut file = OpenOptions::new()
-            .create(true)
-            .read(true)
-            .append(true)
-            .open(&self.path)
-            .map_err(|e| e.to_string())?;
+        let mut options=OpenOptions::new();options.create(true).read(true).append(true);
+        if self.namespaces.is_some(){use std::os::unix::fs::OpenOptionsExt;options.custom_flags(libc::O_NONBLOCK|libc::O_NOCTTY|libc::O_NOFOLLOW);}
+        let mut file=options.open(&self.path).map_err(|e|e.to_string())?;
+        if let Some(binding)=&self.namespaces{Self::guard_descriptor(&self.path,binding,&file)?;}
         // Recheck the actual tail for an external change or a previous partial
         // write. Never concatenate a fresh record onto unclosed bytes, even
         // when those bytes happen to parse as a complete JSON value.
@@ -303,6 +322,10 @@ impl RecoveryLedger {
             .map_err(|e| format!("recovery ledger append not confirmed: {e}"))?;
         self.entries.push(entry);
         Ok(())
+    }
+    pub(crate) fn session_end_entry(session:&str,stop_requests:&[Value])->Result<Value,String>{
+        let entry=json!({"kind":"session_ended","session":session,"at":now_rfc3339(),"how":"quit","stopRequests":stop_requests});
+        validator()?.validate(&entry).map_err(|_|"App session end pointer metadata shape invalid; no end append".to_string())?;Ok(entry)
     }
     pub fn start_session(&mut self, session: &str, candidate: &str) -> Result<(), String> {
         let previous = self

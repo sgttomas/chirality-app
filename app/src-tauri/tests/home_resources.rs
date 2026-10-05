@@ -371,3 +371,105 @@ fn setup_rechecks_missing_source_alias_and_dangling_external_resources_stay_visi
         outside.join("config.toml")
     );
 }
+
+#[test]
+fn received_existing_account_and_probe_are_not_reallocated_into_app_data() {
+    let f = Fixture::new();
+    let sources = f.shared();
+    let account_path = f.0.join("explicit-existing-account");
+    let probe_path = f.0.join("explicit-existing-probe");
+    std::fs::create_dir(&account_path).unwrap();
+    std::fs::create_dir(&probe_path).unwrap();
+    std::fs::write(
+        account_path.join("private-fixture-sentinel"),
+        b"unchanged synthetic data",
+    )
+    .unwrap();
+    let account = ExistingHomeReference::new(account_path.clone(), HomeClass::Account).unwrap();
+    let probe = ExistingHomeReference::new(probe_path.clone(), HomeClass::Probe).unwrap();
+    let key = f.plan("new-key", HomeClass::ApiKey, Some(sources));
+    let bindings = [
+        HomeBinding::Existing(&account),
+        HomeBinding::Existing(&probe),
+        HomeBinding::Owned(&key),
+    ];
+    validate_home_bindings(&bindings).unwrap();
+    key.prepare().unwrap();
+    validate_home_bindings(&bindings).unwrap();
+    for reference in [&account, &probe] {
+        let observation = reference.inspect().unwrap();
+        assert!(observation.resources.is_empty());
+        assert_eq!(observation.native_path, reference.native_path());
+        assert_eq!(observation.class, reference.class());
+    }
+    assert_eq!(std::fs::read_dir(&account_path).unwrap().count(), 1);
+    assert_eq!(std::fs::read_dir(&probe_path).unwrap().count(), 0);
+    assert_eq!(
+        std::fs::read(account_path.join("private-fixture-sentinel")).unwrap(),
+        b"unchanged synthetic data"
+    );
+    assert_eq!(bindings[0].native_path(), account_path);
+    assert_ne!(account.opaque_home_id(), probe.opaque_home_id());
+    assert!(ExistingHomeReference::new(account_path.clone(), HomeClass::ApiKey).is_err());
+    assert!(ExistingHomeReference::new(f.0.join("missing-account"), HomeClass::Account).is_err());
+    assert!(ExistingHomeReference::new(
+        account_path.join("private-fixture-sentinel"),
+        HomeClass::Account
+    )
+    .is_err());
+}
+
+#[test]
+fn received_binding_overlap_and_changed_source_are_refused_without_repair() {
+    let f = Fixture::new();
+    let sources = f.shared();
+    let account_path = f.0.join("existing-account");
+    std::fs::create_dir(&account_path).unwrap();
+    let account = ExistingHomeReference::new(account_path.clone(), HomeClass::Account).unwrap();
+    let probe_same = ExistingHomeReference::new(account_path.clone(), HomeClass::Probe).unwrap();
+    assert!(validate_home_bindings(&[
+        HomeBinding::Existing(&account),
+        HomeBinding::Existing(&probe_same)
+    ])
+    .is_err());
+    let nested_key = OwnedHomePlan::new(
+        f.0.clone(),
+        account_path.join("new-key"),
+        HomeClass::ApiKey,
+        Some(sources.clone()),
+    )
+    .unwrap();
+    assert!(validate_home_bindings(&[
+        HomeBinding::Existing(&account),
+        HomeBinding::Owned(&nested_key)
+    ])
+    .is_err());
+    let case_alias = f.0.join("EXISTING-ACCOUNT");
+    if case_alias.is_dir() {
+        use std::os::unix::fs::MetadataExt;
+        let a = std::fs::metadata(&account_path).unwrap();
+        let b = std::fs::metadata(&case_alias).unwrap();
+        assert_eq!((a.dev(), a.ino()), (b.dev(), b.ino()));
+        let alias_probe = ExistingHomeReference::new(case_alias, HomeClass::Probe).unwrap();
+        assert!(validate_home_bindings(&[
+            HomeBinding::Existing(&account),
+            HomeBinding::Existing(&alias_probe)
+        ])
+        .is_err());
+    }
+    let foreign = f.0.join("foreign");
+    std::fs::create_dir(&foreign).unwrap();
+    std::fs::remove_dir(&account_path).unwrap();
+    symlink(&foreign, &account_path).unwrap();
+    assert!(account.inspect().is_err());
+    let key = f.plan("key", HomeClass::ApiKey, Some(sources));
+    assert!(
+        validate_home_bindings(&[HomeBinding::Existing(&account), HomeBinding::Owned(&key)])
+            .is_err()
+    );
+    assert_eq!(std::fs::read_dir(&foreign).unwrap().count(), 0);
+    assert!(std::fs::symlink_metadata(account_path)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+}

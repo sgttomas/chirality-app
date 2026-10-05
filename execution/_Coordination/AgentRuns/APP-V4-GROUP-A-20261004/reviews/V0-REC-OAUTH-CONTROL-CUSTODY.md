@@ -1,0 +1,32 @@
+# V0-REC-OAUTH-CONTROL-CUSTODY — actual recipient source concurrence
+
+2026-10-05. TASK `/root/group_a_execution/design_records_exec`, parent WORKING_ITEMS `/root/group_a_execution`; no delegation. **SOURCE-COMPATIBLE** for REC/RS recipient meaning at the exact adopted ACCESS266598/HOST9839/packet8efa pins below, whose owning independent source-byte review is READY. This is owning recipient source-fit concurrence, not a second independent OAuth implementation/native/auth qualification. Only this review written; no Design/product/schema/Cargo/Git/network/auth/model/browser/native/real-home operation or pending human choice.
+
+## Exact recipient consequence
+
+REC/HOST boundary separates native CLIENT request custody from the server-request register and REC's own pointer observations (§4.1/§7/§8). OAuth account/login/start and cancel are client methods: do not turn them into RQ person-answer/server-request settlements or invent a REC logical kind. Keep actual source/full H5/original typed RPC/mode reference and redacted availability; client custody remains HOST-owned. A non-capability App observation pointer can resolve source-reported status, not hydrate a private pending control, native loginId, presentation or Cancel authority. Cold/public/durable metadata never replays the operation.
+
+Accepted operational matching remains possible only through source-created PRIVATE pending custody installed after the valid matched typed start result under actual live full G/mode, BEFORE public projection/presentation. Fast matching completion is preserved in source order and suppresses stale presentation when already terminal; REC snapshot/event interleaving is not a global account/actor chronology. Native loginId/URL/code/control are never copied to REC ledger/journal/raw payload or reader diagnostics. Method/type/scoped pointers and explicit original-redacted/unavailable standing may be carried; they are not an unchanged original frame or a native admission fact.
+
+Matching completion is source-owned: absent/null ID is unavailable/unmatched, not “the App did not start it”; actual different ID has AR1 meaning only when compared with known PRIVATE pending ID under SAME full H5. No guessed mode/ID/from-account/history/public pointer match. Account read is its own observed state; null/absent account does NOT prove prior login canceled, stopped or terminal. It also does not substitute for matching completion or create a person's act. Existing actual canceled/notFound status remains faithfully reported without credential-store inspection or broader native-effect inference.
+
+Presentation dismissal only clears its bounded native URL/code buffer; while original source lives/pends, sole private Cancel control remains. Actual owning source/generation/control teardown loses capability and leaves safe pending/unavailable/unknown observations; it is not native cancel/logout/signed-out proof, turn/process/run end, history deletion, permission to replay or silent replacement sign-in. Native source closure facts and REC observation loss retain their original source/meaning; a window disappearing is observer loss, not cancellation. Person-directed fresh actions/reconciliation remain under ACCESS's actual source rules, never manufactured from cold JSON.
+
+RS actor/standing separation remains: OAuth completion/account success is not reserved/professional act evidence, grant, identity verification or workflow checkpoint satisfaction. Account identity supplied later for an independently captured act keeps its actual reported/unverified status; no credential/URL/code is copied. Host receipt/hash/origin references stay with their source; no new RS kind, persistence protocol, seal/default or adopted provider qualification is inferred.
+
+## Controls/readiness and limits
+
+Product recipients need actual controls for stale/foreign G/home/typed RPC/mode, absent/null/unmatched completion, early completion before presentation, dismissal retaining live Cancel, teardown/cold pointer no hydration/replay, native canceled/notFound versus unavailable and independent account-null. Require redaction BEFORE all exposed/durable/error/debug/accessor paths, including unexpected JSON keys/echoes; unsafe original material is explicitly unavailable, not silently fabricated. Preserve mandatory supplier frames/method/scoped facts and actual write/unknown status. No tests or native source execution performed by this source-concurrence author.
+
+These consequences fit REC pointer-only/no transcript/unknown outcome, H5 full namespace, observer-vs-source closure and RS no-act-from-operation rules. No actual accepted recipient promise conflict found. Native secure presentation/account operations and exact producer/consumer source-code review remain points of use; unrelated readable/account/API-key operations are not held by this source report. Logout assessment is separately READY by its own packet/review and needs the actual REC facade, not this OAuth control's metadata.
+
+## Actual compared source pins
+
+| Source | SHA-256 |
+|---|---|
+| `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md` | `26659864fd1b720d51bc5bf8038311238e9d6b1775f62a4e08fd2917dba4f9ec` |
+| `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md` | `9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85` |
+| `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-ACCESS-OAUTH-CONTROL-CUSTODY.md` | `8efa4401058a74d03cd57177699e463798cff5e78d123e7b8d5f6a7642fb36a4` |
+| `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-ACCESS-OAUTH-CONTROL-CUSTODY.md` | `0b40d528d87be936bf977f05391a4f575e464fc67833b0f7fdd995f56b275cd1` |
+| `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/EXECUTION_AND_RECOVERY.md` | `e78b9ead452b0a1adb20cf07493a1eccbd2ee651e68d4f75772c440a6a228056` |
+| `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md` | `15266b5078ad1878dae20dc1fa2ef93723d187ce18d5fe780bd1af75c00d5f41` |

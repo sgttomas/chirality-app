@@ -1,0 +1,21 @@
+{
+  "sourceRoot": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4",
+  "scope": "scratch consuming delta; no live apply, tests or native/auth action",
+  "files": [
+    {
+      "relativePath": "app/src-tauri/src/lib.rs",
+      "basisSha256": "3314c54ad82fa217010290051906670d543e43c03bd9d2c13618cc6a0e125609",
+      "editedSha256": "f5d5a55b1a8332d6e0ae17681029f9229432acc02b606bea6c5d00c4c7c388a7"
+    },
+    {
+      "relativePath": "app/src-tauri/src/runtime_session.rs",
+      "basisSha256": "c1692793fccfda500323b0270b0a751dc8f5e56c8a9c7450a4455a4089752cb0",
+      "editedSha256": "3f0f7317dba04ad0cbcef6aecfc2acb74342767fab2d24d11e69e250115f1c79"
+    },
+    {
+      "relativePath": "app/src/App.tsx",
+      "basisSha256": "0068fea81dd547b6d19dfa0fc638cd1de407d838cb33df3619bb59b312bcba82",
+      "editedSha256": "021571c21c72a47c2a4d15d37e8bdd73d4ceb213cd7de235c5da0110ace99b7a"
+    }
+  ]
+}

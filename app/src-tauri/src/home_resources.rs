@@ -61,6 +61,77 @@ pub struct OwnedHomePlan {
     class: HomeClass,
     shared: Option<SharedResourceTargets>,
 }
+/// Explicit receiving reference, not an App-data ownership or resource-setup claim.
+/// Existing account/probe references may live outside the new-home allocation root.
+#[derive(Clone, Debug)]
+pub struct ExistingHomeReference {
+    native_path: PathBuf,
+    class: HomeClass,
+}
+impl ExistingHomeReference {
+    pub fn new(native_path: PathBuf, class: HomeClass) -> Result<Self, String> {
+        if class == HomeClass::ApiKey {
+            return Err("API-key home requires the owning-home plan".into());
+        }
+        let reference = Self { native_path, class };
+        reference.check()?;
+        Ok(reference)
+    }
+    fn check(&self) -> Result<(), String> {
+        clean_absolute(&self.native_path)?;
+        storage::check_path(&self.native_path)?;
+        let metadata = std::fs::symlink_metadata(&self.native_path)
+            .map_err(|e| format!("explicit existing home unavailable: {e}"))?;
+        if !metadata.is_dir() {
+            return Err("explicit existing home is not a directory".into());
+        }
+        Ok(())
+    }
+    pub fn native_path(&self) -> &Path {
+        &self.native_path
+    }
+    pub fn class(&self) -> HomeClass {
+        self.class
+    }
+    pub fn opaque_home_id(&self) -> String {
+        path_home_id(&self.native_path)
+    }
+    /// No shared-resource or directory-ownership claim follows from receiving this reference.
+    pub fn inspect(&self) -> Result<HomeObservation, String> {
+        self.check()?;
+        Ok(HomeObservation {
+            class: self.class,
+            native_path: self.native_path.clone(),
+            opaque_home_id: self.opaque_home_id(),
+            resources: Vec::new(),
+        })
+    }
+}
+#[derive(Clone, Copy, Debug)]
+pub enum HomeBinding<'a> {
+    Owned(&'a OwnedHomePlan),
+    Existing(&'a ExistingHomeReference),
+}
+impl<'a> HomeBinding<'a> {
+    fn check(self) -> Result<(), String> {
+        match self {
+            Self::Owned(plan) => plan.check_owned_directory(),
+            Self::Existing(reference) => reference.check(),
+        }
+    }
+    pub fn native_path(self) -> &'a Path {
+        match self {
+            Self::Owned(plan) => plan.native_path(),
+            Self::Existing(reference) => reference.native_path(),
+        }
+    }
+}
+fn path_home_id(path: &Path) -> String {
+    format!(
+        "app-home:{:x}",
+        Sha256::digest(path.as_os_str().as_encoded_bytes())
+    )
+}
 fn clean_absolute(path: &Path) -> Result<(), String> {
     if !path.is_absolute()
         || path
@@ -166,10 +237,7 @@ impl OwnedHomePlan {
     }
     /// Existing HOST convention; class is not this opaque identity, and bytes are never lossy display.
     pub fn opaque_home_id(&self) -> String {
-        format!(
-            "app-home:{:x}",
-            Sha256::digest(self.home_path.as_os_str().as_encoded_bytes())
-        )
+        path_home_id(&self.home_path)
     }
     fn check_owned_directory(&self) -> Result<(), String> {
         storage::check_path(&self.home_path)?;
@@ -338,24 +406,29 @@ impl OwnedHomePlan {
 /// Root must revalidate the entire receiving set, including probe, at binding/setup.
 /// No persistent registry: observations do not exclude a later external directory replacement.
 pub fn validate_distinct_homes(homes: &[&OwnedHomePlan]) -> Result<(), String> {
+    let bindings: Vec<_> = homes.iter().map(|home| HomeBinding::Owned(home)).collect();
+    validate_home_bindings(&bindings)
+}
+/// Source receiving check across explicit existing and App-owned plans; no root coercion/registry.
+pub fn validate_home_bindings(homes: &[HomeBinding<'_>]) -> Result<(), String> {
     for (i, home) in homes.iter().enumerate() {
-        home.check_owned_directory()?;
+        home.check()?;
         for other in &homes[..i] {
-            if home.home_path.starts_with(&other.home_path)
-                || other.home_path.starts_with(&home.home_path)
-            {
-                return Err("owned homes overlap; no auth/state sharing".into());
+            let current = home.native_path();
+            let previous = other.native_path();
+            if current.starts_with(previous) || previous.starts_with(current) {
+                return Err("home bindings overlap; no auth/state sharing".into());
             }
-            // Include missing descendants of an actually existing aliased parent.
-            let a = observed_location(&home.home_path)?;
-            let b = observed_location(&other.home_path)?;
+            let a = observed_location(current)?;
+            let b = observed_location(previous)?;
             if a.starts_with(&b) || b.starts_with(&a) {
-                return Err("owned homes resolve to overlapping actual directories".into());
+                return Err("home bindings resolve to overlapping actual directories".into());
             }
         }
     }
     Ok(())
 }
+
 pub fn validate_distinct_account_homes(
     account: &OwnedHomePlan,
     key: &OwnedHomePlan,

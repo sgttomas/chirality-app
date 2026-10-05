@@ -14,6 +14,13 @@ impl TransientApiKey {
             value: value.into(),
         }
     }
+    // Only trusted Rust native-entry callback may construct production input.
+    // The callback/platform owns origin and field clearing; this is no proof.
+    pub(super) fn from_native_entry<F: FnOnce() -> Result<Option<String>, ()>>(
+        entry: F,
+    ) -> Result<Option<Self>, ()> {
+        entry().map(|value| value.map(|value| Self { value }))
+    }
     pub(crate) fn into_params(self) -> Value {
         json!({"type":"apiKey","apiKey":self.value})
     }
@@ -237,6 +244,16 @@ pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, 
                                 json!(REDACTED)
                             };
                         }
+                        if let Some(mode) = req.get("cliAuthCredentialsStore") {
+                            r["cliAuthCredentialsStore"] = match mode.as_str() {
+                                Some("file") => json!("file"),
+                                Some("keyring") => json!("keyring"),
+                                Some("auto") => json!("auto"),
+                                Some("ephemeral") => json!("ephemeral"),
+                                _ if mode.is_null() => Value::Null,
+                                _ => json!(REDACTED),
+                            };
+                        }
                         r
                     } else {
                         json!(REDACTED)
@@ -296,6 +313,10 @@ pub fn typed_observation(
         }
         "account/read" => {
             json!({"state":if result.get("account").is_none(){"account omitted; unknown/unavailable"}else if result["account"].is_null(){"native account null observed"}else{"native account type observed"},"account":result.get("account"),"requiresOpenaiAuth":result.get("requiresOpenaiAuth"),"identityVerified":false})
+        }
+        "configRequirements/read" => {
+            let mode = result["requirements"].get("cliAuthCredentialsStore");
+            json!({"state":if mode.is_none(){"credential-store requirement omitted; effective setting unknown"}else if mode==Some(&Value::Null){"credential-store requirement null; effective setting unknown"}else{"native credential-store requirement observed; effective setting requires its actual configuration source"},"nativeRequirementCredentialStore":mode,"credentialStoreRequirementPresent":mode.is_some(),"scope":"native requirement only; not effective configuration or credential custody witness","ephemeralMeaning":"when actually effective, sign-in ends with child lifetime","identityVerified":false})
         }
         "account/logout" => {
             json!({"state":"native acknowledgment only; no filesystem removal/history deletion or turn end inferred","identityVerified":false})
