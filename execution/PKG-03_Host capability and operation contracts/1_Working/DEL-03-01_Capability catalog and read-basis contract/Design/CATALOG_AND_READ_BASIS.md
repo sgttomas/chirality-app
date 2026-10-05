@@ -673,6 +673,26 @@ freezes the inspected basis at preview and keeps it at submit, which would
 retire the risk if merged and qualified; it is unmerged and deferred (ANS
 §3 item 5).
 
+### 5.5 App-owned identity choice and host custody (CC-CONTENT-IDENTITY)
+
+The bounded App producer uses `chirality.app.exact-bytes.sha256/v1` for App
+files and ROLE source/composed bytes: lowercase 64-hex SHA-256 of the exact
+stored or supplied byte sequence, no normalization/exclusion. App workflow
+package/draft identities use WD §6.1's distinct
+`chirality.app.workflow-package.sha256/v1` length-framed all-file method.
+These are App-observed identities for App-owned subjects. C's host read-level,
+subject/whole-model and P's host change-item identity/method stay exactly as
+host-supplied; **the App never mints them from host reads**. No host canonical
+serialization, revision scheme, method designation or one-effect mechanism
+is chosen by this App technical decision (TBD-003/U-C1, U-C2/U-C3).
+
+Method scope is part of comparison: equal method designations for the same
+bound subject/scope permit value comparison; different or absent methods
+remain unknown/incomparable as RS L-2 requires. App records/offer digests and
+UUID tokens are operational identifiers, not evidence of host content
+identity, authority, acceptance or one-effect. The SH-1 truncated sorted-JSON
+illustration remains an unqualified double assumption, not this selection.
+
 ## 6. Read results and standing (REQ-003, REQ-005; V4-HI-10/12; SOW-069, SOW-169)
 
 ### 6.1 Read result content
@@ -1444,7 +1464,7 @@ entries' exposure (exposed ×3 by FXA-1). Removed: none.
 | `UNRESOLVED{OI-013}` per-host loop placement (loop-side argument checking) | Shared contract owner with SWB implementation owner | Before shared/host implementation boundary | §8 row held as a question |
 | Host adoption of D2 list, D3 rule and R2 treatments | Host owner / SWBPIPE (DEP-001) | Before host conformance | Class values are App/shared; host adoption "not evidenced". SWBPIPE (SQ-05): no class system, no named reserved list; every change waits for the person's Apply; autonomy is SWBPIPE owner decision OI-016 |
 | Consequence vocabulary (DEL-04-01 U-02) | DEL-04-01 with host policy owner | Before class assignment for connected operations; before a consequence scope dimension is used | §3.1 consequence statement empty; T15 scope uses model/workspace + object set only; OP-C5 on S-4 under ⟨set-2⟩ held on U-02 |
-| U-C1 Serialization, content-identity algorithm, method-designation scheme, catalog/schema placement, adapter realization (TBD-003) | App/shared capability-contract owner with host/consumer owners (DEP-03-01-028) | Before dependent schema implementation/conformance | All element names semantic; identities opaque |
+| U-C1 Serialization, content-identity algorithm, method-designation scheme, catalog/schema placement, adapter realization (TBD-003) | App/shared capability-contract owner with host/consumer owners (DEP-03-01-028) | Before dependent schema implementation/conformance | CC-CONTENT-IDENTITY selects only bounded App byte/package identities (§5.5); host canonicalization/designation/one-effect remain unselected. All host identities remain opaque and faithfully carried |
 | U-C2 Host definition of generation; lapse/stale under generation change and restore | Host owner (DEP-03-01-025) with DEL-04-03 | Before basis conformance, lapse display criteria | Tg fixture only. SWBPIPE DRAFT #885: a new workspace id and generation on a published-project change; cross-workspace reuse rejected; archive restore not addressed (SQ-07 (b)) |
 | U-C3 Host confirmation of the per-item stale rule (R2-13 as amended by R8-3) and subject-identity scope (FXA-2/FXA-3 assumed in fixtures) | Host owner with DEL-03-02 / DEL-03-01 | Before stale behavior and lapse conformance | Contract rule fixed as INTEGRATION; R8-3 adds the host's stated scope where no subject identities are supplied. SWBPIPE answered: whole-model identity and whole-model staleness only (SQ-03, SQ-07 (d)); per-item host behavior unevidenced |
 | U-C4 Multi-read reliance: which cited bases must hold | Host owner with DEL-03-02 | Before stale implementation | §5.4 requires citing each. SWBPIPE: no multi-read reliance concept (SQ-07 (g)) |

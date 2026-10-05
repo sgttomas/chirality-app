@@ -3,7 +3,7 @@
   "stopRequestId": "stop:sess-1:2",
   "appSession": "sess-1",
   "home": "H-acct",
-  "generation": "sess-1/H-acct/g1",
+  "generation": "gen:v1:s:736573732d31:h:482d61636374:n:1",
   "threadId": "thr-ex-1",
   "turnId": "turn-ex-4",
   "cause": "person-interrupt",

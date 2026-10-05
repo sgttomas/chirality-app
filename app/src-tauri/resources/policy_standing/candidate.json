@@ -1,0 +1,42 @@
+[
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/src/act_policy.rs",
+    "sha256": "96a6d9d2b9a24ca1dcf17f05e62942fb44c2331531813b0f33c87e877ca7188b"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/src/standing.rs",
+    "sha256": "4d5e1d022562d5bf34c97306c99613026356a151905bcb904e1994fcab193ae9"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/tests/policy_standing.rs",
+    "sha256": "5b8f4dcd1521641a6c226adffd8ca467316809f884cc7fa61379ffb8ace257aa"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/ACT_POLICY_CLASS_RECORD.invalid.examples.json",
+    "sha256": "39af33974ba7253de85274b059d43ffd159f7f7629bfd42344ac06ab4e5b4a72"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/ACT_POLICY_CLASS_RECORD.valid.example.json",
+    "sha256": "160722582d424c89b9c8bddce1b7cf278030ec8d5634f1ace6b4f1da7fd12f8a"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/AS_SETTINGS_IN.invalid.examples.json",
+    "sha256": "8ae502e1639832c518036a4243818624c3a87842b7f771b894c163c53d721eb8"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/AS_SETTINGS_IN.valid.examples.json",
+    "sha256": "58b58c81da2faba99a10109465f1d338d3636bd3c528426f38bd70e9eab01acb"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/basis.json",
+    "sha256": "cc5977c9394a2840fbe2c6fcd26cfc5230a080d6ae3990fe579e343d05f59282"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/manifest.json",
+    "sha256": "c7f7f1c9ee384b5904a5c51491752d37fd57b3cc673dcfd9af7673cd7e82a640"
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/resources/policy_standing/test-output.txt",
+    "sha256": "fbc715bf309cc2648f510a2ece662f4d4597c52e0d356cb07e4bd32994cf09f6"
+  }
+]

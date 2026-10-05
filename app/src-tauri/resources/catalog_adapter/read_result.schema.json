@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:read-result",
+  "title": "Read result and non-success result (DEL-03-01 C-v0.8 §4.1, §5.1, §6.1-§6.4; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2). Property names are Chirality's semantic labels, not a host or supplier wire field. Identities are opaque strings; no hash or canonicalization algorithm is selected (TBD-003). Placement is open (OI-014).",
+  "type": "object",
+  "oneOf": [
+    {"$ref": "#/$defs/success"},
+    {"$ref": "#/$defs/non_success"}
+  ],
+  "$defs": {
+    "identity": {"type": "string", "minLength": 1},
+    "not_supplied": {
+      "description": "An element the read does not carry. 'host_declares_none': the host's basis profile (C §2.1) declares that it has no such element. 'omitted': the host declares the element but this read lacks it. Citation follows R13-1 (C §5.2 rule 1): a read whose only missing elements are workspace identity and/or generation, each marked 'host_declares_none' and declared not supplied in the host's basis profile (or in a documented host statement), may be cited, and the consumer records the evidence limit 'basis lineage not supplied'; comparisons across lineages then read unknown (incomparable). Any 'omitted' element, or any other element missing, leaves the read basis incomplete and not citable.",
+      "type": "object",
+      "required": ["not_supplied"],
+      "additionalProperties": false,
+      "properties": {"not_supplied": {"enum": ["host_declares_none", "omitted"]}}
+    },
+    "basis_value": {
+      "oneOf": [
+        {"$ref": "#/$defs/identity"},
+        {"$ref": "#/$defs/not_supplied"}
+      ]
+    },
+    "basis_descriptor": {
+      "description": "C §5.1: four elements plus the method designation of the content identity.",
+      "type": "object",
+      "required": ["workspace_identity", "generation", "model_revision", "canonical_content_identity", "identity_method"],
+      "additionalProperties": false,
+      "properties": {
+        "workspace_identity": {"$ref": "#/$defs/basis_value"},
+        "generation": {"$ref": "#/$defs/basis_value"},
+        "model_revision": {"$ref": "#/$defs/basis_value"},
+        "canonical_content_identity": {"$ref": "#/$defs/basis_value"},
+        "identity_method": {"$ref": "#/$defs/basis_value"}
+      }
+    },
+    "operation_ref": {
+      "type": "object",
+      "required": ["operation_identity", "operation_version"],
+      "additionalProperties": false,
+      "properties": {
+        "operation_identity": {"$ref": "#/$defs/identity"},
+        "operation_version": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "surface": {"enum": ["H", "E", "X"]},
+    "subject": {
+      "description": "C §5.3: a subject and its subject content identity with method designation. Under R8-4 a whole-model identity stands for every covered subject (scope 'whole_model').",
+      "type": "object",
+      "required": ["subject_identity", "subject_content_identity", "identity_method", "identity_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "subject_identity": {"$ref": "#/$defs/identity"},
+        "subject_content_identity": {"$ref": "#/$defs/basis_value"},
+        "identity_method": {"$ref": "#/$defs/basis_value"},
+        "identity_scope": {"enum": ["per_subject", "whole_model"]}
+      }
+    },
+    "column": {
+      "type": "object",
+      "required": ["column_identity", "meaning", "value_kind"],
+      "additionalProperties": false,
+      "properties": {
+        "column_identity": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "unit": {"type": ["string", "null"]},
+        "value_kind": {"enum": ["number", "text", "boolean", "identity", "enumeration"]}
+      }
+    },
+    "row": {
+      "type": "object",
+      "required": ["subject", "cells"],
+      "additionalProperties": false,
+      "properties": {
+        "subject": {"$ref": "#/$defs/subject"},
+        "cells": {"type": "object", "additionalProperties": {"type": ["string", "number", "boolean", "null"]}}
+      }
+    },
+    "table": {
+      "type": "object",
+      "required": ["table_identity", "meaning", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "table_identity": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "columns": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/column"}},
+        "rows": {"type": "array", "items": {"$ref": "#/$defs/row"}}
+      }
+    },
+    "result_value": {
+      "type": "object",
+      "required": ["result_identity", "meaning", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "result_identity": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "value": {"type": ["string", "number", "boolean"]},
+        "unit": {"type": ["string", "null"]},
+        "subject_identity": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "attachment": {
+      "type": "object",
+      "required": ["attaches_to", "reference"],
+      "additionalProperties": false,
+      "properties": {
+        "attaches_to": {"enum": ["read", "view", "table", "row", "cell", "result", "subject"]},
+        "reference": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "diagnostic": {
+      "description": "A host-stated diagnostic. Never an A3 finding and never a host check.",
+      "type": "object",
+      "required": ["diagnostic_identity", "severity", "statement", "attachments"],
+      "additionalProperties": false,
+      "properties": {
+        "diagnostic_identity": {"$ref": "#/$defs/identity"},
+        "severity": {"enum": ["information", "warning", "error"]},
+        "statement": {"type": "string", "minLength": 1},
+        "attachments": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/attachment"}}
+      }
+    },
+    "host_check": {
+      "description": "C §6.2: a named host check with the basis it was evaluated on. Only an entry that declares the check name (C §3.4 element 6 sub-element) may carry it.",
+      "type": "object",
+      "required": ["check_name", "verdict", "evaluated_basis"],
+      "additionalProperties": false,
+      "properties": {
+        "check_name": {"$ref": "#/$defs/identity"},
+        "verdict": {"enum": ["passed", "failed"]},
+        "evaluated_basis": {"$ref": "#/$defs/basis_descriptor"},
+        "exceedances": {"type": "array", "items": {"$ref": "#/$defs/attachment"}}
+      }
+    },
+    "finding": {
+      "description": "A3 findings, authored by the requester or an agent, never presented as a host check or A4.",
+      "type": "object",
+      "required": ["finding_identity", "author_kind", "statement", "attachments"],
+      "additionalProperties": false,
+      "properties": {
+        "finding_identity": {"$ref": "#/$defs/identity"},
+        "author_kind": {"enum": ["requester", "agent"]},
+        "statement": {"type": "string", "minLength": 1},
+        "attachments": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/attachment"}}
+      }
+    },
+    "act_evidence_ref": {
+      "description": "C §6.2 human-act evidence: a reference to a DEL-04-03 act record; the act field set is RS §6.1's and is not subset here (R10-3).",
+      "type": "object",
+      "required": ["act_record_reference", "act_kind", "lapse_state"],
+      "additionalProperties": false,
+      "properties": {
+        "act_record_reference": {"$ref": "#/$defs/identity"},
+        "act_kind": {"enum": ["A4", "A5", "A6", "A7", "A10", "A11", "A12", "A13"]},
+        "lapse_state": {"type": "string", "minLength": 1},
+        "subject_identity": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "standing": {
+      "type": "object",
+      "required": ["currency", "host_checks", "known_limitations", "human_act_evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "currency": {"enum": ["current", "historical"]},
+        "host_checks": {"type": "array", "items": {"$ref": "#/$defs/host_check"}},
+        "known_limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "human_act_evidence": {"type": "array", "items": {"$ref": "#/$defs/act_evidence_ref"}},
+        "agent_findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}}
+      }
+    },
+    "view": {
+      "type": "object",
+      "required": ["view_identity", "tables", "results", "diagnostics"],
+      "additionalProperties": false,
+      "properties": {
+        "view_identity": {"$ref": "#/$defs/identity"},
+        "basis": {"$ref": "#/$defs/basis_descriptor", "description": "Present only when the view does not share the read's basis (C §5.2 rule 5)."},
+        "tables": {"type": "array", "items": {"$ref": "#/$defs/table"}},
+        "results": {"type": "array", "items": {"$ref": "#/$defs/result_value"}},
+        "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}}
+      }
+    },
+    "success": {
+      "type": "object",
+      "required": ["outcome", "operation", "edition", "surface", "basis", "views", "standing"],
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {"const": "success"},
+        "operation": {"$ref": "#/$defs/operation_ref"},
+        "edition": {"$ref": "#/$defs/identity"},
+        "surface": {"$ref": "#/$defs/surface"},
+        "requested_basis": {"$ref": "#/$defs/basis_descriptor", "description": "Present only on a requested historical read (C §6.4)."},
+        "basis": {"$ref": "#/$defs/basis_descriptor"},
+        "views": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/view"}},
+        "standing": {"$ref": "#/$defs/standing"}
+      },
+      "if": {"required": ["requested_basis"]},
+      "then": {"properties": {"standing": {"properties": {"currency": {"const": "historical"}}}}}
+    },
+    "unavailable_reason": {
+      "type": "object",
+      "required": ["reason_identity", "reason_statement", "failed_precondition", "evaluated_basis"],
+      "additionalProperties": false,
+      "properties": {
+        "reason_identity": {"$ref": "#/$defs/identity"},
+        "reason_statement": {"type": "string", "minLength": 1},
+        "failed_precondition": {"$ref": "#/$defs/identity"},
+        "remedy": {"type": "string", "minLength": 1},
+        "evaluated_basis": {"$ref": "#/$defs/basis_descriptor"}
+      }
+    },
+    "governing_treatment": {
+      "type": "object",
+      "required": ["kind", "reference"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["policy_record", "checkpoint_constraint", "host_channel_rule"]},
+        "reference": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "declared_error": {
+      "type": "object",
+      "required": ["error_identity", "meaning", "effect"],
+      "additionalProperties": false,
+      "properties": {
+        "error_identity": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "effect": {"enum": ["none", "partial", "unknown"]}
+      }
+    },
+    "non_success": {
+      "description": "C §4.1: the five distinct non-success results. Never an empty success.",
+      "type": "object",
+      "required": ["outcome", "reporter"],
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {"enum": ["unavailable", "not_permitted", "channel_not_enabled", "not_exposed_on_this_surface", "error"]},
+        "reporter": {"enum": ["host", "app"]},
+        "operation": {"$ref": "#/$defs/operation_ref"},
+        "edition": {"$ref": "#/$defs/identity"},
+        "surface": {"$ref": "#/$defs/surface"},
+        "evaluated_basis": {"$ref": "#/$defs/basis_descriptor"},
+        "unavailable_reason": {"$ref": "#/$defs/unavailable_reason"},
+        "governing_treatment": {"$ref": "#/$defs/governing_treatment"},
+        "a8_offered": {"type": "boolean"},
+        "error": {"$ref": "#/$defs/declared_error"},
+        "channel_state": {"enum": ["disabled"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"outcome": {"const": "unavailable"}}},
+         "then": {"required": ["unavailable_reason", "operation"], "properties": {"reporter": {"const": "host"}}}},
+        {"if": {"properties": {"outcome": {"const": "not_permitted"}}},
+         "then": {"required": ["governing_treatment", "a8_offered", "operation"], "properties": {"reporter": {"const": "host"}}}},
+        {"if": {"properties": {"outcome": {"const": "error"}}},
+         "then": {"required": ["error", "operation"], "properties": {"reporter": {"const": "host"}}}},
+        {"if": {"properties": {"outcome": {"const": "not_exposed_on_this_surface"}}},
+         "then": {"required": ["operation", "surface"], "properties": {"reporter": {"const": "host"}}}},
+        {"if": {"properties": {"outcome": {"const": "channel_not_enabled"}}},
+         "then": {"required": ["channel_state"]}}
+      ]
+    }
+  }
+}

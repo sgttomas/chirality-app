@@ -261,8 +261,8 @@ where the declared part is carried (§3.5), its JSON representation with
 Chirality's own field names and a JSON Schema (§3.6), and the order in which
 a consumer reads it (§3.7), with consumer confirmation pending (U-01, U-02).
 It does not choose a host or supplier wire format, TypeScript or other
-language types, a parser implementation, a content-identity algorithm
-(U-03), a transport (MCP or CLI), persistence, process/thread placement or
+language types, a parser implementation, a host-native content-identity algorithm
+(the bounded App method is selected in §6.1 under U-03), a transport (MCP or CLI), persistence, process/thread placement or
 shared-component placement. It does not define
 catalog entries (DEL-03-01), act kinds or policy (DEL-04-01), proposal
 outcomes or the change request (DEL-03-02), record fields (DEL-04-03), the
@@ -1427,7 +1427,7 @@ root**, **name**, **revision**}, plus **derived-from** where applicable.
 | **origin** | *project*, *user*, *bundled* or *host* (S-D). "App-origin" is not an origin class. |
 | **source root** | Which library within the origin: the project root, the user's library, the App bundle and its release, or the host application and its library. Root `sourceRootId` meaning retained; values unselected. |
 | **name** | Package name, matching its folder. |
-| **revision** | Identity of the exact package content selected (all files in the package), with its identity method designation. Algorithm and multi-file canonicalization `UNRESOLVED` (U-03). A name plus origin without revision identifies a library slot, not selected content. |
+| **revision** | Identity of the exact package content selected (all files in the package), with its identity method designation. CC-CONTENT-IDENTITY selects the bounded App package method below; host methods remain explicitly carried (U-03). A name plus origin without revision identifies a library slot, not selected content. |
 | **derived-from** | For an adapted workflow: the full identity tuple of the workflow it was adapted from. Adaptation creates a new identity; it never edits the original's history. For a revision registered in the App, derived-from is the tuple of the workflow its draft was made from (its draft base), or none (WR-v0.2 ID-1, SP-6). The slot's prior revision is not a derived-from link: the registration act names it, with the reviewed draft content (R17-11; K-6). |
 
 **Revision: file set and canonicalization (PROPOSED at v0.8; the semantic
@@ -1445,10 +1445,54 @@ part of U-03).**
 - **RV-4** Each file is identified by its path relative to the package
   folder, with `/` separators, in UTF-8, and the files are ordered by those
   bytes.
-- **RV-5** Empty folders are not part of the revision. The digest algorithm,
-  its framing and its identity method designation stay open (U-03, with
-  DEL-04-03 and HOSTING U-08). The prototype's `proto-sha256-list-0` is an
-  illustration, not a selection.
+- **RV-5** Empty folders are not part of the revision. CC-CONTENT-IDENTITY
+  selects the App method, framing and designation below; the old
+  `proto-sha256-list-0` result is historical illustration and incomparable
+  to the new method. Host-native methods remain with their owners.
+
+**CC-CONTENT-IDENTITY App package method (proposed technical selection).**
+Method designation `chirality.app.workflow-package.sha256/v1`; value is the
+64-character lowercase hexadecimal SHA-256 digest of this byte stream:
+
+1. ASCII `chirality.app.workflow-package.sha256/v1` followed by one NUL byte.
+2. Number of files as unsigned 64-bit big-endian integer.
+3. For each RV-4-ordered file: unsigned 64-bit big-endian UTF-8 path byte
+   length, the relative path bytes, unsigned 64-bit big-endian content byte
+   length, and the exact RV-3 stored content bytes.
+
+No newline delimiter or ambiguous concatenation; no JSON reserialization,
+Unicode/case/line-ending/whitespace normalization, timestamps, permissions,
+absolute paths or empty directories enter the digest. All regular files
+enter; **no excluded bytes/files**. Directory containers are traversed;
+symlink/non-regular entries (including a symlink root), unreadable files or
+paths not strictly representable in UTF-8 make identity not established.
+Paths retain spelling with `/` separators and no invented aliases. The
+identity is computed over a captured package snapshot; WR RB-1…RB-4 must
+still detect live-copy/review/registration drift. A hash is not proof of an
+atomic filesystem read, a human act, or safe/readable package semantics.
+
+A recoverable file manifest carries ordered relative path, byte length and
+per-file exact-byte digest with method
+`chirality.app.exact-bytes.sha256/v1`. The package digest above hashes raw
+file bytes, **not** the manifest's JSON spelling or truncated file digests.
+The manifest/digest record lives outside the identified package; if an author
+puts metadata, `.DS_Store`, a carriage manifest or any other regular file
+inside it, its bytes are included under RV-1 (no self-exclusion). EXEC TR-4's
+carriage manifest stays a separate convenience preserving source tuple,
+package identity/method, declaration version, tool/checkpoint summary,
+compatibility reference, exporter, time and transfer identity; it never
+replaces or enters a package unless actually stored inside its tree.
+
+Draft folder content and the registered package use this same method (WR
+ID-2), so equal reviewed bytes/path sets produce equal identities. Source
+root/name/origin remain separate tuple elements: moving an unchanged tree to
+another root does not alter package content identity or erase origin.
+Transfer/adaptation preserves the original method/value; a host selects and
+supplies its own method, or explicitly adopts this one. Different method
+strings remain incomparable; no global algorithm mandate. RS record UUIDs,
+capture IDs, transfer IDs and offer/test digests are not these identities.
+HOSTING/ROLE composition and App-file byte identities use the separate
+exact-byte method, never the package method on a guidance string.
 
 A consequence: operating-system files left in a package folder (for example
 `.DS_Store`) change the revision. Registration in the App refuses them,
@@ -1693,7 +1737,7 @@ represented as agreed (AC-005).
 |---|---|---|---|---|
 | U-01 | Physical carriage of the declared part | DEL-02-01, with consumer confirmation | Consumer confirmation at the next comparison (V18) | **PROPOSED at v0.8** (§3.5): one fenced block `workflow-declaration` in `WORKFLOW.md`, holding JSON; the options are weighed there. The prototype renders and reads E1, E1d, E5 and E6 in it (§13.1). DEL-02-03, DEL-05-01 and DEL-05-02 confirm or object; until then it is not settled. |
 | U-02 | Field names, value encodings, schema language | DEL-02-01 with consumers | As U-01 | **PROPOSED at v0.8** (§3.6): JSON, snake_case members, JSON Schema 2020-12 (`workflow-declaration.schema.json`). Values owned by C (operation identity, version) and P (outcome names) follow their owners; the outcome tokens are P-v0.8's `item_state` spellings (R14-6). The identity tuple is `$defs/workflow_identity` (§3.6). |
-| U-03 | Revision algorithm, framing and method designation | DEL-02-01 with DEL-04-03 (and HOSTING U-08) | Before revision comparison claims | Meaning defined, with identity method designation. The file set and canonicalization are stated at v0.8 (§6.1 RV-1…RV-5); with the algorithm open, comparison is untestable except by the prototype's illustration. |
+| U-03 | Revision algorithm, framing and method designation | DEL-02-01 with DEL-04-03 (and HOSTING U-08) | Before revision comparison claims | CC-CONTENT-IDENTITY selects the App-only method/framing in §6.1; fresh independent review/consumer propagation required. Host-native identity methods and HOSTING's wider U-08 stay unselected; historical illustration is not silently upgraded. |
 | U-05 | Operation-specific reserved additions: `UNRESOLVED{OI-021}` | Owner via outside SWB session with App/shared owner | Before connected-activity SoW | D2 list applies; additions not assumed. |
 | U-05b | Host capture-evidence reference per act kind (relay question, R2-20) | SWBPIPE owner decision (PB-TBD-002; DEL-16-03 actor identity; ANS §2) | Before host act-recording integration | Without it no host-content checkpoint can be *performed* (I-5). SQ-01 answered: no durable reference; no person identity or time, even in DRAFT #885. |
 | U-05c | *Closed (DECISION-K1 K1-3, 2026-09-30).* Multi-row A4 purpose after partial lapse | The owner (decided; was DEL-04-01 with Owner, DEL-04-01 U-03, carried to C1) | — | **Settled.** An act on the lapsed referents alone answers the checkpoint together with the earlier act for the unchanged referents; each cites its items (I-4 joint answer; EXEC §4.7 JA-1). EXEC CH-8 released. |
@@ -1792,7 +1836,7 @@ before the case can be run.
 | VC-53 A6 checkpoint | VER-003 (AC-003) | WD-EX E1e `CP-approve`; E2b R-18 | Performed only on A6 evidence from its capturing surface, bound to the current file content; agent text, an A4 or a decline never performs it; a rewrite of the file lapses it. App capture AWAITING INPUT (the act control, DEL-01-04: AAC-v0.2 §4.1, designed, not built). |
 | VC-54 A7 checkpoint | VER-003 (AC-003) | WD-EX E1e `CP-rely`; E2b R-19 | Performed only by A7 of the accountable professional; another actor, an A6 or agent text never performs it; an earlier A7 on unchanged rows counts (I-8). |
 | VC-55 Input kinds | VER-002 | WD-EX E1e | `design-criteria` (file supplied) and `review-findings` (the output `findings` of E1b's workflow) read with their sources (§4.1). |
-| VC-56 Revision file set | VER-004 | WD-EX E1 rendered as a package | RV-1…RV-5: stable over re-reads; any byte change changes it; a symbolic link makes it not established. The digest is an illustration (U-03). |
+| VC-56 Revision file set | VER-004 | WD-EX E1 rendered as a package | RV-1…RV-5: stable over re-reads; any byte change changes it; a symbolic link makes it not established. The current App digest follows CC-CONTENT-IDENTITY; historical illustration is retained as its earlier evidence (U-03). |
 
 Limit: passing these later would show local contract/fixture conformance
 only. It would not establish host implementation, round-trip execution,

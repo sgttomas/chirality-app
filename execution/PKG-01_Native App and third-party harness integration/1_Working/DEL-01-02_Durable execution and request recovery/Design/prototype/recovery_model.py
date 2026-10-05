@@ -148,6 +148,9 @@ class Ledger:
             return [json.loads(line) for line in f if line.strip()]
 
 
+from generation_ref import generation_ref
+
+
 class AppSession:
     """One run of the App process. `stores` maps each App-owned home to
     Codex's on-disk history in that home (sessions live under each
@@ -331,7 +334,7 @@ class AppSession:
     def start_supplier(self, home=DEFAULT_HOME):
         h = self._home(home)
         h["gn"] += 1
-        h["g"] = "%s/%s/g%d" % (self.session, home, h["gn"])   # {App session, App home, spawn counter}
+        h["g"] = generation_ref(self.session, home, h["gn"])   # {App session, App home, spawn counter}
         self.journal[h["g"]] = []
         store = self.stores.setdefault(home, Store())
         h["supplier"] = SupplierProcess(store, lambda g, f, home=home: self._sink(home, g, f), self.variant, h["g"])
@@ -479,11 +482,14 @@ class AppSession:
             self._index(tid)
         elif m == "serverRequest/resolved":
             e = self.register.get(p["requestId"])
-            if e and e["g"] == self.g(home):
+            if e and e["g"] == self.g(home) and e["g"] not in self.closed_gens:
                 if e["state"] == "listed":
                     e["endedAs"] = "resolved-by-supplier"
                     self._close_entry(e, "RQ-03")
-                elif e["state"] == "closed" and e.get("replyWrite") == "written" and e.get("ack") != "observed":
+                elif e["state"] == "closed" and e.get("replyWrite") == "written" and e.get("ack") != "observed" and (
+                        e.get("endedAs") in ("answered", "declined") or
+                        e.get("endedAs") == "errored" and e.get("laterProtocolError")):
+                    # RT-12/13 existing answer/decline; RT-15 only RT-14 later error.
                     e["ack"] = "observed"
                     self._t("RQ-09", "closed", e["requestIdentity"])
                     self._summary(e, "RQ-09")
@@ -563,6 +569,32 @@ class AppSession:
     def _close_entry(self, e, tid):
         e["state"] = self._t(tid, e["state"], e["requestIdentity"])
         self._summary(e, tid)
+
+    def protocol_error(self, rid, error, origin):
+        """CC-REC-RT-LINK: stand-in boundary RT-14/RT-09 result for R9 later error.
+        Not a second production error authority or human content answer.
+        """
+        e = self.register.get(rid)
+        if e is None:
+            return "refused: no-such-request"
+        if e["g"] != self.g(e["home"]) or e["g"] in self.closed_gens:
+            return "refused: generation-closed"
+        if e.get("endedAs") == "resolved-by-supplier":
+            return "refused: already-resolved"
+        if e["state"] != "listed":
+            return "refused: already-settled"
+        if FAMILIAR_REQUESTS.get(e["method"]) != "person-input" or not (
+                origin == "app-explicit-error" or origin.startswith("app-rule:") and len(origin) > len("app-rule:")):
+            return "refused: origin-not-permitted"
+        if not isinstance(error, dict) or not isinstance(error.get("code"), int) or isinstance(error["code"], bool) or not isinstance(error.get("message"), str):
+            return "refused: invalid-answer"
+        ok = self._write(e["home"], {"id": rid, "error": error})
+        e["origin"], e["replyWrite"] = origin, ("written" if ok else "write-failed")
+        e["endedAs"] = "errored" if ok else "settle-write-failed"
+        e["laterProtocolError"] = True  # identifies RT-14 branch for RT-15, never receipt RT-02/03
+        self._close_entry(e, "RQ-03")
+        self._drain()
+        return "accepted-for-write"
 
     def answer(self, rid, decision, origin="person-via-interaction"):
         """Stand-in for HOSTING §6.4 answer (DEL-01-04 calls DEL-01-01 directly)."""
@@ -785,7 +817,7 @@ class AppSession:
                 self._close_entry(e, "RQ-04")
                 self._event("request_ended_unanswered", entry=self._entry_ref(e), context=cause)
             elif e["state"] == "closed" and e.get("replyWrite") == "written" and e.get("ack") != "observed" \
-                    and e.get("endedAs") in ("answered", "declined"):
+                    and (e.get("endedAs") in ("answered", "declined") or e.get("endedAs") == "errored" and e.get("laterProtocolError")):
                 e["ack"] = "not-observed"
                 self._t("RQ-05", "closed", e["requestIdentity"])
                 self._summary(e, "RQ-05")

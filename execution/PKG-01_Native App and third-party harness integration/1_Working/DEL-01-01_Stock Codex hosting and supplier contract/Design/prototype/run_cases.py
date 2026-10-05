@@ -557,6 +557,13 @@ def cc_h_cases():
     finish(mismatch)
 
 
+def late_protocol_errors():
+    import check_later_protocol_error as late
+    ok = late.main() == 0
+    RT_USED.update(late.EXERCISED)
+    result("CC-H-RT-LATE", ok, "RT14/15 written error and acknowledgment, failure/refusal/H5 and unchanged receipt cases")
+
+
 def coverage():
     lt = sorted(set(BM.TRANSITIONS) - LT_USED)
     rt = sorted(set(BM.REGISTER_TRANSITIONS) - RT_USED)
@@ -759,6 +766,7 @@ def main():
             result(fn.__name__, False, "exception: %r" % exc)
     cc_h_identity_answers()
     cc_h_cases()
+    late_protocol_errors()
     coverage()
     schema_checks()
     double_conformance()

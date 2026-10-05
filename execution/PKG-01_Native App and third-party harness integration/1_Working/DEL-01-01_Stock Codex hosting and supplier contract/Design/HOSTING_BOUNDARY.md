@@ -802,7 +802,7 @@ confirmation:
 ```text
 received ─┬─(unfamiliar)──────────────► errored(explicit error written | write-failed)
           ├─(known-app-unsupported)───► errored / declined (explicit, per kind, named rule)
-          └─(known-answerable)─► outstanding ─┬─ answer ─► settling ─► answered | declined
+          └─(known-answerable)─► outstanding ─┬─ answer/error ─► settling ─► answered | declined | errored
                                               │                    └─► settle-write-failed (outcome unknown)
                                               ├─ supplier-reported resolution ─► resolved-by-supplier
                                               └─ generation closed ─► ended-unanswered(process-exit)
@@ -843,6 +843,9 @@ Each entry is one record of `hosting.server-request-entry.schema.json`
 | RT-11 | `outstanding` | generation-closed | exit, handshake failure or stop (§4.3, §4.5) | `ended-unanswered` | end cause `process-exit` |
 | RT-12 | `answered` | supplier-reported-resolution | after the written reply | `answered` | acknowledgment observation `observed(serverRequest/resolved after the written reply)` |
 | RT-13 | `declined` | supplier-reported-resolution | after the written reply | `declined` | as RT-12 |
+| RT-14 | `settling` | reply-written-protocol-error | later error of an outstanding `known-answerable` request, accepted through R9/§6.4, valid explicit boundary origin or nonempty named App rule; error frame write succeeded | `errored` | native error and exact origin; reply write result `written`; acknowledgment initially `not-observed`; no human-act record |
+| RT-15 | `errored` | supplier-reported-resolution | RT-14 later-error branch only; successful reply write; subsequent `serverRequest/resolved` matching full H5 generation and request before generation closure | `errored` | acknowledgment observation `observed(serverRequest/resolved after the written reply)`; no new settlement/act |
+
 
 **Order of the refusal reasons (PROPOSED; U-26).** When several apply, the
 first in this order is returned: `no-such-request`, `generation-closed`,
@@ -956,10 +959,31 @@ DM-1) and the turn outcome's cause DEL-01-02's (R18-1 C-13).
 |---|---|---|
 | observe entries (current + changes, from a position) | DEL-01-02, DEL-01-04 | Entries and state changes in order |
 | list outstanding (by generation / thread) | DEL-01-02, DEL-01-04 | Current outstanding entries |
-| answer (request identity, native answer, origin, actor ref) | DEL-01-04 (person path, any valid form); named App rules per R9 (decline/error only for A14 and person-input kinds; content answers only for named service kinds such as `currentTime/read`) | `accepted-for-write` → `answered`/`declined`/`settle-write-failed`; or refusal with reason (R4/R5); an App-rule affirmative or content answer to an A14 or person-input kind is refused `origin-not-permitted` (R9) |
-| explicit error (request identity, reason) | boundary (R2), named App rules | `errored` |
+| answer (request identity, native answer, origin, actor ref) | DEL-01-04 (person path, any valid form); named App rules per R9 (decline/error only for A14 and person-input kinds; content answers only for named service kinds such as `currentTime/read`) | `accepted-for-write` → `answered`/`declined`/`errored` (later RT-14 error)/`settle-write-failed`; or refusal with reason (R4/R5); an App-rule affirmative or content answer to an A14 or person-input kind is refused `origin-not-permitted` (R9) |
+| explicit error (request identity, native error, exact origin, full generation) | boundary (R2), named App rules under R9; never person/agent origin | Receipt-time classification remains RT-02/RT-03; for a listed outstanding known-answerable request, accepted through RT-06 then RT-14 `errored` only if written, or RT-09 `settle-write-failed`/unknown if write failed; refusal leaves prior state unchanged |
 | (v0.8) refusal order | — | When several refusal reasons apply, §6.2.1 fixes which one is returned (PROPOSED; U-26) |
 | read settlement and acknowledgment observation | DEL-01-02 (custody of in-flight requests; RECOVERY-v0.2 §3.5 RQ, §7); DEL-04-03 (evidence, supplied to it directly: R9-7; S-7) | Settlement, write result, acknowledgment observation |
+
+**CC-H-RT-LATE exact receiving join (2026-10-05; proposed technical repair).**
+R9 already permits a later named App-rule/boundary protocol error; RT-14
+makes its successful write distinct from receipt classification. The boundary
+validates request/full H5 namespace, state, origin and native error before
+RT-06; refused origin, empty rule name, invalid error, stale generation or
+settled request writes nothing and leaves prior state unchanged. No arbitrary
+person/agent-origin error authority is introduced. Record native error and
+exact origin unchanged; written error is not the person's content answer,
+reserved act, checkpoint satisfaction or `human_act`.
+
+RECOVERY RQ-03 receives RT-14 (listed request, later error: closed/errored/
+written) or RT-09 (closed/settle-write-failed/write-failed, outcome unknown),
+not RQ-08. RT-15 supplies its subsequent acknowledgment to RQ-09. RT-15
+never acknowledges a failed write, RT-02/RT-03 receipt error, wrong generation
+or a closed generation. A written later error with no observed acknowledgment
+at generation closure reaches RECOVERY RQ-05 `acknowledgment_not_observed`;
+this is custody evidence, not a new successful settlement. RT-02/RT-03 and
+RECOVERY RQ-08 keep their receipt-time behavior. RT-12/RT-13 keep existing
+answer/decline guards. Existing server-entry schema admits errored error
+settlements and failed writes; no shape/id change needed.
 
 ### 6.5 Split with DEL-01-02 (reconciled at v0.9)
 

@@ -5,7 +5,7 @@ The CI-1…CI-9 reports below retain the original walking-skeleton findings from
 current path through named reviewed Design changes and tested code. Native
 qualification and later Group A consumers remain separate obligations.
 
-| Issue | Current P0 disposition and evidence |
+| Issue | Current disposition and evidence |
 |---|---|
 | CI-1 | CC-R declared-ID references adopted; Rust embedded registry and Node canonical-schema checks pass without rewriting refs. |
 | CI-2 | CC-H/SUP1 full hosting generation adopted; NIR and NPTD definitions/prototypes reviewed. Current host records and cross-generation negatives pass. Standalone NPTD cross-home consumers remain named next-slice work. |
@@ -16,10 +16,12 @@ qualification and later Group A consumers remain separate obligations.
 | CI-7 | CC-H LT-24 unverified development route implemented. Hash alone never qualifies; known version/content contradictions refuse, preserving frames and metadata. |
 | CI-8 | Expected thread-start model contact is disclosed with its observation limits; explicit model/provider selection preserves Codex configuration. No new product network default selected. |
 | CI-9 | Approved jsonschema 0.58.5 runtime gate validates complete entries before append, with offline declared-ID resolution and refusal/no-mutation tests. |
+| CI-10 | Fail-closed native-origin repair is reviewed; trustworthy persistent replay still requires the retained SEAL-2 custody choice and evidence. |
+| CI-11 | Native userVerification positive acceptance remains unsupplied; published proof mapping is known, but truthful-client supplier route and exact backend binding are prerequisites. |
 
 Canonical review and command evidence lives in this run's `changes/`,
 `reviews/` and `validation/`. The Group A work graph carries incomplete
-consumer/native/qualification work. CI-10 below remains an open custody issue.
+consumer/native/qualification work. CI-10 custody and CI-11 native supplier receiving remain open below.
 
 ## CI-1 RS schema: relative `$ref` under a URN `$id`
 
@@ -198,3 +200,11 @@ consumer/native/qualification work. CI-10 below remains an open custody issue.
 - **Found:** schema-valid matching pending and capture files in the writable project store can trigger `decision_view` to append a new `human_act`; inputSource text alone does not establish a native event. A file-drop/watch-folder route cannot create a person's act.
 - **Disposition:** required fail-closed repair and named AAC/RS prerequisite clarification CC-CUST-A/CC-CUST-R: trusted hot-process original capture may retry; an existing valid matching RS entry may repair its backlink without upgrading provenance; cold unverified files retain facts and a visible limit, with no new human_act. Fail-closed repair and source/code backchecks passed (V0-CUST, V1-ACT-R2).
 - **Unfinished required work:** trustworthy persistent replay and protected capture-origin proof remain in Group A I3. SEAL-2 selection requires the human App implementation owner's concrete decision; CAPTURE_CUSTODY_DECISION.md is preparation, not acceptance. Packaging/signing qualification stays with Group B at its actual point of need; moving the obligation does not complete it.
+
+## CI-11 Native userVerification receiving route is not supplied
+
+- **Observed source assessment:** 2026-10-05, stock Codex 0.160.0; [availability and NIR consequence packet](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/NATIVE_USER_VERIFICATION_AVAILABILITY.md). This is a separate discovery; CI-1…CI-10 history remains unchanged.
+- **Where:** NIR §4.1 known-answerable/person-input mode and FO-6 positive acceptance; pinned supplier initialization capability advertisement and documented proof handoff.
+- **Found:** published documentation supplies direct native proof in elicitation content, but the inspected advertisement predicate requires experimental API, supported hardware and codex-tui or exact local `Codex Desktop`. The App truthfully identifies as `chirality-app-v4`. This is source-derived capability advertisement evidence, not an observed or global claim that every verification primitive is unavailable. The inspected pages describe backend enrollment sequence but do not supply the exact backend endpoint contract.
+- **Current handling:** native acceptance without proof is explicitly unsupported; decline/cancel remain available. Truthful negotiated handling can conform while unavailable, but it does not complete the promised positive acceptance path. No spoofed client name, patched supplier, gated invocation or scope narrowing is adopted.
+- **Unfinished required work:** a documented stock-supplier receiving route for Chirality's truthful identity, exact enrollment/verifier binding and appropriate native success/rejection witnesses. Group A I1-UV retains the obligation. Continuing a disclosed increment does not close it; removing it needs an owning scope disposition. Native verification is separate from P3 per-act presence and SEAL-2 capture provenance.

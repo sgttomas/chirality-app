@@ -38,8 +38,10 @@ qualification.
    `HOSTING_BOUNDARY.md` from the working tree, read only.
 7. **Revision file set (WD §6.1 RV-1…RV-5).** The file set and
    canonicalization give a stable value, change with any byte, and refuse a
-   symbolic link. The digest `proto-sha256-list-0` is an illustration only;
-   the algorithm stays open (U-03).
+   symbolic link. CC-CONTENT-IDENTITY selects the bounded App
+   package method `chirality.app.workflow-package.sha256/v1`; historical
+   proto-sha256-list-0 values are not silently upgraded. Run
+   `python3 content_identity_cases.py` for framing/byte/path and refusal checks.
 
 It does not show a run: no checkpoint arrival, act, disposition or harness
 capability presence is evaluated (those need EXEC's and LOOP's test doubles).
@@ -48,7 +50,7 @@ capability presence is evaluated (those need EXEC's and LOOP's test doubles).
 
 | File | Role |
 |---|---|
-| `wdproto.py` | Validator (JSON Schema subset), extractor, renderer, reader, revision illustration, self-test |
+| `wdproto.py` | Validator (JSON Schema subset), extractor, renderer, reader, selected App package method, self-test |
 | `extract.mjs` | Second, independent extractor (node standard library) |
 | `fixtures/E1.prose.md`, `E1d.prose.md`, `E1e.prose.md` | Front matter and prose of the fixture packages (the declared part is appended by `render`) |
 | `fixtures/E1b.declaration.json`, `E1d.declaration.json`, `E1e.declaration.json` | Declared parts (E1's is `../workflow-declaration.valid.example.json`) |

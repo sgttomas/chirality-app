@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-05",
+  "scope": "structural comparison of existing captured provider input; original probe verdict preserved",
+  "removed_exact_app_segments": [
+    {
+      "row": 2,
+      "part": 0,
+      "role": "developer",
+      "bytes": 4856,
+      "sha256": "ad560fe79f9552fef1042dd613a0274ca87babd7165bc1ecd0a278a3ada98343"
+    }
+  ],
+  "excluded_fields": "only top-level input-row id fields; no text normalization or content-field exclusions",
+  "all_remaining_input_equal": true,
+  "baseline_input_rows": 7,
+  "active_input_rows": 7,
+  "limits": [
+    "This comparison alone does not identify a particular segment as supplier base",
+    "No model response, behavioral adoption or native App journey established",
+    "Raw captured payloads remain machine-local"
+  ],
+  "input_row_ids_equal_before_exclusion": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "provider_setting_equal": {
+    "model": true,
+    "reasoning": true,
+    "parallel_tool_calls": true,
+    "tool_choice": true,
+    "include": true,
+    "store": true,
+    "stream": true,
+    "text": true
+  },
+  "source_files_unchanged": true
+}

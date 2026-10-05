@@ -2,8 +2,9 @@
 
 Run `APP-V4-GROUP-A-20261004` repairs and extends the walking skeleton from
 `APP-V4-GRAPH-CLOSURE-20261004`. The current path hosts stock Codex 0.160.0,
-records decision packages, confirms A16 through the host-native control, and
-reads recorded decisions with their limits. Group A development remains active;
+supplies reviewed v4 common/role guidance, receives native requests and activity,
+loads external observations, records decision packages, confirms A16 through the
+host-native control, and reads recorded decisions with their limits. Group A development remains active;
 packaging, supplier qualification and the owner's stage gate are separate work.
 
 Tests use the maintained invented `tests/fixtures/FX-DP1` content. Native
@@ -14,10 +15,12 @@ performed an act.
 
 1. The Rust host starts the stock App Server, completes its handshake and keeps
    native frames with full `{appSession, home, spawnCounter}` generation identity.
-2. The person explicitly enters a model and a configured Codex provider for a
-   new thread. Codex retains its own configuration and permissions. The view
+2. The person chooses a primary role (or none) and explicitly enters a model
+   and a configured Codex provider for a new thread. Codex retains its own configuration and permissions. The view
    discloses expected model contact at thread start, before a turn; it does not
-   represent that notice as measured socket traffic.
+   represent that notice as measured socket traffic. Reviewed v4 guidance seeds
+   an editable App instruction copy without overwriting edits; new conversations
+   read current bytes. Native child roles remain not supplied.
 3. The recorder validates package files, records source-faithful requests and
    separately states when the requester identity is unestablished.
 4. The host freezes the chosen alternative and all its consequences before
@@ -32,11 +35,28 @@ performed an act.
    files cannot create a new human act; existing recorded claims keep provenance
    limits when a backlink is repaired.
 
+7. Native request controls keep the full generation and source identity; question
+   answers may be partial, form aliases validate their content, and changed
+   confirmation context refuses. User-verification acceptance remains unsupported
+   under CI-11. Ended/replaced observations keep explicit checklist/history limits.
+8. The person can select catalog/read JSON and an optional counterpart through
+   native selectors. Rust retains exact bytes in memory; the panel shows complete
+   reported content, unverified host origin and comparison/path-display limits.
+9. Current native threads accept unchanged text input; live turns can receive an
+   explicit interrupt request. Native acknowledgment is separate from turn end or
+   rollback. Contradictory late starts cannot revive a completed tuple.
+10. An App-owned pointer-only recovery ledger initializes before supplier startup
+   at the App user-data `runtime/recovery.ledger.jsonl` path. Initialization errors
+   remain visible without blocking native protocol processing or relocating data.
+
 ## Modules
 
 | Module | Contribution |
 |---|---|
 | `src-tauri/src/hosting.rs` | HOSTING/ACCESS lifecycle, generation, request correlation, ordered native journal, development verification and network disclosure; reviewed 0.160.0 protocol resources in `resources/supplier/` |
+| `native_requests.rs`, `recovery.rs`, `native_items.rs`, `access.rs` | Typed native request custody, pointer ledger, scoped live/ended activity and reported account/destination observations |
+| `role_supply.rs`, `runtime_session.rs`, `resources/instructions/` | Reviewed v4 defaults, fixed composition bytes, seeding and generation-bound receiving/startup; supplier/model adoption remains a separate warrant |
+| `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
 | `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
 | `src-tauri/src/storage.rs` | Selected project/run/writer and library paths, legacy discovery, atomic capture persistence and locking |
@@ -122,9 +142,13 @@ Unwritable or incomplete targets report limits without silent relocation.
 
 Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, supplier-request
-register/restart/observer replay, per-home shared configuration linking, other
-act kinds, workflow/role supply, policy/standing and catalog/adapter receiving
-remain in the Group A graph. Host joins stay deferred to their owning sessions.
+Native authenticity, real process-kill/fsync failure witnesses, durable history
+rebuild/resume, role lifecycle/child supply, per-home configuration linking, other
+act kinds and actual policy/standing control/reader joins remain in the Group A
+graph. Full workflow parsing awaits the exact CommonMark dependency decision;
+the handwritten subset is not production-complete. External dispatch and host
+qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+retain generation/terminal limits. Transport and receiving tests do not prove a
+provider prediction; physical App/provider smoke remains a separate witness. Host joins stay deferred to their owning sessions.
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.

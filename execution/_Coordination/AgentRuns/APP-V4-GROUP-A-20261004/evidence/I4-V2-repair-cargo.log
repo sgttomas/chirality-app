@@ -1,0 +1,227 @@
+warning: struct `RecordValidator` is never constructed
+  --> tests/../src/schema_validation.rs:64:12
+   |
+64 | pub struct RecordValidator(Validator);
+   |            ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `from_resources` and `validate` are never used
+  --> tests/../src/schema_validation.rs:68:12
+   |
+65 | impl RecordValidator {
+   | -------------------- associated items in this implementation
+...
+68 |     pub fn from_resources(resources: &[(&str, &str)]) -> Result<Self, String> {
+   |            ^^^^^^^^^^^^^^
+...
+73 |     pub fn validate(&self, entry: &Value) -> Result<(), String> {
+   |            ^^^^^^^^
+
+warning: function `bundled` is never used
+  --> tests/../src/schema_validation.rs:79:8
+   |
+79 | pub fn bundled() -> Result<&'static RecordValidator, String> {
+   |        ^^^^^^^
+
+warning: fields `package`, `offer`, and `capture` are never read
+  --> tests/../src/schema_validation.rs:85:5
+   |
+84 | struct ActValidators {
+   |        ------------- fields in this struct
+85 |     package: Validator,
+   |     ^^^^^^^
+86 |     offer: Validator,
+   |     ^^^^^
+87 |     capture: Validator,
+   |     ^^^^^^^
+
+warning: function `act_validators` is never used
+  --> tests/../src/schema_validation.rs:97:4
+   |
+97 | fn act_validators() -> Result<&'static ActValidators, String> {
+   |    ^^^^^^^^^^^^^^
+
+warning: function `validate_package` is never used
+   --> tests/../src/schema_validation.rs:103:8
+    |
+103 | pub fn validate_package(package: &Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `validate_offer` is never used
+   --> tests/../src/schema_validation.rs:107:8
+    |
+107 | pub fn validate_offer(offer: &Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `validate_capture` is never used
+   --> tests/../src/schema_validation.rs:111:8
+    |
+111 | pub fn validate_capture(capture: &Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: field `bytes` is never read
+  --> tests/../src/catalog.rs:50:39
+   |
+50 | pub struct Catalog { document: Value, bytes: Vec<u8> }
+   |            -------                    ^^^^^
+   |            |
+   |            field in this struct
+   |
+   = note: `Catalog` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `original_bytes` is never used
+  --> tests/../src/catalog.rs:76:12
+   |
+51 | impl Catalog {
+   | ------------ method in this implementation
+...
+76 |     pub fn original_bytes(&self) -> &[u8] { &self.bytes }
+   |            ^^^^^^^^^^^^^^
+
+warning: field `profile` is never read
+   --> tests/../src/catalog.rs:125:60
+    |
+124 | pub struct BoundRead {
+    |            --------- field in this struct
+125 |     document: Value, bytes: Vec<u8>, host_identity: Value, profile: Value,
+    |                                                            ^^^^^^^
+    |
+    = note: `BoundRead` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `profile` is never used
+   --> tests/../src/catalog.rs:132:12
+    |
+128 | impl BoundRead {
+    | -------------- method in this implementation
+...
+132 |     pub fn profile(&self) -> &Value { &self.profile }
+    |            ^^^^^^^
+
+warning: field `reads` is never read
+ --> tests/../src/proposal.rs:9:61
+  |
+9 | pub struct BoundProposal { document: Value, bytes: Vec<u8>, reads: Vec<BoundRead>, host: Value }
+  |            ------------- field in this struct               ^^^^^
+  |
+  = note: `BoundProposal` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `original_reads` is never used
+  --> tests/../src/proposal.rs:44:12
+   |
+10 | impl BoundProposal {
+   | ------------------ method in this implementation
+...
+44 |     pub fn original_reads(&self) -> &[BoundRead] { &self.reads }
+   |            ^^^^^^^^^^^^^^
+
+warning: field `bytes` is never read
+   --> tests/../src/proposal.rs:105:47
+    |
+105 | pub struct HostObservation { document: Value, bytes: Vec<u8> }
+    |            ---------------                    ^^^^^
+    |            |
+    |            field in this struct
+    |
+    = note: `HostObservation` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `original_bytes` is never used
+   --> tests/../src/proposal.rs:108:12
+    |
+106 | impl HostObservation {
+    | -------------------- method in this implementation
+107 |     pub fn document(&self) -> &Value { &self.document }
+108 |     pub fn original_bytes(&self) -> &[u8] { &self.bytes }
+    |            ^^^^^^^^^^^^^^
+
+warning: fields `observer` and `reason` are never read
+   --> tests/../src/proposal.rs:111:110
+    |
+111 | pub enum SubmissionObservation { Sent, InvalidHostClaim { bytes: Vec<u8>, reason: String }, OutcomeUnknown { observer: String, reason: St...
+    |                                                                                             --------------   ^^^^^^^^          ^^^^^^
+    |                                                                                             |
+    |                                                                                             fields in this variant
+    |
+    = note: `SubmissionObservation` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `0` is never read
+   --> tests/../src/proposal.rs:111:151
+    |
+111 | ... OutcomeUnknown { observer: String, reason: String }, Host(HostObservation) }
+    |                                                          ---- ^^^^^^^^^^^^^^^
+    |                                                          |
+    |                                                          field in this variant
+    |
+    = note: `SubmissionObservation` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+111 - pub enum SubmissionObservation { Sent, InvalidHostClaim { bytes: Vec<u8>, reason: String }, OutcomeUnknown { observer: String, reason: String }, Host(HostObservation) }
+111 + pub enum SubmissionObservation { Sent, InvalidHostClaim { bytes: Vec<u8>, reason: String }, OutcomeUnknown { observer: String, reason: String }, Host(()) }
+    |
+
+warning: field `bytes` is never read
+ --> tests/../src/external_adapter.rs:9:39
+  |
+9 | pub struct Channel { document: Value, bytes: Vec<u8> }
+  |            -------                    ^^^^^
+  |            |
+  |            field in this struct
+  |
+  = note: `Channel` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: methods `document` and `original_bytes` are never used
+  --> tests/../src/external_adapter.rs:20:12
+   |
+10 | impl Channel {
+   | ------------ methods in this implementation
+...
+20 |     pub fn document(&self) -> &Value { &self.document }
+   |            ^^^^^^^^
+21 |     pub fn original_bytes(&self) -> &[u8] { &self.bytes }
+   |            ^^^^^^^^^^^^^^
+
+warning: field `bytes` is never read
+  --> tests/../src/external_adapter.rs:44:47
+   |
+44 | pub struct DispatchAccount { document: Value, bytes: Vec<u8>, pub missing: Vec<&'static str> }
+   |            ---------------                    ^^^^^
+   |            |
+   |            field in this struct
+   |
+   = note: `DispatchAccount` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `original_bytes` is never used
+   --> tests/../src/external_adapter.rs:104:12
+    |
+ 45 | impl DispatchAccount {
+    | -------------------- method in this implementation
+...
+104 |     pub fn original_bytes(&self) -> &[u8] { &self.bytes }
+    |            ^^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (test "catalog_adapter") generated 22 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.30s
+     Running tests/catalog_adapter.rs (target/debug/deps/catalog_adapter-238d7554acd04687)
+
+running 18 tests
+test maintained_resources_match_identified_source_bytes ... ok
+test panel_receiving_keeps_identity_content_and_missing_host_evidence ... ok
+test changed_basis_targets_and_derived_state_are_refused ... ok
+test invalid_host_claim_retained_raw_then_unknown_no_promoted_act ... ok
+test loop_receiving_truncation_duplicates_and_siblings_do_not_execute ... ok
+test disabled_channel_executes_nothing_enabled_keeps_uncertainty ... ok
+test reviewer_queued_receipt_does_not_become_applied_dispatch ... ok
+test reviewer_missing_required_operation_argument_is_refused ... ok
+test dispatch_wrong_family_absent_result_and_truthful_controls ... ok
+test binding_and_unavailable_preserve_original_bytes ... ok
+test schema_checks_precede_domain_and_basis_lineage_is_incomparable ... ok
+test reviewer_accepted_a10_host_state_is_refused ... ok
+test receipt_unknown_retains_original_no_ack_or_retry_promotes_effect ... ok
+test state_act_coherence_and_after_acceptance_predecessor ... ok
+test v3_missing_wrong_extra_and_valid_empty_input_cases ... ok
+test registry_setup_refuses_missing_resources_and_external_retrieval ... ok
+test declared_registry_and_all_design_examples ... ok
+test schema_validation::tests::act_targets_refuse_unavailable_or_invalid_aac_resources ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+

@@ -1,0 +1,265 @@
+{
+  "format": "chirality.role.capture-witness/0.1",
+  "supplier_pin": "0.160.0",
+  "supplier_standing": "unverified-development",
+  "binary": {
+    "method": "chirality.app.exact-bytes.sha256/v1",
+    "value": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+    "bytes": 241555024
+  },
+  "source": {
+    "compositionFormat": "chirality.role.compose/0.2",
+    "composed": {
+      "method": "chirality.app.exact-bytes.sha256/v1",
+      "value": "ad560fe79f9552fef1042dd613a0274ca87babd7165bc1ecd0a278a3ada98343",
+      "bytes": 4856
+    },
+    "baseInstructions": "not-set",
+    "parts": [
+      {
+        "kind": "product-guidance",
+        "path": "AGENTS.md",
+        "offset": 0,
+        "length": 3858,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "d9233f5af0393e045f0d50fe14b60ede6ec3558da625c1a0deec84fae07afc27",
+          "bytes": 3858
+        }
+      },
+      {
+        "kind": "role-guidance",
+        "role": "HELP_HUMAN",
+        "path": "agents/AGENT_HELP_HUMAN.md",
+        "offset": 3887,
+        "length": 969,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "11e619e41acad799b90552dda19a3d49c4d3921bcebbce7317254a58d03e04be",
+          "bytes": 969
+        }
+      }
+    ]
+  },
+  "adoption": "unknown",
+  "cases": [
+    {
+      "case": "no-App-guidance baseline",
+      "native_thread": "01a10af0-594a-7cb0-938e-e39ca5b32ea0",
+      "native_turn": "01a10af0-5959-7500-8b7d-9852ff5ec5a4",
+      "native_start_succeeded": true,
+      "requested_model": "gpt-6.1-sol",
+      "requested_effort": "medium",
+      "native_reported_model": "gpt-6.1-sol",
+      "native_reported_provider": "role_capture",
+      "native_reported_effort": "medium",
+      "provider_payload_model": "gpt-6.1-sol",
+      "provider_payload_reasoning": {
+        "effort": "medium",
+        "context": "all_turns"
+      },
+      "native_instruction_sources": [
+        "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-role-capture.L8Qcdk1SEM/codex-home.tb3NzSE3/AGENTS.md",
+        "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-role-capture.L8Qcdk1SEM/workspace/AGENTS.md"
+      ],
+      "base_override_sent": false,
+      "config_or_policy_override_sent": false,
+      "developer_instructions_sent": null,
+      "raw_payload": {
+        "scratch_file": "payload-7f00605973d9ab30.json",
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "eb6c29f9355258e506af1f010dbb89a745f6d55b3f4242045585ba8e650bbe89",
+          "bytes": 56359
+        }
+      },
+      "provider_endpoint_path": "/v1/responses",
+      "payload_top_level_keys": [
+        "client_metadata",
+        "include",
+        "input",
+        "model",
+        "parallel_tool_calls",
+        "prompt_cache_key",
+        "reasoning",
+        "store",
+        "stream",
+        "text",
+        "tool_choice"
+      ],
+      "model_prediction": "none: endpoint deliberately returns HTTP400",
+      "interrupt_reply": "observed"
+    },
+    {
+      "case": "common + HELP_HUMAN",
+      "native_thread": "01a10af0-5974-7d41-bfe8-f932ff7340ed",
+      "native_turn": "01a10af0-5991-71a3-b1b2-61085542835f",
+      "native_start_succeeded": true,
+      "requested_model": "gpt-6.1-sol",
+      "requested_effort": "medium",
+      "native_reported_model": "gpt-6.1-sol",
+      "native_reported_provider": "role_capture",
+      "native_reported_effort": "medium",
+      "provider_payload_model": "gpt-6.1-sol",
+      "provider_payload_reasoning": {
+        "effort": "medium",
+        "context": "all_turns"
+      },
+      "native_instruction_sources": [
+        "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-role-capture.L8Qcdk1SEM/codex-home.tb3NzSE3/AGENTS.md",
+        "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-role-capture.L8Qcdk1SEM/workspace/AGENTS.md"
+      ],
+      "base_override_sent": false,
+      "config_or_policy_override_sent": false,
+      "developer_instructions_sent": {
+        "method": "chirality.app.exact-bytes.sha256/v1",
+        "value": "ad560fe79f9552fef1042dd613a0274ca87babd7165bc1ecd0a278a3ada98343",
+        "bytes": 4856
+      },
+      "raw_payload": {
+        "scratch_file": "payload-c4534b65b8f1b7d8.json",
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "5e847f42c29ac9ff29f6ff69f8f7550f961e90cb08ffad77600faaa6ab1fd909",
+          "bytes": 61338
+        }
+      },
+      "provider_endpoint_path": "/v1/responses",
+      "payload_top_level_keys": [
+        "client_metadata",
+        "include",
+        "input",
+        "model",
+        "parallel_tool_calls",
+        "prompt_cache_key",
+        "reasoning",
+        "store",
+        "stream",
+        "text",
+        "tool_choice"
+      ],
+      "model_prediction": "none: endpoint deliberately returns HTTP400",
+      "interrupt_reply": "observed"
+    }
+  ],
+  "passed": false,
+  "evidence_limits": [
+    "Independent exact production-output oracle, not Rust Host invocation or connected App witness",
+    "HTTP400 capture-only endpoint performs no prediction and no provider/model adoption is inferred",
+    "Primary HELP_HUMAN only; other roles/no-role/lifetime/resume/fork/child carrier/availability remain separate",
+    "Instruction source path reports are distinct from observed marker content",
+    "Development binary hash is not distribution/supplier qualification"
+  ],
+  "selected_model": "gpt-6.1-sol",
+  "selected_effort": "medium",
+  "scratch_creation": "actual /usr/bin/mktemp -d for owned root and CODEX_HOME",
+  "scratch_sources": {
+    "config": {
+      "method": "chirality.app.exact-bytes.sha256/v1",
+      "value": "1f5ca0d5b19a5661424882a6f208dca0bf7c93235cd62a047440b660771620db",
+      "bytes": 329
+    },
+    "native_global": {
+      "method": "chirality.app.exact-bytes.sha256/v1",
+      "value": "8d8fd2a6b13f22680e464a7ccbe6084563d8b4cb1504172db9ca980a03bc85a2",
+      "bytes": 79
+    },
+    "native_project": {
+      "method": "chirality.app.exact-bytes.sha256/v1",
+      "value": "9041ac2523633fcebe991e0da3493e6e83d411930509e390407ccf76a528a17f",
+      "bytes": 81
+    }
+  },
+  "comparison": {
+    "exact_composition_in_developer_segment": true,
+    "composition_absent_from_baseline": true,
+    "native_base_observable": false,
+    "native_base_byte_equal_to_baseline": "unknown",
+    "native_base_segment_identities": [],
+    "markers": {
+      "native_global": {
+        "marker": "ROLE_NATIVE_GLOBAL_0be3d0d5f83a2947",
+        "baseline_seen": true,
+        "active_seen": true
+      },
+      "native_project": {
+        "marker": "ROLE_NATIVE_PROJECT_5cc229b25bad649b",
+        "baseline_seen": true,
+        "active_seen": true
+      }
+    },
+    "developer_segment_structure": [
+      {
+        "position": "input/1/content/0/text",
+        "bytes": 21779,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "e1bdd4f8f0df4b20f4a0ffc8a861ce819df45325d8cecdfb92e80379cf8d142e",
+          "bytes": 21779
+        }
+      },
+      {
+        "position": "input/2/content/0/text",
+        "bytes": 4856,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "ad560fe79f9552fef1042dd613a0274ca87babd7165bc1ecd0a278a3ada98343",
+          "bytes": 4856
+        }
+      },
+      {
+        "position": "input/2/content/1/text",
+        "bytes": 2052,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "ac2e46513c514dc368c7a0c209ba417787a0f97b6da3796f8bff6895a5cab375",
+          "bytes": 2052
+        }
+      },
+      {
+        "position": "input/2/content/2/text",
+        "bytes": 3882,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "70795d16a20d94f7c0859fa5e86b7e434d116e75324b3bb8a3e5a41f7448f215",
+          "bytes": 3882
+        }
+      },
+      {
+        "position": "input/2/content/3/text",
+        "bytes": 920,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "bec8e7b5358a20b4cd552dae768b3a65ebf4ea9fb2645220085b84d60ee3fe81",
+          "bytes": 920
+        }
+      },
+      {
+        "position": "input/3/content/0/text",
+        "bytes": 2429,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "47091490938505958b0c22ff42db6fd79b272a2af6923166f4c2cc53c4fe0df4",
+          "bytes": 2429
+        }
+      },
+      {
+        "position": "input/4/content/0/text",
+        "bytes": 271,
+        "content": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "6ded806e3cdbb35599ecaf8742574bc5274908472b1729090010c404c2151e8e",
+          "bytes": 271
+        }
+      }
+    ],
+    "passed": false
+  },
+  "source_files_unchanged": true,
+  "native_cleanup": {
+    "leader_reaped": true,
+    "process_group_end": "observed-absent"
+  },
+  "raw_scratch_retained": true,
+  "raw_scratch": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-role-capture.L8Qcdk1SEM"
+}

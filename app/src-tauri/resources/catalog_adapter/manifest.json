@@ -1,0 +1,266 @@
+[
+  {
+    "file": "catalog.example-invalid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/catalog.example-invalid-2.json",
+    "sha256": "c0816805795467a94bc470acf9361b673b1e4ec3b1b134fbd33ae3e96e71719b",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "edition_change_event.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/edition_change_event.schema.json",
+    "sha256": "c0244a57a696d9b48e356788c26602b0f029b892bb80233b15741e3641c89759",
+    "kind": "schema"
+  },
+  {
+    "file": "catalog.example-invalid-3.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/catalog.example-invalid-3.json",
+    "sha256": "9eea2e878d0d7089f565d97b2e849a88370f48def08252b900e2d17e0f1f58a2",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "read_result.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/read_result.example-valid.json",
+    "sha256": "e8e4ecf32df9de0e05944acf014c13aa5f3b1e0405ee0ed39069655519f0d278",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "read_result.example-valid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/read_result.example-valid-2.json",
+    "sha256": "62c8fb47a4d89acaa518a9f103ab6ce10d702a7d4ba3b95bab271b273036c60a",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "catalog.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/catalog.example-valid.json",
+    "sha256": "1d8204017e4ab326fd1c3462c1f7ab1c2d6fec297137624d9001677306a2e12d",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "catalog.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/catalog.example-invalid.json",
+    "sha256": "cf3ac4ded0eb4146ee4b03777f485a7559c934232ea11bfec27f08bf16622fd9",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "edition_change_event.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/edition_change_event.example-valid.json",
+    "sha256": "19c179c6c14201443661e3c8bb4f0b829d12d70fa151baf7dfdf6a83a6497d8d",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "read_result.example-valid-3.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/read_result.example-valid-3.json",
+    "sha256": "bb2f4fa362e04443b99a24fcaff75ac3ead9b48a136346473b55bb5e8af4a0e3",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "catalog.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/catalog.schema.json",
+    "sha256": "24d7db75d66f5119ad97957166f0e65287ffa7b510c5fb360c26fba00fccd99d",
+    "kind": "schema"
+  },
+  {
+    "file": "read_result.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/read_result.schema.json",
+    "sha256": "5f71d7184bd312af188b5200715d784b1d5d2aacf90758574ad4d1dfe9786c1e",
+    "kind": "schema"
+  },
+  {
+    "file": "edition_change_event.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/edition_change_event.example-invalid.json",
+    "sha256": "6b457001e93c45b6d8c9b1eb10595b15742f36f9f464b251caf6370eb26933da",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "read_result.example-invalid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/read_result.example-invalid-2.json",
+    "sha256": "2fc0db909ba9cf124694652568d076980f1f4c8d614aa195a4dfbb427709ea11",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "catalog.example-valid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/catalog.example-valid-2.json",
+    "sha256": "c70a271019b5f8cca7a3ad78ea03d0dce3ae60c158f1e62af5adbe0755cc6ecf",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "read_result.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/read_result.example-invalid.json",
+    "sha256": "dd3bfc0b6b45daa26c117ccc87e79c0d781c862a9987eb20519e0ac402528739",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "channel_status.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/channel_status.example-valid.json",
+    "sha256": "06d201d1c0bb22dded889d4f394a3892674c35241385fa0f9e413bd34698b402",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "external_dispatch_record.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/external_dispatch_record.example-invalid.json",
+    "sha256": "2c4c897366989371e36e393c9bf4deb8709f01b46f610ac5ae1a602f40360ba0",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "channel_status.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/channel_status.example-invalid.json",
+    "sha256": "be5413548efb0390dde5fe5bb00e2406413563c47c4c6b675f6983c16207c5f3",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "checkpoint_observation.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/checkpoint_observation.example-invalid.json",
+    "sha256": "dd519fe6fe73a0fc7ec54f794d989de6c0e40bb6df1c759878ce57ffe9106f35",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "channel_status.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/channel_status.schema.json",
+    "sha256": "49f3475c10b4d410acba975526e41737e2946180117d01f47b6644f56692d7f0",
+    "kind": "schema"
+  },
+  {
+    "file": "external_dispatch_record.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/external_dispatch_record.schema.json",
+    "sha256": "726d8787d1b9b2792a04eb5581d893c2faa76edefc622c0d18990a5225daa087",
+    "kind": "schema"
+  },
+  {
+    "file": "checkpoint_observation.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/checkpoint_observation.schema.json",
+    "sha256": "5d17aa548789b9143d6de5f27b9fe9fd1903baad46b73389d2b9a31d20ff1ed4",
+    "kind": "schema"
+  },
+  {
+    "file": "external_dispatch_record.example-valid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/external_dispatch_record.example-valid-2.json",
+    "sha256": "8e2240355766706a21eb53950195dc7aec90ff1d0f0577e8fedf3d3c4247d846",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "checkpoint_observation.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/checkpoint_observation.example-valid.json",
+    "sha256": "69a033a7323c221775c00fb713a526861014652c74aa1c7f882ecdcd2d541cc0",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "checkpoint_observation.example-valid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/checkpoint_observation.example-valid-2.json",
+    "sha256": "20f92dbd98e7de1e6fd1968903484b4ff4543dfca201ffdbb015e5a104aba6fa",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "external_dispatch_record.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/external_dispatch_record.example-valid.json",
+    "sha256": "69b496d5f1c0d39a1493cdfea11f927597c1f0ebc1f2fd5dce95aa065295c9b3",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal_state.example-invalid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal_state.example-invalid-2.json",
+    "sha256": "ff7e84851d3e379e66b63856f8c0f20342121d8da309b508e5e318d0da94f7fd",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal_state.example-valid-3.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal_state.example-valid-3.json",
+    "sha256": "e3ef15f7735f416e0b3c69e675fb1487f0bc8f3f60e6cb2eda508a84704978f1",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal_state.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal_state.example-valid.json",
+    "sha256": "6b369692c11ca111f34fed8c31734dbc73dc1b5fcdace9ebae36acce873cf520",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal_state.example-valid-2.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal_state.example-valid-2.json",
+    "sha256": "a39279c98eba5c7e9e389e40657afc1124142db79b7986a213e637817daffd3f",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal.example-invalid.json",
+    "sha256": "4627d69722b0fcfeb24938ba04ff2f6d4192c7ae99f1e48c6b11562320ba7ef7",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal_state.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal_state.schema.json",
+    "sha256": "222de733c7dfa77f80cacb4365bd60dc6b4ed61ffbfad68848f0171874d1820f",
+    "kind": "schema"
+  },
+  {
+    "file": "proposal_state.example-invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal_state.example-invalid.json",
+    "sha256": "c8c5e7aa178e797f3da9d036b92b24cf49a1ed2f4c2a0b804b67dce7d2f16131",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "proposal.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal.schema.json",
+    "sha256": "2c81bab4a72539722fab630fe8c5b65d0822c2682fbab489c44e842e02bdf07e",
+    "kind": "schema"
+  },
+  {
+    "file": "proposal.example-valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Design/proposal.example-valid.json",
+    "sha256": "1c1227936bf742402e23ce6153d8b4b5c235568073789135d759d4de2432a8d6",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "PANEL_RETURN_INPUT.example.valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Design/PANEL_RETURN_INPUT.example.valid.json",
+    "sha256": "b21cce2785aee194c0bfda7f8dcb5ba2de27d1620ca10b6ac6af57a114fcf714",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "PANEL_RETURN_INPUT.example.invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Design/PANEL_RETURN_INPUT.example.invalid.json",
+    "sha256": "126c3b447036d333595f8975ddd07422945966d796765effdfdade11fde5ca53",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "PANEL_RETURN_INPUT.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Design/PANEL_RETURN_INPUT.schema.json",
+    "sha256": "c0f7cc5d5170005a0c0fb0bca247a60ed5aa385c88b64bfc1d50a2d2cc7bc18a",
+    "kind": "schema"
+  },
+  {
+    "file": "LOOP_DESTINATION_REQUEST.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Design/LOOP_DESTINATION_REQUEST.schema.json",
+    "sha256": "7b70146bd7a48b8691e132063447b4a9664db5b16135862d2b662e8cc516ac90",
+    "kind": "schema"
+  },
+  {
+    "file": "LOOP_DESTINATION_REQUEST.example.valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Design/LOOP_DESTINATION_REQUEST.example.valid.json",
+    "sha256": "f3b70593fe6b2b2856bed513fdf9ae5894ce82da73f09b4adb847085465cc674",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "LOOP_TOOL_CALL.example.valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Design/LOOP_TOOL_CALL.example.valid.json",
+    "sha256": "27be3288c3de8454a4d0aca8e2571f463aa47a7d8766150a19e85c66c180abf6",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "LOOP_TOOL_CALL.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Design/LOOP_TOOL_CALL.schema.json",
+    "sha256": "8cb7c31598c068604da315800b4db7c4ce33537cb618efe144eb895ce4867c5d",
+    "kind": "schema"
+  },
+  {
+    "file": "LOOP_DESTINATION_REQUEST.example.invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Design/LOOP_DESTINATION_REQUEST.example.invalid.json",
+    "sha256": "5ecaf92eeb33b7098356a931c590319a636b3c4a2a80e9b99c626f6587d553ea",
+    "kind": "design_fixture"
+  },
+  {
+    "file": "LOOP_TOOL_CALL.example.invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Design/LOOP_TOOL_CALL.example.invalid.json",
+    "sha256": "a972c1626fafa2a3c0aadb1861ae1805a0efcfe7450f126d032f001ae3dfe039",
+    "kind": "design_fixture"
+  }
+]

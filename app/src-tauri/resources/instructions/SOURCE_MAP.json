@@ -1,0 +1,212 @@
+{
+  "format": "chirality.app-v4.instruction-source-map/1",
+  "date": "2026-10-05",
+  "candidateBasisHead": "38bb2bc87a5874ceacbe241fe0a909f887dd16a4",
+  "author": "/root/group_a_execution/v4_guidance_tranche (TASK; native descendant; no delegation)",
+  "authorization": "Parent /root/group_a_execution brief relays Root and human Group A production authorization for this scoped instruction tranche. Actual supplied message retained in harness history; not a new human act recorded by this author.",
+  "reviewStatus": "pending independent source/role/content review; no active model adoption or release claimed",
+  "sources": [
+    {
+      "id": "prd",
+      "repositoryPath": "projects/chirality-app-v4/docs/PRD.md",
+      "sha256": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd",
+      "readExtent": "\u00a74.2 V4-ROLE-01\u202603; \u00a74.5 V4-AUT-01\u202605; \u00a74.6 V4-PM-01\u202606; \u00a74.7 V4-REC-01\u202605",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "method",
+      "repositoryPath": "projects/chirality-app-v4/docs/OPERATING_METHOD.md",
+      "sha256": "98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd",
+      "readExtent": "\u00a71; V4-OPS-03,10\u202614,30\u202634; production context only, no loop instructions imported",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "architecture",
+      "repositoryPath": "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+      "sha256": "317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c",
+      "readExtent": "\u00a71 M-1,M-3,M-8; V4-ARC-20; native Codex configuration distinction",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "role_contract",
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/ROLE_SUPPLY.md",
+      "sha256": "eecdf63bb3cac94bc931605b55590512d44c4b6ff335c0670098c6308eac5ebe",
+      "readExtent": "\u00a73; \u00a74.1\u20264.4 (GS-7); \u00a75.1\u20265.5; \u00a76.2\u20266.3; content authoring owner \u00a74.2",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "workflow_contract",
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d",
+      "readExtent": "\u00a75.1\u20265.2; \u00a76 identity; \u00a77 Root is reuse source, not v4 authority",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "role_decisions",
+      "repositoryPath": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md",
+      "sha256": "8a5d11149045770dfcf1a19ebabb86bfe9f04cd3e65ed36166cb8593e2fe20ac",
+      "readExtent": "DECISION-K3 revised K-10; DECISION-L L-2",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "line_decisions",
+      "repositoryPath": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/R20_RESOLUTIONS.md",
+      "sha256": "a9102712e0fb3c355f470bee6493632df4d5942a589b44bb46f1c56f135179b7",
+      "readExtent": "R20-5,R20-6,R20-9,R20-11",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "acceptance",
+      "repositoryPath": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md",
+      "sha256": "0d8e5b2774c26cde277fbb98b394fdc74a4bf6c171f1fea89904d7a6062565e8",
+      "readExtent": "Composite acceptance and custody limits",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "root_entry",
+      "repositoryPath": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "readExtent": "Execution context and instruction tranche requirement; not copied as product defaults",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "root_task",
+      "repositoryPath": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "readExtent": "Executor scope; deliberate role comparison, not adopted bytes",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "root_help",
+      "repositoryPath": "agents/AGENT_HELP_HUMAN.md",
+      "sha256": "0c2fe7a3097ad26c93c0267e4da6aaf90c9264489df8dc368fad657bcac69183",
+      "readExtent": "Deliberate generic role comparison, not adopted bytes",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "root_design",
+      "repositoryPath": "agents/AGENT_HELPS_HUMANS.md",
+      "sha256": "a0c9fb9443d8671d694c1f7b24ff3c402ffd626c781a2739342c938f2f3c3d1e",
+      "readExtent": "Deliberate generic role comparison, not adopted bytes",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "root_manager",
+      "repositoryPath": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+      "readExtent": "Deliberate generic role comparison, not adopted bytes",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "loop",
+      "repositoryPath": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "45c23cf477e23aff1d0152189caf7e8ebfb53eca42e3a1fae87a06af8c197f28",
+      "readExtent": "Execution entry only; not product defaults",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "manual_index",
+      "repositoryPath": "docs/alignment-manual/README.md",
+      "sha256": "31217d30b0d2743bef0d7c1a54bb9a81814d56b24ff0961cf01d9532952e305f",
+      "readExtent": "Current editions",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "field_book",
+      "repositoryPath": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+      "readExtent": "Full read for execution context; \u00a72 role comparison",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "user_manual",
+      "repositoryPath": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "08ca0e40cd5157574a011bac57d539e77e9007a0d46494785da8b92745391b1a",
+      "readExtent": "Headings to level three only",
+      "origin": "current working checkout"
+    },
+    {
+      "id": "change_skill",
+      "repositoryPath": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+      "readExtent": "Full read for change/review boundary; not product instructions",
+      "origin": "current working checkout"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "d9233f5af0393e045f0d50fe14b60ede6ec3558da625c1a0deec84fae07afc27",
+      "byteLength": 3858,
+      "authorship": "new v4 product guidance; no verbatim Root-role adoption",
+      "sourceIds": [
+        "prd",
+        "method",
+        "architecture",
+        "role_contract",
+        "workflow_contract",
+        "role_decisions",
+        "line_decisions"
+      ],
+      "status": "candidate; independent source/role/content review required before seeding"
+    },
+    {
+      "path": "agents/AGENT_HELPS_HUMANS.md",
+      "sha256": "9306048b3229f63170cde5dbbb1280e048aae8aa434b1934085598bf8e649158",
+      "byteLength": 990,
+      "authorship": "new v4 product guidance; no verbatim Root-role adoption",
+      "sourceIds": [
+        "prd",
+        "workflow_contract",
+        "role_contract",
+        "role_decisions"
+      ],
+      "status": "candidate; independent source/role/content review required before seeding"
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "sha256": "11e619e41acad799b90552dda19a3d49c4d3921bcebbce7317254a58d03e04be",
+      "byteLength": 969,
+      "authorship": "new v4 product guidance; no verbatim Root-role adoption",
+      "sourceIds": [
+        "prd",
+        "workflow_contract",
+        "role_contract",
+        "role_decisions"
+      ],
+      "status": "candidate; independent source/role/content review required before seeding"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "aaab8c8c20b1d5c3592f04d1337b3335f82ff44428a2304614c191cce71ba3cc",
+      "byteLength": 856,
+      "authorship": "new v4 product guidance; no verbatim Root-role adoption",
+      "sourceIds": [
+        "prd",
+        "workflow_contract",
+        "role_contract",
+        "role_decisions"
+      ],
+      "status": "candidate; independent source/role/content review required before seeding"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "4be2e37da843353cde22bd2ed65f8756f00a865171939f1ac2c6d65adf025914",
+      "byteLength": 1111,
+      "authorship": "new v4 product guidance; no verbatim Root-role adoption",
+      "sourceIds": [
+        "prd",
+        "workflow_contract",
+        "role_contract",
+        "role_decisions"
+      ],
+      "status": "candidate; independent source/role/content review required before seeding"
+    }
+  ],
+  "excludedSources": [
+    "App v3 product instruction corpus",
+    "Root repository Git authorization as product authority",
+    "Root broad governance corpus as product defaults"
+  ],
+  "seedingBoundary": "Candidate resource bytes only. Runtime owner must wire reviewed candidate. Editable copies, composition, actual supply and model adoption are separate execution facts."
+}

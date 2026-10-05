@@ -1791,6 +1791,33 @@ precisions:
 | TR-7 | Adaptation, if any, by the host (§6.4) | Host (external) | *adapted* |
 | TR-8 | Host evidence (listing, adaptation, runs) returns by relay to the App and to DEL-09-06 (SQ-18, SQ-19; RELAY §4 ledger) | Person; host | Evidence references |
 
+**CC-CONTENT-RX transfer receiving adoption.** For newly identified App workflow
+packages, TR-4 receives WD's selected
+`chirality.app.workflow-package.sha256/v1` revision method/value unchanged.
+Carry WD `revision_method` with `revision` and the complete source-qualified
+tuple, source root, origin, name, derived-from and holding-library relation.
+Transfer the entire RV-1…5 regular file set, including resources/binary/system
+files; never WORKFLOW.md alone or a narrowed parsed declaration. Recoverable
+ordered path/byte-size/per-file exact-byte digest manifest stays outside the
+identified tree; it is evidence, never a replacement declaration or hash input.
+If physically inside the package it enters the identity without self-exclusion.
+Transfer/adaptation/refinement preserves original identity and identifies changed
+content with its actual new method, never remapping a historical identity.
+
+Composed run-start/end text has the separate
+`chirality.app.exact-bytes.sha256/v1` designation over actual supplied UTF-8 bytes;
+it cannot replace source package identity. ROLE source/composed identities retain
+their original separate scopes. Same method/same subject/scope permits value
+comparison; missing/different methods remain unknown/incomparable. A host may
+expressly adopt the App package method or retain its native method; transfer/hash
+success is not evidence of adoption, compatibility, checkpoint act or one-effect.
+C §5.5 leaves host read/subject/change-item/whole-model canonicalization and method
+choices unselected; faithfully carry supplied values, including historical tests.
+WD's reviewed method definition supplies framing; this receiver does not redefine
+it. Coherent snapshot/live-copy drift enforcement remains required, not proved
+by a local package hash. No carriage/schema shape or legacy ID restriction added.
+
+
 ### 6.4 Adaptation receiving (host side, receiving meaning)
 
 - **AD-1** Adaptation creates a new identity: origin *host*, host source root,
@@ -2184,7 +2211,7 @@ commitment (VER-006).
 | U-E13 Constraint receipt on the host route (WD U-19; P U-P10) — governance phase | Host owner with DEL-03-02; **SQ-02** answered 2026-09-28: route (iv), none; a constraint field would be refused as unknown (SQ-02 (a)). Planning a route is a SWBPIPE owner decision | Before CH-27's governance-phase host case | Phase 1: no constraint carried by the App; the agent never adds fields the host schema lacks (R8-10). Governance phase: **AWAITING INPUT** — SQ-02 answered: no receipt, no host copy (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) |
 | U-E14 Host library receipt of other origins, adaptation evidence with derived-from, holding library and run records (TR-6…TR-8) | SWBPIPE owner decision (a work item to receive App workflows; ANS §4). **SQ-17, SQ-18, SQ-19** answered: none | Before RT host-side cases | RT host links AWAITING INPUT (STD-2 annotations) |
 | U-E15 Per-turn supplied guidance in host loops (WD U-29; LOOP Q-4) | Host owner, **SQ-19 (a)** (answered: no host loop; the D-58 successor is a SWBPIPE owner decision) | Before host supplied-link evidence | *supplied* **unknown** |
-| U-E16 Physical carriage of the declared part (WD U-01) and carriage-manifest representation; revision algorithm (WD U-03) | DEL-02-01 with DEL-04-03; TBD-003 | Before OUT-002 schema and transfer code | All semantic; verification uses method designations |
+| U-E16 Physical carriage of the declared part (WD U-01) and carriage-manifest representation; revision algorithm (WD U-03) | DEL-02-01 with DEL-04-03; TBD-003 | Before OUT-002 schema and transfer code | CC-CONTENT-RX adopts WD’s bounded App package method for fresh revisions; full file carriage and method/value/source tuple preservation required. Carriage representation and host methods remain unselected; historical methods stay unchanged |
 | U-E17 First connected operation `UNRESOLVED{OI-021}` | Owner via outside SWB session with App/shared owner, **SQ-04, SQ-05** | Before connected-activity SoW | FX-PIPE-01 only; MT-13, CH-11 production HELD |
 | U-E18 Extension promise `UNRESOLVED{OI-003}` (App v4 OI-003, the extension promise; unrelated to SWBPIPE's OI-003) and real exposure (C U-C7; WD U-23) | Owner with host contract owner; exposure **SQ-11** (answered: no exposure element; only `position.x` on X) | Before exposure claims | FXA-1 fixture assumption; unagreed exposure → HS-4 *not established* (governance phase), except where SQ-02 is answered with no host-held route, as for SWBPIPE (R8-2) |
 | U-E19 Selection slot policy and host precedence (WD U-10). **v0.7:** slot policy decided by K-6 (WR-v0.2 §4.1 SP-1…SP-7); App selection PROPOSED (WR-v0.2 SL-2 pinned selection, SL-3 unqualified names); host precedence open with the host joins (DECISION-3). The former second half, registration as an act (AP U-08), was closed by ACT at R12-5 (A15) | DEL-02-02 with DEL-02-01 (host precedence) | Before host-origin discovery in the App | RT-6/RT-7 registration side designed (WR-v0.2 §6 SQ-H; not run against a candidate); host listing not exercised |

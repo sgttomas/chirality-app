@@ -37,3 +37,7 @@ python3 run_cases.py
 variant the case lists. It is evidence about the design only: no VER
 criterion is passed (no candidate exists), and it shows nothing about which
 variant the supplier really exhibits.
+
+CC-REC-GEN: `python3 -B check_generation_ref.py` checks full-tuple tagged UTF-8-hex references; `run_cases.py` uses this encoding after each scripted actual spawn. Earlier results remain evidence of their historical fixture representation. No schema shape or supplier wire field changes.
+
+CC-REC-RT-LINK: the later-error check receives reviewed HOSTING RT-14/RT-15, with full-generation/request and open-generation guards; receipt RT-02/03 and failed-write uncertainty remain separate.

@@ -1,11 +1,11 @@
 # Additive role selection and supply
 
 - Contribution: DEL-02-04/ROLE-v0.2 (supersedes DEL-02-04/ROLE-v0.1, committed at `63a6e0fa47`, file sha256 `692873d1d025b4ab0bc3d741a19bf1facad5d39b875e58ac1f0127042059b644`)
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
+- Status: DRAFT DEFINITION — not accepted or qualified. Historical definition/prototype standing remains; §2.1 separately records the current bounded supplier sample and receiving-pin clarification. No complete App implementation/adoption follows.
 - Run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D6, round 2 (BRIEFS.md "D round 2"). Executor: Type 2 TASK (Claude Opus 5.5, high effort), no delegation. Date 2026-10-02; repository HEAD `e4e14d6ae6`.
 - Binding direction: DECISION-K3 as revised (K-9, K-10, K-7, K-3); **DECISION-L L-2** (a conversation's role is fixed for its life; a different role is a new conversation; edited guidance applies to new conversations; workflows are not bound to the conversation); rulings R17 (R17-1, R17-5, R17-9 as amended, R17-10, R17-13…R17-15), **R18-4, R18-6, R18-9, R18-1 (C-04, C-05, C-07, C-08, C-15, C-19)**, **R19-1, R19-3, R19-5, R19-7, R19-8**; **R20-5, R20-6** (`R20_RESOLUTIONS.md` `516d0fe0d3cddb1e`; added in place, no version step); **R20-9** (`R20_RESOLUTIONS.md` `5e68574054a3353e`; added in place at node RX, no version step); **R20-11** (`R20_RESOLUTIONS.md` `b52e0347ad91ba42`; at node RX2); **R22-1, R22-2** (`R22_RESOLUTIONS.md` `2acc830206bd40b3`; at closeout node G, with `closeout/C1-B.md` `b2b8bfad297f9125` §3.3, §3.4, §7 items 1–2); R1–R16 stand.
 - Serves (ScopeOfWork): OUT-001 (design of the code), OUT-002 (identity and limit account, §6), OUT-003 (fixture design and a design prototype, §10, not product code); REQ-001…REQ-006; AC-001…AC-006 by designed verification (§11); VER-001…VER-006 (designed; offline prototype cases run; nothing qualified).
-- Standing labels (R17-13; R18-9): `observed` (seen live, cited); **`observed through an adapter (OBS-2), not stock behaviour`** for OBS-2's O-4, O-4a and O-4b, which ran through a loopback adapter that flattened Codex's `namespace` tools for LM Studio; `observed-in-generated-types` (the 0.158.0 generated protocol output); `inference`; **PROPOSED**. Every supplier fact names its version, 0.158.0 (R19-5); where Codex reports a capability at run time, the App reads it rather than infer it from the version. v3 code is historical evidence only.
+- Standing labels (R17-13; R18-9): `observed` (seen live, cited); **`observed through an adapter (OBS-2), not stock behaviour`** for OBS-2's O-4, O-4a and O-4b, which ran through a loopback adapter that flattened Codex's `namespace` tools for LM Studio; `observed-in-generated-types` (the 0.158.0 generated protocol output); `inference`; **PROPOSED**. Every supplier fact names its actual version (R19-5); §2 retains the historical 0.158.0 facts and §2.1 states the bounded current 0.160.0 receiving account; where Codex reports a capability at run time, the App reads it rather than infer it from the version. v3 code is historical evidence only.
 
 ## Changes from v0.1
 
@@ -96,7 +96,7 @@ enforcement of the task limit (K-10); changing a started conversation's role
 (L-2); consumer adoption and retirement (OI-024, DEP-006); placement beyond
 R17-5 (OI-008, OI-014).
 
-## 2. Facts and decisions this design rests on (Codex 0.158.0)
+## 2. Historical facts and decisions (Codex 0.158.0; current account §2.1)
 
 | # | Fact or decision | Standing | Source |
 |---|---|---|---|
@@ -118,6 +118,46 @@ R17-5 (OI-008, OI-014).
 | B-16 | `thread/fork` ignores new `developerInstructions` and `config.developer_instructions`, for a loaded and a not-loaded source; the fork keeps the source's developer text and full history, gets a new id, reports `forkedFromId` (only in the fork response and `thread/read`; `thread/list` shows null); its rollout references the source's | observed | OBS-3 §8 W-6, §8.1 |
 | B-17 | A child at the default depth received no delegation tools | observed through an adapter (OBS-2), not stock behaviour | OBS-2 §6.2 |
 | B-18 | A TASK-guided parent ("you do not delegate") delegated: `spawnAgent`, `sendInput`, `wait`, all recorded | observed through an adapter (OBS-2 O-4b), not stock behaviour | OBS-2 §6.2 |
+
+### 2.1 Current primary carrier account — 0.160.0 (CC-ROLE-PIN-0160)
+
+Named receiving clarification, 2026-10-05; candidate for independent change
+review, not a qualification or owner acceptance. The maintained App supplier
+pin is **0.160.0**. The stable generated `thread/start.developerInstructions`
+string carrier remains the generic additive contract for the composed common
+and selected-role UTF-8 text (§5.1); it is not a role-specific supplier API.
+The App keeps `baseInstructions` unset and preserves native discovery and the
+person's configuration. Generated field existence alone proves no supplier use.
+
+The independently reviewed paired stock-supplier sample observes exactly the
+common + HELP_HUMAN composition on **gpt-6.1-sol / medium**, with a capture-only
+loopback provider returning HTTP400 and no prediction. The complete4856-byte
+App developer part has SHA256
+`ad560fe79f9552fef1042dd613a0274ca87babd7165bc1ecd0a278a3ada98343`.
+The supplier's exact21779-byte selected model template is separately identified
+from pinned source and fully byte-compared in both captures (SHA256
+`e1bdd4f8f0df4b20f4a0ffc8a861ce819df45325d8cecdfb92e80379cf8d142e`).
+Responses Lite carries it as a separate **developer** message, not top-level
+instructions/system-role text. That source-backed identification must never
+relabel arbitrary developer text as native base.
+
+The complete remaining input agrees after removing only the exact App part and
+top-level opaque input-row IDs. Native global/project content and separately
+reported source paths are preserved; tools carried in an additional_tools row
+agree, without proving availability or use. Original probe exit1/UNKNOWN is
+retained: its base oracle did not recognize this serialization. The later
+structural/source analysis is a separate warrant, not a rewritten PASS.
+
+[ROLE_PIN_0.160.0.md](ROLE_PIN_0.160.0.md) retains exact report, comparison and
+review identities, source paths, custody and receiving limits. The generic
+field contract does not narrow permitted other-role/no-role composition, but
+this sample proves no other/no-role native supply. Rust Host/store/seeding joins,
+other primary roles, TASK-child supply, lifetime/resume/fork, child carrier,
+provider/model adoption, delegation availability/enforcement and qualification
+still require their own candidate evidence. Native child supply stays
+**not-supplied** until its actual carrier/custody/configuration evidence exists;
+0.158.0 adapter observations below remain historical. Runtime capability values
+are read from the actual acting route, never inferred from0.160.0 or this sample.
 
 ## 3. Selection
 
@@ -338,16 +378,16 @@ Rules:
 - **CO-6 Size.** No supplier limit is stated in the generated types; the byte
   length is recorded. No App limit is chosen (U-R4).
 
-### 5.2 Inputs the role supply uses and never uses (0.158.0)
+### 5.2 Inputs the role supply uses and never uses (current0.160.0; historical warrants retained)
 
 | Supplier input | Role supply | Why |
 |---|---|---|
-| `developerInstructions` on `thread/start` | **Carries the composition** | B-2 |
+| `developerInstructions` on `thread/start` | **Carries the composition** | B-2; current generic0.160.0 field and independently reviewed primary HELP_HUMAN sample §2.1 |
 | `developerInstructions` on `thread/resume` | Never | Ignored (B-8); sending it would create a "supplied" record the App knows is not taken up |
 | `developerInstructions` / `config.developer_instructions` on `thread/fork` | Never | Ignored (B-16) |
 | `baseInstructions` | Never | Preserves Codex's base instructions |
 | `config` keys `instructions`, `developer_instructions` | Never | One carrier |
-| `config` keys `agents.<ROLE>.description`, `agents.<ROLE>.config_file` on `thread/start` | Additive child roles only (§5.3) | R17-9, R18-4 |
+| `config` keys `agents.<ROLE>.description`, `agents.<ROLE>.config_file` on `thread/start` | Candidate additive child carrier only; currently not-supplied (§5.3) | R17-9, R18-4; current carrier evidence remains open |
 | `config` keys `features.*`, `agents.enabled`, `agents.max_depth`, any other | Never | K-10; no veto of user configuration |
 | `personality`, `multiAgentMode`, effort chosen to steer delegation | Never | Deprecated / ignored (B-9); K-10 |
 | `approvalPolicy`, `approvalsReviewer`, `sandbox` | Never by role supply | D3 |
@@ -357,6 +397,12 @@ The request check refuses a role request with any "never" input, and any
 instructions on resume or fork (RC-07, RC-11; schema IS-1, IS-6, IS-9).
 
 ### 5.3 Native child roles (R17-9 as amended by R18-4)
+
+**Current0.160.0 receiving standing:** the primary sample §2.1 does not establish
+the child carrier. The requirements and historical0.158.0 adapter mechanism
+below remain; current native children/config files are not reported supplied
+from field existence or primary-role carriage. User-defined role names and the
+person's native configuration remain untouched. U-R3 stays open.
 
 - **CR-1** A conversation whose role offers child roles (§4.1) is started with
   additive `agents.<CHILD>.description` and `agents.<CHILD>.config_file`. The
@@ -461,8 +507,20 @@ entries; `continuedFrom` for "Continue as"; what the supplier reported
   (R19-7), not this one.
 - DEL-02-04 keeps its own App-kept log of these records (C-19; RS §13.1 S-A
   form); App-observed, never authority for what Codex holds (R17-4).
-- Content identities carry a method designation (illustration
-  `proto-sha256-0`; HOSTING U-08).
+- **CC-CONTENT-IDENTITY:** App role-set/source-file/shipped-default,
+  composed guidance, and child-role file bytes use
+  `chirality.app.exact-bytes.sha256/v1`: lowercase 64-hex SHA-256 over their
+  exact bytes. No line-ending, UTF-8, whitespace or JSON normalization and no
+  bytes excluded. Stored source bytes remain source bytes; composition is
+  hashed separately after CO-1…CO-5 framing and UTF-8 encoding, and that exact
+  composition is carried to HOSTING. Hashing a parsed/rewritten role-set JSON
+  or a workflow package digest is a different method, never substituted.
+  Each part keeps its source/byte ranges; identity equality establishes
+  byte equality, not supplier/model adoption or human acceptance. Historical
+  `proto-sha256-0` records retain their old designation and are not silently
+  comparable. Method/value travels into RS R3 and HOSTING §8.2 unchanged;
+  unknown and inherited supply still follow their existing outcomes. Broader
+  HOSTING U-08 and host-native identities remain unselected.
 
 Valid: `role-supply-record.valid.example.json` (a WORKING_ITEMS start that
 supplies TASK as a child role). Invalid: `role-supply-record.invalid.examples.json`
@@ -619,7 +677,7 @@ examples accepted; IS-1…IS-9 and IL-1…IL-6 each rejected for its reason).
 | Case | SoW | What is exercised | Needs | Now |
 |---|---|---|---|---|
 | VC-R1 | VER-001 | Each role; supplied role part; no role; domain expression | Candidate UI | RC-01, RC-03, RC-04 |
-| VC-R2 | VER-002 | Each role's start at the boundary vs the record; base instructions intact | Codex, local model, candidate | B-7 observed for one role (OBS-2 O-5 tap); per role open |
+| VC-R2 | VER-002 | Each role's start at the boundary vs the record; base instructions intact | Codex, chosen route, candidate | Historical B-7; current0.160.0 HELP_HUMAN capture/source comparison §2.1 observed. Connected App and other/no-role cases remain open; no prediction/adoption |
 | VC-R3 | VER-003 | TASK asked to delegate; observation; other roles' delegation | Codex with delegation | B-18 observed through an adapter; on stock LM Studio not provokable (CR-6); RC-14 |
 | VC-R4 | VER-004 | Presented account vs actual controls, incl. depth not shown as enforcement | Candidate UI | RC-13, IL-1 |
 | VC-R5 | VER-005 | Trace; supply-only makes no adoption claim; positive consumer adoption | DEP-006 / OI-024 | Negative offline (IS-4); positive AWAITING INPUT |
@@ -633,6 +691,11 @@ examples accepted; IS-1…IS-9 and IL-1…IL-6 each rejected for its reason).
 | VC-R13 | R19-8 | Fork keeps role; recorded inherited | Live | B-16 observed; RC-06 |
 
 ## 12. The v0.1 "OBS-2 pending" cells
+
+This table preserves its historical0.158.0 observations. Current §2.1 separately
+supplies a nonempty instructionSources sample and HELP_HUMAN carrier/base
+comparison at0.160.0; it does not rewrite the old cells or supply their wider
+candidate, child or lifetime obligations.
 
 | Cell | Result | Standing |
 |---|---|---|
@@ -693,9 +756,9 @@ amendments are marked "(v0.2)".
 
 | Item | Owner | Point of need | Effect |
 |---|---|---|---|
-| U-R1 Content-identity algorithm (HOSTING U-08) | App implementation owner with DEL-04-03 | Before qualification records | Illustration used |
+| U-R1 App role content-identity method (HOSTING broader U-08 remains open) | CC-CONTENT-IDENTITY technical selection; App/RS consumer owners | Independent review and product propagation before qualification records | Exact-byte method selected in §6.1; historical records retain their designation; host identities untouched |
 | U-R2 *Closed* (route A/B): L-2, B-8 | — | — | — |
-| U-R3 Child-role carrier at 0.158.0 (per-thread `config` or `-c` session flags; CR-1a) | App implementation owner; a later observation | Before implementation | Mechanism observed; carrier open |
+| U-R3 Current0.160.0 child-role carrier (per-thread `config` or `-c` session flags; CR-1a; historical0.158.0 adapter mechanism retained) | App implementation owner; a later observation | Before native child supply | Carrier open; currently not-supplied; primary sample is not child evidence |
 | U-R4 Composition size bound | App implementation owner | Before implementation | Length recorded |
 | U-R5 `UNRESOLVED{OI-008}` placement | App implementation owner | Before architecture contracts | §8 PROPOSED |
 | U-R6 `UNRESOLVED{OI-014}` role identity set placement | App/shared contract owners | Before allocation | Role set is the App's own |
@@ -706,7 +769,7 @@ amendments are marked "(v0.2)".
 | U-R11 Shipped `default_for_new_chat` value | App role-guidance owner | Before release | Data |
 | U-R12 *Closed by R20-6*: the source conversation's agent drafts it in a visible turn; the person edits and sends it (CA-2) | — | — | — |
 | U-R13 Whether deleting or archiving a source breaks its forks | A later observation | Before offering delete/archive beside fork | Open (OBS-3 UNRESOLVED) |
-| U-R14 A non-empty `instructionSources` live (B-6) | A later observation | Before relying on it in the record view | Open |
+| U-R14 Non-empty `instructionSources` (historical B-6) and record-view receiving | Runtime/record-view owner | Before relying on it in the record view | Current0.160.0 synthetic global/project sample supplied §2.1; actual record-view and wider-source candidate checks remain open |
 
 ## 15. Excluded acts and owners (REQ-006)
 

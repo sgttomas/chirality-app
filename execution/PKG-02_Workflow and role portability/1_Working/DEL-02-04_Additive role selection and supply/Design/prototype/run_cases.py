@@ -353,6 +353,12 @@ def main():
             hit = [x for x in e if c["expect"] in x]
             check("RC-20 %s rejected" % c["case"], bool(e) and bool(hit), (hit or e or ["accepted"])[0])
 
+    check("CC-CONTENT-IDENTITY exact bytes known vector", rs.cid(b"abc") == {
+        "method": "chirality.app.exact-bytes.sha256/v1",
+        "value": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"})
+    check("CC-CONTENT-IDENTITY no normalization", rs.cid(b"a\n") != rs.cid(b"a\r\n")
+          and rs.cid("é".encode("utf-8")) != rs.cid("e\u0301".encode("utf-8")))
+
     say("TOTAL pass=%d fail=%d" % (RESULTS["pass"], RESULTS["fail"]))
     shutil.rmtree(tmp)
     if record:

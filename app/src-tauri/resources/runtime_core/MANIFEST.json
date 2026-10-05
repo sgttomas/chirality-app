@@ -1,0 +1,40 @@
+{
+  "producer": "TASK /root/group_a_execution/runtime_core_production",
+  "resources": [
+    {
+      "file": "access.conversation-selection.schema.json",
+      "sha256": "e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/access.conversation-selection.schema.json",
+      "sourceSha256": "e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed",
+      "standing": "maintained unchanged Design schema"
+    },
+    {
+      "file": "hosting.server-request-entry.schema.json",
+      "sha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/hosting.server-request-entry.schema.json",
+      "sourceSha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
+      "standing": "maintained unchanged Design schema"
+    },
+    {
+      "file": "npt.plan-revision.schema.json",
+      "sha256": "12395230e57d9397fca5d02fb011c70b6c9990992c459748f6daf8b8474b8a16",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Design/npt.plan-revision.schema.json",
+      "sourceSha256": "12395230e57d9397fca5d02fb011c70b6c9990992c459748f6daf8b8474b8a16",
+      "standing": "maintained unchanged Design schema"
+    },
+    {
+      "file": "plans.constructed.jsonl",
+      "sha256": "08327e8d5f1f965a2b504665af4c83fb61cb0866614b638a2f9186dbf23b02ae",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Design/prototype/fixtures/native/plans.jsonl",
+      "sourceSha256": "08327e8d5f1f965a2b504665af4c83fb61cb0866614b638a2f9186dbf23b02ae",
+      "standing": "constructed Design fixture; no supplier observation"
+    },
+    {
+      "file": "recovery.app-ledger-entry.schema.json",
+      "sha256": "33a454f83da05364fa65de96b2724c874093d1b318e1752bd7c0092e2be6a2d1",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.schema.json",
+      "sourceSha256": "33a454f83da05364fa65de96b2724c874093d1b318e1752bd7c0092e2be6a2d1",
+      "standing": "maintained unchanged Design schema"
+    }
+  ]
+}

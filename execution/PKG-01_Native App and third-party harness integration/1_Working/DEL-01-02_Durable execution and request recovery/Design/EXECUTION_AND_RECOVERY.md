@@ -1,5 +1,6 @@
 # Durable execution and request recovery
 - Contribution: DEL-01-02/RECOVERY-v0.2 (supersedes DEL-01-02/RECOVERY-v0.1, written at node D1 round 1 on 2026-10-01, file sha256 455678a69929024980ad570c1bce3cac339cb249288261e8f7604374c81b6941, unchanged until this step)
+- **CC-REC-GEN (APP-V4-GROUP-A-20261004):** full H5 generation tuple has deterministic string references (§1); ledger/custody/stop schema shapes unchanged, independent review pending.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside it: three PROPOSED schemas (JSON Schema 2020-12), each with a valid and an invalid example instance, and a local design prototype in `prototype/` (not product code, not an App candidate; R12-3)
 - Produced by: run `APP-V4-DESIGN-PASS-3-20261001`, node D1 (Type 2 TASK; Claude Opus 5.5, high effort): v0.1 on 2026-10-01 under BRIEFS "D — design nodes, round 1", row D1; v0.2 on 2026-10-02 under BRIEFS "D round 2"
 - **v0.2 inputs** (sha256 recomputed in the working tree at `e4e14d6ae6`, 2026-10-02; paths under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`): `BRIEFS.md` 316ea29325a0d45004ffd59c1b142d2e9f5c371ac765bce7c4b94898a57788d7 ("D round 2"); `OWNER_DECISIONS.md` ea96c55710af41c94afe3721f8881bf5edc5bbfc9ad4d0d9ff68e20ca808e015 (DECISION-L: L-1 binding here; L-2 through R19); `R18_RESOLUTIONS.md` abf5eee6324647ff9f126603ff189a21f847d5887f20e24e540fd9a6b4c0bd30 (R18-1 C-03, C-11, C-12, C-13, C-19, C-20; R18-7 G-4, G-5; R18-9); `R19_RESOLUTIONS.md` 16930ecdcead75118ee264bc78d3a7c4824212323cb9895b9a3c15478122a12c (R19-1, R19-2, R19-3, R19-4 L-1, R19-5, R19-7, R19-8); `F/F0_JOINS.md` e93608be1c6e3eb03e6194f3c6f415e3171492f9828b0fd80b4dccb81fe47dd9 (§2, §6 "Not F's", §7.1); `DECISIONS_PENDING_2.md` 0ecbf87aae8d4350c6615ccf051e8808c828b285271574b6a48f4c6937b74f9b (context only). Observation records, read, not edited: `DEL-01-01/Design/OBS_2_0.158.0.md` 61cc34ffb811eb270542042ce4cfdc195efb0c5be4b89dbbe73eb9b99e104ac0 (§4, §5, §6, §7, §11) and `OBS_3_0.158.0.md` 554ac4451d11282450e3ec4a4192448adf67bda6a07820f84a698716c806a843 (§4, §6, §8, UNRESOLVED). The basis documents are byte-identical to the pins below.
@@ -91,6 +92,33 @@ kept under each home, OBS-2 §9, `inference`). DEL-01-01 defines the boundary
 for the life of one child (*generation*); a generation's identity is
 {App session, App home, spawn counter} (R19-4; §6). This deliverable owns what lasts **longer than a
 generation or a window**:
+
+**Generation references (CC-REC-GEN technical representation).** HOSTING H5
+exports the full object `{appSession, home, spawnCounter}`. RECOVERY's existing
+nonempty string fields (`generation`, `lastLoadedGeneration`, including nested
+request-entry references) carry the same tuple losslessly as:
+`gen:v1:s:<session-utf8-lowerhex>:h:<home-utf8-lowerhex>:n:<counter-decimal>`.
+Both strings are nonempty Unicode scalar sequences encoded as strict UTF-8;
+hexadecimal is lowercase, two digits per byte, without whitespace or a prefix.
+There is no Unicode normalization: composed/decomposed values remain distinct.
+The counter is the positive integer from the actual H5 spawn, canonical ASCII
+decimal without sign or leading zeros. Fixed tags/order and hex-only payloads
+make delimiters unambiguous; distinct tuples yield distinct refs, including
+session/home names containing colons, slashes, NUL or non-ASCII characters.
+Encoding is a reference representation, not generation minting or a digest.
+
+The boundary/public interface retains all three object components. RECOVERY
+adapts the full tuple to its reference string at its ledger seam and compares
+the complete tuple/ref, never the counter alone. No actual spawn means no
+generation: omit an optional reference, or do not emit a generation-required
+custody/ledger event; never synthesize counter zero or reuse the prior tuple.
+Historical opaque fixture refs stay historical; reading an old ref must not
+invent a session/home or treat its counter as a current-generation identity.
+Only a source-confirmed full tuple permits a new v1 reference. The schema's
+nonempty-string shape is retained, so old records remain readable without a
+silent claim they already carried this representation. Process closure,
+request custody, unknown outcomes, observer loss and relaunch semantics are
+unchanged; an old generation's requests are never answered in a new one.
 
 1. **Custody across observer loss**: a window closing, hiding or reloading
    changes nothing the supplier is sent (REQ-001; §5 SQ-W).
@@ -380,13 +408,13 @@ are **closed**, across observer loss, generation close and relaunch.
 |---|---|---|---|---|---|
 | RQ-01 | — | entry-outstanding | HOSTING RT-04 | listed | L `register_entry_summary` (no native parameters) |
 | RQ-02 | listed | observer-lost | DEF-1 | listed | Nothing: the entry stays outstanding with no window (HOSTING R6) |
-| RQ-03 | listed | entry-settled | HOSTING RT-07, RT-08, RT-09 or RT-10 | closed | L summary with the end (*answered* · *declined* · *settle-write-failed* · *resolved-by-supplier*), origin and write result. *resolved-by-supplier* is never shown as an answer (R17-9) |
+| RQ-03 | listed | entry-settled | HOSTING RT-07, RT-08, RT-09, RT-10 or RT-14 (CC-REC-RT-LINK) | closed | L summary with the end (*answered* · *declined* · *errored after receipt* · *settle-write-failed* · *resolved-by-supplier*), origin and actual write result (CC-REC-RT-LINK: RT-14 later written error or RT-09 failed write is received here, not RQ-08). *resolved-by-supplier* is never shown as an answer (R17-9) |
 | RQ-04 | listed | generation-closed | HOSTING RT-11 | closed | L summary *ended-unanswered(process-exit)* with its context (*supplier-exit* · *supplier-stop* · *app-quit* · *system-termination*); E `request_ended_unanswered` |
-| RQ-05 | closed | generation-closed | a reply was written (answered or declined) and no acknowledgment was observed | closed | L summary acknowledgment *not-observed*; E `acknowledgment_not_observed` |
+| RQ-05 | closed | generation-closed | a reply was written (answered, declined, or later RT-14 errored via RQ-03) and no acknowledgment was observed | closed | L summary acknowledgment *not-observed*; E `acknowledgment_not_observed` |
 | RQ-06 | listed | session-start-reading | the previous session ended without a record with this entry listed | closed | L summary *ended-unanswered(process-exit)*, context *app-ended-without-record*; E `request_ended_unanswered` |
 | RQ-07 | — | entry-outstanding-same-item | after a resume, a new entry's subject item equals a closed entry's item | listed | L summary with "same item reference as ‹entry›": an observed equality of the reference, never "the same request". **Not observed at 0.158.0**: a pending approval was not raised again on resume after a graceful stop or a kill, and no resolution was sent for it (OBS-2 §5.2). Kept as a defence for a later version (R19-5) |
 | RQ-08 | — | entry-errored-at-receipt | HOSTING RT-02 or RT-03 (DEL-01-01 wrote the explicit error) | closed | L summary *errored* with origin |
-| RQ-09 | closed | acknowledgment-observed | `serverRequest/resolved` after the written reply (HOSTING RT-12, RT-13) | closed | L summary acknowledgment *observed* |
+| RQ-09 | closed | acknowledgment-observed | `serverRequest/resolved` after the written reply (HOSTING RT-12, RT-13; RT-15 only for RT-14 later error with matching full H5 generation/request before closure) | closed | L summary acknowledgment *observed* |
 
 **Observed at 0.158.0 (OBS-2 §5.1, O-3):** `turn/interrupt` with an approval
 held resolves it on Codex's side: `serverRequest/resolved` arrives after
@@ -399,6 +427,34 @@ Refused, and so not in the table: answering a closed entry (HOSTING R4
 `generation-closed`); answering an entry of an earlier session (it is not in
 the register: `no-such-request`); any automatic decline after a period
 (U-11, §6); an App decline at quit (U-10, §6).
+
+**Later known-answerable protocol error (CC-REC-R9; reviewed source adoption CC-REC-RT-LINK).** HOSTING R9 permits a
+named App rule/boundary error for person-input kinds while content answers remain
+person-only. RECOVERY consumes that boundary result after RQ-01 listed the
+request. It uses **RQ-03** `entry-settled`, preserving exact full H5 generation
+and request identity, actual origin (`app-rule:<name>` or the boundary's reported
+`app-explicit-error`) and write result. HOSTING RT-14 successful error write is `closed`,
+`endedAs: errored`, `replyWrite: written`. HOSTING RT-09 failed error write is `closed`,
+`endedAs: settle-write-failed`, `replyWrite: write-failed`, with outcome unknown;
+it is never reported as an error successfully delivered. A refused origin or
+invalid boundary submission leaves prior state unchanged and yields no fabricated
+settlement. RECOVERY writes no protocol error of its own; this is faithful mapping
+of the existing HOSTING R9 operation, not an additional error-authority path.
+
+RQ-08 remains only RT-02/RT-03 errors-at-receipt, never relabeling a request
+already listed as errored at receipt. Successful error writing is not observed
+acknowledgment. Only HOSTING RT-15's subsequent matching full-generation/request supplier
+resolution after RT-14's successful write and before generation closure
+supports RQ-09's acknowledgment observation; otherwise
+closure of this later RT-14 settlement uses RQ-05 `acknowledgment_not_observed`.
+The RQ-08 receipt-time error branch retains its previous mapping; no new
+acknowledgment promise for that branch is introduced here. Failed writes cannot acquire
+acknowledgment by a later notification: their uncertainty remains. Record origin
+as supplied, never the person for an App rule; no human act/checkpoint satisfaction
+is produced. Boundary-native error facts remain in their own source account;
+the compact ledger summary is not a copied transcript or stronger source.
+The existing summary schema already admits `errored`, named origins and the
+write-result values; no shape/ID change is needed.
 
 ## 4. Interfaces
 
@@ -592,9 +648,29 @@ keeps only pointers and its own observations, labelled *App-observed*, and
 never uses them as authority for what Codex holds.
 
 The **App ledger** (`recovery.app-ledger-entry.schema.json`): append-only,
-one entry per line, as RS §13.1 option S-A; its location and technology are
-unselected (TBD-002 stays with the App execution/recovery owner and the
-supplier-integration owner).
+one UTF-8 JSON object per LF-terminated line. **CC-REC-LEDGER technical choice
+for Group A App implementation:** keep this pointer-only file at
+`<App-own-user-data>/runtime/recovery.ledger.jsonl`, outside Codex homes and
+independent of the selected project RS logs and portable A15 library acts.
+App execution/recovery owns the ledger; supplier-integration supplies its custody
+facts. The App resolves its own user-data root from the host; tests supply an
+explicit scratch ledger path instead. No common service or host persistence
+allocation follows from this local choice (bounded U-R7/TBD-002 only).
+
+Validate complete entries against the existing ledger schema before append,
+append without rewriting prior facts and establish durable file/directory
+publication before reporting an entry persisted. On recovery, incomplete,
+unreadable or nonconforming storage is shown as an explicit ledger/recovery
+limit; no success/completeness or missing historical answer is inferred.
+Unavailable or unwritable storage reports failure visibly, preserves available
+old evidence and makes no silent fallback to a Codex home, project RS log,
+user-selected other location or memory-only “durable” ledger. First creation
+of a known new ledger is distinct from inability to read a configured existing
+ledger. Required protocol responses remain the supplier boundary's duty;
+ledger failure does not turn silence into approval or justify suppressing a
+required server-request reply. Native payloads, credentials and transcript
+content are never copied into this file. Retention/deletion remains U-R3:
+no deletion/compaction/retention duration is selected by this placement change.
 
 | Entry kind | What it holds | Used for |
 |---|---|---|
@@ -886,7 +962,7 @@ qualified.
 | U-R4 Numbers: quit wait limit, stop wait limit, journal size, overlap wait (with HOSTING U-05) | App implementation owner | Before implementation | TEST VALUES in the prototype only |
 | U-R5 *Closed at G (R22-3):* more than one App window on one conversation. Each window is an observer and shows the interrupt control; the first press settles it, another window's press is refused and its control shows the turn's state (§3.3, SR-11; NIR-v0.2 §4.8 WI-5, beside WI-4) | — | — | — |
 | U-R6 *Closed at G (C1-A G-A1):* RS does not record a turn interrupt in format 0.1 (RS-v0.9 §10, DEL-01-02 row; §3, "Run-ended event" row) | — | — | §8.2 cites it |
-| U-R7 TBD-002 persistence technology and location | App execution/recovery owner with the supplier-integration owner | Before implementation | Format PROPOSED only |
+| U-R7 TBD-002 persistence technology and location — bounded choice selected (CC-REC-LEDGER) | App execution/recovery owner with the supplier-integration owner | Independent review and product adoption | §7 selects App-local UTF-8 JSON Lines pointer ledger under App-own user-data runtime; failure visible, no relocation. Retention/deletion U-R3 remains open; no product evidence claimed |
 | U-R8 OI-008 process division (O-1 PROPOSED, R17-5) | App implementation owner (phase review) | Before architecture production | Requirements stated apart from placement |
 | U-R12 Deleting or archiving a conversation that has forks: at 0.158.0 a fork's history is referenced from the source's rollout (OBS-3 W-6, UNRESOLVED), so the App may need to warn or keep the source (with U-R3) | App execution/recovery owner | Before deletion is offered | `forkedFrom` recorded |
 | U-R13 Version advance (R19-5): every supplier statement here is about 0.158.0; a version-advance check (regenerate types, diff, rerun the OBS harnesses and this prototype's variants, list affected statements) is proposed as a later node, its scheduling open | Integrator / owner | Before relying on another version | Statements name 0.158.0 |

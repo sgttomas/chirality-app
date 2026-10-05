@@ -84,6 +84,8 @@ REGISTER_TRANSITIONS = {
     "RT-11": ("outstanding", "generation-closed", "ended-unanswered"),
     "RT-12": ("answered", "supplier-reported-resolution", "answered"),
     "RT-13": ("declined", "supplier-reported-resolution", "declined"),
+    "RT-14": ("settling", "reply-written-protocol-error", "errored"),
+    "RT-15": ("errored", "supplier-reported-resolution", "errored"),
 }
 
 STABLE_KINDS = [
@@ -698,6 +700,40 @@ class Boundary:
             self._reg(e, "RT-07", "reply-written-affirmative-or-content", "answered")
         return "accepted-for-write"
 
+    def protocol_error(self, request_identity, native, origin, generation=None):
+        """CC-H-RT-LATE: later R9 error only; receipt RT-02/03 stays _write_error()."""
+        if generation is not None and generation != self.generation_identity(self.generation):
+            return "refused(generation-closed)"
+        e = self.register.get((self.generation, json.dumps(request_identity)))
+        if e is None:
+            return "refused(no-such-request)"
+        if e["generation"] != self.generation or self.state != "ready":
+            return "refused(generation-closed)"
+        if e["state"] == "resolved-by-supplier":
+            return "refused(already-resolved)"
+        if e["state"] != "outstanding":
+            return "refused(already-settled)"
+        permitted = isinstance(origin, dict) and (
+            origin.get("class") == "app-explicit-error" or
+            (origin.get("class") == "app-rule" and isinstance(origin.get("ruleName"), str)
+             and bool(origin["ruleName"].strip())))
+        if e["classification"] != "known-answerable" or not permitted:
+            return "refused(origin-not-permitted)"
+        if not isinstance(native, dict) or type(native.get("code")) is not int or not isinstance(native.get("message"), str):
+            return "refused(invalid-answer)"
+        try:
+            json.dumps(native, allow_nan=False)
+        except (TypeError, ValueError):
+            return "refused(invalid-answer)"
+        e["settlement"] = {"kind": "error", "nativeContent": native, "origin": origin}
+        self._reg(e, "RT-06", "answer-accepted-for-write", "settling")
+        e["replyWriteResult"] = self.child.write({"jsonrpc": "2.0", "id": request_identity, "error": native})
+        if e["replyWriteResult"] == "written":
+            self._reg(e, "RT-14", "reply-written-protocol-error", "errored")
+        else:
+            self._reg(e, "RT-09", "reply-write-failed", "settle-write-failed")
+        return "accepted-for-write"
+
     # ---- notifications and §8.3 destination facts -------------------------
     def _observe_notification(self, f):
         obj = f["obj"]
@@ -712,6 +748,13 @@ class Boundary:
             elif e["state"] in ("answered", "declined"):
                 tid = "RT-12" if e["state"] == "answered" else "RT-13"
                 self._reg(e, tid, "supplier-reported-resolution", e["state"])
+                e["acknowledgmentObservation"] = {"status": "observed",
+                                                  "what": "serverRequest/resolved after the written reply"}
+            elif (e["state"] == "errored" and e["classification"] == "known-answerable"
+                  and e.get("settlement", {}).get("kind") == "error"
+                  and e["replyWriteResult"] == "written"
+                  and f["generation"] == self.generation and self.state in ("ready", "stopping")):
+                self._reg(e, "RT-15", "supplier-reported-resolution", "errored")
                 e["acknowledgmentObservation"] = {"status": "observed",
                                                   "what": "serverRequest/resolved after the written reply"}
         elif m == "model/rerouted":

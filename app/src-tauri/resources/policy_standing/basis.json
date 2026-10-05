@@ -1,0 +1,115 @@
+{
+  "role": "TASK",
+  "parent": "/root/group_a_execution",
+  "mechanism": "delegated-harness-native descendant",
+  "model": "gpt-6.1-sol",
+  "reasoning": "medium",
+  "base": "38bb2bc87a5874ceacbe241fe0a909f887dd16a4",
+  "consultation_limits": "App v3 AGENTS was read during discovery, then explicitly excluded by v4 LOOP. No v3 rules were used. Full manual headings only; field book full; RS/AAC bounded semantics. Source hashing does not imply full body read of every schema.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "45c23cf477e23aff1d0152189caf7e8ebfb53eca42e3a1fae87a06af8c197f28"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/IMPLEMENTATION_ROUTE.md",
+      "sha256": "e232ba7415b3727bd396b177b6a9380b2c3b44695ff8b19d4a8347e091a46b8c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md",
+      "sha256": "2ee7236aeeb45de6e8a6fbefe3bb570d1eb67f62533a2cb9a089f7cd5c33fac6"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "31217d30b0d2743bef0d7c1a54bb9a81814d56b24ff0961cf01d9532952e305f"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "08ca0e40cd5157574a011bac57d539e77e9007a0d46494785da8b92745391b1a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/ScopeOfWork.md",
+      "sha256": "2cd1dc9e542a9ee38ee0dd2a217bd717ecd960b2df009f59b4b2c562d350d862"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/ScopeOfWork.md",
+      "sha256": "e130ef7dc92ac865631002a9ab77fc2aedb16d6b0e0a568d7c62f8a8bb1c3fc5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Design/ACT_AND_POLICY_CONTRACT.md",
+      "sha256": "597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Design/AUTONOMY_AND_STANDING_EXCHANGE.md",
+      "sha256": "4eca598f13c8c0745f94c605b8940a094b55e57b9f7478c989824af229085857"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "sha256": "e581c9bfc3474b7963a5afc043afb7ba47874fe17d633f0f1cd3ff1cacce1335"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/APP_ACT_CONTROL.md",
+      "sha256": "098875a39b33543adc8ac1d860840e7e841062ea513cbd60a601ca237ceb721b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Design/prototype/validate_policy.py",
+      "sha256": "8a799666b3fb17984b17fc456f0e8fdf703b6838a3a0117bc21a0119192112d3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Design/prototype/validate_settings_in.py",
+      "sha256": "4996fdae927af74f0284e189be281bfbfa2096730311ef2416c090981baf7304"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/sync.py",
+      "sha256": "65640c13b5540a756379bab7f39c01aa303df5521ec0f420ca00f0050ff36200"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/ACT_POLICY_CLASS_RECORD.schema.json",
+      "sha256": "694a284f48155ab7a7d0e24d47ec809a06ec3a909dbb104a28374164d3f6cb7e"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/AS_SETTINGS_IN.schema.json",
+      "sha256": "206045da42dae052621893c8e25487066b36ef8e8a3a7a28414b02137be07d62"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/RS_RECORD.schema.json",
+      "sha256": "c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/aac.capture-evidence.schema.json",
+      "sha256": "4405a1228e5982d948eb82776aaaf54d966d4305f8829a656473a523ad1ca4ba"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/checkpoint-record-entries.schema.json",
+      "sha256": "00d5203a2fa9d099b25f2f8da5732f2d869a18fd0846ebe33d25c9ae2ae135d3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/aac.offer.schema.json",
+      "sha256": "f2091fcf2583b6863370ba51d86f4c8671dbae5bbd6fe0e39046154d98c7d066"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/manifest.json",
+      "sha256": "7c11acfe9f4088b1c4703970341df82ebe2fc23c9938458b8f636af623d2ead5"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/schema_validation.rs",
+      "sha256": "42545d9d544f0a8ac7be84814bc9285d987888e6c7ef2ca0201041458c2eb3a9"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/Cargo.lock",
+      "sha256": "2fad2d658b3ffaf7b3973d5ab7da693788613f7462eaeca9d4b6b9ad826f7012"
+    }
+  ]
+}

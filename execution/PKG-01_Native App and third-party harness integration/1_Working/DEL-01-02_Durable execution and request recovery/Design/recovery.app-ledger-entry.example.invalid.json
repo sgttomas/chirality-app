@@ -2,7 +2,7 @@
   "kind": "register_entry_summary",
   "session": "sess-1",
   "at": "2026-10-01T09:12:03.200Z",
-  "generation": "sess-1/H-acct/g1",
+  "generation": "gen:v1:s:736573732d31:h:482d61636374:n:1",
   "requestIdentity": "sr-ex-4",
   "method": "item/commandExecution/requestApproval",
   "subject": {

@@ -1,0 +1,83 @@
+[
+  {
+    "case": "VAL-AS-1",
+    "why": "F1: T1 <set-1> at run start. P-03 effective (policy default): propose, no A12, no setting actor; OP-C11 class no policy basis, not set (held, pending OI-021). Fixture subjects, invented",
+    "instance": {
+      "settingsVersionId": "set:set-1",
+      "runId": "run:R-100/12",
+      "sourceOfControl": "host",
+      "changeKind": "run start",
+      "operationClassGrants": [
+        {
+          "policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"},
+          "classValue": "may apply within granted autonomy",
+          "grantValue": "propose",
+          "scope": {"modelOrWorkspace": "FX-W1", "consequence": "UNRESOLVED{U-02}"},
+          "displayState": "effective (policy default)",
+          "requester": "none — policy default",
+          "settingActor": "none — policy default",
+          "policyDefault": {"policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"}, "defaultValue": "propose"},
+          "establishment": {"controlEffect": "not applicable"}
+        },
+        {
+          "policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-06"},
+          "classValue": "no policy basis",
+          "noPolicyBasisReason": "pending OI-021",
+          "scope": {"modelOrWorkspace": "FX-W1"},
+          "displayState": "not set",
+          "requester": "none — policy default",
+          "settingActor": "none",
+          "establishment": {"controlEffect": "not applicable"}
+        }
+      ]
+    }
+  },
+  {
+    "case": "VAL-AS-2",
+    "why": "F2 and F21: T15 Engineer A's A12 establishes <set-2> (P-03 direct, scope FX-W1, {S-4}); host agent destination settings: web access on, named MCP entry M-1, model service, always-off items off, in-work grant A-1 this run in force, a declined request for A-2",
+    "instance": {
+      "settingsVersionId": "set:set-2",
+      "runId": "run:R-100/12",
+      "sourceOfControl": "host",
+      "changeKind": "during-work change",
+      "afterOperationEntry": "rec:host-loop:run-12:0014",
+      "operationClassGrants": [
+        {
+          "policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"},
+          "classValue": "may apply within granted autonomy",
+          "grantValue": "direct",
+          "scope": {"modelOrWorkspace": "FX-W1", "objectSet": ["S-4"]},
+          "displayState": "effective (person-set)",
+          "requester": "person",
+          "settingActor": "person",
+          "settingActRef": "rec:host-control:act-5",
+          "establishment": {"controlEffect": "established", "evidenceRef": "cap:T15"}
+        }
+      ],
+      "destinationSettings": {
+        "hostAgent": "host-agent:E",
+        "modelService": {"service": "cloud model service M1", "signInService": "M1 sign-in", "allowedBy": "model choice"},
+        "categorySwitches": [
+          {"category": "web access", "on": true, "settingActRef": "rec:host-control:act-20", "displayState": "effective (person-set)"},
+          {"category": "MCP servers", "on": false, "displayState": "not set"},
+          {"category": "other APIs", "on": false, "displayState": "not set"}
+        ],
+        "namedEntries": [
+          {"destination": "M-1", "category": "MCP servers", "source": "allow list", "settingActRef": "rec:host-control:act-21", "displayState": "effective (person-set)"}
+        ],
+        "alwaysOffItems": [
+          {"item": "analytics or usage reporting", "on": false},
+          {"item": "a silent switch to another model or provider", "on": false},
+          {"item": "background downloads or updates", "on": false}
+        ],
+        "inWorkGrants": [
+          {"settingActRef": "rec:host-control:act-22", "requestRef": "rec:host-loop:run-12:0031", "target": {"destination": "A-1", "category": "other APIs"}, "scope": "this run", "state": "in force", "runId": "run:R-100/12", "time": "T15+3"}
+        ],
+        "agentRequests": [
+          {"requestRef": "rec:host-loop:run-12:0031", "target": {"destination": "A-1"}, "scopeSought": "this run", "state": "granted"},
+          {"requestRef": "rec:host-loop:run-12:0040", "target": {"destination": "A-2"}, "scopeSought": "once", "state": "declined"}
+        ]
+      }
+    }
+  }
+]

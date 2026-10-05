@@ -556,24 +556,45 @@ def read_package(pkg_dir, schema):
 
 
 # ---------------------------------------------------------------- revision (U-03 illustration only)
+PACKAGE_ID_METHOD = "chirality.app.workflow-package.sha256/v1"
+EXACT_BYTE_METHOD = "chirality.app.exact-bytes.sha256/v1"
+
+
 def revision(pkg_dir):
-    """File set and canonicalization of WD §6.1 RV-1..RV-5. The digest method 'proto-sha256-list-0' is an
-    illustration for this prototype, NOT a selection (U-03)."""
+    """CC-CONTENT-IDENTITY: WD RV1–5 exact all-file App package snapshot digest."""
+    import stat
     entries = []
-    for dp, dns, fns in os.walk(pkg_dir, followlinks=False):
-        for d in list(dns):
-            if os.path.islink(os.path.join(dp, d)):
-                return {"status": "not_established", "reason": "non-regular entry (symbolic link) " + d}
-        for f in fns:
-            p = os.path.join(dp, f)
-            if os.path.islink(p) or not os.path.isfile(p):
-                return {"status": "not_established", "reason": "non-regular entry " + os.path.relpath(p, pkg_dir)}
-            rel = os.path.relpath(p, pkg_dir).replace(os.sep, "/")
-            entries.append((rel.encode("utf-8"), hashlib.sha256(open(p, "rb").read()).hexdigest()))
-    entries.sort()
-    listing = "".join("%s  %s\n" % (h, r.decode("utf-8")) for r, h in entries).encode("utf-8")
-    return {"status": "computed", "method": "proto-sha256-list-0 (illustration; U-03 open)", "files": len(entries),
-            "value": hashlib.sha256(listing).hexdigest()}
+    try:
+        if not stat.S_ISDIR(os.lstat(pkg_dir).st_mode):
+            return {"status": "not_established", "reason": "non-regular package root"}
+        def unreadable(error):
+            raise error
+        for dp, dns, fns in os.walk(pkg_dir, followlinks=False, onerror=unreadable):
+            for name in dns + fns:
+                path = os.path.join(dp, name)
+                mode = os.lstat(path).st_mode
+                if stat.S_ISDIR(mode):
+                    continue
+                if not stat.S_ISREG(mode):
+                    return {"status": "not_established", "reason": "non-regular entry " + name}
+                rel = os.path.relpath(path, pkg_dir).replace(os.sep, "/").encode("utf-8", "strict")
+                with open(path, "rb") as source:
+                    data = source.read()
+                entries.append((rel, data))
+    except (OSError, UnicodeError) as exc:
+        return {"status": "not_established", "reason": "package unreadable or path not UTF-8: " + type(exc).__name__}
+    entries.sort(key=lambda entry: entry[0])
+    digest = hashlib.sha256()
+    digest.update(PACKAGE_ID_METHOD.encode("ascii") + b"\0")
+    digest.update(len(entries).to_bytes(8, "big"))
+    manifest = []
+    for path, data in entries:
+        digest.update(len(path).to_bytes(8, "big")); digest.update(path)
+        digest.update(len(data).to_bytes(8, "big")); digest.update(data)
+        manifest.append({"path": path.decode("utf-8"), "bytes": len(data),
+                         "content": {"method": EXACT_BYTE_METHOD, "value": hashlib.sha256(data).hexdigest()}})
+    return {"status": "computed", "method": PACKAGE_ID_METHOD, "files": len(entries),
+            "value": digest.hexdigest(), "manifest": manifest}
 
 
 # ---------------------------------------------------------------- helpers for the self-test

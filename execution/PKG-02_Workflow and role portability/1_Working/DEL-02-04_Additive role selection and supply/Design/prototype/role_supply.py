@@ -15,7 +15,7 @@ import os
 import shutil
 
 ROLES = ("HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK")
-ID_METHOD = "proto-sha256-0 (illustration; HOSTING U-08 open)"
+ID_METHOD = "chirality.app.exact-bytes.sha256/v1"
 COMPOSITION_FORMAT = "chirality.role.compose/0.2"
 GUIDANCE_FILES = ["AGENTS.md"] + ["agents/AGENT_%s.md" % r for r in ROLES]
 CHILD_KEY_SUFFIXES = ("description", "config_file")

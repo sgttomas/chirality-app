@@ -20,5 +20,19 @@ Run from this folder:
     python3 run_cases.py --write-examples --record   # also rewrites the four example files beside ROLE_SUPPLY.md
 
 Scratch files are made in a fresh folder under `$TMPDIR` and removed at the
-end. The content-identity method in every record is the illustration
-`proto-sha256-0`; the algorithm is open (HOSTING U-08).
+end. New App-produced content identities use CC-CONTENT-IDENTITY
+`chirality.app.exact-bytes.sha256/v1`, SHA-256 over exact bytes. Historical
+fixtures retain their old method designation; HOSTING's wider U-08 and
+host-native methods remain open. The suite includes a known vector and
+line-ending/Unicode sensitivity checks.
+
+## Current receiving pin and historical double
+
+CC-ROLE-PIN-0160 maintains0.160.0 for the App's generic primary role carrier;
+`../ROLE_PIN_0.160.0.md` identifies the independently reviewed HELP_HUMAN
+capture-only sample and its limits. This prototype remains a **historical
+0.158.0-shaped invented supplier double**: its pin defaults, adapter/child
+assumptions and resume/fork outcomes are not silently relabelled0.160.0 native
+evidence. Run the existing suite without --record/--write-examples to verify
+unchanged source/role/request/record meaning. It proves no new native carrier,
+other/no-role case, lifetime, child availability, model adoption or qualification.

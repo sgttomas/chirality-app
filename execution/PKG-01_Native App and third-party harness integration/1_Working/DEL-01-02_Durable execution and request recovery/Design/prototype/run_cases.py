@@ -369,7 +369,7 @@ def c07():
         out = [e for e in app2.events if e["kind"] == "turn_outcome"][-1]
         exp_state = "outcome-recovered" if persisted == "interrupted" else "outcome-unknown"
         ok = (reading == "ended-without-record" and len(ended) == 1 and s["state"] == exp_state
-              and out["cause"] == "person-interrupt" and ("RQ-06", ("sess-1/H-acct/g1", rid)) in app2.trace)
+              and out["cause"] == "person-interrupt" and ("RQ-06", (M.generation_ref("sess-1", "H-acct", 1), rid)) in app2.trace)
         errs = check_records(app) + check_records(app2)
         all_ok = all_ok and ok and not errs
         rows.append("%s→%s%s" % (persisted, s["state"], "" if ok and not errs else " FAIL " + "; ".join(errs[:2])))
@@ -486,13 +486,13 @@ def c13():
     app.send_message(a)
     app.send_message(k)
     ga, gk = app.g("H-acct"), app.g("H-key")
-    ids = ga != gk and ga.startswith("sess-1/H-acct/") and gk.startswith("sess-1/H-key/")
+    ids = ga != gk and ga == M.generation_ref("sess-1", "H-acct", 1) and gk == M.generation_ref("sess-1", "H-key", 1)
     app.supplier_exits("H-key")
     lost = [e for e in app.events if e["kind"] == "observation_lost"][-1]
     isolated = (app.convs[k]["state"] == "observation-lost" and app.convs[a]["state"] == "turn-live"
                 and lost["home"] == "H-key" and lost["conversations"] == [k])
     app.start_supplier("H-key")
-    recovered = app.convs[k]["state"] == "indexed" and app.g("H-key") == "sess-1/H-key/g2"
+    recovered = app.convs[k]["state"] == "indexed" and app.g("H-key") == M.generation_ref("sess-1", "H-key", 2)
     app.resume(k)
     app.send_message(k)
     q = app.request_quit()
