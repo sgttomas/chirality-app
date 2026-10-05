@@ -31,10 +31,10 @@
     },
     {
       "file": "recovery.app-ledger-entry.schema.json",
-      "sha256": "33a454f83da05364fa65de96b2724c874093d1b318e1752bd7c0092e2be6a2d1",
+      "sha256": "3f1d7f27f68a523c459ebcb9ce3dcd40a5de54fc4b9b16d20fd4e6b4c3f05c67",
       "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.schema.json",
-      "sourceSha256": "33a454f83da05364fa65de96b2724c874093d1b318e1752bd7c0092e2be6a2d1",
-      "standing": "maintained unchanged Design schema"
+      "sourceSha256": "3f1d7f27f68a523c459ebcb9ce3dcd40a5de54fc4b9b16d20fd4e6b4c3f05c67",
+      "standing": "maintained reviewed description-only REC context successor; unchanged0.2 shape"
     }
   ]
 }

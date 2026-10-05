@@ -80,7 +80,7 @@ export function SteeringControl({ target, reason, ready, busy, text, submit }: {
   </div>;
 }
 
-function ConversationPanel({ host, send, steer, interrupt }: { host: Json; send: (generation: Json, thread: string, text: string) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+function ConversationPanel({ host, send, steer, submitAttachments, interrupt }: { host: Json; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [threadKey, setThreadKey] = useState<string>("");
   const [turnId, setTurnId] = useState<string>("");
   const [text, setText] = useState<string>("");
@@ -108,6 +108,16 @@ function ConversationPanel({ host, send, steer, interrupt }: { host: Json; send:
     catch (e) { setError(String(e)); }
     finally { setBusy(""); }
   };
+  const attachmentText = async (expected: string | null) => {
+    const selection = host?.attachmentSelections;
+    if (!selected || !selection?.ownerRef || !(selection.selections ?? []).length || busy) return;
+    setBusy(expected ? "steering with attachments" : "sending with attachments"); setError("");
+    try {
+      await submitAttachments(selected.generation, selected.threadId, expected, text, selection.ownerRef, selection.listRevision, selection.selections.map((row: Json) => row.selection.selectionRef));
+      setText("");
+    } catch (e) { setError(String(e)); }
+    finally { setBusy(""); }
+  };
   const interruptTurn = async () => {
     if (!selected || !live || busy || alreadyRequested) return;
     setBusy("interrupting"); setError("");
@@ -125,8 +135,15 @@ function ConversationPanel({ host, send, steer, interrupt }: { host: Json; send:
     {(selected?.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations.</p>)}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
-    <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={sendText}>Send text</button>
+    <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={sendText}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
+    {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
     <p>Text is sent unchanged to the selected native conversation. Its role, model and provider remain the conversation's existing settings.</p>
+    {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
+      <button disabled={host?.state !== "ready" || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
+      <button disabled={host?.state !== "ready" || !selected || !steeringTarget || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(steeringTarget.turnId)}>Steer current turn with ordered attachments</button>
+      <p>Every selected source is revalidated as one whole list. Source/custody/context failures retain the draft and evidence; no text-only fallback or automatic resend. Native acknowledgments remain separate from completion and provider uptake.</p>
+      {host?.attachmentCustody?.state !== "opened" && <p>Attachment custody unavailable: {host?.attachmentCustody?.error}. Plain-text controls remain available.</p>}
+    </div>}
     <SteeringControl target={steeringTarget} reason={steering?.reason} ready={host?.state === "ready" && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <label>Observed live turn <select disabled={!!busy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
     <button disabled={host?.state !== "ready" || !live || !!busy || alreadyRequested} onClick={interruptTurn}>Interrupt selected live turn</button>
@@ -236,6 +253,43 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
       {evidence("counterpart", "Optional supplied counterpart")}
       <details><summary>Complete reported receiving snapshot</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(observation, null, 2)}</pre></details>
     </>}
+  </section>;
+}
+
+export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const rows: Json[] = data?.selections ?? [];
+  const args = { ownerRef: data?.ownerRef, listRevision: data?.listRevision };
+  const invokeAction = async (command: string, extra: Record<string, unknown> = {}) => {
+    setBusy(true); setError("");
+    try { await act(command, { ...args, ...extra }); } catch (e) { setError(String(e)); }
+    finally { setBusy(false); }
+  };
+  const move = (index: number, delta: number) => {
+    const order = rows.map(row => row.selection.selectionRef);
+    const other = index + delta; [order[index], order[other]] = [order[other], order[index]];
+    void invokeAction("reorder_attachments", { selectionRefs: order });
+  };
+  return <section>
+    <h2>Selected text attachments</h2>
+    <p>Native selection keeps private source handles and original identities. Selected files are sent only by an explicit attachment-bearing submission; whole-list/source failures do not fall back to text-only sending.</p>
+    <button disabled={busy || !data?.ownerRef} onClick={() => invokeAction("select_attachment")}>Select text attachment…</button>
+    <p>List revision: {data?.listRevision ?? "unavailable"} · operation: {data?.operation?.state ?? data?.state ?? "not initialized"}.</p>
+    {data?.reason && <p>{data.reason}</p>}{data?.operation?.message && <p role="alert">{data.operation.message}</p>}{error && <p role="alert">{error}</p>}
+    {rows.map((row, index) => <article key={row.selection.selectionRef} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+      <h3>{index + 1}. {row.selection.displayName} · {row.selection.standing}</h3>
+      <p>{row.selection.displayPath} · carrier: {row.selection.carrier}.</p>
+      <pre>{JSON.stringify({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft }, null, 2)}</pre>
+      <button disabled={busy || index === 0} onClick={() => move(index, -1)}>Move earlier</button>{" "}
+      <button disabled={busy || index === rows.length - 1} onClick={() => move(index, 1)}>Move later</button>{" "}
+      <button disabled={busy} onClick={() => invokeAction("remove_attachment", { selectionRef: row.selection.selectionRef })}>Remove</button>{" "}
+      <button disabled={busy} onClick={() => invokeAction("reconfirm_attachment", { selectionRef: row.selection.selectionRef })}>Confirm current source…</button>
+    </article>)}
+    <details><summary>Explicit App project observation and source limits</summary><pre>{JSON.stringify(data?.launchAppProjectObservation, null, 2)}</pre></details>
+    <p>{data?.workflowRun}</p><p>{data?.submissionStanding}</p><p>{data?.custody}</p>
+    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {submission.submissionRef} · {submission.state}</h3><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(submission, null, 2)}</pre></article>)}
+    <p>Plain-text controls remain available independently. Workflow-run prefix/draft association and provider uptake require their owning evidence.</p>
   </section>;
 }
 
@@ -426,12 +480,21 @@ export function App() {
         </details>
       </section>
 
+      <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
+        try { await invoke(command, args); } finally { setHost(await invoke("host_status")); }
+      }} />
+
       <HistoryPanel host={host} refresh={refresh} />
 
       <ConversationPanel host={host} send={async (generation, threadId, text) => {
         await conversationAction("conversation_send_text", { generation, threadId, text });
       }} steer={async (generation, threadId, expectedTurnId, text) => {
         await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
+      }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
+        try {
+          await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
+          setMessage("Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.");
+        } finally { setHost(await invoke("host_status")); }
       }} interrupt={async (generation, threadId, turnId) => {
         await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }} />

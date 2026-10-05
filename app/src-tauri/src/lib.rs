@@ -55,6 +55,11 @@ pub struct AppState {
     role_supply_status: Mutex<Value>,
     external_observation: Mutex<runtime_session::ExternalObservationSession>,
     trace_selection: Mutex<runtime_session::TraceSelectionSession>,
+    attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
+    attachment_custody: Mutex<Result<Arc<hosting::attachment_custody::AttachmentCustody>,String>>,
+    project_context: recovery::ExplicitAppProjectContext,
+    project_context_limit: Option<String>,
+    thread_home_kinds: Mutex<std::collections::HashMap<String,&'static str>>,
 }
 
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
@@ -128,6 +133,16 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["steeringTargets"] = json!(targets);
     s["externalObservation"] = state.external_observation.lock().unwrap().snapshot();
     s["traceReceiving"] = state.trace_selection.lock().unwrap().snapshot();
+    let custody = state.attachment_custody.lock().unwrap().clone();
+    let mut selections = state.attachment_selection.lock().unwrap();
+    if let (Ok(selection),Ok(custody)) = (selections.as_mut(),custody.as_ref()) { selection.refresh_submissions(&state.host,custody); }
+    s["attachmentSelections"] = match selections.as_ref() {
+        Ok(selection) => selection.snapshot(),
+        Err(error) => json!({"state":"unavailable","reason":error,"submissionStanding":"nothing selected/sent; plain text controls remain independent"}),
+    };
+    s["attachmentCustody"] = match custody {Ok(custody)=>json!({"state":"opened","root":custody.root().display().to_string()}),Err(error)=>json!({"state":"unavailable","error":error,"scope":"attachment-bearing operations only"})};
+    s["currentAppProjectContext"] = state.project_context.view();
+    s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
     }
@@ -173,9 +188,11 @@ fn thread_start(
     composition.verify()?;
     let generation = state.host.snapshot()["generation"].clone();
     let attempt_id = util::opaque_id("conversation:")?;
-    let mut selection = access::ConversationSelection::new(&attempt_id, &cwd)?;
+    let frozen_project = state.project_context.clone();
+    let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
     selection.choose(&entry_id, &model_provider, &model, false)?;
     selection.start_params(&generation, "account", false)?;
+    let recovery_home = selection.recovery_home();
     // Serialize the claim; fallible no-effect preparation completes before
     // either shared state publishes Starting. Transport waits hold no slot lock.
     let supply_ref = {
@@ -214,6 +231,12 @@ fn thread_start(
         }
         result
     };
+    if let Ok(response) = &result {
+        if let Some(thread) = response["result"]["thread"]["id"].as_str() {
+            if let Some(home) = recovery_home { state.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home); }
+            let _ = state.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
+        }
+    }
     result
 }
 
@@ -292,6 +315,40 @@ fn conversation_interrupt(
 }
 
 /// Paths come exclusively from native file selection; no path/origin is an IPC argument.
+#[tauri::command(async)]
+fn submit_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_refs:Vec<String>,generation:Value,thread_id:String,expected_turn_id:Option<String>,text:String)->Result<Value,String>{
+    let context=state.project_context.clone();
+    let home=state.thread_home_kinds.lock().unwrap().get(&serde_json::to_string(&json!([generation,thread_id])).unwrap()).copied();
+    let custody=state.attachment_custody.lock().unwrap().clone()?;
+    runtime_session::submit_selected_attachments(&state.attachment_selection,&state.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,home)
+}
+
+/// The native selector is the only attachment path/body authority. JS carries
+/// known owner/revision references only, never selected source bodies or paths.
+#[tauri::command(async)]
+fn select_attachment(app: tauri::AppHandle, state: State<'_, AppState>, owner_ref: String, list_revision: u64) -> Result<Value,String> {
+    runtime_session::select_attachment_source(&state.attachment_selection,&owner_ref,list_revision,|| {
+        app.dialog().file().set_title("Select a UTF-8 text attachment")
+            .blocking_pick_file().map(|file|file.into_path().map_err(|error|format!("Native attachment selection is not a filesystem path: {error}"))).transpose()
+    })
+}
+#[tauri::command]
+fn remove_attachment(state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_ref:String)->Result<Value,String>{
+    let mut state=state.attachment_selection.lock().unwrap();state.as_mut().map_err(|error|error.clone())?.remove(&owner_ref,list_revision,&selection_ref)
+}
+#[tauri::command]
+fn reorder_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_refs:Vec<String>)->Result<Value,String>{
+    let mut state=state.attachment_selection.lock().unwrap();state.as_mut().map_err(|error|error.clone())?.reorder(&owner_ref,list_revision,&selection_refs)
+}
+#[tauri::command(async)]
+fn reconfirm_attachment(app:tauri::AppHandle,state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_ref:String)->Result<Value,String>{
+    runtime_session::reconfirm_attachment_source(&state.attachment_selection,&owner_ref,list_revision,&selection_ref,|comparison| {
+        app.dialog().message(format!("Confirm current attachment source\n\n{}\n\nThis changes only the selected source. Nothing is sent or registered.",serde_json::to_string_pretty(comparison).unwrap()))
+            .title("Chirality — confirm current attachment source").kind(MessageDialogKind::Info)
+            .buttons(MessageDialogButtons::OkCancelCustom("Use current source".into(),"Keep original selection".into())).blocking_show()
+    })
+}
+
 /// The IPC accepts declared kinds only. Path and bytes originate exclusively
 /// at this main-process native selector/once-opened receiver boundary.
 #[tauri::command(async)]
@@ -491,12 +548,15 @@ fn decide(
 pub fn run() {
     let workspace = std::env::var("CHIRALITY_WORKSPACE").ok().map(PathBuf::from);
     let host_config = host_config_from_env(workspace.as_ref());
+    let project = runtime_session::freeze_configured_project(workspace.as_deref());
+    let project_context_limit = project.as_ref().err().cloned();
+    let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
     let state = AppState {
         host: Arc::new(Host::new()),
         host_config: host_config.clone(),
         act: Mutex::new(workspace.as_ref().map(|w| ActControl::new(w))),
         decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
-        workspace,
+        workspace: workspace.clone(),
         person_name: Mutex::new(None),
         runtime: Mutex::new(runtime_session::RuntimeSession::default()),
         history: Mutex::new(runtime_session::HistorySession::default()),
@@ -507,6 +567,10 @@ pub fn run() {
         role_supply_status: Mutex::new(json!({"state":"not-supplied","adoption":"unknown"})),
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
+        attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
+        attachment_custody: Mutex::new(Err("Attachment custody not initialized".into())),
+        project_context, project_context_limit,
+        thread_home_kinds: Mutex::new(std::collections::HashMap::new()),
     };
     let host = Arc::clone(&state.host);
     tauri::Builder::default()
@@ -522,6 +586,10 @@ pub fn run() {
                 *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
+            *state.attachment_custody.lock().unwrap() = data.as_ref().map_err(Clone::clone).and_then(|data| {
+                let cfg=state.host_config.as_ref().map_err(Clone::clone)?;
+                hosting::attachment_custody::AttachmentCustody::open(data,&cfg.codex_home).map(Arc::new)
+            });
             state.recovery_startup.lock().unwrap().initialize(
                 &host,
                 data.as_deref().map_err(String::as_str),
@@ -559,6 +627,11 @@ pub fn run() {
             host_observe,
             select_external_observation,
             select_trace_record,
+            select_attachment,
+            submit_attachments,
+            remove_attachment,
+            reorder_attachments,
+            reconfirm_attachment,
             answer_native_request,
             host_start,
             host_stop,

@@ -474,7 +474,7 @@ unselected (HOSTING §1). Each failure row says who is told and what is left.
 | **stop Codex / restart Codex** (homes, restart, actor) | DEL-01-04's controls, after the person answered its live-work question (R18-1 C-12) | A selected home's process `ready` | L `codex_stop`; each live turn of those homes interrupted (SR-01, cause *codex-stop*); each process stopped (DEF-5a); for Restart, started again and its conversations recovered (CV-11, CV-13). The App session keeps running | As SQ-Q Q-4…Q-6 for those homes; a process not ready is reported, nothing is sent |
 | **resume conversation** (conversation) | DEL-01-04, on the person's choice | CV indexed; its home's process ready | CV-01. **No guidance input** is sent: a conversation's role is fixed for its life (R19-3), and at 0.158.0 `developerInstructions` on `thread/resume` is accepted and silently ignored, for a loaded thread and for one loaded by the resume (OBS-2 §7; R18-1 C-17). Nothing is overridden on `thread/resume` (one rule with ACCESS-v0.2 Q-11 and ROLE-v0.2 §5.5): whether a resume override is adopted by a loaded thread is not observed at 0.158.0, and a model the person chooses for the resumed conversation is sent per turn (`turn/start` `model`, ACCESS-v0.2 CS-18). A different role is a new conversation ("Continue as ‹role›", R19-8), which this file indexes through CV-21 like any other | `thread/resume` error → stays indexed, the error is shown. Not ready → refused `supplier-not-ready`. Never automatic; no prompt is re-sent (HOSTING §4.4) |
 | **recovery status / retry** (conversation) | DEL-01-04, DEL-01-03; retry by the person | Any; retry in unavailable | The CV state and the last `observation_recovered` | Retry fails → stays unavailable |
-| **tag / look up / tags of** (conversation, owner, opaque value) | A run starter (DEL-02-03's App writer, EXEC RE-4), DEL-03-03 | Any | Stored in the ledger, in order (`seq`), several per owner and conversation, so that runs that follow one another in one conversation each keep their tag (R19-2); `look up` returns the conversation of a tag, `tags of` a conversation's tags of one owner in order. DEL-01-02 never interprets a tag (R17-10) and does not know which run is current: the receiver decides that from its own run records | Ledger write fails → the tag lives in memory only; after relaunch the lookup returns nothing and the receiver falls back (EXEC RE-4 "interruption not recovered") |
+| **tag / look up / tags of** (conversation, owner, opaque value) | A run starter (DEL-02-03's App writer, EXEC RE-4), DEL-03-03; NIR DEL-01-04 for opaque submission-project context (§7.1) | Any | Stored in the ledger, in order (`seq`), several per owner and conversation, so that runs that follow one another in one conversation each keep their tag (R19-2); `look up` returns the conversation of a tag, `tags of` a conversation's tags of one owner in order. DEL-01-02 never interprets a tag (R17-10) and does not know which run is current: the receiver decides that from its own run records | Ledger write fails → the tag lives in memory only; after relaunch the lookup returns nothing and the receiver falls back (EXEC RE-4 "interruption not recovered") |
 | **custody events** (stream) | DEL-04-03's writer (DEP-01-02-020), DEL-02-03's recorder, DEL-03-03, DEL-01-03, DEL-01-04 | Any | `recovery.custody-event` records (§8) | A receiver that misses events re-reads them from the stream position; events are App-observed facts, never authority for Codex's content |
 | **descendants** (conversation) | DEL-01-03, DEL-01-04 | Any | Child threads observed with a live turn; background terminals where the experimental opt-in is declared; HOSTING's process census (H11) | None observed is reported as "none observed", never "none" |
 
@@ -701,6 +701,71 @@ content, where Codex's history still has the item, is read from Codex.
 | Tags (for example a run reference) | Ledger | Returned to the receiver that set them |
 
 Retention and deletion of ledger entries are open (U-R3).
+
+### 7.1 Explicit App project and submission context (CC-REC-ATTACHMENT-PROJECT-CONTEXT)
+
+`conversation_index.project` remains the existing nonempty opaque App project
+reference (schema0.2). An explicitly configured/opened App directory reference
+may identify that App project directly; no new ID registry/service or content
+hash is required. Root/shared owner supplies its actual explicit directory/context
+source, independent of native cwd, temp fallback, Codex home, native projectId,
+WR run or renderer assertion. A coincidentally equal path string does not turn
+native cwd into an App-project warrant. Use the actual lossless Root reference;
+no lossy display-path conversion or invented “unknown” project ID.
+
+Known stored association P and its historical rows remain P. Continuing that
+native thread under current explicit Root context Q does not rename/transfer P,
+change its home/model/role or infer a run. An unknown historical association is
+shown “App project not established”; no project-bearing index row is emitted
+under a fake/default/null value. Existing0.2 shape is retained. A genuinely new
+or separately explicit CURRENT App indexing observation may name its actual
+known project; it never backfills earlier native history. Absence/incomplete
+index is a source limit, not proof that no earlier App association existed.
+
+**NIR context receiver (added to §4.1 tag caller contract).** Exact owner is
+`DEL-01-04`. Its value is compact UTF-8 JSON `[submissionRef, projectRef|null]`:
+fixed two-element array, no whitespace, JSON string escaping, no normalization;
+nonempty App `submission:` token and nonempty actual Root App reference, or null
+for not-established current context. Only NIR interprets this value. REC stores/
+returns it unchanged, in existing owner tag order (`seq`); this creates no new
+entry kind/sidecar/NIR supply field/HOST client field or native wire parameter.
+Schema0.2 `project` never becomes null: null occurs only inside this opaque tag
+string. Unknown/unrecognized tags are preserved, not treated as context or run.
+
+Freeze the current Root context/explicit absence before attachment metadata
+association/pipe claims. The immutable submission token/complete ordered NIR list
+and HOST full generation/thread/RPC method remain their owning source; context
+cannot hydrate a native thread/source capability or prove dispatch, receipt,
+adoption or cold readiness. P→Q same/different/unbound context is reported
+explicitly. Re-selection does not retag an existing submission automatically;
+a new explicit send has its own current binding. Same token/same binding is
+idempotent; same token/different recorded bindings are ambiguous, not latest.
+NIR refuses silent rebind, retaining every conflicting claim and no native
+adoption. Its owner checks both durable tags and existing hot memory-only bindings,
+including failed tag writes beside a known project-bearing index. A durable
+snapshot never masks hot immutable context; conflicting bindings stay ambiguous. Unrecognized tags remain untouched. No silent transfer.
+
+For known index P, append a new snapshot retaining P and adding the Q/null tag;
+never rewrite historical rows. With no known project-bearing index, the tag may
+remain memory-only under existing §4.1 failure/absence behavior: no fake row is
+written merely to persist Q. On relaunch, absent/unreadable association is
+unknown/unavailable, not reconstructed from today's Root selection. A durable
+context claim requires actual successful owning metadata persistence; otherwise
+state its limit. Ordinary text/attachments are not blanket-held by this context
+or the separate WR prefix/run join; existing NIR complete-list/HOST prewrite
+custody barriers still apply. Scope-bearing project-last-choice/run effects need their own explicit context.
+AT-8 trial attachments retain WR's own warranted draft/source handle; an unknown
+Root project alone is not a new blanket trial-attachment veto. ACCESS0.2 requires nonempty project and must not
+be instantiated with null/temp/cwd/“unknown”; its owner separately defines an
+unknown view/path, without adding a model/provider default here.
+
+This is a named proposed technical receiving extension, with NIR source
+concurrence; independent source/consumer review precedes product adoption.
+Root/shared owns actual context production; REC owns index/tag persistence/read;
+NIR owns token/value interpretation; ACCESS owns project-sensitive choices.
+No human decision actor, grant, acceptance or default owner is inferred from
+project context. Prototype input strings are scripted source claims, not a
+production private capability or proof of native origin.
 
 ## 8. Formats and the evidence handoff
 

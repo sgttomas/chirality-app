@@ -41,3 +41,5 @@ variant the supplier really exhibits.
 CC-REC-GEN: `python3 -B check_generation_ref.py` checks full-tuple tagged UTF-8-hex references; `run_cases.py` uses this encoding after each scripted actual spawn. Earlier results remain evidence of their historical fixture representation. No schema shape or supplier wire field changes.
 
 CC-REC-RT-LINK: the later-error check receives reviewed HOSTING RT-14/RT-15, with full-generation/request and open-generation guards; receipt RT-02/03 and failed-write uncertainty remain separate.
+
+CC-REC-ATTACHMENT-PROJECT-CONTEXT: `python3 -B check_project_context.py` checks existing0.2 shape, no-row unknown, historical/current distinction and opaque NIR owner codec. Values are scripted source classifications, not production trusted Root context or native proof; no index/schema kind bump.

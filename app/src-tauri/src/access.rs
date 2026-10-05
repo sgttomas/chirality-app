@@ -69,6 +69,7 @@ impl AccountObservation {
 }
 
 pub struct ConversationSelection {
+    project: Option<String>,
     record: Value,
     offered_provider: Option<String>,
     home: Option<String>,
@@ -79,14 +80,52 @@ impl ConversationSelection {
         if conversation.is_empty() || project.is_empty() {
             return Err("conversation/project required".into());
         }
+        Self::new_explicit(conversation, Some(project))
+    }
+    /// The native Root/shared owner supplies a frozen explicit reference or
+    /// explicit absence. Neither native cwd/home nor renderer text is a source.
+    pub fn new_explicit(conversation: &str, project: Option<&str>) -> Result<Self, String> {
+        if conversation.is_empty() || project.is_some_and(str::is_empty) {
+            return Err("conversation/nonempty explicit project required".into());
+        }
+        let record = match project {
+            Some(project) => {
+                json!({"schema":"chirality.access-selection/v0.2","conversation":conversation,"project":project,"state":"no-selection","selection":null})
+            }
+            None => json!({"conversation":conversation,"state":"no-selection","selection":null}),
+        };
         Ok(Self {
-            record: json!({"schema":"chirality.access-selection/v0.2","conversation":conversation,"project":project,"state":"no-selection","selection":null}),
+            project: project.map(str::to_owned),
+            record,
             offered_provider: None,
             home: None,
             generation: None,
         })
     }
+    pub fn project(&self) -> Option<&str> {
+        self.project.as_deref()
+    }
+    pub fn canonical_record(&self) -> Option<Value> {
+        self.project.as_ref().map(|_| self.record.clone())
+    }
+    /// Derived live source view, never a new durable selection schema.
+    pub fn view(&self) -> Value {
+        let mut view = self.record.clone();
+        view.as_object_mut().unwrap().remove("schema");
+        view.as_object_mut().unwrap().remove("project");
+        view["projectContext"] = json!({"reference":self.project,"standing":if self.project.is_some(){"explicit App reference frozen for this selection"}else{"App project not established"}});
+        view["canonicalSelectionRecord"] = json!(self.canonical_record());
+        view["projectSensitiveChoiceAvailable"] = json!(self.project.is_some());
+        view["viewStanding"] =
+            json!("derived live selection; no native/history/cold authority from this view");
+        view
+    }
     pub fn offer_last(&mut self, entry: &str, provider: &str, model: &str) -> Result<(), String> {
+        if self.project.is_none() {
+            return Err(
+                "project last-choice offer unavailable: App project not established".into(),
+            );
+        }
         if self.record["state"] != "no-selection"
             || [entry, provider, model].iter().any(|s| s.is_empty())
         {
@@ -208,7 +247,14 @@ impl ConversationSelection {
         Ok(())
     }
     pub fn snapshot(&self) -> Value {
-        self.record.clone()
+        self.canonical_record().unwrap_or_else(|| self.view())
+    }
+    pub fn recovery_home(&self) -> Option<&'static str> {
+        match self.home.as_deref() {
+            Some("account") => Some("H-acct"),
+            Some("api-key") => Some("H-key"),
+            _ => None,
+        }
     }
     pub fn owning_generation(&self) -> Option<&Value> {
         self.generation.as_ref()
@@ -309,5 +355,46 @@ mod tests {
             .read(&g(), &json!({"account":{"type":"apiKey"}}))
             .unwrap();
         assert_eq!(account.codex_account(), None);
+    }
+
+    #[test]
+    fn explicit_unknown_project_has_no_row_offer_or_default_but_person_choice_starts() {
+        let mut choice = ConversationSelection::new_explicit("unknown", None).unwrap();
+        assert_eq!(choice.project(), None);
+        assert!(choice.canonical_record().is_none());
+        assert!(choice.snapshot().get("schema").is_none());
+        assert!(choice.snapshot().get("project").is_none());
+        assert_eq!(choice.snapshot()["projectSensitiveChoiceAvailable"], false);
+        assert!(choice.offer_last("chatgpt-account", "openai", "m").is_err());
+        assert!(choice
+            .start_params(&g(), "account", false)
+            .unwrap_err()
+            .contains("no model selected"));
+        assert!(choice
+            .choose("chatgpt-account", "openai", "m", true)
+            .is_err());
+        choice
+            .choose("chatgpt-account", "openai", "m", false)
+            .unwrap();
+        assert_eq!(
+            choice.start_params(&g(), "account", false).unwrap(),
+            json!({"model":"m","modelProvider":"openai"})
+        );
+        choice.started(&g(),&json!({"thread":{"id":"t"},"cwd":"/native/Q","projectId":"native-id","model":"m","modelProvider":"openai"})).unwrap();
+        assert_eq!(choice.snapshot()["state"], "started");
+        assert!(choice.canonical_record().is_none());
+        assert_eq!(choice.project(), None);
+    }
+    #[test]
+    fn explicit_known_context_is_frozen_and_canonical_shape_unchanged() {
+        let choice = ConversationSelection::new_explicit("c", Some("App P / 家")).unwrap();
+        valid(&choice);
+        assert_eq!(choice.canonical_record().unwrap(), choice.snapshot());
+        let mut view = choice.view();
+        view["projectContext"]["reference"] = json!("current Q");
+        assert_eq!(choice.project(), Some("App P / 家"));
+        assert_eq!(choice.snapshot()["project"], "App P / 家");
+        assert!(ConversationSelection::new_explicit("c", Some("")).is_err());
+        assert!(ConversationSelection::new("c", "").is_err());
     }
 }

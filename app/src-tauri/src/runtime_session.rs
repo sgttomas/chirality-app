@@ -1339,3 +1339,425 @@ pub fn select_trace_source(
         json!("native-file-selection; source claims remain unverified");
     Ok(session.finish("source-received", None))
 }
+
+
+/// Native-picked private handles, ordered independently of conversation/home/cwd.
+/// Launch workspace is a source observation, not a fabricated REC project/index.
+pub struct AttachmentSelectionSession {
+    owner: String,
+    revision: u64,
+    launch_workspace: Option<std::path::PathBuf>,
+    slots: Vec<AttachmentSelectionSlot>,
+    operation: Value,
+    submissions: Vec<AttachmentSubmissionState>,
+}
+struct AttachmentSubmissionState {
+    prepared: std::sync::Arc<crate::hosting::PreparedAttachmentDispatch>,
+    context: crate::recovery::ExplicitAppProjectContext,
+    context_binding: Value,
+    outcome: Value,
+}
+struct AttachmentSelectionSlot {
+    selected: crate::attachments::SelectedTextAttachment,
+    native_path: std::path::PathBuf,
+}
+impl AttachmentSelectionSession {
+    pub fn new(launch_workspace: Option<std::path::PathBuf>) -> Result<Self, String> {
+        Ok(Self {
+            owner: crate::util::opaque_id("attachment-owner:")?,
+            revision: 0,
+            launch_workspace,
+            slots: vec![],
+            operation: json!({"state":"not-selected"}),
+            submissions: vec![],
+        })
+    }
+    pub fn refresh_submissions(
+        &mut self,
+        host: &crate::hosting::Host,
+        custody: &std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>,
+    ) {
+        for submission in &mut self.submissions {
+            submission.outcome["resolution"] =
+                host.resolve_attachment_submission(custody, submission.prepared.submission_ref());
+        }
+    }
+    pub fn snapshot(&self) -> Value {
+        json!({"ownerRef":self.owner,"listRevision":self.revision,
+            "selections":self.slots.iter().enumerate().map(|(position,slot)|json!({"position":position,"selection":slot.selected.snapshot()})).collect::<Vec<_>>(),
+            "operation":self.operation,"submissions":self.submissions.iter().map(|submission|json!({"submissionRef":submission.prepared.submission_ref(),"state":submission.prepared.state(),"frozenAppContext":submission.context.view(),"contextBinding":submission.context_binding,"outcome":submission.outcome,"limits":"private hot capability; no imported source or provider adoption"})).collect::<Vec<_>>(),"launchAppProjectObservation":{"source":"explicit App launch CHIRALITY_WORKSPACE","nativeRoot":self.launch_workspace.as_ref().map(|path|crate::attachments::native_path_identity(path)),
+                "associationStanding":"launch source only; no accepted REC context/persistent thread-project binding established by this picker"},
+            "workflowRun":"not supplied; WR prefix/draft association is a separate producer join",
+            "submissionStanding":"private source handles; each immutable submission has its own source outcome below","custody":"private App memory; DTO/path/hash cannot construct a selection"})
+    }
+    fn check(&self, owner: &str, revision: u64) -> Result<(), String> {
+        if owner != self.owner || revision != self.revision {
+            return Err("Attachment owner/list revision changed; refresh selected sources".into());
+        }
+        if matches!(
+            self.operation["state"].as_str(),
+            Some("selecting" | "reconfirming")
+        ) {
+            return Err("Native attachment operation already in progress".into());
+        }
+        Ok(())
+    }
+    fn cancel_unsent(&self) {
+        for submission in &self.submissions {
+            let _ = submission.prepared.cancel();
+        }
+    }
+    fn next_revision(&self) -> Result<u64, String> {
+        self.revision
+            .checked_add(1)
+            .ok_or("Attachment list revision exhausted".into())
+    }
+    pub fn remove(&mut self, owner: &str, revision: u64, reference: &str) -> Result<Value, String> {
+        self.check(owner, revision)?;
+        let position = self
+            .slots
+            .iter()
+            .position(|slot| slot.selected.selection_ref() == reference)
+            .ok_or("Unknown private attachment handle")?;
+        let next = self.next_revision()?;
+        self.cancel_unsent();
+        self.slots.remove(position);
+        self.revision = next;
+        self.operation = json!({"state":"removed","selectionRef":reference});
+        Ok(self.snapshot())
+    }
+    pub fn reorder(
+        &mut self,
+        owner: &str,
+        revision: u64,
+        order: &[String],
+    ) -> Result<Value, String> {
+        self.check(owner, revision)?;
+        let known = self
+            .slots
+            .iter()
+            .map(|slot| slot.selected.selection_ref().to_owned())
+            .collect::<std::collections::HashSet<_>>();
+        let proposed = order
+            .iter()
+            .cloned()
+            .collect::<std::collections::HashSet<_>>();
+        if order.len() != self.slots.len() || proposed.len() != order.len() || known != proposed {
+            return Err("Reorder must name every known private attachment exactly once; no subset/foreign/duplicate handles".into());
+        }
+        let next = self.next_revision()?;
+        self.cancel_unsent();
+        let mut old = std::mem::take(&mut self.slots);
+        self.slots = order
+            .iter()
+            .map(|reference| {
+                let position = old
+                    .iter()
+                    .position(|slot| slot.selected.selection_ref() == reference)
+                    .unwrap();
+                old.remove(position)
+            })
+            .collect();
+        self.revision = next;
+        self.operation = json!({"state":"reordered"});
+        Ok(self.snapshot())
+    }
+    /// References alone cannot create selected bodies. All-or-nothing producer
+    /// preparation uses the actual retained native sources and selection order.
+    pub fn prepare_selected(
+        &self,
+        owner: &str,
+        revision: u64,
+        order: &[String],
+        submission: &str,
+        recorded_at: &str,
+    ) -> Result<crate::attachments::PreparedAttachmentList, String> {
+        self.check(owner, revision)?;
+        let current = self
+            .slots
+            .iter()
+            .map(|slot| slot.selected.selection_ref().to_owned())
+            .collect::<Vec<_>>();
+        if current != order {
+            return Err("Attachment submission must use the entire current private list in its current order".into());
+        }
+        let selected = self
+            .slots
+            .iter()
+            .map(|slot| slot.selected.clone())
+            .collect::<Vec<_>>();
+        crate::attachments::prepare_ordered(&selected, submission, recorded_at)
+            .map_err(|hold| hold.message)
+    }
+    fn finish_hold(&mut self, hold: &crate::attachments::AttachmentHold) -> Value {
+        self.operation = json!({"state":"held","reason":format!("{:?}",hold.reason),"message":hold.message,"nativePath":hold.native_path,"displayPath":hold.display_path,"priorSelectionsRetained":true});
+        self.snapshot()
+    }
+}
+
+/// Native selection only; no JS path, text, selected-body or draft/source DTO.
+pub fn select_attachment_source(
+    state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
+    owner: &str,
+    revision: u64,
+    pick: impl FnOnce() -> Result<Option<std::path::PathBuf>, String>,
+) -> Result<Value, String> {
+    {
+        let mut state = state.lock().unwrap();
+        let session = state.as_mut().map_err(|error| error.clone())?;
+        session.check(owner, revision)?;
+        session.operation = json!({"state":"selecting"});
+    }
+    let path = match pick() {
+        Ok(Some(path)) => path,
+        Ok(None) => {
+            let mut state = state.lock().unwrap();
+            let session = state.as_mut().map_err(|error| error.clone())?;
+            session.operation = json!({"state":"cancelled","priorSelectionsRetained":true});
+            return Ok(session.snapshot());
+        }
+        Err(error) => {
+            if let Ok(session) = state.lock().unwrap().as_mut() {
+                session.operation = json!({"state":"selection-failed","message":error,"priorSelectionsRetained":true});
+            }
+            return Err(error);
+        }
+    };
+    let selected =
+        crate::attachments::SelectedTextAttachment::from_native_selection(path.clone(), None);
+    let mut state = state.lock().unwrap();
+    let session = state.as_mut().map_err(|error| error.clone())?;
+    if session.owner != owner
+        || session.revision != revision
+        || session.operation["state"] != "selecting"
+    {
+        return Err(
+            "Attachment owner/list changed during native selection; newer state preserved".into(),
+        );
+    }
+    match selected {
+        Ok(selected) => {
+            let next = match session.next_revision() {
+                Ok(next) => next,
+                Err(error) => {
+                    session.operation = json!({"state":"held","message":error});
+                    return Err(error);
+                }
+            };
+            let reference = selected.selection_ref().to_owned();
+            session.cancel_unsent();
+            session.slots.push(AttachmentSelectionSlot {
+                selected,
+                native_path: path,
+            });
+            session.revision = next;
+            session.operation = json!({"state":"selected-not-sent","selectionRef":reference});
+            Ok(session.snapshot())
+        }
+        Err(hold) => Ok(session.finish_hold(&hold)),
+    }
+}
+
+/// Explicit normal-input source confirmation. Tentative identity is read from
+/// the private original PathBuf; cancellation never installs a new observation.
+pub fn reconfirm_attachment_source(
+    state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
+    owner: &str,
+    revision: u64,
+    reference: &str,
+    confirm: impl FnOnce(&Value) -> bool,
+) -> Result<Value, String> {
+    let (path, old) = {
+        let mut state = state.lock().unwrap();
+        let session = state.as_mut().map_err(|error| error.clone())?;
+        session.check(owner, revision)?;
+        let slot = session
+            .slots
+            .iter()
+            .find(|slot| slot.selected.selection_ref() == reference)
+            .ok_or("Unknown private attachment handle")?;
+        let values = (slot.native_path.clone(), slot.selected.snapshot());
+        session.operation = json!({"state":"reconfirming","selectionRef":reference});
+        values
+    };
+    let tentative =
+        match crate::attachments::SelectedTextAttachment::from_native_selection(path, None) {
+            Ok(selected) => selected,
+            Err(hold) => {
+                let mut state = state.lock().unwrap();
+                return Ok(state
+                    .as_mut()
+                    .map_err(|error| error.clone())?
+                    .finish_hold(&hold));
+            }
+        };
+    let comparison = json!({"oldSelection":old,"tentativeSelection":tentative.snapshot(),"standing":"explicit normal-input source refresh; no send/native act/workflow registration or run"});
+    let accepted = confirm(&comparison);
+    let mut state = state.lock().unwrap();
+    let session = state.as_mut().map_err(|error| error.clone())?;
+    if !accepted {
+        session.operation =
+            json!({"state":"confirmation-cancelled","priorSelectionsRetained":true});
+        return Ok(session.snapshot());
+    }
+    if session.owner != owner || session.revision != revision {
+        return Err(
+            "Attachment owner/list changed during confirmation; newer selection state preserved"
+                .into(),
+        );
+    }
+    let next = match session.next_revision() {
+        Ok(next) => next,
+        Err(error) => {
+            session.operation = json!({"state":"held","message":error});
+            return Err(error);
+        }
+    };
+    session.cancel_unsent();
+    let slot = session
+        .slots
+        .iter_mut()
+        .find(|slot| slot.selected.selection_ref() == reference)
+        .ok_or("Original attachment handle no longer available")?;
+    let replacement = tentative.selection_ref().to_owned();
+    slot.selected = tentative;
+    session.revision = next;
+    session.operation = json!({"state":"explicit-source-confirmed-not-sent","oldSelectionRef":reference,"selectionRef":replacement,"sourceRecheck":"required again at actual submission; no automatic drift replacement"});
+    Ok(session.snapshot())
+}
+
+/// Caller-owned explicit launch/open directory, never native cwd/home/projectId.
+/// Native tagging supplies a lossless reference when no Unicode path exists;
+/// this is a directory reference, not a content hash/acceptance algorithm.
+pub fn freeze_configured_project(
+    workspace: Option<&std::path::Path>,
+) -> Result<crate::recovery::ExplicitAppProjectContext, String> {
+    match workspace {
+        Some(path) => {
+            let reference = path
+                .to_str()
+                .map(str::to_owned)
+                .unwrap_or_else(|| crate::attachments::native_path_identity(path).to_string());
+            crate::recovery::ExplicitAppProjectContext::known(
+                &reference,
+                crate::recovery::AppProjectSource::ConfiguredDirectory,
+            )
+        }
+        None => Ok(crate::recovery::ExplicitAppProjectContext::unknown()),
+    }
+}
+
+/// One-shot actual private list→durable Core preparation→owning context binding→
+/// scoped native dispatch. An error never retries or falls back to person-only.
+pub fn submit_selected_attachments(
+    state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
+    host: &crate::hosting::Host,
+    custody: std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>,
+    owner: &str,
+    revision: u64,
+    order: &[String],
+    generation: &Value,
+    thread: &str,
+    expected_turn: Option<&str>,
+    text: &str,
+    context: crate::recovery::ExplicitAppProjectContext,
+    home: Option<&str>,
+) -> Result<Value, String> {
+    let selected = {
+        let state = state.lock().unwrap();
+        let session = state.as_ref().map_err(|error| error.clone())?;
+        session.check(owner, revision)?;
+        let known = session
+            .slots
+            .iter()
+            .map(|slot| slot.selected.selection_ref().to_owned())
+            .collect::<Vec<_>>();
+        if known != order || known.is_empty() {
+            return Err("Attachment-bearing submission requires the entire nonempty private list in current order".into());
+        }
+        session
+            .slots
+            .iter()
+            .map(|slot| slot.selected.clone())
+            .collect::<Vec<_>>()
+    };
+    current_conversation(&host.snapshot(), generation, thread)?;
+    if let Some(expected) = expected_turn {
+        if observed_steering_target(&host.snapshot(), generation, thread)?["turnId"] != expected {
+            return Err("Expected live attachment steering target changed".into());
+        }
+    }
+    let prepared = std::sync::Arc::new(host.prepare_attachment_turn(
+        custody.clone(),
+        generation,
+        thread,
+        expected_turn,
+        text,
+        &selected,
+    )?);
+    {
+        let mut state = state.lock().unwrap();
+        let session = state.as_mut().map_err(|error| error.clone())?;
+        if session.owner != owner || session.revision != revision {
+            let _ = prepared.cancel();
+            return Err("Attachment list changed during preparation; actual unsent packet cancelled, original evidence retained".into());
+        }
+        session.submissions.push(AttachmentSubmissionState {
+            prepared: prepared.clone(),
+            context: context.clone(),
+            context_binding: Value::Null,
+            outcome: json!({"state":"prepared; not sent"}),
+        });
+    }
+    let binding = match host.bind_attachment_context(&prepared, &context, home) {
+        Ok(binding) => binding,
+        Err(error) => {
+            let _ = prepared.cancel();
+            let mut state = state.lock().unwrap();
+            if let Ok(session) = state.as_mut() {
+                if let Some(submission) = session.submissions.iter_mut().find(|submission| {
+                    submission.prepared.submission_ref() == prepared.submission_ref()
+                }) {
+                    submission.outcome =
+                        json!({"state":"context held; nothing sent","error":error});
+                }
+            }
+            return Err(error);
+        }
+    };
+    {
+        let mut state = state.lock().unwrap();
+        if let Ok(session) = state.as_mut() {
+            if let Some(submission) = session.submissions.iter_mut().find(|submission| {
+                submission.prepared.submission_ref() == prepared.submission_ref()
+            }) {
+                submission.context_binding = binding;
+            }
+        }
+    }
+    let result = host
+        .dispatch_attachment_turn(&prepared)
+        .and_then(|source| host.attachment_wait(&source, std::time::Duration::from_secs(20)));
+    let resolved = host.resolve_attachment_submission(&custody, prepared.submission_ref());
+    {
+        let mut state = state.lock().unwrap();
+        if let Ok(session) = state.as_mut() {
+            if let Some(submission) = session.submissions.iter_mut().find(|submission| {
+                submission.prepared.submission_ref() == prepared.submission_ref()
+            }) {
+                submission.outcome = json!({"resolution":resolved,"result":match &result {Ok(evidence)=>evidence["outcome"].as_str().unwrap_or("source facts unresolved"),Err(_)=>"failed/unknown; no resend"},"error":result.as_ref().err()});
+            }
+        }
+    }
+    result?;
+    current_conversation(&host.snapshot(), generation, thread)?;
+    if let Some(expected) = expected_turn {
+        if observed_steering_target(&host.snapshot(), generation, thread)?["turnId"] != expected {
+            return Err("Attachment steering target changed after native reply; original submission evidence retained".into());
+        }
+    }
+    if resolved["nativeTurnRef"].is_null() || resolved["sourceWriteConfirmed"] != true {
+        return Err("Attachment submission not currently acknowledged by a matching native source; outcome retained, no automatic resend".into());
+    }
+    Ok(resolved)
+}

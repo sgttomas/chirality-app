@@ -93,6 +93,150 @@ pub fn generation_from_ref(reference: &str) -> Result<Value, String> {
     Ok(generation)
 }
 
+/// Root/native caller's source-qualified project observation, never deserialized
+/// from renderer, native cwd/projectId, Codex home or workflow run metadata.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppProjectSource {
+    ConfiguredDirectory,
+    OpenedDirectory,
+}
+#[derive(Clone, Debug)]
+pub struct ExplicitAppProjectContext {
+    reference: Option<String>,
+    source: Option<AppProjectSource>,
+}
+impl ExplicitAppProjectContext {
+    pub fn known(reference: &str, source: AppProjectSource) -> Result<Self, String> {
+        if reference.is_empty() {
+            return Err("explicit App project reference must be nonempty".into());
+        }
+        Ok(Self {
+            reference: Some(reference.into()),
+            source: Some(source),
+        })
+    }
+    pub fn unknown() -> Self {
+        Self {
+            reference: None,
+            source: None,
+        }
+    }
+    pub fn reference(&self) -> Option<&str> {
+        self.reference.as_deref()
+    }
+    pub fn source_caption(&self) -> &'static str {
+        match self.source {
+            Some(AppProjectSource::ConfiguredDirectory) => "configured App directory",
+            Some(AppProjectSource::OpenedDirectory) => "opened App directory",
+            None => "App project not established",
+        }
+    }
+    pub fn view(&self) -> Value {
+        json!({"reference":self.reference,"sourceCaption":self.source_caption(),"standing":"explicit frozen Root observation; no native/actor authority inferred"})
+    }
+}
+pub const NIR_CONTEXT_OWNER: &str = "DEL-01-04";
+/// NIR receiver interpretation of REC's unchanged opaque tag value.
+pub fn encode_submission_context(
+    submission: &str,
+    project: Option<&str>,
+) -> Result<String, String> {
+    if !submission
+        .strip_prefix("submission:")
+        .is_some_and(|s| !s.is_empty())
+        || project.is_some_and(str::is_empty)
+    {
+        return Err(
+            "actual submission token/nonempty explicit App reference or absence required".into(),
+        );
+    }
+    serde_json::to_string(&json!([submission, project])).map_err(|e| e.to_string())
+}
+fn decode_submission_context(tag: &Value) -> Option<(String, Option<String>)> {
+    if tag["owner"] != NIR_CONTEXT_OWNER {
+        return None;
+    }
+    let raw = tag["value"].as_str()?;
+    let pair: Value = serde_json::from_str(raw).ok()?;
+    let values = pair.as_array()?;
+    if values.len() != 2 {
+        return None;
+    }
+    let submission = values[0].as_str()?;
+    let project = if values[1].is_null() {
+        None
+    } else {
+        Some(values[1].as_str()?)
+    };
+    if encode_submission_context(submission, project)
+        .ok()?
+        .as_str()
+        != raw
+    {
+        return None;
+    }
+    Some((submission.into(), project.map(str::to_owned)))
+}
+/// Merge ALL historical/durable and hot claims. Unknown opaque values remain
+/// untouched; interpretation cannot manufacture a private/native capability.
+pub fn submission_context_plan(
+    index: Option<&Value>,
+    all_durable_tags: &[Value],
+    hot_tags: &[Value],
+    submission: &str,
+    project: Option<&str>,
+) -> Result<Value, String> {
+    let value = encode_submission_context(submission, project)?;
+    let historical = index.and_then(|i| i["project"].as_str());
+    if index.is_some() && historical.is_none_or(str::is_empty) {
+        return Err("known REC index lacks actual nonempty project".into());
+    }
+    let mut all = all_durable_tags.to_vec();
+    for tag in hot_tags {
+        if !all.contains(tag) {
+            all.push(tag.clone());
+        }
+    }
+    let matches: Vec<_> = all
+        .iter()
+        .filter_map(|tag| {
+            decode_submission_context(tag)
+                .filter(|(s, _)| s == submission)
+                .map(|(_, p)| (tag, p))
+        })
+        .collect();
+    if matches.iter().any(|(_, p)| p.as_deref() != project) {
+        return Err(
+            "immutable submission context ambiguous/conflicting; no retag or transfer".into(),
+        );
+    }
+    let idempotent = !matches.is_empty();
+    let tag = if let Some((tag, _)) = matches.first() {
+        (*tag).clone()
+    } else {
+        let seq = all
+            .iter()
+            .filter_map(|t| t["seq"].as_u64())
+            .max()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or("tag sequence exhausted")?;
+        json!({"owner":NIR_CONTEXT_OWNER,"value":value,"seq":seq})
+    };
+    let durable = all_durable_tags
+        .iter()
+        .any(|t| t["owner"] == NIR_CONTEXT_OWNER && t["value"] == value);
+    let relation = match (historical, project) {
+        (Some(p), Some(q)) if p == q => "same",
+        (Some(_), Some(_)) => "different; no transfer",
+        _ => "unbound",
+    };
+    Ok(
+        json!({"historicalProject":historical,"currentSubmissionProject":project,"relation":relation,"tag":tag,"idempotent":idempotent,"durableBindingObserved":durable,
+        "limit":if index.is_none(){Some("project index absent: no row, context tag memory-only; cold lookup unavailable")}else if idempotent&&!durable{Some("known project index lacks this hot binding: tag memory-only; cold lookup unavailable")}else{None}}),
+    )
+}
+
 pub struct RecoveryLedger {
     path: PathBuf,
     entries: Vec<Value>,
@@ -188,6 +332,16 @@ impl RecoveryLedger {
         self.append(entry)
     }
     pub fn request_summary(&mut self, request: &Value) -> Result<(), String> {
+        match Self::request_summary_entry(request, &self.entries)? {
+            Some(entry) => self.append(entry),
+            None => Ok(()),
+        }
+    }
+    /// Pure immutable pointer projection; callers may queue it before IO.
+    pub fn request_summary_entry(
+        request: &Value,
+        prior_entries: &[Value],
+    ) -> Result<Option<Value>, String> {
         let generation = &request["generation"];
         let state = request["state"].as_str().ok_or("request has no state")?;
         let listed = matches!(state, "received" | "outstanding" | "settling");
@@ -251,7 +405,7 @@ impl RecoveryLedger {
                 entry["transition"] = json!("RQ-08");
             }
         }
-        let previous = self.entries.iter().rev().find(|e| {
+        let previous = prior_entries.iter().rev().find(|e| {
             e["kind"] == "register_entry_summary"
                 && e["generation"] == entry["generation"]
                 && e["requestIdentity"] == entry["requestIdentity"]
@@ -303,7 +457,7 @@ impl RecoveryLedger {
         if let Some(origin) = request["settlement"].get("origin") {
             entry["origin"] = origin.clone();
         }
-        if let Some(previous) = self.entries.iter().rev().find(|e| {
+        if let Some(previous) = prior_entries.iter().rev().find(|e| {
             e["kind"] == "register_entry_summary"
                 && e["generation"] == entry["generation"]
                 && e["requestIdentity"] == entry["requestIdentity"]
@@ -311,10 +465,10 @@ impl RecoveryLedger {
             let mut comparable = previous.clone();
             comparable["at"] = entry["at"].clone();
             if comparable == entry {
-                return Ok(());
+                return Ok(None);
             }
         }
-        self.append(entry)
+        Ok(Some(entry))
     }
     /// Earlier sessions are historical observations, never replayed as live entries.
     pub fn snapshot(&self) -> Value {

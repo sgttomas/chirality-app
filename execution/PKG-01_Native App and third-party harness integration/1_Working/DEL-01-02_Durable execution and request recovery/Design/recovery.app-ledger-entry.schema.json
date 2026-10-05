@@ -229,11 +229,11 @@
           "$ref": "#/$defs/nonempty"
         },
         "project": {
-          "description": "Opaque project reference of the App.",
+          "description": "Opaque known App project reference, including an explicitly configured/opened directory reference. CC-REC-ATTACHMENT-PROJECT-CONTEXT: no row for unestablished project; never null/fake unknown/cwd fallback. Historical association is not renamed by a new submission context.",
           "$ref": "#/$defs/nonempty"
         },
         "tags": {
-          "description": "Opaque tags handed at run time by receivers (for example a run reference). Several per owner, in order (seq), so that runs follow one another in one conversation (R19-2). Stored and returned, never interpreted (R17-10).",
+          "description": "Opaque tags handed at run time by receivers (for example a run reference). Several per owner, in order (seq), so that runs follow one another in one conversation (R19-2). Stored and returned, never interpreted (R17-10). CC-REC-ATTACHMENT-PROJECT-CONTEXT adds owner DEL-01-04 compact [submissionRef, projectRef-or-null] string; null is only within that opaque value, not the project field.",
           "type": "array",
           "items": {
             "type": "object",

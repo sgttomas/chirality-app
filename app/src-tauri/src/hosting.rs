@@ -31,7 +31,7 @@ use crate::native_history::{HistoryQuery, NativeHistory};
 use crate::recovery::RecoveryLedger;
 use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
@@ -115,7 +115,11 @@ struct Inner {
     pending: HashMap<String, (usize, Sender<Value>)>,
     source_requests: HashMap<String, SourceEvidence>,
     server_requests: RequestRegister,
-    recovery: Option<RecoveryLedger>,
+    recovery: Option<Arc<Mutex<RecoveryLedger>>>,
+    recovery_snapshot: Option<Value>,
+    pending_recovery: VecDeque<Value>,
+    recovery_projection_errors: Vec<Value>,
+    submission_contexts: Vec<Value>,
     recovery_error: Option<String>,
     next_id: u64,
     send_position: u64,
@@ -203,6 +207,7 @@ impl PreparedAttachmentDispatch {
 struct BoundPipe { file: std::fs::File, generation: Value, epoch: u64, identity: (u64,u64) }
 
 pub struct Host {
+    recovery_writer: Mutex<()>,
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
     inner: Arc<(Mutex<Inner>, Condvar)>,
@@ -231,6 +236,7 @@ impl Host {
             ..Default::default()
         };
         Host {
+            recovery_writer: Mutex::new(()),
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
@@ -293,7 +299,7 @@ impl Host {
             "reservedNativeRequests": i.source_requests.values().filter(|e|!i.client_requests[e.index].is_object()).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"method":e.request.frame["method"],"effectiveOutcome":"unknown/reserved; no complete write proof","writeAttemptInProgress":e.write_attempt_in_progress,"waitingEnded":e.observation_base.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false)})).collect::<Vec<_>>(),
             "inFlightNativeWrites": i.source_requests.values().filter(|e|e.write_attempt_in_progress).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"attemptPosition":e.attempt_position,"effectiveOutcome":"unknown/in-progress","lastClientObservationOnly":true})).collect::<Vec<_>>(),
             "serverRequests": i.server_requests.records(),
-            "recovery": i.recovery.as_ref().map(RecoveryLedger::snapshot),
+            "recovery": i.recovery_snapshot,"recoveryPendingObservations":i.pending_recovery,"recoveryProjectionLimits":i.recovery_projection_errors,
             "recoveryPersistenceError": i.recovery_error,
             "journal": i.journal,
             "malformedFrames": i.malformed,
@@ -309,13 +315,9 @@ impl Host {
     }
 
     /// Open an App-local pointer ledger before start; never a native-content cache.
-    pub fn configure_recovery(&self, path: PathBuf) -> Result<(), String> {
-        let mut i = self.inner.0.lock().unwrap();
-        if i.state != "absent" { return Err("recovery must be configured before supplier start".into()); }
-        let mut ledger = RecoveryLedger::open(path)?;
-        if i.app_session.is_empty() { i.app_session = opaque_id("app-session:")?; }
-        ledger.start_session(&i.app_session, "chirality-app-v4-unqualified")?;
-        i.recovery = Some(ledger); Ok(())
+    pub fn configure_recovery(&self,path:PathBuf)->Result<(),String>{
+        let _writer=self.recovery_writer.lock().unwrap();let session={let mut i=self.inner.0.lock().unwrap();if i.state!="absent"{return Err("recovery must be configured before supplier start".into());}if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}i.app_session.clone()};
+        let mut ledger=RecoveryLedger::open(path)?;ledger.start_session(&session,"chirality-app-v4-unqualified")?;let snapshot=ledger.snapshot();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);Ok(())
     }
 
     /// Snapshot then all later frames in receipt order. Detach is simply ceasing
@@ -329,13 +331,68 @@ impl Host {
         }).cloned().collect();
         json!({"snapshot":snapshot,"generation":i.generation,"position":i.receipt_position,"gap":gap,"frames":frames})
     }
-    fn persist_requests(i: &mut Inner) {
-        let entries = i.server_requests.entries();
-        if let Some(ledger) = i.recovery.as_mut() {
-            for entry in entries {
-                if let Err(error) = ledger.request_summary(&entry) { i.recovery_error = Some(error); break; }
-            }
-        }
+    fn persist_requests(i:&mut Inner){
+        if i.recovery.is_none(){return;}
+        for request in i.server_requests.entries(){let mut history=i.recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array()).cloned().unwrap_or_default();history.extend(i.pending_recovery.iter().cloned());match RecoveryLedger::request_summary_entry(&request,&history){Ok(Some(entry))=>i.pending_recovery.push_back(entry),Ok(None)=>{},Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":request["generation"],"requestIdentity":request["requestId"],"method":request["method"],"limit":error,"standing":"pointer projection unavailable; original request source retained"}));}}}
+    }
+    /// Nonblocking writer admission: captured facts stay queued when another
+    /// actual writer owns IO. No service/store or silent drop is introduced.
+    pub fn flush_recovery_observations(&self)->Value{
+        let _writer=match self.recovery_writer.try_lock(){Ok(writer)=>writer,Err(_)=>{let mut i=self.inner.0.lock().unwrap();if !i.pending_recovery.is_empty(){i.recovery_error=Some("REC writer busy; captured pointer observations remain queued/unpersisted".into());}return json!({"pending":i.pending_recovery.len(),"standing":"writer busy; captured facts retained"});}};
+        self.drain_recovery_owned()
+    }
+    /// Caller owns recovery_writer, with no Inner guard held.
+    fn drain_recovery_owned(&self)->Value {
+        let(ledger,entries)={let i=self.inner.0.lock().unwrap();(i.recovery.clone(),i.pending_recovery.iter().cloned().collect::<Vec<_>>())};let Some(ledger)=ledger else{return json!({"standing":"ledger unavailable","pending":entries.len()});};
+        let mut stored=0;let mut error=None;let snapshot={let mut ledger=ledger.lock().unwrap();for entry in &entries{if let Err(reason)=ledger.append(entry.clone()){error=Some(reason);break;}stored+=1;}ledger.snapshot()};
+        let mut i=self.inner.0.lock().unwrap();for entry in entries.iter().take(stored){if i.pending_recovery.front()==Some(entry){i.pending_recovery.pop_front();}else{i.recovery_error=Some("REC captured observation order conflict; facts retained".into());break;}}
+        i.recovery_snapshot=Some(snapshot);if let Some(error)=error{i.recovery_error=Some(error);}else if i.pending_recovery.is_empty(){i.recovery_error=None;}json!({"appended":stored,"pending":i.pending_recovery.len(),"limit":i.recovery_error})
+    }
+
+
+    fn context_scope(i:&Inner,generation:&Value,thread:&str,home:Option<&str>)->Result<(),String>{
+        crate::recovery::generation_ref(generation)?;if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||thread.is_empty()||!i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==thread){return Err("context source is not current operational home/thread/full generation".into());}
+        if home.is_some_and(|h|!matches!(h,"H-acct"|"H-key")){return Err("REC home class must come actual configured ACCESS home kind or absence".into());}Ok(())
+    }
+    fn context_rows(snapshot:Option<&Value>)->Vec<Value>{snapshot.and_then(|v|v["entries"].as_array()).map(|rows|rows.iter().filter(|e|e["kind"]=="conversation_index").cloned().collect()).unwrap_or_default()}
+    /// New CURRENT known admission only; historical P is never overwritten by Q.
+    pub fn observe_conversation_project(&self,generation:&Value,thread:&str,home:Option<&str>,context:&crate::recovery::ExplicitAppProjectContext)->Result<Value,String>{
+        {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;}
+        let _writer=self.recovery_writer.lock().unwrap();self.drain_recovery_owned();
+        let(ledger,rows)={let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;(i.recovery.clone(),Self::context_rows(i.recovery_snapshot.as_ref()))};
+        let existing=home.and_then(|h|rows.iter().rev().find(|e|e["home"]==h&&e["threadId"]==thread)).cloned();
+        if let Some(index)=existing{return Ok(json!({"indexSnapshot":index,"projectContext":context.view(),"standing":"historical App index retained; current reference does not transfer/backfill it"}));}
+        let(Some(home),Some(project),Some(ledger))=(home,context.reference(),ledger)else{return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":"known owning home/project/index ledger absent: no project-bearing row; hot-only/cold lookup unavailable"}));};
+        let at=now_rfc3339();let entry=json!({"kind":"conversation_index","session":generation["appSession"],"at":at,"threadId":thread,"home":home,"project":project,"tags":[],"lastObservedExecution":{"state":"indexed","at":at},"lastLoadedGeneration":crate::recovery::generation_ref(generation)?});
+        {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,Some(home))?;}
+        let(result,snapshot)={let mut ledger=ledger.lock().unwrap();let result=ledger.append(entry.clone());(result,ledger.snapshot())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);if let Err(error)=result{i.recovery_error=Some(error.clone());return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":format!("CURRENT index append unavailable: {error}; no durable association claimed")}));}
+        let changed=i.generation!=*generation||i.server_requests.is_closed(generation);Ok(json!({"indexSnapshot":entry,"projectContext":context.view(),"standing":"CURRENT App admission observation indexed; not earlier-history/native provenance","scopeChangedDuringIO":changed}))
+    }
+    /// Owning NIR interpretation of existing REC opaque tags. Real prepared
+    /// submission/native namespace remains the private Host source authority.
+    pub fn bind_attachment_context(&self,prepared:&PreparedAttachmentDispatch,context:&crate::recovery::ExplicitAppProjectContext,home:Option<&str>)->Result<Value,String>{
+        self.check_source(prepared.source())?;let generation=prepared.source().generation();let thread=prepared.source().attempted_frame()["params"]["threadId"].as_str().ok_or("prepared native thread absent")?;
+        {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;}
+        let _writer=self.recovery_writer.lock().unwrap();self.drain_recovery_owned();
+        let(ledger,rows,hot)={let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;(i.recovery.clone(),Self::context_rows(i.recovery_snapshot.as_ref()),i.submission_contexts.clone())};
+        // All durable/hot claims constrain immutable token; index provenance
+        // and current Root reference remain independent, never inferred by cwd.
+        let index=home.and_then(|h|rows.iter().rev().find(|e|e["home"]==h&&e["threadId"]==thread)).cloned();
+        let durable:Vec<Value>=rows.iter().flat_map(|e|e["tags"].as_array().into_iter().flatten().cloned()).collect();
+        let hot_tags:Vec<Value>=hot.iter().map(|h|h["tag"].clone()).collect();
+        let mut result=crate::recovery::submission_context_plan(index.as_ref(),&durable,&hot_tags,prepared.submission_ref(),context.reference())?;
+        if hot.iter().any(|h|h["submissionRef"]==prepared.submission_ref()&&(h["nativeHome"]!=generation["home"]||h["threadId"]!=thread)){return Err("same submission token has conflicting native home/thread source; no rebinding".into());}
+        let hot_entry=json!({"submissionRef":prepared.submission_ref(),"nativeHome":generation["home"],"generation":generation,"threadId":thread,"recoveryHome":home,"tag":result["tag"],"projectContext":context.view()});
+        {let mut i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;if !i.submission_contexts.iter().any(|h|h["submissionRef"]==prepared.submission_ref()){i.submission_contexts.push(hot_entry);}}
+        result["projectContext"]=context.view();result["nativeScope"]=json!({"generation":generation,"threadId":thread,"standing":"source binding only; context tag is not native receipt/actor/run proof"});result["indexSnapshot"]=json!(index);
+        let Some(index)=index else{result["persistence"]=json!("memory-only");result["limit"]=json!("project-bearing index/home class absent: no row, owning tag hot-only; cold lookup unavailable");return Ok(result);};
+        if result["idempotent"]==true{result["persistence"]=json!(if result["durableBindingObserved"]==true{"recorded metadata observed"}else{"memory-only"});return Ok(result);}
+        let Some(ledger)=ledger else{result["persistence"]=json!("memory-only");result["limit"]=json!("ledger unavailable; hot tag retained, cold lookup unavailable");return Ok(result);};
+        let mut entry=index;entry["session"]=generation["appSession"].clone();entry["at"]=json!(now_rfc3339());entry["tags"].as_array_mut().ok_or("REC index tags absent")?.push(result["tag"].clone());
+        {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;}
+        let(appended,snapshot)={let mut ledger=ledger.lock().unwrap();let appended=ledger.append(entry.clone());(appended,ledger.snapshot())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);result["scopeChangedDuringIO"]=json!(i.generation!=*generation||i.server_requests.is_closed(generation));
+        match appended{Ok(())=>{result["indexSnapshot"]=entry;result["persistence"]=json!("durable App metadata");result["durableBindingObserved"]=json!(true);},Err(error)=>{i.recovery_error=Some(error.clone());result["persistence"]=json!("memory-only");result["limit"]=json!(format!("context append unavailable: {error}; hot binding retained, cold lookup unavailable"));}}
+        Ok(result)
     }
 
     /// The child's process id, which is also its process-group id (H11).
@@ -618,13 +675,13 @@ impl Host {
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare(generation,id,answer,origin,actor)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
         if result.is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==*generation&&!i.server_requests.is_closed(generation){i.server_requests.written(generation,id,false);Self::persist_requests(&mut i);}}
-        result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
+        self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     pub fn error_server_request(&self,generation:&Value,id:&Value,error:&Value,origin:&str)->Result<Value,String>{
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare_error(generation,id,error,origin)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
         if result.is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==*generation&&!i.server_requests.is_closed(generation){i.server_requests.written(generation,id,false);Self::persist_requests(&mut i);}}
-        result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
+        self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     fn capture_pipe(&self,i:&Inner)->Result<BoundPipe,String>{
         use std::os::fd::{AsRawFd,FromRawFd};let pipe=self.stdin.lock().unwrap();let source=pipe.as_ref().ok_or("input closed")?;let identity=Self::pipe_identity(source)?;
@@ -654,7 +711,7 @@ impl Host {
         {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}}
         let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);
         let mut i=self.inner.0.lock().unwrap();if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){return Err("reply write finished for closed/superseded source; no successor settlement inferred".into());}
-        i.server_requests.written(&bound.generation,&frame["id"],result.is_ok());Self::persist_requests(&mut i);result
+        i.server_requests.written(&bound.generation,&frame["id"],result.is_ok());Self::persist_requests(&mut i);drop(i);self.flush_recovery_observations();result
     }
 
     /// HOSTING §5.1 send: a client request with its record. Refused unless ready (CR-03).
@@ -1186,6 +1243,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             i.journal.push(entry);
         }
         drop(i);
+        self.flush_recovery_observations();
         if let Some((bound,reply))=automatic_reply{let generation=bound.generation.clone();let id=reply["id"].clone();if self.write_reply(bound,&reply).is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==generation&&!i.server_requests.is_closed(&generation){i.server_requests.written(&generation,&id,false);Self::persist_requests(&mut i);}}}
     }
 
@@ -1214,7 +1272,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // LT-23 is written by stop(), which owns the descendant check.
             let gen = i.generation.clone();
             i.journal.push(json!({"generation": gen, "class": "exit", "exitFacts": exit}));
-            self.inner.1.notify_all();
+            self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();
             return;
         }
         if i.state == "ready" {
@@ -1222,6 +1280,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             self.lt(&mut i, "LT-12", "child-ended-without-stop-record", "exited-unexpectedly",
                     json!({"exitFacts": exit, "closedGeneration": counts}));
         }
+        drop(i);drop(_source_gate);self.flush_recovery_observations();
     }
 
     fn kill_group(&self) {
@@ -1299,7 +1358,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             "exitFacts": exit,
             "descendants": {"checked": true, "surviving": surviving, "handling": if surviving > 0 { "recorded; not ended" } else { "none surviving" }},
             "closedGeneration": counts}));
-        Ok(json!({"state": i.state}))
+        let response=json!({"state":i.state});drop(i);self.flush_recovery_observations();Ok(response)
     }
 }
 
@@ -1790,5 +1849,36 @@ mod conversation_transport_tests {
             let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.inner.0.lock().unwrap().source_requests.is_empty()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}let source=host.source_request(&g(),&json!(1)).unwrap();let reference=source.request_ref().to_owned();let waited=host.source_request_wait(&source,Duration::from_millis(10)).unwrap();assert_eq!(waited["waitingEnded"],true);assert_eq!(waited["actualWriteAttemptObserved"],false);assert_eq!(waited["canonicalProjectionAvailable"],false);assert_eq!(host.snapshot()["reservedNativeRequests"][0]["waitingEnded"],true);assert!(host.client_requests().is_empty());
             if close_first{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}drop(serial);let returned=writer.join().unwrap().unwrap();assert_eq!(returned.request_ref(),reference);assert_eq!(returned.evidence()["waitingEnded"],true);*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());let mut bytes=vec![];stdout.read_to_end(&mut bytes).unwrap();if close_first{assert!(bytes.is_empty());assert!(host.client_requests().is_empty());assert_eq!(returned.evidence()["actualWriteAttemptObserved"],false);}else{let frame:Value=serde_json::from_slice(&bytes).unwrap();assert_eq!(frame["id"],1);assert_eq!(frame["method"],"thread/read");assert_eq!(host.client_requests()[0]["waitingEnded"],true);assert_eq!(returned.evidence()["outcome"],"pending");let raw=json!({"id":1,"result":{"thread":"raw late evidence"}});host.on_line(&serde_json::to_vec(&raw).unwrap(),&g());assert_eq!(returned.evidence()["waitingEnded"],true);assert_eq!(returned.evidence()["response"],raw);}
         }
+    }
+
+    fn context_fixture()->(Arc<Host>,Value,std::path::PathBuf,Arc<AttachmentCustody>,Vec<SelectedTextAttachment>){let(root,owner,selections)=attachment_fixture();let host=Arc::new(Host::new());host.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();let generation={let mut i=host.inner.0.lock().unwrap();let generation=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=generation.clone();i.state="ready".into();i.threads.push(json!({"generation":generation,"threadId":"thread","cwd":"/different/native/Q","projectId":"native-project-not-app"}));generation};(host,generation,root,owner,selections)}
+    fn context_packet(host:&Arc<Host>,owner:&Arc<AttachmentCustody>,generation:&Value,selections:&[SelectedTextAttachment])->PreparedAttachmentDispatch{let mut packet=None;no_attachment_write(host,||{packet=Some(host.prepare_attachment_turn(Arc::clone(owner),generation,"thread",None,"ordinary input without WR prefix",selections).unwrap());});packet.unwrap()}
+    #[test]
+    fn explicit_context_host_actual_index_p_tag_q_absence_and_idempotence_preserve_source(){
+        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let p=Context::known("explicit App P",AppProjectSource::ConfiguredDirectory).unwrap();let q=Context::known("explicit App Q / 家",AppProjectSource::OpenedDirectory).unwrap();let admission=host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();assert_eq!(admission["indexSnapshot"]["project"],"explicit App P");assert_eq!(host.observe_conversation_project(&g,"thread",Some("H-acct"),&q).unwrap()["indexSnapshot"]["project"],"explicit App P");let packet=context_packet(&host,&owner,&g,&selections);let bound=host.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap();assert_eq!(bound["historicalProject"],"explicit App P");assert_eq!(bound["currentSubmissionProject"],"explicit App Q / 家");assert_eq!(bound["relation"],"different; no transfer");assert_eq!(bound["persistence"],"durable App metadata");let value=crate::recovery::encode_submission_context(packet.submission_ref(),q.reference()).unwrap();assert_eq!(bound["tag"]["value"],value);let count=host.snapshot()["recovery"]["entries"].as_array().unwrap().len();assert_eq!(host.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap()["idempotent"],true);assert_eq!(host.snapshot()["recovery"]["entries"].as_array().unwrap().len(),count);assert!(host.bind_attachment_context(&packet,&p,Some("H-acct")).is_err());let second=context_packet(&host,&owner,&g,&selections);let none=host.bind_attachment_context(&second,&Context::unknown(),Some("H-acct")).unwrap();assert_eq!(none["historicalProject"],"explicit App P");assert!(none["currentSubmissionProject"].is_null());assert_eq!(none["relation"],"unbound");let ledger=RecoveryLedger::open(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap().snapshot();let indexes:Vec<_>=ledger["entries"].as_array().unwrap().iter().filter(|e|e["kind"]=="conversation_index").collect();assert!(indexes.iter().all(|e|e["project"]=="explicit App P"));assert_eq!(indexes.last().unwrap()["tags"].as_array().unwrap().len(),2);assert!(packet.source().attempted_frame()["params"].get("cwd").is_none());assert!(packet.source().attempted_frame()["params"].get("project").is_none());std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn explicit_context_host_no_index_or_home_and_real_append_failure_keep_hot_conflicts(){
+        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let q=Context::known("Q",AppProjectSource::ConfiguredDirectory).unwrap();let r=Context::known("R",AppProjectSource::OpenedDirectory).unwrap();let packet=context_packet(&host,&owner,&g,&selections);let hot=host.bind_attachment_context(&packet,&q,None).unwrap();assert!(hot["indexSnapshot"].is_null());assert_eq!(hot["persistence"],"memory-only");assert!(hot["limit"].as_str().unwrap().contains("cold lookup unavailable"));assert!(host.bind_attachment_context(&packet,&r,Some("H-acct")).is_err());assert!(host.snapshot()["recovery"]["entries"].as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));
+        let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();let second=context_packet(&host,&owner,&g,&selections);use std::io::Write;let path=owner.root().join("runtime/recovery.ledger.jsonl");std::fs::OpenOptions::new().append(true).open(&path).unwrap().write_all(b"{torn").unwrap();let failed=host.bind_attachment_context(&second,&q,Some("H-acct")).unwrap();assert_eq!(failed["historicalProject"],"P");assert_eq!(failed["persistence"],"memory-only");assert!(failed["limit"].as_str().unwrap().contains("append unavailable"));assert!(host.bind_attachment_context(&second,&r,Some("H-acct")).is_err());let same=host.bind_attachment_context(&second,&q,Some("H-acct")).unwrap();assert_eq!(same["idempotent"],true);assert_eq!(same["persistence"],"memory-only");assert!(same["limit"].as_str().unwrap().contains("cold lookup unavailable"));assert!(std::fs::read(&path).unwrap().ends_with(b"{torn"));std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn explicit_context_paused_ledger_preserves_summary_order_and_allows_actual_stop(){
+        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};let(host,g,root,owner,selections)=context_fixture();let packet=Arc::new(context_packet(&host,&owner,&g,&selections));let ledger=host.inner.0.lock().unwrap().recovery.clone().unwrap();let paused=ledger.lock().unwrap();let caller=Arc::clone(&host);let prepared=Arc::clone(&packet);let writer=std::thread::spawn(move||caller.bind_attachment_context(&prepared,&Context::known("Q",AppProjectSource::ConfiguredDirectory).unwrap(),Some("H-acct")));let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.recovery_writer.try_lock().is_ok()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert!(host.recovery_writer.try_lock().is_err());
+        host.on_line(&serde_json::to_vec(&json!({"id":"request","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g);assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let pid=child.id() as i32;*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g.clone());let started=std::time::Instant::now();assert_eq!(host.stop("person:fixture","codex-stop").unwrap()["state"],"stopped");assert!(started.elapsed()<Duration::from_secs(2));assert!(!host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());drop(paused);assert!(writer.join().unwrap().is_err());host.flush_recovery_observations();let view=host.snapshot();assert!(view["recoveryPendingObservations"].as_array().unwrap().is_empty());let summaries:Vec<_>=view["recovery"]["entries"].as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").collect();assert_eq!(summaries[0]["state"],"listed");assert_eq!(summaries.last().unwrap()["state"],"closed");assert!(view["recovery"]["entries"].as_array().unwrap().iter().all(|e|e["kind"]!="conversation_index"));std::fs::remove_dir_all(root).unwrap();
+    }
+
+    // Shared consumer join uses actual private selection/Prepared/SourceRequest
+    // through the owning callback and pipe, never reconstructed DTO evidence.
+    fn shared_attachment_selected(root:&std::path::Path)->(Mutex<Result<crate::runtime_session::AttachmentSelectionSession,String>>,String,u64,Vec<String>){let state=Mutex::new(crate::runtime_session::AttachmentSelectionSession::new(Some(root.join("explicit-App-P"))));let view=state.lock().unwrap().as_ref().unwrap().snapshot();let owner=view["ownerRef"].as_str().unwrap().to_owned();let next=crate::runtime_session::select_attachment_source(&state,&owner,0,||Ok(Some(root.join("first.txt")))).unwrap();let revision=next["listRevision"].as_u64().unwrap();let order=next["selections"].as_array().unwrap().iter().map(|r|r["selection"]["selectionRef"].as_str().unwrap().to_owned()).collect();(state,owner,revision,order)}
+    fn shared_attachment_exchange<F>(host:&Arc<Host>,generation:&Value,response:Value,operation:F)->Result<Value,String>where F:FnOnce()->Result<Value,String>{let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let source=Arc::clone(host);let generation=generation.clone();let worker=std::thread::spawn(move||{let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let outbound:Value=serde_json::from_str(&line).unwrap();let mut response=response;response["id"]=outbound["id"].clone();source.on_line(&serde_json::to_vec(&response).unwrap(),&generation);outbound});let result=operation();let outbound=worker.join().unwrap();assert_eq!(outbound["params"]["input"].as_array().unwrap().len(),2);assert!(outbound["params"].get("project").is_none());assert!(outbound["params"].get("cwd").is_none());*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());result}
+    #[test]
+    fn shared_attachment_submit_actual_context_and_capabilities(){
+        use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};for known in [false,true]{let(host,g,root,custody,_)=context_fixture();let(state,owner,revision,order)=shared_attachment_selected(&root);let context=if known{host.observe_conversation_project(&g,"thread",Some("H-acct"),&Context::known("explicit App P",AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();Context::known("frozen current Root Q",AppProjectSource::OpenedDirectory).unwrap()}else{Context::unknown()};let home=if known{Some("H-acct")}else{None};let result=shared_attachment_exchange(&host,&g,json!({"result":{"turn":complete_turn()}}),||crate::runtime_session::submit_selected_attachments(&state,&host,Arc::clone(&custody),&owner,revision,&order,&g,"thread",None,"explicit ordinary text without WR prefix",context.clone(),home)).unwrap();assert_eq!(result["sourceWriteConfirmed"],true);assert_eq!(result["nativeTurnRef"]["threadId"],"thread");let view=state.lock().unwrap().as_ref().unwrap().snapshot();assert_eq!(view["submissions"].as_array().unwrap().len(),1);let binding=&view["submissions"][0]["contextBinding"];if known{assert_eq!(binding["historicalProject"],"explicit App P");assert_eq!(binding["currentSubmissionProject"],"frozen current Root Q");assert_eq!(binding["persistence"],"durable App metadata");}else{assert!(binding["indexSnapshot"].is_null());assert_eq!(binding["persistence"],"memory-only");assert!(binding["limit"].as_str().unwrap().contains("cold lookup unavailable"));}let count=host.client_requests().len();state.lock().unwrap().as_mut().unwrap().refresh_submissions(&host,&custody);assert_eq!(host.client_requests().len(),count);std::fs::remove_dir_all(root).unwrap();}
+    }
+    #[test]
+    fn shared_attachment_submit_drift_stale_source_and_native_error_preserve_no_retry(){
+        use crate::recovery::ExplicitAppProjectContext as Context;for stale in [false,true]{let(host,g,root,custody,_)=context_fixture();let(state,owner,revision,order)=shared_attachment_selected(&root);if stale{host.inner.0.lock().unwrap().generation["spawnCounter"]=json!(2);}else{std::fs::write(root.join("first.txt"),"changed since native selection").unwrap();}no_attachment_write(&host,||{assert!(crate::runtime_session::submit_selected_attachments(&state,&host,Arc::clone(&custody),&owner,revision,&order,&g,"thread",None,"person text",Context::unknown(),None).is_err());});assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(state.lock().unwrap().as_ref().unwrap().snapshot()["selections"].as_array().unwrap().len(),1);std::fs::remove_dir_all(root).unwrap();}
+        let(host,g,root,custody,_)=context_fixture();let(state,owner,revision,order)=shared_attachment_selected(&root);let result=shared_attachment_exchange(&host,&g,json!({"error":{"code":-32600,"message":"synthetic refusal"}}),||crate::runtime_session::submit_selected_attachments(&state,&host,Arc::clone(&custody),&owner,revision,&order,&g,"thread",None,"person text",Context::unknown(),None));assert!(result.is_err());let count=host.client_requests().len();state.lock().unwrap().as_mut().unwrap().refresh_submissions(&host,&custody);let view=state.lock().unwrap().as_ref().unwrap().snapshot();assert_eq!(view["submissions"].as_array().unwrap().len(),1);assert!(view["submissions"][0]["outcome"]["resolution"]["nativeTurnRef"].is_null());assert_eq!(host.client_requests().len(),count);assert_eq!(view["selections"].as_array().unwrap().len(),1);std::fs::remove_dir_all(root).unwrap();
     }
 }

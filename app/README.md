@@ -54,6 +54,19 @@ performed an act.
     Original role guidance is retained in memory for threads started here; missing
     original guidance is shown as Unknown, independent of native role hints.
 
+12. Native text-file selections retain private handles and an ordered immutable
+    source list. Explicit attachment-bearing send or steering uses that whole
+    list, durable metadata and the actual Host request; failures do not fall back
+    to text-only sending or automatic retry. A native acknowledgment is separate
+    from provider uptake or completion.
+13. Explicit App project association comes from configured `CHIRALITY_WORKSPACE`,
+    separately from native thread cwd, Codex home and workflow run. Unknown context
+    produces no canonical project row. Historical project P remains intact when
+    a new submission cites current Q; hot-only associations retain cold limits.
+14. Selected examination JSON imports keep their complete declared basis and
+    unverified standing independently. General record corrections preserve both
+    entries and expose missing, conflicting or incomparable claim relationships.
+
 ## Modules
 
 | Module | Contribution |
@@ -68,7 +81,8 @@ performed an act.
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `canonical.rs` | A16 offer/native binding, capture, trusted retry/backlink recovery and the designated offer digest |
 | `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
-| `attachments.rs`, `resources/attachments/` | Tested Unix text-source producer and immutable metadata list; durable pre-send transport and native picker are not yet connected |
+| `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
+| `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
@@ -152,6 +166,19 @@ also invokes that separate writer responsibility. Incomparable current claims,
 conflicting record IDs and incomplete lapse histories remain visible, with each
 source and time preserved. Reading a claim does not verify its native origin.
 
+Use **Select text attachment…** to open the native selector. Move or remove
+selections explicitly; **Confirm current source…** makes a new explicit source
+choice when needed. **Send text and ordered attachments** and **Steer current
+turn with ordered attachments** include the entire private selection. Plain-text
+controls explicitly exclude it. An error can follow an actual native write;
+inspect the submission's retained source/outcome instead of assuming no send or
+retrying automatically.
+
+The current owned start branch is account-home only (`H-acct`). API-key-owned
+home startup (`H-key`) remains required later work. A continued conversation
+without a trustworthy home-class association stays unknown; its current context
+may remain hot-only. This is independent of model/provider choice.
+
 ## Storage and remaining work
 
 Project run logs use `.chirality/records/runs/<safe-run-key>/<safe-writer-key>.jsonl`;
@@ -161,6 +188,12 @@ in `.chirality/captures/`. Library A15 allocation uses the library's
 remains later Group A work. Storage keys are separate from governed identities.
 Explicitly discovered legacy `records/coordination.rs.jsonl` stays intact.
 Unwritable or incomplete targets report limits without silent relocation.
+
+Attachment metadata arrays and pointer-only client request records live under
+the App user-data `runtime/nir/attachment-supplies/` and
+`runtime/hosting/client-requests/` directories. They contain no selected text,
+native transcript or generated supplier prompt cache. REC owns project/context
+tags through the existing pointer ledger; no competing ledger is opened.
 
 Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.

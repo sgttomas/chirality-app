@@ -419,6 +419,58 @@ because the App always sends both explicitly on `thread/start` (CS-8), the
 configured default never selects a conversation's model. `Model.isDefault`
 from `model/list` may be shown as Codex's own label, never preselected.
 
+### 5.4.1 Explicit project context and unknown view (CC-ACCESS-EXPLICIT-PROJECT-CONTEXT)
+
+Root/shared supplies an actual configured/opened App project reference or
+explicit absence, independently of native cwd/temp fallback/Codex home/native
+projectId/WR run/renderer text. An explicitly configured/opened App directory
+reference can itself be the opaque identity; no ID registry/service/hash or
+normalization is selected. Preserve lossless source value and source caption;
+a coincidentally equal native path does not establish this provenance.
+
+At conversation selection/start, freeze this context with the choice. Known
+nonempty reference P uses existing `access.conversation-selection`0.2 and
+project-sensitive last-choice offer/save. **Genuinely unknown project emits
+no project-bearing ACCESS0.2 row**: no null/empty/temp/“unknown” fake ID and no
+nullable successor. A private live selection machine still supports explicit
+person choice and ordinary start/input under the same CS-1…CS-21/home/
+availability rules, with a derived view stating “App project not established”,
+project-sensitive offer/save unavailable and no canonical selection row. The
+view is not a persisted record format/source authority; loss/reload leaves
+choice/provenance unknown unless its actual owning native/source evidence
+exists. It never hydrates a private selection or native capability from JSON.
+
+Unknown project is **not** no model selected: CS-1's refusal still applies
+until the person chooses; absence of a per-project offer never picks a default.
+After explicit choice, project unknown/history missing alone does not
+blanket-hold ordinary text/attachments. Other real home/model/native/custody
+barriers still apply. Scope-bearing project-last-choice/run effects need their
+own warranted source. Known P remains P (and unknown remains unknown) if
+current Root selection becomes Q/R; no record/last-choice cache is backfilled,
+retagged or moved. Existing conversation's access entry/home/fixed role remain
+unchanged; actual per-turn model choice is still the person's action.
+
+The current submission's separately frozen Q/absence comes from NIR/REC's
+owner DEL-01-04 opaque `[submissionRef, projectRef|null]` value and actual Root
+source, not this conversation's old selection. Show source captions separately:
+conversation selection/index P or not established; current Root context;
+actual frozen submission context where resolved; native cwd/home/model/role.
+A current-context display does not bind an older submission. Q is no proof of
+file membership, changed native cwd/instructions, native/host scope, WR prefix/
+run, provider adoption or cold readiness. Preserve same/different/unbound and
+ambiguous/unavailable limits. REC0.2 known P index stays P; no-row unknown/tag
+memory-only limits are not silently repaired by ACCESS. No new NIR/HOST fields,
+store/kind, native params, user-policy veto or human approval gate.
+
+**Consumer mapping:** current `ConversationSelection::new(conversation,project)`
+nonempty constructor stays the known-context branch. Root/lib must stop using
+HostConfig.cwd as its project argument; capture explicit source before awaits.
+The unknown branch must use private selection/derived view and return no0.2
+canonical project record, preserving actual explicit model/home checks; do not
+make an invalid row to satisfy the old signature. This is prospective source
+selection, not a claim current product implements it. Independent source and
+consumer review precedes adoption.
+
 ### 5.5 Configuration link (one per App home; K-1)
 
 States: `not-set-up`, `linked`, `target-missing`, `link-broken`,

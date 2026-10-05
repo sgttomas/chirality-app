@@ -40,3 +40,10 @@ constants and expected rows are not the maintained product development pin;
 HOSTING §7.0/generated/0.160.0 supplies that pin. Historical observations are
 not silently relabelled at the adopted version. New product qualification
 and connected consumer replay remain manager/receiving-owner work.
+
+CC-ACCESS-EXPLICIT-PROJECT-CONTEXT: `new_conversation(None)` models genuine
+project absence, with explicit choice/normal model-home guards and no0.2
+project-bearing record/per-project offer/save. `view()` is a derived live
+caption, not a new durable format or trusted production Root source. Known
+context is frozen and remains its original reference when Root changes. Run
+`python3 -B check_explicit_project_context.py` for the bounded controls.

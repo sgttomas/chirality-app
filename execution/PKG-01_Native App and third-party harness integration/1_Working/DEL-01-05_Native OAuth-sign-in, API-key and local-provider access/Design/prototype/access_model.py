@@ -18,6 +18,7 @@ Contents
   network_view       the K-12 view merge, following the person's plugin setting (§9)
 """
 import uuid
+import copy
 import os
 import re
 import tempfile
@@ -322,7 +323,9 @@ class App:
 class Conversation:
     def __init__(self, app, project):
         self.app = app
-        self.project = project
+        if project is not None and (not isinstance(project, str) or not project):
+            raise ValueError("explicit nonempty project reference or None required")
+        self._project = project
         self.m = Machine("CS")
         self.selection = None
         self.offer = None
@@ -330,18 +333,35 @@ class Conversation:
         self.refusal = None
         self.sent = []
         self.drafts = []
-        if project in app.last_choice:
+        if project is not None and project in app.last_choice:
             e, p, mod = app.last_choice[project]
             self.offer = {"entryId": e, "model": mod, "label": "your last choice for this project",
                           "applied": False, "_provider": p}
             self.m.apply("app:last-choice-exists")
+
+    @property
+    def project(self):
+        return self._project  # frozen original context, never today's Root selection
+
+    def view(self, current_root_project=None):
+        """Derived live view only, not a new persisted/canonical selection format."""
+        if current_root_project is not None and (not isinstance(current_root_project, str) or not current_root_project):
+            raise ValueError("explicit current Root reference or None required")
+        relation = "unbound" if self.project is None or current_root_project is None else "same" if self.project == current_root_project else "different"
+        return {"projectAtSelection": self.project, "currentRootProject": current_root_project,
+                "projectStanding": "not-established" if self.project is None else "explicit-source-claim",
+                "contextRelation": relation, "state": self.m.state, "selection": copy.deepcopy(self.selection),
+                "canonicalSelectionRecord": copy.deepcopy(self.record()), "projectLastChoiceAvailable": self.project is not None,
+                "observationLimit": "scripted live source claim; no production Root or cold capability proof",
+                "caption": "App project not established" if self.project is None else "App project at selection: " + self.project}
 
     def choose(self, entry_id, provider_id, model, source="person"):
         self.m.apply("person:choose")
         self.selection = {"entryId": entry_id, "providerId": provider_id, "model": model,
                           "source": source, "chosenAt": "2026-10-01T12:00:00Z"}
         self.offer = None
-        self.app.last_choice[self.project] = (entry_id, provider_id, model)
+        if self.project is not None:
+            self.app.last_choice[self.project] = (entry_id, provider_id, model)
 
     def accept_offer(self):
         self.m.apply("person:accept-offer")
@@ -396,6 +416,8 @@ class Conversation:
             self.m.apply("entry:available-started" if self.thread else "entry:available-unstarted")
 
     def record(self):
+        if self.project is None:
+            return None  # no fabricated project-bearing0.2 row; private choice still operates
         r = {"schema": "chirality.access-selection/v0.2", "conversation": "conv-%x" % id(self),
              "project": self.project, "state": self.m.state, "selection": self.selection}
         if self.offer:
