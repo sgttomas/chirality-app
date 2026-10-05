@@ -13,6 +13,8 @@ pub mod canonical;
 pub mod catalog;
 pub mod decision_view;
 pub mod external_observation;
+pub mod external_trace;
+pub mod trace_receiving;
 pub mod hosting;
 pub mod native_items;
 pub mod native_history;
@@ -52,6 +54,7 @@ pub struct AppState {
     recovery_startup: Arc<Mutex<runtime_session::RecoveryStartup>>,
     role_supply_status: Mutex<Value>,
     external_observation: Mutex<runtime_session::ExternalObservationSession>,
+    trace_selection: Mutex<runtime_session::TraceSelectionSession>,
 }
 
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
@@ -116,7 +119,15 @@ fn host_status(state: State<'_, AppState>) -> Value {
             thread["futureGuidanceNotices"] = role["futureGuidanceNotices"].clone();
         }
     }
+    let generation = s["generation"].clone();
+    let targets = s["threads"].as_array().into_iter().flatten().filter(|thread|thread["generation"] == generation)
+        .filter_map(|thread|thread["threadId"].as_str()).map(|thread|match runtime_session::observed_steering_target(&s, &generation, thread) {
+            Ok(target) => json!({"generation":generation,"threadId":thread,"target":target}),
+            Err(error) => json!({"generation":generation,"threadId":thread,"target":null,"reason":error}),
+        }).collect::<Vec<_>>();
+    s["steeringTargets"] = json!(targets);
     s["externalObservation"] = state.external_observation.lock().unwrap().snapshot();
+    s["traceReceiving"] = state.trace_selection.lock().unwrap().snapshot();
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
     }
@@ -254,6 +265,17 @@ fn conversation_send_text(
 }
 
 #[tauri::command(async)]
+fn conversation_steer_text(
+    state: State<'_, AppState>, generation: Value, thread_id: String,
+    expected_turn_id: String, text: String,
+) -> Result<Value, String> {
+    runtime_session::steer_conversation_turn(
+        &state.host.snapshot(), &generation, &thread_id, &expected_turn_id, &text,
+        |generation, thread, expected, text| state.host.turn_steer_text(generation, thread, expected, text),
+    )
+}
+
+#[tauri::command(async)]
 fn conversation_interrupt(
     state: State<'_, AppState>,
     generation: Value,
@@ -270,6 +292,20 @@ fn conversation_interrupt(
 }
 
 /// Paths come exclusively from native file selection; no path/origin is an IPC argument.
+/// The IPC accepts declared kinds only. Path and bytes originate exclusively
+/// at this main-process native selector/once-opened receiver boundary.
+#[tauri::command(async)]
+fn select_trace_record(
+    app: tauri::AppHandle, state: State<'_, AppState>,
+    record_kind: String, evidence_kind: String,
+) -> Result<Value, String> {
+    runtime_session::select_trace_source(&state.trace_selection, &record_kind, &evidence_kind, || {
+        app.dialog().file().set_title("Select supplied examination or XT record")
+            .add_filter("JSON records", &["json"]).blocking_pick_file()
+            .map(|file|file.into_path().map_err(|error|format!("Native selected trace file is not a filesystem path: {error}"))).transpose()
+    })
+}
+
 #[tauri::command(async)]
 fn select_external_observation(
     app: tauri::AppHandle,
@@ -470,6 +506,7 @@ pub fn run() {
         recovery_startup: Arc::new(Mutex::new(runtime_session::RecoveryStartup::default())),
         role_supply_status: Mutex::new(json!({"state":"not-supplied","adoption":"unknown"})),
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
+        trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
     };
     let host = Arc::clone(&state.host);
     tauri::Builder::default()
@@ -521,6 +558,7 @@ pub fn run() {
             host_status,
             host_observe,
             select_external_observation,
+            select_trace_record,
             answer_native_request,
             host_start,
             host_stop,
@@ -528,6 +566,7 @@ pub fn run() {
             history_action,
             history_select,
             conversation_send_text,
+            conversation_steer_text,
             conversation_interrupt,
             set_person_name,
             decision_view,

@@ -71,7 +71,16 @@ function NativeRequestCard({ request, answer }: { request: Json; answer: (r: Jso
   </article>;
 }
 
-function ConversationPanel({ host, send, interrupt }: { host: Json; send: (generation: Json, thread: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function SteeringControl({ target, reason, ready, busy, text, submit }: { target: Json; reason?: string; ready: boolean; busy: boolean; text: string; submit: () => void }) {
+  return <div>
+    <p>Current observed steering turn: {target?.turnId ?? "not established"} {target?.source && `· ${target.source}`}.</p>
+    {!target && <p>{reason ?? "Choose a loaded conversation with an observed current live turn."}</p>}
+    <button disabled={!ready || busy || !target?.turnId || !text} onClick={submit}>Steer current live turn</button>
+    <p>Steering sends this text unchanged with the expected native turn ID. A steering acknowledgment does not establish turn replacement or completion. Source/target changes can refuse the request; the draft is retained on failure and no automatic resend occurs.</p>
+  </div>;
+}
+
+function ConversationPanel({ host, send, steer, interrupt }: { host: Json; send: (generation: Json, thread: string, text: string) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [threadKey, setThreadKey] = useState<string>("");
   const [turnId, setTurnId] = useState<string>("");
   const [text, setText] = useState<string>("");
@@ -82,11 +91,20 @@ function ConversationPanel({ host, send, interrupt }: { host: Json; send: (gener
   const selected = currentThreads.find((thread: Json) => JSON.stringify([thread.generation, thread.threadId]) === threadKey);
   const liveTurns = (host?.conversationTurns ?? []).filter((turn: Json) => selected && JSON.stringify(turn.generation) === generationKey && turn.threadId === selected.threadId && turn.nativeTurn?.status === "inProgress" && !turn.observationEnded && !turn.terminalEventObserved);
   const live = liveTurns.find((turn: Json) => turn.turnId === turnId);
+  const steering = (host?.steeringTargets ?? []).find((row: Json) => selected && JSON.stringify(row.generation) === generationKey && row.threadId === selected.threadId);
+  const steeringTarget = steering?.target && JSON.stringify(steering.target.generation) === generationKey && steering.target.threadId === selected?.threadId ? steering.target : null;
   const alreadyRequested = (host?.turnInterruptRequests ?? []).some((request: Json) => live && JSON.stringify(request.binding?.generation) === generationKey && request.binding?.threadId === live.threadId && request.binding?.turnId === live.turnId && (request.clientRequest?.outcome === "response-observed-result" || (request.clientRequest?.outcome === "pending" && request.clientRequest?.writeResult === "written")));
   const sendText = async () => {
     if (!selected || !text || busy) return;
     setBusy("sending"); setError("");
     try { await send(selected.generation, selected.threadId, text); setText(""); }
+    catch (e) { setError(String(e)); }
+    finally { setBusy(""); }
+  };
+  const steerText = async () => {
+    if (!selected || !steeringTarget || !text || busy) return;
+    setBusy("steering"); setError("");
+    try { await steer(selected.generation, selected.threadId, steeringTarget.turnId, text); setText(""); }
     catch (e) { setError(String(e)); }
     finally { setBusy(""); }
   };
@@ -109,6 +127,7 @@ function ConversationPanel({ host, send, interrupt }: { host: Json; send: (gener
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={sendText}>Send text</button>
     <p>Text is sent unchanged to the selected native conversation. Its role, model and provider remain the conversation's existing settings.</p>
+    <SteeringControl target={steeringTarget} reason={steering?.reason} ready={host?.state === "ready" && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <label>Observed live turn <select disabled={!!busy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
     <button disabled={host?.state !== "ready" || !live || !!busy || alreadyRequested} onClick={interruptTurn}>Interrupt selected live turn</button>
     <p>An interrupt acknowledgment does not establish turn end or rollback. Turn status comes from native observations.</p>
@@ -118,7 +137,7 @@ function ConversationPanel({ host, send, interrupt }: { host: Json; send: (gener
     {busy && <p>{busy}: waiting for protocol response; no automatic retry.</p>}
     {error && <p role="alert">{error} No automatic retry.</p>}
     <p>Text-turn protocol requests: {host?.modelTurnEvidence?.protocolRequests?.length ?? 0}. {host?.modelTurnEvidence?.standing ?? "Provider/model execution is not established by this view."}</p>
-    <details open><summary>Observed native turns and interrupt request state</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ turns: host?.conversationTurns, interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }, null, 2)}</pre></details>
+    <details open><summary>Observed native turns, steering and interrupt request state</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }, null, 2)}</pre></details>
   </section>;
 }
 
@@ -220,6 +239,48 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
   </section>;
 }
 
+export function TraceReceivingPanel({ data, currentContext, select }: { data: Json; currentContext: Json; select: (record: string, evidence: string) => Promise<void> }) {
+  const [record, setRecord] = useState("");
+  const [evidence, setEvidence] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const choose = async () => {
+    if (!record || !evidence || busy) return;
+    setBusy(true); setError("");
+    try { await select(record, evidence); } catch (e) { setError(String(e)); }
+    finally { setBusy(false); }
+  };
+  return <section>
+    <h2>Supplied examination and trace records</h2>
+    <p>Imports retain unverified declared facts and independent source buffers. They do not establish the current App executable, examination clock, native examination or host origin.</p>
+    <label>Declared record kind <select value={record} disabled={busy} onChange={e => setRecord(e.target.value)}><option value="">Choose a record kind</option><option value="exam_result">Examination result</option><option value="xt_result">XT result</option><option value="xt_work">XT work account</option></select></label>{" "}
+    <label>Declared evidence category <select value={evidence} disabled={busy} onChange={e => setEvidence(e.target.value)}><option value="">Choose an evidence category</option><option value="own_code">Own code</option><option value="native_supplier">Native supplier claim</option><option value="actual_host">Actual host claim</option><option value="extension">Extension claim</option><option value="definition_or_rehearsal">Definition or rehearsal</option></select></label>{" "}
+    <button disabled={!record || !evidence || busy} onClick={choose}>Select supplied record…</button>
+    <p>Selection: {data?.selection?.state ?? "not selected"} {data?.selection?.reason}</p>
+    {busy && <p>Waiting for native selection and one source read.</p>}{error && <p role="alert">{error}</p>}
+    <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(currentContext, null, 2)}</pre></details>
+    {(data?.receiving?.imports ?? []).map((imported: Json, index: number) => <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+      <h3>Import {index + 1} · {imported.recordKind} · {imported.assessment}</h3>
+      <p>Declared evidence category: {imported.declaredEvidenceCategory}. {imported.source?.sourceStanding}</p>
+      {imported.reason && <p>Receiving limit: {imported.reason}</p>}
+      <p>Selected source: {imported.source?.displayPath} · read: {imported.source?.readState} · {imported.source?.identityScope}</p>
+      {imported.source?.pathDisplayLimit && <p>Path display limit: {imported.source.pathDisplayLimit}</p>}
+      <details><summary>Exact native path and observed input-buffer identity</summary><pre>{JSON.stringify({ selectedPath: imported.source?.selectedPath, bufferIdentity: imported.source?.bufferIdentity, readMechanism: imported.source?.readMechanism, reason: imported.source?.reason }, null, 2)}</pre></details>
+      {imported.suppliedBasis ? <div>
+        <h4>Full declared subject and configuration (unverified)</h4><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ subject: imported.suppliedBasis.subject, configuration: imported.suppliedBasis.configuration, case: imported.suppliedBasis.case }, null, 2)}</pre>
+        <p>{imported.suppliedBasis.date?.source === "stated_by_person" ? "Person-stated date (unverified)" : "Record-declared date/source (unverified)"}: {JSON.stringify(imported.suppliedBasis.date)}.</p>
+        <details><summary>Complete supplied basis and source reference</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(imported.suppliedBasis, null, 2)}</pre></details>
+      </div> : <p>No complete candidate/configuration/date basis is bound. Original facts remain available; no previous import's basis is inherited.</p>}
+      <p>Current executable: {imported.currentExecutableIdentity} · native examination: {imported.nativeExamination} · host origin: {imported.hostOrigin}. {imported.semanticAssessment}</p>
+      <details><summary>Full original supplied document and account/refusal facts</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ originalDocument: imported.originalDocument, account: imported.account }, null, 2)}</pre></details>
+      <details><summary>Exact original source bytes (memory only)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(imported.source?.originalBytes)}</pre></details>
+      <p>EXM-24 witness count: {String(imported.countsTowardV4Exm24)} · EXM-25 witness count: {String(imported.countsTowardV4Exm25)} · {imported.oi003} · {imported.hostJoin}.</p>
+    </article>)}
+    <p>These imports supply no EXM-24/EXM-25 joined witness. OI-003 remains unresolved; external-host join remains deferred under DECISION-3.</p>
+    <p>{data?.receiving?.custody}</p>
+  </section>;
+}
+
 export function DecisionPackagesPanel({ view, name, setName, recordName, refresh, continueRecording, openControl }: {
   view: Json; name: string; setName: (name: string) => void; recordName: () => void;
   refresh: () => Promise<void>; continueRecording: () => Promise<void>; openControl: (request: string) => Promise<void>;
@@ -299,12 +360,12 @@ export function App() {
     await refresh();
   };
 
-  const conversationAction = async (command: "conversation_send_text" | "conversation_interrupt", args: Record<string, unknown>) => {
+  const conversationAction = async (command: "conversation_send_text" | "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>) => {
     let failed = false;
     let failure: unknown;
     try {
       await invoke(command, args);
-      setMessage(command === "conversation_send_text" ? "Native turn/start response received; outcomes remain as observed below." : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment.");
+      setMessage(command === "conversation_send_text" ? "Native turn/start response received; outcomes remain as observed below." : command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events." : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment.");
     } catch (e) { failed = true; failure = e; setMessage(`${command}: ${String(e)}`); }
     try { setHost(await invoke("host_status")); }
     catch (e) { setMessage(`${command}: ${failed ? "request failed" : "native response received"}; view refresh failed: ${String(e)}`); }
@@ -369,6 +430,8 @@ export function App() {
 
       <ConversationPanel host={host} send={async (generation, threadId, text) => {
         await conversationAction("conversation_send_text", { generation, threadId, text });
+      }} steer={async (generation, threadId, expectedTurnId, text) => {
+        await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} interrupt={async (generation, threadId, turnId) => {
         await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }} />
@@ -398,6 +461,13 @@ export function App() {
           setMessage(`External selection: ${result.selection?.state ?? "unknown"} ${result.selection?.stage ?? ""}`);
         } catch (e) { setMessage(String(e)); }
         setHost(await invoke("host_status"));
+      }} />
+
+      <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
+        try {
+          const received: Json = await invoke("select_trace_record", { recordKind, evidenceKind });
+          setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
+        } finally { setHost(await invoke("host_status")); }
       }} />
 
       <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl} />

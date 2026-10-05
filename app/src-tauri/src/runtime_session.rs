@@ -675,6 +675,115 @@ pub fn interrupt_conversation_turn(
 }
 
 
+/// Disposable observed steering projection. Native receipt order/fresh response
+/// boundaries avoid selecting an older active-looking memo. The actual scoped
+/// Host remains authoritative at registration and response; this is no outcome.
+pub fn observed_steering_target(
+    snapshot: &Value,
+    generation: &Value,
+    thread_id: &str,
+) -> Result<Value, String> {
+    current_conversation(snapshot, generation, thread_id)?;
+    let eligible = snapshot["conversationTurns"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|turn| {
+            turn["generation"] == *generation
+                && turn["threadId"] == thread_id
+                && turn["turnId"].as_str().is_some_and(|id| !id.is_empty())
+                && turn["nativeTurn"]["id"] == turn["turnId"]
+                && turn["nativeTurn"]["status"] == "inProgress"
+                && turn["terminalEventObserved"] != true
+                && turn["observationEnded"] != true
+        })
+        .collect::<Vec<_>>();
+    let latest = snapshot["journal"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|frame| {
+            frame["generation"] == *generation
+                && frame["frame"]["params"]["threadId"] == thread_id
+                && matches!(
+                    frame["frame"]["method"].as_str(),
+                    Some("turn/started" | "turn/completed")
+                )
+                && frame["position"].as_u64().is_some()
+        })
+        .max_by_key(|frame| frame["position"].as_u64().unwrap());
+    let boundary = latest.and_then(|frame| frame["position"].as_u64());
+    let fresh = eligible
+        .iter()
+        .copied()
+        .filter(|turn| {
+            turn["source"] == "turn/start response"
+                && boundary
+                    .map(|position| {
+                        turn["startResponseIssuedAfterReceipt"]
+                            .as_u64()
+                            .is_some_and(|issued| issued >= position)
+                    })
+                    .unwrap_or(true)
+        })
+        .collect::<Vec<_>>();
+    let target = if fresh.len() == 1 {
+        Some(fresh[0])
+    } else if fresh.len() > 1 {
+        None
+    } else {
+        latest
+            .filter(|frame| {
+                frame["frame"]["method"] == "turn/started"
+                    && frame["frame"]["params"]["turn"]["status"] == "inProgress"
+            })
+            .and_then(|frame| {
+                eligible
+                    .iter()
+                    .copied()
+                    .find(|turn| turn["turnId"] == frame["frame"]["params"]["turn"]["id"])
+            })
+    }
+    .ok_or(
+        "current live steering target is unavailable or ambiguous; refresh native observations",
+    )?;
+    Ok(
+        json!({"generation":generation,"threadId":thread_id,"turnId":target["turnId"],"source":target["source"],"receiptPosition":target["receiptPosition"],"standing":"current observed target; actual Host rechecks full source/generation/target at send and response; no lifecycle outcome inferred"}),
+    )
+}
+
+/// Actual IPC consuming guard: unchanged plain text, one explicit expected native
+/// turn, no fallback start or role/config/policy inputs and no automatic resend.
+pub fn steer_conversation_turn(
+    snapshot: &Value,
+    generation: &Value,
+    thread_id: &str,
+    expected_turn: &str,
+    text: &str,
+    steer: impl FnOnce(&Value, &str, &str, &str) -> Result<Value, String>,
+) -> Result<Value, String> {
+    if text.is_empty() || expected_turn.is_empty() {
+        return Err("steering requires text and the observed expected turn ID".into());
+    }
+    let current = observed_steering_target(snapshot, generation, thread_id)?;
+    if current["turnId"] != expected_turn {
+        return Err(
+            "expected live steering turn changed; refresh and review the retained draft".into(),
+        );
+    }
+    let response = steer(generation, thread_id, expected_turn, text)?;
+    if response.get("error").is_some() {
+        return Err(format!(
+            "native steering error: {}; no successful steering inferred",
+            response["error"]
+        ));
+    }
+    if response["result"]["turnId"] != expected_turn {
+        return Err("native steering response reports another turn; no target rebind or turn start inferred".into());
+    }
+    // This acknowledgment never changes turn/item state or implies replacement/end.
+    Ok(response)
+}
 /// Memory-only selected native history and original App role evidence. A history
 /// view is never an operational thread register or a trusted cold-replay source.
 #[derive(Default)]
@@ -1155,4 +1264,78 @@ pub fn continue_decision_writer(
         Err(error) => status["limits"] = json!([error]),
     }
     status
+}
+
+
+/// Independent selected-source trace imports. No App/current supplier context
+/// enters the receiver or becomes a candidate/date/build default.
+#[derive(Default)]
+pub struct TraceSelectionSession {
+    receiving: crate::trace_receiving::TraceReceivingSession,
+    selection: Value,
+}
+impl TraceSelectionSession {
+    pub fn snapshot(&self) -> Value {
+        json!({"selection":if self.selection.is_null(){json!({"state":"not-selected"})}else{self.selection.clone()},"receiving":self.receiving.snapshot()})
+    }
+    fn begin(&mut self, record: &str, evidence: &str) -> Result<(), String> {
+        if self.selection["state"] == "selecting" {
+            return Err("Trace selection already in progress".into());
+        }
+        self.selection = json!({"state":"selecting","recordKind":record,"declaredEvidenceCategory":evidence,"previousImportsRetained":true});
+        Ok(())
+    }
+    fn finish(&mut self, state: &str, reason: Option<&str>) -> Value {
+        self.selection["state"] = json!(state);
+        self.selection["reason"] = json!(reason);
+        self.snapshot()
+    }
+}
+
+/// Actual command helper: one native-selection callback and one opened regular
+/// source read. Renderer cannot supply path/buffer/candidate identity or date.
+pub fn select_trace_source(
+    state: &std::sync::Mutex<TraceSelectionSession>,
+    record: &str,
+    evidence: &str,
+    pick: impl FnOnce() -> Result<Option<std::path::PathBuf>, String>,
+) -> Result<Value, String> {
+    use crate::external_trace::{EvidenceKind, RecordKind};
+    let kind = match record {
+        "exam_result" => RecordKind::ExaminationResult,
+        "xt_result" => RecordKind::XtResult,
+        "xt_work" => RecordKind::XtWork,
+        _ => return Err("Unsupported trace record kind".into()),
+    };
+    let tier = match evidence {
+        "own_code" => EvidenceKind::OwnCode,
+        "native_supplier" => EvidenceKind::NativeSupplier,
+        "actual_host" => EvidenceKind::ActualHost,
+        "extension" => EvidenceKind::Extension,
+        "definition_or_rehearsal" => EvidenceKind::DefinitionOrRehearsal,
+        _ => return Err("Unsupported declared trace evidence category".into()),
+    };
+    state.lock().unwrap().begin(record, evidence)?;
+    let path = match pick() {
+        Ok(Some(path)) => path,
+        Ok(None) => return Ok(state.lock().unwrap().finish("cancelled", None)),
+        Err(error) => {
+            state
+                .lock()
+                .unwrap()
+                .finish("selection-failed", Some(&error));
+            return Err(error);
+        }
+    };
+    // No metadata pre-read, alternative origin or filename reopen; the reviewed
+    // receiver owns the actual descriptor/buffer/hash/shape/semantic custody.
+    let source = crate::trace_receiving::ActualSelectedSource::read(path);
+    let mut session = state.lock().unwrap();
+    let index = session
+        .receiving
+        .receive_selected_source(source, kind, tier);
+    session.selection["importIndex"] = json!(index);
+    session.selection["mechanism"] =
+        json!("native-file-selection; source claims remain unverified");
+    Ok(session.finish("source-received", None))
 }

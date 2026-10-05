@@ -22,6 +22,10 @@
 //! Still outstanding: automatic restart rules (§4.4), native recovery reads,
 //! quit/relaunch integration and the per-home configuration link.
 
+#[path = "attachment_custody.rs"]
+pub mod attachment_custody;
+use attachment_custody::AttachmentCustody;
+use crate::attachments::{self, PreparedAttachmentList, SelectedTextAttachment};
 use crate::native_requests::RequestRegister;
 use crate::native_history::{HistoryQuery, NativeHistory};
 use crate::recovery::RecoveryLedger;
@@ -99,6 +103,7 @@ struct Inner {
     home: String,
     supplier_standing: Option<String>,
     spawn_counter: u64,
+    attachment_pipe_epoch: u64,
     lifecycle: Vec<Value>,
     client_requests: Vec<Value>,
     /// Frames received before ready (H4), in received order.
@@ -142,6 +147,13 @@ struct SourceEvidence {
     written: bool,
     write_error: Option<String>,
     response: Option<Value>,
+    attachment: Option<AttachmentLink>,
+    reserved_sender: Option<Sender<Value>>,
+    write_attempt_in_progress: bool,
+    attempt_position: Option<u64>,
+    response_position: Option<u64>,
+    observation_base: Value,
+    source_limit: Option<String>,
 }
 impl SourceRequest {
     pub fn generation(&self) -> &Value { &self.generation }
@@ -154,8 +166,9 @@ impl SourceRequest {
         let Some(e) = i.source_requests.get(&self.frame["id"].to_string()) else { return json!({"outcome":"source-record-unavailable"}); };
         let record = &i.client_requests[e.index];
         json!({"generation":self.generation,"home":self.generation["home"],"requestIdentity":self.frame["id"],"requestRef":self.request_ref,
-            "attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeResult":if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else{"write-in-progress"},"outcome":record["outcome"],
-            "waitingEnded":record.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false),"response":e.response,"writeError":e.write_error,
+            "attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeAttemptInProgress":e.write_attempt_in_progress,"effectiveWriteOutcome":if e.write_attempt_in_progress {"unknown while actual write is in progress"}else if e.written{"complete source write observed"}else{"no complete source write observed"},"lastClientObservation":record,"writeResult":if e.write_attempt_in_progress {"write-in-progress"}else if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else if record["writeResult"]=="not-attempted"{"last-prewrite-observation"}else{"reserved/no complete write observation"},"actualWriteAttemptObserved":e.attempt_position.is_some(),"noAttemptCause":if e.attempt_position.is_none(){e.source_limit.as_ref()}else{None},"canonicalProjectionAvailable":record.is_object()&&e.source_limit.is_none()&&!(e.write_error.is_some()&&e.response.is_some()),"sourceLimit":e.source_limit,
+            "outcome":if e.write_attempt_in_progress{json!("unknown/in-progress")}else if e.write_error.is_some()&&e.response.is_some(){json!("native response and failed write both observed; canonical projection unavailable")}else if e.written&&e.response.is_some()&&e.source_limit.is_some(){json!(if e.response.as_ref().unwrap().get("result").is_some(){"response-observed-result"}else{"response-observed-error"})}else if record.is_object(){record["outcome"].clone()}else if e.written&&e.response.is_some(){json!(if e.response.as_ref().unwrap().get("result").is_some(){"response-observed-result"}else{"response-observed-error"})}else{json!("reserved/canonical projection unavailable; outcome unknown")},
+            "waitingEnded":record.get("waitingEnded").and_then(Value::as_bool).or_else(||e.observation_base.get("waitingEnded").and_then(Value::as_bool)).unwrap_or(false),"response":e.response,"writeError":e.write_error,
             "sourceCurrent":i.generation==self.generation&&i.state=="ready"&&!i.server_requests.is_closed(&self.generation)})
     }
 }
@@ -167,7 +180,31 @@ impl HistoryDispatch {
     pub fn evidence(&self) -> Value { self.source.evidence() }
 }
 
+struct AttachmentLink { custody: Arc<AttachmentCustody>, records: Vec<Value>, original: Value, limit: Option<String> }
+/// One-shot transient packet. No deserialization or durable native inputs.
+pub struct PreparedAttachmentDispatch {
+    source: SourceRequest,
+    custody: Arc<AttachmentCustody>,
+    list: PreparedAttachmentList,
+    selections: Vec<SelectedTextAttachment>,
+    client: Value,
+    pipe_identity: (u64,u64),
+    pipe_epoch: u64,
+    state: Mutex<&'static str>,
+}
+impl PreparedAttachmentDispatch {
+    pub fn submission_ref(&self)->&str {self.list.submission_ref()}
+    pub fn source(&self)->&SourceRequest {&self.source}
+    pub fn supply_records(&self)->Vec<Value>{self.list.supply_records()}
+    pub fn cancel(&self)->bool{let mut state=self.state.lock().unwrap();if matches!(*state,"prepared"|"validating"){*state="cancelled";true}else{false}}
+    pub fn state(&self)->&'static str{*self.state.lock().unwrap()}
+}
+
+struct BoundPipe { file: std::fs::File, generation: Value, epoch: u64, identity: (u64,u64) }
+
 pub struct Host {
+    frame_write: Mutex<()>,
+    attachment_gate: Mutex<()>,
     inner: Arc<(Mutex<Inner>, Condvar)>,
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Child>>,
@@ -175,6 +212,8 @@ pub struct Host {
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 impl Default for Host {
@@ -192,6 +231,8 @@ impl Host {
             ..Default::default()
         };
         Host {
+            frame_write: Mutex::new(()),
+            attachment_gate: Mutex::new(()),
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
             stdin: Mutex::new(None),
             child: Mutex::new(None),
@@ -199,6 +240,8 @@ impl Host {
             before_thread_insert: Mutex::new(None),
             #[cfg(test)]
             before_turn_result: Mutex::new(None),
+            #[cfg(test)]
+            before_eof_gate: Mutex::new(None),
         }
     }
 
@@ -233,10 +276,7 @@ impl Host {
 
     /// A snapshot for the interface: state, generation, identity records, lifecycle
     /// events, client requests, delivered frames (H6: native frames unchanged), threads.
-    pub fn snapshot(&self) -> Value {
-        let i = self.inner.0.lock().unwrap();
-        Self::snapshot_inner(&i)
-    }
+    pub fn snapshot(&self) -> Value {let i=self.inner.0.lock().unwrap();Self::snapshot_inner(&i)}
     fn snapshot_inner(i: &Inner) -> Value {
         json!({
             "state": i.state,
@@ -248,7 +288,10 @@ impl Host {
             "declaredCapabilities": i.declared_capabilities,
             "configurationIdentity": i.configuration_identity,
             "lifecycle": i.lifecycle,
-            "clientRequests": i.client_requests,
+            "clientRequests": i.client_requests.iter().filter(|r|r.is_object()).cloned().collect::<Vec<_>>(),
+            "clientRequestObservationStanding": "Canonical rows are last observations; an in-flight native write has unknown current outcome, never a current no-send or complete-write proof.",
+            "reservedNativeRequests": i.source_requests.values().filter(|e|!i.client_requests[e.index].is_object()).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"method":e.request.frame["method"],"effectiveOutcome":"unknown/reserved; no complete write proof","writeAttemptInProgress":e.write_attempt_in_progress,"waitingEnded":e.observation_base.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false)})).collect::<Vec<_>>(),
+            "inFlightNativeWrites": i.source_requests.values().filter(|e|e.write_attempt_in_progress).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"attemptPosition":e.attempt_position,"effectiveOutcome":"unknown/in-progress","lastClientObservationOnly":true})).collect::<Vec<_>>(),
             "serverRequests": i.server_requests.records(),
             "recovery": i.recovery.as_ref().map(RecoveryLedger::snapshot),
             "recoveryPersistenceError": i.recovery_error,
@@ -260,7 +303,7 @@ impl Host {
                 let request = i.client_requests.iter().find(|r| r["generation"] == entry["generation"] && r["requestIdentity"] == entry["requestIdentity"]);
                 json!({"binding":entry,"clientRequest":request,"turnOutcome":"determined by native turn events, not interrupt acknowledgment"})
             }).collect::<Vec<_>>(),
-            "modelTurnExercised": if i.client_requests.iter().any(|r| r["method"] == "turn/start") { Value::Null } else { json!(false) },
+            "modelTurnExercised": if i.source_requests.values().any(|e|e.request.frame["method"]=="turn/start")||i.client_requests.iter().any(|r| r["method"] == "turn/start") { Value::Null } else { json!(false) },
             "modelTurnEvidence": {"standing":"provider/model execution not established by request or mock result", "protocolRequests":i.client_requests.iter().filter(|r| r["method"] == "turn/start").collect::<Vec<_>>()},
         })
     }
@@ -303,7 +346,7 @@ impl Host {
         self.inner.0.lock().unwrap().lifecycle.clone()
     }
     pub fn client_requests(&self) -> Vec<Value> {
-        self.inner.0.lock().unwrap().client_requests.clone()
+        self.inner.0.lock().unwrap().client_requests.iter().filter(|r|r.is_object()).cloned().collect()
     }
     pub fn journal(&self) -> Vec<Value> {
         self.inner.0.lock().unwrap().journal.clone()
@@ -447,12 +490,14 @@ impl Host {
         };
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
+        let source_gate = self.attachment_gate.lock().unwrap();
         *self.stdin.lock().unwrap() = child.stdin.take();
         let pid = child.id() as i32;
         *self.child.lock().unwrap() = Some(child);
         {
             let mut i = self.inner.0.lock().unwrap();
             i.spawn_counter += 1;
+            i.attachment_pipe_epoch += 1;
             // Opaque stable home identity: never expose the filesystem path as identity.
             i.home = format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
             i.generation = json!({"appSession": i.app_session, "home": i.home, "spawnCounter": i.spawn_counter});
@@ -473,6 +518,7 @@ impl Host {
             }
             self.lt(&mut i, "LT-06", "spawned", "handshaking", json!({}));
         }
+        drop(source_gate);
         let generation = self.inner.0.lock().unwrap().generation.clone();
         self.spawn_reader(stdout, generation.clone());
         self.spawn_stderr(stderr, generation);
@@ -553,7 +599,7 @@ impl Host {
         let mut unknown = 0;
         for (_, (idx, _)) in i.pending.drain() {
             if let Some(r) = i.client_requests.get_mut(idx) {
-                r["outcome"] = json!("unknown-no-response");
+                if r.is_object()&&r["writeResult"] != "not-attempted" { r["outcome"] = json!("unknown-no-response"); }
                 unknown += 1;
             }
         }
@@ -566,42 +612,49 @@ impl Host {
         json!({"unknownNoResponse": unknown, "endedUnanswered": ended})
     }
 
-    /// Serialized with receipt processing: a resolution cannot race a write and
-    /// become a fabricated acknowledgment. Full H5 identity is supplied by the caller.
-    pub fn answer_server_request(&self, generation: &Value, id: &Value, answer: &Value,
-        origin: &str, actor: Option<&str>) -> Result<Value, String> {
-        let mut i = self.inner.0.lock().unwrap();
-        let frame = i.server_requests.prepare(generation, id, answer, origin, actor)?;
-        let result = self.write_frame(&frame);
-        i.server_requests.written(generation, id, result.is_ok());
-        Self::persist_requests(&mut i);
-        result?;
-        Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
+    /// Origin/answer admission remains the register's; actual IO is outside
+    /// lifecycle/state locks, bound to the source captured at preparation.
+    pub fn answer_server_request(&self, generation:&Value,id:&Value,answer:&Value,origin:&str,actor:Option<&str>)->Result<Value,String>{
+        let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare(generation,id,answer,origin,actor)?;let bound=self.capture_pipe(&i);(frame,bound)};
+        let result=bound.and_then(|bound|self.write_reply(bound,&frame));
+        if result.is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==*generation&&!i.server_requests.is_closed(generation){i.server_requests.written(generation,id,false);Self::persist_requests(&mut i);}}
+        result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
-
-    /// The explicit-error operation carries a named App rule/boundary error;
-    /// person interaction answers never enter this protocol-error path.
-    pub fn error_server_request(&self, generation: &Value, id: &Value, error: &Value,
-        origin: &str) -> Result<Value, String> {
-        let mut i = self.inner.0.lock().unwrap();
-        let frame = i.server_requests.prepare_error(generation, id, error, origin)?;
-        let result = self.write_frame(&frame);
-        i.server_requests.written(generation, id, result.is_ok());
-        Self::persist_requests(&mut i);
-        result?;
-        Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
+    pub fn error_server_request(&self,generation:&Value,id:&Value,error:&Value,origin:&str)->Result<Value,String>{
+        let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare_error(generation,id,error,origin)?;let bound=self.capture_pipe(&i);(frame,bound)};
+        let result=bound.and_then(|bound|self.write_reply(bound,&frame));
+        if result.is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==*generation&&!i.server_requests.is_closed(generation){i.server_requests.written(generation,id,false);Self::persist_requests(&mut i);}}
+        result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
-
-    fn write_frame(&self, frame: &Value) -> Result<(), String> {
-        let mut g = self.stdin.lock().unwrap();
-        Self::write_to_pipe(g.as_mut(), frame)
+    fn capture_pipe(&self,i:&Inner)->Result<BoundPipe,String>{
+        use std::os::fd::{AsRawFd,FromRawFd};let pipe=self.stdin.lock().unwrap();let source=pipe.as_ref().ok_or("input closed")?;let identity=Self::pipe_identity(source)?;
+        let fd=unsafe{libc::fcntl(source.as_raw_fd(),libc::F_DUPFD_CLOEXEC,0)};if fd<0{return Err(std::io::Error::last_os_error().to_string());}
+        Ok(BoundPipe{file:unsafe{std::fs::File::from_raw_fd(fd)},generation:i.generation.clone(),epoch:i.attachment_pipe_epoch,identity})
     }
-
-    fn write_to_pipe(pipe: Option<&mut ChildStdin>, frame: &Value) -> Result<(), String> {
-        let w = pipe.ok_or("input closed")?;
-        let mut line = serde_json::to_string(frame).map_err(|e| e.to_string())?;
-        line.push('\n');
-        w.write_all(line.as_bytes()).and_then(|_| w.flush()).map_err(|e| e.to_string())
+    fn check_bound(&self,i:&Inner,bound:&BoundPipe)->Result<(),String>{
+        if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation)||i.attachment_pipe_epoch!=bound.epoch||!matches!(i.state.as_str(),"ready"|"handshaking"){return Err("captured source generation/pipe closed or changed before write".into());}
+        let pipe=self.stdin.lock().unwrap();if Self::pipe_identity(pipe.as_ref().ok_or("source pipe closed before write")?)?!=bound.identity{return Err("captured source pipe replaced before write".into());}Ok(())
+    }
+    fn frame_bytes(frame:&Value)->Result<Vec<u8>,String>{let mut bytes=serde_json::to_vec(frame).map_err(|e|e.to_string())?;bytes.push(b'\n');Ok(bytes)}
+    fn write_complete(file:&mut std::fs::File,bytes:&[u8])->Result<(),String>{file.write_all(bytes).and_then(|_|file.flush()).map_err(|e|e.to_string())}
+    fn write_frame(&self,frame:&Value)->Result<(),String>{
+        let mut bound={let i=self.inner.0.lock().unwrap();self.capture_pipe(&i)?};let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
+        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;}
+        let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result
+    }
+    fn reply_eligible(i:&Inner,generation:&Value,frame:&Value)->bool{
+        let entry=i.server_requests.entries().into_iter().find(|e|e["generation"]==*generation&&e["requestId"]==frame["id"]&&e["state"]=="settling"&&e["replyWriteResult"]=="not-attempted");
+        let Some(entry)=entry else{return false;};
+        // A source resolution that arrived while queued is not an ack and
+        // cannot be overwritten by a late locally prepared reply.
+        !i.journal.iter().chain(i.held.iter()).any(|e|e["generation"]==*generation&&e["frame"]["method"]=="serverRequest/resolved"&&e["frame"]["params"]["requestId"]==frame["id"]&&e["frame"]["params"]["threadId"]==entry["nativeParameters"]["threadId"])
+    }
+    fn write_reply(&self,mut bound:BoundPipe,frame:&Value)->Result<(),String>{
+        let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
+        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}}
+        let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);
+        let mut i=self.inner.0.lock().unwrap();if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){return Err("reply write finished for closed/superseded source; no successor settlement inferred".into());}
+        i.server_requests.written(&bound.generation,&frame["id"],result.is_ok());Self::persist_requests(&mut i);result
     }
 
     /// HOSTING §5.1 send: a client request with its record. Refused unless ready (CR-03).
@@ -631,29 +684,47 @@ impl Host {
         }
         if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
-        i.next_id+=1;let id=i.next_id;i.send_position+=1;
+        i.next_id+=1;let id=i.next_id;
         let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
         // This private receipt account is separate from the published client
         // record schema; only completion of the actual write sets sentFrame.
-        let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator,"sendPosition":i.send_position,"writeResult":"written","outcome":"pending"});
-        i.client_requests.push(rec);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None});
+        let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
+        i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None});
         if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,params["threadId"].as_str().unwrap().into(),pos));}
         if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":params["threadId"],"turnId":params["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
-        let write_result=if expected_generation.is_some() {
-            // Preserve the source pipe while registration is locked, then
-            // allow reader progress during writing. Drop pipe before re-lock.
-            let mut pipe=self.stdin.lock().unwrap();drop(i);let result=Self::write_to_pipe(pipe.as_mut(),&frame);drop(pipe);result
-        } else {drop(i);self.write_frame(&frame)};
-        let mut i=self.inner.0.lock().unwrap();
+        let captured=self.capture_pipe(&i);drop(i);
+        let write_result=(||->Result<(),String>{let mut bound=captured?;let bytes=Self::frame_bytes(&frame)?;let serial=self.frame_write.lock().unwrap();
+            {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
+                if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
+                if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&params,Some(&json!(id)))?;}
+                i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);}
+            let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result})();
+        let mut i=self.inner.0.lock().unwrap();let key=id.to_string();let closed=i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||!matches!(i.state.as_str(),"ready"|"handshaking");
+        let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
         match write_result {
-            Ok(())=> {i.source_requests.get_mut(&id.to_string()).unwrap().written=true;}
-            Err(error)=> {i.pending.remove(&id.to_string());let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_error=Some(error.to_string());i.client_requests[idx]["writeResult"]=json!("write-failed");if i.client_requests[idx]["outcome"]=="pending" {i.client_requests[idx]["outcome"]=json!("unknown-no-response");}}
+            Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+                match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=record,Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
+                if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
+            }
+            Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
+                if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
+                else{e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; v0.10 cannot faithfully project that combination; raw source retained".into());}
+                    else{record["writeResult"]=json!("write-failed");record["outcome"]=json!("unknown-no-response");i.client_requests[idx]=record;}}
+            }
         }
         Ok(request)
     }
 
+    fn completed_client_response(record:&mut Value,response:Option<&Value>,position:Option<u64>)->Result<(),String>{
+        let Some(frame)=response else{return Ok(());};let position=position.ok_or("Native reply position unavailable; canonical settlement projection unavailable")?;
+        if frame.get("id")!=record.get("requestIdentity")||frame.get("method").is_some()||!frame.is_object()||frame.get("error").is_some()&&frame.get("result").is_some(){return Err("Native reply envelope malformed/contradictory; canonical settlement projection unavailable".into());}
+        if let Some(error)=frame.get("error"){if error["code"].as_i64().is_none()||!error["message"].is_string(){return Err("Actual native error code/message unavailable; no invented canonical error".into());}record["outcome"]=json!("response-observed-error");record["error"]=json!({"code":error["code"],"message":error["message"]});}
+        else if frame.get("result").is_some(){record["outcome"]=json!("response-observed-result");}
+        else{return Err("Native reply result missing; canonical settlement projection unavailable".into());}
+        record["responseReceiptPosition"]=json!(position);Ok(())
+    }
     fn check_source(&self, request: &SourceRequest) -> Result<(), String> {
         let source=request.source.upgrade().ok_or("receipt source Host unavailable")?;
         if !Arc::ptr_eq(&self.inner,&source) {return Err("receipt belongs to another Host".into());}
@@ -662,11 +733,12 @@ impl Host {
     }
     fn wait_source_response(&self, request: &SourceRequest, wait: Duration) -> Result<Value,String> {
         self.check_source(request)?;let evidence=request.evidence();
+        if evidence["actualWriteAttemptObserved"]==false&&!evidence["noAttemptCause"].is_null(){return Err(format!("refused-not-sent before actual attempt: {}",evidence["noAttemptCause"]));}
         if evidence["writeResult"]=="write-failed" {return Err(format!("write failed: {}",evidence["writeError"]));}
         if !evidence["response"].is_null() {return Ok(evidence["response"].clone());}
         match request.receiver.lock().unwrap().recv_timeout(wait) {
             Ok(response)=>Ok(response),
-            Err(_)=> {let mut i=self.inner.0.lock().unwrap();if let Some((idx,_))=i.pending.get(&request.request_id().to_string()).cloned() {i.client_requests[idx]["waitingEnded"]=json!(true);}Err(format!("no response to {} within the wait limit (outcome stays pending/unknown)",request.frame["method"]))}
+            Err(_)=> {let mut i=self.inner.0.lock().unwrap();if let Some((idx,_))=i.pending.get(&request.request_id().to_string()).cloned() {if i.client_requests[idx].is_object(){i.client_requests[idx]["waitingEnded"]=json!(true);}else if let Some(e)=i.source_requests.get_mut(&request.request_id().to_string()){e.observation_base["waitingEnded"]=json!(true);}}Err(format!("no response to {} within the wait limit (outcome stays pending/unknown)",request.frame["method"]))}
         }
     }
     pub fn source_request_wait(&self, request: &SourceRequest, wait: Duration) -> Result<Value,String> {
@@ -723,6 +795,100 @@ impl Host {
     fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
         let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
         jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?.validate(result).map_err(|e|format!("native {target} schema: {e}"))
+    }
+
+
+    fn pipe_identity(pipe:&ChildStdin)->Result<(u64,u64),String>{
+        use std::os::fd::AsRawFd;let mut stat=std::mem::MaybeUninit::<libc::stat>::uninit();
+        if unsafe{libc::fstat(pipe.as_raw_fd(),stat.as_mut_ptr())}!=0{return Err(std::io::Error::last_os_error().to_string());}
+        let stat=unsafe{stat.assume_init()};Ok((stat.st_dev as u64,stat.st_ino as u64))
+    }
+    /// Caller supplies the explicit native App-data owner and private picker selections.
+    pub fn prepare_attachment_turn(&self,custody:Arc<AttachmentCustody>,generation:&Value,thread:&str,expected_turn:Option<&str>,text:&str,selections:&[SelectedTextAttachment])->Result<PreparedAttachmentDispatch,String>{
+        crate::recovery::generation_ref(generation)?;if thread.is_empty()||expected_turn.is_some_and(str::is_empty){return Err("native thread/expected-turn identity required".into());}
+        let submission=attachments::new_submission_ref()?;let list=attachments::prepare_ordered(selections,&submission,&now_rfc3339()).map_err(|e|e.message)?;
+        let mut input=vec![];if !text.is_empty(){input.push(json!({"type":"text","text":text,"text_elements":[]}));}input.extend(list.native_inputs());
+        let method=if expected_turn.is_some(){"turn/steer"}else{"turn/start"};let mut params=json!({"threadId":thread,"input":input});if let Some(turn)=expected_turn{params["expectedTurnId"]=json!(turn);}
+        Self::validate_native_result(if expected_turn.is_some(){"TurnSteerParams"}else{"TurnStartParams"},&params)?;
+        let(tx,rx)=channel();let(source,client,pipe_identity,pipe_epoch)={
+            let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
+            Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
+            i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
+            let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
+            let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
+            let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
+            i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
+            i.source_requests.insert(id.to_string(),SourceEvidence{request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+        };
+        // Never hold Inner across file operations. Failure consumes its reserved
+        // RPC; partial/uncertain publication cannot authorize native write.
+        if let Err(error)=custody.publish_prepared(&list.supply_records(),&client){self.attachment_limit(&source,error.clone());return Err(format!("attachment metadata unavailable; nothing sent: {error}"));}
+        Ok(PreparedAttachmentDispatch{source,custody,list,selections:selections.to_vec(),client,pipe_identity,pipe_epoch,state:Mutex::new("prepared")})
+    }
+    fn attachment_limit(&self,source:&SourceRequest,error:String){let mut i=self.inner.0.lock().unwrap();if let Some(e)=i.source_requests.get_mut(&source.request_id().to_string()){if let Some(a)=e.attachment.as_mut(){a.limit=Some(error);}}}
+    pub fn dispatch_attachment_turn(&self,prepared:&PreparedAttachmentDispatch)->Result<SourceRequest,String>{
+        self.check_source(&prepared.source)?;
+        {let mut state=prepared.state.lock().unwrap();if *state!="prepared"{return Err(format!("attachment dispatch is {state}; no resend"));}*state="validating";}
+        let result=(||->Result<SourceRequest,String>{
+            prepared.custody.check_prepared(&prepared.list.supply_records(),&prepared.client)?;
+            // Revalidation uses actual original picker source; generated new
+            // preparation IDs are discarded, never substituted into the list.
+            let recheck=attachments::prepare_ordered(&prepared.selections,prepared.submission_ref(),&now_rfc3339()).map_err(|e|e.message)?;
+            if recheck.native_inputs()!=prepared.list.native_inputs(){return Err("attachment source/input changed after durable preparation; nothing sent".into());}
+            let frame=prepared.source.attempted_frame();let bytes=Self::frame_bytes(frame)?;
+            let serial=self.frame_write.lock().unwrap();
+            let source_lock=prepared.custody.lock_sources()?;
+            prepared.custody.check_prepared(&prepared.list.supply_records(),&prepared.client)?;
+            let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
+            let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
+            Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
+            let mut bound=self.capture_pipe(&i)?;if bound.identity!=prepared.pipe_identity{return Err("actual source pipe changed; nothing sent".into());}
+            let key=prepared.source.request_id().to_string();let index=i.source_requests[&key].index;let sender=i.source_requests.get_mut(&key).unwrap().reserved_sender.take().ok_or("reserved RPC already consumed")?;
+            i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);i.pending.insert(key.clone(),(index,sender));
+            if frame["method"]=="turn/start"{let pos=i.receipt_position;i.turn_request_threads.insert(key.clone(),(generation.clone(),frame["params"]["threadId"].as_str().unwrap().into(),pos));}
+            *state="attempted";drop(state);drop(i);drop(gate);drop(source_lock);
+            let written=Self::write_complete(&mut bound.file,&bytes);drop(bound);drop(serial);
+            let mut i=self.inner.0.lock().unwrap();let closed=i.generation!=*generation||i.server_requests.is_closed(generation)||i.state!="ready";
+            let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let response=e.response.clone();let response_position=e.response_position;
+            i.client_requests[index]["sendPosition"]=json!(position);
+            match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}}
+                Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+            drop(i);let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
+        })();if let Err(error)=&result{*prepared.state.lock().unwrap()="refused";self.attachment_limit(&prepared.source,error.clone());}result
+    }
+    pub fn persist_attachment_observation(&self,source:&SourceRequest)->Result<Value,String>{
+        self.check_source(source)?;let(custody,record,limit)={let i=self.inner.0.lock().unwrap();let e=i.source_requests.get(&source.request_id().to_string()).ok_or("source unavailable")?;let a=e.attachment.as_ref().ok_or("source is not attachment-bearing")?;
+            if e.write_error.is_some()&&e.response.is_some(){return Err("Combined write failure and matching reply has no faithful canonical v0.10 projection; last observation/raw facts retained".into());}
+            if e.write_attempt_in_progress||!e.written&&e.write_error.is_none(){return Err("write not completed; last prepared metadata is not current no-send proof".into());}
+            let raw=&i.client_requests[e.index];let mut client=a.original.clone();for field in ["writeResult","outcome","sendPosition","responseReceiptPosition","waitingEnded"]{if let Some(v)=raw.get(field){client[field]=v.clone();}}
+            let(projected,limit)=attachment_custody::project_observation(&client,e.response.as_ref(),raw["responseReceiptPosition"].as_u64())?;(Arc::clone(&a.custody),projected,limit)};
+        if let Some(limit)=limit{self.attachment_limit(source,limit);}
+        match custody.replace_observation(&record){Ok(())=>Ok(record),Err(error)=>{self.attachment_limit(source,format!("durable outcome unavailable: {error}"));Err(error)}}
+    }
+    pub fn attachment_wait(&self,source:&SourceRequest,wait:Duration)->Result<Value,String>{
+        let mut evidence=self.source_request_wait(source,wait)?;let _=self.persist_attachment_observation(source);
+        let i=self.inner.0.lock().unwrap();let a=i.source_requests.get(&source.request_id().to_string()).and_then(|e|e.attachment.as_ref()).ok_or("source is not attachment-bearing")?;evidence["custodyLimit"]=json!(a.limit);Ok(evidence)
+    }
+    pub fn resolve_attachment_submission(&self,custody:&Arc<AttachmentCustody>,submission:&str)->Value{
+        let mut view=custody.resolve_cold(submission);if view.get("clientMetadata").is_none(){return view;}
+        let record=view["clientMetadata"].clone();let i=self.inner.0.lock().unwrap();let Some(e)=i.source_requests.get(&record["requestIdentity"].to_string())else{return view;};let Some(a)=e.attachment.as_ref()else{return view;};
+        if !Arc::ptr_eq(custody,&a.custody)||e.request.generation!=record["generation"]||a.original["submissionAssociation"]!=record["submissionAssociation"]||view["supplyRecords"].as_array()!=Some(&a.records) {return view;}
+        view["sourceStanding"]=json!("genuine hot Host source; immutable owning metadata resolved");
+        view["writeAttemptInProgress"]=json!(e.write_attempt_in_progress);view["nativeReplyObserved"]=json!(e.response.is_some());view["lastClientMetadataStanding"]=json!("Historical canonical observation; current hot write facts below are separate");
+        if e.write_attempt_in_progress{view["dispatch"]=json!("unknown/in-progress: source write attempt is active; last prewrite row is not current no-send or written proof");return view;}
+        if e.write_error.is_some(){view["dispatch"]=json!(if e.response.is_some(){"native reply and failed write both observed; canonical projection unavailable"}else{"actual write failed; native effect unknown"});if let Some(limit)=&e.source_limit{view["limits"].as_array_mut().unwrap().push(json!(limit));}return view;}
+view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteConfirmed"]=json!(e.written);view["automaticRetry"]=json!(false);
+        if let Some(limit)=&a.limit{view["limits"].as_array_mut().unwrap().push(json!(limit));}
+        if !e.written||i.client_requests[e.index]["writeResult"]!="written"{view["dispatch"]=json!(if i.client_requests[e.index]["writeResult"]=="not-attempted"{"hot prepared; no actual attempt observed"}else{"unknown write outcome"});return view;}
+        view["dispatch"]=json!("actual source write observed; provider adoption not observed");
+        let correlation=(||->Result<Value,String>{let frame=e.response.as_ref().ok_or("matching native response unavailable")?;
+            if frame.get("id")!=Some(e.request.request_id())||frame.get("method").is_some()||frame.get("error").is_some(){return Err("native envelope uncorrelated or failed".into());}
+            let result=frame.get("result").filter(|r|r.is_object()).ok_or("native result missing/null/malformed")?;let association=&record["submissionAssociation"];
+            if result.get("threadId").is_some_and(|t|t!=&association["threadId"]){return Err("native reported thread conflicts with original association".into());}
+            let id=if record["method"]=="turn/start"{Self::validate_native_result("TurnStartResponse",result)?;result["turn"]["id"].as_str().filter(|s|!s.is_empty()).ok_or("native turn identity absent")?}else{Self::validate_native_result("TurnSteerResponse",result)?;if result["turnId"]!=association["expectedTurnId"]{return Err("native steer result differs from actual expected target".into());}result["turnId"].as_str().filter(|s|!s.is_empty()).ok_or("native steer identity absent")?};
+            Ok(json!({"generation":e.request.generation,"threadId":association["threadId"],"turnId":id,"requestIdentity":e.request.request_id(),"source":"matching native result; immutable submission remains distinct"}))})();
+        match correlation{Ok(reference)=>view["nativeTurnRef"]=reference,Err(limit)=>view["limits"].as_array_mut().unwrap().push(json!(limit))};view
     }
 
     /// `thread/start`, person-directed (§5 initiator). Records the thread for the interface.
@@ -852,7 +1018,8 @@ impl Host {
         }
     }
 
-    fn check_conversation_request(i: &Inner, method: &str, params: &Value) -> Result<(), String> {
+    fn check_conversation_request(i: &Inner, method: &str, params: &Value) -> Result<(), String> { Self::check_conversation_request_excluding(i,method,params,None) }
+    fn check_conversation_request_excluding(i: &Inner, method: &str, params: &Value, own_rpc: Option<&Value>) -> Result<(), String> {
         let thread = params["threadId"].as_str().filter(|s| !s.is_empty()).ok_or("thread identity required")?;
         if !i.threads.iter().any(|t| t["generation"] == i.generation && t["threadId"] == thread) { return Err("conversation-not-loaded-in-current-home-generation".into()); }
         if method == "turn/steer" {
@@ -862,9 +1029,10 @@ impl Host {
         if method == "turn/interrupt" {
             let turn = &params["turnId"];
             if !i.conversation_turns.iter().any(|t| t["generation"] == i.generation && t["threadId"] == thread && t["turnId"] == *turn && t["nativeTurn"]["status"] == "inProgress" && t["terminalEventObserved"] != true && t["observationEnded"] != true) { return Err("no-live-turn".into()); }
-            if i.interrupt_requests.iter().any(|e| e["generation"] == i.generation && e["threadId"] == thread && e["turnId"] == *turn
-                && i.client_requests.iter().any(|r| r["generation"] == e["generation"] && r["requestIdentity"] == e["requestIdentity"]
-                    && (r["outcome"] == "response-observed-result" || (r["outcome"] == "pending" && r["writeResult"] == "written")))) { return Err("stop-already-requested".into()); }
+            if i.interrupt_requests.iter().any(|e| own_rpc!=Some(&e["requestIdentity"])&&e["generation"] == i.generation && e["threadId"] == thread && e["turnId"] == *turn
+                && (i.client_requests.iter().any(|r| r["generation"] == e["generation"] && r["requestIdentity"] == e["requestIdentity"]
+                    && (r["outcome"] == "response-observed-result" || (r["outcome"] == "pending" && r["writeResult"] == "written")))
+                    || i.source_requests.get(&e["requestIdentity"].to_string()).is_some_and(|source|source.request.generation==e["generation"]&&i.pending.contains_key(&e["requestIdentity"].to_string())))) { return Err("stop-already-requested".into()); }
         }
         Ok(())
     }
@@ -944,19 +1112,18 @@ impl Host {
             }
             _ => ("malformed", json!(text)),
         };
+        let mut automatic_reply=None;
         if class == "server-request" {
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             match i.server_requests.receive(&gen, pos, &frame, &capabilities) {
                 Ok(Some(reply)) => {
-                    let written = self.write_frame(&reply).is_ok();
-                    i.server_requests.written(&gen, &frame["id"], written);
+                    match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(_)=>i.server_requests.written(&gen,&frame["id"],false)}
                 }
                 Ok(None) => {
                     if frame["method"] == "currentTime/read" && capabilities["experimentalApi"] == true {
                         let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
                         if let Ok(reply) = i.server_requests.prepare(&gen, &frame["id"], &json!({"currentTimeAt":seconds}), "app-rule:current-time", None) {
-                            let written = self.write_frame(&reply).is_ok();
-                            i.server_requests.written(&gen, &frame["id"], written);
+                            match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(_)=>i.server_requests.written(&gen,&frame["id"],false)}
                         }
                     }
                 }
@@ -982,15 +1149,12 @@ impl Host {
         if class == "response" {
             let key = frame["id"].to_string();
             if let Some((idx, tx)) = i.pending.remove(&key) {
-                let outcome = if frame.get("result").is_some() { "response-observed-result" } else { "response-observed-error" };
-                let r = &mut i.client_requests[idx];
-                r["outcome"] = json!(outcome);
-                r["responseReceiptPosition"] = json!(pos);
-                if let Some(e) = frame.get("error") {
-                    r["error"] = json!({"code": e.get("code").cloned().unwrap_or(json!(0)),
-                                        "message": e.get("message").cloned().unwrap_or(json!(""))});
+                let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
+                if !deferred {
+                    let mut record=i.client_requests[idx].clone();
+                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos)){Ok(())=>i.client_requests[idx]=record,Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
-                if i.client_requests[idx]["method"] == "turn/start" {
+                if !deferred&&i.client_requests[idx]["method"] == "turn/start" {
                     if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
                         if source_gen == gen {
                             if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) {
@@ -1000,11 +1164,14 @@ impl Host {
                         }
                     }
                 }
-                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(frame.clone()); }
+                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(frame.clone()); e.response_position=Some(pos); }
                 let _ = tx.send(frame.clone());
                 // Responses are also journaled, with their metadata beside the native frame (H6).
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame});
                 if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
+                let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
+                drop(i);
+                if let Some(source) = attachment_source { let _ = self.persist_attachment_observation(&source); }
                 return;
             }
             // Uncorrelated response: surfaced, never dropped (§5).
@@ -1018,13 +1185,23 @@ impl Host {
         } else {
             i.journal.push(entry);
         }
+        drop(i);
+        if let Some((bound,reply))=automatic_reply{let generation=bound.generation.clone();let id=reply["id"].clone();if self.write_reply(bound,&reply).is_err(){let mut i=self.inner.0.lock().unwrap();if i.generation==generation&&!i.server_requests.is_closed(&generation){i.server_requests.written(&generation,&id,false);Self::persist_requests(&mut i);}}}
     }
 
     fn on_eof(&self, generation: &Value) {
-        if self.inner.0.lock().unwrap().generation != *generation { return; }
-        // Reap the child to read its exit status.
-        let status = self.child.lock().unwrap().as_mut().and_then(|c| c.wait().ok());
+        let source_pid={let i=self.inner.0.lock().unwrap();if i.generation!=*generation{return;}i.child_pid};
+        // Reap only the captured owning child, never a successor installed
+        // between the first scope check and the final source gate.
+        let status=self.child.lock().unwrap().as_mut().filter(|c|Some(c.id() as i32)==source_pid).and_then(|c|c.wait().ok());
+        #[cfg(test)]
+        if let Some(hook) = self.before_eof_gate.lock().unwrap().take() { hook(); }
+        let _source_gate = self.attachment_gate.lock().unwrap();
         let mut i = self.inner.0.lock().unwrap();
+        if i.generation != *generation {
+            i.journal.push(json!({"generation":generation,"class":"superseded-generation-eof","standing":"EOF observer belongs to a superseded source; no successor closure inferred"}));
+            return;
+        }
         let exit = json!({
             "exitCode": status.and_then(|s| s.code()),
             "signal": status.and_then(|s| std::os::unix::process::ExitStatusExt::signal(&s)).map(|s| s.to_string()),
@@ -1064,12 +1241,15 @@ impl Host {
     /// HOSTING §4.5 deliberate stop (DEF-5a): stop record first, then close input,
     /// then end the whole process group after a grace period (H11).
     pub fn stop(&self, actor: &str, reason: &str) -> Result<Value, String> {
-        let pid;
+        let source_gate = self.attachment_gate.lock().unwrap();
+        let pid;let target_generation;
         {
             let mut i = self.inner.0.lock().unwrap();
             if matches!(i.state.as_str(), "absent" | "stopped" | "refused") {
                 return Err(format!("stop not accepted in state {}", i.state));
             }
+            if i.state=="stopping" {return Err("stop already requested for this source generation".into());}
+            target_generation=i.generation.clone();
             let stop_record = json!({"actor": actor, "reason": reason,
                 "outstandingEntryHandling": "left-to-end-with-process", "endingMeans": "close-input"});
             i.stop_record = Some(stop_record.clone());
@@ -1080,8 +1260,10 @@ impl Host {
             };
             self.lt(&mut i, id, "stop-requested", "stopping", json!({"actor": actor, "stopRecord": stop_record}));
             pid = i.child_pid;
+            i.attachment_pipe_epoch += 1;
         }
         *self.stdin.lock().unwrap() = None; // close input: polite end
+        drop(source_gate);
         let mut forced = false;
         if let Some(pid) = pid {
             let deadline = std::time::Instant::now() + Duration::from_secs(3);
@@ -1090,7 +1272,7 @@ impl Host {
             }
             if Self::group_alive(pid) {
                 forced = true;
-                self.kill_group();
+                unsafe {libc::killpg(pid,libc::SIGKILL);}
                 std::thread::sleep(Duration::from_millis(200));
             }
         }
@@ -1099,15 +1281,19 @@ impl Host {
         let (lock, cv) = &*self.inner;
         let mut i = lock.lock().unwrap();
         let deadline = std::time::Instant::now() + Duration::from_secs(3);
-        while !i.journal.iter().any(|e| e["class"] == "exit" && e["generation"] == json!(i.generation))
+        while i.generation==target_generation&&!i.journal.iter().any(|e| e["class"] == "exit" && e["generation"] == target_generation)
             && std::time::Instant::now() < deadline
         {
             let (g, _) = cv.wait_timeout(i, Duration::from_millis(100)).unwrap();
             i = g;
         }
-        let mut exit = i.journal.iter().rev().find(|e| e["class"] == "exit").map(|e| e["exitFacts"].clone())
+        let mut exit = i.journal.iter().rev().find(|e| e["class"] == "exit" && e["generation"] == target_generation).map(|e| e["exitFacts"].clone())
             .unwrap_or(json!({"exitCode": null, "signal": null}));
         exit["forcedAfterGrace"] = json!(forced);
+        if i.generation!=target_generation {
+            i.journal.push(json!({"generation":target_generation,"class":"superseded-generation-stop","capturedProcessGroup":pid,"forced":forced,"survivingDescendantCount":surviving,"standing":"captured old target handled; successor is not stopped or closed"}));
+            return Err("Stop target generation was replaced while waiting; no successor closure inferred".into());
+        }
         let counts = Self::close_generation(&mut i);
         self.lt(&mut i, "LT-23", "tree-ended", "stopped", json!({
             "exitFacts": exit,
@@ -1141,6 +1327,9 @@ fn generated_outputs_match() -> bool {
 }
 
 #[cfg(test)]
+fn install_broken_test_input(host:&Host){let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();let pipe=child.stdin.take();child.kill().unwrap();child.wait().unwrap();*host.stdin.lock().unwrap()=pipe;}
+
+#[cfg(test)]
 mod hosting_identity_tests {
     use super::*;
     #[test]
@@ -1152,7 +1341,7 @@ mod hosting_identity_tests {
             let mut i = host.inner.0.lock().unwrap();
             i.generation = current.clone();
             i.state = "ready".into();
-            i.client_requests.push(json!({"generation":current,"outcome":"pending"}));
+            i.client_requests.push(json!({"recordKind":"client-request","generation":current,"requestIdentity":1,"method":"thread/list","initiator":{"kind":"person-directed"},"writeResult":"written","outcome":"pending"}));
             i.pending.insert("1".into(), (0, tx));
         }
         for foreign in [
@@ -1308,7 +1497,7 @@ mod additive_guidance_transport_tests {
         {let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=current.clone();}
         let error=host.request_inner_scoped("thread/start",json!({"model":"m","modelProvider":"p"}),json!({"kind":"person-directed"}),Duration::from_secs(1),false,Some(&old)).unwrap_err();
         assert!(error.contains("generation changed before request registration"));assert_eq!(host.snapshot()["clientRequests"],json!([]));assert_eq!(host.inner.0.lock().unwrap().send_position,0);
-        let error=host.thread_start_with_guidance("/invented","m","p","exact guidance").unwrap_err();assert!(error.contains("write failed"));
+        install_broken_test_input(&host);let error=host.thread_start_with_guidance("/invented","m","p","exact guidance").unwrap_err();assert!(error.contains("write failed"));
         let snapshot=host.snapshot();assert_eq!(snapshot["clientRequests"][0]["generation"],current);assert_eq!(snapshot["clientRequests"][0]["writeResult"],"write-failed");assert_eq!(snapshot["clientRequests"][0]["outcome"],"unknown-no-response");assert_eq!(snapshot["threads"],json!([]));
     }
     #[test]
@@ -1363,7 +1552,7 @@ mod conversation_transport_tests {
     #[test]
     fn native_error_failed_write_and_wait_limit_keep_distinct_evidence_and_late_response() {
         let host=host();let error=json!({"code":-32600,"message":"invented refusal","data":{"native":"kept"}});let (result,_)=exchange(&host,Some(json!({"error":error})),vec![],||host.turn_start_text(&g(),"thread","text"));assert!(result.unwrap_err().contains("native error"));assert_eq!(host.journal().last().unwrap()["frame"]["error"],error);assert_eq!(host.client_requests()[0]["outcome"],"response-observed-error");assert_eq!(host.snapshot()["conversationTurns"],json!([]));
-        assert!(host.turn_start_text(&g(),"thread","text").unwrap_err().contains("write failed"));assert_eq!(host.client_requests()[1]["outcome"],"unknown-no-response");assert_eq!(host.client_requests()[1]["writeResult"],"write-failed");
+        install_broken_test_input(&host);assert!(host.turn_start_text(&g(),"thread","text").unwrap_err().contains("write failed"));assert_eq!(host.client_requests()[1]["outcome"],"unknown-no-response");assert_eq!(host.client_requests()[1]["writeResult"],"write-failed");
         let (result,outbound)=exchange(&host,None,vec![],||host.conversation_operation("turn/start",&g(),Host::text_turn_params("thread","late text").unwrap(),Duration::from_millis(15)));assert!(result.unwrap_err().contains("wait limit"));assert_eq!(host.client_requests()[2]["outcome"],"pending");assert_eq!(host.client_requests()[2]["waitingEnded"],true);
         host.on_line(&serde_json::to_vec(&json!({"id":outbound["id"],"result":{"turn":turn("inProgress")}})).unwrap(),&g());assert_eq!(host.client_requests()[2]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
     }
@@ -1422,7 +1611,7 @@ mod conversation_transport_tests {
     fn steering_native_error_reported_mismatch_write_failure_and_wait_preserve_uncertainty() {
         let host=host();event(&host,"inProgress");let error=json!({"code":-32600,"message":"expected turn mismatch","data":{"native":"kept"}});let(result,outbound)=exchange(&host,Some(json!({"error":error})),vec![],||host.turn_steer_text(&g(),"thread","turn","text"));assert!(result.unwrap_err().contains("native error"));assert_eq!(outbound["method"],"turn/steer");assert_eq!(host.journal().last().unwrap()["frame"]["error"],error);
         let(result,_)=exchange(&host,Some(json!({"result":{"turnId":"other"}})),vec![],||host.turn_steer_text(&g(),"thread","turn","text"));assert!(result.unwrap_err().contains("no rebind"));assert_eq!(host.snapshot()["conversationTurns"][0]["turnId"],"turn");assert_eq!(host.client_requests()[1]["outcome"],"response-observed-result");
-        assert!(host.turn_steer_text(&g(),"thread","turn","text").unwrap_err().contains("write failed"));assert_eq!(host.client_requests()[2]["writeResult"],"write-failed");assert_eq!(host.client_requests()[2]["outcome"],"unknown-no-response");
+        install_broken_test_input(&host);assert!(host.turn_steer_text(&g(),"thread","turn","text").unwrap_err().contains("write failed"));assert_eq!(host.client_requests()[2]["writeResult"],"write-failed");assert_eq!(host.client_requests()[2]["outcome"],"unknown-no-response");
         let(result,outbound)=exchange(&host,None,vec![],||host.conversation_operation("turn/steer",&g(),Host::steer_text_params("thread","turn","late").unwrap(),Duration::from_millis(15)));assert!(result.unwrap_err().contains("wait limit"));assert_eq!(host.client_requests()[3]["outcome"],"pending");host.on_line(&serde_json::to_vec(&json!({"id":outbound["id"],"result":{"turnId":"turn"}})).unwrap(),&g());assert_eq!(host.client_requests()[3]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert!(host.client_requests().iter().all(|r|r["method"]=="turn/steer"));
     }
     #[test]
@@ -1460,7 +1649,7 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_failed_write_foreign_latest_revision_and_closed_refuse_admission() {
-        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let failed=host.history_dispatch(&query).unwrap();let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();install_broken_test_input(&host);let failed=host.history_dispatch(&query).unwrap();let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
     }
@@ -1508,5 +1697,98 @@ mod conversation_transport_tests {
         // An actual foreign RPC frame is retained uncorrelated and never
         // promoted to the private matching receipt while waiting times out.
         let host=host();let mut receipt=None;let wrong=json!({"id":999,"result":history_resume("idle",true)});let(result,_)=exchange(&host,None,vec![wrong.clone()],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured","frozen bytes")?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();assert_eq!(evidence["outcome"],"pending");assert!(evidence["response"].is_null());assert!(host.thread_start_dispatch_finish(&receipt.unwrap()).is_err());assert_eq!(host.journal().last().unwrap()["frame"],wrong);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
+    }
+
+    fn attachment_fixture()->(std::path::PathBuf,Arc<AttachmentCustody>,Vec<SelectedTextAttachment>){let root=std::env::temp_dir().join(opaque_id("attachment-host-").unwrap());std::fs::create_dir(&root).unwrap();let root=root.canonicalize().unwrap();let owner=Arc::new(AttachmentCustody::open(&root.join("app"),&root.join("codex")).unwrap());let mut selections=vec![];for(name,text)in [("first.txt","Exact first bytes\n家"),("second.txt","Exact second bytes\né")]{let path=root.join(name);std::fs::write(&path,text).unwrap();selections.push(SelectedTextAttachment::from_native_selection(path,None).unwrap());}(root,owner,selections)}
+    fn no_attachment_write<F>(host:&Arc<Host>,operation:F) where F:FnOnce(){let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let mut stdout=child.stdout.take().unwrap();operation();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());let mut bytes=vec![];stdout.read_to_end(&mut bytes).unwrap();assert!(bytes.is_empty(),"unexpected actual native bytes: {bytes:?}");}
+    fn complete_turn()->Value{let mut value=turn("inProgress");value["error"]=Value::Null;value}
+    #[test]
+    fn attachment_host_actual_ordered_metadata_barrier_pipe_and_hot_late_cold_resolver(){
+        let host=host();let(root,owner,selections)=attachment_fixture();let mut prepared=None;
+        let(result,outbound)=exchange(&host,None,vec![],||{let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person exact text",&selections)?;let cold=owner.resolve_cold(packet.submission_ref());assert_eq!(cold["clientMetadata"]["outcome"],"prepared-not-sent");assert!(cold["clientMetadata"].get("sendPosition").is_none());assert_eq!(cold["supplyRecords"],json!(packet.supply_records()));let source=host.dispatch_attachment_turn(&packet)?;let e=host.attachment_wait(&source,Duration::from_millis(15))?;prepared=Some(packet);Ok(e)});let evidence=result.unwrap();let prepared=prepared.unwrap();assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"]["input"][0]["text"],"Person exact text");assert_eq!(outbound["params"]["input"].as_array().unwrap().len(),3);for(index,record)in prepared.supply_records().iter().enumerate(){assert_eq!(sha256_hex(outbound["params"]["input"][index+1]["text"].as_str().unwrap().as_bytes()),record["elementIdentity"]["value"]);}
+        assert_eq!(evidence["outcome"],"pending");assert!(host.dispatch_attachment_turn(&prepared).is_err());let token=prepared.submission_ref();assert!(owner.resolve_cold(token)["nativeTurnRef"].is_null());let response=json!({"id":outbound["id"],"result":{"turn":complete_turn()}});host.on_line(&serde_json::to_vec(&response).unwrap(),&g());let hot=host.resolve_attachment_submission(&owner,token);assert_eq!(hot["nativeTurnRef"]["turnId"],"turn");assert_eq!(hot["nativeTurnRef"]["threadId"],"thread");assert_eq!(hot["nativeTurnRef"]["generation"],g());let cold_owner=Arc::new(AttachmentCustody::open(&root.join("app"),&root.join("codex")).unwrap());assert!(host.resolve_attachment_submission(&cold_owner,token)["nativeTurnRef"].is_null());assert_eq!(owner.resolve_cold(token)["clientMetadata"]["submissionAssociation"]["supplyRefs"],json!(prepared.list.supply_refs()));
+        let bytes=std::fs::read_to_string(owner.client_path(&g(),prepared.source().request_id()).unwrap()).unwrap();assert!(!bytes.contains("Person exact text"));assert!(!bytes.contains("Exact first bytes"));assert!(!bytes.contains("nativeTurn"));
+        let mut second=None;let(result,_)=exchange(&host,Some(json!({"result":{"turn":complete_turn()}})),vec![],||{let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Explicit new send",&selections)?;let source=host.dispatch_attachment_turn(&packet)?;let evidence=host.attachment_wait(&source,Duration::from_millis(15))?;second=Some(packet);Ok(evidence)});assert_eq!(result.unwrap()["outcome"],"response-observed-result");let second=second.unwrap();assert_ne!(second.submission_ref(),prepared.submission_ref());assert_ne!(second.source().request_id(),prepared.source().request_id());assert_ne!(second.list.supply_refs(),prepared.list.supply_refs());assert_eq!(host.resolve_attachment_submission(&owner,second.submission_ref())["nativeTurnRef"]["turnId"],"turn");assert_eq!(host.resolve_attachment_submission(&owner,prepared.submission_ref())["nativeTurnRef"]["turnId"],"turn");assert_eq!(owner.resolve_cold(prepared.submission_ref())["clientMetadata"]["submissionAssociation"]["supplyRefs"],json!(prepared.list.supply_refs()));std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn attachment_host_cancel_source_generation_pipe_target_and_metadata_drift_send_no_bytes(){
+        for change in ["cancel","file","session","home","counter","pipe","target","metadata"]{let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");let mut replacement=None;no_attachment_write(&host,||{let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();match change{"cancel"=>{assert!(packet.cancel());},"file"=>std::fs::write(root.join("first.txt"),"changed").unwrap(),"session"|"home"|"counter"=>{let mut i=host.inner.0.lock().unwrap();let field=match change{"session"=>"appSession","home"=>"home",_=>"spawnCounter"};i.generation[field]=if field=="spawnCounter"{json!(2)}else{json!("other")};},"pipe"=>{let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();host.inner.0.lock().unwrap().attachment_pipe_epoch+=1;replacement=Some(child);},"target"=>event(&host,"completed"),_=>{let mut records=packet.supply_records();records[0]["displayName"]=json!("changed metadata");std::fs::write(owner.supplies_path(packet.submission_ref()).unwrap(),serde_json::to_vec(&records).unwrap()).unwrap();}}
+            assert!(host.dispatch_attachment_turn(&packet).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");assert_eq!(packet.source().evidence()["writeAttemptInProgress"],false);assert!(packet.source().evidence()["sentFrame"].is_null());assert!(host.dispatch_attachment_turn(&packet).is_err());});if let Some(mut child)=replacement{assert!(child.wait().unwrap().success());let mut bytes=vec![];child.stdout.take().unwrap().read_to_end(&mut bytes).unwrap();assert!(bytes.is_empty());}std::fs::remove_dir_all(root).unwrap();}
+    }
+    #[test]
+    fn attachment_host_actual_partial_and_sync_publication_failures_never_send(){
+        for failure in ["array","client","sync"]{let host=host();let(root,owner,selections)=attachment_fixture();match failure{"array"=>{std::fs::write(owner.root().join("runtime/nir"),"obstruction").unwrap();},"client"=>{std::fs::create_dir_all(owner.root().join("runtime/hosting")).unwrap();std::fs::write(owner.root().join("runtime/hosting/client-requests"),"obstruction").unwrap();},_=>{crate::storage::ensure_directory(&owner.root().join("runtime/nir/attachment-supplies")).unwrap();crate::storage::fail_directory_for_test(Some(owner.root().join("runtime/nir/attachment-supplies")));}}
+            no_attachment_write(&host,||{assert!(host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"text",&selections).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(host.client_requests()[0]["requestIdentity"],1);assert_eq!(host.client_requests()[0]["outcome"],"prepared-not-sent");});crate::storage::fail_directory_for_test(None);assert_eq!(host.inner.0.lock().unwrap().next_id,1);std::fs::remove_dir_all(root).unwrap();}
+    }
+    #[test]
+    fn attachment_host_steer_exact_expected_target_error_redaction_malformed_and_repeat(){
+        for response in [json!({"result":{"turnId":"turn"}}),json!({"result":{"turnId":"wrong"}}),json!({"error":{"code":-32600,"message":"secret payload","data":{"secret":"hidden"}}}),json!({"error":{"message":"missing real code"}}),json!({"result":null})]{let host=host();event(&host,"inProgress");let(root,owner,selections)=attachment_fixture();let mut packet=None;let(result,outbound)=exchange(&host,Some(response.clone()),vec![],||{let p=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"steer bytes",&selections)?;let source=host.dispatch_attachment_turn(&p)?;let e=host.attachment_wait(&source,Duration::from_millis(15))?;packet=Some(p);Ok(e)});let e=result.unwrap();let packet=packet.unwrap();assert_eq!(outbound["method"],"turn/steer");assert_eq!(outbound["params"]["expectedTurnId"],"turn");assert!(outbound["params"].get("submissionAssociation").is_none());let view=host.resolve_attachment_submission(&owner,packet.submission_ref());if response==json!({"result":{"turnId":"turn"}}){assert_eq!(view["nativeTurnRef"]["turnId"],"turn");}else{assert!(view["nativeTurnRef"].is_null());}
+            let before=e["response"].clone();host.on_line(&serde_json::to_vec(&json!({"id":outbound["id"],"result":{"turnId":"conflicting-repeat"}})).unwrap(),&g());assert_eq!(packet.source().evidence()["response"],before);assert_eq!(host.journal().last().unwrap()["class"],"uncorrelated-response");let bytes=std::fs::read_to_string(owner.client_path(&g(),packet.source().request_id()).unwrap()).unwrap();assert!(!bytes.contains("secret payload"));assert!(!bytes.contains("hidden"));if response["error"].get("code").is_some(){assert!(bytes.contains("native error text withheld"));}if response["error"].get("message")==Some(&json!("missing real code")){let record:Value=serde_json::from_str(&bytes).unwrap();assert_eq!(record["outcome"],"unknown-no-response");assert!(record.get("error").is_none());}std::fs::remove_dir_all(root).unwrap();}
+    }
+    #[test]
+    fn attachment_host_real_broken_pipe_and_later_metadata_failure_keep_source_uncertainty(){
+        let host=host();let(root,owner,selections)=attachment_fixture();let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"text",&selections).unwrap();child.kill().unwrap();child.wait().unwrap();let source=host.dispatch_attachment_turn(&packet).unwrap();assert_eq!(source.evidence()["writeResult"],"write-failed");assert_eq!(source.evidence()["outcome"],"unknown-no-response");assert!(host.resolve_attachment_submission(&owner,packet.submission_ref())["nativeTurnRef"].is_null());*host.stdin.lock().unwrap()=None;std::fs::remove_dir_all(root).unwrap();
+        let host=super::conversation_transport_tests::host();let(root,owner,selections)=attachment_fixture();let mut packet=None;let(result,_)=exchange(&host,Some(json!({"result":{"turn":complete_turn()}})),vec![],||{let p=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"text",&selections)?;let source=host.dispatch_attachment_turn(&p)?;let e=host.attachment_wait(&source,Duration::from_millis(15))?;packet=Some(p);Ok(e)});let e=result.unwrap();let packet=packet.unwrap();let path=owner.client_path(&g(),packet.source().request_id()).unwrap();std::fs::remove_file(&path).unwrap();std::fs::create_dir(&path).unwrap();assert!(host.persist_attachment_observation(packet.source()).is_err());assert_eq!(packet.source().evidence()["response"],e["response"]);let view=host.resolve_attachment_submission(&owner,packet.submission_ref());assert!(view["nativeTurnRef"].is_null());assert!(!view["limits"].as_array().unwrap().is_empty());assert!(host.dispatch_attachment_turn(&packet).is_err());std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn attachment_host_queued_old_eof_never_closes_actual_successor_request_or_turn() {
+        for field in ["appSession","home","spawnCounter"] {
+            let host=host();let gate=host.attachment_gate.lock().unwrap();let(tx,rx)=channel();let(proceed,continue_eof)=channel();*host.before_eof_gate.lock().unwrap()=Some(Box::new(move||{tx.send(()).unwrap();continue_eof.recv_timeout(Duration::from_secs(2)).unwrap();}));let observer=Arc::clone(&host);let worker=std::thread::spawn(move||observer.on_eof(&g()));rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            let mut successor=g();successor[field]=if field=="spawnCounter"{json!(2)}else{json!("successor")};{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation=successor.clone();i.state="ready".into();i.threads.push(json!({"generation":successor,"threadId":"successor-thread"}));}
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();drop(gate);let source=host.thread_start_with_guidance_dispatch(&successor,"/invented","selected","configured","exact successor").unwrap();host.on_line(&serde_json::to_vec(&json!({"method":"turn/started","params":{"threadId":"successor-thread","turn":complete_turn()}})).unwrap(),&successor);let before=host.snapshot();proceed.send(()).unwrap();worker.join().unwrap();let after=host.snapshot();assert_eq!(after["generation"],successor);assert_eq!(after["state"],"ready");assert_eq!(after["clientRequests"],before["clientRequests"]);assert_eq!(source.evidence()["outcome"],"pending");assert_eq!(after["conversationTurns"],before["conversationTurns"]);assert!(!host.inner.0.lock().unwrap().server_requests.is_closed(&successor));assert_eq!(after["journal"].as_array().unwrap().last().unwrap()["generation"],g());assert_eq!(after["journal"].as_array().unwrap().last().unwrap()["class"],"superseded-generation-eof");*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+        }
+    }
+
+    #[test]
+    #[ignore = "owned subprocess probe; parent watchdog invokes exact case"]
+    fn attachment_host_nonreader_probe() {
+        let log=std::path::PathBuf::from(std::env::var_os("CHIRALITY_NONREADER_LOG").unwrap());let host=host();let(root,owner,selections)=attachment_fixture();let mut child=Command::new("/bin/sleep").arg("60").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().unwrap();let pid=child.id() as i32;std::fs::write(log.join("owned-pid"),pid.to_string()).unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();*host.child.lock().unwrap()=Some(child);host.inner.0.lock().unwrap().child_pid=Some(pid);host.spawn_reader(stdout,g());
+        let packet=Arc::new(host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,&"x".repeat(4*1024*1024),&selections).unwrap());let sender=Arc::clone(&host);let prepared=Arc::clone(&packet);let(tx,rx)=channel();let writer=std::thread::spawn(move||assert!(tx.send(sender.dispatch_attachment_turn(&prepared)).is_ok()));
+        let deadline=std::time::Instant::now()+Duration::from_secs(2);while host.inner.0.lock().unwrap().send_position==0&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert_eq!(host.inner.0.lock().unwrap().send_position,1);assert!(matches!(rx.recv_timeout(Duration::from_millis(200)),Err(std::sync::mpsc::RecvTimeoutError::Timeout)));
+        let reply_mode=std::env::var("CHIRALITY_NONREADER_MODE").is_ok_and(|m|m=="reply");let known_reply=json!({"id":packet.source().request_id(),"result":{"turn":complete_turn()}});if reply_mode{host.on_line(&serde_json::to_vec(&known_reply).unwrap(),&g());}
+        let evidence=packet.source().evidence();let mid=host.snapshot();let resolution=host.resolve_attachment_submission(&owner,packet.submission_ref());std::fs::write(log.join("midwrite.json"),serde_json::to_vec(&json!({"clientObservation":mid["clientRequests"].as_array().unwrap().last(),"sourceWriteResult":evidence["writeResult"],"sourceAttemptInProgress":evidence.get("writeAttemptInProgress"),"resolver":resolution,"sentFramePresent":!evidence["sentFrame"].is_null(),"stopCalled":true})).unwrap()).unwrap();let started=std::time::Instant::now();let stopped=host.stop("person:fixture","codex-stop").unwrap();assert!(started.elapsed()<Duration::from_secs(5));let source=rx.recv_timeout(Duration::from_secs(1)).unwrap().unwrap();writer.join().unwrap();assert_eq!(source.evidence()["writeResult"],"write-failed");if reply_mode{let e=source.evidence();assert_eq!(e["response"],known_reply);assert_eq!(e["canonicalProjectionAvailable"],false);assert!(e["outcome"].as_str().unwrap().contains("both observed"));let view=host.resolve_attachment_submission(&owner,packet.submission_ref());assert_eq!(view["nativeReplyObserved"],true);assert!(view["dispatch"].as_str().unwrap().contains("reply and failed write"));assert!(view["nativeTurnRef"].is_null());}else{assert_eq!(source.evidence()["outcome"],"unknown-no-response");}assert_ne!(mid["clientRequests"].as_array().unwrap().last().unwrap()["writeResult"],"written");assert_eq!(evidence["writeAttemptInProgress"],true);assert_eq!(resolution["writeAttemptInProgress"],true);assert!(resolution["dispatch"].as_str().unwrap().contains("unknown/in-progress"));assert!(resolution["nativeTurnRef"].is_null());assert!(!evidence["sentFrame"].is_object());assert_eq!(stopped["state"],"stopped");std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn attachment_host_nonreader_stop_and_midwrite_status_actual_bounded_watchdog() {
+        for mode in ["plain","reply"] {
+        let root=std::env::temp_dir().join(opaque_id("nonreader-watchdog-").unwrap());std::fs::create_dir(&root).unwrap();let root=root.canonicalize().unwrap();let stdout=std::fs::File::create(root.join("worker-output")).unwrap();let mut child=Command::new(std::env::current_exe().unwrap()).args(["--ignored","--exact","hosting::conversation_transport_tests::attachment_host_nonreader_probe","--nocapture"]).env_clear().env("CHIRALITY_NONREADER_LOG",&root).env("CHIRALITY_NONREADER_MODE",mode).stdin(Stdio::null()).stdout(Stdio::from(stdout)).stderr(Stdio::null()).process_group(0).spawn().unwrap();let deadline=std::time::Instant::now()+Duration::from_secs(7);let status=loop{if let Some(status)=child.try_wait().unwrap(){break Some(status);}if std::time::Instant::now()>=deadline{break None;}std::thread::sleep(Duration::from_millis(20));};
+        if !status.as_ref().is_some_and(|s|s.success()){if let Ok(pid)=std::fs::read_to_string(root.join("owned-pid")).and_then(|s|s.parse::<i32>().map_err(|_|std::io::Error::other("bad fixture pid"))){unsafe{libc::killpg(pid,libc::SIGKILL);}}unsafe{libc::killpg(child.id() as i32,libc::SIGKILL);}let _=child.wait();}
+        let observation=std::fs::read_to_string(root.join("midwrite.json")).unwrap_or_else(|e|format!("probe observation unavailable: {e}"));let output=std::fs::read_to_string(root.join("worker-output")).unwrap();std::fs::remove_dir_all(&root).unwrap();assert!(status.as_ref().is_some_and(|s|s.success()),"owned nonreader Stop/write watchdog failure: status={status:?}; observation={observation}; worker={output}");
+        }
+    }
+
+    #[test]
+    fn attachment_host_complete_large_client_manual_and_automatic_reply_frames_serialize() {
+        let host=host();host.on_line(&serde_json::to_vec(&json!({"id":"manual","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g());
+        let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let observer=Arc::clone(&host);let reader=std::thread::spawn(move||{let mut input=BufReader::new(stdout);let mut frames=vec![];for _ in 0..3{let mut line=String::new();input.read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();if frame["method"]=="turn/start"{observer.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"turn":complete_turn()}})).unwrap(),&g());}frames.push(frame);}frames});
+        let one=Arc::clone(&host);let client=std::thread::spawn(move||one.turn_start_text(&g(),"thread",&"c".repeat(1024*1024)));let two=Arc::clone(&host);let manual=std::thread::spawn(move||two.error_server_request(&g(),&json!("manual"),&json!({"code":-32000,"message":"m".repeat(512*1024)}),"app-rule:frame-integrity"));let three=Arc::clone(&host);let automatic=std::thread::spawn(move||three.on_line(&serde_json::to_vec(&json!({"id":"automatic","method":"unknown/frame-probe","params":{"threadId":"thread"}})).unwrap(),&g()));assert!(client.join().unwrap().is_ok());assert!(manual.join().unwrap().is_ok());automatic.join().unwrap();let frames=reader.join().unwrap();assert_eq!(frames.len(),3);assert_eq!(frames.iter().find(|f|f["method"]=="turn/start").unwrap()["params"]["input"][0]["text"],"c".repeat(1024*1024));assert_eq!(frames.iter().find(|f|f["id"]=="manual").unwrap()["error"]["message"],"m".repeat(512*1024));assert_eq!(frames.iter().find(|f|f["id"]=="automatic").unwrap()["error"]["code"],-32601);*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+    }
+    #[test]
+    fn attachment_host_queued_reply_closed_source_or_native_resolution_never_writes() {
+        for change in ["generation","resolution"] {let host=host();host.on_line(&serde_json::to_vec(&json!({"id":"manual","method":"item/tool/requestUserInput","params":{"threadId":"thread","turnId":"turn","itemId":"item","questions":[]}})).unwrap(),&g());no_attachment_write(&host,||{let serial=host.frame_write.lock().unwrap();let caller=Arc::clone(&host);let writer=std::thread::spawn(move||caller.error_server_request(&g(),&json!("manual"),&json!({"code":-32000,"message":"queued"}),"app-rule:queued-error"));let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.inner.0.lock().unwrap().server_requests.entries()[0]["state"]!="settling"&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert_eq!(host.inner.0.lock().unwrap().server_requests.entries()[0]["state"],"settling");if change=="generation"{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}else{host.on_line(&serde_json::to_vec(&json!({"method":"serverRequest/resolved","params":{"threadId":"thread","requestId":"manual"}})).unwrap(),&g());}drop(serial);assert!(writer.join().unwrap().is_err());assert_ne!(host.inner.0.lock().unwrap().server_requests.entries()[0]["replyWriteResult"],"written");});}
+    }
+    #[test]
+    fn attachment_host_stop_target_repeated_and_old_exit_facts_do_not_rebind() {
+        let host=host();{let mut i=host.inner.0.lock().unwrap();i.journal.push(json!({"generation":{"appSession":"old","home":"old","spawnCounter":99},"class":"exit","exitFacts":{"exitCode":77,"signal":"wrong-old"}}));}let caller=Arc::clone(&host);let(tx,rx)=channel();let worker=std::thread::spawn(move||assert!(tx.send(caller.stop("person:first","codex-stop")).is_ok()));let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.state()!="stopping"&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}assert_eq!(host.state(),"stopping");assert!(host.stop("person:second","codex-stop").unwrap_err().contains("already requested"));{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();host.inner.1.notify_all();}assert!(rx.recv_timeout(Duration::from_secs(1)).unwrap().is_err());worker.join().unwrap();assert_eq!(host.state(),"ready");assert_eq!(host.snapshot()["generation"]["spawnCounter"],2);assert_eq!(host.journal().last().unwrap()["class"],"superseded-generation-stop");
+        let host=super::conversation_transport_tests::host();{let mut i=host.inner.0.lock().unwrap();i.journal.push(json!({"generation":{"appSession":"old","home":"old","spawnCounter":99},"class":"exit","exitFacts":{"exitCode":77,"signal":"wrong-old"}}));}let snapshot=host.stop("person:first","codex-stop").unwrap();assert_eq!(snapshot["state"],"stopped");let event=host.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-23").unwrap();assert_eq!(event["generation"],g());assert_ne!(event["exitFacts"]["exitCode"],77);assert_ne!(event["exitFacts"]["signal"],"wrong-old");
+    }
+
+    #[test]
+    fn attachment_host_queued_generic_noattempt_retains_real_source_without_failed_projection() {
+        for reply_before_close in [false,true] {
+            let host=host();no_attachment_write(&host,||{let serial=host.frame_write.lock().unwrap();let caller=Arc::clone(&host);let writer=std::thread::spawn(move||caller.request_begin_scoped("thread/read",json!({"threadId":"thread","includeTurns":false}),json!({"kind":"person-directed"}),false,Some(&g())));
+                let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.inner.0.lock().unwrap().source_requests.is_empty()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}let source=host.source_request(&g(),&json!(1)).unwrap();let reference=source.request_ref().to_owned();assert_eq!(source.evidence()["actualWriteAttemptObserved"],false);assert!(host.client_requests().is_empty());let raw=json!({"id":1,"result":{"raw":"retained-before-noattempt"}});if reply_before_close{host.on_line(&serde_json::to_vec(&raw).unwrap(),&g());}
+                {let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}drop(serial);let returned=writer.join().unwrap().unwrap();assert_eq!(returned.request_ref(),reference);let evidence=returned.evidence();assert_eq!(evidence["actualWriteAttemptObserved"],false);assert_eq!(evidence["writeAttemptInProgress"],false);assert_ne!(evidence["writeResult"],"write-failed");assert_eq!(evidence["canonicalProjectionAvailable"],false);assert!(evidence["noAttemptCause"].as_str().unwrap().contains("No actual write attempt"));assert!(evidence["sentFrame"].is_null());assert!(host.client_requests().is_empty());assert!(host.inner.0.lock().unwrap().pending.is_empty());assert!(host.inner.0.lock().unwrap().turn_request_threads.is_empty());assert_eq!(host.inner.0.lock().unwrap().send_position,0);if reply_before_close{assert_eq!(evidence["response"],raw);}assert!(host.wait_source_response(&returned,Duration::from_millis(10)).unwrap_err().contains("before actual attempt"));});
+        }
+    }
+
+    #[test]
+    fn attachment_host_private_wait_fact_visible_before_canonical_completion_and_close() {
+        for close_first in [false,true] {
+            let host=host();let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let mut stdout=child.stdout.take().unwrap();let serial=host.frame_write.lock().unwrap();let caller=Arc::clone(&host);let writer=std::thread::spawn(move||caller.request_begin_scoped("thread/read",json!({"threadId":"thread","includeTurns":false}),json!({"kind":"person-directed"}),false,Some(&g())));
+            let deadline=std::time::Instant::now()+Duration::from_secs(1);while host.inner.0.lock().unwrap().source_requests.is_empty()&&std::time::Instant::now()<deadline{std::thread::sleep(Duration::from_millis(5));}let source=host.source_request(&g(),&json!(1)).unwrap();let reference=source.request_ref().to_owned();let waited=host.source_request_wait(&source,Duration::from_millis(10)).unwrap();assert_eq!(waited["waitingEnded"],true);assert_eq!(waited["actualWriteAttemptObserved"],false);assert_eq!(waited["canonicalProjectionAvailable"],false);assert_eq!(host.snapshot()["reservedNativeRequests"][0]["waitingEnded"],true);assert!(host.client_requests().is_empty());
+            if close_first{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}drop(serial);let returned=writer.join().unwrap().unwrap();assert_eq!(returned.request_ref(),reference);assert_eq!(returned.evidence()["waitingEnded"],true);*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());let mut bytes=vec![];stdout.read_to_end(&mut bytes).unwrap();if close_first{assert!(bytes.is_empty());assert!(host.client_requests().is_empty());assert_eq!(returned.evidence()["actualWriteAttemptObserved"],false);}else{let frame:Value=serde_json::from_slice(&bytes).unwrap();assert_eq!(frame["id"],1);assert_eq!(frame["method"],"thread/read");assert_eq!(host.client_requests()[0]["waitingEnded"],true);assert_eq!(returned.evidence()["outcome"],"pending");let raw=json!({"id":1,"result":{"thread":"raw late evidence"}});host.on_line(&serde_json::to_vec(&raw).unwrap(),&g());assert_eq!(returned.evidence()["waitingEnded"],true);assert_eq!(returned.evidence()["response"],raw);}
+        }
     }
 }

@@ -1,0 +1,110 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-EX-08",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+  },
+  "case": {
+    "case_id": "ILLUSTRATIVE-LHQ-22",
+    "owner_deliverable": "DEL-09-07",
+    "scenario": "V4-EXM-22"
+  },
+  "criterion": {
+    "source": "EXAMINATION.md V4-EXM-22",
+    "identity": "sha256:e8f55d12aac238f397e2fb08665a751cc910c3dbc6b3cdabde91fa435ef0c40f"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+      "revision": "ILLUSTRATIVE (EXP example; not a real candidate)"
+    },
+    "host_candidate": "ILLUSTRATIVE (EXP example; not a real candidate)"
+  },
+  "configuration": {
+    "codex_pin": "0.158.0",
+    "model": {
+      "requested": "ILLUSTRATIVE"
+    },
+    "model_server": {
+      "kind": "local_provider",
+      "label": "ILLUSTRATIVE"
+    },
+    "route": {
+      "kind": "seam_live"
+    }
+  },
+  "date": {
+    "value": "2026-10-03",
+    "source": "stated_by_person"
+  },
+  "outcome": "pass",
+  "parts": [
+    {
+      "part": "P22-A",
+      "expectation": "ILLUSTRATIVE",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "ILLUSTRATIVE",
+          "provenance": "live_observation"
+        }
+      ]
+    },
+    {
+      "part": "P22-B",
+      "expectation": "ILLUSTRATIVE",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "ILLUSTRATIVE",
+          "provenance": "live_observation"
+        }
+      ]
+    },
+    {
+      "part": "P22-C",
+      "expectation": "ILLUSTRATIVE",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "ILLUSTRATIVE",
+          "provenance": "live_observation"
+        }
+      ]
+    },
+    {
+      "part": "P22-D",
+      "expectation": "ILLUSTRATIVE",
+      "outcome": "pass",
+      "evidence": [
+        {
+          "ref": "ILLUSTRATIVE",
+          "provenance": "live_observation"
+        }
+      ]
+    }
+  ],
+  "parts_not_applicable": [
+    {
+      "part": "P22-G",
+      "reason": "governance phase not taken up (declared before the run)",
+      "declared_in": {
+        "case_definition": "ILLUSTRATIVE LHQ-22 case definition",
+        "identity": "sha256:6ddcca1f2a1a3e7e74b9aa8dcf387cecbb7764cf857de67a47776fb7ef685435"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "ref": "ILLUSTRATIVE",
+      "provenance": "live_observation"
+    }
+  ],
+  "currency": {
+    "state": "current"
+  }
+}
