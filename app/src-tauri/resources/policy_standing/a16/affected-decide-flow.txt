@@ -1,0 +1,35 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.32s
+     Running tests/decide_flow.rs (projects/chirality-app-v4/app/src-tauri/target/debug/deps/decide_flow-04aea7ff149a5d40)
+
+running 4 tests
+test offer_digest_matches_pass4_fixture ... ok
+test view_model_reads_the_pass4_fixture ... FAILED
+test person_decides_a_package_and_the_view_shows_it ... FAILED
+test no_write_census_detects_changes_in_relocated_log_and_capture_tree ... ok
+
+failures:
+
+---- view_model_reads_the_pass4_fixture stdout ----
+
+thread 'view_model_reads_the_pass4_fixture' (25937326) panicked at tests/decide_flow.rs:94:5:
+assertion `left == right` failed
+  left: String("unknown (incomparable)")
+ right: "not lapsed"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- person_decides_a_package_and_the_view_shows_it stdout ----
+
+thread 'person_decides_a_package_and_the_view_shows_it' (25937325) panicked at tests/decide_flow.rs:132:9:
+assertion `left == right` failed: act_request body equals Pass 4's, apart from time and requester identity
+  left: Object {"actKind": String("A16"), "alternatives": Array [Object {"id": String("ALT-1"), "statement": String("Start stage 2 now on the current supplier facts")}, Object {"id": String("ALT-2"), "statement": String("Hold stage 2 until the version check returns, then start")}], "association": String("not at a checkpoint"), "consequences": Array [Object {"alternative": String("ALT-1"), "statement": String("Stage 2 starts today; any changed supplier fact reopens the affected parts")}, Object {"alternative": String("ALT-2"), "statement": String("Stage 2 starts after the check (Prüfung); no rework from a changed fact; ≈ one day later\u{2028}(invented)")}], "evidence": Object {"claimedIdentity": String("2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"), "kind": String("content identity"), "method": String("chirality.app.exact-bytes.sha256/v1"), "ref": String("project/decisions/PKG-1.json"), "resolutionAtWrite": String("resolved")}, "form": String("decision package file"), "purpose": String("choose how stage 2 of FX-U1 proceeds (invented)"), "scope": String("undertaking FX-U1 (invented)"), "subject": Array [String("route for stage 2 of undertaking FX-U1")]}
+ right: Object {"actKind": String("A16"), "alternatives": Array [Object {"id": String("ALT-1"), "statement": String("Start stage 2 now on the current supplier facts")}, Object {"id": String("ALT-2"), "statement": String("Hold stage 2 until the version check returns, then start")}], "association": String("not at a checkpoint"), "consequences": Array [Object {"alternative": String("ALT-1"), "statement": String("Stage 2 starts today; any changed supplier fact reopens the affected parts")}, Object {"alternative": String("ALT-2"), "statement": String("Stage 2 starts after the check (Prüfung); no rework from a changed fact; ≈ one day later\u{2028}(invented)")}], "evidence": Object {"claimedIdentity": String("sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"), "kind": String("content identity"), "method": String("file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)"), "ref": String("project/decisions/PKG-1.json"), "resolutionAtWrite": String("resolved")}, "form": String("decision package file"), "purpose": String("choose how stage 2 of FX-U1 proceeds (invented)"), "scope": String("undertaking FX-U1 (invented)"), "subject": Array [String("route for stage 2 of undertaking FX-U1")]}
+
+
+failures:
+    person_decides_a_package_and_the_view_shows_it
+    view_model_reads_the_pass4_fixture
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+error: test failed, to rerun pass `--test decide_flow`

@@ -217,6 +217,50 @@ fn legacy_and_library_history_remain_in_place_and_opaque() {
     assert!(!ws.join(LOG).exists());
     let entries = storage::read_all(&ws).0;
     assert_eq!(entries[0]["recordId"], "rec:app:coord:0001");
+    assert_eq!(
+        entries[0]["body"]["evidence"]["method"],
+        util::LEGACY_FILE_IDENTITY_METHOD
+    );
+    let package = ws.join("project/decisions/PKG-1.json");
+    let mut changed = std::fs::read(&package).unwrap();
+    changed.push(b' ');
+    std::fs::write(&package, &changed).unwrap();
+    let fresh = identify_packages(&ws).unwrap();
+    assert_eq!(
+        fresh.len(),
+        1,
+        "changed exact bytes still create a selected-method request"
+    );
+    assert_eq!(
+        fresh[0]["body"]["evidence"]["method"],
+        "chirality.app.exact-bytes.sha256/v1"
+    );
+    assert_eq!(
+        fresh[0]["body"]["evidence"]["claimedIdentity"],
+        util::sha256_hex(&changed)
+    );
+    assert_ne!(fresh[0]["recordId"], entries[0]["recordId"]);
+    assert!(identify_packages(&ws).unwrap().is_empty());
+    assert_eq!(
+        std::fs::read(&old).unwrap(),
+        bytes,
+        "new observation never copies, relabels or rewrites the original log"
+    );
+    let all = storage::read_all(&ws).0;
+    assert_eq!(
+        all.iter().filter(|e| e["kind"] == "human_act").count(),
+        1,
+        "no historical act is copied or reissued"
+    );
+    let view = chirality_app_v4_lib::decision_view::derive(&ws, &[]);
+    let historical = view["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["package"] == "rec:app:coord:0001")
+        .unwrap();
+    assert_eq!(historical["decision"]["lapse"], "unknown (incomparable)");
+
     let library = ScratchDirectory::new("library-acts");
     let log = storage::library_log(&library);
     let rec = records::append(
@@ -557,8 +601,13 @@ fn observed_buffer_hash_and_fields_agree_after_controlled_file_replacement() {
         );
         assert_eq!(
             body["evidence"]["claimedIdentity"],
-            format!("sha256:{}", util::sha256_hex(&buffer))
+            util::sha256_hex(&buffer)
         );
+        assert_eq!(
+            body["evidence"]["method"],
+            "chirality.app.exact-bytes.sha256/v1"
+        );
+        assert_eq!(identity, util::sha256_hex(&buffer));
         assert_eq!(body["scope"], package["scope"]);
         assert_eq!(body["purpose"], package["purpose"]);
         // Recorder/compose observe the replacement in their own single new snapshot.
@@ -571,15 +620,18 @@ fn observed_buffer_hash_and_fields_agree_after_controlled_file_replacement() {
             .or_else(|| {
                 storage::read_all(&ws).0.into_iter().rev().find(|e| {
                     e["kind"] == "act_request"
-                        && e["body"]["evidence"]["claimedIdentity"]
-                            == format!("sha256:{}", util::sha256_hex(&actual))
+                        && e["body"]["evidence"]["claimedIdentity"] == util::sha256_hex(&actual)
                 })
             })
             .unwrap();
+        assert_eq!(
+            request["body"]["evidence"]["method"],
+            "chirality.app.exact-bytes.sha256/v1"
+        );
         assert_eq!(request["body"]["purpose"], current["purpose"]);
         assert_eq!(
             request["body"]["evidence"]["claimedIdentity"],
-            format!("sha256:{}", util::sha256_hex(&actual))
+            util::sha256_hex(&actual)
         );
         let mut control = ActControl::new(&ws);
         let offer = control
@@ -873,4 +925,92 @@ fn unverified_cold_files_neither_grant_append_authority_nor_hold_unrelated_refre
         .0
         .iter()
         .all(|e| e["kind"] != "human_act"));
+}
+#[test]
+fn legacy_request_discovery_never_coerces_unknown_methods_or_malformed_legacy_values() {
+    for unknown_method in [true, false] {
+        let ws = workspace();
+        let path = ws.join("project/decisions/PKG-1.json");
+        let package_bytes = std::fs::read(&path).unwrap();
+        let digest = util::sha256_hex(&package_bytes);
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../tests/fixtures/FX-DP1/records/coordination.rs.jsonl");
+        let mut entries = records::read_log(&fixture).0;
+        // A schema-valid opaque claim does not establish a method bridge merely by equal text.
+        if unknown_method {
+            entries[0]["body"]["evidence"]["method"] = json!("host:opaque-method");
+        }
+        entries[0]["body"]["evidence"]["claimedIdentity"] = json!(digest);
+        let old = ws.join(storage::LEGACY_LOG);
+        std::fs::create_dir_all(old.parent().unwrap()).unwrap();
+        let original = entries
+            .iter()
+            .map(|e| serde_json::to_string(e).unwrap() + "\n")
+            .collect::<String>()
+            .into_bytes();
+        std::fs::write(&old, &original).unwrap();
+        let observed = identify_packages(&ws).unwrap();
+        assert_eq!(observed.len(),1,"unknown designation or invalid historical representation is never coerced into equality");
+        assert_eq!(
+            observed[0]["body"]["evidence"]["method"],
+            "chirality.app.exact-bytes.sha256/v1"
+        );
+        assert_eq!(observed[0]["body"]["evidence"]["claimedIdentity"], digest);
+        assert_eq!(std::fs::read(&old).unwrap(), original);
+        assert_eq!(std::fs::read(&path).unwrap(), package_bytes);
+        assert!(identify_packages(&ws).unwrap().is_empty());
+    }
+}
+#[test]
+fn historical_request_observer_requires_registered_origin_and_exact_file_reference() {
+    for wrong_origin in [true, false] {
+        let ws = workspace();
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../tests/fixtures/FX-DP1/records/coordination.rs.jsonl");
+        let mut entries = records::read_log(&fixture).0;
+        let old = if wrong_origin {
+            storage::project_log(&ws, None, "unregistered-legacy-import")
+        } else {
+            ws.join(storage::LEGACY_LOG)
+        };
+        if !wrong_origin {
+            entries[0]["body"]["evidence"]["ref"] = json!("project/decisions/other.json");
+        }
+        std::fs::create_dir_all(old.parent().unwrap()).unwrap();
+        let bytes = entries
+            .iter()
+            .map(|e| serde_json::to_string(e).unwrap() + "\n")
+            .collect::<String>()
+            .into_bytes();
+        std::fs::write(&old, &bytes).unwrap();
+        let current = identify_packages(&ws).unwrap();
+        assert_eq!(current.len(),1,"legacy-method tokens from another origin or file do not suppress a current observation");
+        assert_eq!(
+            current[0]["body"]["evidence"]["method"],
+            "chirality.app.exact-bytes.sha256/v1"
+        );
+        assert_eq!(std::fs::read(&old).unwrap(), bytes);
+        assert!(identify_packages(&ws).unwrap().is_empty());
+    }
+}
+#[test]
+fn incomplete_registered_legacy_history_refuses_discovery_without_rewriting_or_reissuing() {
+    let ws = workspace();
+    let old = ws.join(storage::LEGACY_LOG);
+    std::fs::create_dir_all(old.parent().unwrap()).unwrap();
+    let mut bytes = std::fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../tests/fixtures/FX-DP1/records/coordination.rs.jsonl"),
+    )
+    .unwrap();
+    bytes.extend(b"{incomplete");
+    std::fs::write(&old, &bytes).unwrap();
+    let package = ws.join("project/decisions/PKG-1.json");
+    let original = std::fs::read(&package).unwrap();
+    assert!(identify_packages(&ws)
+        .unwrap_err()
+        .contains("incomplete record set"));
+    assert_eq!(std::fs::read(&old).unwrap(), bytes);
+    assert_eq!(std::fs::read(package).unwrap(), original);
+    assert!(!ws.join(LOG).exists());
 }

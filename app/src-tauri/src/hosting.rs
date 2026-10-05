@@ -23,6 +23,7 @@
 //! quit/relaunch integration and the per-home configuration link.
 
 use crate::native_requests::RequestRegister;
+use crate::native_history::{HistoryQuery, NativeHistory};
 use crate::recovery::RecoveryLedger;
 use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
@@ -32,7 +33,7 @@ use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
 
 /// The pin the App candidate declares (HOSTING §7.1, D4).
@@ -107,6 +108,7 @@ struct Inner {
     receipt_position: u64,
     malformed: u64,
     pending: HashMap<String, (usize, Sender<Value>)>,
+    source_requests: HashMap<String, SourceEvidence>,
     server_requests: RequestRegister,
     recovery: Option<RecoveryLedger>,
     recovery_error: Option<String>,
@@ -119,10 +121,50 @@ struct Inner {
     stop_record: Option<Value>,
     threads: Vec<Value>,
     conversation_turns: Vec<Value>,
-    turn_request_threads: HashMap<String, (Value, String)>,
+    turn_request_threads: HashMap<String, (Value, String, u64)>,
     interrupt_requests: Vec<Value>,
     stderr_bytes: u64,
     child_pid: Option<i32>,
+}
+
+// Non-deserializable capabilities issued only by the actual Host sender.
+#[derive(Clone)]
+pub struct SourceRequest {
+    source: Weak<(Mutex<Inner>, Condvar)>,
+    generation: Value,
+    frame: Value,
+    request_ref: String,
+    receiver: Arc<Mutex<Receiver<Value>>>,
+}
+struct SourceEvidence {
+    request: SourceRequest,
+    index: usize,
+    written: bool,
+    write_error: Option<String>,
+    response: Option<Value>,
+}
+impl SourceRequest {
+    pub fn generation(&self) -> &Value { &self.generation }
+    pub fn request_id(&self) -> &Value { &self.frame["id"] }
+    pub fn request_ref(&self) -> &str { &self.request_ref }
+    pub fn attempted_frame(&self) -> &Value { &self.frame }
+    pub fn evidence(&self) -> Value {
+        let Some(source) = self.source.upgrade() else {return json!({"outcome":"source-host-unavailable"});};
+        let i = source.0.lock().unwrap();
+        let Some(e) = i.source_requests.get(&self.frame["id"].to_string()) else { return json!({"outcome":"source-record-unavailable"}); };
+        let record = &i.client_requests[e.index];
+        json!({"generation":self.generation,"home":self.generation["home"],"requestIdentity":self.frame["id"],"requestRef":self.request_ref,
+            "attemptedFrame":self.frame,"sentFrame":if e.written {Some(&self.frame)}else{None},"writeResult":if e.written {"written"}else if e.write_error.is_some(){"write-failed"}else{"write-in-progress"},"outcome":record["outcome"],
+            "waitingEnded":record.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false),"response":e.response,"writeError":e.write_error,
+            "sourceCurrent":i.generation==self.generation&&i.state=="ready"&&!i.server_requests.is_closed(&self.generation)})
+    }
+}
+#[derive(Clone)]
+pub struct HistoryDispatch { query: HistoryQuery, source: SourceRequest }
+impl HistoryDispatch {
+    pub fn query(&self) -> &HistoryQuery { &self.query }
+    pub fn source(&self) -> &SourceRequest { &self.source }
+    pub fn evidence(&self) -> Value { self.source.evidence() }
 }
 
 pub struct Host {
@@ -574,87 +616,113 @@ impl Host {
 
     fn request_inner_scoped(&self, method: &str, params: Value, initiator: Value,
         wait: Duration, handshake: bool, expected_generation: Option<&Value>) -> Result<Value, String> {
-        let (tx, rx): (Sender<Value>, Receiver<Value>) = channel();
-        let id;
-        let mut scoped_written = false;
-        {
-            let mut i = self.inner.0.lock().unwrap();
-            let ok_state = if handshake { i.state == "handshaking" } else { i.state == "ready" };
-            if !ok_state {
-                let gen = i.generation.clone();
-                i.client_requests.push(json!({
-                    "recordKind": "client-request", "generation": gen,
-                    "requestIdentity": null, "method": method, "initiator": initiator,
-                    "writeResult": "not-attempted", "outcome": "refused-not-sent", "refusalReason": "not-ready"}));
-                return Err(format!("refused-not-sent(not-ready): state {}", i.state));
-            }
-            if expected_generation.map(|g| g != &i.generation || i.server_requests.is_closed(g)).unwrap_or(false) {
-                return Err(format!("refused-not-sent: {method} generation changed before request registration"));
-            }
-            if expected_generation.is_some() && matches!(method, "turn/start" | "turn/interrupt") {
-                Self::check_conversation_request(&i, method, &params)?;
-            }
-            i.next_id += 1;
-            id = i.next_id;
-            i.send_position += 1;
-            let rec = json!({
-                "recordKind": "client-request", "generation": i.generation, "requestIdentity": id,
-                "method": method, "initiator": initiator, "sendPosition": i.send_position,
-                "writeResult": "written", "outcome": "pending"});
-            i.client_requests.push(rec);
-            let idx = i.client_requests.len() - 1;
-            i.pending.insert(id.to_string(), (idx, tx));
-            if expected_generation.is_some() && method == "turn/start" {
-                let gen = i.generation.clone();
-                i.turn_request_threads.insert(id.to_string(), (gen, params["threadId"].as_str().unwrap().into()));
-            }
-            if expected_generation.is_some() && method == "turn/interrupt" {
-                let gen = i.generation.clone();
-                i.interrupt_requests.push(json!({"generation":gen,"threadId":params["threadId"],"turnId":params["turnId"],"requestIdentity":id,"initiator":"person-directed"}));
-            }
+        let request = self.request_begin_scoped(method, params, initiator, handshake, expected_generation)?;
+        self.wait_source_response(&request, wait)
+    }
 
-            if expected_generation.is_some() {
-                // Acquire the actual source pipe while generation registration
-                // is locked. Keep that pipe through writing, then release it
-                // before re-locking state; readers may process supplier output
-                // while a large guidance frame is being written.
-                let mut pipe = self.stdin.lock().unwrap();
-                let frame = json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
-                drop(i);
-                let write_result = Self::write_to_pipe(pipe.as_mut(), &frame);
-                drop(pipe);
-                if let Err(error) = write_result {
-                    let mut i = self.inner.0.lock().unwrap();
-                    i.pending.remove(&id.to_string());
-                    i.client_requests[idx]["writeResult"] = json!("write-failed");
-                    if i.client_requests[idx]["outcome"] == "pending" {
-                        i.client_requests[idx]["outcome"] = json!("unknown-no-response");
-                    }
-                    return Err(format!("write failed: {error}"));
-                }
-                scoped_written = true;
-            }
+    fn request_begin_scoped(&self, method: &str, params: Value, initiator: Value,
+        handshake: bool, expected_generation: Option<&Value>) -> Result<SourceRequest, String> {
+        let (tx, rx) = channel();
+        let mut i = self.inner.0.lock().unwrap();
+        let ok_state = if handshake {i.state=="handshaking"} else {i.state=="ready"};
+        if !ok_state {
+            let gen=i.generation.clone();i.client_requests.push(json!({"recordKind":"client-request","generation":gen,"requestIdentity":null,"method":method,"initiator":initiator,"writeResult":"not-attempted","outcome":"refused-not-sent","refusalReason":"not-ready"}));
+            return Err(format!("refused-not-sent(not-ready): state {}",i.state));
         }
-        let frame = json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params});
-        if let Err(e) = if scoped_written { Ok(()) } else { self.write_frame(&frame) } {
-            let mut i = self.inner.0.lock().unwrap();
-            if let Some((idx, _)) = i.pending.remove(&id.to_string()) {
-                i.client_requests[idx]["writeResult"] = json!("write-failed");
-                i.client_requests[idx]["outcome"] = json!("unknown-no-response");
-            }
-            return Err(format!("write failed: {e}"));
+        if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
+        if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
+        i.next_id+=1;let id=i.next_id;i.send_position+=1;
+        let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
+        let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
+        // This private receipt account is separate from the published client
+        // record schema; only completion of the actual write sets sentFrame.
+        let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator,"sendPosition":i.send_position,"writeResult":"written","outcome":"pending"});
+        i.client_requests.push(rec);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None});
+        if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,params["threadId"].as_str().unwrap().into(),pos));}
+        if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":params["threadId"],"turnId":params["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
+        let write_result=if expected_generation.is_some() {
+            // Preserve the source pipe while registration is locked, then
+            // allow reader progress during writing. Drop pipe before re-lock.
+            let mut pipe=self.stdin.lock().unwrap();drop(i);let result=Self::write_to_pipe(pipe.as_mut(),&frame);drop(pipe);result
+        } else {drop(i);self.write_frame(&frame)};
+        let mut i=self.inner.0.lock().unwrap();
+        match write_result {
+            Ok(())=> {i.source_requests.get_mut(&id.to_string()).unwrap().written=true;}
+            Err(error)=> {i.pending.remove(&id.to_string());let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_error=Some(error.to_string());i.client_requests[idx]["writeResult"]=json!("write-failed");if i.client_requests[idx]["outcome"]=="pending" {i.client_requests[idx]["outcome"]=json!("unknown-no-response");}}
         }
-        match rx.recv_timeout(wait) {
-            Ok(resp) => Ok(resp),
-            Err(_) => {
-                // CR-08: a wait limit ends waiting, not the outcome (H10).
-                let mut i = self.inner.0.lock().unwrap();
-                if let Some((idx, _)) = i.pending.get(&id.to_string()).cloned() {
-                    i.client_requests[idx]["waitingEnded"] = json!(true);
-                }
-                Err(format!("no response to {method} within the wait limit (outcome stays pending/unknown)"))
-            }
+        Ok(request)
+    }
+
+    fn check_source(&self, request: &SourceRequest) -> Result<(), String> {
+        let source=request.source.upgrade().ok_or("receipt source Host unavailable")?;
+        if !Arc::ptr_eq(&self.inner,&source) {return Err("receipt belongs to another Host".into());}
+        let i=self.inner.0.lock().unwrap();let e=i.source_requests.get(&request.request_id().to_string()).ok_or("source receipt unavailable")?;
+        if e.request.generation!=request.generation||e.request.frame!=request.frame||e.request.request_ref!=request.request_ref {return Err("source receipt binding differs".into());}Ok(())
+    }
+    fn wait_source_response(&self, request: &SourceRequest, wait: Duration) -> Result<Value,String> {
+        self.check_source(request)?;let evidence=request.evidence();
+        if evidence["writeResult"]=="write-failed" {return Err(format!("write failed: {}",evidence["writeError"]));}
+        if !evidence["response"].is_null() {return Ok(evidence["response"].clone());}
+        match request.receiver.lock().unwrap().recv_timeout(wait) {
+            Ok(response)=>Ok(response),
+            Err(_)=> {let mut i=self.inner.0.lock().unwrap();if let Some((idx,_))=i.pending.get(&request.request_id().to_string()).cloned() {i.client_requests[idx]["waitingEnded"]=json!(true);}Err(format!("no response to {} within the wait limit (outcome stays pending/unknown)",request.frame["method"]))}
         }
+    }
+    pub fn source_request_wait(&self, request: &SourceRequest, wait: Duration) -> Result<Value,String> {
+        self.check_source(request)?;let _=self.wait_source_response(request,wait);Ok(request.evidence())
+    }
+    pub fn source_request_status(&self, request: &SourceRequest) -> Result<Value,String> {self.check_source(request)?;Ok(request.evidence())}
+    /// Genuine retained start evidence for a synchronous wrapper response.
+    pub fn source_request(&self, generation: &Value, rpc_id: &Value) -> Result<SourceRequest,String> {
+        let i=self.inner.0.lock().unwrap();let e=i.source_requests.get(&rpc_id.to_string()).ok_or("actual supplier RPC request not retained")?;
+        if e.request.generation!=*generation {return Err("source request full generation differs".into());}Ok(e.request.clone())
+    }
+
+    pub fn history_dispatch(&self, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
+        crate::recovery::generation_ref(query.generation())?;
+        if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
+        if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
+        let source=self.request_begin_scoped(query.method(),query.params().clone(),json!({"kind":"person-directed"}),false,Some(query.generation()))?;
+        Ok(HistoryDispatch {query:query.clone(),source})
+    }
+    pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}
+    pub fn history_dispatch_status(&self, dispatch: &HistoryDispatch) -> Result<Value,String> {self.source_request_status(&dispatch.source)}
+
+    pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
+        self.check_source(&dispatch.source)?;
+        if dispatch.query.method()!="thread/resume"||dispatch.query.params()!=&json!({"threadId":history.selected_thread()}) {return Err("only original explicit Continue packet can admit".into());}
+        let candidate=history.resumed_thread().ok_or("latest history state is not an eligible Continue response")?;
+        let snapshot=history.snapshot();let query=serde_json::to_value(&dispatch.query).map_err(|e|e.to_string())?;
+        if snapshot["selected"]["streamResolutions"]["thread-state"]["query"]!=query||snapshot["selected"]["streamResolutions"]["thread-state"]["outcome"]!="native-result-observed" {return Err("Continue receipt is not latest resolved thread-state query".into());}
+        let mut i=self.inner.0.lock().unwrap();let evidence=i.source_requests.get(&dispatch.source.request_id().to_string()).ok_or("Continue source record unavailable")?;
+        if !evidence.written||i.client_requests[evidence.index]["outcome"]!="response-observed-result" {return Err("Continue has no successful write and correlated native result".into());}
+        let response=evidence.response.as_ref().ok_or("Continue native response unavailable")?;
+        if response["id"]!=*dispatch.source.request_id()||response.get("error").is_some()||response["result"]!=snapshot["selected"]["resume"]||response["result"]["thread"]!=candidate["native"] {return Err("Continue receipt and validated native receiving state differ".into());}
+        let generation=dispatch.query.generation();
+        if history.generation()!=generation||history.home()!=dispatch.query.home()||i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("Continue admission belongs to foreign/stale/closed generation".into());}
+        let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
+        if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
+        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());Ok(row)
+    }
+
+    pub fn thread_start_with_guidance_dispatch(&self, generation: &Value, cwd: &str, model: &str, model_provider: &str, guidance: &str) -> Result<SourceRequest,String> {
+        crate::recovery::generation_ref(generation)?;let params=Self::thread_start_params(cwd,model,model_provider,Some(guidance))?;
+        self.request_begin_scoped("thread/start",params,json!({"kind":"person-directed"}),false,Some(generation))
+    }
+    pub fn thread_start_dispatch_finish(&self, request: &SourceRequest) -> Result<Value,String> {
+        self.check_source(request)?;let evidence=request.evidence();
+        if request.frame["method"]!="thread/start"||evidence["writeResult"]!="written"||evidence["outcome"]!="response-observed-result"||evidence["sentFrame"].is_null() {return Err("start receipt lacks actual successful start write/result".into());}
+        let response=evidence["response"].clone();
+        if !response.is_object() || response.get("id") != Some(request.request_id()) || response.get("method").is_some() || response.get("error").is_some() || response.get("result").is_none() {
+            return Err("start response envelope is uncorrelated or failed; raw native evidence retained, no operational admission".into());
+        }
+        Self::validate_native_result("ThreadStartResponse",&response["result"])?;
+        self.insert_start_response(request.generation(),&request.frame["params"],&response,true)?;Ok(response)
+    }
+    fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
+        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
+        jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?.validate(result).map_err(|e|format!("native {target} schema: {e}"))
     }
 
     /// `thread/start`, person-directed (§5 initiator). Records the thread for the interface.
@@ -691,31 +759,16 @@ impl Host {
             Duration::from_secs(20), false, Some(&sent_generation))?;
         #[cfg(test)]
         if let Some(hook) = self.before_thread_insert.lock().unwrap().take() { hook(); }
-        if let Some(t) = r.get("result").and_then(|x| x.get("thread")) {
-            let mut i = self.inner.0.lock().unwrap();
-            if i.generation != sent_generation || i.server_requests.is_closed(&sent_generation) {
-                // request_inner already journaled the untouched native result.
-                // Never associate its old thread with the successor generation.
-                return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());
-            }
-            let gen = sent_generation;
-            let standing = i.supplier_standing.clone();
-            i.threads.push(json!({
-                "generation": gen,
-                "threadId": t.get("id"),
-                "status": t.get("status"),
-                "model": r["result"].get("model"),
-                "modelProvider": r["result"].get("modelProvider"),
-                "cwd": r["result"].get("cwd"),
-                "supplierStanding": standing,
-                "requestedDestination": {"source": "person-selected", "model": model, "modelProvider": model_provider},
-                "reportedDestination": {"scope": "thread", "model": r["result"].get("model"), "modelProvider": r["result"].get("modelProvider")},
-                "networkDisclosure": network_disclosure(),
-            }));
-            Ok(r)
-        } else {
-            Err(format!("thread/start answered with an error: {}", r.get("error").cloned().unwrap_or(Value::Null)))
-        }
+        self.insert_start_response(&sent_generation,&Self::thread_start_params(cwd,model,model_provider,developer_instructions)?,&r,false)?;
+        Ok(r)
+    }
+    fn insert_start_response(&self, generation: &Value, params: &Value, response: &Value, no_duplicate: bool) -> Result<(),String> {
+        let t=response.get("result").and_then(|x|x.get("thread")).ok_or_else(||format!("thread/start answered with an error: {}",response.get("error").cloned().unwrap_or(Value::Null)))?;
+        let mut i=self.inner.0.lock().unwrap();
+        if i.generation!=*generation||i.server_requests.is_closed(generation) {return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());}
+        if no_duplicate&&i.state!="ready" {return Err("thread/start result is not ready for operational admission".into());}
+        if no_duplicate&&i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("thread already operationally admitted in generation".into());}
+        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -732,6 +785,18 @@ impl Host {
             json!({"threadId":thread_id,"turnId":turn_id}), Duration::from_secs(20))
     }
 
+    /// Native expected-turn precondition, never a fallback start or settings edit.
+    pub fn turn_steer_text(&self, generation: &Value, thread_id: &str, expected_live_turn: &str, text: &str) -> Result<Value, String> {
+        let params = Self::steer_text_params(thread_id, expected_live_turn, text)?;
+        self.conversation_operation("turn/steer", generation, params, Duration::from_secs(20))
+    }
+    fn steer_text_params(thread_id: &str, expected_turn: &str, text: &str) -> Result<Value, String> {
+        if expected_turn.is_empty() { return Err("expected live turn identity required".into()); }
+        let mut params = Self::text_turn_params(thread_id, text)?;
+        params["expectedTurnId"] = json!(expected_turn);
+        Ok(params)
+    }
+
     fn text_turn_params(thread_id: &str, text: &str) -> Result<Value, String> {
         if thread_id.is_empty() || text.is_empty() { return Err("thread identity and text required".into()); }
         Ok(json!({"threadId":thread_id,"input":[{"type":"text","text":text,"text_elements":[]}]}))
@@ -739,6 +804,7 @@ impl Host {
 
     fn conversation_operation(&self, method: &str, generation: &Value, params: Value, wait: Duration) -> Result<Value, String> {
         crate::recovery::generation_ref(generation)?;
+        let steering_target = if method == "turn/steer" { Some(params.clone()) } else { None };
         let response = self.request_inner_scoped(method, params, json!({"kind":"person-directed"}), wait, false, Some(generation))?;
         #[cfg(test)]
         if let Some(hook) = self.before_turn_result.lock().unwrap().take() { hook(); }
@@ -747,7 +813,12 @@ impl Host {
             return Err(format!("{method} response belongs to closed/replaced generation; native response retained in journal"));
         }
         if let Some(error) = response.get("error") { return Err(format!("{method} native error: {error}")); }
-        if method == "turn/start" {
+        if let Some(target) = steering_target {
+            if response.get("result").and_then(|r| r.get("turnId")) != target.get("expectedTurnId") {
+                return Err("turn/steer reported turn differs from expected target; native response retained, no rebind".into());
+            }
+            Self::check_conversation_request(&i, method, &target).map_err(|error| format!("turn/steer target changed before result consumption: {error}; native response retained"))?;
+        } else if method == "turn/start" {
             let turn = response.get("result").and_then(|r| r.get("turn")).ok_or("turn/start has no native turn result")?;
             if !Self::native_turn_shape(turn) { return Err("turn/start native turn result has invalid shape".into()); }
         } else if !response.get("result").map(Value::is_object).unwrap_or(false) {
@@ -784,6 +855,10 @@ impl Host {
     fn check_conversation_request(i: &Inner, method: &str, params: &Value) -> Result<(), String> {
         let thread = params["threadId"].as_str().filter(|s| !s.is_empty()).ok_or("thread identity required")?;
         if !i.threads.iter().any(|t| t["generation"] == i.generation && t["threadId"] == thread) { return Err("conversation-not-loaded-in-current-home-generation".into()); }
+        if method == "turn/steer" {
+            let current = Self::current_live_turn(i, thread).ok_or("current-live-turn-not-established")?;
+            if current["turnId"] != params["expectedTurnId"] { return Err("expected-live-turn-mismatch".into()); }
+        }
         if method == "turn/interrupt" {
             let turn = &params["turnId"];
             if !i.conversation_turns.iter().any(|t| t["generation"] == i.generation && t["threadId"] == thread && t["turnId"] == *turn && t["nativeTurn"]["status"] == "inProgress" && t["terminalEventObserved"] != true && t["observationEnded"] != true) { return Err("no-live-turn".into()); }
@@ -792,6 +867,17 @@ impl Host {
                     && (r["outcome"] == "response-observed-result" || (r["outcome"] == "pending" && r["writeResult"] == "written")))) { return Err("stop-already-requested".into()); }
         }
         Ok(())
+    }
+
+    fn current_live_turn<'a>(i: &'a Inner, thread: &str) -> Option<&'a Value> {
+        let latest_event = i.journal.iter().chain(i.held.iter()).filter(|e| e["generation"] == i.generation && e["frame"]["params"]["threadId"] == thread && matches!(e["frame"]["method"].as_str(),Some("turn/started"|"turn/completed"))).max_by_key(|e|e["position"].as_u64().unwrap_or(0));
+        let boundary = latest_event.and_then(|e|e["position"].as_u64());
+        let fresh_responses: Vec<_> = i.conversation_turns.iter().filter(|e| e["generation"] == i.generation && e["threadId"] == thread && e["source"] == "turn/start response" && e["nativeTurn"]["status"] == "inProgress" && e["terminalEventObserved"] != true && e["observationEnded"] != true && boundary.map(|p|e["startResponseIssuedAfterReceipt"].as_u64().map(|sent|sent>=p).unwrap_or(false)).unwrap_or(true)).collect();
+        if fresh_responses.len() == 1 { return Some(fresh_responses[0]); }
+        if fresh_responses.len() > 1 { return None; }
+        let event = latest_event?;
+        if event["frame"]["method"] != "turn/started" || event["frame"]["params"]["turn"]["status"] != "inProgress" { return None; }
+        i.conversation_turns.iter().find(|e|e["generation"]==i.generation&&e["threadId"]==thread&&e["turnId"]==event["frame"]["params"]["turn"]["id"]&&e["nativeTurn"]["status"]=="inProgress"&&e["terminalEventObserved"]!=true&&e["observationEnded"]!=true)
     }
 
     fn spawn_reader(self: &Arc<Self>, stdout: std::process::ChildStdout, generation: Value) {
@@ -905,12 +991,16 @@ impl Host {
                                         "message": e.get("message").cloned().unwrap_or(json!(""))});
                 }
                 if i.client_requests[idx]["method"] == "turn/start" {
-                    if let Some((source_gen, thread)) = i.turn_request_threads.remove(&key) {
+                    if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
                         if source_gen == gen {
-                            if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) { Self::remember_turn(&mut i, &gen, &thread, turn, "turn/start response", pos); }
+                            if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) {
+                                Self::remember_turn(&mut i, &gen, &thread, turn, "turn/start response", pos);
+                                if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == gen && e["threadId"] == thread && e["turnId"] == turn["id"] && e["source"] == "turn/start response" && e["receiptPosition"] == pos) { entry["startResponseIssuedAfterReceipt"] = json!(sent_after_receipt); }
+                            }
                         }
                     }
                 }
+                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(frame.clone()); }
                 let _ = tx.send(frame.clone());
                 // Responses are also journaled, with their metadata beside the native frame (H6).
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame});
@@ -1312,5 +1402,100 @@ mod conversation_transport_tests {
             let host=host();if method=="turn/interrupt" {event(&host,"inProgress");}let me=Arc::clone(&host);let next=successor.clone();*host.before_turn_result.lock().unwrap()=Some(Box::new(move||{let mut i=me.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation=next;i.state="ready".into();}));
             let response=if method=="turn/start" {json!({"result":{"turn":turn("inProgress")}})}else{json!({"result":{}})};let (result,outbound)=exchange(&host,Some(response.clone()),vec![],||if method=="turn/start" {host.turn_start_text(&g(),"thread","exact text")}else{host.turn_interrupt(&g(),"thread","turn")});assert!(result.unwrap_err().contains("closed/replaced generation"));let snapshot=host.snapshot();assert_eq!(snapshot["generation"],successor);assert!(snapshot["conversationTurns"].as_array().unwrap().iter().all(|t|t["generation"]==g()));assert_eq!(snapshot["clientRequests"][0]["generation"],g());let mut expected=response;expected["id"]=outbound["id"].clone();assert_eq!(host.journal().last().unwrap()["frame"],expected);
         }}
+    }
+
+    #[test]
+    fn steering_exact_native_body_schema_and_ack_keep_live_target_without_overrides() {
+        let host=host();event(&host,"inProgress");let text="Exact steering\n\né / 家\n{\"model\":\"not an override\"}";
+        let params=Host::steer_text_params("thread","turn",text).unwrap();assert_eq!(params,json!({"threadId":"thread","expectedTurnId":"turn","input":[{"type":"text","text":text,"text_elements":[]}]}));
+        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();for(target,value)in [("TurnSteerParams",params.clone()),("TurnSteerResponse",json!({"turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&value).unwrap();}
+        let before=host.snapshot()["conversationTurns"].clone();let(result,outbound)=exchange(&host,Some(json!({"result":{"turnId":"turn","nativeExtra":"kept"}})),vec![],||host.turn_steer_text(&g(),"thread","turn",text));assert_eq!(outbound["method"],"turn/steer");assert_eq!(outbound["params"],params);assert_eq!(result.unwrap()["result"]["nativeExtra"],"kept");assert_eq!(host.snapshot()["conversationTurns"],before);assert_eq!(host.client_requests()[0]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["threads"][0]["model"],"selected");
+        assert!(Host::steer_text_params("thread","",text).is_err());assert!(Host::steer_text_params("thread","turn","").is_err());
+    }
+    #[test]
+    fn steering_stale_expected_terminal_foreign_and_unknown_never_register_or_fallback() {
+        let host=host();event(&host,"inProgress");assert_eq!(host.turn_steer_text(&g(),"thread","old","text").unwrap_err(),"expected-live-turn-mismatch");
+        for foreign in [json!({"appSession":"other","home":"conversation-home","spawnCounter":1}),json!({"appSession":"conversation-session","home":"other","spawnCounter":1}),json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2})] {assert!(host.turn_steer_text(&foreign,"thread","turn","text").is_err());}
+        assert!(host.turn_steer_text(&g(),"unknown","turn","text").is_err());event(&host,"completed");event(&host,"inProgress");host.inner.0.lock().unwrap().conversation_turns[0]["nativeTurn"]["status"]=json!("inProgress");assert_eq!(host.turn_steer_text(&g(),"thread","turn","text").unwrap_err(),"current-live-turn-not-established");assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert!(host.client_requests().is_empty());Host::close_generation(&mut host.inner.0.lock().unwrap());assert!(host.turn_steer_text(&g(),"thread","turn","text").is_err());
+    }
+    #[test]
+    fn steering_native_error_reported_mismatch_write_failure_and_wait_preserve_uncertainty() {
+        let host=host();event(&host,"inProgress");let error=json!({"code":-32600,"message":"expected turn mismatch","data":{"native":"kept"}});let(result,outbound)=exchange(&host,Some(json!({"error":error})),vec![],||host.turn_steer_text(&g(),"thread","turn","text"));assert!(result.unwrap_err().contains("native error"));assert_eq!(outbound["method"],"turn/steer");assert_eq!(host.journal().last().unwrap()["frame"]["error"],error);
+        let(result,_)=exchange(&host,Some(json!({"result":{"turnId":"other"}})),vec![],||host.turn_steer_text(&g(),"thread","turn","text"));assert!(result.unwrap_err().contains("no rebind"));assert_eq!(host.snapshot()["conversationTurns"][0]["turnId"],"turn");assert_eq!(host.client_requests()[1]["outcome"],"response-observed-result");
+        assert!(host.turn_steer_text(&g(),"thread","turn","text").unwrap_err().contains("write failed"));assert_eq!(host.client_requests()[2]["writeResult"],"write-failed");assert_eq!(host.client_requests()[2]["outcome"],"unknown-no-response");
+        let(result,outbound)=exchange(&host,None,vec![],||host.conversation_operation("turn/steer",&g(),Host::steer_text_params("thread","turn","late").unwrap(),Duration::from_millis(15)));assert!(result.unwrap_err().contains("wait limit"));assert_eq!(host.client_requests()[3]["outcome"],"pending");host.on_line(&serde_json::to_vec(&json!({"id":outbound["id"],"result":{"turnId":"turn"}})).unwrap(),&g());assert_eq!(host.client_requests()[3]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert!(host.client_requests().iter().all(|r|r["method"]=="turn/steer"));
+    }
+    #[test]
+    fn steering_response_cannot_rebind_changed_target_or_full_generation() {
+        for transition in ["target","terminal","session","home","counter"] {
+            let host=host();event(&host,"inProgress");let me=Arc::clone(&host);let transition=transition.to_string();*host.before_turn_result.lock().unwrap()=Some(Box::new(move|| {
+                if transition=="terminal" {event(&me,"completed");} else if transition=="target" {let mut next=turn("inProgress");next["id"]=json!("next");me.on_line(&serde_json::to_vec(&json!({"method":"turn/started","params":{"threadId":"thread","turn":next}})).unwrap(),&g());} else {let mut i=me.inner.0.lock().unwrap();Host::close_generation(&mut i);let field=match transition.as_str(){"session"=>"appSession","home"=>"home",_=>"spawnCounter"};i.generation[field]=if field=="spawnCounter"{json!(2)}else{json!("other")};i.state="ready".into();}
+            }));let(result,outbound)=exchange(&host,Some(json!({"result":{"turnId":"turn"}})),vec![],||host.turn_steer_text(&g(),"thread","turn","exact text"));assert!(result.is_err());assert_eq!(outbound["params"]["expectedTurnId"],"turn");assert_eq!(host.client_requests()[0]["outcome"],"response-observed-result");assert!(host.journal().iter().any(|e|e["frame"]==json!({"id":outbound["id"],"result":{"turnId":"turn"}})));
+        }
+    }
+    #[test]
+    fn steering_live_target_uses_native_event_not_delayed_prior_start_response() {
+        let host=host();let mut next=turn("inProgress");next["id"]=json!("next");let frame=json!({"method":"turn/started","params":{"threadId":"thread","turn":next}});
+        let(result,_)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![frame],||host.turn_start_text(&g(),"thread","first"));assert!(result.is_ok());assert_eq!(host.turn_steer_text(&g(),"thread","turn","text").unwrap_err(),"expected-live-turn-mismatch");let(result,_)=exchange(&host,Some(json!({"result":{"turnId":"next"}})),vec![],||host.turn_steer_text(&g(),"thread","next","text"));assert!(result.is_ok());
+        // A response-only fresh start is usable; a completed event then a new
+        // request/response is also a new target, rather than terminal revival.
+        event(&host,"completed");let mut fresh=turn("inProgress");fresh["id"]=json!("fresh");let(result,_)=exchange(&host,Some(json!({"result":{"turn":fresh}})),vec![],||host.turn_start_text(&g(),"thread","new"));assert!(result.is_ok());let(result,_)=exchange(&host,Some(json!({"result":{"turnId":"fresh"}})),vec![],||host.turn_steer_text(&g(),"thread","fresh","text"));assert!(result.is_ok());
+    }
+
+    fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
+    fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":["/native/instructions"],"nativeExtra":true})}
+    fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
+    fn history_exchange(host:&Arc<Host>,query:&HistoryQuery,response:Option<Value>)->(HistoryDispatch,Value,Value) {let mut receipt=None;let(result,outbound)=exchange(host,response,vec![],||{let r=host.history_dispatch(query)?;let evidence=host.history_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(evidence)});(receipt.unwrap(),result.unwrap(),outbound)}
+    #[test]
+    fn history_bridge_actual_rpc_receipt_before_wait_timeout_clone_and_late_correlation() {
+        let host=host();host.inner.0.lock().unwrap().next_id=40;let mut view=history_selected();let query=view.read_metadata().unwrap();let(receipt,evidence,outbound)=history_exchange(&host,&query,None);
+        assert_ne!(receipt.source().request_id(),&json!(query.id()));assert_eq!(receipt.source().request_id(),&json!(41));assert_eq!(receipt.query(),&query);assert_eq!(evidence["sentFrame"],outbound);assert_eq!(outbound["params"],*query.params());assert_eq!(evidence["writeResult"],"written");assert_eq!(evidence["outcome"],"pending");assert_eq!(evidence["waitingEnded"],true);assert!(evidence["response"].is_null());assert!(!receipt.source().request_ref().is_empty());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
+        let clone=receipt.clone();let response=json!({"id":outbound["id"],"result":{"thread":history_thread("notLoaded")}});host.on_line(&serde_json::to_vec(&response).unwrap(),&g());let late=host.history_dispatch_status(&clone).unwrap();assert_eq!(late["response"],response);assert_eq!(late["outcome"],"response-observed-result");assert_eq!(late["waitingEnded"],true);view.receive(&query,"conversation-home",&g(),&response["result"]).unwrap();assert!(host.history_admit_resume(&view,&clone).is_err());assert_eq!(host.client_requests().len(),1);
+    }
+    #[test]
+    fn history_bridge_continue_actual_receive_admit_once_and_text_control() {
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let native=history_resume("idle",true);let(receipt,evidence,outbound)=history_exchange(&host,&query,Some(json!({"result":native})));assert_eq!(outbound["method"],"thread/resume");assert_eq!(outbound["params"],json!({"threadId":"stored"}));assert!(view.resumed_thread().is_none());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
+        view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let admitted=host.history_admit_resume(&view,&receipt).unwrap();assert_eq!(admitted["threadId"],"stored");assert_eq!(admitted["generation"],g());assert_eq!(admitted["resumeRequestRef"],receipt.source().request_ref());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
+        let(result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"stored","continued exact text"));assert!(result.is_ok());assert_eq!(outbound["params"]["threadId"],"stored");assert!(outbound["params"].get("developerInstructions").is_none());
+    }
+    #[test]
+    fn history_bridge_failed_write_foreign_latest_revision_and_closed_refuse_admission() {
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let failed=host.history_dispatch(&query).unwrap();let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
+        let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
+        let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
+    }
+    #[test]
+    fn history_bridge_notloaded_direct_false_malformed_and_native_error_keep_raw_no_activation() {
+        for (status,direct) in [("notLoaded",true),("idle",false)] {let host=host();let mut view=history_selected();let q=view.continue_query().unwrap();let(r,e,_)=history_exchange(&host,&q,Some(json!({"result":history_resume(status,direct)})));view.receive(&q,"conversation-home",&g(),&e["response"]["result"]).unwrap();assert!(host.history_admit_resume(&view,&r).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);}
+        let host=host();let mut view=history_selected();let q=view.continue_query().unwrap();let error=json!({"code":-32600,"message":"resume refused","data":{"kept":"native"}});let(r,e,_)=history_exchange(&host,&q,Some(json!({"error":error})));assert_eq!(e["response"]["error"],error);view.receive_error(&q,"conversation-home",&g(),&error).unwrap();assert!(host.history_admit_resume(&view,&r).is_err());
+        let q=view.continue_query().unwrap();let mut wrong=history_resume("idle",true);wrong["thread"]["id"]=json!("foreign-thread");let(r,e,_)=history_exchange(&host,&q,Some(json!({"result":wrong})));assert!(view.receive(&q,"conversation-home",&g(),&e["response"]["result"]).is_err());assert!(host.history_admit_resume(&view,&r).is_err());assert_eq!(host.journal().last().unwrap()["frame"],e["response"]);
+    }
+    #[test]
+    fn history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup() {
+        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap());assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
+        assert!(host.thread_start_dispatch_finish(&receipt).is_ok());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);assert!(host.thread_start_dispatch_finish(&receipt).is_err());assert!(host.source_request(&json!({"appSession":"foreign","home":"conversation-home","spawnCounter":1}),receipt.request_id()).is_err());
+        let mut bad_receipt=None;let(result,_)=exchange(&host,Some(json!({"result":{"thread":{"id":"malformed"}}})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;bad_receipt=Some(r);Ok(e)});assert_eq!(result.unwrap()["outcome"],"response-observed-result");assert!(host.thread_start_dispatch_finish(&bad_receipt.unwrap()).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
+    }
+
+    #[test]
+    fn history_bridge_joined_session_consumes_genuine_history_and_frozen_role_start_receipts() {
+        use crate::native_history::Direction;
+        use crate::role_supply::{Composition,Guidance,Role};
+        let host=host();host.inner.0.lock().unwrap().threads.clear();let mut session=crate::runtime_session::HistorySession::default();session.synchronize(&host.snapshot());
+        let query=session.prepare(&host.snapshot(),&g(),0,"list",None,Direction::Desc,None).unwrap();let(receipt,_,_)=history_exchange(&host,&query,Some(json!({"result":{"data":[history_thread("notLoaded")],"nextCursor":null}})));session.dispatched(receipt);session.reconcile(&host);assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.select(&host.snapshot(),&g(),0,"stored").unwrap();assert_eq!(session.snapshot(None)["selectionEpoch"],1);
+        let query=session.prepare(&host.snapshot(),&g(),1,"continue",None,Direction::Desc,None).unwrap();let(receipt,_,outbound)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));assert_eq!(outbound["params"],json!({"threadId":"stored"}));assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.dispatched(receipt);session.reconcile(&host);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(session.snapshot(None)["selected"]["resumeEligibilityCurrent"],true);assert_eq!(session.role("conversation-home","stored")["standing"],"unknown");
+        let common=Guidance::seeded("AGENTS.md","test-release",b"Frozen common bytes\r\n".to_vec(),b"default common").unwrap();let role=Guidance::seeded("agents/AGENT_TASK.md","test-release",b"Frozen TASK bytes\r\n".to_vec(),b"default role").unwrap();let composition=Composition::new(&common,Some((Role::TASK,&role)),true).unwrap();let original=composition.text.clone();let mut native=history_resume("idle",true);native["thread"]["id"]=json!("role-thread");let mut start=None;
+        let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let receipt=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",&composition.text)?;session.start_dispatched(receipt.clone(),&composition,"sup:fixture")?;let evidence=host.source_request_wait(&receipt,Duration::from_millis(15))?;start=Some(receipt);Ok(evidence)});assert_eq!(result.unwrap()["writeResult"],"written");assert_eq!(outbound["params"]["developerInstructions"],original);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);session.reconcile(&host);assert!(session.start_admitted(&start.unwrap()));assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);let role=session.role("conversation-home","role-thread");assert_eq!(role["standing"],"app-observed");assert_eq!(role["role"],"TASK");assert!(session.snapshot(None)["receivingLimits"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn history_bridge_start_mixed_result_error_envelope_never_admits_and_preserves_raw() {
+        for error in [json!({"code":-32600,"message":"native start refused","data":{"native":"retained"}}),Value::Null] {
+            let host=host();let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native,"error":error})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured","frozen bytes")?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(evidence["writeResult"],"written");assert_eq!(evidence["sentFrame"],outbound);assert_eq!(evidence["outcome"],"response-observed-result");assert_eq!(evidence["response"]["result"],native);assert!(evidence["response"].get("error").is_some());assert_eq!(evidence["response"]["error"],error);
+            let before=host.snapshot()["threads"].clone();let refusal=host.thread_start_dispatch_finish(&receipt).unwrap_err();assert!(refusal.contains("envelope is uncorrelated or failed"));assert_eq!(host.snapshot()["threads"],before);assert_eq!(host.journal().last().unwrap()["frame"],evidence["response"]);assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
+        }
+        // An actual foreign RPC frame is retained uncorrelated and never
+        // promoted to the private matching receipt while waiting times out.
+        let host=host();let mut receipt=None;let wrong=json!({"id":999,"result":history_resume("idle",true)});let(result,_)=exchange(&host,None,vec![wrong.clone()],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured","frozen bytes")?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();assert_eq!(evidence["outcome"],"pending");assert!(evidence["response"].is_null());assert!(host.thread_start_dispatch_finish(&receipt.unwrap()).is_err());assert_eq!(host.journal().last().unwrap()["frame"],wrong);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
     }
 }

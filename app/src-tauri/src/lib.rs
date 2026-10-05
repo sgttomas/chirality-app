@@ -7,12 +7,15 @@
 
 pub mod access;
 pub mod act_control;
+pub mod act_policy;
 pub mod canonical;
 pub mod catalog;
 pub mod decision_view;
 pub mod external_observation;
 pub mod hosting;
 pub mod native_items;
+pub mod native_history;
+pub mod role_lifecycle;
 pub mod native_requests;
 pub mod receiving;
 pub mod recorder;
@@ -21,6 +24,7 @@ pub mod recovery;
 pub mod role_supply;
 pub mod runtime_session;
 pub mod schema_validation;
+pub mod standing;
 pub mod storage;
 pub mod util;
 
@@ -39,6 +43,7 @@ pub struct AppState {
     act: Mutex<Option<ActControl>>,
     person_name: Mutex<Option<String>>,
     runtime: Mutex<runtime_session::RuntimeSession>,
+    history: Mutex<runtime_session::HistorySession>,
     access_selection: Mutex<Option<access::ConversationSelection>>,
     instructions_root: Mutex<Result<PathBuf, String>>,
     app_user_data_root: Mutex<Result<PathBuf, String>>,
@@ -97,6 +102,18 @@ fn host_status(state: State<'_, AppState>) -> Value {
         s["configurationProblem"] = json!(e);
     }
     s["roleSupply"] = state.role_supply_status.lock().unwrap().clone();
+    let mut history = state.history.lock().unwrap();
+    history.reconcile(&state.host);
+    let root = state.instructions_root.lock().unwrap().clone();
+    s["nativeHistory"] = history.snapshot(root.as_deref().ok());
+    s["roleSupply"]["originalStartReceipts"] = s["nativeHistory"]["startReceipts"].clone();
+    for thread in s["threads"].as_array_mut().into_iter().flatten() {
+        if let (Some(home), Some(id)) = (thread["generation"]["home"].as_str(), thread["threadId"].as_str()) {
+            let role = history.role_details(home, id, root.as_deref().ok());
+            thread["appRole"] = role["appRole"].clone();
+            thread["futureGuidanceNotices"] = role["futureGuidanceNotices"].clone();
+        }
+    }
     s["externalObservation"] = state.external_observation.lock().unwrap().snapshot();
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
@@ -159,10 +176,23 @@ fn thread_start(
         *slot = Some(selection);
     }
     *state.role_supply_status.lock().unwrap() = json!({"state":"starting","selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
-    let result =
-        state
-            .host
-            .thread_start_with_guidance(&cwd, &model, &model_provider, &composition.text);
+    // Freeze the verified original composition before native dispatch. Actual
+    // Host receipt IDs, exact sent bytes and correlated results bind its role.
+    let supply_ref = util::opaque_id("sup:")?;
+    let dispatch = state.host.thread_start_with_guidance_dispatch(&generation, &cwd, &model, &model_provider, &composition.text);
+    let result = match dispatch {
+        Ok(receipt) => {
+            state.history.lock().unwrap().start_dispatched(receipt.clone(), &composition, &supply_ref)?;
+            let waited = state.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
+            state.history.lock().unwrap().reconcile(&state.host);
+            match waited {
+                Ok(evidence) if state.history.lock().unwrap().start_admitted(&receipt) => Ok(evidence["response"].clone()),
+                Ok(evidence) => Err(format!("Native start remains {} (write {}); no automatic retry", evidence["outcome"], evidence["writeResult"])),
+                Err(error) => Err(error),
+            }
+        },
+        Err(error) => Err(error),
+    };
     *state.role_supply_status.lock().unwrap() = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
     let mut slot = state.access_selection.lock().unwrap();
     let selection = slot.as_mut().ok_or("selection unavailable")?;
@@ -179,6 +209,37 @@ fn thread_start(
         }
     }
     result
+}
+
+/// Stored history is a native read view. Only explicit Continue asks for resume;
+/// the private Host receipt and current history revision govern active admission.
+#[tauri::command(async)]
+fn history_action(
+    state: State<'_, AppState>, generation: Value, selection_epoch: u64,
+    action: String, cursor: Option<String>, direction: String,
+    reference: Option<String>,
+) -> Result<Value, String> {
+    let query = {
+        let mut history = state.history.lock().unwrap();
+        history.reconcile(&state.host);
+        history.prepare(&state.host.snapshot(), &generation, selection_epoch, &action, cursor.as_deref(), match direction.as_str() { "asc" => native_history::Direction::Asc, "desc" => native_history::Direction::Desc, _ => return Err("Invalid history paging direction".into()) }, reference.as_deref())?
+    };
+    let receipt = state.host.history_dispatch(&query)?;
+    state.history.lock().unwrap().dispatched(receipt.clone());
+    let waited = state.host.history_wait(&receipt, std::time::Duration::from_secs(20));
+    let mut history = state.history.lock().unwrap();
+    history.reconcile(&state.host);
+    waited?;
+    let root = state.instructions_root.lock().unwrap().clone();
+    Ok(history.snapshot(root.as_deref().ok()))
+}
+#[tauri::command]
+fn history_select(state: State<'_, AppState>, generation: Value, selection_epoch: u64, thread_id: String) -> Result<Value, String> {
+    let mut history = state.history.lock().unwrap();
+    history.reconcile(&state.host);
+    history.select(&state.host.snapshot(), &generation, selection_epoch, &thread_id)?;
+    let root = state.instructions_root.lock().unwrap().clone();
+    Ok(history.snapshot(root.as_deref().ok()))
 }
 
 #[tauri::command(async)]
@@ -422,6 +483,7 @@ pub fn run() {
         workspace,
         person_name: Mutex::new(None),
         runtime: Mutex::new(runtime_session::RuntimeSession::default()),
+        history: Mutex::new(runtime_session::HistorySession::default()),
         access_selection: Mutex::new(None),
         instructions_root: Mutex::new(Err("App instruction root not initialized".into())),
         app_user_data_root: Mutex::new(Err("App user-data root not initialized".into())),
@@ -477,6 +539,8 @@ pub fn run() {
             host_start,
             host_stop,
             thread_start,
+            history_action,
+            history_select,
             conversation_send_text,
             conversation_interrupt,
             set_person_name,

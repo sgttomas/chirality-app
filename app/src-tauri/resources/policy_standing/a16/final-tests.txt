@@ -1,0 +1,60 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: function `evidence_output` is never used
+  --> tests/common/mod.rs:52:8
+   |
+52 | pub fn evidence_output() -> PathBuf {
+   |        ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `chirality-app-v4` (test "decision_standing") generated 1 warning
+warning: `chirality-app-v4` (test "act_storage") generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.67s
+     Running tests/act_storage.rs (projects/chirality-app-v4/app/src-tauri/target/debug/deps/act_storage-b878a22d3b98b184)
+
+running 21 tests
+test capture_store_failure_is_visible_without_record_or_relocation ... ok
+test fabricated_cold_capture_and_pending_files_never_create_native_act ... ok
+test cold_capture_without_writer_submission_is_held_without_mint_or_reissue ... ok
+test frozen_native_choice_cancel_and_script_refuse_without_capture ... ok
+test legacy_and_library_history_remain_in_place_and_opaque ... FAILED
+test crash_after_append_reconciles_backlink_once_without_duplicate ... ok
+test observed_buffer_hash_and_fields_agree_after_controlled_file_replacement ... FAILED
+test backlink_failure_stays_recorded_link_pending_then_recovers_without_append ... ok
+test incomplete_foreign_log_blocks_recovery_and_backlink_even_after_local_append ... ok
+test malformed_packages_duplicate_alternatives_and_digest_changes_refuse ... ok
+test fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush ... ok
+test run_and_outside_run_logs_keep_identity_and_do_not_duplicate ... ok
+test duplicate_and_disagreeing_discovered_capture_records_never_replay ... ok
+test unverified_cold_files_neither_grant_append_authority_nor_hold_unrelated_refresh ... ok
+test refresh_flushes_pending_native_admission_before_new_recorder_input ... ok
+test hot_pending_batch_keeps_native_event_order_before_delay_limits ... ok
+test rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id ... ok
+test older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_latest ... ok
+test scope_absence_and_requester_limit_are_source_faithful ... ok
+test concurrent_append_sequences_and_cross_log_ids_are_unique ... ok
+test writer_sequence_gaps_duplicates_and_reordering_hold_append_and_backlink ... ok
+
+failures:
+
+---- legacy_and_library_history_remain_in_place_and_opaque stdout ----
+
+thread 'legacy_and_library_history_remain_in_place_and_opaque' (25941042) panicked at tests/act_storage.rs:215:5:
+assertion failed: identify_packages(&ws).unwrap().is_empty()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- observed_buffer_hash_and_fields_agree_after_controlled_file_replacement stdout ----
+
+thread 'observed_buffer_hash_and_fields_agree_after_controlled_file_replacement' (25941118) panicked at tests/act_storage.rs:558:9:
+assertion `left == right` failed
+  left: String("2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b")
+ right: "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+
+
+failures:
+    legacy_and_library_history_remain_in_place_and_opaque
+    observed_buffer_hash_and_fields_agree_after_controlled_file_replacement
+
+test result: FAILED. 19 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.36s
+
+error: test failed, to rerun pass `--test act_storage`

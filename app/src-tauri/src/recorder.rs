@@ -7,7 +7,9 @@
 //! `request_from_file`, ported.
 
 use crate::records::{self, APP_WRITER};
-use crate::util::{now_rfc3339, package_snapshot, FILE_IDENTITY_METHOD};
+use crate::util::{
+    now_rfc3339, package_snapshot, sha256_hex, FILE_IDENTITY_METHOD, LEGACY_FILE_IDENTITY_METHOD,
+};
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -80,6 +82,16 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
     if !limits.is_empty() {
         return Err(format!("incomplete record set: {limits:?}"));
     }
+    // Only the explicitly registered skeleton log has this known historical producer route.
+    // Reobserve its own exact-byte designation for discovery idempotence; never translate history
+    // into the selected method or claim comparable human-act standing.
+    let (legacy_entries, legacy_limits) =
+        records::read_log(&workspace.join(crate::storage::LEGACY_LOG));
+    if !legacy_limits.is_empty() {
+        return Err(format!(
+            "incomplete registered legacy record: {legacy_limits:?}"
+        ));
+    }
     // Repair a missing separate requester limit after an interrupted recorder append.
     for req in entries.iter().filter(|e| {
         e["kind"] == "act_request"
@@ -108,11 +120,24 @@ pub fn identify_packages(workspace: &Path) -> Result<Vec<Value>, String> {
         let Ok((pkg, identity)) = package_snapshot(&bytes) else {
             continue;
         };
-        let already = entries.iter().chain(written.iter()).any(|e| {
+        let same_current = entries.iter().chain(written.iter()).any(|e| {
             e["kind"] == "act_request"
-                && e["body"]["evidence"]["ref"] == json!(rel)
-                && e["body"]["evidence"]["claimedIdentity"] == json!(identity)
+                && e["body"]["form"] == "decision package file"
+                && e["body"]["evidence"]["ref"] == rel
+                && e["body"]["evidence"]["method"] == FILE_IDENTITY_METHOD
+                && e["body"]["evidence"]["claimedIdentity"] == identity
         });
+        // The original claimed value is compared as an opaque token under its own known method.
+        // No prefix is stripped, no historical identity is rewritten, and no unknown method is read.
+        let legacy_observation = format!("sha256:{}", sha256_hex(&bytes));
+        let same_registered_legacy = legacy_entries.iter().any(|e| {
+            e["kind"] == "act_request"
+                && e["body"]["form"] == "decision package file"
+                && e["body"]["evidence"]["ref"] == rel
+                && e["body"]["evidence"]["method"] == LEGACY_FILE_IDENTITY_METHOD
+                && e["body"]["evidence"]["claimedIdentity"] == legacy_observation
+        });
+        let already = same_current || same_registered_legacy;
         if already {
             continue;
         }

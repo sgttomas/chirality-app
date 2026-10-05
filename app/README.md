@@ -49,6 +49,11 @@ performed an act.
    at the App user-data `runtime/recovery.ledger.jsonl` path. Initialization errors
    remain visible without blocking native protocol processing or relocating data.
 
+11. Stored native history is read without making a thread operational. Explicit
+    Continue uses the latest validated native response and current generation.
+    Original role guidance is retained in memory for threads started here; missing
+    original guidance is shown as Unknown, independent of native role hints.
+
 ## Modules
 
 | Module | Contribution |
@@ -62,7 +67,8 @@ performed an act.
 | `src-tauri/src/storage.rs` | Selected project/run/writer and library paths, legacy discovery, atomic capture persistence and locking |
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `canonical.rs` | A16 offer/native binding, capture, trusted retry/backlink recovery and the designated offer digest |
-| `src-tauri/src/decision_view.rs` | Decision projection and provenance/reader limits |
+| `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
+| `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
 ## Offline build and checks
@@ -143,12 +149,14 @@ Unwritable or incomplete targets report limits without silent relocation.
 Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.
 Native authenticity, real process-kill/fsync failure witnesses, durable history
-rebuild/resume, role lifecycle/child supply, per-home configuration linking, other
+rebuild and cold role-source reconciliation, child role supply, per-home configuration linking, other
 act kinds and actual policy/standing control/reader joins remain in the Group A
 graph. Full workflow parsing awaits the exact CommonMark dependency decision;
 the handwritten subset is not production-complete. External dispatch and host
 qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
-provider prediction; physical App/provider smoke remains a separate witness. Host joins stay deferred to their owning sessions.
+provider prediction. A separately frozen controlled live backend greeting passed;
+its exact source pins and limits are recorded in the run. Physical App UI/IPC
+smoke remains a separate unfinished witness. Host joins stay deferred to their owning sessions.
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.

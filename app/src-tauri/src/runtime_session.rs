@@ -673,3 +673,384 @@ pub fn interrupt_conversation_turn(
     // A returned acknowledgment changes no turn/item state and implies no rollback.
     interrupt(generation, thread_id, turn_id)
 }
+
+
+/// Memory-only selected native history and original App role evidence. A history
+/// view is never an operational thread register or a trusted cold-replay source.
+#[derive(Default)]
+pub struct HistorySession {
+    history: Option<crate::native_history::NativeHistory>,
+    roles: crate::role_lifecycle::RoleBindings,
+    limits: Vec<String>,
+    dispatches: Vec<HistoryPending>,
+    starts: Vec<StartPending>,
+    closed_history_generations: Vec<Value>,
+    list_direction: Option<String>,
+    turn_direction: Option<String>,
+    item_direction: Option<String>,
+    item_turn: Option<String>,
+}
+struct HistoryPending {
+    receipt: crate::hosting::HistoryDispatch,
+    finished: bool,
+    evidence: Value,
+}
+struct StartPending {
+    receipt: crate::hosting::SourceRequest,
+    prepared: Option<crate::role_lifecycle::PreparedStart>,
+    finished: bool,
+    evidence: Value,
+}
+impl HistorySession {
+    pub fn synchronize(&mut self, host: &Value) {
+        let generation = &host["generation"];
+        if self
+            .history
+            .as_ref()
+            .map(|h| h.generation() != generation || host["state"] != "ready")
+            .unwrap_or(false)
+        {
+            if let Some(mut old) = self.history.take() {
+                let old_generation = old.generation().clone();
+                let _ = old.close_generation(&old_generation);
+                if !self.closed_history_generations.contains(&old_generation) {
+                    self.closed_history_generations.push(old_generation);
+                }
+            }
+            self.limits.push("History receiving generation ended; pages discarded. Original role evidence is memory-only; cold replay is unknown.".into());
+        }
+        if host["state"] == "ready"
+            && self.history.is_none()
+            && !self.closed_history_generations.contains(generation)
+        {
+            if let Some(home) = generation["home"].as_str() {
+                match crate::native_history::NativeHistory::new(home, generation.clone()) {
+                    Ok(history) => self.history = Some(history),
+                    Err(error) => self.limits.push(error),
+                }
+            }
+        }
+    }
+    fn scoped(
+        &mut self,
+        host: &Value,
+        generation: &Value,
+        epoch: u64,
+    ) -> Result<&mut crate::native_history::NativeHistory, String> {
+        self.synchronize(host);
+        if host["state"] != "ready" || &host["generation"] != generation {
+            return Err("History action belongs to a non-ready or changed Host generation".into());
+        }
+        let history = self
+            .history
+            .as_mut()
+            .ok_or("History receiving scope unavailable")?;
+        if history.generation() != generation || history.selection_epoch() != epoch {
+            return Err(
+                "History generation or selected-thread epoch changed; refresh and select again"
+                    .into(),
+            );
+        }
+        Ok(history)
+    }
+    pub fn select(
+        &mut self,
+        host: &Value,
+        generation: &Value,
+        epoch: u64,
+        thread: &str,
+    ) -> Result<(), String> {
+        self.scoped(host, generation, epoch)?.select(thread)?;
+        self.turn_direction = None;
+        self.item_direction = None;
+        self.item_turn = None;
+        Ok(())
+    }
+    pub fn prepare(
+        &mut self,
+        host: &Value,
+        generation: &Value,
+        epoch: u64,
+        action: &str,
+        cursor: Option<&str>,
+        direction: crate::native_history::Direction,
+        reference: Option<&str>,
+    ) -> Result<crate::native_history::HistoryQuery, String> {
+        let history = self.scoped(host, generation, epoch)?;
+        match action {
+            "list" => history.list_threads(cursor, direction),
+            "metadata" => history.read_metadata(),
+            "turns" => history.turns_page(cursor, direction),
+            "items" => history.items_page(
+                reference.ok_or("Select a received turn")?,
+                cursor,
+                direction,
+            ),
+            "goal" => history.read_goal(),
+            "child" => history.read_child(reference.ok_or("Select a received child")?),
+            "continue" => history.continue_query(),
+            _ => Err("Unsupported history action".into()),
+        }
+    }
+    pub fn dispatched(&mut self, receipt: crate::hosting::HistoryDispatch) {
+        self.dispatches.push(HistoryPending {
+            evidence: receipt_summary(&receipt.evidence()),
+            receipt,
+            finished: false,
+        });
+    }
+    pub fn start_dispatched(
+        &mut self,
+        receipt: crate::hosting::SourceRequest,
+        composition: &crate::role_supply::Composition,
+        supply_ref: &str,
+    ) -> Result<(), String> {
+        let e = receipt.evidence();
+        let prepared = crate::role_lifecycle::PreparedStart::new(
+            e["home"].as_str().ok_or("start home absent")?,
+            e["generation"].clone(),
+            e["requestIdentity"].clone(),
+            e["requestRef"]
+                .as_str()
+                .ok_or("start request reference absent")?,
+            supply_ref,
+            composition,
+        )?;
+        self.starts.push(StartPending {
+            receipt,
+            prepared: Some(prepared),
+            finished: false,
+            evidence: receipt_summary(&e),
+        });
+        Ok(())
+    }
+    /// Only private Host receipts select responses. Renderer JSON cannot supply
+    /// receipt/source evidence or original role buffers. Waiting never resends.
+    pub fn reconcile(&mut self, host: &crate::hosting::Host) {
+        self.synchronize(&host.snapshot());
+        for pending in &mut self.starts {
+            if pending.finished {
+                continue;
+            }
+            let status = match host.source_request_status(&pending.receipt) {
+                Ok(status) => status,
+                Err(error) => {
+                    self.limits.push(error);
+                    continue;
+                }
+            };
+            pending.evidence = receipt_summary(&status);
+            if status["sourceCurrent"] != true {
+                pending.finished = true;
+                continue;
+            }
+            if status["writeResult"] != "written" || status["response"].is_null() {
+                continue;
+            }
+            pending.finished = true;
+            if status["outcome"] != "response-observed-result" {
+                continue;
+            }
+            let Some(prepared) = pending.prepared.take() else {
+                continue;
+            };
+            match prepared.observe(
+                &status["generation"],
+                &status["sentFrame"],
+                &status["response"],
+            ) {
+                Ok(binding) => match host.thread_start_dispatch_finish(&pending.receipt) {
+                    Ok(_) => {
+                        pending.evidence["activeAdmission"] = json!(true);
+                        if let Err(error) = self.roles.insert(binding) {
+                            self.limits.push(error);
+                        }
+                    }
+                    Err(error) => self.limits.push(error),
+                },
+                Err(error) => self
+                    .limits
+                    .push(format!("Original role binding refused: {error}")),
+            }
+        }
+        for pending in &mut self.dispatches {
+            if pending.finished {
+                continue;
+            }
+            let status = match host.history_dispatch_status(&pending.receipt) {
+                Ok(status) => status,
+                Err(error) => {
+                    self.limits.push(error);
+                    continue;
+                }
+            };
+            pending.evidence = receipt_summary(&status);
+            pending.evidence["localQuery"] = json!(pending.receipt.query());
+            if status["sourceCurrent"] != true {
+                pending.finished = true;
+                continue;
+            }
+            let Some(history) = self.history.as_mut() else {
+                continue;
+            };
+            if history.generation() != pending.receipt.query().generation() {
+                pending.finished = true;
+                continue;
+            }
+            if status["waitingEnded"] == true {
+                let _ = history.waiting_ended(pending.receipt.query());
+            }
+            if status["writeResult"] != "written" || status["response"].is_null() {
+                continue;
+            }
+            pending.finished = true;
+            let result = if status["outcome"] == "response-observed-result" {
+                history.receive(
+                    pending.receipt.query(),
+                    status["home"].as_str().unwrap_or(""),
+                    &status["generation"],
+                    &status["response"]["result"],
+                )
+            } else {
+                history.receive_error(
+                    pending.receipt.query(),
+                    status["home"].as_str().unwrap_or(""),
+                    &status["generation"],
+                    &status["response"]["error"],
+                )
+            };
+            if let Err(error) = result {
+                self.limits
+                    .push(format!("History receiving refused: {error}"));
+                continue;
+            }
+            if status["outcome"] == "response-observed-result" {
+                let params = pending.receipt.query().params();
+                let direction = params["sortDirection"].as_str().map(str::to_owned);
+                match pending.receipt.query().method() {
+                    "thread/list" => self.list_direction = direction,
+                    "thread/turns/list" => self.turn_direction = direction,
+                    "thread/items/list" => {
+                        self.item_direction = direction;
+                        self.item_turn = params["turnId"].as_str().map(str::to_owned);
+                    }
+                    _ => (),
+                }
+            }
+            if pending.receipt.query().method() == "thread/resume"
+                && status["outcome"] == "response-observed-result"
+            {
+                // Known original bindings are checked against this exact metadata-only
+                // resume; an absent binding stays Unknown and does not prevent native use.
+                if let Some(thread) = history.selected_thread() {
+                    if let Some(binding) = self.roles.get(history.home(), thread) {
+                        let observed = binding
+                            .resume(
+                                history.home(),
+                                status["generation"].clone(),
+                                status["requestIdentity"].clone(),
+                                status["requestRef"].as_str().unwrap_or(""),
+                            )
+                            .and_then(|request| {
+                                request.observe(
+                                    &status["generation"],
+                                    &status["sentFrame"],
+                                    &status["response"],
+                                )
+                            });
+                        if let Err(error) = observed {
+                            self.limits
+                                .push(format!("Original resume role evidence refused: {error}"));
+                            continue;
+                        }
+                    }
+                }
+                match host.history_admit_resume(history, &pending.receipt) {
+                    Ok(admission) => pending.evidence["activeAdmission"] = admission,
+                    Err(error) => self
+                        .limits
+                        .push(format!("Continue active admission refused: {error}")),
+                }
+            }
+        }
+    }
+    pub fn start_admitted(&self, receipt: &crate::hosting::SourceRequest) -> bool {
+        self.starts.iter().any(|p| {
+            p.receipt.request_ref() == receipt.request_ref()
+                && p.evidence["activeAdmission"] == true
+        })
+    }
+    pub fn history(&self) -> Option<&crate::native_history::NativeHistory> {
+        self.history.as_ref()
+    }
+    pub fn history_mut(&mut self) -> Option<&mut crate::native_history::NativeHistory> {
+        self.history.as_mut()
+    }
+    pub fn bind(&mut self, binding: crate::role_lifecycle::RoleBinding) -> Result<(), String> {
+        self.roles.insert(binding)
+    }
+    pub fn role(&self, home: &str, thread: &str) -> Value {
+        json!(self.roles.selected_role(home, thread))
+    }
+    pub fn binding(&self, home: &str, thread: &str) -> Option<&crate::role_lifecycle::RoleBinding> {
+        self.roles.get(home, thread)
+    }
+    pub fn role_details(&self, home: &str, thread: &str, root: Option<&std::path::Path>) -> Value {
+        let Some(binding) = self.binding(home, thread) else {
+            return json!({"appRole":self.role(home,thread),"futureGuidanceNotices":[]});
+        };
+        let mut current = std::collections::BTreeMap::new();
+        let read = |path: &str, default| match root {
+            Some(root) => {
+                crate::role_supply::Guidance::read_seeded(root, path, INSTRUCTION_RELEASE, default)
+                    .map(|g| g.bytes().to_vec())
+            }
+            None => Err("App instruction root unavailable; current guidance not read".into()),
+        };
+        current.insert("AGENTS.md".into(), read("AGENTS.md", COMMON_DEFAULT));
+        for role in crate::role_supply::Role::ALL {
+            current.insert(
+                format!("agents/AGENT_{}.md", role.name()),
+                read(
+                    &format!("agents/AGENT_{}.md", role.name()),
+                    role_default(role),
+                ),
+            );
+        }
+        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"futureGuidanceNotices":binding.changes(&current)})
+    }
+    pub fn snapshot(&self, instruction_root: Option<&std::path::Path>) -> Value {
+        let Some(history) = self.history.as_ref() else {
+            return json!({"state":"unavailable","limits":self.limits,"durableNativeData":false});
+        };
+        let mut view = history.snapshot();
+        view["selectionEpoch"] = json!(history.selection_epoch());
+        view["listDirection"] = json!(self.list_direction);
+        view["receivingLimits"] = json!(self.limits);
+        view["dispatches"] = json!(self
+            .dispatches
+            .iter()
+            .map(|p| &p.evidence)
+            .collect::<Vec<_>>());
+        view["startReceipts"] = json!(self.starts.iter().map(|p| &p.evidence).collect::<Vec<_>>());
+        for row in view["threads"].as_array_mut().into_iter().flatten() {
+            if let Some(thread) = row["native"]["id"].as_str() {
+                row["appRole"] = self.role(history.home(), thread);
+            }
+        }
+        if let Some(thread) = history.selected_thread() {
+            view["selected"]["turnDirection"] = json!(self.turn_direction);
+            view["selected"]["itemDirection"] = json!(self.item_direction);
+            view["selected"]["itemTurnId"] = json!(self.item_turn);
+            view["selected"]["appRole"] = self.role(history.home(), thread);
+            let details = self.role_details(history.home(), thread, instruction_root);
+            view["selected"]["originalRoleSupply"] = details["originalRoleSupply"].clone();
+            view["selected"]["futureGuidanceNotices"] = details["futureGuidanceNotices"].clone();
+        }
+        view
+    }
+}
+
+fn receipt_summary(e: &Value) -> Value {
+    json!({"generation":e["generation"],"home":e["home"],"requestIdentity":e["requestIdentity"],"requestRef":e["requestRef"],"writeResult":e["writeResult"],"outcome":e["outcome"],"waitingEnded":e["waitingEnded"],"sourceCurrent":e["sourceCurrent"],"writeError":e["writeError"]})
+}

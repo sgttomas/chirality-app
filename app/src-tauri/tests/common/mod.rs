@@ -13,9 +13,20 @@ impl ScratchDirectory {
             .arg(&template)
             .output()
             .expect("mktemp must be available for the scratch directory");
-        assert!(out.status.success(), "mktemp failed: {}", String::from_utf8_lossy(&out.stderr));
-        let path = PathBuf::from(String::from_utf8(out.stdout).expect("mktemp path is UTF-8").trim());
-        assert!(path.is_absolute() && path.is_dir(), "mktemp must return an absolute directory");
+        assert!(
+            out.status.success(),
+            "mktemp failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let path = PathBuf::from(
+            String::from_utf8(out.stdout)
+                .expect("mktemp path is UTF-8")
+                .trim(),
+        );
+        assert!(
+            path.is_absolute() && path.is_dir(),
+            "mktemp must return an absolute directory"
+        );
         // Codex reports its home canonically, including platform temp-root symlinks.
         Self(std::fs::canonicalize(path).expect("scratch directory resolves"))
     }
@@ -23,7 +34,9 @@ impl ScratchDirectory {
 
 impl Deref for ScratchDirectory {
     type Target = Path;
-    fn deref(&self) -> &Path { &self.0 }
+    fn deref(&self) -> &Path {
+        &self.0
+    }
 }
 
 impl Drop for ScratchDirectory {

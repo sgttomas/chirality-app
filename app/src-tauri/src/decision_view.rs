@@ -4,8 +4,10 @@
 //! behaviour. A port of the Pass 4 prototype `E/decision_view.py`. It reads the RS
 //! log and the package files the records cite; it writes nothing (DV-9).
 
+use crate::act_policy::ContentIdentity;
 use crate::records;
-use crate::util::file_identity;
+use crate::standing::{compare, CurrentContent, Lapse};
+use crate::util::{sha256_hex, FILE_IDENTITY_METHOD};
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -27,6 +29,99 @@ pub fn person_label(p: &Value) -> String {
     } else {
         format!("{who} ({PERSON_WORDING})")
     }
+}
+
+/// One coherent current buffer; no record, capture, or native-origin admission.
+struct FileObservation {
+    identity: Option<ContentIdentity>,
+    absent: bool,
+}
+fn observe_file(root: &Path, reference: &str, limits: &mut Vec<String>) -> FileObservation {
+    let rel = Path::new(reference);
+    if reference.is_empty()
+        || rel.is_absolute()
+        || rel
+            .components()
+            .any(|c| !matches!(c, std::path::Component::Normal(_)))
+    {
+        limits.push(
+            "package file reference is not a contained relative path; content not observed".into(),
+        );
+        return FileObservation {
+            identity: None,
+            absent: false,
+        };
+    }
+    let path = root.join(rel);
+    if let Err(e) = crate::storage::check_path(&path) {
+        limits.push(format!("package file content not observed: {e}"));
+        return FileObservation {
+            identity: None,
+            absent: false,
+        };
+    }
+    match std::fs::read(path) {
+        Ok(bytes) => FileObservation {
+            identity: Some(ContentIdentity {
+                method: FILE_IDENTITY_METHOD.into(),
+                value: sha256_hex(&bytes),
+            }),
+            absent: false,
+        },
+        Err(e) => FileObservation {
+            identity: None,
+            absent: e.kind() == std::io::ErrorKind::NotFound,
+        },
+    }
+}
+fn identity(value: &Value) -> ContentIdentity {
+    ContentIdentity {
+        method: value["method"].as_str().unwrap_or("").into(),
+        value: value["value"].as_str().unwrap_or("").into(),
+    }
+}
+fn label(state: Lapse) -> &'static str {
+    match state {
+        Lapse::NotLapsed => "not lapsed",
+        Lapse::Lapsed => "lapsed — the package changed after the decision",
+        Lapse::SubjectAbsent => "lapsed (subject absent)",
+        Lapse::MatchesAgainAfterLapse => "matches c0 again after observed lapse",
+        Lapse::Incomparable => "unknown (incomparable)",
+        Lapse::Unavailable => "unknown (unavailable)",
+        Lapse::NotEvaluated => "not yet evaluated",
+    }
+}
+/// Recorded lapse observations are claims too. Match the exact act, kind,
+/// referent and original method/value; another act/package supplies no history.
+fn lapse_history<'a>(
+    entries: &'a [Value],
+    act_id: &str,
+    subject: &str,
+    bound: &ContentIdentity,
+) -> Vec<&'a Value> {
+    entries
+        .iter()
+        .filter(|e| {
+            let b = &e["body"];
+            e["kind"] == "act_lapsed"
+                && b["act"]["recordId"] == act_id
+                && b["act"]["actKind"] == "A16"
+                && b["referents"]
+                    .as_array()
+                    .is_some_and(|v| v.len() == 1 && v[0] == subject)
+                && identity(&b["c0"]) == *bound
+                && match b["state"].as_str() {
+                    Some("lapsed" | "partially lapsed") => {
+                        let changed = identity(&b["c1"]);
+                        changed.method == bound.method
+                            && !changed.value.is_empty()
+                            && changed.value != bound.value
+                    }
+                    Some("lapsed (subject absent)") => b["c1"] == "subject absent",
+                    _ => false,
+                }
+        })
+        .collect()
 }
 
 pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
@@ -89,16 +184,27 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         }
         // DV-3
         let file_ref = b["evidence"]["ref"].as_str().unwrap_or("");
-        let now = file_identity(&root.join(file_ref));
-        let recorded = b["evidence"]["claimedIdentity"].as_str();
-        match (&now, recorded) {
-            (None, _) => {
-                row_limits.push("package file not available: its current content is unknown".into())
-            }
-            (Some(n), Some(r)) if n != r => {
-                row_limits.push("package file differs from the content the request recorded".into())
-            }
-            _ => {}
+        let now = observe_file(root, file_ref, &mut row_limits);
+        let requested = ContentIdentity {
+            method: b["evidence"]["method"].as_str().unwrap_or("").into(),
+            value: b["evidence"]["claimedIdentity"]
+                .as_str()
+                .unwrap_or("")
+                .into(),
+        };
+        let request_state = compare(
+            &requested,
+            now.identity
+                .as_ref()
+                .map(CurrentContent::Present)
+                .unwrap_or(CurrentContent::Unavailable),
+            false,
+        );
+        match request_state {
+            Lapse::Unavailable => row_limits.push("package file not available: its current content is unknown".into()),
+            Lapse::Incomparable => row_limits.push("package request identity method is incomparable with current observed method; historical identities are not relabelled".into()),
+            Lapse::Lapsed => row_limits.push("package file differs from the content the request recorded".into()),
+            _ => {},
         }
         // DV-4, DV-5
         let mut decided: Vec<&Value> = Vec::new();
@@ -155,14 +261,56 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         if let Some(a) = current.last() {
             let ab = &a["body"];
             let chosen = ab["relations"]["alternativeChosen"].as_str().unwrap_or("");
-            let bound = ab["boundContent"][0]["value"].as_str();
-            // DV-7
-            let lapse = match (&now, bound) {
-                (None, _) => "unknown (unavailable)",
-                (Some(n), Some(bv)) if n == bv => "not lapsed",
-                _ => "lapsed — the package changed after the decision",
-            };
+            let bound = identity(&ab["boundContent"][0]);
             let arid = a["recordId"].as_str().unwrap_or("");
+            let expected_subject = format!("decision package {pid}");
+            let expected_scope = b["scope"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .unwrap_or("not named by the package");
+            let same_subject_scope = ab["actKind"] == "A16"
+                && ab["boundSubject"]
+                    .as_array()
+                    .is_some_and(|v| v.len() == 1 && v[0] == expected_subject)
+                && ab["boundContent"].as_array().is_some_and(|v| v.len() == 1)
+                && ab["scope"] == expected_scope
+                && ab["purpose"] == b["purpose"];
+            let history = lapse_history(&entries, arid, &expected_subject, &bound);
+            for e in entries.iter().filter(|e| {
+                e["kind"] == "act_lapsed"
+                    && e["body"]["act"]["recordId"] == arid
+                    && matches!(
+                        e["body"]["state"].as_str(),
+                        Some("lapsed" | "lapsed (subject absent)" | "partially lapsed")
+                    )
+            }) {
+                if !history.iter().any(|accepted| std::ptr::eq(*accepted, e)) {
+                    row_limits.push(format!("{}: recorded lapse observation does not establish a comparable change on this bound referent; not used as lapse history", e["recordId"].as_str().unwrap_or("?")));
+                }
+            }
+            let state = if !same_subject_scope {
+                row_limits.push("recorded act subject/scope/purpose does not match this package request; standing incomparable".into());
+                Lapse::Incomparable
+            } else {
+                let current = if let Some(c) = now.identity.as_ref() {
+                    CurrentContent::Present(c)
+                } else if now.absent {
+                    CurrentContent::Absent
+                } else {
+                    CurrentContent::Unavailable
+                };
+                compare(&bound, current, !history.is_empty())
+            };
+            if state == Lapse::Incomparable {
+                row_limits.push("recorded act and current file identity are incomparable; no lapse or current human-act standing established".into());
+            }
+            if !history.is_empty() {
+                row_limits.push(
+                    "lapse history is a recorded observation claim; native origin not verified"
+                        .into(),
+                );
+            }
+            let lapse = label(state);
             row["state"] = json!("decided");
             row["decision"] = json!({
                 "act": arid,
@@ -177,6 +325,9 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
                 "captureEvidence": ab["captureEvidence"].as_array().map(|c| c.iter().map(|x| x["ref"].clone()).collect::<Vec<_>>()),
                 "capturedAt": ab["captureTime"],
                 "lapse": lapse,
+                "standingComparison": {"bound": ab["boundContent"][0], "current": now.identity.as_ref().map(|c| json!({"method":c.method,"value":c.value})), "recordedSubjectScopeMatchesRequest": same_subject_scope},
+                "lapseHistory": history.iter().map(|e| e["recordId"].clone()).collect::<Vec<_>>(),
+                "lapseHistoryProvenance": "recorded observations; native origin not verified",
                 "earlierActs": decided.iter().filter(|x| x["recordId"] != a["recordId"]).map(|x| {
                     let xid = x["recordId"].as_str().unwrap_or("");
                     json!({"act": xid,

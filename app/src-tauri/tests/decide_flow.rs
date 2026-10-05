@@ -19,7 +19,9 @@ use chirality_app_v4_lib::canonical::offer_digest;
 use chirality_app_v4_lib::decision_view::derive;
 use chirality_app_v4_lib::recorder::{identify_packages, LOG};
 use chirality_app_v4_lib::records::read_log;
-use chirality_app_v4_lib::util::sha256_hex;
+use chirality_app_v4_lib::util::{sha256_hex, LEGACY_FILE_IDENTITY_METHOD};
+
+const SELECTED_FILE_METHOD: &str = "chirality.app.exact-bytes.sha256/v1";
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -83,7 +85,7 @@ fn hashes(root: &Path) -> Vec<(String, String)> {
 
 #[test]
 fn view_model_reads_the_pass4_fixture() {
-    // The Pass 4 decision view's result on FX-DP1, reproduced by this view model.
+    // Preserve Pass 4 recorded claims; selected current methods do not relabel old identities.
     let before = hashes(&fixture());
     let v = derive(&fixture(), &["records/coordination.rs.jsonl"]);
     assert_eq!(hashes(&fixture()), before, "DV-9: deriving writes nothing");
@@ -91,7 +93,19 @@ fn view_model_reads_the_pass4_fixture() {
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0]["state"], "decided");
     assert_eq!(rows[0]["decision"]["alternativeChosen"], "ALT-2");
-    assert_eq!(rows[0]["decision"]["lapse"], "not lapsed");
+    assert_eq!(rows[0]["decision"]["lapse"], "unknown (incomparable)");
+    assert_eq!(
+        rows[0]["decision"]["standingComparison"]["bound"],
+        fixture_log()[2]["body"]["boundContent"][0]
+    );
+    assert_eq!(
+        rows[0]["decision"]["standingComparison"]["bound"]["method"],
+        LEGACY_FILE_IDENTITY_METHOD
+    );
+    assert_eq!(
+        rows[0]["decision"]["standingComparison"]["current"],
+        json!({"method":SELECTED_FILE_METHOD,"value":sha256_hex(&std::fs::read(fixture().join("project/decisions/PKG-1.json")).unwrap())})
+    );
     assert_eq!(
         rows[0]["decision"]["decidedBy"],
         "Engineer A / enga (identity not verified)"
@@ -102,9 +116,13 @@ fn view_model_reads_the_pass4_fixture() {
     );
     // PKG-2 stays pending although the agent's message claims a decision (CAP-7, DV inputs).
     assert_eq!(rows[1]["state"], "pending — awaiting the person's decision");
-    assert!(rows
-        .iter()
-        .all(|r| r["limits"].as_array().unwrap().is_empty()));
+    assert_eq!(rows[0]["limits"],json!([
+        "package request identity method is incomparable with current observed method; historical identities are not relabelled",
+        "recorded act and current file identity are incomparable; no lapse or current human-act standing established"
+    ]));
+    assert_eq!(rows[1]["limits"],json!([
+        "package request identity method is incomparable with current observed method; historical identities are not relabelled"
+    ]));
 }
 
 #[test]
@@ -129,10 +147,28 @@ fn person_decides_a_package_and_the_view_shows_it() {
     assert_eq!(reqs.len(), 2);
     for (mine, theirs) in reqs.iter().zip(fx.iter().take(2)) {
         assert!(mine["recordId"].as_str().unwrap().starts_with("rec:app:"));
+        let bytes =
+            std::fs::read(ws.join(mine["body"]["evidence"]["ref"].as_str().unwrap())).unwrap();
+        let exact_digest = sha256_hex(&bytes);
+        assert_eq!(mine["body"]["evidence"]["method"], SELECTED_FILE_METHOD);
+        assert_eq!(mine["body"]["evidence"]["claimedIdentity"], exact_digest);
         assert_eq!(
-            without(&mine["body"], &["time", "requester"]),
-            without(&theirs["body"], &["time", "requester"]),
-            "act_request body equals Pass 4's, apart from time and requester identity"
+            theirs["body"]["evidence"]["method"],
+            LEGACY_FILE_IDENTITY_METHOD
+        );
+        assert_eq!(
+            theirs["body"]["evidence"]["claimedIdentity"],
+            format!("sha256:{exact_digest}")
+        );
+        assert_eq!(
+            without(&mine["body"]["evidence"], &["method", "claimedIdentity"]),
+            without(&theirs["body"]["evidence"], &["method", "claimedIdentity"]),
+            "evidence reference/shape is preserved while methods remain distinct"
+        );
+        assert_eq!(
+            without(&mine["body"], &["time", "requester", "evidence"]),
+            without(&theirs["body"], &["time", "requester", "evidence"]),
+            "remaining act_request body equals Pass 4's, apart from time and requester identity"
         );
     }
     assert!(
@@ -155,11 +191,31 @@ fn person_decides_a_package_and_the_view_shows_it() {
     let fx_offer: Value =
         serde_json::from_slice(&std::fs::read(fixture().join("aac/offer-PKG-1.json")).unwrap())
             .unwrap();
-    let skip = ["offerId", "composedAt", "offerDigest", "requestRef"];
+    let exact_digest = sha256_hex(&std::fs::read(ws.join("project/decisions/PKG-1.json")).unwrap());
+    assert_eq!(
+        offer["subject"]["contentIdentity"],
+        json!({"method":SELECTED_FILE_METHOD,"value":exact_digest})
+    );
+    assert_eq!(
+        fx_offer["subject"]["contentIdentity"],
+        json!({"method":LEGACY_FILE_IDENTITY_METHOD,"value":format!("sha256:{exact_digest}")})
+    );
+    assert_eq!(
+        without(&offer["subject"], &["contentIdentity"]),
+        without(&fx_offer["subject"], &["contentIdentity"]),
+        "same package subject; historical identity is not relabelled"
+    );
+    let skip = [
+        "offerId",
+        "composedAt",
+        "offerDigest",
+        "requestRef",
+        "subject",
+    ];
     assert_eq!(
         without(&offer, &skip),
         without(&fx_offer, &skip),
-        "offer equals Pass 4's, apart from id, time, digest"
+        "remaining offer shape equals Pass 4's, apart from id, time, digest and request reference"
     );
     assert_eq!(
         offer_digest(&offer).unwrap(),
@@ -222,7 +278,17 @@ fn person_decides_a_package_and_the_view_shows_it() {
     assert_eq!(rec["seq"], 5);
     assert_eq!(cap["recordId"], rec["recordId"]);
     let fx_act = &fx[2];
+    assert_eq!(
+        rec["body"]["boundContent"],
+        json!([{"method":SELECTED_FILE_METHOD,"value":exact_digest}])
+    );
+    assert_eq!(cap["boundContent"], rec["body"]["boundContent"]);
+    assert_eq!(
+        fx_act["body"]["boundContent"],
+        json!([{"method":LEGACY_FILE_IDENTITY_METHOD,"value":format!("sha256:{exact_digest}")}])
+    );
     let bskip = [
+        "boundContent",
         "captureEvidence",
         "captureTime",
         "relations",
@@ -243,7 +309,7 @@ fn person_decides_a_package_and_the_view_shows_it() {
     assert_eq!(
         without(&rec["body"], &bskip),
         without(&fx_act["body"], &bskip),
-        "human_act body equals Pass 4's, apart from capture ref and time"
+        "remaining human_act body equals Pass 4's; selected and historical boundContent were checked separately"
     );
     assert_eq!(rec["recorder"], fx_act["recorder"]);
     // A second capture from the same offer is refused.

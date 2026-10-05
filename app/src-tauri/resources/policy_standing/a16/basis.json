@@ -1,0 +1,85 @@
+{
+  "consultation": "Prior Root/TASK/LOOP and review context retained. ACT/AS/RS consumed bounded actual method/standing/custody sections, not a broader audit. Shared module snapshots identify compilation inputs, not acceptance.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "45c23cf477e23aff1d0152189caf7e8ebfb53eca42e3a1fae87a06af8c197f28"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V2-I3-POLICY-R1.md",
+      "sha256": "bf2558fa64dfe86bc009d05264e38728acbeede27eedaa73213a8feea82d1411"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Design/ACT_AND_POLICY_CONTRACT.md",
+      "sha256": "597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Design/AUTONOMY_AND_STANDING_EXCHANGE.md",
+      "sha256": "4eca598f13c8c0745f94c605b8940a094b55e57b9f7478c989824af229085857"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "sha256": "afcba32a9971f495163487064b7cc2afecf66daeb3d2837a304a6714a7b9ffbd"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/standing.rs",
+      "sha256": "87edd37211105db262c0404c929c6556511cd341e13b8aee23338c19e97393f9"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/act_policy.rs",
+      "sha256": "96a6d9d2b9a24ca1dcf17f05e62942fb44c2331531813b0f33c87e877ca7188b"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/act_control.rs",
+      "sha256": "1d55ff94ad08cf17673dfdae9a16e5ca7d9a98f52a1fe99a9f6101ea30a8876e"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/records.rs",
+      "sha256": "cc61f735ab8dfa987081b5f50d37bd0a8b93c340c80cc5bd72266a307c588fea"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/recorder.rs",
+      "sha256": "96e6c17a34aae58928d7f9339b5e5af7205265c856fc8dd077253ae8f9604ad4"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/storage.rs",
+      "sha256": "ae8439c47b86a3225bf46e893bfa1159a2189d0cc8579692d468a78ea9267d77"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/schema_validation.rs",
+      "sha256": "42545d9d544f0a8ac7be84814bc9285d987888e6c7ef2ca0201041458c2eb3a9"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "e1897437ab1c7f07c823d892e2c8102d4370503deb7745eed531f930fdf8e7e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/RS_RECORD.schema.json",
+      "sha256": "c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/schemas/checkpoint-record-entries.schema.json",
+      "sha256": "00d5203a2fa9d099b25f2f8da5732f2d869a18fd0846ebe33d25c9ae2ae135d3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/Cargo.lock",
+      "sha256": "2fad2d658b3ffaf7b3973d5ab7da693788613f7462eaeca9d4b6b9ad826f7012"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/tests/decide_flow.rs",
+      "sha256": "19fbab599c4d1726ed9c35735b289375979d2dac76dfc1519787274eef511528"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/tests/act_storage.rs",
+      "sha256": "f66187eea1c9e7a60c9224a332a3ab7caffa6933d42e741ff227eb76002260bc"
+    }
+  ]
+}

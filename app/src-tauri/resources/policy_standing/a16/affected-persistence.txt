@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (projects/chirality-app-v4/app/src-tauri/target/debug/deps/chirality_app_v4_lib-bd9e3d5c7d3fb158)
+
+running 3 tests
+test act_control::persistence_tests::capture_directory_failure_precedes_writer_reservation_then_hot_retry_accounts_delay ... ok
+test act_control::persistence_tests::existing_match_directory_sync_failure_holds_backlink_until_publication_durable ... ok
+test act_control::persistence_tests::equal_observed_times_keep_writer_admission_order_at_fresh_append_and_refresh ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 55 filtered out; finished in 0.96s
+

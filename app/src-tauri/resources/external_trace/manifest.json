@@ -1,0 +1,52 @@
+[
+  {
+    "file": "xt-work-account.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Design/xt-work-account.schema.json",
+    "sha256": "ffe112712ce9a1e4383f37c0f2614496dda709f4bb6fe5f92230403db332a2b2"
+  },
+  {
+    "file": "xt-result-record.example.valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Design/xt-result-record.example.valid.json",
+    "sha256": "d3d77934d739fbf4afbd3b05c2f98b26aaaf6436e785c2b525db1949aabcc2f8"
+  },
+  {
+    "file": "xt-work-account.example.valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Design/xt-work-account.example.valid.json",
+    "sha256": "5aa22b7b4ec84a2d46d8a2efbbffb0ca8b9e3e382e6d9f6ba6a2783f01be0380"
+  },
+  {
+    "file": "xt-work-account.example.invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Design/xt-work-account.example.invalid.json",
+    "sha256": "bdc743331c8d3ba72b518a5bb63ee4db2de28841bca1fa853c2e0b20a771eae4"
+  },
+  {
+    "file": "xt-result-record.example.invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Design/xt-result-record.example.invalid.json",
+    "sha256": "e240b41f60a103246992c93c0650e8ae0a25a9eb742db5c3c257914f87f83f48"
+  },
+  {
+    "file": "xt-result-record.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Design/xt-result-record.schema.json",
+    "sha256": "3b0ff2bbd1da8dab61147218b6c512146b58b4dc13eea6a2b1c60f7c5b697b4b"
+  },
+  {
+    "file": "exam.result-record.invalid.examples.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.invalid.examples.json",
+    "sha256": "c4f15c47ac7d5f4345272664ae979c26e1086eb2a946c9d99f6afc3ddaee8772"
+  },
+  {
+    "file": "exam.result-record.valid.examples.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.valid.examples.json",
+    "sha256": "fcbd53d8936b9c73d8177a403795e438aab9dbc5e71b32f7f87ef4b121bec72e"
+  },
+  {
+    "file": "exam.result-record.rule-violations.examples.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.rule-violations.examples.json",
+    "sha256": "55bc7c85bb61af3d50f170b5af47b6069631bb6ba981c943f20e84e4d03390fe"
+  },
+  {
+    "file": "exam.result-record.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+    "sha256": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+  }
+]
