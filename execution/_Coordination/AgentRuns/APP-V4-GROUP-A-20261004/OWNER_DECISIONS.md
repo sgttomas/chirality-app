@@ -55,3 +55,20 @@ owner resumes parser integration only after that actual result; this authorizes
 only these files/scoped integration, not broader downloads, native/model calls
 or final workflow/gate acceptance. Orchestration descendants remain
 `gpt-6.1-sol` / `medium`.
+
+## Desktop-update resume — 2026-10-05
+
+Actual owner act, relayed by HELP_HUMAN `/root` in the active chat: **“resume”**. This ends the graceful execution pause; it does not approve the pending CI bootstrap exception, SEAL-2 or exact unsigned UI launch. Starting clean/pushed checkpoint is `f480d8c10353dd3172650647f30d670bb4dfab93`. Parent reconfirmed cache/target/stock0.160 availability and no resource reservation.
+
+WORKING_ITEMS reread Root AGENTS, active WORKING_ITEMS role, LOOP_INIT, manual-editions README, saved PAUSE_HANDOFF, and selected bundled coordinated-knowledge-work/construct-local-work-graph entries. Earlier full Field Book/headings and governing source readings remain applicable at unchanged editions; parent additionally reread full Field Book, User Manual headings and §§2/18. Parent supplied unchanged reading fingerprints and no new B/C/D/E graph. Actual roster after restart contained only root and WORKING_ITEMS; replacement native descendants were spawned with gpt-6.1-sol/medium and fork none: `namespace_guard_review_resume` (fixed guard review), `access_consumer_resume` (sole shared Root receiving writer), `runtime_core_resume` (PG-1 Probe adapter diagnosis/repair). No historical agent identity is claimed. Full launch briefs/returns remain in native task history, this run's bounded records and current graph.
+
+Refreshed direct reading fingerprints:
+- `AGENTS.md`: `f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977`
+- `agents/AGENT_WORKING_ITEMS.md`: `9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665`
+- `projects/chirality-app-v4/loop/LOOP_INIT.md`: `45c23cf477e23aff1d0152189caf7e8ebfb53eca42e3a1fae87a06af8c197f28`
+- `workflows/coordinated-knowledge-work/WORKFLOW.md`: `44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18`
+- `workflows/construct-local-work-graph/WORKFLOW.md`: `fa04e1347f8594654e81e5c097414f8b6f602560fe15267a374145f43ae3a4c9`
+
+## SEAL-2 explicit deferral — 2026-10-05
+
+HELP_HUMAN `/root` asked the concrete existing SEAL-2 architecture/staged A-code → B-signed-build → A-native-proof → B qualification question in the active human chat. Actual direct owner answer, relayed with active-chat custody: **“Keep SEAL-2 deferred; continue other work”**. SEAL-2 is now expressly deferred, not an unanswered question or scope removal. No seal/schema/keychain/signing adoption is authorized by this act. Trustworthy restart replay remains unfinished with its recorded cold-unverified limitation; other authorized Group A work proceeds. CI bootstrap exception and exact unsigned UI launch still have no owner answer.

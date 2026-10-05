@@ -201,7 +201,11 @@ impl NativeHomeNamespace {
         match &self.source {
             NamespaceHomeSource::Planned(plan)=>{
                 let observed=plan.inspect()?;
-                if observed.resources.iter().any(|r|matches!(r.state,crate::home_resources::ResourceState::Conflict|crate::home_resources::ResourceState::TargetMissing|crate::home_resources::ResourceState::TargetTypeMismatch)){return Err("owned fixed native resource relationship is conflicted/unavailable".into());}
+                // Probe owns no M-A sharing relationship: its Conflict observation
+                // preserves existing entries. protected() must inspect their actual
+                // type/target metadata, permitting direct entries and refusing links
+                // with no declared closure. Account/ApiKey still require M-A sharing.
+                if observed.class!=crate::home_resources::HomeClass::Probe&&observed.resources.iter().any(|r|matches!(r.state,crate::home_resources::ResourceState::Conflict|crate::home_resources::ResourceState::TargetMissing|crate::home_resources::ResourceState::TargetTypeMismatch)){return Err("owned fixed native resource relationship is conflicted/unavailable".into());}
                 let targets=observed.resources.iter().map(|r|(r.name.to_owned(),r.intended_target.clone())).collect();
                 Ok((observed.native_path,observed.opaque_home_id,observed.class,targets,observed.class!=crate::home_resources::HomeClass::Probe))
             },

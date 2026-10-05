@@ -466,7 +466,7 @@ export function App() {
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
 
-      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} resources={host?.homeResources} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
+      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
 
       <section>
         <h2>Codex host</h2>

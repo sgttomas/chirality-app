@@ -15,7 +15,7 @@ use common::{evidence_output, ScratchDirectory};
 
 use chirality_app_v4_lib::hosting::{Host, HostConfig};
 use serde_json::{json, Value};
-use std::process::Command;
+use std::process::{Command, Output};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -35,11 +35,72 @@ plugins = false
 enabled = false
 "#;
 
-fn internet_sockets(pgid: i32) -> Vec<String> {
+fn internet_sockets(pgid: i32) -> Result<Vec<String>, String> {
     let out = Command::new("lsof").args(["-n", "-P", "-a", "-i", "-g", &pgid.to_string()]).output();
+    socket_observation(out)
+}
+
+fn socket_observation(out: std::io::Result<Output>) -> Result<Vec<String>, String> {
     match out {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).lines().skip(1).map(|l| l.to_string()).collect(),
-        Err(_) => vec!["lsof not available".into()],
+        // lsof exit 1 also denotes no selected files. Only a clean, empty
+        // no-match result can establish an empty observation; diagnostics can
+        // indicate that permission/access prevented a complete listing.
+        Ok(o) if o.status.code() == Some(1) && o.stdout.is_empty() && o.stderr.is_empty() => Ok(Vec::new()),
+        Ok(o) if !o.status.success() || !o.stderr.is_empty() => Err(format!(
+            "lsof observation failed ({}): {}", o.status, String::from_utf8_lossy(&o.stderr)
+        )),
+        Ok(o) => Ok(String::from_utf8_lossy(&o.stdout).lines().skip(1).map(|l| l.to_string()).collect()),
+        Err(e) => Err(format!("lsof observation unavailable: {e}")),
+    }
+}
+
+#[cfg(unix)]
+mod socket_observation_tests {
+    use super::*;
+    use std::os::unix::process::ExitStatusExt;
+
+    fn output(code: i32, stdout: &str, stderr: &str) -> std::io::Result<Output> {
+        Ok(Output {
+            status: std::process::ExitStatus::from_raw(code << 8),
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: stderr.as_bytes().to_vec(),
+        })
+    }
+
+    #[test]
+    fn socket_observation_preserves_socket_rows() {
+        let row = "codex 123 user 4u IPv4 0x1 0t0 TCP 127.0.0.1:9 (LISTEN)";
+        assert_eq!(socket_observation(output(0, &format!("COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n{row}\n"), "")).unwrap(), vec![row]);
+    }
+
+    #[test]
+    fn socket_observation_accepts_success_without_rows_and_clean_no_match() {
+        assert!(socket_observation(output(0, "", "")).unwrap().is_empty());
+        assert!(socket_observation(output(0, "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n", "")).unwrap().is_empty());
+        assert!(socket_observation(output(1, "", "")).unwrap().is_empty());
+    }
+
+    #[test]
+    fn socket_observation_rejects_unavailable_command() {
+        let error = socket_observation(Err(std::io::Error::new(std::io::ErrorKind::NotFound, "synthetic missing lsof"))).unwrap_err();
+        assert!(error.contains("synthetic missing lsof"));
+    }
+
+    #[test]
+    fn socket_observation_rejects_failed_or_incomplete_observations() {
+        for (code, stdout, stderr) in [
+            (1, "", "lsof: permission denied\n"),
+            (2, "", ""),
+            (0, "", "lsof: WARNING: cannot stat filesystem\n"),
+            (1, "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n", ""),
+        ] {
+            assert!(socket_observation(output(code, stdout, stderr)).is_err(), "accepted code={code}, stdout={stdout:?}, stderr={stderr:?}");
+        }
+        assert!(socket_observation(Ok(Output {
+            status: std::process::ExitStatus::from_raw(9),
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        })).is_err(), "signal termination is not a no-match result");
     }
 }
 
@@ -103,7 +164,7 @@ fn hosts_codex_initialize_then_thread_start() {
     assert!(host.journal().iter().any(|e| e["frame"]["method"] == "thread/started" && e["generation"] == generation));
 
     let pgid = host.child_pid().unwrap();
-    let sockets = internet_sockets(pgid);
+    let sockets = internet_sockets(pgid).expect("internet socket observation completed");
     assert!(sockets.is_empty(), "Codex opened internet sockets: {sockets:?}");
 
     let reqs = host.client_requests();

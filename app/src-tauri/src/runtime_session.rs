@@ -455,8 +455,12 @@ pub struct RecoveryStartup {
 impl RecoveryStartup {
     /// Adopt the genuine shared App source, never reopen another writer/path or
     /// infer restored native state from pointer metadata.
-    pub fn adopt_shared_source(&mut self,host:&crate::hosting::Host)->Value {
-        if !self.attempted {self.attempted=true;let observed=host.shared_recovery_observation();self.status=json!({"state":if observed["configured"]==true{"shared-source-configured"}else{"shared-source-unavailable"},"sourceObservation":observed,"blocksSupplierStart":false,"standing":"same actual App custody; no new ledger/session or cold live reconstruction"});}
+    pub fn adopt_shared_source(&mut self, host: &crate::hosting::Host) -> Value {
+        if !self.attempted {
+            self.attempted = true;
+            let observed = host.shared_recovery_observation();
+            self.status = json!({"state":if observed["configured"]==true{"shared-source-configured"}else{"shared-source-unavailable"},"sourceObservation":observed,"blocksSupplierStart":false,"standing":"same actual App custody; no new ledger/session or cold live reconstruction"});
+        }
         self.snapshot()
     }
     pub fn snapshot(&self) -> Value {
@@ -472,6 +476,30 @@ impl RecoveryStartup {
         app_data: Result<&std::path::Path, &str>,
         codex_home: Option<&std::path::Path>,
     ) -> Value {
+        self.initialize_inner(host, app_data, codex_home, Ok(None))
+    }
+    pub fn initialize_with_namespaces(
+        &mut self,
+        host: &crate::hosting::Host,
+        app_data: Result<&std::path::Path, &str>,
+        codex_home: Option<&std::path::Path>,
+        namespaces: Result<
+            std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>,
+            String,
+        >,
+    ) -> Value {
+        self.initialize_inner(host, app_data, codex_home, namespaces.map(Some))
+    }
+    fn initialize_inner(
+        &mut self,
+        host: &crate::hosting::Host,
+        app_data: Result<&std::path::Path, &str>,
+        codex_home: Option<&std::path::Path>,
+        namespaces: Result<
+            Option<std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>>,
+            String,
+        >,
+    ) -> Value {
         if self.attempted {
             return self.snapshot();
         }
@@ -481,8 +509,28 @@ impl RecoveryStartup {
         let mut existing = false;
         let result = (|| -> Result<(), String> {
             let root = app_data.map_err(str::to_string)?;
+            let binding = namespaces.as_ref().map_err(Clone::clone)?;
             let path = reviewed_ledger_path(root);
             selected_path = Some(path.clone());
+            if let Some(binding) = binding {
+                // On an initial physical refusal, use the genuine guarded Core
+                // receiving API once. It retains the actual declared REC leaf
+                // and original error before returning; no legacy open/retry or
+                // replacement ledger follows from restoring metadata later.
+                if binding
+                    .guard_domains(&[path.clone()])
+                    .and_then(|_| crate::recovery::RecoveryLedger::preflight_path(&path, binding))
+                    .is_err()
+                {
+                    host.configure_recovery_with_namespaces(
+                        path.clone(),
+                        std::sync::Arc::clone(binding),
+                    )?;
+                    // A concurrent restoration may let Core's repeated current
+                    // guard succeed. Its actual result owns that observation.
+                    configured = true;
+                }
+            }
             if !root.is_absolute() {
                 return Err(
                     "App user-data root is not absolute; ledger location not established".into(),
@@ -526,7 +574,13 @@ impl RecoveryStartup {
                     .ok_or("Ledger directory has no existing ancestor")?;
             }
             std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-            host.configure_recovery(path)?;
+            if !configured {
+                match binding {
+                    Some(binding) => host
+                        .configure_recovery_with_namespaces(path, std::sync::Arc::clone(binding))?,
+                    None => host.configure_recovery(path)?,
+                };
+            }
             configured = true;
             // Core syncs appended file data. Publish the file and any new directory
             // entries before reporting initialization configured. No crash proof inferred.
@@ -679,7 +733,6 @@ pub fn interrupt_conversation_turn(
     // A returned acknowledgment changes no turn/item state and implies no rollback.
     interrupt(generation, thread_id, turn_id)
 }
-
 
 /// Disposable observed steering projection. Native receipt order/fresh response
 /// boundaries avoid selecting an older active-looking memo. The actual scoped
@@ -1234,7 +1287,6 @@ pub fn claim_start(
     Ok(supply_ref)
 }
 
-
 /// Public decision-view command's receiving path. No writer/control is available
 /// to this function: reading cannot append, replay captures or repair backlinks.
 pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
@@ -1271,7 +1323,6 @@ pub fn continue_decision_writer(
     }
     status
 }
-
 
 /// Independent selected-source trace imports. No App/current supplier context
 /// enters the receiver or becomes a candidate/date/build default.
@@ -1346,7 +1397,6 @@ pub fn select_trace_source(
     Ok(session.finish("source-received", None))
 }
 
-
 /// Native-picked private handles, ordered independently of conversation/home/cwd.
 /// Launch workspace is a source observation, not a fabricated REC project/index.
 pub struct AttachmentSelectionSession {
@@ -1386,7 +1436,9 @@ impl AttachmentSelectionSession {
         for submission in &mut self.submissions {
             let source = submission.prepared.source().generation();
             let current = host.snapshot()["generation"].clone();
-            if source["home"] != current["home"] || source["appSession"] != current["appSession"] { continue; }
+            if source["home"] != current["home"] || source["appSession"] != current["appSession"] {
+                continue;
+            }
             submission.outcome["resolution"] =
                 host.resolve_attachment_submission(custody, submission.prepared.submission_ref());
         }
@@ -1814,6 +1866,32 @@ impl HomeBootstrapSet {
         }
         crate::home_resources::validate_home_bindings(&bindings)
     }
+    pub fn native_namespaces(
+        &self,
+        include_key: bool,
+    ) -> Result<std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>, String>
+    {
+        use crate::hosting::attachment_custody::{NativeHomeNamespace, NativeNamespaceBindings};
+        // Received direct/absent slots can close themselves without asserting
+        // M-A setup. Only a foreign-link closure needs the supplied references.
+        let build = |targets: Option<&crate::home_resources::SharedResourceTargets>| {
+            let mut homes = vec![
+                NativeHomeNamespace::received(&self.account, targets),
+                NativeHomeNamespace::received(&self.probe, None),
+            ];
+            if include_key {
+                homes.push(NativeHomeNamespace::planned(self.key_plan()?));
+            }
+            NativeNamespaceBindings::from_root(homes)
+        };
+        match build(None) {
+            Ok(binding) => Ok(binding),
+            Err(original) => match self.shared_root_targets.as_ref() {
+                Some(targets) => build(Some(targets)),
+                None => Err(original),
+            },
+        }
+    }
     pub fn key_plan(&self) -> Result<&crate::home_resources::OwnedHomePlan, String> {
         self.key.as_ref().ok_or_else(|| {
             "Key home/resource descriptors not explicitly configured; no account fallback".into()
@@ -1844,7 +1922,17 @@ impl HomeBootstrapSet {
         class: crate::home_resources::HomeClass,
         config: &crate::hosting::HostConfig,
     ) -> Result<(), String> {
-        self.revalidate()?;
+        // A prospective key is not an authority over the existing account.
+        // Current account/probe source checks remain required; key admission
+        // validates the complete set before and after its own setup.
+        if class == crate::home_resources::HomeClass::Account {
+            crate::home_resources::validate_home_bindings(&[
+                crate::home_resources::HomeBinding::Existing(&self.account),
+                crate::home_resources::HomeBinding::Existing(&self.probe),
+            ])?;
+        } else {
+            self.revalidate()?;
+        }
         let path = match class {
             crate::home_resources::HomeClass::Account => self.account.native_path(),
             crate::home_resources::HomeClass::ApiKey => self.key_plan()?.native_path(),
@@ -1860,6 +1948,38 @@ impl HomeBootstrapSet {
         }
         Ok(())
     }
+}
+/// Actual Root key setup receiving operation. All storage preflights precede
+/// home creation; failed candidates never install a replacement REC binding.
+/// The caller retains current bindings until this operation returns successfully.
+pub struct NativeKeyAdmission {
+    pub namespaces: std::sync::Arc<crate::hosting::attachment_custody::NativeNamespaceBindings>,
+    pub attachment: std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>,
+    pub observation: Value,
+}
+pub fn prepare_native_key_namespace(
+    bootstrap: &HomeBootstrapSet,
+    app_data: &std::path::Path,
+    app_custody: &std::sync::Arc<crate::hosting::AppRuntimeCustody>,
+) -> Result<NativeKeyAdmission, String> {
+    use crate::hosting::attachment_custody::AttachmentCustody;
+    let proposed = bootstrap.native_namespaces(true)?;
+    let preflight = app_custody.preflight_native_namespaces(&proposed)?;
+    // Check actual S/C/lock geometry before materializing the key home.
+    AttachmentCustody::open_with_namespaces(app_data, proposed)?;
+    bootstrap.prepare_key()?;
+    let namespaces = bootstrap.native_namespaces(true)?;
+    app_custody.preflight_native_namespaces(&namespaces)?;
+    let attachment = std::sync::Arc::new(AttachmentCustody::open_with_namespaces(
+        app_data,
+        namespaces.clone(),
+    )?);
+    let committed = app_custody.bind_native_namespaces(namespaces.clone())?;
+    Ok(NativeKeyAdmission {
+        namespaces,
+        attachment,
+        observation: json!({"state":"actual namespace candidate received","preflight":preflight,"rec":committed,"qualification":"metadata geometry only; no native/auth/discovery claim"}),
+    })
 }
 fn home_resource_view(observation: &crate::home_resources::HomeObservation) -> Value {
     json!({"modeHomeClass":observation.class.as_str(),"homeIdentity":observation.opaque_home_id,"nativePath":crate::attachments::native_path_identity(&observation.native_path),"displayPath":observation.display_path(),"resources":observation.resources.iter().map(|resource| json!({"name":resource.name,"destination":crate::attachments::native_path_identity(&resource.destination),"intendedTarget":resource.intended_target.as_ref().map(|path|crate::attachments::native_path_identity(path)),"state":format!("{:?}",resource.state),"limit":resource.limit})).collect::<Vec<_>>(),"limit":"resource relationship is a current observation; resolved config target is not future write authority"})
@@ -2196,9 +2316,13 @@ pub fn freeze_root_home_descriptors(
     };
     let account = ExistingHomeReference::new(config.codex_home.clone(), HomeClass::Account)?;
     let probe = ExistingHomeReference::new(config.probe_home.clone(), HomeClass::Probe)?;
-    let shared_root_targets=match &targets {
-        [Some(config),Some(agents),Some(skills)]=>Some(SharedResourceTargets{config_toml:config.clone(),global_agents_md:agents.clone(),skills:skills.clone()}),
-        _=>None,
+    let shared_root_targets = match &targets {
+        [Some(config), Some(agents), Some(skills)] => Some(SharedResourceTargets {
+            config_toml: config.clone(),
+            global_agents_md: agents.clone(),
+            skills: skills.clone(),
+        }),
+        _ => None,
     };
     let key = match key_path {
         None => None,
@@ -2218,8 +2342,8 @@ pub fn freeze_root_home_descriptors(
             )?)
         }
     };
-    let mut set=HomeBootstrapSet::new(account,key,probe)?;
-    set.shared_root_targets=shared_root_targets;
+    let mut set = HomeBootstrapSet::new(account, key, probe)?;
+    set.shared_root_targets = shared_root_targets;
     Ok(set)
 }
 

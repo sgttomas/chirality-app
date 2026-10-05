@@ -54,6 +54,8 @@ pub struct AppState {
     project_context_limit: Option<String>,
     homes: Mutex<runtime_session::HomeRouter>,
     home_bootstrap: Mutex<Result<Arc<runtime_session::HomeBootstrapSet>,String>>,
+    native_namespaces: Mutex<Result<Arc<hosting::attachment_custody::NativeNamespaceBindings>,String>>,
+    key_namespace_admission: Mutex<Value>,
     key_setup: Mutex<()>,
     root_home_inputs: Value,
 }
@@ -142,6 +144,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
     };
     s["attachmentCustody"] = match custody {Ok(custody)=>json!({"state":"opened","root":custody.root().display().to_string()}),Err(error)=>json!({"state":"unavailable","error":error,"scope":"attachment-bearing operations only"})};
     s["homeResources"] = match &*state.home_bootstrap.lock().unwrap() { Ok(set)=>set.inspect(),Err(error)=>json!({"state":"topology/resource descriptors unavailable","limit":error,"existingAccount":"legacy native account path remains available; no shared-source claim"}) };
+    s["nativeNamespaces"] = match &*state.native_namespaces.lock().unwrap(){Ok(binding)=>binding.snapshot(),Err(error)=>json!({"state":"storage namespace closure unavailable","limit":error,"ordinaryNativeOperations":"independent of persistence availability"})};
+    s["keyNamespaceAdmission"] = state.key_namespace_admission.lock().unwrap().clone();
     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
     s["homeRouting"] = state.homes.lock().unwrap().snapshot();
     s["homeAccess"] = home.account_view();
@@ -188,7 +192,17 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     bootstrap.key_plan()?;
     if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
-    bootstrap.prepare_key()?;
+    let data=state.app_user_data_root.lock().unwrap().clone()?;
+    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+    let app_custody=account.host.app_runtime_custody()?;
+    let admitted=match runtime_session::prepare_native_key_namespace(&bootstrap,&data,&app_custody) {
+        Ok(admitted)=>admitted,
+        Err(error)=>{*state.key_namespace_admission.lock().unwrap()=json!({"state":"key namespace/setup refused; original bindings retained","limit":error,"existingAccount":"current ledger/custody bindings retained"});return Err(error);}
+    };
+    *state.native_namespaces.lock().unwrap()=Ok(admitted.namespaces);
+    *state.key_namespace_admission.lock().unwrap()=admitted.observation;
+    let attachment=admitted.attachment;
+    for entry in state.homes.lock().unwrap().entries(){*entry.attachment_custody.lock().unwrap()=Ok(attachment.clone());}
     let existing=state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey);
     let home={
         match existing{
@@ -201,8 +215,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 let custody=account.host.app_runtime_custody()?;
                 let host=Arc::new(Host::new_with_app_custody(custody)?);
                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
-                let data=state.app_user_data_root.lock().unwrap().clone()?;
-                *home.attachment_custody.lock().unwrap()=hosting::attachment_custody::AttachmentCustody::open(&data,&config.codex_home).map(Arc::new);
+                *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
                 bootstrap.validate_binding(home.class(),&config)?;
                 state.homes.lock().unwrap().bind_key(home.clone())?;
@@ -656,6 +669,8 @@ pub fn run() {
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
         home_bootstrap: Mutex::new(Err("Explicit Root home descriptors not initialized".into())),
+        native_namespaces: Mutex::new(Err("Root native namespace bindings not initialized".into())),
+        key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
         key_setup: Mutex::new(()),
         root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
     };
@@ -678,17 +693,23 @@ pub fn run() {
                 *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
-            *home.attachment_custody.lock().unwrap() = data.as_ref().map_err(Clone::clone).and_then(|data| {
+            // Current account/probe protection is independent of a bad new key
+            // candidate; do not create/adopt K or replace an existing L binding.
+            let namespaces=(|| {
+                let data=data.as_ref().map_err(Clone::clone)?;
                 let cfg=home.host_config.as_ref().map_err(Clone::clone)?;
-                hosting::attachment_custody::AttachmentCustody::open(data,&cfg.codex_home).map(Arc::new)
-            });
-            home.recovery_startup.lock().unwrap().initialize(
+                runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
+            })();
+            *state.native_namespaces.lock().unwrap()=namespaces.clone();
+            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_with_namespaces(data,namespaces.clone()?).map(Arc::new));
+            home.recovery_startup.lock().unwrap().initialize_with_namespaces(
                 &host,
                 data.as_deref().map_err(String::as_str),
                 host_config
                     .as_ref()
                     .ok()
                     .map(|cfg| cfg.codex_home.as_path()),
+                namespaces,
             );
             let root = data.clone().and_then(|data| {
                 let root = data.join("instructions");
