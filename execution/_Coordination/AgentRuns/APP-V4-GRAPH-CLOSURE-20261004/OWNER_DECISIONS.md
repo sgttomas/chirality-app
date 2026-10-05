@@ -209,3 +209,16 @@ holds and later owner directions take precedence").
 again: push, open the PR, and merge once required CI passes and the
 independent pre-merge review of the actual candidate has no unresolved
 blocking finding.
+
+## Stop checking and merge (owner, exact, 2026-10-04)
+
+> stop the checking and get this merged.
+
+**Effect.** The v8 Word/PDF visual inspection was stopped before full
+coverage; the automated content check was rerun on the committed files
+(`plans/evidence/2026-10-04_manual_v8/production-note.md`). The PR proceeds
+to merge under the ordinary gate.
+
+The owner then directed:
+
+> Once that is done prepare the handoff to carry on this App V4 work towards 90% in a new session using the new loop instructions.

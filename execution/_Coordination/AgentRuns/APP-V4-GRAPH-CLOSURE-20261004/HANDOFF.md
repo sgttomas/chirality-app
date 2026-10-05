@@ -47,7 +47,7 @@ The owner's merge hold of 2026-10-04 was lifted the same day.
   `_DAG/cases/*/PAIR_ANALYSIS_2026-10-04.md` and `ACT51_ANALYSIS_2026-10-04.md`.
   Their proposed rewordings remain proposals.
 
-## Local environment on this machine (not recorded in the repository)
+## Local environment (machine-local; may differ elsewhere)
 
 - **Codex.** Stock Codex 0.158.0 is at
   `~/Library/Caches/chirality-dev/codex/0.158.0/codex`, with sha256

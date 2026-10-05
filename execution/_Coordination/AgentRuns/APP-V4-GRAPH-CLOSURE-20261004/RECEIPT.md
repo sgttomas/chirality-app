@@ -42,6 +42,9 @@ Owner acts, with their exact words and custody:
   - Project Management manual v8 is the current edition; v7 is archived
     unchanged.
   - The Field Book and the Agent User Manual are revised in place.
+  - v8's Word and PDF editions pass the automated content check; their
+    visual inspection is partial
+    ([production note](../../../../../../plans/evidence/2026-10-04_manual_v8/production-note.md)).
 
   Covered: discerning and passing the 60% gate, the handoff to 90%, recording
   found relationships, and an App v4 entry in the Agent User Manual.
@@ -52,7 +55,7 @@ Owner acts, with their exact words and custody:
   - The methods are named, including `coordinated-knowledge-work`.
   - App v4 records and standing constraints are listed.
 
-  The text is about 1,240 tokens, down from about 4,100.
+  The text is about 1,236 tokens, down from about 4,100.
 
 ## Checks
 
@@ -71,6 +74,9 @@ Owner acts, with their exact words and custody:
 - **Export:** regenerated; `test_public_export_profile.py` passes 5/5.
 
 ## Limits
+
+- **v8 visual inspection partial.** Stopped on the owner's direction ("stop
+  the checking and get this merged."); see the production note.
 
 - **Merge hold.** The owner placed it on 2026-10-04 and lifted it the same
   day ("You are allowed to merge your PRs again."). While it stood, these
