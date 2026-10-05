@@ -149,6 +149,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
     s["homeRouting"] = state.homes.lock().unwrap().snapshot();
     s["homeAccess"] = home.account_view();
+    s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["currentAppProjectContext"] = state.project_context.view();
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
@@ -184,6 +185,30 @@ fn logout_home(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value,mo
     state.validate_home_source(&home)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
     runtime_session::logout_native_home(&home,bootstrap.as_deref(),&generation,|assessment|app.dialog().message(format!("Log out through Codex for this exact native home?\n{}",serde_json::to_string_pretty(assessment).unwrap_or_else(|_|"Assessment unavailable".into()))).title("Native home logout / remove key").buttons(MessageDialogButtons::OkCancel).blocking_show())
+}
+
+#[tauri::command(async)]
+fn oauth_start(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value,mode:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    state.validate_home_source(&home)?;
+    let mode=match mode.as_str(){"browser"=>hosting::NativeLoginMode::Browser,"device-code"=>hosting::NativeLoginMode::DeviceCode,_=>return Err("Unknown native sign-in mode; no default".into())};
+    let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
+    let observed=runtime_session::start_native_oauth(&home,&generation,mode,bootstrap.as_deref(),||app.dialog().message("Sign in with your ChatGPT account through Codex in this original account home? A pending sign-in must be canceled first. The App receives safe observations only.").title("Native ChatGPT sign-in").buttons(MessageDialogButtons::OkCancel).blocking_show())?;
+    runtime_session::automatic_native_oauth_presentation(&home,observed,bootstrap.as_deref()).map_err(|_|"Native sign-in presentation unavailable; original control/unknown state retained".into())
+}
+#[tauri::command(async)]
+fn oauth_present(state:State<'_,AppState>,generation:Value)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    state.validate_home_source(&home)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
+    runtime_session::present_native_oauth(&home,&generation,bootstrap.as_deref()).map_err(|_|"Native sign-in presentation unavailable; no raw material or replacement".into())
+}
+#[tauri::command(async)]
+fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    state.validate_home_source(&home)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
+    runtime_session::cancel_native_oauth(&home,&generation,bootstrap.as_deref(),|safe|app.dialog().message(format!("Cancel this original Codex sign-in?\n{}",serde_json::to_string_pretty(safe).unwrap_or_else(|_|"Original safe observation unavailable".into()))).title("Cancel original pending sign-in").buttons(MessageDialogButtons::OkCancel).blocking_show())
 }
 
 #[tauri::command(async)]
@@ -740,6 +765,7 @@ pub fn run() {
             select_home,
             read_home_access,
             add_api_key,
+            oauth_start,oauth_present,oauth_cancel,
             logout_home,
             host_observe,
             select_external_observation,

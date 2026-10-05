@@ -1,0 +1,14 @@
+error[E0599]: no function or associated item named `shipped` found for struct `workflow_workspace::Selection` in the current scope
+   --> /Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/evidence/I2-DEVELOPMENT-CATALOG-API/old_factory.rs:8:28
+    |
+  8 | fn main(){let _=Selection::shipped;}
+    |                            ^^^^^^^ function or associated item not found in `workflow_workspace::Selection`
+    |
+   ::: /Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/src/workflow_workspace.rs:403:1
+    |
+403 | pub struct Selection {
+    | -------------------- function or associated item `shipped` not found for this struct
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0599`.

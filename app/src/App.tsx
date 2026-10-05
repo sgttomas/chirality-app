@@ -256,7 +256,7 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
   </section>;
 }
 
-export function HomeAccessPanel({ routing, access, resources, generation, act }: { routing: Json; access: Json; resources: Json; generation: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
+export function HomeAccessPanel({ routing, access, resources, oauth, generation, act }: { routing: Json; access: Json; resources: Json; oauth?: Json; generation: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const action = async (command: string, args: Record<string, unknown>) => {
@@ -268,6 +268,12 @@ export function HomeAccessPanel({ routing, access, resources, generation, act }:
     <p>Active home class: {routing?.activeModeHomeClass ?? "unavailable"}. The full native generation identifies its owning source; switching homes does not transfer a conversation.</p>
     {entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.modeHomeClass} · {entry.state} · {JSON.stringify(entry.generation)} · {entry.configurationLimit}</p><button disabled={busy || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("read_home_access", {generation, modeHomeClass:routing.activeModeHomeClass})}>Read native login policy and account</button>
+    <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
+    <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
+    <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
+    <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
+    <p>{oauth?.source?.cancelStatus === "notFound" ? "Signed out: Codex had no pending sign-in." : oauth?.source?.cancelStatus === "canceled" ? "Signed out: original sign-in canceled." : oauth?.source?.phase === "CompletedSuccess" ? "Matching sign-in completed; read native account to confirm." : oauth?.source?.phase === "CompletedFailure" || oauth?.source?.phase === "StartRejected" ? "Native sign-in failed; sensitive diagnostic withheld." : oauth?.source?.phase === "Pending" ? "Waiting for sign-in; silence does not complete it." : oauth?.state ?? "Native sign-in observation unavailable."}</p>
+    <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Log out / remove key with native live-work warning…</button>
     <button disabled={busy || !resources?.keyConfigured || !!resources?.wholeSetLimit} onClick={() => action("add_api_key", {})}>Add or replace key in native secure field…</button>
     {error && <p role="alert">{error}</p>}
@@ -466,7 +472,7 @@ export function App() {
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
 
-      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
+      <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
 
       <section>
         <h2>Codex host</h2>

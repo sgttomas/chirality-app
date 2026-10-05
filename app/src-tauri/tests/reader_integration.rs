@@ -484,3 +484,154 @@ fn identical_request_copies_keep_reader_resolution_distinct_from_unchanged_contr
         .contains("incomplete record set"));
     assert_eq!(census(&ws), before);
 }
+
+#[test]
+fn capture_recovery_storage_refusal_without_action_is_only_writer_limit() {
+    let ws = workspace();
+    let alias = ws.join("aliased-workspace");
+    std::os::unix::fs::symlink(&*ws, &alias).unwrap();
+    let mut control = ActControl::new(&alias); // Empty native capture custody; no offer/act.
+    let before = census(&ws);
+    let status = continue_decision_writer(&alias, Some(&mut control), "app-startup-writer");
+    assert!(
+        status["captureRecovery"].as_array().unwrap().is_empty(),
+        "a top-level storage refusal cannot fabricate an AC-8 capture-pending row"
+    );
+    let limits = status["limits"].as_array().unwrap();
+    assert_eq!(
+        limits.len(),
+        2,
+        "capture-recovery and recorder causes must both remain visible"
+    );
+    assert!(limits[0]
+        .as_str()
+        .unwrap()
+        .starts_with("Capture recovery unavailable:"));
+    assert!(limits[0]
+        .as_str()
+        .unwrap()
+        .contains("pending capture status not established"));
+    assert!(limits[0]
+        .as_str()
+        .unwrap()
+        .contains("owning path contains symlink"));
+    assert!(limits[1]
+        .as_str()
+        .unwrap()
+        .contains("owning path contains symlink"));
+    assert_eq!(status["requestsRecordedNow"], 0);
+    assert!(storage::read_all(&ws).0.is_empty());
+    assert_eq!(
+        census(&ws),
+        before,
+        "no action/record/file write follows a refused owning alias"
+    );
+    assert!(
+        control.recover_pending().is_err(),
+        "the owning storage guard remains active"
+    );
+    assert_eq!(census(&ws), before);
+    // A later explicit writer at the physical source has actual results, not a
+    // persistent phantom AC-8 from this previous unavailable observation.
+    let mut physical_control = ActControl::new(&ws);
+    let physical = continue_decision_writer(&ws, Some(&mut physical_control), "explicit-command");
+    assert!(physical["captureRecovery"].as_array().unwrap().is_empty());
+    assert!(physical["limits"].as_array().unwrap().is_empty());
+    assert_eq!(physical["requestsRecordedNow"], 1);
+    assert!(storage::read_all(&ws)
+        .0
+        .iter()
+        .all(|e| e["kind"] != "human_act"));
+}
+
+#[test]
+fn capture_recovery_unavailable_keeps_real_hot_capture_and_restored_retry() {
+    let ws = workspace();
+    let mut control = ActControl::new(&ws);
+    continue_decision_writer(&ws, Some(&mut control), "app-startup-writer");
+    let request = requests(&ws).remove(0);
+    let store = ws.join(".chirality/captures");
+    let captured =
+        synthetic_decide_after(&mut control, request["recordId"].as_str().unwrap(), || {
+            std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o500)).unwrap();
+        });
+    assert_eq!(captured["state"], "AC-8 record pending");
+    assert_eq!(captured["captureDurability"], "not established");
+    let capture_id = captured["captureId"].as_str().unwrap().to_owned();
+    assert!(
+        captured.get("capture").is_none(),
+        "genuine captureId-only state must remain visible"
+    );
+    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let saved = ws.join(".chirality/saved-captures");
+    std::fs::rename(&store, &saved).unwrap();
+    std::os::unix::fs::symlink(&saved, &store).unwrap();
+    struct Restore {
+        store: PathBuf,
+        saved: PathBuf,
+        active: bool,
+    }
+    impl Restore {
+        fn restore(&mut self) {
+            if self.active {
+                std::fs::remove_file(&self.store).unwrap();
+                std::fs::rename(&self.saved, &self.store).unwrap();
+                self.active = false;
+            }
+        }
+    }
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            self.restore();
+        }
+    }
+    let mut restore = Restore {
+        store,
+        saved,
+        active: true,
+    };
+    let before = census(&ws);
+    let unavailable = continue_decision_writer(&ws, Some(&mut control), "explicit-command");
+    assert!(unavailable["captureRecovery"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert_eq!(unavailable["limits"].as_array().unwrap().len(), 2);
+    assert!(unavailable["limits"][0]
+        .as_str()
+        .unwrap()
+        .contains("pending capture status not established"));
+    assert_eq!(
+        census(&ws),
+        before,
+        "refused attempt must not clear/write retained capture custody"
+    );
+    read_decision_packages(&ws);
+    assert_eq!(
+        census(&ws),
+        before,
+        "read-only refresh cannot retry a real capture"
+    );
+    restore.restore();
+    let recovered = continue_decision_writer(&ws, Some(&mut control), "explicit-command");
+    assert!(recovered["captureRecovery"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|e| e["state"] == "AC-7 recorded" && e["capture"]["captureId"] == capture_id));
+    let entries = storage::read_all(&ws).0;
+    assert_eq!(
+        entries.iter().filter(|e| e["kind"] == "human_act").count(),
+        1
+    );
+    assert!(entries
+        .iter()
+        .any(|e| e["body"]["label"] == "record write failed"));
+    let stable = census(&ws);
+    continue_decision_writer(&ws, Some(&mut control), "explicit-command");
+    assert_eq!(
+        census(&ws),
+        stable,
+        "the retained original capture must not append twice"
+    );
+}

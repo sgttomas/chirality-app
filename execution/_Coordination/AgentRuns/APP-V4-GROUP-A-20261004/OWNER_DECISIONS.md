@@ -83,3 +83,9 @@ Receiving disposition follows the latest pins notice: **leave the seven instruct
 - `docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md`: `2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7`
 - `docs/alignment-manual/README.md`: `5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d`
 - `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md`: `02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3`
+
+## Exact no-supplier UI launch approval and observation — 2026-10-05
+
+HELP_HUMAN `/root` prepared the immutable merged196914 unsigned debug App, binary `aba8a986afbe68dfe1a826744df47d7357ca20a4693438fedd8e2fe149b72414`, with supplier/home environment removed and an empty synthetic workspace. Actual direct owner answer in the active chat: **“Approve this UI-test launch and inspection”**. This approval applies to that exact no-supplier probe, not future artifacts, authentication/model/capture actions or general unsigned launches.
+
+Parent outside-sandbox launch succeeded and CUA obtained actual native accessibility state and screenshot: supplier absent/not started, zero frames/events, access controls disabled. Cmd-Q returned “App quit”; launcher exit0 and exact-artifact process query had no matches. [Attempt4 result](probes/NATIVE_APP_SMOKE_ATTEMPT_4.json) is released for the next normal checkpoint. `/var` alias setup produced a visible storage-path rejection, so no storage/capture pass is inferred. Initial tool binding took251s, not measured App latency. This establishes window/tool reachability only; old attempt3 automatic approval rejection remains historical, future artifact/action permissions remain point-specific. No auth, provider, model or capture action occurred; SEAL-2 stays explicitly deferred.

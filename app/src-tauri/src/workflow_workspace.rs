@@ -5,6 +5,10 @@ use crate::workflow_declaration::{self, Declaration};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path::Path};
 
+/// Build-owned development package admission; separate from native A15.
+#[path = "workflow_catalog.rs"]
+pub mod development_catalog;
+
 /// Reviewed CC-CONTENT-IDENTITY App-only package method; no host/global adoption.
 pub const SNAPSHOT_METHOD: &str = "chirality.app.workflow-package.sha256/v1";
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -391,6 +395,7 @@ impl RegisteredRevision {
         Selection {
             identity: self.identity.clone(),
             snapshot: self.snapshot.clone(),
+            admission: SelectionAdmission::RegisteredRevision,
         }
     }
 }
@@ -398,6 +403,28 @@ impl RegisteredRevision {
 pub struct Selection {
     identity: WorkflowIdentity,
     snapshot: Snapshot,
+    admission: SelectionAdmission,
+}
+/// Read-only provenance carried with selected content, never an admission input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SelectionAdmission {
+    RegisteredRevision,
+    DevelopmentCatalog {
+        source_map_sha256: String,
+        tranche: String,
+    },
+    #[cfg(test)]
+    SyntheticFixture,
+}
+impl SelectionAdmission {
+    pub fn standing(&self) -> &'static str {
+        match self {
+            Self::RegisteredRevision => "registered revision",
+            Self::DevelopmentCatalog { .. } => development_catalog::STANDING,
+            #[cfg(test)]
+            Self::SyntheticFixture => "synthetic test fixture; no native or release admission",
+        }
+    }
 }
 impl Selection {
     /// Synthetic fixture admission only. Production shipping requires its owning
@@ -414,13 +441,20 @@ impl Selection {
         {
             return Err("shipped identity does not bind bytes".into());
         }
-        Ok(Self { identity, snapshot })
+        Ok(Self {
+            identity,
+            snapshot,
+            admission: SelectionAdmission::SyntheticFixture,
+        })
     }
     pub fn identity(&self) -> &WorkflowIdentity {
         &self.identity
     }
     pub fn snapshot(&self) -> &Snapshot {
         &self.snapshot
+    }
+    pub fn admission(&self) -> &SelectionAdmission {
+        &self.admission
     }
     pub fn verify_store(&self, path: &Path) -> Result<(), String> {
         let read = Snapshot::capture(path)
@@ -690,6 +724,7 @@ pub struct OwnerRunEnd {
 }
 #[derive(Clone, Debug)]
 pub struct PreparedRunText {
+    admission: SelectionAdmission,
     scope: RunScope,
     workflow: WorkflowIdentity,
     text: String,
@@ -795,6 +830,7 @@ impl PreparedRunText {
         Ok(Self {
             scope,
             workflow: selection.identity.clone(),
+            admission: selection.admission.clone(),
             text,
             record,
         })
@@ -804,6 +840,9 @@ impl PreparedRunText {
     }
     pub fn record(&self) -> &serde_json::Value {
         &self.record
+    }
+    pub fn admission(&self) -> &SelectionAdmission {
+        &self.admission
     }
     pub fn scope(&self) -> &RunScope {
         &self.scope
