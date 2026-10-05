@@ -30,7 +30,7 @@ Go to a section:
 
 Read the section, not the chapter. Instructions and the human's decisions
 govern; the manuals explain. Record what you read in the run evidence. If you
-are unsure whether something matters, ask the human.
+are unsure whether a section matters, read it.
 
 ## Methods
 
