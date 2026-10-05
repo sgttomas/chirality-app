@@ -15,6 +15,7 @@ the App's error code for unfamiliar requests).
 import datetime
 import hashlib
 import uuid
+import copy
 import json
 import os
 import queue
@@ -557,7 +558,7 @@ class Boundary:
         self.next_id += 1
         return self.next_id
 
-    def send(self, method, params, initiator):
+    def send(self, method, params, initiator, submission_association=None, persist_prepared=None, cancel_before_write=None):
         rec = {"recordKind": "client-request", "generation": self.generation or None,
                "requestIdentity": None, "method": method, "initiator": initiator,
                "sendPosition": None, "writeResult": "not-attempted", "outcome": "refused-not-sent"}
@@ -571,9 +572,47 @@ class Boundary:
             rec["refusalReason"] = "run-holding"  # HP-4, governance phase only
             self.client[("refused", len(self.client))] = rec
             return rec
+        g, pipe = self.generation, self.child
+        namespace = self.generation_identity(g)
+        if submission_association is not None:
+            params = copy.deepcopy(params)  # associated transient composition only; no generic credential-path change
+            assoc = copy.deepcopy(submission_association)
+            allowed = {"submissionRef", "threadId", "supplyRefs"} | ({"expectedTurnId"} if method == "turn/steer" else set())
+            refs = assoc.get("supplyRefs") if isinstance(assoc, dict) else None
+            valid = (isinstance(assoc, dict) and set(assoc) == allowed and method in ("turn/start", "turn/steer")
+                     and isinstance(assoc.get("submissionRef"), str) and assoc["submissionRef"].startswith("submission:")
+                     and len(assoc["submissionRef"]) > len("submission:") and g > 0
+                     and isinstance(assoc.get("threadId"), str) and bool(assoc["threadId"])
+                     and assoc["threadId"] == params.get("threadId") and isinstance(refs, list) and bool(refs)
+                     and all(isinstance(r, str) and r for r in refs) and len(set(refs)) == len(refs))
+            if method == "turn/steer":
+                valid = valid and isinstance(assoc.get("expectedTurnId"), str) and bool(assoc["expectedTurnId"]) and assoc["expectedTurnId"] == params.get("expectedTurnId")
+            if not valid or not callable(persist_prepared):
+                raise ValueError("invalid or unresolved submission association")
+            if any(r.get("submissionAssociation", {}).get("submissionRef") == assoc["submissionRef"] for r in self.client.values()):
+                raise ValueError("submission reference already reserved; no resend")
         rid = self._new_id()
+        rec["requestIdentity"] = rid
+        if submission_association is not None:
+            rec.update({"outcome": "prepared-not-sent", "submissionAssociation": assoc, "_generationIdentity": namespace})
+            self.client[(g, rid)] = rec
+            snapshot = {k: copy.deepcopy(v) for k, v in rec.items() if not k.startswith("_")}
+            snapshot["generation"] = namespace
+            try:
+                preserved = persist_prepared(snapshot)  # owner resolves full ordered NIR list and confirms durable custody
+            except (OSError, ValueError):
+                preserved = False
+            if preserved is not True:
+                rec["_preparationCause"] = "association-not-preserved"
+                return rec
+            if cancel_before_write and cancel_before_write():
+                rec["_preparationCause"] = "cancelled-before-write"
+                return rec
+            if self.state != "ready" or self.generation_identity(self.generation) != namespace or self.child is not pipe:
+                rec["_preparationCause"] = "generation-or-pipe-changed-before-write"
+                return rec
         self.out_pos += 1
-        rec.update({"requestIdentity": rid, "sendPosition": self.out_pos, "outcome": "pending"})
+        rec.update({"sendPosition": self.out_pos, "outcome": "pending"})
         guidance = []
         for el in ("baseInstructions", "developerInstructions"):
             if isinstance(params.get(el), str):
@@ -588,8 +627,38 @@ class Boundary:
                                                "params": params})
         if rec["writeResult"] == "write-failed":
             rec["outcome"] = "unknown-no-response"
-        self.client[(self.generation, rid)] = rec
+        self.client[(g, rid)] = rec
         return rec
+
+    def resolve_submission(self, submission_ref):
+        """Pointer-only observation over existing records; native reply remains the original source."""
+        matches = [r for r in self.client.values() if r.get("submissionAssociation", {}).get("submissionRef") == submission_ref]
+        if len(matches) != 1:
+            return {"submissionRef": submission_ref, "dispatchStatus": "unknown", "observationLimit": "association unavailable or conflicting"}
+        rec = matches[0]
+        assoc = rec["submissionAssociation"]
+        record_generation = rec.get("_generationIdentity")
+        if record_generation is None:
+            record_generation = rec["generation"] if isinstance(rec["generation"], dict) else self.generation_identity(rec["generation"])
+        view = {"submissionRef": submission_ref, "threadId": assoc["threadId"], "supplyRefs": copy.deepcopy(assoc["supplyRefs"]),
+                "generation": copy.deepcopy(record_generation), "requestIdentity": rec["requestIdentity"], "method": rec["method"],
+                "dispatchStatus": "written" if rec["writeResult"] == "written" else "unknown"}
+        if rec["outcome"] == "prepared-not-sent":
+            view["dispatchStatus"] = "not-sent" if rec.get("_preparationCause") else "prepared"
+            view["observationLimit"] = rec.get("_preparationCause", "prepared-only evidence; later dispatch not established")
+        elif rec["outcome"] != "response-observed-result":
+            view["observationLimit"] = rec["outcome"]
+        else:
+            result = rec.get("_result")
+            if not isinstance(result, dict) or (result.get("threadId", assoc["threadId"]) != assoc["threadId"]):
+                view["observationLimit"] = "native result unavailable or conflicting thread"
+                return view
+            native_turn = (result["turn"].get("id") if isinstance(result.get("turn"), dict) else None) if rec["method"] == "turn/start" else result.get("turnId")
+            if not isinstance(native_turn, str) or not native_turn or (rec["method"] == "turn/steer" and native_turn != assoc["expectedTurnId"]):
+                view["observationLimit"] = "native turn missing or conflicting target"
+            else:
+                view["nativeTurnRef"] = native_turn
+        return view
 
     def wait_for(self, rec, seconds):
         end = time.monotonic() + seconds
@@ -603,6 +672,9 @@ class Boundary:
         rec = self.client.get((f["generation"], f["obj"].get("id")))
         if rec is None or rec["outcome"] != "pending":
             return False
+        record_namespace = rec.get("_generationIdentity") or (rec["generation"] if isinstance(rec["generation"], dict) else None)
+        if record_namespace is not None and record_namespace != self.generation_identity(f["generation"]):
+            return False
         rec["responseReceiptPosition"] = f["position"]
         if "error" in f["obj"]:
             rec["outcome"] = "response-observed-error"
@@ -610,7 +682,9 @@ class Boundary:
         else:
             rec["outcome"] = "response-observed-result"
             rec["_result"] = f["obj"]["result"]
-            self._observe_response(rec)
+            association = rec.get("submissionAssociation")
+            if association is None or self.resolve_submission(association["submissionRef"]).get("nativeTurnRef"):
+                self._observe_response(rec)
         return True
 
     # ---- register (§6) --------------------------------------------------
@@ -793,11 +867,14 @@ class Boundary:
     def records(self):
         out = [dict(event) for event in self.events]
         for rec in self.client.values():
-            out.append({k: v for k, v in rec.items() if not k.startswith("_")})
+            exported = {k: v for k, v in rec.items() if not k.startswith("_")}
+            if rec.get("_generationIdentity") is not None:
+                exported["generation"] = copy.deepcopy(rec["_generationIdentity"])
+            out.append(exported)
         for e in self.register.values():
             out.append(dict(e))
         for rec in out:
             counter = rec.get("generation")
-            rec["generation"] = None if counter is None else {"appSession": self.app_session,
+            rec["generation"] = copy.deepcopy(counter) if isinstance(counter, dict) else None if counter is None else {"appSession": self.app_session,
                 "home": self.home, "spawnCounter": counter}
         return out

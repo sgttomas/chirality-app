@@ -103,6 +103,8 @@ function ConversationPanel({ host, send, interrupt }: { host: Json; send: (gener
       <option value="">Select a conversation</option>
       {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{thread.threadId} · {thread.model ?? "model not reported"} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
+    {selected && <p>Original App role: {JSON.stringify(selected.appRole ?? { standing: "unknown", reason: "original App supply binding not established" })}. Native role hints do not establish an App role.</p>}
+    {(selected?.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations.</p>)}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={sendText}>Send text</button>
@@ -117,6 +119,67 @@ function ConversationPanel({ host, send, interrupt }: { host: Json; send: (gener
     {error && <p role="alert">{error} No automatic retry.</p>}
     <p>Text-turn protocol requests: {host?.modelTurnEvidence?.protocolRequests?.length ?? 0}. {host?.modelTurnEvidence?.standing ?? "Provider/model execution is not established by this view."}</p>
     <details open><summary>Observed native turns and interrupt request state</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ turns: host?.conversationTurns, interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }, null, 2)}</pre></details>
+  </section>;
+}
+
+export function HistoryPanel({ host, refresh }: { host: Json; refresh: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [direction, setDirection] = useState("desc");
+  const history = host?.nativeHistory;
+  const selected = history?.selected;
+  const generation = history?.generation;
+  const epoch = history?.selectionEpoch;
+  const available = host?.state === "ready" && history?.state === "history-receiving" && JSON.stringify(generation) === JSON.stringify(host?.generation);
+  const run = async (action: string, cursor: string | null = null, reference: string | null = null, pagingDirection = direction) => {
+    setBusy(true); setError("");
+    try { await invoke("history_action", { generation, selectionEpoch: epoch, action, cursor, direction: pagingDirection, reference }); }
+    catch (e) { setError(String(e)); }
+    finally { try { await refresh(); } catch (e) { setError(String(e)); } setBusy(false); }
+  };
+  const select = async (threadId: string) => {
+    if (!threadId) return;
+    setBusy(true); setError("");
+    try { await invoke("history_select", { generation, selectionEpoch: epoch, threadId }); }
+    catch (e) { setError(String(e)); }
+    finally { try { await refresh(); } catch (e) { setError(String(e)); } setBusy(false); }
+  };
+  const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span>
+    {typeof page?.nextCursor === "string" && <button disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
+    {typeof page?.backwardsCursor === "string" && <button disabled={!available || busy} onClick={() => run(action, page.backwardsCursor, reference, pageDirection === "desc" ? "asc" : "desc")}>Previous page</button>}
+    <small> Cursor: {page === null || page === undefined ? "not read" : page.nextCursor === null ? "exhausted" : page.nextCursor === undefined ? "not reported" : "available"}</small>
+  </span>;
+  return <section>
+    <h2>Stored native conversations and history</h2>
+    <p>These disposable pages come from the selected native home. Reading history does not make a conversation operational. Original App role evidence remains unknown after a cold App restart.</p>
+    <label>Page direction <select value={direction} disabled={busy} onChange={e => setDirection(e.target.value)}><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></label>{" "}
+    <button disabled={!available || busy} onClick={() => run("list")}>Read stored conversations</button>{" "}{pageButtons("list", history?.listPage, null, history?.listDirection ?? direction)}
+    <p><label>Stored conversation <select value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{(history?.threads ?? []).map((row: Json) => <option key={row.native.id} value={row.native.id}>{row.native.id} · {row.native.status?.type ?? "status not reported"} · {row.native.preview || "empty preview"}</option>)}</select></label></p>
+    {selected && <>
+      <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p>
+      {(selected.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations. This conversation retains its original role.</p>)}
+      <button disabled={!available || busy} onClick={() => run("metadata")}>Read metadata</button>{" "}
+      <button disabled={!available || busy} onClick={() => run("turns")}>Read turns</button>{" "}
+      <button disabled={!available || busy} onClick={() => run("goal")}>Read goal</button>{" "}
+      <button disabled={!available || busy} onClick={() => run("continue")}>Continue selected conversation</button>
+      <p>Current resume eligibility: {String(selected.resumeEligibilityCurrent ?? false)}. Active admission is reported in the dispatch evidence below and the operational conversation selector.</p>
+      <p>Continue sends the native thread ID and waits for a matching resume response before active admission. Its existing guidance and settings remain in force. No automatic resend.</p>
+      <p>Goal: {selected.goalAvailability}. {selected.goal?.goal === null ? "Native reported no goal." : selected.goal ? JSON.stringify(selected.goal.goal) : "Goal has not been read."}</p>
+      <p>{selected.checklists}</p>
+      <h3>Turns</h3>{pageButtons("turns", selected.turnsPage, null, selected.turnDirection ?? direction)}
+      {selected.turnsPage?.data?.length === 0 && <p>Native returned an empty turn page.</p>}
+      {(selected.turnsPage?.data ?? []).map((turn: Json) => <article key={turn.id}><p>{turn.id} · {turn.status} · items view: {turn.itemsView ?? "not reported"}</p><button disabled={!available || busy} onClick={() => run("items", null, turn.id)}>Read items for this turn</button><details><summary>Native turn summary</summary><pre>{JSON.stringify(turn, null, 2)}</pre></details></article>)}
+      <h3>Selected item page</h3>{pageButtons("items", selected.itemsPage, selected.itemTurnId ?? null, selected.itemDirection ?? direction)}
+      <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.itemsPage ?? { state: "not read" }, null, 2)}</pre>
+      <h3>Native child references</h3>
+      {(selected.knownChildren ?? []).map((child: Json) => <p key={child.threadId}>{child.threadId} · source {child.sourceItemId} <button disabled={!available || busy} onClick={() => run("child", null, child.threadId)}>Read child metadata</button></p>)}
+      <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }, null, 2)}</pre></details>
+      {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.originalRoleSupply, null, 2)}</pre></details>}
+    </>}
+    {busy && <p>Waiting for native protocol response; no automatic retry.</p>}
+    {error && <p role="alert">{error}</p>}
+    {(history?.receivingLimits ?? history?.limits ?? []).map((limit: string, index: number) => <p key={index}>{limit}</p>)}
+    <details><summary>History dispatch and pending/error evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ generation, selectionEpoch: epoch, listError: history?.listError, pending: history?.pending, dispatches: history?.dispatches, originalStartReceipts: history?.startReceipts }, null, 2)}</pre></details>
   </section>;
 }
 
@@ -154,6 +217,48 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
       {evidence("counterpart", "Optional supplied counterpart")}
       <details><summary>Complete reported receiving snapshot</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(observation, null, 2)}</pre></details>
     </>}
+  </section>;
+}
+
+export function DecisionPackagesPanel({ view, name, setName, recordName, refresh, continueRecording, openControl }: {
+  view: Json; name: string; setName: (name: string) => void; recordName: () => void;
+  refresh: () => Promise<void>; continueRecording: () => Promise<void>; openControl: (request: string) => Promise<void>;
+}) {
+  const writer = view?.writerStatus;
+  const claim = (decision: Json) => <>
+    <p>Recorded decision claim: <b>{decision.alternativeChosen}</b> {decision.statement} · decided by {decision.decidedBy} · recorded by {decision.recordedBy} ({decision.recordingMode}) · act record {decision.act ?? "no single record ID selected"}.</p>
+    {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: {decision.equivalentCaptureRecords.join(", ")}. Each original record's source and time remains available below.</p>}
+    <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
+    <p>{decision.lapse} · {decision.captureProvenance}</p>
+    {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
+    {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
+    {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
+    <details><summary>Scoped record sources, correction/lapse history and provenance</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(decision, null, 2)}</pre></details>
+  </>;
+  return <section>
+    <h2>Decision packages</h2>
+    <p>Your name on acts you record: <input value={name} onChange={e => setName(e.target.value)} onBlur={recordName} /></p>
+    {view?.error && <p role="alert">{view.error}</p>}
+    <button onClick={refresh}>Read decision packages</button>{" "}
+    <button onClick={continueRecording}>Continue pending recording and record new requests</button>
+    <p>Reading refreshes the view without writing records. Writer continuation runs separately at App startup and when requested above.</p>
+    <p>Last writer continuation: {writer?.trigger ?? "not run"} · {writer?.state ?? "not run"} · new requests recorded: {writer?.requestsRecordedNow ?? 0}.</p>
+    {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
+    {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
+    {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+      <h3>{row.package} — {row.actRequested} — {row.state}</h3>
+      <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
+      {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
+      <p>Subject: {(row.subject ?? []).join("; ")} · Purpose: {row.purpose} · Scope: {row.scope ?? "—"} · File: {row.packageFile}</p>
+      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).join("; ")}</li>)}</ul>
+      {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
+      {row.decision && claim(row.decision)}
+      {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>{contender.act}</h5>{claim(contender)}</article>)}</div>}
+      {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.join(", ") || "none established"}.</p>}
+      {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
+      <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
+    </article>)}
+    {(view?.limits ?? []).length > 0 && <p>View limits: {view.limits.join(" | ")}</p>}
   </section>;
 }
 
@@ -260,6 +365,8 @@ export function App() {
         </details>
       </section>
 
+      <HistoryPanel host={host} refresh={refresh} />
+
       <ConversationPanel host={host} send={async (generation, threadId, text) => {
         await conversationAction("conversation_send_text", { generation, threadId, text });
       }} interrupt={async (generation, threadId, turnId) => {
@@ -293,43 +400,7 @@ export function App() {
         setHost(await invoke("host_status"));
       }} />
 
-      <section>
-        <h2>Decision packages</h2>
-        <p>
-          Your name on acts you record:{" "}
-          <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => invoke("set_person_name", { name })} />
-        </p>
-        {view?.error && <p>{view.error}</p>}
-        {(view?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
-        <button onClick={refresh}>Refresh and retry pending recording</button>
-        {(view?.rows ?? []).map((r: Json) => (
-          <article key={r.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-            <h3>
-              {r.package} — {r.actRequested} — {r.state}
-            </h3>
-            <p>
-              Subject: {(r.subject ?? []).join("; ")} · Purpose: {r.purpose} · Scope: {r.scope ?? "—"} · File: {r.packageFile}
-            </p>
-            <ul>
-              {r.alternatives.map((a: Json) => (
-                <li key={a.id}>
-                  <b>{a.id}</b> {a.statement} — {a.consequences.join("; ")}
-                </li>
-              ))}
-            </ul>
-            {r.decision && (
-              <p>
-                Decided: <b>{r.decision.alternativeChosen}</b> {r.decision.statement} · decided by {r.decision.decidedBy} · recorded by{" "}
-                {r.decision.recordedBy} ({r.decision.recordingMode}) · captured {r.decision.capturedAt} · {r.decision.lapse} · act{" "}
-                {r.decision.act} · {r.decision.captureProvenance}
-              </p>
-            )}
-            {r.limits.length > 0 && <p>Limits: {r.limits.join(" | ")}</p>}
-            <button onClick={() => openControl(r.package)}>Open act control (decide)</button>
-          </article>
-        ))}
-        {(view?.limits ?? []).length > 0 && <p>View limits: {view.limits.join(" | ")}</p>}
-      </section>
+      <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl} />
 
       {offer && (
         <section style={{ border: "1px solid #888", padding: 8 }}>

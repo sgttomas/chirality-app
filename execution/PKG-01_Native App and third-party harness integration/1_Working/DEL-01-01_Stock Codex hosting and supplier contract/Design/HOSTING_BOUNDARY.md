@@ -735,6 +735,56 @@ Each client request is one record of `hosting.client-request-record.schema.json`
 | read record | The caller; DEL-04-03 (S-7) | The record with initiator and carried-guidance identities (§8.2) | — |
 | (inbound) uncorrelated response | The boundary | Surfaced as `uncorrelated-response` with generation and position | Never dropped and never attributed to a request |
 
+### 5.1.1 Attachment submission association (CC-H-ATTACHMENT-CORRELATION)
+
+For an attachment-bearing `turn/start` or `turn/steer`, the owning NIR source
+first preserves its complete immutable ordered per-attachment supply records.
+The host then reserves the native RPC identity and persists this optional
+client-custody field **before actual scoped pipewrite**:
+`submissionAssociation {submissionRef, threadId, supplyRefs, expectedTurnId?}`.
+The App-only `submission:<opaque unique token>` is not a native turn ID;
+`supplyRefs` is the exact immutable ordered unique list of owning NIR record
+references, each with original `turnRef = submissionRef`. Full H5 generation,
+RPC identity and method come from the containing client record; they are not
+duplicated in the association. `expectedTurnId` is present exactly for steer
+and must equal the observed target actually sent; association thread must
+match the native request's `threadId`. This is pointer-only existing custody,
+not a new transcript, payload/base cache, upload, ledger/RS kind or wire field.
+
+Before association persistence or pipewrite, resolve all supplyRefs to the
+complete prepared NIR list, validate thread/target/order/unique token and
+current ready generation. Persistence failure (including partial or unreadable
+binding) sends **nothing**; partial supply preparation never makes input sent.
+The same transient native input composition goes to the pipe; association
+metadata never enters native params. On cancellation before dispatch or
+changed generation/pipe after preparation, send nothing. Reservation consumes
+an RPC identifier but is not supplier acceptance; never reuse/resend it.
+
+The prewrite record is `prepared-not-sent`, `writeResult: not-attempted`,
+reserved nonnull request identity and no send position. This names the fact
+at that observation point, not a permanent claim after a crash: on cold read,
+a prepared-only record with unavailable later write/journal evidence gives
+unknown/unavailable dispatch, never proof that native send did not happen and
+never permission to retry. Actual observed no-attempt/cancellation can be shown
+as not sent; a written frame proves written only, not provider adoption.
+After the pipe attempt, existing pending/written or write-failed/unknown
+outcomes apply. Ending waiting, view loss or reload never automatically sends.
+
+`resolve_submission(submissionRef)` is a pointer resolver over existing custody
+and NIR sources: exact association/full generation/request/method/thread,
+write/outcome observations and limits, plus native turn reference only if
+observed through the matching result. For turn/start, use that response's
+`turn.id`; thread context comes from the original request association (the
+0.160.0 response need not repeat threadId); any actually reported contradictory
+thread fails correlation. For steer, use matched `turnId` only when it equals
+the actual expectedTurnId. Wrong namespace/RPC, malformed/missing/error result,
+conflicting thread/target or unavailable native evidence stays uncorrelated/
+unknown with cause. No proximity, latest-turn, matching-text or thread-only
+inference. Original association, supplyRefs and NIR turnRef never change;
+multiple submissions to one native turn remain distinct. Replies stay in the
+existing native evidence stream, not copied into attachment records. Explicit
+new send mints a new submission token with prior uncertainty visible.
+
 ### 5.2 Client-request record transitions (PROPOSED, v0.8; R12-1)
 
 | ID | From | Event | To |
@@ -747,6 +797,11 @@ Each client request is one record of `hosting.client-request-record.schema.json`
 | CR-06 | `pending` | response with an error | `response-observed-error` |
 | CR-07 | `pending` | the generation closes (exit, handshake failure, stop) | `unknown-no-response` |
 | CR-08 | `pending` | the caller's wait limit | `pending` (`waitingEnded`) |
+| CR-09 | — | complete ordered NIR supply refs resolved; reserve RPC; preserve pointer association before pipewrite | `prepared-not-sent` (`not-attempted`, no send position) |
+| CR-10 | `prepared-not-sent` | same ready generation/pipe; actual native frame write succeeds | `pending` (`written`) |
+| CR-11 | `prepared-not-sent` | actual native write fails | `unknown-no-response` (`write-failed`) |
+| CR-12 | `prepared-not-sent` | preparation persistence failure, observed cancellation or generation/pipe changes before write | `prepared-not-sent`; no native write, actual no-attempt cause/limits preserved by owning observer |
+
 
 ## 6. Outstanding server-request register — interface
 

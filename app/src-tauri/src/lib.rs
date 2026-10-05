@@ -8,6 +8,7 @@
 pub mod access;
 pub mod act_control;
 pub mod act_policy;
+pub mod attachments;
 pub mod canonical;
 pub mod catalog;
 pub mod decision_view;
@@ -41,6 +42,7 @@ pub struct AppState {
     host_config: Result<HostConfig, String>,
     workspace: Option<PathBuf>,
     act: Mutex<Option<ActControl>>,
+    decision_writer_status: Mutex<Value>,
     person_name: Mutex<Option<String>>,
     runtime: Mutex<runtime_session::RuntimeSession>,
     history: Mutex<runtime_session::HistorySession>,
@@ -377,36 +379,20 @@ fn set_person_name(state: State<'_, AppState>, name: String) {
 
 #[tauri::command]
 fn decision_view(state: State<'_, AppState>) -> Result<Value, String> {
-    let ws = state
-        .workspace
-        .as_ref()
-        .ok_or("CHIRALITY_WORKSPACE is not set")?;
-    // Writer continuation flushes admitted native pending work before ordinary recorder appends.
-    let mut g = state.act.lock().unwrap();
-    let (recovery, written) = if let Some(ac) = g.as_mut() {
-        let (recovery, written) = ac.refresh_recording();
-        (Some(recovery), written)
-    } else {
-        (
-            None,
-            Err("native writer state unavailable; recorder continuation held".into()),
-        )
-    };
-    let mut v = decision_view::derive(ws, &[]);
-    match written {
-        Ok(written) => v["requestsRecordedNow"] = json!(written.len()),
-        Err(e) => v["limits"].as_array_mut().unwrap().push(json!(e)),
-    }
-    if let Some(recovery) = recovery {
-        match recovery {
-            Ok(results) => v["captureRecovery"] = json!(results),
-            Err(e) => {
-                v["captureRecovery"] = json!([{"state":"AC-8 record pending","writeFailure":e}])
-            }
-        }
-    }
-    v["workspace"] = json!(ws.display().to_string());
-    Ok(v)
+    let ws = state.workspace.as_ref().ok_or("CHIRALITY_WORKSPACE is not set")?;
+    let mut view = runtime_session::read_decision_packages(ws);
+    view["writerStatus"] = state.decision_writer_status.lock().unwrap().clone();
+    Ok(view)
+}
+
+/// Explicit writer continuation; it is separate from every public read.
+#[tauri::command]
+fn continue_decision_recording(state: State<'_, AppState>) -> Result<Value, String> {
+    let ws = state.workspace.as_ref().ok_or("CHIRALITY_WORKSPACE is not set")?;
+    let mut control = state.act.lock().unwrap();
+    let status = runtime_session::continue_decision_writer(ws, control.as_mut(), "explicit-command");
+    *state.decision_writer_status.lock().unwrap() = status.clone();
+    Ok(status)
 }
 
 /// AI-9: the person opens the control from a pending row; the host composes the offer.
@@ -473,6 +459,7 @@ pub fn run() {
         host: Arc::new(Host::new()),
         host_config: host_config.clone(),
         act: Mutex::new(workspace.as_ref().map(|w| ActControl::new(w))),
+        decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
         workspace,
         person_name: Mutex::new(None),
         runtime: Mutex::new(runtime_session::RuntimeSession::default()),
@@ -491,6 +478,12 @@ pub fn run() {
         .setup(move |app| {
             let data = app.path().app_data_dir().map_err(|e| e.to_string());
             let state = app.state::<AppState>();
+            // Startup owns this separate writer continuation. Neither decision
+            // view reads nor host/status polling invokes the writer.
+            if let Some(ws) = state.workspace.as_ref() {
+                let mut control = state.act.lock().unwrap();
+                *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
+            }
             *state.app_user_data_root.lock().unwrap() = data.clone();
             state.recovery_startup.lock().unwrap().initialize(
                 &host,
@@ -538,6 +531,7 @@ pub fn run() {
             conversation_interrupt,
             set_person_name,
             decision_view,
+            continue_decision_recording,
             compose_offer,
             decide
         ])

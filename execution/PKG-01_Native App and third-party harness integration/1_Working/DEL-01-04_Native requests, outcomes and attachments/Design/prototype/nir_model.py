@@ -675,7 +675,7 @@ SUPPLIER_READ = {
 NOT_ATTACHMENT_FORMS = {"mention": "delivers nothing to the model at 0.158.0 (OBS-3 W-3)",
                         "skill": "honoured only for a discovered SKILL.md at its canonical path (OBS-3 W-1)"}
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
-TEXT_BOUND = 256 * 1024          # PROPOSED bound for carrying a text file in the turn (U-NIR-10)
+TEXT_BOUND = 262144  # CC-NIR-ATTACHMENT-REF candidate: original file bytes inclusive; not wrapper/context limit
 
 
 def text_identity(text):
@@ -740,7 +740,8 @@ def supply_record(attachment_id, name, form, path, bytes_at_selection, bytes_at_
     if sel and sel["value"] != sub["value"]:
         return rec, "held: content changed since you selected it; confirm the current content before sending"
     rec["byteLength"] = len(bytes_at_submission)
-    return rec, ("sent (named, not supplied)" if form == "path-named" else "sent")
+    return rec, ("prepared; not sent" if turn_ref.startswith("submission:") else
+                 ("sent (named, not supplied)" if form == "path-named" else "sent"))
 
 
 def tool_read(record, item):

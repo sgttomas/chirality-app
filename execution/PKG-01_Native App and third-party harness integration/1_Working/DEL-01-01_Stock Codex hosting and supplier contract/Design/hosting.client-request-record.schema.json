@@ -1,16 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.9:client-request-record",
+  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.10:client-request-record",
   "title": "Client request record (PROPOSED)",
-  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §5, §5.1-§5.2 (R12-1, R12-2). One record per request the App sends, or refuses to send, to the supplier through the generic request path. Element names are Chirality's own; the supplier's method, identities, parameters and error content are carried as data. Placement is not chosen (R12-2); persistence is DEL-01-02's. CC-H proposed candidate (2026-10-04); independent review pending.",
+  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §5, §5.1-§5.2 (R12-1, R12-2). One record per request the App sends, or refuses to send, to the supplier through the generic request path. Element names are Chirality's own; the supplier's method, identities, parameters and error content are carried as data. Placement is not chosen (R12-2); persistence is DEL-01-02's. CC-H proposed candidate (2026-10-04); independent review pending. CC-H-ATTACHMENT-CORRELATION successor adds pointer-only prewrite submission association and prepared observation; joined consumer review required.",
   "type": "object",
   "required": ["recordKind", "generation", "requestIdentity", "method", "initiator", "writeResult", "outcome"],
   "additionalProperties": false,
   "properties": {
     "recordKind": {"const": "client-request"},
     "generation": {"type": ["object", "null"], "required": ["appSession", "home", "spawnCounter"], "additionalProperties": false, "properties": {"appSession": {"type": "string", "minLength": 1}, "home": {"type": "string", "minLength": 1}, "spawnCounter": {"type": "integer", "minimum": 1}}, "description": "CC-H: full H5 identity. appSession is unique across App launches; home is stable App-owned home identity, not a credential or OS path."},
-    "requestIdentity": {"type": ["string", "integer", "null"], "description": "As sent; null when not sent."},
+    "requestIdentity": {"type": ["string", "integer", "null"], "description": "Native RPC identity as sent, or reserved before pipewrite for an associated submission; reservation is not dispatch/acceptance. Null only on refusal before allocation."},
     "method": {"type": "string", "minLength": 1, "description": "Supplier method, as data."},
+    "submissionAssociation": {
+      "type": "object", "required": ["submissionRef", "threadId", "supplyRefs"], "additionalProperties": false,
+      "description": "CC-H-ATTACHMENT-CORRELATION: immutable App pointer-only association persisted before actual scoped pipewrite. Complete full-generation/RPC/method key is in the containing record; no native payload or turn ID invented. Ordered supplyRefs resolve owning immutable NIR records with turnRef equal to submissionRef; uniqueness is checked at the preparation boundary. Prepared-only evidence does not prove dispatch never occurred after a crash.",
+      "properties": {
+        "submissionRef": {"type": "string", "pattern": "^submission:.+"},
+        "threadId": {"type": "string", "minLength": 1},
+        "supplyRefs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "expectedTurnId": {"type": "string", "minLength": 1, "description": "Only for turn/steer: the actual observed target/precondition submitted, not a guessed native turn."}
+      }
+    },
     "initiator": {
       "type": "object", "required": ["kind"], "additionalProperties": false,
       "properties": {
@@ -24,7 +34,7 @@
     },
     "sendPosition": {"type": ["integer", "null"], "minimum": 1},
     "writeResult": {"enum": ["written", "write-failed", "not-attempted"]},
-    "outcome": {"enum": ["pending", "response-observed-result", "response-observed-error", "unknown-no-response", "refused-not-sent"]},
+    "outcome": {"enum": ["prepared-not-sent", "pending", "response-observed-result", "response-observed-error", "unknown-no-response", "refused-not-sent"]},
     "refusalReason": {"enum": ["not-ready", "run-holding"], "description": "Why the boundary did not send it; run-holding is governance phase only (HP-4)."},
     "error": {
       "type": "object", "required": ["code", "message"], "additionalProperties": false,
@@ -45,6 +55,14 @@
     }
   },
   "allOf": [
+    {"if": {"required": ["submissionAssociation"]},
+     "then": {"properties": {"method": {"enum": ["turn/start", "turn/steer"]}, "generation": {"type": "object"}, "requestIdentity": {"type": ["string", "integer"]}}}},
+    {"if": {"required": ["submissionAssociation"], "properties": {"method": {"const": "turn/steer"}}},
+     "then": {"properties": {"submissionAssociation": {"required": ["expectedTurnId"]}}}},
+    {"if": {"required": ["submissionAssociation"], "properties": {"method": {"const": "turn/start"}}},
+     "then": {"properties": {"submissionAssociation": {"not": {"required": ["expectedTurnId"]}}}}},
+    {"if": {"properties": {"outcome": {"const": "prepared-not-sent"}}},
+     "then": {"required": ["submissionAssociation"], "properties": {"writeResult": {"const": "not-attempted"}, "sendPosition": {"type": "null"}}}},
     {"if": {"properties": {"outcome": {"const": "refused-not-sent"}}},
      "then": {"required": ["refusalReason"], "properties": {"writeResult": {"const": "not-attempted"}, "requestIdentity": {"const": null}}}},
     {"if": {"properties": {"outcome": {"enum": ["pending", "response-observed-result", "response-observed-error", "unknown-no-response"]}}},

@@ -1,5 +1,5 @@
 {
-  "description": "Valid (invented), R21-2: (1) a text file supplied as a text element of the turn, later found changed (what Codex read stays not observed); (2) a spreadsheet named by path for the agent to read with its tools, with the tool item that read it (still 'named'); (3) an image supplied as a localImage input; (4) a draft's WORKFLOW.md tried in an ordinary conversation (K-7; AT-8).",
+  "description": "Valid (invented), R21-2: (1) a text file supplied as a text element of the turn, later found changed (what Codex read stays not observed); (2) a spreadsheet named by path for the agent to read with its tools, with the tool item that read it (still 'named'); (3) an image supplied as a localImage input; (4) a draft's WORKFLOW.md tried in an ordinary conversation (K-7; AT-8). CC-NIR-ATTACHMENT-REF candidate: fifth instance is prepared under an App submission token; carrier standing alone is not dispatch/receipt evidence. It resolves only through HOSTING v0.10 submissionAssociation after joined adoption. Original illustrative source identities remain illustrative.",
   "instances": [
     {
       "format": "chirality.nir.attachment-supply",
@@ -125,6 +125,32 @@
         },
         "standing": "draft — not a registered workflow; this conversation is not a workflow run"
       }
+    },
+    {
+      "format": "chirality.nir.attachment-supply",
+      "formatVersion": "0.2",
+      "attachmentId": "att-submission-prepared-ex",
+      "displayName": "load-table.csv",
+      "suppliedAs": "text-element",
+      "supplyStanding": "supplied",
+      "localPath": "/ex/project/data/load-table.csv",
+      "identityAtSelection": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "identityAtSubmission": {
+        "method": "illustration: sha-256 over file bytes (method unselected; RS U-04, HOSTING U-08)",
+        "value": "5f2b...e1"
+      },
+      "byteLength": 2048,
+      "elementIdentity": {
+        "method": "sha256 over UTF-8 text",
+        "value": "c0de...71"
+      },
+      "turnRef": "submission:00000000-0000-4000-8000-000000000001",
+      "recordedAt": "2026-10-01T10:02:00Z",
+      "supplierRead": "not applicable: the bytes are in the turn's own text element",
+      "providerAdoption": "not observed"
     }
   ]
 }

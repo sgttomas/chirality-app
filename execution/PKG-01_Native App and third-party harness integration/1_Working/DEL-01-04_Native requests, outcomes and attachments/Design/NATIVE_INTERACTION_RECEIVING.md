@@ -1,5 +1,8 @@
 # Native requests, outcomes and attachments — receiving and interaction design
 
+- Named candidate: **NIR-v0.4**, CC-NIR-ATTACHMENT-REF (2026-10-05);
+  owning bound/reference/standing changes prepared for joined independent review.
+  Historical contribution and source records below remain preserved.
 - Contribution: DEL-01-04/NIR-v0.3 (supersedes NIR-v0.2, last changed at
   `e510aa84fb`, sha256 49e180907d39db3d5e6c7fedfaadf9d964aba57b328d84cca1f58fb1aec38ca0;
   NIR-v0.2 superseded NIR-v0.1, committed at
@@ -560,6 +563,13 @@ committed 0.158.0 `TurnStartParams`.
 
 ## 6. Attachments and the identity of supplied content (OUT-002; REQ-003; AC-003; VER-003)
 
+**CC-NIR-ATTACHMENT-REF candidate (2026-10-05).** App implementation-owner
+bound disposition with DEL-01-05 model-context source concurrence:262144 original
+file bytes inclusive, UTF-8/no NUL, existing image/named-path fallback. This is
+an App carrier threshold, not a supplier/model context limit. Reference and
+HOSTING custody joining below are named prepared changes awaiting joined
+independent review/adoption; no product dispatch or native witness is claimed.
+
 **Supplier facts.** At 0.158.0 a turn's input is a list of `UserInput`:
 `text`; `image` by `url` or by supplier `fileId`; `localImage` by `path`;
 `audio` by `url`; `localAudio` by `path`; `skill` {name, path}; `mention`
@@ -596,13 +606,13 @@ tool item that shows a read.
 |---|---|
 | AT-1 | When the person selects a file, the App takes its content identity (method designation carried; no algorithm chosen: RS U-04, HOSTING U-08) and shows it with the name and the carrier it will use (AT-9, AT-10) |
 | AT-2 | When the host writes the turn input, it takes the identity again. If it differs from the selection's, the file is **not sent**: the card says "content changed since you selected it; confirm the current content", and the person confirms the current content or removes it. A file missing at that moment is held the same way |
-| AT-3 | One [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) record (0.2) per attachment: the identities at selection and submission, the form (`suppliedAs`), its standing (`supplyStanding`), the path or reference, the identity of the text element sent (`elementIdentity`, for a text element or a named path), the turn, `supplierRead` **per form** (table above), "provider adoption: not observed", and for a named path the tool items that show a read (`toolReads`) |
+| AT-3 | One [`nir.attachment-supply-record.schema.json`](nir.attachment-supply-record.schema.json) record (0.2) per attachment: the identities at selection and submission, the form (`suppliedAs`), its standing (`supplyStanding`), the path or reference, the identity of the composed text element (`elementIdentity`, for a text element or a named path), the immutable submission or already-observed turn reference (§6.1), `supplierRead` **per form** (table above), "provider adoption: not observed", and for a named path the tool items that show a read (`toolReads`) |
 | AT-4 | Same-named items with different content are different attachments, shown with distinguishing identity prefixes; nothing is merged or substituted by name |
 | AT-5 | A URL or supplier `fileId` is recorded as given, with identity "not obtainable (the App does not fetch it)" |
 | AT-6 | A later check (the person opens the item, or the view re-checks on display) records "unchanged since supplied" or "changed after it was supplied; what Codex read is not observed"; it never rewrites the supply record's earlier identities |
 | AT-7 | `thread/attachment/*` is not used by this design: its semantics are not observed and no requirement needs it (UNRESOLVED U-NIR-4) |
 | AT-8 | A draft reaches a trial conversation (K-7) only as a message or attachment the person sends; the App may pre-fill the composer, never sends it (C-14; WR TT-2, TT-3). Its `WORKFLOW.md` and other text files go as text elements (AT-9) and any other file is named (AT-10), exactly as for any attachment (R21-2); each supply record carries the `draft` element {location, name, content} and is shown as "draft ‹name› at content ‹id› — not a registered workflow; this conversation is not a workflow run". No guidance carries a draft, and `skill` is never used for it |
-| AT-9 | **Text element (PROPOSED wording).** A file that decodes as UTF-8, has no NUL byte and is within the App's bound (PROPOSED 256 KiB; U-NIR-10) goes as its own text element: `[Chirality] Attached file "‹name›" (‹path›; content ‹12 hex›). Its bytes follow this line.`, a line feed, then the bytes exactly. The line names; it instructs nothing |
+| AT-9 | **Text element (PROPOSED wording).** A file that decodes as UTF-8, has no NUL byte and is within the App implementation-disposed bound (262144 original file bytes inclusive, before adding the naming line; CC-NIR-ATTACHMENT-REF; U-NIR-10 model-context concurrence) goes as its own text element: `[Chirality] Attached file "‹name›" (‹path›; content ‹12 hex›). Its bytes follow this line.`, a line feed, then the bytes exactly. The line names; it instructs nothing |
 | AT-10 | **Named path (PROPOSED wording).** Any other file is named in one App-written text element after the person's text: `[Chirality] File named, not supplied: "‹name›" at ‹path› (content ‹12 hex› when attached). Read it with your tools if you need it.` A later tool item of the conversation that names the path (a command or file read) is recorded in `toolReads` (App-observed); the record stays "named": which bytes were read then is not observed |
 
 **Two ways to narrow the gap between the App's read and Codex's read for
@@ -624,6 +634,79 @@ again; identity differs at submission · the App · held, not sent · the person
 confirms or removes; the supply record cannot be written · the App · the item
 is still held until the record is written, so the App never sends what it has
 not recorded.
+
+---
+
+### 6.1 Submission identity and native correlation (named candidate)
+
+For a new dispatch, the host mints one unique `submission:<opaque UUID>` for
+the complete immutable ordered input/attachment list before recording. Each
+attachment's existing supply record keeps its own unique opaque attachmentId;
+its `turnRef` carries that App-owned submission token, never a guessed native
+turn ID. Historical records that name an observed turn keep that actual meaning.
+New owning supply references use `attachment:<attachmentId>`; the resolver
+removes only that prefix and looks up the exact opaque ID in the owning NIR
+supply source. References are not paths, native IDs or authority grants.
+
+Persist all admitted per-attachment records, then the existing HOSTING client
+request with its pointer-only `submissionAssociation`:
+`{submissionRef,threadId,supplyRefs:[ordered unique attachment references],
+expectedTurnId?}`. `expectedTurnId` belongs only to turn/steer and names its
+actually observed target. The HOSTING outer generation, allocated RPC identity
+and method remain the source authority; no duplicate outer fields or native
+payload/transcript copy is stored by NIR. Each resolved record must carry the
+same immutable submission token, and the ordered supplied list must equal
+`supplyRefs` exactly, with no missing, extra, repeated or reordered item.
+
+The prepared client-request state is `prepared-not-sent`, with `not-attempted`
+and an allocated non-null RPC ID/full ready generation. This differs from a
+written request's pending/unknown outcome. Failure to durably preserve any
+supply member/list association/client custody prevents dispatch. A prepared
+supply record proves exact prepared input and carrier, not sent, accepted or
+provider adopted. Until the native write is actually observed the view states
+*prepared; not sent*. Carrier standing (`supplied` versus `named`) is not a
+standalone assertion of pipe write or successful receipt.
+
+HOSTING's new client-custody proposal is
+`urn:chirality:del-01-01:hosting-boundary:v0.10:client-request-record`.
+NIR consumes that named successor only after joined independent review;
+structural string acceptance by its own unchanged-shape0.2 supply schema is not
+adoption. HOSTING/RECOVERY preserve source outcome and response/receipt links;
+NIR resolves them without adding a correlation store, REC ledger kind, RS kind,
+transcript or automatic resend. For turn/start, only the exact full-generation/
+RPC matched native result establishes its turn identity. For turn/steer, that
+result must also match the explicit expectedTurnId. Nearby events, latest turn,
+thread-only equality and equal spawn counters never establish this join.
+Only the owning written/pending request can admit its matched response. If a
+result reports a thread, it must equal the bound request thread; omission uses
+the bound context, never a latest-thread guess. A malformed/null result retains
+its original source and native-turn unknown without throwing. Once the owning
+RPC reply settles, a conflicting or repeated reply cannot overwrite that first
+source/correlation; surface the repeat as uncorrelated with its cause. Error,
+unsent, refused or failed-write source states establish no native turn.
+Original turnRef/selection/submission identities are never rewritten to a
+native turn ID. Multiple submissions to one native turn remain distinct.
+
+If write/result/correlation is absent or uncertain, display its actual unknown
+or unavailable limit. In particular, after crash/reload a surviving prepared
+record does **not** prove no pipe write occurred; derive unknown/unavailable
+unless existing source custody establishes a definite cancellation/no attempt.
+Reopening, ending a wait, interruption or a late response never resends. A new
+explicit person send receives a fresh submission token. Pre-dispatch picker
+cancellation/removal sends nothing; post-dispatch interrupt follows RECOVERY
+DEF-3 and makes no rollback or provider-adoption claim.
+
+Native-path identity is held losslessly by the selecting/reading host (tagged
+native bytes on a byte-path platform), distinct from escaped display text.
+Compute file identity and decode content from one read buffer. A supplier path
+carrier receives only an exactly representable native path string; a non-UTF-8
+native path cannot silently become a replacement-character/escaped display
+path. If the selected supplier carrier cannot represent it, report that carrier
+unavailable with cause rather than dispatching a different path. This does not
+select a copy/cache or claim all filesystem paths are supplier-representable.
+Text file bytes preserve BOM, CRLF, trailing whitespace and newline state;
+wrapper overhead does not change carrier eligibility. Image/provider read and
+adoption observations remain open.
 
 ---
 
@@ -889,7 +972,7 @@ RS's own schema.
 | U-NIR-7 *Filled:* O-1 and O-3 confirm TO-4 and CS-6; O-4 confirms the descendant line through an adapter only (R18-9). "Primary completed, child running" stays not observed | DEL-01-03 | When observed | §5.5 |
 | U-NIR-8 *Ruled (R20-5, R20-9; recorded at RX):* the line forms `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›`; the shipped product guidance states both (ROLE-v0.2 GS-7) | — | — | RN-3…RN-7; the buttons' wording and placement stay PROPOSED |
 | U-NIR-9 *Ruled (R20-6; recorded at RX2):* the source conversation's agent drafts the handoff summary in a visible turn there; the person edits it; the App adds only a header naming the source | — | — | CA-2; the request's wording and the failure fallback stay PROPOSED |
-| U-NIR-10 (RV21) The text-element bound (AT-9: PROPOSED 256 KiB) and whether an image input reaches a given provider (not observed at 0.158.0; OBS-1…3 sent no image) | App implementation owner with DEL-01-05 (model context) | Before attachment implementation | A file above the bound is named (AT-10); an image is recorded "supplied", its read "not observed" |
+| U-NIR-10 Text bound disposed in CC-NIR-ATTACHMENT-REF candidate; image/provider observation still open | App implementation owner with DEL-01-05 (model context); source concurrence received2026-10-05 | Before attachment implementation and candidate image/provider witness |262144 original-file bytes inclusive (UTF-8/no NUL), existing named/image rules; not a context limit. Image read/adoption remains unobserved; no human gate inferred |
 
 ## Changes
 

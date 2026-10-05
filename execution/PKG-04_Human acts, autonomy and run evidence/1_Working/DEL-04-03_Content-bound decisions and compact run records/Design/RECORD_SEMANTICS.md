@@ -1473,6 +1473,49 @@ delay-account limit is reported as incomplete recording, not erased.
 | **R-7 Reader rules** | HA-2; outside-process limit; grant references; an A15's correspondence of bound subjects, bound contents and registered entries, each bound content equal to its reviewed content (WR ID-2; v0.9). If SEAL-2 is adopted (U-32), "capture not verifiable" for an App-interface entry without a valid seal (conditional; not in format 0.1) | Each breach: nonconformant, with the rule |
 | **R-8 Assemble** | Groups act records by capture evidence (one act, however many records; direct capture governs, HA-7); latest disposition per arrival; each A12's control effect from the latest settings version naming it; lapse: c₁ is obtained for the record-out, so lapse is evaluated on read as well as on the writer's events — until c₁ is obtained the state is *not yet evaluated* (never *not lapsed*); resolution status at read for every evidence reference (§9) | Records of one capture that disagree on kind, subject or content: "recorders disagree", and the act is shown only as far as they agree; the reader writes nothing (a lapse found on read is written by the writer, if one is running, as `act_lapsed`) |
 
+### 14.2a Warranted order and ambiguous relations (CC-RS-READER-ORDER)
+
+R-1…R-8 derive a view from readable source facts, never a new authoritative
+history. Valid `seq` establishes entry order only in its owning writer log;
+there is no universal order across logs. Resolve explicit correction/replacement/
+control links by exact, unambiguous record identity and the relation's stated
+meaning. Same capture recorded by several writers remains one act claim under
+R-8; the additional record is not a later performance merely because it was
+written later. `writtenAt`/`observedAt` keep their supplied meanings and do not
+supply a cross-log chronology without actual comparability/causal evidence.
+UUIDs, filenames, path sorting, collection enumeration and map insertion are
+never precedence rules.
+
+For R-6/W-3, a correction must have paired `corrects`/reason and an exactly
+resolved target of the same kind. Keep original and correcting entries readable
+and show the warranted `corrected by` link; correction is not another person's
+act. Missing/ambiguous target is an unresolvable/unknown relation, not an assumed
+replacement. Wrong kind/missing reason retains existing nonconformant treatment.
+Self-links, cycles or contradictory causal links cannot establish a replacement
+order. Do not erase a target or select a last-seen branch from such relations.
+
+Where validated explicit links and applicable writer-local order establish one
+current correction/disposition, derive that ordinary result. Where competing
+corrections or dispositions are incomparable under those sources, retain every
+original readable claim and expose "ambiguous/unresolved relation" with the
+contenders and source limits. This is a derived reader diagnostic, not a new
+RS kind/field/evidence-label enum. Do not invent a total order or silently
+supersede one contender. The view may show only the facts on which sources agree;
+which act is current remains unknown where that warrant is absent. Ordering
+recorded observations is not proof of a later human performance when source
+custody does not establish that relation. Clear single-log cases and evidenced
+cross-log links remain derivable; ambiguity does not discard unrelated records.
+
+This clarifies R-6 "corrected by" and R-8 "latest" without changing append-only
+history, per-log sequence, same-kind correction or native-act provenance rules.
+Read/rebuild writes nothing: no correction, lapse, backlink, reconstructed act or
+repair is appended by the reader. A missing reference preserves the original
+recorded fact with its resolution limit (FC-8), not a fabricated new performance
+or reversion to waiting. This creates no SEAL-2/default/grant choice. Consumer
+DV-6's "later/latest" must adopt this warranted-order reading through named
+owner concurrence and independent review before product selection; a prototype's
+last-wins dictionary is not the source warrant for cross-log precedence.
+
 ### 14.3 Failure cases
 
 | Case | Situation | Behaviour | Record left | Prototype |

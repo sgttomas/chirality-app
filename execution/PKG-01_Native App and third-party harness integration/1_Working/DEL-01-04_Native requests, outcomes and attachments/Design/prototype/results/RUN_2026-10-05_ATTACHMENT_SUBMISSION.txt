@@ -1,0 +1,235 @@
+Named proposed NIR consumer candidate; not product/native evidence
+Python: 3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]
+Host: macOS-26.6.2-arm64-arm-64bit-Mach-O
+Working directory: /Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/prototype
+Environment change: PYTHONDONTWRITEBYTECODE=1; otherwise inherited
+
+Command: PYTHONDONTWRITEBYTECODE=1 /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 attachment_submission.py
+Exit: 0
+STDOUT
+PASS AS-1 App token produces prepared supply, never sent claim
+PASS AS-2 file text preserves CRLF and exact trailing bytes
+PASS AS-3 file-byte boundary 262143
+PASS AS-3 file-byte boundary 262144
+PASS AS-3 file-byte boundary 262145
+PASS AS-4 wrapper overhead does not change per-file eligibility
+PASS AS-5 NUL/non-UTF8 content uses existing named carrier
+PASS AS-6 image route preserved; no provider witness
+PASS AS-7 native path identity lossless and display separate
+PASS AS-8 non-UTF8 path never dispatches lossy display
+PASS AS-9 exact UTF8 path round-trips original bytes
+PASS AS-10 immutable ordered owning supply refs; no outer fields duplicated
+PASS AS-11 reordered list refused
+PASS AS-12 duplicate identity/foreign list refused
+PASS AS-12a distinct record from foreign submission refused
+PASS AS-12b missing record refused
+PASS AS-12c extra record refused
+PASS AS-13 changed bytes held before send
+PASS AS-14 any member persistence failure prevents dispatch
+PASS AS-15 custody association persistence failure prevents dispatch
+PASS AS-16 cold prepared record neither proves no write nor resends
+PASS AS-17 observed pre-dispatch cancellation sends nothing
+PASS AS-18 pending written input never auto-resends
+PASS AS-19 equal counter in foreign home cannot correlate
+PASS AS-20 nearby native event cannot substitute RPC correlation
+PASS AS-21 exact native result joins without rewriting original token
+PASS AS-22 wrong steer target remains unknown
+PASS AS-23 actual expected steer result correlates; no fallback start
+PASS AS-24 custody contains pointers only, no raw transcript
+29 checks, 0 failed; model only, no native/durable filesystem/provider witness
+
+STDERR
+
+Command: PYTHONDONTWRITEBYTECODE=1 /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 run_cases.py
+Exit: 0
+STDOUT
+== S schemas and examples ==
+PASS S-1 nir.answer-submission.schema.json loads; every keyword is in the validator's subset
+PASS S-1 nir.attachment-supply-record.schema.json loads; every keyword is in the validator's subset
+PASS S-1 nir.draft-transition.schema.json loads; every keyword is in the validator's subset
+PASS S-1 aac.offer.schema.json loads; every keyword is in the validator's subset
+PASS S-1 aac.capture-evidence.schema.json loads; every keyword is in the validator's subset
+PASS S-2 nir.answer-submission valid example is valid 
+PASS S-3 nir.answer-submission INV-AS-1 invalid as expected -> $.origin.class: expected const 'person-via-interaction'
+PASS S-3 nir.answer-submission INV-AS-2 invalid as expected -> $.origin.actorRef: does not match pattern '\\(identity not verified\\)$'
+PASS S-3 nir.answer-submission INV-AS-3 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.answer-submission INV-AS-4 invalid as expected -> $.nativeAnswer.decision: matches a 'not' schema
+PASS S-3 nir.answer-submission INV-AS-5 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.answer-submission INV-AS-6 invalid as expected -> $.method: 'currentTime/read' not in enum
+PASS S-2 nir.attachment-supply-record valid example is valid 
+PASS S-2 nir.attachment-supply-record valid example is valid 
+PASS S-2 nir.attachment-supply-record valid example is valid 
+PASS S-2 nir.attachment-supply-record valid example is valid 
+PASS S-2 nir.attachment-supply-record valid example is valid 
+PASS S-3 nir.attachment-supply-record INV-AT-1 invalid as expected -> $.providerAdoption: expected const 'not observed'
+PASS S-3 nir.attachment-supply-record INV-AT-2 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.attachment-supply-record INV-AT-3 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.attachment-supply-record INV-AT-4 invalid as expected -> $.identityAtSubmission: matches 0 oneOf branches (need exactly 1); closest branch: ["$.identityAtSub
+PASS S-3 nir.attachment-supply-record INV-AT-5 invalid as expected -> $.suppliedAs: 'mention' not in enum
+PASS S-3 nir.attachment-supply-record INV-AT-6 invalid as expected -> $.suppliedAs: 'skill' not in enum
+PASS S-3 nir.attachment-supply-record INV-AT-7 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.attachment-supply-record INV-AT-8 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.attachment-supply-record INV-AT-9 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.attachment-supply-record INV-AT-10 invalid as expected -> $.draft.standing: expected const 'draft — not a registered workflow; this conversation is not a work
+PASS S-3 nir.attachment-supply-record INV-AT-11 invalid as expected -> $.suppliedAs: 'draft-package' not in enum
+PASS S-2 nir.draft-transition valid example is valid 
+PASS S-3 nir.draft-transition INV-DT-1 invalid as expected -> $.a15_record: does not match pattern '^rec:'
+PASS S-3 nir.draft-transition INV-DT-2 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.draft-transition INV-DT-3 invalid as expected -> $: matches no anyOf branch
+PASS S-3 nir.draft-transition INV-DT-4 invalid as expected -> $.event: 'collision-refused' not in enum
+PASS S-3 nir.draft-transition INV-DT-5 invalid as expected -> $.revision: shorter than 1
+PASS S-2 aac.offer valid example is valid 
+PASS S-2 aac.offer valid example is valid 
+PASS S-2 aac.offer valid example is valid 
+PASS S-2 aac.offer valid example is valid 
+PASS S-3 aac.offer INV-OF-1 invalid as expected -> $.wording: 'accept' not in enum
+PASS S-3 aac.offer INV-OF-2 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-3 invalid as expected -> $.actKind: ['A4', 'A6'] not in enum
+PASS S-3 aac.offer INV-OF-4 invalid as expected -> $.subject: missing required 'contentIdentity'
+PASS S-3 aac.offer INV-OF-5 invalid as expected -> $.actKind: 'A12' not in enum
+PASS S-3 aac.offer INV-OF-6 invalid as expected -> $.entries[0]: missing required 'reviewedDraft'
+PASS S-3 aac.offer INV-OF-7 invalid as expected -> $.entries[0].priorRevision: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-8 invalid as expected -> $.entries[0].reviewedDraft.draft: does not match pattern '^(draft|entry):(project|user):[^@]+@.+$'
+PASS S-3 aac.offer INV-OF-9 invalid as expected -> $.entries: fewer than 1 items
+PASS S-3 aac.offer INV-OF-10 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-11 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-12 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-13 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-14 invalid as expected -> $.entries[0]: additional property 'descriptorId' not allowed
+PASS S-3 aac.offer INV-OF-15 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-16 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-17 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-18 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.offer INV-OF-19 invalid as expected -> $: matches no anyOf branch
+PASS S-2 aac.capture-evidence valid example is valid 
+PASS S-2 aac.capture-evidence valid example is valid 
+PASS S-2 aac.capture-evidence valid example is valid 
+PASS S-3 aac.capture-evidence INV-CE-1 invalid as expected -> $.inputSource: expected const 'host-native-confirmation'
+PASS S-3 aac.capture-evidence INV-CE-2 invalid as expected -> $.actor.identityVerified: expected const False
+PASS S-3 aac.capture-evidence INV-CE-3 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-4 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-5 invalid as expected -> $.surface: expected const 'App interface'
+PASS S-3 aac.capture-evidence INV-CE-6 invalid as expected -> $.actor: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-7 invalid as expected -> $: additional property 'derivedFrom' not allowed
+PASS S-3 aac.capture-evidence INV-CE-8 invalid as expected -> $.actor: additional property 'planType' not allowed
+PASS S-3 aac.capture-evidence INV-CE-9 invalid as expected -> $.actor.codexAccount: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-10 invalid as expected -> $.entries[0]: additional property 'descriptorId' not allowed
+PASS S-3 aac.capture-evidence INV-CE-11 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-12 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-13 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-14 invalid as expected -> $: matches no anyOf branch
+PASS S-3 aac.capture-evidence INV-CE-15 invalid as expected -> $: matches no anyOf branch
+PASS S-4 optional third-party cross-check with the installed jsonschema 4.26.0: same verdicts on all examples
+
+== C request cards (NIR §4.1-§4.3; VER-001) ==
+PASS C-1 11 server-request kinds at 0.158.0; 7 are person cards, 4 are not
+PASS C-2 classification follows the declared capabilities (HOSTING §6.1 familiar set)
+PASS C-3 a request's availableDecisions are offered exactly (OB-5 shape): ['accept', 'acceptWithExecpolicyAmendment', 'cancel']
+PASS C-4 with no `decline` offered, the decline is the native `cancel`, shown as also interrupting the turn
+PASS C-5 without availableDecisions, generated forms; amendment forms only when proposed: ['accept', 'acceptForSession', 'decline', 'cancel']
+PASS C-6 no tool-permission card uses 'accept', 'approve', 'approval' or 'approved' as App words (ACT §9; AS DS-1) []
+PASS C-7 every card kind has an explicit decline: requestApproval=native form; requestApproval=native form; requestApproval=PROPOSED: an empty grant; its effect is not observed; execCommandApproval=native form (legacy); applyPatchApproval=native form (legacy); requestUserInput=PROPOSED: an empty answer map; its effect is not observed; request=native form
+PASS C-8 question card: secret input masked; non-blocking and supplier auto-resolution shown as information, no App countdown
+PASS C-9 elicitation card names the requester 'MCP server or the agent (not established)'; verification mode never completed by the App
+
+== R card states over the register (NIR §4.4; HOSTING §6.2.1) ==
+PASS R-1 an answer the request does not offer is refused 'invalid-answer'; the card keeps waiting with the reason
+PASS R-2 the card's answer submission is valid against its schema
+PASS R-3 written is not acknowledged: 'Your answer was written to Codex; Codex has not confirmed it' then 'Your answer was written; Codex reported the request resolved'
+PASS R-4 a second answer is refused 'already-settled'
+PASS R-5 the person's decline: 'You declined; written to Codex; Codex has not confirmed it'
+PASS R-6 write failure: 'Your answer could not be written; whether Codex received it is unknown'
+PASS R-7 silence: after a simulated day the question still waits; no automatic decline exists (R17-9)
+PASS R-8 observer closure and reload rebuild the same cards from 'list outstanding'; closing answers nothing
+PASS R-9 resolved by Codex before an answer: 'Resolved by Codex before you answered (cause: not reported)'
+PASS R-10 answering a supplier-resolved request is refused 'already-resolved'
+PASS R-11 PROPOSED decline of a question: the empty answer map, settled as a decline
+PASS R-12 Codex ended: 'Ended unanswered: the Codex process ended'; a late answer is refused 'generation-closed'
+PASS R-13 unknown identity refused 'no-such-request'
+PASS R-14 an App rule's affirmative answer is refused 'origin-not-permitted' (R9)
+PASS R-15 all 13 register rows reached and each maps to one card state: ['RT-01', 'RT-02', 'RT-03', 'RT-04', 'RT-05', 'RT-06', 'RT-07', 'RT-08', 'RT-09', 'RT-10', 'RT-11', 'RT-12', 'RT-13']
+PASS R-16 every register entry the walk produced is valid against HOSTING's PROPOSED entry schema []
+     final card states of the walk: CS-3a, CS-4, CS-4a, CS-5, CS-6, CS-7, CS-E, CS-U
+PASS R-16a equal spawn counter with different appSession is refused without settlement
+PASS R-16a equal spawn counter with different home is refused without settlement
+
+== O turn and outcome presentation (NIR §5; VER-002) ==
+     live: TO-1 In progress
+     lost: TO-6 Outcome unknown: observation was lost before Codex reported an end
+     lost-in-progress: TO-6 Outcome unknown: observation was lost before Codex reported an end
+     you: TO-4 Interrupted (interrupted by you)
+     quit: TO-4 Interrupted (interrupted by quit)
+     codex-stop: TO-4 Interrupted (interrupted by Stop Codex)
+     cancel: TO-4 Interrupted (interrupted after your `cancel` tool-permission answer)
+     plain: TO-4 Interrupted (cause not observed)
+     desc: TO-3 Completed; 1 delegated agent(s) last reported running; 1 delegated agent(s) with no reported state
+PASS O-1 observation lost before an end: outcome unknown, never completed or interrupted
+PASS O-2 primary completion with a running delegated agent says so; it never implies the descendant finished
+PASS O-3 an interruption is never called 'stopped' (R17-3); its cause is shown only when observed
+PASS O-3a TO-4 uses RECOVERY-v0.2 §3.4's labels: 'interrupted by quit', 'interrupted by Stop Codex' (V21-A MINOR 4)
+PASS O-4 K-3: a new conversation starts with no model; the last choice is offered, never applied; sending keeps the message
+PASS O-5 R18-2 (C-09): a workflow run reads 'run not started — no model selected'; a conversation 'not started — …'
+PASS O-6 ST-5 (C-15): role preselected from default_for_new_chat, clearable; 'no role' allowed
+PASS O-7 G-4: an item still open at turn end settles 'not completed (turn ended …)'
+PASS O-8 C-06: plan mode from NPTD's element; every later turn sends mode 'default' explicitly (O-8); run-start text first
+PASS O-9 composed turn/start parameters, with a run-end line and the three attachment carriers, are valid against the committed 0.158.0 TurnStartParams (optional third-party cross-check: installed jsonschema)
+PASS O-8a TC-2: the run-end line (R20-3; WR TX-5) first, then the person's text, then the attachments (text element, image input, named path)
+PASS O-10 C-24: an App-level count of waiting requests, with or without a window; a second window's answer is refused
+PASS O-11 R19-2 (b), R20-11 (1), (2), (4): 'Start ‹B›' only with no run; during a run only 'End ‹A› and start ‹B›' (cause 'ended to start ‹B›'); the proposal line must be the last line, once
+PASS O-13 RN-7: 'End run' on the exact finished line (last line, or just before the proposal line) naming the run in force; with a proposal, 'End ‹A› and start ‹B›' ends A 'completed'; nothing otherwise
+PASS O-12 R19-3/R19-8, R20-6: 'Continue as ‹role›' opens a new conversation; the source agent drafts the summary in a visible turn there; the person edits it under an App header; nothing sent
+
+== A attachments (NIR §6; VER-003; R21-2) ==
+PASS A-1 a text file is supplied as a text element naming the file, then its bytes; the supply record is valid
+PASS A-2 content changed between selection and submission is held, never sent silently: 'held: content changed since you selected it; confirm the current content before sending'
+PASS A-3 two same-named files with different content stay two attachments
+PASS A-4 a file missing at submission: 'held: file missing at submission; not sent'
+PASS A-5 per form (R21-2): text element and image 'supplied'; other files 'named; read only if a tool item shows it'; no record claims provider adoption
+PASS A-6 a tool item that reads a named path is recorded beside it; the record stays 'named' (which bytes were read is not observed)
+PASS A-7 'mention' and 'skill' are never attachment forms (OBS-3 W-3, W-1); carriers chosen by content: ['text-element', 'localImage', 'path-named', 'path-named']
+PASS A-8 AT-8 (K-7): a draft's WORKFLOW.md tried in an ordinary conversation is a supplied text element, shown as a draft, never a run
+
+== D draft receiving (NIR §7; WR-v0.1 §5.1 events; VER-004) ==
+PASS D-1 WR §5.1 walk; a change during review makes it stale and registration needs the new review: ['draft', 'under review', 'changed since review', 'under review', 'registered, unchanged since']
+PASS D-2 every transition of the walk is valid against the receiving schema
+PASS D-3 'registered' without the A15 record, or for other content, is refused: 'registered without the A15 record and revision: refused (no invented registration)'; 'registered content differs from the reviewed content: refused'
+PASS D-4 a local UI action never registers or reviews: 'local action 'mark registered' refused: only the workspace's transitions move a draft'
+PASS D-5 'refused: name taken' (K-6) keeps the draft a draft and asks for a new name
+PASS D-6 a registration that did not complete returns the draft to 'draft' and cites the recorded act
+PASS D-7 C-02 read side: without the A15 record nothing is shown registered; from WR's library_entry it is
+
+== K App act control (AAC; VER-005 positive case by model only) ==
+     RS_RECORD.schema.json as found: A15 relations form 'relations' (sha256 c94dbd441388f52d)
+PASS K-1 A12, A5 and A13 are not offered by the App act control in this increment, each with its reason
+PASS K-2 an A4 offer bound to the file's content identity is valid against the offer schema
+PASS K-3 operation from 'agent-tool' refused; nothing captured
+PASS K-3 operation from 'mcp-operation' refused; nothing captured
+PASS K-3 operation from 'app-rule' refused; nothing captured
+PASS K-3 operation from 'supplier-request' refused; nothing captured
+PASS K-3 operation from 'webview-script' refused; nothing captured
+PASS K-4 the person's native confirmation captures A4: rec:app-interface:0002
+PASS K-5 acting answered no pending supplier request (CAP-9)
+PASS K-5a a second capture from one offer is refused: 'offer is 'AC-7 recorded', not presented'
+PASS K-5b dismissing the control records nothing: 'nothing recorded'
+PASS K-6 the RS human_act (direct capture, actor ≠ recorder, arrival and request cited) is valid against RS's schema
+PASS K-7 a decline makes an RS act_declined event, valid against RS's schema; it is not an act of that kind
+PASS K-8 content changed after it was shown: 'content changed since it was shown: nothing captured; review it again'
+PASS K-8a an A15 is offered only from the workspace's descriptor: 'not offered: no A15 descriptor from the workspace (WR RB-4, §4.7)'
+PASS K-9 an A15 offer from the descriptor: no decline; reviewedDraft (WR ID-3) and priorRevision (RS tuple) (C-01)
+PASS K-10 A15 has no decline: 'no decline for A15 (ACT §2.3); close the control instead'
+PASS K-11 A15: captured and recorded, then registered by the workspace; RS entry and capture evidence valid
+PASS K-12 the act is recorded; the registration's failure is reported beside it: 'library write failed (invented)'
+PASS K-12a the workspace withdrew the descriptor (RB-3): nothing captured: 'the workspace withdrew the descriptor a15d:w:5 (WR RB-3, ME-4): nothing captured; review it again'
+PASS K-12d an a15_multi_descriptor with one entry is not offered (WR §4.7 ME-1): 'not offered: an a15_multi_descriptor names two or more library entries in place (WR §4.7)'
+PASS K-12b a several-entry A15 is refused whole when one entry changed (WR ME-4): 'workflow revision project:notes-b@250057a76c80a6fe changed since it was shown: nothing captured; review it again'
+PASS K-12c L-4: one multi descriptor, one A15 act over two library entries in place ('entry:'; plural wording): one capture, one RS record naming both, each entry's outcome beside it
+PASS K-13 a record write failure keeps the capture and reports it
+PASS K-14 the pending A7 is written late, in order, then 'record write failed' (RS FC-1): [('human_act', 'A7'), ('human_act', 'A4'), ('evidence_limit', 'record write failed')]
+PASS K-15 relaunch: a capture whose record was never written gets its record, late (AC-R1)
+PASS K-17 R21-3 cross-check: WR-v0.2's own a15_descriptor and a15_multi_descriptor examples (valid against WR's schema) pass through this control's offer and capture into RS's writer; offer, capture and RS entry valid; wording, descriptor, purpose and reviewed content carried unchanged {'a15_descriptor': True, 'a15_multi_descriptor': True}
+PASS K-17b RS's L-4 act-log example (record 4: 'entry:' strings, capture cap:reg-in-place-2) has capture evidence this control's format accepts, and this control writes the same relations, subjects, content and actor from it
+PASS K-16 all 11 RS entries the act control wrote are valid against RS_RECORD.schema.json []
+
+162 checks, 0 failed. Scratch logs under $TMPDIR (d3-del-01-04-*)
+
+STDERR

@@ -923,6 +923,22 @@ semantics (F-A4); `modelProvider/capabilities/read` without parameters
 §10; skills advertised per request (F-A9). The network view's expected list
 is per version (§9).
 
+**Attachment model-context concurrence (CC-H-ATTACHMENT-CORRELATION).**
+NIR U-NIR-10 assigns the text-carrier bound to the App implementation owner
+with DEL-01-05 model-context input; it is an ordinary implementation choice,
+not a new human reservation. ACCESS concurs with **262,144 original file bytes
+inclusive**, UTF-8/no NUL, preserving BOM/CRLF/whitespace and final-newline
+bytes, with existing named-path/image fallbacks. Wrapper overhead is outside
+this per-file threshold; actual native/provider payload/context refusal remains
+separate, shown without truncation or silent splitting/substitution. This
+number is not an observed supplier/provider context limit or suitability
+qualification. Naming a path is not evidence its bytes were read; image input
+read/provider adoption remain unobserved without their own witnesses. Provider,
+model, user Codex configuration/approval/sandbox choice and credential custody
+stay unchanged. NIR owns factory/carrier/threshold wording; HOSTING owns the
+prewrite pointer association/native-write outcome; no model fallback, new RS
+kind, transcript/base cache or acceptance follows from preparation.
+
 ## 19. Receiving comparison for seam S-4 (R18-7 G-1; HOSTING F-15)
 
 HOSTING-v0.8 §8 S-4 names what the boundary supplies to DEL-01-05 and what it

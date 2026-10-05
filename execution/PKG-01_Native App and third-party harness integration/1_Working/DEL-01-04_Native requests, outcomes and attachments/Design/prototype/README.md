@@ -95,3 +95,36 @@ with 0 failures, exit 0; earlier failure outputs remain retained.
 
 R-16a additionally checks equal spawn counters with different App sessions or
 homes: both are refused without settling the pending request.
+
+## CC-NIR-ATTACHMENT-REF prepared candidate (2026-10-05)
+
+`attachment_submission.py` checks29 invented cases for the ordinary
+implementation-owned262144 original-file-byte carrier bound, lossless
+native-path/display separation, immutable ordered submission/supply refs,
+record-before-send failures, full-generation/RPC/expected-steer correlation
+and cold prepared-state uncertainty/no resend. Persistence/transport are
+callback doubles, not native/durable witnesses. Existing NIR supply schema
+shape/ID0.2 stays unchanged; descriptions and one prepared-submission example
+are candidates. No new companion schema/store was created.
+
+Run `PYTHONDONTWRITEBYTECODE=1 python3 attachment_submission.py`; retained output
+`results/RUN_2026-10-05_ATTACHMENT_SUBMISSION.txt` also contains the existing
+`run_cases.py` rerun (162 checks/0 failures). Joined actual HOSTINGv0.10
+association validation and independent review are still pending; these local
+model passes do not prove consumer adoption, native send or provider receipt.
+
+Joined review repair (2026-10-05): original three correlation defects are
+retained in `results/RUN_2026-10-05_ATTACHMENT_REVIEW_REPRO.json`. The candidate
+now requires written/pending owning RPC, rejects contradictory result thread,
+handles malformed/null turn safely, preserves the first settled source/turn on
+repeats, and retains errors as refusal. The positive steer case uses a fresh
+owning pending RPC after the wrong-target case settles; a separate regression
+asserts that a repeated correct reply cannot replace that settled wrong-target
+source. No acceptance criterion is relaxed.
+
+`results/RUN_2026-10-05_ATTACHMENT_SUBMISSION_REPAIR.txt`:54/54 focused cases
+plus162/162 existing cases pass, exit0. Focused model now consumes the actual
+HOSTINGv0.10 client schema and validates9 receiving states. Original source
+frames remain owned by HOSTING; the model references them, never persists a
+second raw payload/transcript. Native/durable/provider witnesses and independent
+backcheck remain pending; actual supplier state is not established by callbacks.

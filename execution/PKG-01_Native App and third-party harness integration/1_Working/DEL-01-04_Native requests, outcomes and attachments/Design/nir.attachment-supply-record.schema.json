@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-01-04:nir:attachment-supply-record:0.2",
   "title": "Attachment supply record (PROPOSED, DEL-01-04/NIR-v0.2 §6; schema 0.2 at RV21)",
-  "description": "PROPOSED by DEL-01-04/NIR-v0.2 (R17-1; REQ-003), revised at RV21 for R21-2. The identity of the content the App actually put in a turn for an attachment, taken when the turn input is written (AT-1…AT-9). An attachment is carried in one of three ways (R21-2): a text file as a text element of the turn, with the file named (form 'text-element'); an image as an 'image' or 'localImage' input (forms 'localImage', 'image-url', 'image-fileId'); any other file by naming its path for the agent to read with its tools (form 'path-named'). Only the first two are 'supplied'; the third is 'named; read only if a tool item shows it'. 'mention' and 'skill' are not attachment forms: at Codex 0.158.0 'mention' delivered nothing to the model and 'skill' was honoured only for a discovered SKILL.md at its canonical path (observed, OBS-3 W-3, W-1). Every record is App-observed; whether the provider adopted the content is not observed. 'method' names a content-identity designation only; no algorithm is chosen (RS U-04; HOSTING U-08). Handed to the conversation view, to DEL-02-02 for a draft tried in a conversation (K-7; AT-8), and cited by DEL-04-03 records as an evidence reference of kind 'content identity'. No storage location is chosen (TBD-003; OI-014).",
+  "description": "PROPOSED by DEL-01-04/NIR-v0.2 (R17-1; REQ-003), revised at RV21 for R21-2. The identity of the content the App actually put in a turn for an attachment, taken when the turn input is written (AT-1…AT-9). An attachment is carried in one of three ways (R21-2): a text file as a text element of the turn, with the file named (form 'text-element'); an image as an 'image' or 'localImage' input (forms 'localImage', 'image-url', 'image-fileId'); any other file by naming its path for the agent to read with its tools (form 'path-named'). Only the first two are 'supplied'; the third is 'named; read only if a tool item shows it'. 'mention' and 'skill' are not attachment forms: at Codex 0.158.0 'mention' delivered nothing to the model and 'skill' was honoured only for a discovered SKILL.md at its canonical path (observed, OBS-3 W-3, W-1). Every record is App-observed; whether the provider adopted the content is not observed. 'method' names a content-identity designation only; no algorithm is chosen (RS U-04; HOSTING U-08). Handed to the conversation view, to DEL-02-02 for a draft tried in a conversation (K-7; AT-8), and cited by DEL-04-03 records as an evidence reference of kind 'content identity'. No storage location is chosen (TBD-003; OI-014). CC-NIR-ATTACHMENT-REF candidate2026-10-05: schema shape/ID0.2 unchanged; new App submission references and prepared/carrier standing resolve through named HOSTING client-custodyv0.10 successor after joined review. No new correlation store/RS kind/native payload copy.",
   "type": "object",
   "required": [
     "format",
@@ -97,7 +97,8 @@
     },
     "attachmentId": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Owning opaque attachment identity. New reference spelling attachment:<attachmentId> resolves this exact ID under NIR supply custody; refs are not filesystem paths. The ordered HOSTING supplyRefs list resolves immutable records sharing turnRef=submissionRef; uniqueness/order/correspondence are receiver checks."
     },
     "displayName": {
       "type": "string",
@@ -118,7 +119,7 @@
         "supplied",
         "named; read only if a tool item shows it"
       ],
-      "description": "R21-2: 'supplied' for a text element or an image input; 'named; read only if a tool item shows it' for a named path."
+      "description": "Carrier standing, not standalone dispatch/receipt/adoption evidence. A pre-recorded submission is displayed prepared/not sent until actual native write is observed; crash/reload without reliable write custody remains unknown. Historical sent instances retain their actual evidence."
     },
     "localPath": {
       "type": "string",
@@ -141,11 +142,12 @@
     },
     "elementIdentity": {
       "$ref": "#/$defs/contentIdentity",
-      "description": "For 'text-element' and 'path-named', present when the element was sent: the identity of the whole text element (the naming line and, for a text file, the bytes)."
+      "description": "Identity of the complete composed text element (naming line plus exact text bytes, or named-path line). Prepared identity does not establish dispatch; native write and response remain existing HOSTING custody observations."
     },
     "turnRef": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "CC-NIR-ATTACHMENT-REF named candidate: immutable App-owned submission:<opaque UUID> for a new pre-recorded dispatch, awaiting native correlation through HOSTING v0.10 submissionAssociation; never a guessed native turn ID. Historical observed-turn references retain actual meaning. Full client generation/RPC/method belong to HOSTING, not this field."
     },
     "recordedAt": {
       "type": "string",

@@ -79,6 +79,8 @@ pub struct OfferSlot {
     selected: Option<String>,
     frozen_offer: Option<Value>,
     frozen_actor: Option<Value>,
+    // Actual complete RS request observed at compose; never supplied by renderer.
+    request_record: Value,
 }
 
 #[derive(Clone)]
@@ -97,6 +99,41 @@ pub struct ActControl {
     native_captures: HashMap<String, NativeCapture>,
 }
 
+/// Preserve the exact request bound when this offer was composed. Identical
+/// copies remain a reader-presentation case; compose still refuses incomplete
+/// record sets, and native confirmation never chooses among bound-ID duplicates.
+/// Unrelated append failure stays a recording matter. No filename/clock winner.
+fn check_request_binding(
+    workspace: &Path,
+    original: &Value,
+    offered_ref: &Value,
+) -> Result<(), String> {
+    if original["kind"] != "act_request" || offered_ref != &original["recordId"] {
+        return Err(
+            "request binding changed: offer no longer names its composed request; nothing captured"
+                .into(),
+        );
+    }
+    let (entries, limits) = storage::read_all(workspace);
+    // Compose admitted this exact request from a complete schema/sequence-checked
+    // set. Later unrelated partial append tails must not discard native capture
+    // facts; existing recorder/recovery guards still hold those writes. Recheck
+    // the bound, validated readable target rather than inventing a global veto.
+    let matching = entries
+        .iter()
+        .filter(|entry| entry["recordId"] == original["recordId"])
+        .collect::<Vec<_>>();
+    if matching.len() > 1 {
+        return Err(
+            "request binding unavailable: duplicate bound request identity; nothing captured"
+                .into(),
+        );
+    }
+    if matching.first().copied() != Some(original) {
+        return Err(format!("request binding changed or absent since offer composition; nothing captured; compose again from current sources; read limits: {limits:?}"));
+    }
+    Ok(())
+}
 /// The person as the App observes them (AAC §7; RS $defs/person; identity never verified).
 pub fn person(display_name: Option<&str>, os_account: Option<&str>) -> Value {
     let mut p = json!({"identityVerified": false});
@@ -197,6 +234,7 @@ impl ActControl {
                 selected: None,
                 frozen_offer: None,
                 frozen_actor: None,
+                request_record: req.clone(),
             },
         );
         Ok(offer)
@@ -228,7 +266,12 @@ impl ActControl {
         alternative: &str,
         actor: &Value,
     ) -> Result<String, String> {
+        let workspace = self.workspace.clone();
         let s = self.offers.get_mut(offer_id).ok_or("no such offer")?;
+        if let Err(error) = check_request_binding(&workspace, &s.request_record, &s.offer["requestRef"]) {
+            s.state = OfferState::Stale;
+            return Err(error);
+        }
         if s.selected
             .as_deref()
             .is_some_and(|chosen| chosen != alternative)
@@ -331,6 +374,13 @@ impl ActControl {
                     .into(),
             );
         }
+        // Request identity/facts may have changed while the native confirmation
+        // was shown. Refuse before capture; prior ACT-history ambiguity is not
+        // an authorization rule, and existing complete-record guards are retained.
+        if let Err(error) = check_request_binding(&ws, &slot.request_record, &o["requestRef"]) {
+            slot.state = OfferState::Stale;
+            return Err(error);
+        }
         // §4.1 step 6: capture evidence (§5.2), before any record (AK-e).
         let request_ref = o["requestRef"].as_str().unwrap().to_string();
         let capture_id = crate::util::opaque_id("cap:")?;
@@ -408,7 +458,7 @@ impl ActControl {
             .all(|n| n.written && !n.delay_pending)
     }
 
-    /// App Refresh uses this boundary for ordinary recorder writes as well as native acts.
+    /// Explicit App startup/command writer continuation uses this boundary; reader calls do not.
     pub fn refresh_recording(
         &mut self,
     ) -> (Result<Vec<Value>, String>, Result<Vec<Value>, String>) {

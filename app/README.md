@@ -68,6 +68,7 @@ performed an act.
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
 | `src-tauri/src/act_control.rs`, `canonical.rs` | A16 offer/native binding, capture, trusted retry/backlink recovery and the designated offer digest |
 | `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
+| `attachments.rs`, `resources/attachments/` | Tested Unix text-source producer and immutable metadata list; durable pre-send transport and native picker are not yet connected |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
@@ -144,6 +145,12 @@ resume before permitting operational text input. It keeps the conversation’s
 existing guidance/settings and does not resend automatically. Original App role
 evidence is shown only when retained in this process; a cold restart shows
 Unknown. Reading child metadata does not supply a child role.
+
+The decision view reads recorded claims without writing. Use **Continue pending
+recording and record new requests** for explicit writer continuation; startup
+also invokes that separate writer responsibility. Incomparable current claims,
+conflicting record IDs and incomplete lapse histories remain visible, with each
+source and time preserved. Reading a claim does not verify its native origin.
 
 ## Storage and remaining work
 

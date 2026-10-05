@@ -1118,3 +1118,41 @@ pub fn claim_start(
     *slot = Some(selection);
     Ok(supply_ref)
 }
+
+
+/// Public decision-view command's receiving path. No writer/control is available
+/// to this function: reading cannot append, replay captures or repair backlinks.
+pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
+    let mut view = crate::decision_view::derive(workspace, &[]);
+    view["workspace"] = json!(workspace.display().to_string());
+    view["readOnly"] = json!(true);
+    view
+}
+
+/// Separately invoked writer responsibility, preserving native pending-before-
+/// ordinary-recorder ordering. Reading a view never invokes this continuation.
+pub fn continue_decision_writer(
+    workspace: &std::path::Path,
+    control: Option<&mut crate::act_control::ActControl>,
+    trigger: &str,
+) -> Value {
+    let mut status = json!({"responsibility":"decision record writer continuation","trigger":trigger,"workspace":workspace.display().to_string(),"state":"writer-continuation","requestsRecordedNow":0,"captureRecovery":[],"limits":[]});
+    let Some(control) = control else {
+        status["state"] = json!("unavailable");
+        status["limits"] = json!(["native writer state unavailable; recorder continuation held"]);
+        return status;
+    };
+    let (recovery, requests) = control.refresh_recording();
+    match recovery {
+        Ok(results) => status["captureRecovery"] = json!(results),
+        Err(error) => {
+            status["captureRecovery"] =
+                json!([{"state":"AC-8 record pending","writeFailure":error}])
+        }
+    }
+    match requests {
+        Ok(requests) => status["requestsRecordedNow"] = json!(requests.len()),
+        Err(error) => status["limits"] = json!([error]),
+    }
+    status
+}
