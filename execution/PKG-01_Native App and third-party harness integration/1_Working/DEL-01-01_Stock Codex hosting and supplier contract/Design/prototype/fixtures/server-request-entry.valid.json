@@ -3,7 +3,11 @@
   "instance": {
     "recordKind": "server-request-entry",
     "requestIdentity": "srv-ex-1",
-    "generation": 1,
+    "generation": {
+      "appSession": "fixture-session",
+      "home": "account",
+      "spawnCounter": 1
+    },
     "method": "item/commandExecution/requestApproval",
     "classification": "known-answerable",
     "originClass": "a14",

@@ -331,6 +331,12 @@ def file_bytes(doc):
     return (json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
 
 
+def decision_scope_for_capture(pkg):
+    """CC-R CI-4 owner-selected AAC handoff; does not rewrite package/request scope."""
+    scope = pkg.get("scope")
+    return scope if scope else "not named by the package"
+
+
 def request_from_file(pkg, path, identity, requester, time, association="not at a checkpoint"):
     """R23-24 mapping, file -> CE-4 act_request body (stated in RS-v0.10 §13.6). From the file: actKind, subject,
     purpose, scope, alternatives {id, statement} and one consequence entry per statement. From the recorder: requester,
@@ -359,7 +365,7 @@ def decision_package_outputs():
     ident = "sha256:" + hashlib.sha256(file_bytes(package_file())).hexdigest()
     req = {"kind": "act_request", "observedAt": "T200",
            "body": request_from_file(package_file(), "project/decisions/stage-2-route.json", ident,
-                                     {"kind": "agent", "identity": "thread:fx-u1-manager"}, "T200")}
+                                     {"kind": "agent"}, "T200")}
     method = req["body"]["evidence"]["method"]
     lapsed = {"kind": "act_lapsed", "observedAt": "T202", "body": {
         "act": {"recordId": "rec:app:coord:0003", "actKind": "A16", "capturedAt": "T201",

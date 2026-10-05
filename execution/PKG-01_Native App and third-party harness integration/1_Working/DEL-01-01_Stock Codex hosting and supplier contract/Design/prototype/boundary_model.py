@@ -14,6 +14,7 @@ the App's error code for unfamiliar requests).
 """
 import datetime
 import hashlib
+import uuid
 import json
 import os
 import queue
@@ -65,6 +66,7 @@ TRANSITIONS = {
     "LT-21": ("restart-waiting", "stop-requested", "stopped"),
     "LT-22": ("halted-after-repeated-failure", "stop-requested", "stopped"),
     "LT-23": ("stopping", "tree-ended", "stopped"),
+    "LT-24": ("verifying", "development-start-authorized", "spawning"),
 }
 
 # ---- §6.2.1 register transition table (RT-nn) -------------------------
@@ -192,6 +194,9 @@ class Boundary:
         self.log_dir = log_dir
         self.spawn_argv = spawn_argv
         self.root = json.load(open(BUNDLE, encoding="utf-8"))
+        self.app_session, self.home = str(uuid.uuid4()), "prototype-account"
+        self.allow_unverified_dev = False
+        self.supplier_standing = "verified-pin"
         self.state, self.generation, self.child = "absent", 0, None
         self.seq, self.events, self.failures, self.fail_times = 0, [], 0, []
         self.transitions_used = set()
@@ -206,18 +211,23 @@ class Boundary:
         self.version_identity = None
         self.restart_at = None
 
+    def generation_identity(self, counter):
+        return None if not counter else {"appSession": self.app_session, "home": self.home, "spawnCounter": counter}
+
     # ---- lifecycle -----------------------------------------------------
     def _transition(self, tid, event, **extra):
         frm, ev, to = TRANSITIONS[tid]
         assert frm == self.state and ev == event, "illegal %s: %s --%s-->" % (tid, self.state, event)
         self.seq += 1
-        pre_spawn = ev in ("start-requested", "verification-passed", "verification-failed",
+        pre_spawn = ev in ("start-requested", "verification-passed", "verification-failed", "development-start-authorized",
                            "restart-delay-elapsed", "explicit-restart-requested") or \
             (ev == "stop-requested" and to == "stopped")
         rec = {"recordKind": "lifecycle-event", "sequence": self.seq, "transitionId": tid,
                "generation": None if pre_spawn else (self.generation or None),
                "fromState": frm, "event": ev,
                "toState": to, "at": now_text()}
+        if self.supplier_standing == "unverified-development":
+            rec["supplierStanding"] = self.supplier_standing
         rec.update(extra)
         self.events.append(rec)
         self.transitions_used.add(tid)
@@ -252,7 +262,9 @@ class Boundary:
         if self._injected_stop():
             return False
         d, e = self.distribution, self.expected
-        if d["label"] != e["label"]:
+        if not e.get("content") and d.get("label") == e.get("label") and d.get("outputPin") == DECLARED_PIN:
+            vr = {"result": "unverifiable", "reason": "no expected distribution identity"}
+        elif d["label"] != e["label"]:
             vr = {"result": "mismatch", "element": "observed version label"}
         elif d["content"] != e["content"]:
             vr = {"result": "mismatch", "element": "distribution content identity"}
@@ -260,10 +272,17 @@ class Boundary:
             vr = {"result": "mismatch", "element": "generated-output identity"}
         else:
             vr = {"result": "verified"}
-        if vr["result"] != "verified":
+        dev = self.allow_unverified_dev and vr["result"] == "unverifiable" and bool(d.get("label"))
+        if vr["result"] != "verified" and not dev:
             self._transition("LT-05", "verification-failed", verificationResult=vr)
             return False
-        self._transition("LT-04", "verification-passed", verificationResult=vr)
+        self.supplier_standing = "unverified-development" if dev else "verified-pin"
+        if dev:
+            self._transition("LT-24", "development-start-authorized", verificationResult=vr,
+                             supplierStanding=self.supplier_standing,
+                             reason="U-06 development run: unverified distribution, not the pinned supplier")
+        else:
+            self._transition("LT-04", "verification-passed", verificationResult=vr)
         if self._injected_stop():
             return False
         self.generation += 1
@@ -344,8 +363,8 @@ class Boundary:
         self.child.write({"jsonrpc": "2.0", "method": "initialized"})
         self._transition("LT-09", "handshake-completed", versionIdentity=self.version_identity,
                          declaredCapabilities=dict(self.declared))
-        self.delivered.append({"generation": g, "position": None, "class": "announcement",
-                               "announcement": "ready", "versionIdentity": self.version_identity})
+        self.delivered.append({"generation": self.generation_identity(g), "position": None, "class": "announcement",
+                               "announcement": "ready", "supplierStanding": self.supplier_standing, "versionIdentity": self.version_identity})
         for f in self.held:
             self._deliver(f)
         self.held = []
@@ -467,6 +486,7 @@ class Boundary:
     def _deliver(self, f):
         """H6: native frame unchanged; metadata beside it, never merged."""
         meta = {k: f[k] for k in ("generation", "position", "class", "reason", "neverReady") if k in f}
+        meta["generation"] = self.generation_identity(f["generation"])
         if f["class"] == "notification":
             meta["familiar"] = f["obj"]["method"] in self._familiar_notifications()
             self._observe_notification(f)
@@ -642,7 +662,9 @@ class Boundary:
 
     def answer(self, request_identity, native, origin, generation=None):
         """§6.4 answer operation. Returns 'accepted-for-write' or 'refused(<reason>)'."""
-        g = generation or self.generation
+        if generation is not None and generation != self.generation_identity(self.generation):
+            return "refused(generation-closed)"
+        g = self.generation  # internal cache is scoped to this session/home only
         e = self.register.get((g, json.dumps(request_identity)))
         if e is None:
             return "refused(no-such-request)"
@@ -726,9 +748,13 @@ class Boundary:
 
     # ---- records for S-7 --------------------------------------------------
     def records(self):
-        out = list(self.events)
+        out = [dict(event) for event in self.events]
         for rec in self.client.values():
             out.append({k: v for k, v in rec.items() if not k.startswith("_")})
         for e in self.register.values():
             out.append(dict(e))
+        for rec in out:
+            counter = rec.get("generation")
+            rec["generation"] = None if counter is None else {"appSession": self.app_session,
+                "home": self.home, "spawnCounter": counter}
         return out

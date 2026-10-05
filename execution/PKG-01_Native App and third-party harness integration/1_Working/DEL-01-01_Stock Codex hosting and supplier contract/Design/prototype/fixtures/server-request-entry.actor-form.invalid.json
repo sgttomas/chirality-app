@@ -1,9 +1,13 @@
 {
-  "description": "Invalid (v0.9, FH-18; DECISION-K1 K1-4; R18-1 C-10): a person's answer whose actor reference is not in the person:… (identity not verified) form, so it would present an unverified identity as if verified.",
+  "description": "Invalid (v0.9, FH-18; DECISION-K1 K1-4; R18-1 C-10): a person's answer whose actor reference is not in the person:\u2026 (identity not verified) form, so it would present an unverified identity as if verified.",
   "instance": {
     "recordKind": "server-request-entry",
     "requestIdentity": "srv-ex-5",
-    "generation": 2,
+    "generation": {
+      "appSession": "fixture-session",
+      "home": "account",
+      "spawnCounter": 2
+    },
     "method": "item/commandExecution/requestApproval",
     "classification": "known-answerable",
     "originClass": "a14",
@@ -11,7 +15,9 @@
     "state": "declined",
     "settlement": {
       "kind": "decline",
-      "nativeContent": {"decision": "decline"},
+      "nativeContent": {
+        "decision": "decline"
+      },
       "origin": {
         "class": "person-via-interaction",
         "actorRef": "example-os-account"

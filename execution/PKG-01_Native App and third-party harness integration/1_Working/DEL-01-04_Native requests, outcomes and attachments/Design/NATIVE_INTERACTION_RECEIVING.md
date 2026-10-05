@@ -168,16 +168,24 @@ the workflow workspace, review and registration (DEL-02-02); policy and act
 meanings (DEL-04-01); display component meanings (DEL-04-02); the record
 format, writer and reader (DEL-04-03). §11 traces each exclusion.
 
-### 1.1 Process placement (R17-5: PROPOSED; requirements stated apart)
+### 1.1 Process placement (R17-5; CC-P-A selects act capture/writing)
 
-The requirements below hold whatever OI-008 decides. The placement column is
-R17-5's PROPOSED division (HOSTING §12 O-1); the phase review owns OI-008.
+The requirements below hold whatever placement implements them. R17-5's
+historical proposed division remains the basis of the placement column.
+CC-P-A, under this run's separate owner native-confirmation decision, selects
+PL-3's Rust-host offer/native capture and authoritative record-writing path for
+Group A: the webview proposes selection, while the native surface shows the
+full immutable selected statement/consequences and only its actual confirmation
+captures (AAC §4.1a/§6.2). Other allocation questions are not silently selected
+by that decision. AAC §5.2b records the separately selected project/library
+capture roots and visible refusal/discovery rules. Neither decision closes
+external OI-013 or remaining OI-014 work, and native qualification is still ahead.
 
 | # | Requirement (holds for any placement) | PROPOSED placement (R17-5) |
 |---|---|---|
 | PL-1 | The register, the answer write path and the state a card shows have one authoritative source that survives a window reload (HOSTING H2, H3; V4-EXE-01) | Rust host: register and write path; the interface renders cards from it |
 | PL-2 | A card never holds an answer as authoritative; closing or reloading a view loses no request and answers none (REQ-001, REQ-002) | Interface state is disposable; cards are rebuilt from "list outstanding" (HOSTING §6.4) |
-| PL-3 | No agent tool, MCP operation, App rule, supplier request or interface script can operate the act control or produce its record (EXEC CAP-4) | Host: offer composition, native confirmation and capture (AAC §6) |
+| PL-3 | No agent tool, MCP operation, App rule, supplier request or interface script can operate the act control or produce its record (EXEC CAP-4) | **Selected for Group A (CC-P-A):** Rust host offer composition, host-native confirmation and capture, authoritative writer; webview presentation/selection only (AAC §6); no per-act OS presence check |
 | PL-4 | The content identity of a supplied file is taken as close as possible to the supplier's read (§6) | Host: identity taken when it writes the turn input |
 | PL-5 | Draft transitions are received from the workspace and rendered, never produced locally (REQ-004) | Host receives, interface renders |
 
@@ -371,7 +379,16 @@ supply leaves the card with the supplier's item identity only.
 
 A card hands the register's *answer* operation one
 [`nir.answer-submission.schema.json`](nir.answer-submission.schema.json)
-object: request identity, generation, method, the native answer unchanged,
+object: request identity, generation, method, the native answer unchanged.
+With CC-H/CI-2 consumer adoption under CC-A (candidate, 2026-10-04): generation
+is the complete H5 object {`appSession`, `home`, `spawnCounter`}, and request
+correlation/closed-generation checks compare **all three** values. `home` names
+the stable App-owned home, never credentials or a filesystem path. Answer
+schema/format is 0.2 (`urn:chirality:app-v4:del-01-04:nir:answer-submission:0.2`);
+0.1's integer generation is historical, not an admitted alternative. This
+changed ID must be registered by DEL-01-01/02 register operations and the
+DEL-01-04 card/submission validator before adoption. No automatic answer retry
+or new host placement is introduced. The remaining submission fields are
 `submittedAs` (*answer* or *decline*), origin `person-via-interaction` with the
 actor reference (AAC §7: "person:‹name›/‹OS account›/‹Codex account›
 (identity not verified)"), the names of the forms the card showed, the time,

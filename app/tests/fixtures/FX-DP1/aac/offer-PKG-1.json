@@ -1,0 +1,44 @@
+{
+  "format": "chirality.aac.offer",
+  "formatVersion": "0.3",
+  "offerId": "offer:pkg-1",
+  "actKind": "A16",
+  "wording": "decide",
+  "subject": {
+    "class": "App file",
+    "ref": "project/decisions/PKG-1.json",
+    "contentIdentity": {
+      "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+      "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+    }
+  },
+  "scope": "undertaking FX-U1 (invented)",
+  "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+  "actorRequirement": "the person",
+  "declineAvailable": false,
+  "answers": {
+    "standing": "no arrival: a standing act (RC-6)"
+  },
+  "requestRef": "rec:app:coord:0001",
+  "composedAt": "t3",
+  "alternatives": [
+    {
+      "id": "ALT-1",
+      "statement": "Start stage 2 now on the current supplier facts",
+      "consequences": [
+        "Stage 2 starts today; any changed supplier fact reopens the affected parts"
+      ]
+    },
+    {
+      "id": "ALT-2",
+      "statement": "Hold stage 2 until the version check returns, then start",
+      "consequences": [
+        "Stage 2 starts after the check (Prüfung); no rework from a changed fact; ≈ one day later (invented)"
+      ]
+    }
+  ],
+  "offerDigest": {
+    "method": "aac-offer-digest/0.1",
+    "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+  }
+}

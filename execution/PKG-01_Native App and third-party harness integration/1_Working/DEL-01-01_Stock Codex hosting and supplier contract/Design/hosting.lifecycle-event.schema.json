@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.8:lifecycle-event",
+  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.9:lifecycle-event",
   "title": "Supplier child lifecycle event (PROPOSED)",
-  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §4.6-§4.7 (R12-1, R12-2). One record per lifecycle transition of the supplier child. Element names are Chirality's own semantic names; no wire field of the supplier is selected. Placement (library, local implementation or service) is not chosen (R12-2). Representation and persistence stay DEL-01-02's (TBD-002).",
+  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §4.6-§4.7 (R12-1, R12-2). One record per lifecycle transition of the supplier child. Element names are Chirality's own semantic names; no wire field of the supplier is selected. Placement (library, local implementation or service) is not chosen (R12-2). Representation and persistence stay DEL-01-02's (TBD-002). CC-H proposed candidate (2026-10-04); independent review pending.",
   "type": "object",
   "required": ["recordKind", "sequence", "transitionId", "generation", "fromState", "event", "toState", "at"],
   "additionalProperties": false,
@@ -10,13 +10,14 @@
     "recordKind": {"const": "lifecycle-event"},
     "sequence": {"type": "integer", "minimum": 1, "description": "Order of the event within the App run."},
     "transitionId": {"type": "string", "pattern": "^LT-[0-9]{2}$", "description": "Row of the §4.7 transition table."},
-    "generation": {"type": ["integer", "null"], "minimum": 1, "description": "Generation of the child concerned; null before the first spawn of a start attempt."},
+    "generation": {"type": ["object", "null"], "required": ["appSession", "home", "spawnCounter"], "additionalProperties": false, "properties": {"appSession": {"type": "string", "minLength": 1}, "home": {"type": "string", "minLength": 1}, "spawnCounter": {"type": "integer", "minimum": 1}}, "description": "CC-H: full H5 identity. appSession is unique across App launches; home is stable App-owned home identity, not a credential or OS path."},
     "fromState": {"$ref": "#/$defs/state"},
     "event": {"$ref": "#/$defs/event"},
     "toState": {"$ref": "#/$defs/state"},
     "at": {"type": "string", "minLength": 1, "description": "Time of the event; representation unselected."},
     "actor": {"type": "string", "minLength": 1, "description": "Person reference for a start, stop or explicit restart the person asked for; 'app-startup' for an App start."},
     "reason": {"type": "string"},
+    "supplierStanding": {"enum": ["verified-pin", "unverified-development"], "description": "CC-H: retained on LT-24 and all events through ready/closure of its generation."},
     "failureCount": {"type": "integer", "minimum": 0, "description": "Failures counted toward the restart bound inside the window, after this event."},
     "verificationResult": {"$ref": "#/$defs/verificationResult"},
     "versionIdentity": {"$ref": "#/$defs/versionIdentity"},
@@ -41,11 +42,13 @@
     {"if": {"properties": {"event": {"const": "stop-requested"}}},
      "then": {"required": ["stopRecord"]}},
     {"if": {"properties": {"event": {"const": "tree-ended"}}},
-     "then": {"required": ["exitFacts", "descendants", "closedGeneration"], "properties": {"toState": {"const": "stopped"}}}}
+     "then": {"required": ["exitFacts", "descendants", "closedGeneration"], "properties": {"toState": {"const": "stopped"}}}},
+    {"if": {"properties": {"transitionId": {"const": "LT-24"}}}, "then": {"required": ["verificationResult", "supplierStanding", "reason"], "properties": {"fromState": {"const": "verifying"}, "event": {"const": "development-start-authorized"}, "toState": {"const": "spawning"}, "supplierStanding": {"const": "unverified-development"}, "reason": {"const": "U-06 development run: unverified distribution, not the pinned supplier"}, "verificationResult": {"properties": {"result": {"const": "unverifiable"}}}}}},
+    {"if": {"properties": {"transitionId": {"const": "LT-04"}}}, "then": {"required": ["verificationResult"], "properties": {"verificationResult": {"properties": {"result": {"const": "verified"}}}}}}
   ],
   "$defs": {
     "state": {"enum": ["absent", "verifying", "refused", "spawning", "handshaking", "ready", "exited-unexpectedly", "restart-waiting", "halted-after-repeated-failure", "stopping", "stopped"]},
-    "event": {"enum": ["start-requested", "verification-passed", "verification-failed", "spawned", "spawn-failed", "handshake-completed", "handshake-failed", "child-ended-without-stop-record", "exit-recorded", "restart-delay-elapsed", "explicit-restart-requested", "stop-requested", "tree-ended"]},
+    "event": {"enum": ["start-requested", "verification-passed", "verification-failed", "spawned", "spawn-failed", "handshake-completed", "handshake-failed", "child-ended-without-stop-record", "exit-recorded", "restart-delay-elapsed", "explicit-restart-requested", "stop-requested", "tree-ended", "development-start-authorized"]},
     "contentIdentity": {
       "type": "object", "required": ["algorithm", "value"], "additionalProperties": false,
       "properties": {"algorithm": {"type": "string", "minLength": 1, "description": "Recorded with each value; the algorithm is unselected (U-08)."}, "value": {"type": "string", "minLength": 1}}

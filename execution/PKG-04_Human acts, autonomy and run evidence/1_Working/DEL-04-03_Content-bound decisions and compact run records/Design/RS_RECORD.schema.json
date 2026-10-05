@@ -113,7 +113,7 @@
       }
     },
     "arrivalRef": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/arrivalRef"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/arrivalRef"
     },
     "person": {
       "description": "RS §6.1 decision actor. For App-captured acts: the name set in the App, the operating-system account and the Codex account when Codex reports one, marked identity not verified (DECISION-K1 K1-4). codexAccount is the reported email of the ChatGPT account of the Codex home that runs the conversation, or 'ChatGPT account (no email reported)'; plan type is not recorded; an API-key account identifies no person and gives no codexAccount (R18-1 C-10; ACCESS-v0.2 I-6).",
@@ -1121,7 +1121,7 @@
       }
     },
     "checkpointArrival": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/checkpointArrival"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/checkpointArrival"
     },
     "annotation": {
       "oneOf": [
@@ -1228,7 +1228,7 @@
       "description": "CE-18 body (EXEC), with RS's structured annotations (R14-1).",
       "allOf": [
         {
-          "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/dispositionChange"
+          "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/dispositionChange"
         },
         {
           "properties": {
@@ -1243,7 +1243,7 @@
       ]
     },
     "actRequest": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/actRequest"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/actRequest"
     },
     "humanAct": {
       "description": "RS §6.1. Written only from capture evidence (HA-1). A15 is the registration of a workflow revision (R12-5).",
@@ -1691,13 +1691,13 @@
       }
     },
     "actLapsed": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/actLapsed"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/actLapsed"
     },
     "runResumed": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/runResumed"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/runResumed"
     },
     "runEnded": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/runEnded"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/runEnded"
     },
     "evidenceLimit": {
       "type": "object",
@@ -2374,40 +2374,40 @@
       ]
     },
     "checkpointListed": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/checkpointListed"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/checkpointListed"
     },
     "declarationFinding": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/declarationFinding"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/declarationFinding"
     },
     "actCounted": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/actCounted"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/actCounted"
     },
     "actNotCounted": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/actNotCounted"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/actNotCounted"
     },
     "itemDecision": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/itemDecision"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/itemDecision"
     },
     "arrivalDeclined": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/arrivalDeclined"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/arrivalDeclined"
     },
     "controlRelation": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/controlRelation"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/controlRelation"
     },
     "continuedPast": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/continuedPast"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/continuedPast"
     },
     "observationLost": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/observationLost"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/observationLost"
     },
     "observationRecovered": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/observationRecovered"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/observationRecovered"
     },
     "arrivalReplaced": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/arrivalReplaced"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/arrivalReplaced"
     },
     "actAfterRunEnd": {
-      "$ref": "../../../../PKG-02_Workflow%20and%20role%20portability/1_Working/DEL-02-03_Workflow%20execution%20compatibility%20and%20round-trip%20support/Design/checkpoint-record-entries.schema.json#/$defs/actAfterRunEnd"
+      "$ref": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7#/$defs/actAfterRunEnd"
     },
     "evidenceLimitLabel": {
       "enum": [
@@ -2439,7 +2439,8 @@
         "host result not isolated",
         "dispatch recognized from compound command",
         "de-duplication scope exceeded",
-        "act offered without a capture-evidence reference"
+        "act offered without a capture-evidence reference",
+        "requester identity not established"
       ]
     },
     "workflowTuple": {

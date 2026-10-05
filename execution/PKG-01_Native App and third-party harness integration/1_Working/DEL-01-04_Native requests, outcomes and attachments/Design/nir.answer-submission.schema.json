@@ -1,66 +1,272 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-04:nir:answer-submission:0.1",
-  "title": "Native answer submission (PROPOSED, DEL-01-04/NIR-v0.1 §4.5)",
-  "description": "PROPOSED by DEL-01-04/NIR-v0.1 (R17-1). What the request card hands to the register's 'answer' operation (HOSTING-BOUNDARY-v0.8 §6.4; custody DEL-01-02). The native answer is the supplier's own response content at the 0.158.0 definition pin, unchanged and never translated (REQ-001; V4-APP-04). Only the person's path is described: origin is always person-via-interaction with the actor as the App observes the person, marked identity not verified (DECISION-K1 K1-4); App rules use the register's own operations, never this format. 'submittedAs' states which the card meant; the register still decides settlement by its own rules (HOSTING RT-08; join J-H3). No placement, transport or persistence is chosen (OI-008, OI-014). Written in the subset of JSON Schema 2020-12 that DEL-04-03's prototype validator accepts.",
+  "$id": "urn:chirality:app-v4:del-01-04:nir:answer-submission:0.2",
+  "title": "Native answer submission (NIR CC-H/CI-2 consumer candidate 0.2)",
+  "description": "PROPOSED by DEL-01-04/NIR-v0.1 (R17-1). What the request card hands to the register's 'answer' operation (HOSTING-BOUNDARY-v0.8 §6.4; custody DEL-01-02). The native answer is the supplier's own response content at the 0.158.0 definition pin, unchanged and never translated (REQ-001; V4-APP-04). Only the person's path is described: origin is always person-via-interaction with the actor as the App observes the person, marked identity not verified (DECISION-K1 K1-4); App rules use the register's own operations, never this format. 'submittedAs' states which the card meant; the register still decides settlement by its own rules (HOSTING RT-08; join J-H3). No placement, transport or persistence is chosen (OI-008, OI-014). Written in the subset of JSON Schema 2020-12 that DEL-04-03's prototype validator accepts. CC-H/CI-2 consumer adoption under CC-A: generation is the complete H5 identity, schema/format 0.2; no integer compatibility union.",
   "type": "object",
-  "required": ["format", "formatVersion", "requestIdentity", "generation", "method", "nativeAnswer", "submittedAs", "origin", "formsOffered", "submittedAt", "secretValuesPresent"],
+  "required": [
+    "format",
+    "formatVersion",
+    "requestIdentity",
+    "generation",
+    "method",
+    "nativeAnswer",
+    "submittedAs",
+    "origin",
+    "formsOffered",
+    "submittedAt",
+    "secretValuesPresent"
+  ],
   "additionalProperties": false,
   "properties": {
-    "format": {"const": "chirality.nir.answer-submission"},
-    "formatVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
-    "requestIdentity": {"type": ["string", "integer"], "description": "The supplier-assigned identity as received (opaque)."},
-    "generation": {"type": "integer", "minimum": 1},
-    "method": {
-      "description": "The kinds a person answers through a card at 0.158.0 (NIR §4.1). Other kinds are never answered by a person (HOSTING R9).",
-      "enum": ["item/commandExecution/requestApproval", "item/fileChange/requestApproval", "item/permissions/requestApproval", "execCommandApproval", "applyPatchApproval", "item/tool/requestUserInput", "mcpServer/elicitation/request"]
+    "format": {
+      "const": "chirality.nir.answer-submission"
     },
-    "nativeAnswer": {"type": "object", "description": "The response content exactly as written to the supplier."},
-    "submittedAs": {"enum": ["answer", "decline"]},
-    "origin": {
+    "formatVersion": {
+      "const": "0.2"
+    },
+    "requestIdentity": {
+      "type": [
+        "string",
+        "integer"
+      ],
+      "description": "The supplier-assigned identity as received (opaque)."
+    },
+    "generation": {
       "type": "object",
-      "required": ["class", "actorRef"],
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ],
       "additionalProperties": false,
       "properties": {
-        "class": {"const": "person-via-interaction"},
-        "actorRef": {"type": "string", "minLength": 1, "pattern": "\\(identity not verified\\)$"}
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "description": "CC-H H5: all three components identify generation. home is stable App-owned identity, never credential or OS path."
+    },
+    "method": {
+      "description": "The kinds a person answers through a card at 0.158.0 (NIR §4.1). Other kinds are never answered by a person (HOSTING R9).",
+      "enum": [
+        "item/commandExecution/requestApproval",
+        "item/fileChange/requestApproval",
+        "item/permissions/requestApproval",
+        "execCommandApproval",
+        "applyPatchApproval",
+        "item/tool/requestUserInput",
+        "mcpServer/elicitation/request"
+      ]
+    },
+    "nativeAnswer": {
+      "type": "object",
+      "description": "The response content exactly as written to the supplier."
+    },
+    "submittedAs": {
+      "enum": [
+        "answer",
+        "decline"
+      ]
+    },
+    "origin": {
+      "type": "object",
+      "required": [
+        "class",
+        "actorRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "const": "person-via-interaction"
+        },
+        "actorRef": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\(identity not verified\\)$"
+        }
       }
     },
-    "formsOffered": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "description": "Names of the forms the card showed (NIR FO-1...FO-6), so a reader can see the answer was among them."},
-    "submittedAt": {"type": "string", "minLength": 1},
-    "secretValuesPresent": {"type": "boolean", "description": "True when an answer to an isSecret question is in nativeAnswer: the register must not persist those values in readable form (NIR SE-1; join J-H4)."}
+    "formsOffered": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Names of the forms the card showed (NIR FO-1...FO-6), so a reader can see the answer was among them."
+    },
+    "submittedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "secretValuesPresent": {
+      "type": "boolean",
+      "description": "True when an answer to an isSecret question is in nativeAnswer: the register must not persist those values in readable form (NIR SE-1; join J-H4)."
+    }
   },
   "allOf": [
     {
       "description": "Tool-permission kinds answer with a decision.",
       "anyOf": [
-        {"properties": {"method": {"not": {"enum": ["item/commandExecution/requestApproval", "item/fileChange/requestApproval", "execCommandApproval", "applyPatchApproval"]}}}},
-        {"properties": {"nativeAnswer": {"required": ["decision"], "additionalProperties": false, "properties": {"decision": true}}}}
+        {
+          "properties": {
+            "method": {
+              "not": {
+                "enum": [
+                  "item/commandExecution/requestApproval",
+                  "item/fileChange/requestApproval",
+                  "execCommandApproval",
+                  "applyPatchApproval"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "nativeAnswer": {
+              "required": [
+                "decision"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "decision": true
+              }
+            }
+          }
+        }
       ]
     },
     {
       "description": "The legacy 'timed_out' form is never a person's answer (HOSTING R3; R17-9).",
-      "properties": {"nativeAnswer": {"properties": {"decision": {"not": {"const": "timed_out"}}}}}
+      "properties": {
+        "nativeAnswer": {
+          "properties": {
+            "decision": {
+              "not": {
+                "const": "timed_out"
+              }
+            }
+          }
+        }
+      }
     },
     {
       "description": "Extra permissions answer with a profile and a scope.",
       "anyOf": [
-        {"properties": {"method": {"not": {"const": "item/permissions/requestApproval"}}}},
-        {"properties": {"nativeAnswer": {"required": ["permissions", "scope"], "properties": {"scope": {"enum": ["turn", "session"]}}}}}
+        {
+          "properties": {
+            "method": {
+              "not": {
+                "const": "item/permissions/requestApproval"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "nativeAnswer": {
+              "required": [
+                "permissions",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "enum": [
+                    "turn",
+                    "session"
+                  ]
+                }
+              }
+            }
+          }
+        }
       ]
     },
     {
       "description": "Questions answer with a map of question identity to answers.",
       "anyOf": [
-        {"properties": {"method": {"not": {"const": "item/tool/requestUserInput"}}}},
-        {"properties": {"nativeAnswer": {"required": ["answers"], "additionalProperties": false, "properties": {"answers": {"type": "object", "additionalProperties": {"type": "object", "required": ["answers"], "additionalProperties": false, "properties": {"answers": {"type": "array", "items": {"type": "string"}}}}}}}}}
+        {
+          "properties": {
+            "method": {
+              "not": {
+                "const": "item/tool/requestUserInput"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "nativeAnswer": {
+              "required": [
+                "answers"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "answers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "required": [
+                      "answers"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "answers": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
     {
       "description": "Elicitations answer with an action.",
       "anyOf": [
-        {"properties": {"method": {"not": {"const": "mcpServer/elicitation/request"}}}},
-        {"properties": {"nativeAnswer": {"required": ["action"], "properties": {"action": {"enum": ["accept", "decline", "cancel"]}}}}}
+        {
+          "properties": {
+            "method": {
+              "not": {
+                "const": "mcpServer/elicitation/request"
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "nativeAnswer": {
+              "required": [
+                "action"
+              ],
+              "properties": {
+                "action": {
+                  "enum": [
+                    "accept",
+                    "decline",
+                    "cancel"
+                  ]
+                }
+              }
+            }
+          }
+        }
       ]
     }
   ]

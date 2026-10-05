@@ -1,0 +1,1 @@
+(Invented agent message, not a record.) The owner chose ALT-1 for PKG-2, so I will proceed.

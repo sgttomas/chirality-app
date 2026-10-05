@@ -66,3 +66,32 @@ Logs written by the act control go to a temporary folder under `$TMPDIR`
 
 A "pass" means the rules ran as written on this model. It is evidence about
 the design, never a VER pass: no App candidate exists.
+
+## CC-A candidate (2026-10-04)
+
+`cc_a_sequence.py` is a standalone standard-library state model for frozen
+A16 selection, immutable capture facts, writer-minted record identity and
+add-once backlink recovery. Run `PYTHONDONTWRITEBYTECODE=1 python3 cc_a_sequence.py`.
+It checks 20 cases; canonical output is `results/RUN_2026-10-04_CC-A.txt`.
+Atomic publication/replacement and exclusive serialization are model assumptions,
+not demonstrated filesystem/native behavior. The old act_control model still
+pre-mints recordId; its results do not establish CC-A's persistence sequence.
+
+CI-1 consumer propagation: `run_cases.py` explicitly registers EXEC's committed
+checkpoint schema by its declared `$id` before validating RS entries. No URI
+rewrite or hidden path fallback is used. The first failed run is retained in
+`results/RUN_2026-10-04_CC-A_LEGACY.txt`; after registration it completes
+159 checks with one R-16 failure (NIR generation integers versus concurrently
+revised HOSTING generation objects), retained in
+`results/RUN_2026-10-04_CC-A_REGISTRY.txt`. Reconciliation is pending with CC-H;
+no combined prototype pass is claimed from these two outputs.
+
+CC-H/CI-2 consumer propagation subsequently replaces the NIR register double's
+integer generation with the hosting owner's invented full tuple
+`{appSession: "aac-fixture-session", home: "account", spawnCounter: 1}`;
+closed-generation keys use all three fields. This is not an observed host.
+The combined rerun `results/RUN_2026-10-04_CC-A_INTEGRATED.txt` passes 161 checks
+with 0 failures, exit 0; earlier failure outputs remain retained.
+
+R-16a additionally checks equal spawn counters with different App sessions or
+homes: both are refused without settling the pending request.

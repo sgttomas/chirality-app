@@ -4,7 +4,11 @@
     "recordKind": "lifecycle-event",
     "sequence": 4,
     "transitionId": "LT-09",
-    "generation": 1,
+    "generation": {
+      "appSession": "fixture-session",
+      "home": "account",
+      "spawnCounter": 1
+    },
     "fromState": "handshaking",
     "event": "handshake-completed",
     "toState": "ready",

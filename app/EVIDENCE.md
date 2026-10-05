@@ -1,3 +1,27 @@
+# Current Group A code-path evidence
+
+Run `APP-V4-GROUP-A-20261004`. Current code uses stock Codex 0.160.0 for
+development; it remains unqualified. Independent source reviews and repairs are
+in `../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/`.
+P0-ACT-R2 and P0-HOST-R2 identify the checked production sources and residuals.
+
+Combined final-source checks passed: offline locked Rust suite with the real
+0.160.0 scratch-home handshake; Node schema suite 3/3 without ref rewriting;
+TypeScript/Vite build; six embedded schema source/hash/ID checks. Raw stdout is
+in that run's `validation/`. The initial unsupported schema-sync --check
+invocation failed; the documented default invocation passed. Test cases and
+exports use maintained invented fixtures, with native confirmation stand-ins.
+No authenticated model turn occurred in these product checks. Parent supplier
+provider probes are separate evidence.
+
+CI-1…CI-9 changed through named reviewed Design control and tested consumer
+adoption. CI-10 preserves unverified cold captures without creating acts;
+trustworthy cold replay, signing/provenance and broader Group A work remain open.
+The historical walking-skeleton evidence below retains its original scope and
+0.158.0 observations; its old gaps describe that earlier source, not current code.
+
+---
+
 # Evidence: walking skeleton build
 
 Run `APP-V4-GRAPH-CLOSURE-20261004`, 2026-10-04, macOS 26.6.2 arm64. Toolchain:
@@ -177,7 +201,8 @@ scratch binary and got the same value. It is not a qualification of the pin.
   `.claude/worktrees/x` beside the worktree. I removed it at once with `rmdir`
   (it was empty). It is no longer present.
 - **N-4 Scratch left in place.** I created scratch homes, probe homes,
-  workspaces and cwd folders with `mktemp` under `/private/tmp`. Their names
+  workspaces and cwd folders with `mktemp` under the macOS system temporary
+  directory. Their names
   are `cxh.*`, `cxp.*`, `cxw.*` and `cxws.*`. The test runs, the probes and the
   launch create these and leave them. None is a real Codex home.
 - **Design files** were only read. `git status` shows only `projects/chirality-app-v4/app/` as new from this task. An untracked file elsewhere in the worktree,
@@ -202,3 +227,22 @@ scratch binary and got the same value. It is not a qualification of the pin.
 - **The Tauri bundle (.app/.dmg) was not built.** `bundle.active` is false and
   `tauri build --no-bundle` succeeded. Whether bundling needs anything outside
   the caches was not tested.
+
+
+## Group A portable temporary-directory repair (2026-10-04)
+
+Run `APP-V4-GROUP-A-20261004`, T0, supersedes the test scratch behavior in
+historical N-4 above. Rust integration tests now discover the system temp root
+with `std::env::temp_dir()` and invoke `mktemp -d` with unique templates there.
+Owned scratch homes, probes and workspaces are removed at test exit, including
+assertion unwinding. The Node schema runner keeps one unique `os.tmpdir()`
+evidence directory alive through its schema assertions and then removes it;
+standalone Cargo runs retain their exports under Cargo's test output root.
+The local unavailable provider, plugins/analytics settings and the assertion
+that Codex holds no internet socket after thread/start are preserved.
+
+Exact candidate hashes, commands, results and remaining platform limits are
+recorded in
+`../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/T0.md`.
+This repair makes temp allocation portable; it does not qualify the App or
+its process-group/socket checks on an additional operating system.

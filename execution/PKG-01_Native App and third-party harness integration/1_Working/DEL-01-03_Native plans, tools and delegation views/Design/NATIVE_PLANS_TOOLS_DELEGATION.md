@@ -1,7 +1,8 @@
 # Native plans, tools and delegation views
-- Contribution: DEL-01-03/NPTD-v0.2 (supersedes DEL-01-03/NPTD-v0.1, committed at `63a6e0fa47` and unchanged since, file sha256 a3b36a454d497e28b0cf0bc3edb17d018f6f724cce0270157ed65c4e1e63ef59)
+- Contribution: DEL-01-03/NPTD-v0.3 (CC-NPT-GEN successor of v0.2; historical round headers below retained). Historical v0.2 contribution: (supersedes DEL-01-03/NPTD-v0.1, committed at `63a6e0fa47` and unchanged since, file sha256 a3b36a454d497e28b0cf0bc3edb17d018f6f724cce0270157ed65c4e1e63ef59)
+- Current named change: `APP-V4-GROUP-A-20261004/changes/CC-NPT-GEN.md`, 2026-10-04, TASK `/root/group_a_execution/native_items_generation_design`, delegated-harness-native child of `/root/group_a_execution`; independent review required before I1 release. Only DEL-01-03 Design and that change record amended.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
-- Run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D2 (Type 2 TASK, Claude Opus 5.5, high effort): round 1 written 2026-10-01; round 2 (this version) 2026-10-02
+- Historical v0.2 run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D2 (Type 2 TASK, Claude Opus 5.5, high effort): round 1 written 2026-10-01; round 2 (this version) 2026-10-02
 - **v0.2 inputs (round 2; sha256 recomputed with `shasum -a 256` at this node; run folder `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`):** `BRIEFS.md` 316ea29325a0d45004ffd59c1b142d2e9f5c371ac765bce7c4b94898a57788d7 ("D round 2"); `R18_RESOLUTIONS.md` abf5eee6324647ff9f126603ff189a21f847d5887f20e24e540fd9a6b4c0bd30 (R18-1 C-03…C-08; R18-4; R18-7 G-3, G-4; R18-9); `R19_RESOLUTIONS.md` 16930ecdcead75118ee264bc78d3a7c4824212323cb9895b9a3c15478122a12c (R19-2, R19-5, R19-7); `OWNER_DECISIONS.md` ea96c55710af41c94afe3721f8881bf5edc5bbfc9ad4d0d9ff68e20ca808e015 (DECISION-L); `F/F0_JOINS.md` e93608be1c6e3eb03e6194f3c6f415e3171492f9828b0fd80b4dccb81fe47dd9 (§2, §6, §7.2); `DEL-01-01/Design/OBS_2_0.158.0.md` 61cc34ffb811eb270542042ce4cfdc195efb0c5be4b89dbbe73eb9b99e104ac0 (O-1, O-2, O-4/O-4a/O-4b, O-5b, O-8); `DEL-01-01/Design/OBS_3_0.158.0.md` 554ac4451d11282450e3ec4a4192448adf67bda6a07820f84a698716c806a843 (W-5, W-6); DEL-02-04 `ROLE_SUPPLY.md` (ROLE-v0.1 §6.2 LA-1/LA-2, §6.3 DL-4, §7.2 O-6; read for the K-10 label as handed). Generated types: `ModelProviderCapabilitiesReadResponse`, `Model.multiAgentVersion`, `ThreadGoal*` read at 0.158.0 (stable and experimental variants equal for the goal types).
 - **Round-1 header (v0.1), kept as written:**
   - Phase (V4-WF-05 as amended by SCA-V4-001; R8-1; R9-1): Phase 1. No App run holds at a checkpoint; nothing here makes a hold claim.
@@ -183,16 +184,56 @@ only when set.
 ### 5.2 Revision identity and durability (B-2; PROPOSED; R17-4, R18-1 C-03)
 
 - **RV-1 Plan-item revision.** Each completed `plan` item is one revision.
-  Identity `pi:<threadId>:<turnId>:<itemId>`, from Codex identities only, so
+  Identity `pi:v2:E(threadId).E(turnId).E(itemId)`, from Codex identities only, so
   the same identity is derived live and from history. Ordinal: position
   among the thread's plan items in history order; live, the order of
   `item/completed` receipt (expected equal; a disagreement is shown).
 - **RV-2 Checklist revision.** Each `turn/plan/updated` received is one
   revision of that turn's checklist. Identity
-  `cl:<threadId>:<turnId>:g<generation>:p<receipt position>`; ordinal:
+  `cl:v2:E(appSession).E(home).spawnCounter.E(threadId).E(turnId).receiptPosition`; ordinal:
   receipt order within the turn. A repeated identical list is kept and
   marked "unchanged from the previous"; an update after the turn's end is
   kept and marked "after turn end".
+- **RV-2a Operational identity encoding (CC-NPT-GEN).** `E` is base64url
+  of the original string's UTF-8 bytes, without `=` padding, with no Unicode
+  normalization or alteration. `.` separates components and never occurs in
+  `E`; the fixed `pi:v2:` / `cl:v2:` prefix determines their count and meaning.
+  Numeric components are decimal integers without leading zeroes: spawn
+  counter >= 1, receipt position >= 0. These are opaque keys to receivers;
+  thread/turn/item fields retain the original supplier strings, including
+  delimiters. The encoding is lossless and injective, not a content hash or a
+  new canonicalization choice. Producers and receivers check the derived key
+  equals the carried identity components (prototype `reference_identity_matches`);
+  the schema checks shape only. Bare integers, implicit session/home scope and
+  old colon-delimited revision keys are not members of the successor formats.
+- **RV-2b Full generation and receipt scope.** Checklist `generation` is
+  the closed object `{appSession, home, spawnCounter}` of HOSTING H5 / reviewed
+  CC-H. No counter-only union. Session/home must be nonempty; home is an
+  App-owned identity, not a filesystem path or credential. Receipt positions
+  increase within this exact tuple and may restart under a different tuple.
+  A view instance binds one session/home; other homes/sessions need their own
+  instances. Frames require that exact ready tuple. Foreign, malformed,
+  closed-generation, duplicate and out-of-order observations are refused
+  before they can be attributed to the current checklist. A delayed repeated
+  closure of an older generation cannot close a successor. New ready on the
+  same home requires the old generation closed; closed revisions are then
+  dropped under CL-07, not restored. A new observation sequence for reused
+  native thread/turn IDs begins at ordinal 1; it contains only new receipts.
+- **RV-2c History home context.** Plan items carry neither `generation` nor
+  `receiptPosition`; their keys remain stable live/history and across App
+  relaunch on the same home. Native item indexing includes thread, turn and
+  item, so an item ID reused in different turns does not alias another item.
+  The receiving view's owning home is explicit, from its ready context or an
+  explicitly configured history view. Every history read carries its source
+  home beside the unchanged native response. Missing/foreign home or an
+  unbound view refuses the read before merging it. No source home is inferred
+  from native ID spelling. A plan-item key identifies native history within
+  that owning-home namespace; it is not a globally scoped stand-alone pointer.
+  **Consumer gap:** standalone exported plan references/item anchors do not
+  carry that home namespace. DEL-02-02, DEL-01-04 and DEL-04-03 must preserve
+  the receiving home context separately (or return for a reviewed interface
+  decision) before using an unscoped reference across homes. This change does
+  not silently add a generation or home field to history-plan items.
 - **RV-3 Content identity.** SHA-256 over canonical JSON of the native
   content, method recorded with the value; **TEST VALUE** pending HOSTING
   U-08.
@@ -267,7 +308,7 @@ kind, thread, turn, item (plan items), generation and position (checklists),
 ordinal, native content, content identity with method, standing
 (`live-observed` or `recovered-from-supplier`; a checklist can only be
 `live-observed`), types pin, observed version label. DEL-02-02 decides what
-a draft takes from it.
+a draft takes from it. The successor schema resource is `chirality:app-v4:DEL-01-03:npt.plan-revision:v0.2`; plan-revision anchors use `chirality:app-v4:DEL-01-03:npt.item-anchor:v0.3`. The home-context gap in RV-2c remains a receiving obligation.
 
 ### 5.7 Run boundaries (R19-2; display only)
 
@@ -517,7 +558,7 @@ DEL-02-04 (R18-1 C-07).
   act; any child return or integration; run records.
 - **Formats (PROPOSED JSON Schema 2020-12, beside this file; valid and
   invalid instance each in `prototype/fixtures/`):**
-  `npt.plan-revision.schema.json` (`$id` `…:v0.1`), `npt.item-anchor.schema.json` (v0.2: state
+  `npt.plan-revision.schema.json` (`$id` `…:v0.2`, full H5 tuple/opaque v2 key), `npt.item-anchor.schema.json` (v0.3: opaque v2 key; v0.2 added state
   `not-completed`; `$id` `…:v0.2` since RV21), `npt.delegation-export.schema.json` (v0.2: three-value
   standing; `$id` `…:v0.2` since RV21).
 
@@ -529,7 +570,7 @@ DEL-02-04 (R18-1 C-07).
 |---|---|---|---|
 | SQ-1 | Open a conversation | 1 `ready(g)` → version line; 2 `thread/turns/list`, `thread/items/list` page by page (not `thread/read {includeTurns}`, which emits `deprecationNotice`, OBS-2 §11) → plan items, tool rows; 3 `thread/goal/get`; 4 availability reads (§7.1); 5 attach to live frames | 1 not ready → version line only. 2–4 read error → "not read (<error>)", retry offered; never an empty plan shown as "no plan". 5 a gap → DEL-01-02 re-attaches |
 | SQ-2 | Window close or reload | Re-derive from DEL-01-02's re-attachment from position 0 of the live generation | Unavailable → as SQ-1 |
-| SQ-3 | Supplier exits mid-item | 1 `exited-unexpectedly(g)` → streaming plan items "not completed when observation ended", open rows `unknown`, descendants "observation ended", checklists ended; 2 at `ready(g+1)` the views rebuild: checklists of g "not recoverable" (CL-07); turns and items re-read; rows of turns that read back ended settle `not-completed` (TI-14) | Frames of a closed generation are refused (H5; PC-04). OBS-2 O-2: after a stop the turn reads back `interrupted` with the open item absent, so TI-14 applies |
+| SQ-3 | Supplier exits mid-item | 1 `exited-unexpectedly(g)` → streaming plan items "not completed when observation ended", open rows `unknown`, descendants "observation ended", checklists ended; 2 at `ready(g′)` for the next full tuple on the same home the views rebuild: checklists of g "not recoverable" (CL-07); turns and items re-read; rows of turns that read back ended settle `not-completed` (TI-14) | Frames of a closed generation are refused (H5; PC-04). OBS-2 O-2: after a stop the turn reads back `interrupted` with the open item absent, so TI-14 applies |
 | SQ-4 | Relaunch | Nothing survives; SQ-1 against the threads DEL-01-02 lists; children from `receiverThreadIds` in history, then `thread/read` | Checklists "not recoverable"; children not listed by `thread/list` |
 | SQ-5 | Pin mismatch | `refused` → "Codex not started: mismatch(<element>)" | — |
 | SQ-6 | Opt-in absent | Plan-mode element not offered; stable items render | — |
@@ -793,3 +834,24 @@ proposed version-advance check (regenerate, diff, rerun OBS harnesses):
 
 Designed cases: §15.2 (NV-01…NV-11). Prototype cases: PC-01…PC-18 (§15.3).
 No case passes a VER criterion before an App candidate exists.
+
+
+### CC-NPT-GEN verification and supplier standing (2026-10-04)
+
+Prototype PC-19…PC-22 extend the retained PC-01…PC-18 method: full-tuple
+collision/immutability and negative attribution cases, closure/restart cases,
+reused native identities/delimiter-safe operational keys, schema and semantic
+key/component mismatches, explicit history-home receiving and same-home
+relaunch. The 41 transition rows remain unchanged. Results are in
+`prototype/results/RUN_2026-10-04_CC-NPT-GEN.txt` and the named change record.
+These are offline constructed-model checks, not product/native-runtime witnesses.
+
+The reviewed SUP1 development/definition supplier basis is 0.160.0. PC-22
+checks 71 constructed native frame/read shapes against its exact committed
+experimental v2 bundle. Prototype historical model constants, evidence and
+PC-01 remain labelled 0.158.0; they are not relabelled current supplier
+observations. Current I1 implementation must bind the actual 0.160.0 generated
+sources, full H5 tuple and development standing under SUP1. Item-list string
+cursors still work; an optional structured anchor requires its native turn ID.
+No new runtime pagination, model availability or qualification is established.
+Content identity remains the existing TEST VALUE under HOSTING U-08.

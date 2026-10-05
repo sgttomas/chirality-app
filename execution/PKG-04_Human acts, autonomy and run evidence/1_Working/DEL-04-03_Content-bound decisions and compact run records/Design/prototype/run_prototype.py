@@ -57,6 +57,8 @@ def main():
     scratch = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix="b4-proto-")
     os.makedirs(scratch, exist_ok=True)
     reg = Registry()
+    exec_dir = glob.glob(os.path.join(os.path.dirname(os.path.dirname(WORKING)), "PKG-02_*", "1_Working", "DEL-02-03_*", "Design"))[0]
+    reg.load(os.path.join(exec_dir, "checkpoint-record-entries.schema.json"))
     ids = {}
     for name, d, f in (("ACT", ACT_DIR, "ACT_POLICY_CLASS_RECORD.schema.json"),
                        ("AS", AS_DIR, "AS_SETTINGS_IN.schema.json"),

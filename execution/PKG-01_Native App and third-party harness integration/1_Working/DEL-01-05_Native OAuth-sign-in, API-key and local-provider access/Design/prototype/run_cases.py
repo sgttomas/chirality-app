@@ -181,10 +181,13 @@ def vc_a16_network():
         {"address": "2001:db8::1", "port": 443, "process": "codex", "phase": "start-up", "host_hint": "chatgpt.com"},
         {"address": "2001:db8::2", "port": 443, "process": "git", "phase": "start-up", "host_hint": "github.com"},
         {"address": "127.0.0.1", "port": 1234, "process": "codex", "phase": "turn", "model": True},
+        {"address": "192.0.2.20", "port": 443, "process": "codex", "phase": "thread-start", "model": True},
         {"address": "192.0.2.10", "port": 443, "process": "codex", "phase": "idle"},
     ]
-    view = A.network_view(observed, A.plugins_setting({}))
+    view = A.network_view(observed, A.plugins_setting({}), app_session="network-fixture-session")
     EMITTED.append(("network-observation", view))
+    prewarm = [r for r in view["rows"] if r["phase"] == "thread-start"]
+    result("CC-H-prewarm", len(prewarm) == 1 and prewarm[0]["purpose"] == "model", "thread-start contact shown as model before turn")
     purposes = [r["purpose"] for r in view["rows"]]
     unlisted = [r for r in view["rows"] if r["purpose"] == "unlisted"]
     rc = [r for r in view["rows"] if r["purpose"] == "remote-control"]
@@ -211,7 +214,7 @@ def vc_a19_plugins():
             ok &= (("features.plugins=false" in flags) == want_flag)
             ok &= "analytics.enabled=false" in flags
             ok &= A.INTERNAL_RC not in env and not any(k in env for k in A.CREDENTIAL_ENV)
-            view = A.network_view([], plugins)
+            view = A.network_view([], plugins, app_session="network-fixture-session")
             EMITTED.append(("network-observation", view))
             has_plugin_rows = any(r["purpose"] in ("plugins-featured", "plugin-sync") for r in view["rows"])
             ok &= has_plugin_rows == (label != "off")
@@ -240,6 +243,17 @@ def vc_a20_wording():
     ok &= mismatch_rejected
     result("VC-A20", ok, "R18-2: ordinary '%s'; workflow run '%s'; a run refusal with the ordinary wording "
            "is rejected by the schema: %s" % (t1, t2, mismatch_rejected))
+
+
+def cc_h_sessions():
+    first, second = A.App(), A.App()
+    first_state, second_state = A.state_snapshot(first), A.state_snapshot(second)
+    first_gen, second_gen = first_state["homes"][0]["generation"], second_state["homes"][0]["generation"]
+    network = A.network_view([], A.plugins_setting({}), app_session=first.app_session)
+    EMITTED.extend([("access-state", first_state), ("access-state", second_state), ("network-observation", network)])
+    result("CC-H-access-sessions", first_gen != second_gen
+           and first_gen["appSession"] == network["generation"]["appSession"],
+           "distinct App instances have distinct sessions; network view receives the owning session explicitly")
 
 
 def vc_a17_schemas():
@@ -271,6 +285,7 @@ if __name__ == "__main__":
     vc_a16_network()
     vc_a19_plugins()
     vc_a20_wording()
+    cc_h_sessions()
     vc_a17_schemas()
     total, fails = len(RESULTS), RESULTS.count(False)
     print("TOTAL %d, FAIL %d" % (total, fails))

@@ -1,8 +1,25 @@
-# Contract issues found while building the skeleton
+# App v4 contract issues
 
-Run `APP-V4-GRAPH-CLOSURE-20261004`. Each entry gives the place, what was
-found, what the skeleton does for now, and a proposed change for change
-control. No Design file was edited.
+The CI-1…CI-9 reports below retain the original walking-skeleton findings from
+`APP-V4-GRAPH-CLOSURE-20261004`. Run `APP-V4-GROUP-A-20261004` resolves their
+current path through named reviewed Design changes and tested code. Native
+qualification and later Group A consumers remain separate obligations.
+
+| Issue | Current P0 disposition and evidence |
+|---|---|
+| CI-1 | CC-R declared-ID references adopted; Rust embedded registry and Node canonical-schema checks pass without rewriting refs. |
+| CI-2 | CC-H/SUP1 full hosting generation adopted; NIR and NPTD definitions/prototypes reviewed. Current host records and cross-generation negatives pass. Standalone NPTD cross-home consumers remain named next-slice work. |
+| CI-3 | Package snapshot has no invented requester identity; the source-route kind and separately referenced missing-identity limit are recorded and tested. |
+| CI-4 | Owner chose exact absence label; omitted/empty/nonempty cases preserve request source and offer/capture/act wording. |
+| CI-5 | CC-A/P selected host-native frozen alternative mechanism is implemented and tested with explicit confirmation stand-ins; actual native authenticity witness remains open. |
+| CI-6 | Atomic durable capture, writer-owned IDs, ordered trusted late writes, add-once backlink and AC-7 link-pending semantics repaired/backchecked. CI-10 governs unverified cold replay. |
+| CI-7 | CC-H LT-24 unverified development route implemented. Hash alone never qualifies; known version/content contradictions refuse, preserving frames and metadata. |
+| CI-8 | Expected thread-start model contact is disclosed with its observation limits; explicit model/provider selection preserves Codex configuration. No new product network default selected. |
+| CI-9 | Approved jsonschema 0.58.5 runtime gate validates complete entries before append, with offline declared-ID resolution and refusal/no-mutation tests. |
+
+Canonical review and command evidence lives in this run's `changes/`,
+`reviews/` and `validation/`. The Group A work graph carries incomplete
+consumer/native/qualification work. CI-10 below remains an open custody issue.
 
 ## CI-1 RS schema: relative `$ref` under a URN `$id`
 
@@ -173,3 +190,11 @@ control. No Design file was edited.
     EVIDENCE "Blocked"); or
   - have W-1 allow validation by a checker other than the writer, with the
     writer refusing what the checker rejects.
+
+## CI-10 Cold pending recovery lacks native-origin proof
+
+- **Run:** APP-V4-GROUP-A-20261004; independent review [V1-ACT](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V1-ACT.md), ACT1. This new issue does not replace CI-1…CI-9 history.
+- **Where:** app act_control.rs `recover_pending`/`write_pending`, AAC §5.2a no-matching-record replay against NA-1/HA-10, AAC §6.3 SEAL-1/SEAL-2 and §6.4 writable-file limits.
+- **Found:** schema-valid matching pending and capture files in the writable project store can trigger `decision_view` to append a new `human_act`; inputSource text alone does not establish a native event. A file-drop/watch-folder route cannot create a person's act.
+- **Disposition:** required fail-closed repair and named AAC/RS prerequisite clarification CC-CUST-A/CC-CUST-R: trusted hot-process original capture may retry; an existing valid matching RS entry may repair its backlink without upgrading provenance; cold unverified files retain facts and a visible limit, with no new human_act. Fail-closed repair and source/code backchecks passed (V0-CUST, V1-ACT-R2).
+- **Unfinished required work:** trustworthy persistent replay and protected capture-origin proof remain in Group A I3. SEAL-2 selection requires the human App implementation owner's concrete decision; CAPTURE_CUSTODY_DECISION.md is preparation, not acceptance. Packaging/signing qualification stays with Group B at its actual point of need; moving the obligation does not complete it.

@@ -1,0 +1,30 @@
+{
+  "binary": "0.160.0",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "input": "Reply exactly chirality-v4-provider-ok; use no tools.",
+  "credentialStorage": "isolated Codex scratch home; contents not inspected",
+  "scope": "synthetic provider probe, not App qualification",
+  "traffic": "hosted OpenAI model provider explicitly selected; sockets not independently audited",
+  "resolvedModel": "gpt-6.1-sol",
+  "errors": [],
+  "turnError": null,
+  "turnStatus": "completed",
+  "assistantText": "chirality-v4-provider-ok",
+  "passed": true,
+  "eventMethods": [
+    "account/rateLimits/updated",
+    "account/updated",
+    "item/agentMessage/delta",
+    "item/completed",
+    "item/started",
+    "mcpServer/startupStatus/updated",
+    "remoteControl/status/changed",
+    "thread/started",
+    "thread/status/changed",
+    "thread/tokenUsage/updated",
+    "turn/completed",
+    "turn/started",
+    "warning"
+  ]
+}

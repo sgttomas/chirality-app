@@ -32,6 +32,7 @@ ACT_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04_*", "1_Working", "DEL-04-
 AS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04_*", "1_Working", "DEL-04-02_*", "Design"))[0]
 HOSTING_DESIGN = glob.glob(os.path.join(WORKING, "DEL-01-01_*", "Design"))[0]
 WR_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02_*", "1_Working", "DEL-02-02_*", "Design"))[0]
+EXEC_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02_*", "1_Working", "DEL-02-03_*", "Design"))[0]
 WD_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02_*", "1_Working", "DEL-02-01_*", "Design"))[0]
 
 sys.path.insert(0, HERE)
@@ -74,7 +75,8 @@ def main():
         check(True, f"S-1 {name}.schema.json loads; every keyword is in the validator's subset")
     for name, d, f in (("ACT", ACT_DESIGN, "ACT_POLICY_CLASS_RECORD.schema.json"),
                        ("AS", AS_DESIGN, "AS_SETTINGS_IN.schema.json"),
-                       ("RS", RS_DESIGN, "RS_RECORD.schema.json")):
+                       ("RS", RS_DESIGN, "RS_RECORD.schema.json"),
+                       ("EXEC", EXEC_DESIGN, "checkpoint-record-entries.schema.json")):
         ids[name] = reg.load(os.path.join(d, f))
     rs_entry = {"$ref": ids["RS"] + "#/$defs/entry"}
     for name in SCHEMAS:
@@ -162,10 +164,10 @@ def main():
     pid = nm.person_ref(person)
     P = {"class": "person-via-interaction", "actorRef": pid}
     # RT-01, RT-02 unfamiliar; RT-03 app-unsupported
-    rd.receive("r-unf", "attestation/generate", {}, 1)
-    rd.receive("r-dyn", "item/tool/call", {"threadId": "thr-ex-1"}, 1)
+    rd.receive("r-unf", "attestation/generate", {}, nm.FIXTURE_GENERATION)
+    rd.receive("r-dyn", "item/tool/call", {"threadId": "thr-ex-1"}, nm.FIXTURE_GENERATION)
     # RT-04, RT-05 (invalid), RT-06, RT-07, RT-12
-    rd.receive("r1", "item/commandExecution/requestApproval", ob5, 1)
+    rd.receive("r1", "item/commandExecution/requestApproval", ob5, nm.FIXTURE_GENERATION)
     ok, why = rd.answer("r1", {"decision": "decline"}, P)            # not offered by the request
     check(not ok and why == "invalid-answer" and nm.card_state(rd.entries["r1"])[0] == "CS-1",
           f"R-1 an answer the request does not offer is refused '{why}'; the card keeps waiting with the reason")
@@ -181,17 +183,17 @@ def main():
     ok, why = rd.answer("r1", {"decision": "accept"}, P)
     check(not ok and why == "already-settled", f"R-4 a second answer is refused '{why}'")
     # RT-08, RT-13: decline by the person (cancel)
-    rd.receive("r2", "item/commandExecution/requestApproval", ob5, 1)
+    rd.receive("r2", "item/commandExecution/requestApproval", ob5, nm.FIXTURE_GENERATION)
     rd.answer("r2", {"decision": "cancel"}, P)
     s4 = nm.card_state(rd.entries["r2"])
     rd.supplier_resolved("r2")
     check(s4[0] == "CS-4" and nm.card_state(rd.entries["r2"])[0] == "CS-4a", f"R-5 the person's decline: '{s4[1]}'")
     # RT-09 write failure
-    rd.receive("r3", "item/fileChange/requestApproval", {"threadId": "t", "turnId": "u", "itemId": "i", "startedAtMs": 2}, 1)
+    rd.receive("r3", "item/fileChange/requestApproval", {"threadId": "t", "turnId": "u", "itemId": "i", "startedAtMs": 2}, nm.FIXTURE_GENERATION)
     rd.answer("r3", {"decision": "accept"}, P, write_ok=False)
     check(nm.card_state(rd.entries["r3"])[0] == "CS-5", f"R-6 write failure: '{nm.card_state(rd.entries['r3'])[1]}'")
     # silence: nothing happens however long; RT-10 supplier resolution
-    rd.receive("r4", "item/tool/requestUserInput", q, 1)
+    rd.receive("r4", "item/tool/requestUserInput", q, nm.FIXTURE_GENERATION)
     before = copy.deepcopy(rd.public("r4"))
     for _ in range(24 * 60):        # a simulated day of minutes passes; the model has no timer at all
         pass
@@ -207,13 +209,13 @@ def main():
     ok, why = rd.answer("r4", {"answers": {"q1": {"answers": ["x"]}}}, P)
     check(not ok and why == "already-resolved", f"R-10 answering a supplier-resolved request is refused '{why}'")
     # empty answer map as decline (PROPOSED)
-    rd.receive("r5", "item/tool/requestUserInput", q, 1)
+    rd.receive("r5", "item/tool/requestUserInput", q, nm.FIXTURE_GENERATION)
     rd.answer("r5", {"answers": {}}, P)
     check(rd.entries["r5"]["state"] == "declined", "R-11 PROPOSED decline of a question: the empty answer map, settled as a decline")
     # RT-11 generation closed
     rd.receive("r6", "mcpServer/elicitation/request", {"threadId": "t", "turnId": "u", "serverName": "ex", "mode": "form",
-                                                      "message": "m", "requestedSchema": {}, "_meta": None}, 1)
-    rd.close_generation(1)
+                                                      "message": "m", "requestedSchema": {}, "_meta": None}, nm.FIXTURE_GENERATION)
+    rd.close_generation(nm.FIXTURE_GENERATION)
     ok, why = rd.answer("r6", {"action": "accept", "content": {}, "_meta": None}, P)
     check(nm.card_state(rd.entries["r6"])[0] == "CS-7" and why == "generation-closed",
           f"R-12 Codex ended: '{nm.card_state(rd.entries['r6'])[1]}'; a late answer is refused '{why}'")
@@ -221,7 +223,7 @@ def main():
     check(not ok and why == "no-such-request", f"R-13 unknown identity refused '{why}'")
     # app rule cannot answer affirmatively
     rd2 = nm.RegisterDouble(declared=off)
-    rd2.receive("x1", "item/fileChange/requestApproval", {"threadId": "t"}, 1)
+    rd2.receive("x1", "item/fileChange/requestApproval", {"threadId": "t"}, nm.FIXTURE_GENERATION)
     ok, why = rd2.answer("x1", {"decision": "accept"}, {"class": "app-rule", "ruleName": "auto"})
     check(not ok and why == "origin-not-permitted", f"R-14 an App rule's affirmative answer is refused '{why}' (R9)")
     check(rd.rt_seen | rd2.rt_seen == {f"RT-{i:02d}" for i in range(1, 14)},
@@ -230,6 +232,16 @@ def main():
     check(not bad, f"R-16 every register entry the walk produced is valid against HOSTING's PROPOSED entry schema {bad}")
     states = {nm.card_state(rd.entries[r])[0] for r in rd.order}
     print("     final card states of the walk:", ", ".join(sorted(states)))
+
+    # CC-H/CI-2: equal spawn counters in another session/home are not this generation.
+    for changed_field in ("appSession", "home"):
+        rg = nm.RegisterDouble(declared=off)
+        rg.receive("same-counter", "item/fileChange/requestApproval", {"threadId": "t"}, nm.FIXTURE_GENERATION)
+        different = dict(nm.FIXTURE_GENERATION)
+        different[changed_field] += "-other"
+        ok, why = rg.answer("same-counter", {"decision": "accept"}, P, generation=different)
+        check(not ok and why == "generation-closed" and rg.entries["same-counter"]["state"] == "outstanding",
+              f"R-16a equal spawn counter with different {changed_field} is refused without settlement")
 
     # ------------------------------------------------------------------ O outcomes
     print("\n== O turn and outcome presentation (NIR §5; VER-002) ==")
@@ -304,9 +316,9 @@ def main():
           "O-8a TC-2: the run-end line (R20-3; WR TX-5) first, then the person's text, then the attachments (text element, "
           "image input, named path)")
     # C-24 indicator
-    regA = nm.RegisterDouble(declared=off); regA.receive("a1", "item/tool/requestUserInput", q, 1)
-    regB = nm.RegisterDouble(declared=off); regB.receive("b1", "item/fileChange/requestApproval", {"threadId": "t"}, 1)
-    regB.receive("b2", "item/fileChange/requestApproval", {"threadId": "t"}, 1)
+    regA = nm.RegisterDouble(declared=off); regA.receive("a1", "item/tool/requestUserInput", q, nm.FIXTURE_GENERATION)
+    regB = nm.RegisterDouble(declared=off); regB.receive("b1", "item/fileChange/requestApproval", {"threadId": "t"}, nm.FIXTURE_GENERATION)
+    regB.receive("b2", "item/fileChange/requestApproval", {"threadId": "t"}, nm.FIXTURE_GENERATION)
     ind = nm.waiting_indicator({"conv-A": regA, "conv-B": regB}, {"conv-B": 2})
     regB.answer("b1", {"decision": "accept"}, {"class": "person-via-interaction", "actorRef": pid})
     okw, whyw = regB.answer("b1", {"decision": "decline"}, {"class": "person-via-interaction", "actorRef": pid})
@@ -521,7 +533,7 @@ def main():
         check(st == "AC-R refused" and not ac.captures, f"K-3 operation from {src!r} refused; nothing captured")
     # supplier request outstanding while acting (CAP-9)
     rd3 = nm.RegisterDouble(declared=off)
-    rd3.receive("q9", "item/tool/requestUserInput", q, 1)
+    rd3.receive("q9", "item/tool/requestUserInput", q, nm.FIXTURE_GENERATION)
     st, rec = ac.operate(o1["offerId"], NATIVE_SOURCE, "act")
     cap1 = next(iter(ac.captures.values()))
     check(st == "AC-7 recorded" and not validate(cap1, cap_schema, reg), f"K-4 the person's native confirmation captures A4: {rec}")

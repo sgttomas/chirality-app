@@ -4,9 +4,13 @@
     "reason": "An App rule's origin: this format is the person's path only (HOSTING R7, R9).",
     "instance": {
       "format": "chirality.nir.answer-submission",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "requestIdentity": "srv-ex-1",
-      "generation": 1,
+      "generation": {
+        "appSession": "aac-fixture-session",
+        "home": "account",
+        "spawnCounter": 1
+      },
       "method": "item/commandExecution/requestApproval",
       "nativeAnswer": {
         "decision": "cancel"
@@ -30,9 +34,13 @@
     "reason": "Actor not marked identity not verified (DECISION-K1 K1-4).",
     "instance": {
       "format": "chirality.nir.answer-submission",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "requestIdentity": "srv-ex-1",
-      "generation": 1,
+      "generation": {
+        "appSession": "aac-fixture-session",
+        "home": "account",
+        "spawnCounter": 1
+      },
       "method": "item/commandExecution/requestApproval",
       "nativeAnswer": {
         "decision": "cancel"
@@ -56,9 +64,13 @@
     "reason": "A translated Chirality verdict in place of the native decision (REQ-001; V4-APP-04).",
     "instance": {
       "format": "chirality.nir.answer-submission",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "requestIdentity": "srv-ex-1",
-      "generation": 1,
+      "generation": {
+        "appSession": "aac-fixture-session",
+        "home": "account",
+        "spawnCounter": 1
+      },
       "method": "item/commandExecution/requestApproval",
       "nativeAnswer": {
         "kind": "approval",
@@ -83,9 +95,13 @@
     "reason": "The legacy timed_out form is never a person's answer (R3; R17-9).",
     "instance": {
       "format": "chirality.nir.answer-submission",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "requestIdentity": "srv-ex-1",
-      "generation": 1,
+      "generation": {
+        "appSession": "aac-fixture-session",
+        "home": "account",
+        "spawnCounter": 1
+      },
       "method": "execCommandApproval",
       "nativeAnswer": {
         "decision": "timed_out"
@@ -109,9 +125,13 @@
     "reason": "A question answered without the answers map.",
     "instance": {
       "format": "chirality.nir.answer-submission",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "requestIdentity": "srv-ex-1",
-      "generation": 1,
+      "generation": {
+        "appSession": "aac-fixture-session",
+        "home": "account",
+        "spawnCounter": 1
+      },
       "method": "item/tool/requestUserInput",
       "nativeAnswer": {
         "text": "yes"
@@ -135,9 +155,13 @@
     "reason": "A kind no person answers through a card (HOSTING R9 named service).",
     "instance": {
       "format": "chirality.nir.answer-submission",
-      "formatVersion": "0.1",
+      "formatVersion": "0.2",
       "requestIdentity": "srv-ex-1",
-      "generation": 1,
+      "generation": {
+        "appSession": "aac-fixture-session",
+        "home": "account",
+        "spawnCounter": 1
+      },
       "method": "currentTime/read",
       "nativeAnswer": {
         "decision": "cancel"

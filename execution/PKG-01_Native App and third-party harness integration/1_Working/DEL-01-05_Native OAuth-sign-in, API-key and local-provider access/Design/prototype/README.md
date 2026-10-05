@@ -29,3 +29,14 @@ VC-A11 creates a temporary folder under `$TMPDIR` (prefix
 `chirality-d4-link-`), works only inside it, checks that nothing under
 `~/.codex` was touched, and removes it. A "pass (model)" means the rules ran
 as written; it is never a VER pass.
+
+CC-H independent-review repair: each App instance creates a unique app_session
+(UUID; explicit fixture injection available). state_snapshot exports that
+session. network_view requires app_session from its owning App; no fixed
+prototype session is invented by the network record exporter.
+
+SUP1: this prototype remains a historical 0.158.0 record/type model. Its
+constants and expected rows are not the maintained product development pin;
+HOSTING §7.0/generated/0.160.0 supplies that pin. Historical observations are
+not silently relabelled at the adopted version. New product qualification
+and connected consumer replay remain manager/receiving-owner work.

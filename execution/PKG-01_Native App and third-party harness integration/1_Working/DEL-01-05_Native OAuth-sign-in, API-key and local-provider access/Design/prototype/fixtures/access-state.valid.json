@@ -1,14 +1,18 @@
 {
   "description": "Valid (v0.2): account home linked and signed in; no key home yet; one local provider in use; one other provider not offered. Invented values. The ChatGPT entry carries the RS codexAccount text for a null email (C-10); the account home links AGENTS.md and skills (R18-6).",
   "instance": {
-    "schema": "chirality.access-state/v0.2",
+    "schema": "chirality.access-state/v0.3",
     "observedAt": "2026-10-01T12:00:00Z",
     "homes": [
       {
         "role": "account",
         "configLink": "linked",
         "childState": "ready",
-        "generation": 1,
+        "generation": {
+          "appSession": "fixture-session",
+          "home": "account",
+          "spawnCounter": 1
+        },
         "credentialStoreMode": "auto",
         "guidanceLinks": {
           "agentsMd": "linked",

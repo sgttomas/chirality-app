@@ -45,3 +45,19 @@ A run takes about 20 seconds.
 - Command: `python3 run_cases.py` in this folder.
 - Output: `results/RUN_2026-09-30.txt` (35 results, all as expected).
 - Rerun after the RP-3 repair (HOSTING §8.4 annotations and §10.1; no prototype file changed): `results/RUN_2026-09-30_RP-3.txt` (35 results, all as expected). The name-to-group check of WD §4.2.5 against §8.4 (HOSTING VC-31) runs in DEL-02-01's prototype (`wdproto.py selftest`, S-11).
+
+CC-H (2026-10-04) candidate: internal counters and correlation maps are scoped to
+one Boundary instance/session/home; records() and delivered envelopes export the
+full H5 identity. The counter is never a standalone persisted identity. LT-24
+keeps unverifiable and labels the ready announcement unverified-development.
+Original verification/qualification obligations remain unchanged.
+
+CC-H independent-review repair: answer() accepts a full current generation
+object and refuses a foreign session/home/counter or bare integer; its internal
+cache remains instance-scoped. Server-request schema successor is v0.10.
+
+SUP1: this prototype remains a historical 0.158.0 record/type model. Its
+constants and expected rows are not the maintained product development pin;
+HOSTING §7.0/generated/0.160.0 supplies that pin. Historical observations are
+not silently relabelled at the adopted version. New product qualification
+and connected consumer replay remain manager/receiving-owner work.

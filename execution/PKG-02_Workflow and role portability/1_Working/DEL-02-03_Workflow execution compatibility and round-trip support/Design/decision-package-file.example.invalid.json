@@ -180,8 +180,7 @@
     "reason": "the act_request body offered as the file (R23-18 item 3, superseded)",
     "instance": {
       "requester": {
-        "kind": "agent",
-        "identity": "thread:fx-u1-manager"
+        "kind": "agent"
       },
       "form": "decision package file",
       "actKind": "A16",

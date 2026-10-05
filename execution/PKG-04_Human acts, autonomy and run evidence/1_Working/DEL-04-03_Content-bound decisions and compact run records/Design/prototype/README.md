@@ -68,3 +68,11 @@ R14 repair's rerun (four logs, INV-RS-1…15, and the EXEC → RS conversion:
 ```text
 python3 -B exec_to_rs.py "$TMPDIR/exec-to-rs"
 ```
+
+CC-R (`APP-V4-GROUP-A-20261004`) registers EXEC by its declared schema `$id`;
+no file-relative schema rewrite is needed. `exec_to_rs.py` also exercises the
+package discovered without writer identity and its separate RS evidence limit.
+`python3 -B check_cc_r.py` uses the already installed `jsonschema` and
+`referencing` packages to check the standard URI registry (no network or
+installation); the standard-library prototype checks remain available without
+those packages. CI-9 still requires validation in the product host writer.

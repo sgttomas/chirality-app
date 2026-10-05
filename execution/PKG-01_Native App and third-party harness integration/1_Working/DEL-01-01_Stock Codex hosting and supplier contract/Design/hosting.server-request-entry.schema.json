@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.9:server-request-entry",
+  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.10:server-request-entry",
   "title": "Outstanding server-request register entry (PROPOSED)",
-  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §6.1-§6.3 and the §6.2.1 transition table (R12-1, R12-2); revised at HOSTING-BOUNDARY-v0.9 (node F-A of run APP-V4-DESIGN-PASS-3-20261001; rows FH-17, FH-18): the actor reference form (DECISION-K1 K1-4; R18-1 C-10; AAC-v0.2 §7, NIR-v0.2 §4.5) and secret answer values not kept readable after the reply is written (NIR-v0.2 §4.5 SE-1…SE-3). One entry per server-initiated request (R1). The supplier's identity, method, subject references and parameters are carried unchanged as data. The conditional rules below restate R2, R7, R9 and the state/settlement pairing so that a conformance fixture can fail on them. An entry is never a human-act record: A14 settlements reach evidence only as run-record tool-permission entries (R8; DEL-04-03 R13), and person-input answers are never act evidence (R9; R4-12). Placement is not chosen (R12-2); persistence is DEL-01-02's.",
+  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §6.1-§6.3 and the §6.2.1 transition table (R12-1, R12-2); revised at HOSTING-BOUNDARY-v0.9 (node F-A of run APP-V4-DESIGN-PASS-3-20261001; rows FH-17, FH-18): the actor reference form (DECISION-K1 K1-4; R18-1 C-10; AAC-v0.2 §7, NIR-v0.2 §4.5) and secret answer values not kept readable after the reply is written (NIR-v0.2 §4.5 SE-1…SE-3). One entry per server-initiated request (R1). The supplier's identity, method, subject references and parameters are carried unchanged as data. The conditional rules below restate R2, R7, R9 and the state/settlement pairing so that a conformance fixture can fail on them. An entry is never a human-act record: A14 settlements reach evidence only as run-record tool-permission entries (R8; DEL-04-03 R13), and person-input answers are never act evidence (R9; R4-12). Placement is not chosen (R12-2); persistence is DEL-01-02's. CC-H proposed candidate (2026-10-04); independent review pending.",
   "type": "object",
   "required": ["recordKind", "requestIdentity", "generation", "method", "classification", "originClass", "receiptPosition", "state", "replyWriteResult", "acknowledgmentObservation"],
   "additionalProperties": false,
   "properties": {
     "recordKind": {"const": "server-request-entry"},
     "requestIdentity": {"type": ["string", "integer"], "description": "Supplier-assigned identity as received (opaque)."},
-    "generation": {"type": "integer", "minimum": 1},
+    "generation": {"type": "object", "required": ["appSession", "home", "spawnCounter"], "additionalProperties": false, "properties": {"appSession": {"type": "string", "minLength": 1}, "home": {"type": "string", "minLength": 1}, "spawnCounter": {"type": "integer", "minimum": 1}}, "description": "CC-H: full H5 identity. appSession is unique across App launches; home is stable App-owned home identity, not a credential or OS path."},
     "method": {"type": "string", "minLength": 1},
     "classification": {"enum": ["known-answerable", "known-app-unsupported", "unfamiliar"]},
     "originClass": {"enum": ["a14", "person-input", "named-service", "none"], "description": "R9 class of the kind; 'none' for unfamiliar and known-app-unsupported kinds."},

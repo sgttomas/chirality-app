@@ -101,7 +101,7 @@ def pc02_checklist():
     revs = m.checklist_revisions(S.P, "turn-fixture-3")
     ids = [r["revisionId"] for r in revs]
     ok = (len(revs) == 3 and [r["ordinal"] for r in revs] == [1, 2, 3]
-          and ids[0].startswith("cl:%s:turn-fixture-3:g1:p" % S.P)
+          and ids[0] == M.revision_key("cl", S.P, "turn-fixture-3", generation=S.generation(1), position=revs[0]["receiptPosition"])
           and revs[1]["unchangedFromPrevious"] and not revs[2]["unchangedFromPrevious"]
           and m.checklist_state(S.P, "turn-fixture-3") == "ended"
           and all(not vschema("plan-revision", r) for r in revs))
@@ -113,7 +113,7 @@ def pc02_checklist():
 def pc03_plan_items():
     m = run(S.sc_plans())
     revs = m.plan_revisions(S.P)
-    pi1 = m.plan_items[(S.P, "turn-fixture-1-plan")]
+    pi1 = m.plan_items[(S.P, "turn-fixture-1", "turn-fixture-1-plan")]
     ok = (len(revs) == 2 and revs[0]["content"]["text"].startswith("1. Read the invented")
           and pi1["deltasDiffered"] and revs[0]["contentIdentity"] != revs[1]["contentIdentity"]
           and revs[1]["ordinal"] == 2 and all(not vschema("plan-revision", r) for r in revs)
@@ -126,19 +126,19 @@ def pc03_plan_items():
 
 def pc04_incomplete():
     m = run(S.sc_plan_incomplete())
-    pi = m.plan_items[(S.P, "turn-fixture-5-plan")]
+    pi = m.plan_items[(S.P, "turn-fixture-5", "turn-fixture-5-plan")]
     ok = (pi["state"] == "incomplete" and m.plan_revisions(S.P) == []
           and m.checklist_state(S.P, "turn-fixture-5") == "ended"
           and m.checklists[(S.P, "turn-fixture-5")].get("observationEnded"))
     try:
-        m.apply({"ev": "frame", "g": 1, "pos": 99, "frame": {"method": "turn/plan/updated", "params": {
+        m.apply({"ev": "frame", "g": S.generation(1), "pos": 99, "frame": {"method": "turn/plan/updated", "params": {
             "threadId": S.P, "turnId": "turn-fixture-5", "explanation": None, "plan": []}}})
         late = "accepted"
     except M.TransitionRefused:
         late = "refused"
     ok = ok and late == "refused"
     m = run(S.sc_recovery_reads(), m)
-    pi = m.plan_items[(S.P, "turn-fixture-5-plan")]
+    pi = m.plan_items[(S.P, "turn-fixture-5", "turn-fixture-5-plan")]
     row = m.tool_row(S.P, "item-fixture-cmd-5")
     row6 = m.tool_row(S.P, "item-fixture-cmd-6")
     ok = ok and pi["state"] == "completed" and pi["standing"] == "recovered-from-supplier" \
@@ -250,7 +250,7 @@ def pc09_observation_end_and_reads():
           and by[S.C1]["lastObserved"]["source"] == "thread/read"
           and by[S.C2]["depth"] == 2 and by[S.C2]["parentThreadId"] == S.C1
           and not vschema("delegation-export", exp))
-    m2 = run(S.sc_delegation() + [{"ev": "closed", "g": 1, "reason": "exited-unexpectedly"}])
+    m2 = run(S.sc_delegation() + [{"ev": "closed", "g": S.generation(1), "reason": "exited-unexpectedly"}])
     n = m2.nodes[S.C1]
     ok = ok and n["state"] == "observation-ended" and n["observationEnded"] \
         and n["lastObserved"]["status"].startswith("active")
@@ -478,12 +478,188 @@ def pc18_run_markers():
            "record" % got)
 
 
+def pc19_full_generation_identity():
+    thread, turn = "native:thread.g1:p9/Ω", "native:turn.p2/β"
+    params = {"threadId": thread, "turnId": turn, "explanation": None,
+              "plan": [{"step": "Native content unchanged", "status": "pending"}]}
+    def observe(g):
+        ready = S.ready(g["spawnCounter"])
+        ready["g"] = g
+        return run([ready, {"ev": "frame", "g": g, "pos": 0,
+                    "frame": {"method": "turn/plan/updated", "params": copy.deepcopy(params)}}])
+    generations = [S.generation(1, "app:session/α", "home:one.p1"),
+                   S.generation(1, "app:session/β", "home:one.p1"),
+                   S.generation(1, "app:session/α", "home:two.g1"),
+                   S.generation(2, "app:session/α", "home:one.p1")]
+    models = [observe(g) for g in generations]
+    refs = [m.checklist_revisions(thread, turn)[0] for m in models]
+    import base64
+    decode = lambda v: base64.urlsafe_b64decode(v + "=" * (-len(v) % 4)).decode("utf-8")
+    decoded = [r["revisionId"].split(":", 2)[2].split(".") for r in refs]
+    ok = len({r["revisionId"] for r in refs}) == 4
+    for g, r, parts in zip(generations, refs, decoded):
+        ok &= (r["generation"] == g and r["threadId"] == thread and r["turnId"] == turn
+               and r["content"]["steps"] == params["plan"] and not vschema("plan-revision", r)
+               and [decode(parts[i]) for i in (0, 1, 3, 4)] == [g["appSession"], g["home"], thread, turn]
+               and parts[2] == str(g["spawnCounter"]) and parts[5] == "0")
+    ok &= refs[0] == observe(copy.deepcopy(generations[0])).checklist_revisions(thread, turn)[0]
+    # Mutating a handed-in object or returned reference cannot rewrite the stored identity.
+    original = copy.deepcopy(refs[0])
+    generations[0]["home"] = "mutated"
+    refs[0]["generation"]["home"] = "mutated returned reference"
+    ok &= models[0].checklist_revisions(thread, turn)[0] == original
+    result("PC-19 full generation and reused native IDs", ok,
+           "same native thread/turn and receipt position under distinct sessions/homes/counters: 4 distinct "
+           "keys; Unicode/delimiters round-trip; same-tuple reload stable; identities immutable to caller mutation")
+
+
+def pc20_generation_refusals_and_closure():
+    g = S.generation(1)
+    ready = S.ready(1)
+    params = {"threadId": "same:thread", "turnId": "same:turn", "explanation": None, "plan": []}
+    frame = lambda gen, pos: {"ev": "frame", "g": gen, "pos": pos,
+                             "frame": {"method": "turn/plan/updated", "params": params}}
+    m = run([ready, frame(g, 0)])
+    refused = 0
+    invalid = [1, None, {}, {"home": g["home"], "spawnCounter": 1},
+               dict(g, appSession=""), dict(g, spawnCounter=True), dict(g, spawnCounter=0),
+               dict(g, extra="not allowed"), dict(g, appSession="other"), dict(g, home="other"),
+               dict(g, spawnCounter=2)]
+    before = copy.deepcopy(m.checklists)
+    for bad in invalid:
+        try:
+            m.apply(frame(bad, 1))
+        except M.TransitionRefused:
+            refused += 1
+    for event in [frame(g, 0), frame(g, -1), frame(g, True), {"ev": "closed", "g": dict(g, home="other")},
+                  S.ready(1), S.ready(2)]:
+        try:
+            m.apply(event)
+        except M.TransitionRefused:
+            refused += 1
+    ok = refused == 17 and m.checklists == before
+    m.apply({"ev": "closed", "g": g})
+    ok &= m.checklist_state(params["threadId"], params["turnId"]) == "ended"
+    try:
+        m.apply(frame(g, 2))
+        ok = False
+    except M.TransitionRefused:
+        pass
+    m.apply(S.ready(2))
+    ok &= m.checklist_state(params["threadId"], params["turnId"]) == "not-recoverable"
+    ok &= m.checklist_revisions(params["threadId"], params["turnId"]) == []
+    m.apply(frame(S.generation(2), 0))
+    successor = m.checklist_revisions(params["threadId"], params["turnId"])
+    ok &= len(successor) == 1 and successor[0]["ordinal"] == 1 and successor[0]["generation"] == S.generation(2)
+    m.apply({"ev": "closed", "g": g})  # late repeated closure cannot close current observations
+    ok &= m.checklist_state(params["threadId"], params["turnId"]) == "live"
+    result("PC-20 closed generation and negative attribution", ok,
+           "17 malformed/stale/foreign/duplicate/out-of-order inputs refused without checklist mutation; "
+           "closed frames refused; restart drops old revisions as not recoverable; same native IDs in "
+           "successor start ordinal 1; repeated old closure leaves successor live")
+
+
+def pc21_revision_shapes_and_history_identity():
+    cl = run(S.sc_plans()).checklist_revisions(S.P, "turn-fixture-3")[0]
+    bads = []
+    for g in [1, None, {}, dict(cl["generation"], appSession=""),
+              dict(cl["generation"], spawnCounter=0), dict(cl["generation"], extra=1)]:
+        bads.append(dict(cl, generation=g))
+    bads += [dict(cl, revisionId="cl:thread:turn:g1:p1"), dict(cl, standing="recovered-from-supplier"), dict(cl, revisionId=cl["revisionId"] + "\n")]
+    # Same item ID in different native turns is not one plan item; no delimiter ambiguity.
+    m = run([S.ready(1)])
+    for pos, (thread, turn, item) in enumerate([("a:b", "c", "same:item"), ("a", "b:c", "same:item"),
+                                             ("a:b", "different:turn", "same:item")]):
+        m.apply({"ev": "frame", "g": S.generation(1), "pos": pos,
+                 "frame": {"method": "item/completed", "params": {
+                     "threadId": thread, "turnId": turn, "item": S.plan_item(item, "native text " + turn)}}})
+    live = m.plan_revisions("a:b") + m.plan_revisions("a")
+    recovered = M.Model(home="fixture-account-home")  # explicitly scoped history receiving context
+    for r in live:
+        recovered.apply({"ev": "read", "home": "fixture-account-home", "method": "thread/items/list",
+                         "params": {"threadId": r["threadId"]}, "at": 1,
+                         "result": {"data": [{"turnId": r["turnId"],
+                                               "item": S.plan_item(r["itemId"], r["content"]["text"])}]}})
+    rec = recovered.plan_revisions("a:b") + recovered.plan_revisions("a")
+    ok = (len({r["revisionId"] for r in live}) == 3 and [r["revisionId"] for r in rec] == [r["revisionId"] for r in live]
+          and all(not vschema("plan-revision", r) for r in live + rec)
+          and all("generation" not in r and "receiptPosition" not in r for r in live + rec)
+          and all(vschema("plan-revision", b) for b in bads))
+    ok &= all(M.reference_identity_matches(r) for r in live + rec + [cl])
+    mutants = [dict(cl, threadId="other"), dict(cl, turnId="other"), dict(cl, receiptPosition=99),
+               dict(cl, generation=dict(cl["generation"], home="other")),
+               dict(cl, generation=dict(cl["generation"], appSession="other")),
+               dict(cl, generation=dict(cl["generation"], spawnCounter=2)),
+               dict(live[0], itemId="other")]
+    ok &= all(not M.reference_identity_matches(r) for r in mutants)
+    ok &= bool(vschema("plan-revision", dict(live[0], generation=S.generation(1))))
+    anchor = {"anchorKind": "plan-revision", "threadId": live[0]["threadId"],
+              "turnId": live[0]["turnId"], "revisionId": live[0]["revisionId"], "standing": "live-observed"}
+    ok &= not vschema("item-anchor", anchor) and bool(vschema("item-anchor", dict(anchor, revisionId="pi:a:b:c")))
+    result("PC-21 revision schema and history keys", ok,
+           "9 checklist shape/standing negatives plus plan-item generation and legacy anchor rejected; "
+           "7 shape-valid key/component mismatches rejected by semantic check; "
+           "delimiter-bearing native IDs and reused item ID in distinct turns yield 3 separate keys; "
+           "live/history keys identical, native values retained, no generation or receipt position on plan items")
+
+
+def pc22_history_home_receiving_and_current_bundle():
+    history = S.sc_plans_history()
+    old = run(S.sc_plans())
+    # New App launch, same home: regenerated history-plan identity must survive.
+    new = copy.deepcopy(history)
+    new[0]["g"]["appSession"] = "relaunched-app-session"
+    m = run(new)
+    before = copy.deepcopy(m.plan_items)
+    reads = [e for e in history if e["ev"] == "read"]
+    refused = 0
+    for home in ["foreign-home", None]:
+        wrong = copy.deepcopy(reads[-1])
+        if home is None:
+            del wrong["home"]
+        else:
+            wrong["home"] = home
+        try:
+            m.apply(wrong)
+        except M.TransitionRefused:
+            refused += 1
+    try:
+        M.Model().apply(reads[-1])
+    except M.TransitionRefused:
+        refused += 1
+    current = os.path.join(DESIGN, "..", "..", "DEL-01-01_Stock Codex hosting and supplier contract", "Design",
+                           "generated", "0.160.0", "json-schema", "experimental",
+                           "codex_app_server_protocol.v2.schemas.json")
+    root = json.load(open(current, encoding="utf-8"))
+    bad, checked = [], 0
+    refs = {"thread/items/list": "ThreadItemsListResponse", "thread/turns/list": "ThreadTurnsListResponse",
+            "thread/read": "ThreadReadResponse", "thread/goal/get": "ThreadGoalGetResponse"}
+    for fn in S.SCENARIOS.values():
+        for e in fn():
+            if e["ev"] == "frame":
+                inst = {k: v for k, v in e["frame"].items() if k != "emittedAtMs"}
+                ref = "ServerNotification"
+            elif e["ev"] == "read":
+                inst, ref = e["result"], refs[e["method"]]
+            else:
+                continue
+            checked += 1
+            bad += V.validate_against(inst, root, "#/definitions/" + ref)
+    ok = (refused == 3 and m.plan_items == before and not bad
+          and [r["revisionId"] for r in m.plan_revisions(S.P)] == [r["revisionId"] for r in old.plan_revisions(S.P)])
+    result("PC-22 home-bound history and SUP1 shape check", ok,
+           "foreign/missing home and unbound view reads refused before merging; same-home plan keys survive "
+           "App relaunch; %d constructed native frames/read results also valid against reviewed 0.160.0 "
+           "bundle (historical 0.158.0 model constants retained; no runtime qualification)" % checked)
+
+
 def main():
     for f in (pc01_bundle_conformance, pc02_checklist, pc03_plan_items, pc04_incomplete,
               pc05_reload_and_relaunch, pc06_tools, pc07_no_translation, pc08_delegation,
               pc09_observation_end_and_reads, pc10_task_role, pc11_version,
               pc12_experimental_and_plan_mode, pc13_acts, pc14_schema_fixtures, pc16_delegation_availability,
-              pc17_goals, pc18_run_markers, pc15_tables):
+              pc17_goals, pc18_run_markers, pc19_full_generation_identity,
+               pc20_generation_refusals_and_closure, pc21_revision_shapes_and_history_identity, pc22_history_home_receiving_and_current_bundle, pc15_tables):
         try:
             f()
         except Exception as e:  # a crash is a failed case, reported

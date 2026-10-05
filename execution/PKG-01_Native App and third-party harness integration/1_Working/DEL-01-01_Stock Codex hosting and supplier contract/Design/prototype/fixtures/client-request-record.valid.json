@@ -2,7 +2,11 @@
   "description": "Valid: an App-initiated MCP tool call by the DEL-03-03 receiver, answered with a result (invented example).",
   "instance": {
     "recordKind": "client-request",
-    "generation": 1,
+    "generation": {
+      "appSession": "fixture-session",
+      "home": "account",
+      "spawnCounter": 1
+    },
     "requestIdentity": 102,
     "method": "mcpServer/tool/call",
     "initiator": {

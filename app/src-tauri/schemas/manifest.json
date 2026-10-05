@@ -1,0 +1,87 @@
+{
+  "resources": [
+    {
+      "file": "RS_RECORD.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.schema.json",
+      "sha256": "c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6",
+      "id": "urn:chirality:app-v4:del-04-03:rs-record:0.1"
+    },
+    {
+      "file": "checkpoint-record-entries.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/checkpoint-record-entries.schema.json",
+      "sha256": "00d5203a2fa9d099b25f2f8da5732f2d869a18fd0846ebe33d25c9ae2ae135d3",
+      "id": "chirality:del-02-03/exec-checkpoint-entry-bodies/proposed-0.7"
+    },
+    {
+      "file": "ACT_POLICY_CLASS_RECORD.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Design/ACT_POLICY_CLASS_RECORD.schema.json",
+      "sha256": "694a284f48155ab7a7d0e24d47ec809a06ec3a909dbb104a28374164d3f6cb7e",
+      "id": "urn:chirality:app-v4:del-04-01:policy-class-record:0.1"
+    },
+    {
+      "file": "AS_SETTINGS_IN.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Design/AS_SETTINGS_IN.schema.json",
+      "sha256": "206045da42dae052621893c8e25487066b36ef8e8a3a7a28414b02137be07d62",
+      "id": "urn:chirality:app-v4:del-04-02:settings-in:0.1"
+    },
+    {
+      "file": "aac.offer.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.offer.schema.json",
+      "sha256": "f2091fcf2583b6863370ba51d86f4c8671dbae5bbd6fe0e39046154d98c7d066",
+      "id": "urn:chirality:app-v4:del-01-04:aac:offer:0.3"
+    },
+    {
+      "file": "aac.capture-evidence.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.capture-evidence.schema.json",
+      "sha256": "4405a1228e5982d948eb82776aaaf54d966d4305f8829a656473a523ad1ca4ba",
+      "id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3"
+    }
+  ],
+  "fixture": {
+    "file": "fixtures/valid-records.json",
+    "description": "Invented Design fixtures; no human act performed. Concatenated in source filename order.",
+    "sources": [
+      {
+        "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.act-log.example.jsonl",
+        "sha256": "b34997bb5168b747a9fe0c91ffa2ca8f5708c518eb1844331b65b294d3895e0a"
+      },
+      {
+        "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.app-chained-run.example.jsonl",
+        "sha256": "eb39c986da31805136feec0f75f5daf0a62a3776708a9425665c95dad14559ce"
+      },
+      {
+        "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.app-run.example.jsonl",
+        "sha256": "cb9a8acf23733be0fd996d9162bb8a0ceb2d0e5344236500d45912eda7805e3e"
+      },
+      {
+        "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.host-destinations.example.jsonl",
+        "sha256": "0c7a79b213430aa740e5198de8ece9f39a3165f0b6f0f83cd7377c912b096688"
+      },
+      {
+        "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.host-run.example.jsonl",
+        "sha256": "b990fc7ea64e7931c7315a58145e2d5daeeb4a3b72d5266216d0467602ad376f"
+      },
+      {
+        "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.run-not-started.example.jsonl",
+        "sha256": "79cbb8efe8cf8eaf111e3c845fa33af915125a547f2779027b72c0012d98d14b"
+      }
+    ]
+  },
+  "file_fixtures": [
+    {
+      "file": "fixtures/aac.offer.example.valid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.offer.example.valid.json",
+      "sha256": "f80957322793888d13e0c48c2cc312f91ff38b7cf6c60b622a103cb8cf7e967f"
+    },
+    {
+      "file": "fixtures/aac.capture-evidence.example.valid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.capture-evidence.example.valid.json",
+      "sha256": "e086bdafb4d24c13f24e8fecee151bd803633294adc51d43ed16fe8523528da4"
+    },
+    {
+      "file": "fixtures/decision-package-file.example.valid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/decision-package-file.example.valid.json",
+      "sha256": "3ea08ff575698e769784e0c4788a21c01be81020ad0a3c0534114f5c87895fbe"
+    }
+  ]
+}

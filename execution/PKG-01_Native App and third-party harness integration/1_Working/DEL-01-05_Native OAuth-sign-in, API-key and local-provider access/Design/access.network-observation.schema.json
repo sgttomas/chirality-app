@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "chirality:app-v4:DEL-01-05:access.network-observation:v0.2",
-  "title": "Supplier network observation (PROPOSED, DEL-01-05/ACCESS-v0.2 §9, §15)",
-  "description": "What the App knows of its own Codex child's connections (K-12): its own sampling of the process tree and the per-pin expected list. App-observed diagnostics; never run evidence, never authority for what Codex sent.",
+  "$id": "chirality:app-v4:DEL-01-05:access.network-observation:v0.3",
+  "title": "Supplier network observation (PROPOSED, DEL-01-05/ACCESS-v0.2 \u00a79, \u00a715)",
+  "description": "What the App knows of its own Codex child's connections (K-12): its own sampling of the process tree and the per-pin expected list. App-observed diagnostics; never run evidence, never authority for what Codex sent. CC-H proposed candidate (2026-10-04); independent review pending.",
   "type": "object",
   "required": [
     "schema",
@@ -16,7 +16,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {
-      "const": "chirality.access-network/v0.2"
+      "const": "chirality.access-network/v0.3"
     },
     "pin": {
       "type": "string",
@@ -30,8 +30,28 @@
       ]
     },
     "generation": {
-      "type": "integer",
-      "minimum": 1
+      "type": "object",
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "description": "CC-H: full H5 identity. appSession is unique across App launches; home is stable App-owned home identity, not a credential or OS path."
     },
     "remoteControlStatus": {
       "enum": [
@@ -131,7 +151,8 @@
             "start-up",
             "sign-in",
             "turn",
-            "idle"
+            "idle",
+            "thread-start"
           ]
         },
         "purpose": {

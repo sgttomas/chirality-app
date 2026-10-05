@@ -22,7 +22,7 @@
 //! the per-home config link (§4.2 step 3, option C), journal replay for
 //! re-attaching observers (§4.6).
 
-use crate::util::{now_rfc3339, sha256_hex};
+use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -34,11 +34,11 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
 /// The pin the App candidate declares (HOSTING §7.1, D4).
-pub const DECLARED_PIN: &str = "0.158.0";
+pub const DECLARED_PIN: &str = "0.160.0";
 /// Generated-output identity: the pin and generator the protocol types came from
-/// (HOSTING §7.1; DEL-01-01 Design/generated/0.158.0, manifest 42b95826…).
+/// (HOSTING §7.0; maintained supplier resources mirror Design/generated/0.160.0).
 pub const GENERATED_OUTPUT_IDENTITY: &str =
-    "codex app-server generate-json-schema --experimental @ 0.158.0 (manifest sha256 42b95826…69e)";
+    "codex app-server generate-json-schema --experimental @ 0.160.0 (manifest sha256 411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be; root sha256 7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5; v2 sha256 e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c)";
 
 /// Environment variables never passed to the child (ACCESS CR-7: no credential variable).
 const CREDENTIAL_VARS: &[&str] = &[
@@ -60,8 +60,8 @@ pub struct HostConfig {
     pub probe_home: PathBuf,
     /// Working directory of the child.
     pub cwd: PathBuf,
-    /// Expected distribution content identity (sha-256 hex of the binary), recorded when
-    /// the pin is qualified (§7.1). None: no qualification exists.
+    /// Optional main-binary development assertion. A match cannot qualify the
+    /// full executed distribution; a mismatch always refuses the start.
     pub expected_sha256: Option<String>,
     /// HOSTING §7.2 / U-06: run an unverified distribution for development, labelled so.
     pub allow_unverified_dev: bool,
@@ -91,7 +91,10 @@ impl HostConfig {
 #[derive(Default)]
 struct Inner {
     state: String,
-    generation: u64,
+    generation: Value,
+    app_session: String,
+    home: String,
+    supplier_standing: Option<String>,
     spawn_counter: u64,
     lifecycle: Vec<Value>,
     client_requests: Vec<Value>,
@@ -130,6 +133,8 @@ impl Host {
     pub fn new() -> Self {
         let inner = Inner {
             state: "absent".into(),
+            generation: Value::Null,
+
             ..Default::default()
         };
         Host {
@@ -140,7 +145,7 @@ impl Host {
     }
 
     fn lt(&self, inner: &mut Inner, id: &str, event: &str, to: &str, extra: Value) {
-        let gen = if inner.generation == 0 { Value::Null } else { json!(inner.generation) };
+        let gen = inner.generation.clone();
         let mut rec = json!({
             "recordKind": "lifecycle-event",
             "sequence": inner.lifecycle.len() + 1,
@@ -155,6 +160,9 @@ impl Host {
             for (k, v) in e {
                 o.insert(k, v);
             }
+        }
+        if let Some(standing) = &inner.supplier_standing {
+            rec["supplierStanding"] = json!(standing);
         }
         inner.lifecycle.push(rec);
         inner.state = to.to_string();
@@ -171,7 +179,9 @@ impl Host {
         let i = self.inner.0.lock().unwrap();
         json!({
             "state": i.state,
-            "generation": if i.generation == 0 { Value::Null } else { json!(i.generation) },
+            "generation": i.generation,
+            "supplierStanding": i.supplier_standing,
+            "networkDisclosure": network_disclosure(),
             "verification": i.verification,
             "versionIdentity": i.version_identity,
             "declaredCapabilities": i.declared_capabilities,
@@ -202,11 +212,12 @@ impl Host {
     /// HOSTING §7.1/§7.2: label probe in the probe home, content identity of the binary,
     /// generated-output identity naming the pin.
     fn verify(cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
-        let label = Command::new(&cfg.codex_bin)
+        let mut probe = Command::new(&cfg.codex_bin);
+        for name in CREDENTIAL_VARS { probe.env_remove(name); }
+        let label = probe
             .arg("--version")
             .env("CODEX_HOME", &cfg.probe_home)
-            .env_remove("OPENAI_API_KEY")
-            .env_remove("CODEX_API_KEY")
+
             .stdin(Stdio::null())
             .output();
         let label = match label {
@@ -226,6 +237,10 @@ impl Host {
                 )
             }
         };
+        // An observed contradiction cannot be downgraded by a later content-read failure.
+        if label != format!("codex-cli {DECLARED_PIN}") {
+            return (json!({"result": "mismatch", "element": "observed version label"}), Some(label), vec![]);
+        }
         let content = match std::fs::read(&cfg.codex_bin) {
             Ok(b) => sha256_hex(&b),
             Err(e) => {
@@ -238,11 +253,12 @@ impl Host {
         };
         // Composition of the distribution identity is U-17; the skeleton hashes the main binary only.
         let dist = vec![json!({"path": "bin/codex", "identity": {"algorithm": "sha-256", "value": content}})];
-        if label != format!("codex-cli {DECLARED_PIN}") {
-            return (json!({"result": "mismatch", "element": "observed version label"}), Some(label), dist);
+        if !generated_outputs_match() {
+            return (json!({"result": "mismatch", "element": "generated output identity"}), Some(label), dist);
         }
         match &cfg.expected_sha256 {
-            Some(exp) if exp.eq_ignore_ascii_case(&content) => (json!({"result": "verified"}), Some(label), dist),
+            Some(exp) if exp.eq_ignore_ascii_case(&content) => (
+                json!({"result": "unverifiable", "reason": "main binary matches development assertion; qualified full distribution identity absent"}), Some(label), dist),
             Some(_) => (json!({"result": "mismatch", "element": "distribution content identity"}), Some(label), dist),
             None => (
                 json!({"result": "unverifiable", "reason": "no expected distribution content identity recorded (pin not qualified)"}),
@@ -259,6 +275,9 @@ impl Host {
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
                 return Err(format!("start not accepted in state {}", i.state));
             }
+            if i.app_session.is_empty() { i.app_session = opaque_id("app-session:")?; }
+            i.supplier_standing = None;
+            i.version_identity = None;
             let id = match i.state.as_str() {
                 "absent" => "LT-01",
                 "stopped" => "LT-02",
@@ -277,16 +296,16 @@ impl Host {
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": result}));
                 return Err(format!("refused: {}", result));
             }
-            // U-06: an unverified distribution may run for development; it is never
-            // labelled the pinned supplier. LT-04's guard is `verified`; under U-06 the
-            // skeleton writes LT-04 with the actual (unverifiable) result and a reason.
+            // LT-24 explicitly permits labelled development; LT-04 remains verified-only.
             let extra = if verified {
                 json!({"verificationResult": result})
             } else {
                 json!({"verificationResult": result,
                        "reason": "U-06 development run: unverified distribution, not the pinned supplier"})
             };
-            self.lt(&mut i, "LT-04", "verification-passed", "spawning", extra);
+            i.supplier_standing = Some(if verified { "verified" } else { "unverified-development" }.into());
+            self.lt(&mut i, if verified { "LT-04" } else { "LT-24" },
+                if verified { "verification-passed" } else { "development-start-authorized" }, "spawning", extra);
             i.version_identity = Some(json!({
                 "declaredPin": DECLARED_PIN,
                 "observedVersionLabel": label.clone().unwrap_or_default(),
@@ -295,7 +314,7 @@ impl Host {
                 "handshakeReportedIdentity": {},
                 "handshakeConsistency": "no-version-found",
                 "generatedOutputIdentity": GENERATED_OUTPUT_IDENTITY,
-                "supplementIdentity": "empty at 0.158.0",
+                "supplementIdentity": "empty at 0.160.0",
             }));
         }
         // Step 3: spawn.
@@ -334,7 +353,9 @@ impl Host {
         {
             let mut i = self.inner.0.lock().unwrap();
             i.spawn_counter += 1;
-            i.generation = i.spawn_counter; // H5: new generation at spawn.
+            // Opaque stable home identity: never expose the filesystem path as identity.
+            i.home = format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+            i.generation = json!({"appSession": i.app_session, "home": i.home, "spawnCounter": i.spawn_counter});
             i.receipt_position = 0;
             i.held.clear();
             i.child_pid = Some(pid);
@@ -352,8 +373,9 @@ impl Host {
             }
             self.lt(&mut i, "LT-06", "spawned", "handshaking", json!({}));
         }
-        self.spawn_reader(stdout);
-        self.spawn_stderr(stderr);
+        let generation = self.inner.0.lock().unwrap().generation.clone();
+        self.spawn_reader(stdout, generation.clone());
+        self.spawn_stderr(stderr, generation);
 
         // Step 4: handshake.
         let caps = json!({"experimentalApi": true, "requestAttestation": false, "explicitGatewayOauth": true});
@@ -366,19 +388,33 @@ impl Host {
         match resp {
             Ok(r) if r.get("result").is_some() => {
                 let result = r["result"].clone();
-                // initialized notice (whether it is required is U-19; it is sent).
-                let _ = self.write_frame(&json!({"jsonrpc": "2.0", "method": "initialized"}));
-                let mut i = self.inner.0.lock().unwrap();
-                let ua = result.get("userAgent").and_then(|v| v.as_str()).unwrap_or("");
-                let consistency = match ua.split('/').nth(1).and_then(|s| s.split_whitespace().next()) {
+                let reported = result.get("userAgent").and_then(Value::as_str).unwrap_or("");
+                let consistency = match reported.split('/').nth(1).and_then(|v| v.split_whitespace().next()) {
                     Some(v) if v == DECLARED_PIN => "consistent",
                     Some(_) => "contradicts-declared-pin",
                     None => "no-version-found",
                 };
-                if let Some(vi) = i.version_identity.as_mut() {
-                    vi["handshakeReportedIdentity"] = result.clone();
-                    vi["handshakeConsistency"] = json!(consistency);
+                {
+                    let mut i = self.inner.0.lock().unwrap();
+                    if let Some(vi) = i.version_identity.as_mut() {
+                        vi["handshakeReportedIdentity"] = result.clone();
+                        vi["handshakeConsistency"] = json!(consistency);
+                    }
                 }
+                if reported.split('/').nth(1).and_then(|v| v.split_whitespace().next())
+                    .is_some_and(|version| version != DECLARED_PIN) {
+                    self.kill_group();
+                    let mut i = self.inner.0.lock().unwrap();
+                    Self::deliver_never_ready(&mut i);
+                    let counts = Self::close_generation(&mut i);
+                    let failure = "handshake reported version contradicts declared pin";
+                    self.lt(&mut i, "LT-11", "handshake-failed", "halted-after-repeated-failure",
+                        json!({"failure": failure, "failureCount": 1, "closedGeneration": counts}));
+                    return Err(failure.into());
+                }
+                // initialized notice (whether it is required is U-19; it is sent).
+                let _ = self.write_frame(&json!({"jsonrpc": "2.0", "method": "initialized"}));
+                let mut i = self.inner.0.lock().unwrap();
                 let vi = i.version_identity.clone().unwrap();
                 self.lt(&mut i, "LT-09", "handshake-completed", "ready",
                         json!({"versionIdentity": vi, "declaredCapabilities": caps}));
@@ -395,18 +431,21 @@ impl Host {
                 };
                 self.kill_group();
                 let mut i = self.inner.0.lock().unwrap();
+                Self::deliver_never_ready(&mut i);
                 let counts = Self::close_generation(&mut i);
-                // Held frames are delivered marked as from a generation that never became ready.
-                let held: Vec<Value> = std::mem::take(&mut i.held)
-                    .into_iter()
-                    .map(|mut f| { f["generationNeverReady"] = json!(true); f })
-                    .collect();
-                i.journal.extend(held);
                 self.lt(&mut i, "LT-11", "handshake-failed", "halted-after-repeated-failure",
                         json!({"failure": failure.clone(), "failureCount": 1, "closedGeneration": counts}));
                 Err(failure)
             }
         }
+    }
+
+    fn deliver_never_ready(i: &mut Inner) {
+        // Receipt order and every native frame survive a failed handshake and later spawn.
+        i.journal.extend(std::mem::take(&mut i.held).into_iter().map(|mut frame| {
+            frame["generationNeverReady"] = json!(true);
+            frame
+        }));
     }
 
     /// H10: every pending client request of the closing generation becomes unknown.
@@ -442,7 +481,7 @@ impl Host {
             let mut i = self.inner.0.lock().unwrap();
             let ok_state = if handshake { i.state == "handshaking" } else { i.state == "ready" };
             if !ok_state {
-                let gen = if i.generation == 0 { Value::Null } else { json!(i.generation) };
+                let gen = i.generation.clone();
                 i.client_requests.push(json!({
                     "recordKind": "client-request", "generation": gen,
                     "requestIdentity": null, "method": method, "initiator": initiator,
@@ -483,11 +522,19 @@ impl Host {
     }
 
     /// `thread/start`, person-directed (§5 initiator). Records the thread for the interface.
-    pub fn thread_start(&self, cwd: &str) -> Result<Value, String> {
-        let r = self.request("thread/start", json!({"cwd": cwd}), json!({"kind": "person-directed"}))?;
+    pub fn thread_start(&self, _cwd: &str) -> Result<Value, String> {
+        Err("not started — no model selected (explicit model and model provider required)".into())
+    }
+
+    pub fn thread_start_selected(&self, cwd: &str, model: &str, model_provider: &str) -> Result<Value, String> {
+        if model.trim().is_empty() || model_provider.trim().is_empty() {
+            return Err("not started — no model selected (explicit model and model provider required)".into());
+        }
+        let r = self.request("thread/start", json!({"cwd": cwd, "model": model, "modelProvider": model_provider}), json!({"kind": "person-directed"}))?;
         if let Some(t) = r.get("result").and_then(|x| x.get("thread")) {
             let mut i = self.inner.0.lock().unwrap();
-            let gen = i.generation;
+            let gen = i.generation.clone();
+            let standing = i.supplier_standing.clone();
             i.threads.push(json!({
                 "generation": gen,
                 "threadId": t.get("id"),
@@ -495,6 +542,10 @@ impl Host {
                 "model": r["result"].get("model"),
                 "modelProvider": r["result"].get("modelProvider"),
                 "cwd": r["result"].get("cwd"),
+                "supplierStanding": standing,
+                "requestedDestination": {"source": "person-selected", "model": model, "modelProvider": model_provider},
+                "reportedDestination": {"scope": "thread", "model": r["result"].get("model"), "modelProvider": r["result"].get("modelProvider")},
+                "networkDisclosure": network_disclosure(),
             }));
             Ok(r)
         } else {
@@ -502,7 +553,7 @@ impl Host {
         }
     }
 
-    fn spawn_reader(self: &Arc<Self>, stdout: std::process::ChildStdout) {
+    fn spawn_reader(self: &Arc<Self>, stdout: std::process::ChildStdout, generation: Value) {
         let me = Arc::clone(self);
         std::thread::spawn(move || {
             let mut rd = BufReader::new(stdout);
@@ -511,14 +562,14 @@ impl Host {
                 line.clear();
                 match rd.read_until(b'\n', &mut line) {
                     Ok(0) | Err(_) => break,
-                    Ok(_) => me.on_line(&line),
+                    Ok(_) => me.on_line(&line, &generation),
                 }
             }
-            me.on_eof();
+            me.on_eof(&generation);
         });
     }
 
-    fn spawn_stderr(self: &Arc<Self>, mut stderr: std::process::ChildStderr) {
+    fn spawn_stderr(self: &Arc<Self>, mut stderr: std::process::ChildStderr, generation: Value) {
         let me = Arc::clone(self);
         std::thread::spawn(move || {
             // Diagnostic output is counted, never parsed as protocol (§5). Bounded: only the count is kept.
@@ -527,21 +578,27 @@ impl Host {
                 if n == 0 {
                     break;
                 }
-                me.inner.0.lock().unwrap().stderr_bytes += n as u64;
+                let mut i = me.inner.0.lock().unwrap();
+                if i.generation == generation { i.stderr_bytes += n as u64; }
             }
         });
     }
 
-    fn on_line(&self, raw: &[u8]) {
+    fn on_line(&self, raw: &[u8], generation: &Value) {
         let text = String::from_utf8_lossy(raw);
         let text = text.trim_end_matches(['\n', '\r']);
         if text.is_empty() {
             return;
         }
         let mut i = self.inner.0.lock().unwrap();
+        if &i.generation != generation {
+            let frame = serde_json::from_str::<Value>(text).unwrap_or_else(|_| json!(text));
+            i.journal.push(json!({"generation": generation, "class": "closed-generation-frame", "frame": frame}));
+            return;
+        }
         i.receipt_position += 1;
         let pos = i.receipt_position;
-        let gen = i.generation;
+        let gen = i.generation.clone();
         let parsed: Option<Value> = serde_json::from_str(text).ok();
         let (class, frame) = match parsed {
             Some(f) if f.is_object() => {
@@ -564,10 +621,7 @@ impl Host {
             i.malformed += 1;
         }
         if class == "response" {
-            let key = match &frame["id"] {
-                Value::String(s) => s.clone(),
-                other => other.to_string(),
-            };
+            let key = frame["id"].to_string();
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let outcome = if frame.get("result").is_some() { "response-observed-result" } else { "response-observed-error" };
                 let r = &mut i.client_requests[idx];
@@ -580,12 +634,12 @@ impl Host {
                 let _ = tx.send(frame.clone());
                 // Responses are also journaled, with their metadata beside the native frame (H6).
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame});
-                i.journal.push(entry);
+                if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
                 return;
             }
             // Uncorrelated response: surfaced, never dropped (§5).
             let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": frame});
-            i.journal.push(entry);
+            if i.state == "handshaking" { i.held.push(entry); } else { i.journal.push(entry); }
             return;
         }
         let entry = json!({"generation": gen, "position": pos, "class": class, "frame": frame});
@@ -596,7 +650,8 @@ impl Host {
         }
     }
 
-    fn on_eof(&self) {
+    fn on_eof(&self, generation: &Value) {
+        if self.inner.0.lock().unwrap().generation != *generation { return; }
         // Reap the child to read its exit status.
         let status = self.child.lock().unwrap().as_mut().and_then(|c| c.wait().ok());
         let mut i = self.inner.0.lock().unwrap();
@@ -610,7 +665,7 @@ impl Host {
         let counts = Self::close_generation(&mut i);
         if i.state == "stopping" {
             // LT-23 is written by stop(), which owns the descendant check.
-            let gen = i.generation;
+            let gen = i.generation.clone();
             i.journal.push(json!({"generation": gen, "class": "exit", "exitFacts": exit}));
             self.inner.1.notify_all();
             return;
@@ -689,5 +744,63 @@ impl Host {
             "descendants": {"checked": true, "surviving": surviving, "handling": if surviving > 0 { "recorded; not ended" } else { "none surviving" }},
             "closedGeneration": counts}));
         Ok(json!({"state": i.state}))
+    }
+}
+
+/// Historical supplier observation, separate from current App socket observation.
+fn network_disclosure() -> Value {
+    json!({
+        "currentSupplierVersion": DECLARED_PIN,
+        "observationSourceVersion": "0.158.0",
+        "source": "expected-at-pin",
+        "observedByApp": false,
+        "samplingLimits": "historical bounded observations; current child sockets not sampled by this snapshot",
+        "entries": [
+            {"phase": "startup", "purpose": "supplier-service", "destination": "chatgpt.com; github.com/openai/plugins", "condition": "provider/plugin/account dependent; plugins follow user configuration"},
+            {"phase": "thread-start", "purpose": "model", "destination": "selected model provider", "detail": "Responses websocket prewarm can contact the selected model provider before a turn; default hosted provider observed at 0.158.0"}
+        ]
+    })
+}
+
+fn generated_outputs_match() -> bool {
+    [
+        (include_bytes!("../resources/supplier/0.160.0/MANIFEST.sha256").as_slice(), "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be"),
+        (include_bytes!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json").as_slice(), "7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5"),
+        (include_bytes!("../resources/supplier/0.160.0/codex_app_server_protocol.v2.schemas.json").as_slice(), "e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c"),
+    ].iter().all(|(bytes, expected)| sha256_hex(bytes) == *expected)
+}
+
+#[cfg(test)]
+mod hosting_identity_tests {
+    use super::*;
+    #[test]
+    fn foreign_session_home_or_counter_cannot_correlate_a_response() {
+        let host = Host::new();
+        let current = json!({"appSession":"session-a", "home":"home-a", "spawnCounter":1});
+        let (tx, rx) = channel();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.generation = current.clone();
+            i.state = "ready".into();
+            i.client_requests.push(json!({"generation":current,"outcome":"pending"}));
+            i.pending.insert("1".into(), (0, tx));
+        }
+        for foreign in [
+            json!({"appSession":"session-b","home":"home-a","spawnCounter":1}),
+            json!({"appSession":"session-a","home":"home-b","spawnCounter":1}),
+            json!({"appSession":"session-a","home":"home-a","spawnCounter":2}),
+            json!(1),
+        ] {
+            host.on_line(br#"{"id":1,"result":{"foreign":true}}"#, &foreign);
+            assert!(rx.try_recv().is_err());
+            assert_eq!(host.client_requests()[0]["outcome"], "pending");
+        }
+        host.on_line(br#"{"id":1,"result":{"current":true}}"#, &current);
+        assert_eq!(rx.try_recv().unwrap()["result"]["current"], true);
+        assert_eq!(host.client_requests()[0]["outcome"], "response-observed-result");
+    }
+    #[test]
+    fn generated_resource_bytes_match_reviewed_pin() {
+        assert!(generated_outputs_match());
     }
 }

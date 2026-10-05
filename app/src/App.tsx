@@ -13,6 +13,8 @@ export function App() {
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [model, setModel] = useState<string>("");
+  const [modelProvider, setModelProvider] = useState<string>("");
 
   const refresh = useCallback(async () => {
     setHost(await invoke("host_status"));
@@ -62,17 +64,26 @@ export function App() {
         <h2>Codex host</h2>
         {host?.configurationProblem && <p>Configuration: {host.configurationProblem}</p>}
         <p>
-          State: <b>{host?.state}</b> · generation {String(host?.generation ?? "—")} · version{" "}
+          State: <b>{host?.state}</b> · generation {host?.generation ? JSON.stringify(host.generation) : "—"} · version{" "}
           {host?.versionIdentity?.observedVersionLabel ?? "—"} · verification{" "}
           {host?.verification ? JSON.stringify(host.verification) : "—"}
         </p>
+        <p>Supplier standing: {host?.supplierStanding ?? "not started"}</p>
         <p>
-          <button onClick={() => act("thread_start")} disabled={host?.state !== "ready"}>Start thread</button>{" "}
+          <label>Model <input value={model} onChange={(e) => setModel(e.target.value)} /></label>{" "}
+          <label>Configured Codex provider <input value={modelProvider} onChange={(e) => setModelProvider(e.target.value)} /></label>
+        </p>
+        <p>Choose a model and a provider from your Codex configuration for this thread.</p>
+        <p>
+          <button onClick={() => act("thread_start", { model, modelProvider })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim()}>Start thread</button>{" "}
           <button onClick={() => act("host_start")}>Start Codex</button>{" "}
           <button onClick={() => act("host_stop")}>Stop Codex</button>
         </p>
-        <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${t.generation})`).join(", ") || "none"}</p>
-        <p>Model turn: not exercised in this skeleton.</p>
+        <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
+        <p>Model turn: not exercised in this path.</p>
+        <h3>Expected network contacts</h3>
+        <p>Codex can contact the selected model provider at thread start, before a model turn. This view describes supplier behavior; socket measurements remain separate evidence.</p>
+        <ul>{(host?.networkDisclosure?.entries ?? []).map((entry: Json, index: number) => <li key={index}>{entry.purpose} · {entry.phase} · {entry.destination} · {entry.detail ?? entry.condition}</li>)}</ul>
         <details>
           <summary>Lifecycle events ({host?.lifecycle?.length ?? 0}) and frames ({host?.journal?.length ?? 0})</summary>
           <pre>{JSON.stringify({ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }, null, 2)}</pre>
@@ -86,6 +97,8 @@ export function App() {
           <input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => invoke("set_person_name", { name })} />
         </p>
         {view?.error && <p>{view.error}</p>}
+        {(view?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
+        <button onClick={refresh}>Refresh and retry pending recording</button>
         {(view?.rows ?? []).map((r: Json) => (
           <article key={r.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
             <h3>
@@ -105,7 +118,7 @@ export function App() {
               <p>
                 Decided: <b>{r.decision.alternativeChosen}</b> {r.decision.statement} · decided by {r.decision.decidedBy} · recorded by{" "}
                 {r.decision.recordedBy} ({r.decision.recordingMode}) · captured {r.decision.capturedAt} · {r.decision.lapse} · act{" "}
-                {r.decision.act}
+                {r.decision.act} · {r.decision.captureProvenance}
               </p>
             )}
             {r.limits.length > 0 && <p>Limits: {r.limits.join(" | ")}</p>}

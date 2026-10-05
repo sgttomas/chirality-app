@@ -1,0 +1,2 @@
+usage: sync.py [-h] [--sync]
+sync.py: error: unrecognized arguments: --check

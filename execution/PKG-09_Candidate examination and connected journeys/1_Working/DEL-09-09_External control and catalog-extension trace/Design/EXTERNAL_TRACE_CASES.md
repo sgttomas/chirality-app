@@ -84,7 +84,7 @@ SWBPIPE or any host.
 ## 2. Examination input account (REQ-001; AC-001; VER-001)
 
 Standing uses the C evidence-label mapping and the DEL-09-06 contribution
-ladder (CA §7.2). "Defined" means a definition exists; it is **not** an
+ladder (DEL-09-06 ScopeOfWork.md OUT-004). "Defined" means a definition exists; it is **not** an
 available input for live examination. At v0.6 the App suppliers stand at their Wave B
 round-1 versions (C-v0.8, P-v0.8, ADAPTER-v0.6, ACT-POLICY-v0.8, RS-v0.8,
 LOOP-v0.8, AS-v0.8, EXEC-v0.6), each adding PROPOSED schemas, sequences and

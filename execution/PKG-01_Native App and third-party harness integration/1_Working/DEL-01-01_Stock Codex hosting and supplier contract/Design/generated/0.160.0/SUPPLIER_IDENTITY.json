@@ -1,0 +1,26 @@
+{
+  "change": "SUP1",
+  "status": "PROPOSED; independent review pending",
+  "declaredPin": "0.160.0",
+  "ownerDecisionSource": "APP-V4-GROUP-A-20261004/OWNER_DECISIONS.md: Codex supplier version advance and product-test model",
+  "observedVersionLabel": "codex-cli 0.160.0",
+  "expectedDevelopmentBinaryIdentity": {
+    "algorithm": "sha256",
+    "value": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+    "scope": "main binary only; not qualified distribution content identity"
+  },
+  "generatedOutputIdentity": {
+    "pin": "0.160.0",
+    "variants": [
+      "ts/stable",
+      "ts/experimental",
+      "json-schema/stable",
+      "json-schema/experimental"
+    ],
+    "formatter": "none",
+    "manifestSha256": "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be"
+  },
+  "qualifiedExpectedDistributionContentIdentity": null,
+  "productQualified": false,
+  "supplement": "No new absent-from-both-generator field established; original five TS-only elements and emittedAtMs divergence unchanged. Reference choice U-15 remains with App implementation owner."
+}

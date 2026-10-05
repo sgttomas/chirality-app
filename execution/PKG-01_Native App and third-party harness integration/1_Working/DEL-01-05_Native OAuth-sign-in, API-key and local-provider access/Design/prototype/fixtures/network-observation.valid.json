@@ -1,10 +1,14 @@
 {
   "description": "Valid (v0.2): plugins on by Codex's observed default, so the two start-up connections appear (L-3); the remote-control loop is listed as observed with no socket; one unlisted connection. Addresses are documentation addresses.",
   "instance": {
-    "schema": "chirality.access-network/v0.2",
+    "schema": "chirality.access-network/v0.3",
     "pin": "0.158.0",
     "home": "account",
-    "generation": 1,
+    "generation": {
+      "appSession": "fixture-session",
+      "home": "account",
+      "spawnCounter": 1
+    },
     "remoteControlStatus": "disabled",
     "limits": "lower bound: connections shorter than the sampling interval may be missing; host names only where the expected list or a lookup supplies them",
     "rows": [

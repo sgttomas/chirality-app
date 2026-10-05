@@ -23,3 +23,20 @@ T0 owner completed: changes/T0.md hash63feccee74c59c4529caabdcd5738fbe0f4ac92017
 
 - Actual fresh native TASK hosting_contract_review launched gpt-6.1-sol medium fork none, read-only frozen CC-H27 outputs; writes reviews/V0-H.md only. CC-H author frozen changes/CC-H.md8890040d5121d43ae40d49f5ddf5e228ea20abfff6aedec5681817f05fe3187e; no0.160 Design edits until review snapshot.
 - Inventory final9dfcf88d71b01ba7abab485611fd882ce894e3a543e60f86cbbfbbfefc9c35b0 preferred29 archives3,223,082bytes; manager table/lock check saved dependencies/INVENTORY_CHECK.md and prospective lock preserved. Download approval pending with parent.
+
+- runtime_schema_writer native TASK launched6.1medium fork none: bounded CI9 records/schema module/Cargo exact dependency integration/new maintained tests/assets, only module declaration wiring in lib.rs. Offline exclusive Cargo slot, isolated home. No storage selection; reviewed CC-R W1. Downloads separately executed manager exact29 manifest and all29 published length/SHA256 verified before isolated cache admission; no global cache writes.
+- aac_contract_review native TASK launched6.1medium fork none: frozen CC-A15 outputs, reviews/V0-A.md only; returned READY20/20+161/161+standard negative schemas, no definition findings.
+
+- Supplier SUP1 actual original hosting owner followup: new0.160 maintained contract/protocol generation only ownDesign, no historical rewrite/product qualification.
+- CC-P-R/A actual original owners followups: owner-selected storage/native prose only. Frozen recordsdc0c599e... andc29e8f... passed author checks; contract_reviewer actual followup reviews/V0-P.md.
+- CC-ID actual RS owner followup with parent clarification: record mint ordinary RS/C/WD technical authority, not new human gate; secureUUIDv4 opaque rec:app:id proposal/applied prose subject independent review, no schema/contentcanonicalization change or new downloads.
+
+- act_storage_propagation actualnativeTASK6.1medium fork none P0knownCI3/4/5/6, selectedstorage/native/IDs/reader propagation; ownsact/recorder/decisionview/storage/util/records+Cargocacheddirectdeps+libcommandwiring+actUI/tests. PreservesW1validation; nohostingsource/Node/docs/Design/sharedwrites. Cargo slotexclusive reserved.
+- runtime_schema_writer actualfollowup P0validationAPIs onlyschema_validation/bundledAACresources/sync/newtests/record; source-only whileactCargoheld. Fullpackage/offer/capturevalidatorneed released; nohandcoded substitute.
+- hosting_contract_review actualfollowup frozenSUP1 independentcheck reviews/V0-SUP1.md noCargo/auth/model.
+
+- hosting_propagation actualnativeTASK6.1medium fork none: CI2/7/8+reviewedSUP1 existinghostingpath repair onlyhosting/handshake/newhosttests/assets/P0-HOSTrecord. Source-only whileP0-ACTexclusiveCargo. Nofrontend/lib/Cargo/recordwrites.
+
+Actual repair dispatch correction: hosting and act owners had completed; queued send_message did not execute repairs. WORKING_ITEMS inspected live-agent state and explicitly restarted both with followup_task. Hosting strict schema repair then passed connected Node 3/3; ACT repair turn now active. Subsequent HOST-M1/M2 repair turn actually dispatched; source fixes ready, checks await ACT Cargo slot.
+
+- native_items_generation_design actual native TASK launch gpt-6.1-sol medium, fork none: bounded DEL01-03 Design/schema/prototype CI2 consumer adaptation only plus CC-NPT-GEN change record. Disjoint from product repairs, no new product expansion.

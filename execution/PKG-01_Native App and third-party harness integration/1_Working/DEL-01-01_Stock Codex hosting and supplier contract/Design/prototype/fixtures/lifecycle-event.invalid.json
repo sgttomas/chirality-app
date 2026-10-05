@@ -4,7 +4,11 @@
     "recordKind": "lifecycle-event",
     "sequence": 9,
     "transitionId": "LT-12",
-    "generation": 1,
+    "generation": {
+      "appSession": "fixture-session",
+      "home": "account",
+      "spawnCounter": 1
+    },
     "fromState": "ready",
     "event": "child-ended-without-stop-record",
     "toState": "stopped",

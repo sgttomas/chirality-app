@@ -1,9 +1,11 @@
 # App act control
 
-- Contribution: DEL-01-04/AAC-v0.3 (supersedes AAC-v0.2, last changed at
+- Contribution: DEL-01-04/AAC-v0.6 candidate (CC-CUST-A over reviewed CC-A/CC-P-A, `APP-V4-GROUP-A-20261004`;
+  selected allocation pending independent backcheck and product adoption; prior AAC-v0.3
+  bytes are hashed in the run change record). AAC-v0.3 supersedes AAC-v0.2, last changed at
   `31d65b0be3`, sha256 062ce28c8a4ec0bc79fc6b6c421245057a59815df14b88fa779b61eeb98be7d7;
   AAC-v0.2 superseded AAC-v0.1, committed at
-  `63a6e0fa47`, sha256 7e98118c774fcd9c3e60f04e7def51b3a11325995ae343426fba892ea439e181).
+  `63a6e0fa47`, sha256 7e98118c774fcd9c3e60f04e7def51b3a11325995ae343426fba892ea439e181.
   Companion: [NATIVE_INTERACTION_RECEIVING.md](NATIVE_INTERACTION_RECEIVING.md)
   (DEL-01-04/NIR-v0.3), whose header records the basis, the inputs (round 1
   and round 2) and their sha256; they are not repeated here.
@@ -69,7 +71,7 @@ request or rule opens it. Presenting it answers no supplier request.
 | CAP-1 Scope: acts on App content (App files and App-side outputs by file content identity); A12 where an App control establishes the setting; not host content | **Amended (K-8):** App content also includes a **workflow draft's reviewed content**, for A15. A12: no setting the App itself establishes exists in this increment, so the control is ready for it but offers none (§1.2). Host content stays the host's facility (no proxy, U-E9) | §1.2 |
 | CAP-2 Act control: one act kind at a time; kind in R-4 wording; bound subject with content identity; scope and purpose; actor requirement; the arrival it answers; the decline | **Accepted.** Wording per ACT §9 (§1.2). "The arrival it answers" is shown when the person opened the control from an arrival; otherwise the offer says "no arrival: a standing act" (RC-6). The decline is offered only where ACT §2.3 defines an act-declined event | §3, §5.1 |
 | CAP-3 Direct capture record with a capture-evidence reference {act identity, actor, act kind, bound content identity with method, scope, purpose, time, surface "App interface", arrival reference} | **Accepted**, with the capture-evidence object defined as `aac.capture-evidence.schema.json`, and the record written through DEL-04-03's writer as `human_act` (recording mode *direct capture*, recorder role "App interface (capturing surface)") or `act_declined` | §5 |
-| CAP-4 Not operable by automation | **Accepted**, stated as requirements NA-1…NA-6 and a PROPOSED placement under R17-5, with the limits that no placement removes | §6 |
+| CAP-4 Not operable by automation | **Accepted**, stated as requirements NA-1…NA-6 and the owner-selected P-2/Rust allocation (CC-P-A), with the limits that no placement removes | §6 |
 | CAP-5 A14 settlements are never act evidence | Accepted unchanged | — |
 | CAP-6 Answers to questions and elicitations are input to the agent, never act evidence; the App may respond by presenting its own control | Accepted. NIR LB-4 places the entry on every question card, never pre-filled from an arrival | NIR §4.2 |
 | CAP-7 Conversation statements never satisfy | Accepted unchanged | — |
@@ -142,7 +144,7 @@ row, not a restructure.
 | AX-12 | AC-3, AC-4 | record written | W-1 succeeded | **AC-7 recorded** | `human_act` or `act_declined` citing the capture |
 | AX-13 | AC-3, AC-4 | record write failed | W-1 failed | **AC-8 record pending** | Capture evidence; the writer holds the entry |
 | AX-14 | AC-8 | late write | W-2 succeeded | AC-7 | The entry, in order, then "record write failed" (RS FC-1) |
-| AX-15 | (relaunch) | recovery | A capture whose record is in no log | AC-7 | The entry, written late (AC-R1) |
+| AX-15 | (relaunch) | recovery | Capture has established native origin (§5.2a), and complete readable owning logs hold no record | AC-7 | The original capture recorded late (AC-R1); unverified cold files hold replay with a visible limit |
 
 Not in the table, and so refused: any transition started by an arrival, a
 request, a rule or a timer; a capture from AC-1 (an offer not presented); a
@@ -165,6 +167,46 @@ The prototype exercised AX-01…AX-15 (§8).
 | 6 | Capture evidence (§5.2), actor per §7 | Host | Capture evidence | The capture store cannot be written · the control · nothing captured · the person is told; nothing counts (RS HA-1) |
 | 7 | Write `human_act` (*direct capture*) or `act_declined` through DEL-04-03's writer | Host → DEL-04-03 | RS entry | Write fails · the writer · capture kept, entry pending · late write with "record write failed" (RS FC-1); the display shows *missing in record* until written (AS §6) |
 | 8 | The checkpoint recorder observes the record (AE-2); `act_counted` / `act_not_counted` / `arrival_declined` are DEL-02-03's | DEL-02-03 | Its entries | DEL-02-03 §2.6 A-8 |
+
+### 4.1a A16: choose, then confirm (CC-A / CI-5 candidate)
+
+The webview may let the person select any alternative named by the package;
+selection is not a capture. Before opening the native confirmation the host
+resolves the selected ID against its own offer, fixes a confirmation snapshot
+{offer ID and digest, selected alternative ID, actor as shown}, and fills the
+native surface from that offer. It shows the package reference and content
+identity, purpose, scope, standing/arrival and request reference, the selected
+alternative's **own statement and every consequence**, and the actor with
+"identity not verified". Package text is cited decision content (AI-9), not
+an authority to change the App's act wording or capture rules (NA-2).
+
+The native buttons are **Decide** and **Cancel**. Cancel or dismissal leaves
+no capture and no decline. The webview can request presentation and can affect
+its proposed selection; it cannot confirm or change the host-owned text.
+More than three alternatives remain selectable in the webview: they are not
+buttons in the native confirmation. The host must display all selected text
+without silent truncation; if the surface cannot do so, it refuses presentation
+with the cause and captures nothing.
+
+A confirmation applies only to its frozen snapshot. Another selection or
+presentation cannot replace that snapshot while its dialog is open; requests
+are serialized per offer. A second native result for the same offer is refused.
+On Decide the host rechecks the package identity and offer state (AK-c, NA-4),
+then persists capture evidence with `alternativeChosen` equal to the frozen
+ID. The RS relation copies that ID. A changed, absent or unreadable package,
+an unknown or ambiguous alternative ID, an invalid offer digest, a cancelled
+snapshot, or an already captured offer produces no new capture. Any new choice
+requires a new native presentation. No callback accepts a new webview-supplied
+alternative as the choice after the native confirmation.
+
+For A16, if package scope is absent or empty, the host sets offer scope to
+**"not named by the package"** (CI-4; owner answer relayed 2026-10-04:
+"Use the explicit absence label (recommended)"; this run's OWNER_DECISIONS.md).
+This is an explicit absence label, not inferred scope. The native confirmation
+shows exactly that label, and capture and RS copy it unchanged. Nonempty package
+scope is copied without substitution. A non-string scope is invalid package
+content, not absence. The package's optional `scope` schema remains unchanged;
+the AAC offer/capture and RS act retain their required nonempty scope fields.
 
 ### 4.2 Registration of a reviewed draft, A15 (K-8)
 
@@ -199,10 +241,21 @@ nothing that requires the act (ACT §2.3; DS-5).
 
 ### 4.4 Relaunch recovery (AC-R1)
 
-On relaunch the host reads its capture store and DEL-04-03's logs. A capture
-whose record is not in any log is recorded late, in order, with its own
-capture time (`observedAt`), for every kind including A15 (AK-e, AK-f). A
-capture is never re-made and never back-dated.
+On relaunch the host reads its capture store and DEL-04-03's logs. It joins
+by the record's capture-evidence reference, then verifies the entry against
+the capture (§5.2a); it never treats a missing `recordId` backlink as proof
+that the record was not written. A verified existing entry repairs only the
+backlink without upgrading the entry's or capture's provenance. Only a capture
+whose native origin is established independently of its supplied file text,
+and for which the complete readable log set has no entry, is submitted for
+late writing, in order, with its own capture time
+(`observedAt`), for every kind including A15 (AK-e, AK-f). An incomplete,
+unreadable or ambiguous log set leaves recovery pending with its cause; it
+cannot justify a new append. Cold-process capture/pending files with unverified
+origin remain held with "capture origin not verified; automatic act replay
+held"; no new `human_act` is appended. A capture is never re-made or back-dated.
+Trustworthy persistent replay of actual native captures remains required;
+this clarification does not close that obligation or select its mechanism.
 
 ---
 
@@ -291,9 +344,129 @@ limits; optional *seal* (§6.3)}. Schema 0.3
 `a15_descriptor`, registered; one A15 over two library entries in place, one
 registered and one not completed), `aac.capture-evidence.example.invalid.json`
 (12 cases, among them a Codex account in a form RS refuses and 0.2's
-per-entry descriptor). Where captures are
-stored is not chosen (OI-014; RS U-05); a reader resolves `cap:` references
-through the store (RS §9 resolution status).
+per-entry descriptor). The Group A App-local capture store is selected in
+§5.2b (CC-P-A); a reader resolves `cap:` references through the owning project's
+or library's store (RS §9 resolution status). External OI-013 and remaining
+OI-014 allocation stay with their owners.
+
+### 5.2a Capture persistence and the record backlink (CC-A / CI-6 candidate)
+
+**Native-origin precondition (CC-CUST-A, ACT-1).** "Capture" and "original
+captured facts" here mean evidence actually produced by the host-native
+confirmation path under NA-1/NA-3, not merely JSON that matches the schema.
+`inputSource: host-native-confirmation`, equal pending/capture files, a digest
+and a writable store do not establish that origin. The host may retry an actual
+capture still in its trusted hot-process custody, after checking stored facts
+are unchanged; file content never recreates that custody. After restart, an
+unverified capture/pending file cannot authorize a new act append. Keep its
+bytes/facts and show "capture origin not verified; automatic act replay held".
+Refresh, timers or discovery cannot turn such files into a native act.
+
+Exactly one valid matching existing RS entry may repair the add-once backlink,
+subject to the same matching facts and durability checks; this appends no act
+and upgrades neither capture nor record provenance. Readers retain the existing
+unsigned/unverified-origin evidence limits. Absence from complete logs establishes
+only that no matching record was found; it establishes no person's act.
+
+Legitimate trustworthy persistent replay remains required for actual native
+captures. A production custody mechanism that can establish native origin
+across restart needs its owning choice and independent verification; it is not
+supplied by this clarification. SEAL-2 remains conditional/unselected, and no
+other authenticity mechanism, new identity verification or scope narrowing is
+adopted. The concrete owner packet is prepared separately by the parent.
+
+`recordId` is absent at initial capture. AK-e is unchanged: a complete,
+validated capture must be durably published before any act record is appended.
+The host creates the capture without overwriting an existing capture identity.
+It writes a temporary file in the same directory, syncs it, publishes the
+complete file atomically, and completes the platform's required directory
+persistence step. A failure before durable publication leaves no authorized
+record append. A failure whose durable outcome is uncertain requires recovery
+from the stored bytes; it must not be reported as a definite absence.
+
+DEL-04-03's writer owns record identity minting (RS §13.2); no record identity
+is reserved or fabricated by AAC at capture. After the writer reports success,
+the host reads the written entry, verifies its capture reference and capture
+facts, then adds **that** `recordId` to the stored capture once. All original
+act facts are immutable: capture/offer identity and digest, choice and kind,
+actor, subjects and contents, scope, purpose, capture time, surface/source,
+answers, request, descriptor and reviewed entries, and chosen alternative.
+A15 outcomes remain the separate post-act annotations already defined in §4.2
+and AK-f; this change creates no other mutable act facts.
+
+Adding the backlink uses an atomic whole-file replacement with file and
+platform directory persistence, under the same capture's exclusive host
+serialization. It must preserve the old complete capture on a failed update.
+An absent backlink can be added; an equal backlink is an idempotent no-op;
+a different existing backlink is a conflict, never replaced. If SEAL-2 is
+adopted, the host reseals the complete amended capture with the authorized
+capture key before replacement; a reader must not accept a stale seal. SEAL-2
+remains conditional and unimplemented here.
+
+A verified append stays **AC-7 recorded** even if this annotation fails: show
+"act recorded; capture record link pending" and retain the original capture.
+Retry/relaunch searches all relevant RS logs for the capture reference first:
+
+- Exactly one valid matching entry: compare kind, capture time, actor, bound
+  subject/content, scope/purpose and the act-specific relations (A16 request
+  and alternative; A15 descriptor-derived reviewed entries). Add its backlink
+  or accept the already equal backlink; append nothing.
+- No matching entry, with established native-origin custody, complete readable
+  logs and no unresolved/torn append: submit the original captured facts for
+  late writing through W-2. The writer
+  reconciles any in-memory pending submission for the same capture before
+  appending. Never reconstruct an act from current package or draft bytes.
+- Cold-process files whose native origin cannot be established: retain the
+  facts with the visible unverified-origin/replay-held limit; append no new
+  `human_act`, even if schema-valid and identical to a pending sidecar.
+- Multiple entries, mismatched facts, an orphan/conflicting backlink, or an
+  uncertain/torn append: report the inconsistency and hold automatic replay;
+  neither overwrite nor duplicate. Retain original bytes and provenance limits.
+
+Recovery and ordinary append share one writer/capture serialization boundary;
+checking then appending outside that boundary is insufficient. This prevents
+two recovery workers or a late W-2 flush and recovery from both recording the
+same capture. A crash after append but before backlink publication therefore
+repairs a backlink, rather than making a second act. RS W-0/W-1/W-2, append-only
+logs and original capture time stay in force; AAC does not truncate a torn log.
+The native host must examine durability, interruption and concurrent recovery
+on the product candidate; the model below establishes only these state rules.
+
+### 5.2b Selected App-local stores and discovery (CC-P-A)
+
+Owner directions in this run's OWNER_DECISIONS.md separately select App-local
+storage and P-2/Rust implementation. The Rust host owns authoritative capture
+and record writing, using the current Design schemas for conformance. This
+allocates the App slice; it creates no common service or host loop/panel and
+closes neither external OI-013 nor the remaining OI-014 candidates.
+
+| Act owner/context | Capture root | Act record location |
+|---|---|---|
+| Project act within a run | `<project>/.chirality/captures/` | `<project>/.chirality/records/runs/<safe-run-storage-key>/<safe-writer-storage-key>.jsonl` |
+| Project standing act captured **outside any run** | `<project>/.chirality/captures/` | `<project>/.chirality/records/acts/<safe-writer-storage-key>.jsonl` |
+| A15 registration in an owning project or user library | `<library>/.chirality/captures/` | `<library>/.chirality/records/acts.jsonl` |
+
+A run act is never duplicated into the standing log. An A15 capture travels
+with its owning library and remains resolvable when another project opens that
+library; it is not stored only in the active project's capture root. Safe opaque
+storage keys are separate from governed run/record identities; the resolver
+uses the declared owner root and `cap:` identity, not a webview-provided path.
+
+Recovery and reader discovery cover all logs in the owning allocation plus
+explicitly registered legacy `records/coordination.rs.jsonl`, before replay
+under §5.2a. Legacy bytes, identities and references remain intact: no implicit
+copy, new identity, recapture or duplicate act. Selecting these paths does not
+itself migrate existing evidence. An unreadable or incompletely discovered
+owning log set holds replay with its cause. A missing or unwritable target is
+visibly refused; there is no silent relocation into App data, another project
+or another library. An unavailable project root refuses a project act; an A15
+with its writable owning library need not borrow a project store.
+
+CC-A's durable-before-record and add-once atomic backlink rules remain intact.
+Product adoption must check target-root discovery, library portability, legacy
+no-duplicate recovery, concurrency and durability on the actual candidate.
+The RS owner propagates the identical allocation to writer/reader contracts;
+no schema shape or W-1 validation obligation is relaxed here.
 
 ### 5.3 The RS entries the control writes
 
@@ -328,22 +501,29 @@ writing; all 11 were valid (K-16; 9 at round 2 and RX2).
 | NA-5 | Records the control writes are distinguishable, on read, from bytes another process wrote into the same files (§6.3) |
 | NA-6 | The control states its limits (§6.4) where the person can read them; it never claims more |
 
-### 6.2 PROPOSED placement (R17-5; OI-008 decides)
+### 6.2 Selected P-2/Rust allocation (CC-P-A; Group A implementation)
 
-Under R17-5 the Rust host owns record writing and produces act capture from a
-native interface event. Three ways to obtain the person's confirmation:
+The owner's separate "Approve native-confirmation implementation (recommended)"
+selects the Rust host as authoritative capture and record writer for Group A.
+The webview presents and proposes selection; the host composes and freezes the
+authoritative offer/selected statement and all consequences. Only the actual
+host-native confirmation event captures. This is implementation allocation,
+not a claim of native script-isolation, authenticity qualification, verified
+identity, an actual human act, or stage acceptance. Three alternatives remain
+recorded for comparison:
 
 | Option | Confirmation surface | Against interface scripts | Against other local processes | Cost |
 |---|---|---|---|---|
 | P-1 | A button in the webview; the host checks an offer token | **Weak**: a script running in the webview can press it | As P-2 | Least |
-| **P-2 (PROPOSED)** | A native confirmation the host owns and fills from the offer (for example a native dialog the host opens; whether Tauri 2's dialog facility is used is an implementation choice, not verified here): the act wording, subject and its identity, scope, purpose, the arrival or "standing act", and the buttons | **Holds**: the webview can ask the host to present an offer but cannot press the native buttons or change their text | A process of the same user that is granted macOS Accessibility control could press them (platform behaviour, inference) | Small |
+| **P-2 (SELECTED for Group A, CC-P-A)** | A native confirmation the host owns and fills from the offer (for example a native dialog the host opens; whether Tauri 2's dialog facility is used is an implementation choice, not verified here): the act wording, subject and its identity, scope, purpose, the arrival or "standing act", and the buttons | **Holds**: the webview can ask the host to present an offer but cannot press the native buttons or change their text | A process of the same user that is granted macOS Accessibility control could press them (platform behaviour, inference) | Small |
 | P-3 | P-2 plus an operating-system presence check (password or biometric) for each act | Holds | Holds against automation without the person's presence | One more step per act |
 
-P-2 is PROPOSED for every kind. **P-3 is not adopted (DECISION-L L-5: no OS
+P-2 is selected for Group A act-control implementation. **P-3 is not adopted (DECISION-L L-5: no OS
 password or Touch ID check per act now);** it stays recorded as an option a
 later decision may take up. The
 interface may show the offer in the webview too, for reading; only the native
-confirmation captures.
+confirmation captures. For A16, the webview selection and host-frozen native
+confirmation follow §4.1a (CC-A / CI-5 candidate).
 
 ### 6.3 Record provenance
 
@@ -415,7 +595,7 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 
 | Item | Owner | Point of need | Effect |
 |---|---|---|---|
-| U-AAC-1 OI-008: placement of capture (P-2 under O-1) | App implementation owner (phase review) | Before architecture production contracts | §6.2 PROPOSED |
+| U-AAC-1 P-2/Rust capture allocation | Owner selected for Group A, this run OWNER_DECISIONS (CC-P-A) | Product adoption after independent backcheck | §6.2 selected; native custody/durability witnesses still required; no global OI closure |
 | U-AAC-2 *Closed (DECISION-L L-5):* no per-act OS check now | — | — | P-3 not adopted |
 | U-AAC-3 SEAL-2 and its reader rule | App implementation owner with DEL-04-03 | Before act-control implementation | PROPOSED; J-R4 |
 | U-AAC-4 *Closed (R18-1 C-22):* record at capture, registration after, outcome beside the act, as WR | — | — | §4.2 |
@@ -424,6 +604,27 @@ same three sources to form its actor reference (NIR §4.5), so the register's
 | U-AAC-7 Contract standing | Owner, through SCA-V4-003 | The amendment node | PROPOSED until SC2-01-04-1 (as amended, SC3-01-04-1) is carried |
 
 ## Changes
+
+- CC-CUST-A (2026-10-04): AAC-v0.6 candidate; ACT-1 native-origin prerequisite
+  clarified in AX-15/§4.4/§5.2a. Trusted hot capture retries and existing-record
+  backlink repairs remain bounded; cold unverified files cannot authorize new
+  acts. Actual native persistent replay remains required and unfulfilled until
+  its trustworthy mechanism is chosen/verified. No schema or seal adoption.
+
+- CC-P-A (2026-10-04): AAC-v0.5 candidate over independently reviewed CC-A;
+  owner-selected App-local project/library stores (§5.2b), outside-run-only
+  standing logs, intact explicitly discovered legacy evidence, and separately
+  selected P-2/Rust implementation (§6.2). Independent backcheck and product
+  adoption remain required. Schema shapes and CC-A's capture sequence unchanged.
+
+- CC-A candidate (2026-10-04): AAC-v0.4; CI-4 owner-selected absence label and CI-5 §4.1a/§6.2;
+  CI-6 §4.4/§5.2a;
+  existing schema shapes unchanged (0.3). Change account and captured basis:
+  `execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-A.md`.
+  Independent review and consumer adoption pending; no product propagation.
+  `prototype/cc_a_sequence.py` checks the new state rules. Historical
+  `prototype/act_control.py` reserves its model record ID before append, so its
+  old K-13…K-15 results do not establish CC-A's sequence or durable persistence.
 
 - RV21 (repairs from V21, 2026-10-02; in place, no version step): R21-3, V21-A MINOR 1–3, V21-B m-11; row "RV21" in "Changes from v0.1".
 - v0.2 (D round 2, 2026-10-02): see "Changes from v0.1".

@@ -9,7 +9,7 @@ emits {kind, observedAt, body}, where kind is an RS entry kind and body is a
 CE body of EXEC's `checkpoint-record-entries.schema.json`. This script:
 
 1. checks that every CE body EXEC defines has an RS entry kind whose body
-   `$ref`s it by relative path (none without a kind), and that EXEC's
+   `$ref`s it by its schema identity (none without a kind), and that EXEC's
    recorder-output kinds and RS's kinds agree;
 2. writes an RS `run_opened` for the fixture run (the App writer's entry,
    RS §14.1), then appends each recorder output of EXEC's committed valid
@@ -57,7 +57,7 @@ RUN_OPENED = {
 def load_registry():
     reg = Registry()
     for d, f in ((ACT_DIR, "ACT_POLICY_CLASS_RECORD.schema.json"), (AS_DIR, "AS_SETTINGS_IN.schema.json"),
-                 (RS_DIR, "RS_RECORD.schema.json")):
+                 (EXEC_DIR, "checkpoint-record-entries.schema.json"), (RS_DIR, "RS_RECORD.schema.json")):
         reg.load(os.path.join(d, f))
     return reg
 
@@ -80,7 +80,7 @@ def kind_coverage(reg):
             ok = True                       # CE-19 is a constrained instance of RS's own evidence-limit body
             how = "RS evidenceLimit (EXEC recordWriteFailed is a constrained instance)"
         else:
-            ok = rs_def is not None and "checkpoint-record-entries.schema.json#/$defs/" + body in refs
+            ok = rs_def is not None and exec_schema["$id"] + "#/$defs/" + body in refs
             how = "$ref EXEC #/$defs/" + body if ok else "NOT referenced"
         rows.append((kind, body, how))
         if not ok:
@@ -154,6 +154,7 @@ def convert_more(scratch, reg):
     exec_schema = json.load(open(os.path.join(EXEC_DIR, "checkpoint-record-entries.schema.json"), encoding="utf-8"))
     runs = [(name, fn().outputs) for name, fn in (("CH-20", ex.ch20), ("CH-31-i", ex.ch31_i),
                                                     ("CH-31-ii", ex.ch31_ii), ("CH-10", ex.ch10))]
+    runs.append(("decision-package", ex.decision_package_outputs()))
     runs.append(("samples", [{"kind": k, "observedAt": t, "body": b} for k, t, b in SAMPLES]))
     total = valid = 0
     kinds, problems = set(), []
@@ -171,6 +172,14 @@ def convert_more(scratch, reg):
                 w.append(o["kind"], o["body"], f"rec:app:{name}:e{i:02d}", extra={"observedAt": o["observedAt"]})
             except NonConformant as exc:
                 problems.append(str(exc))
+            # CC-R CI-3: this file-discovery fixture observes no writer. The RS
+            # recorder records the limit separately; EXEC's CE bodies stay CE bodies.
+            if o["kind"] == "act_request" and o["body"].get("form") == "decision package file" and "identity" not in o["body"]["requester"]:
+                total += 1
+                w.append("evidence_limit", {"label": "requester identity not established",
+                         "subjectRef": f"rec:app:{name}:e{i:02d}",
+                         "detail": "package file observed; writer of the identified bytes not observed"},
+                         f"rec:app:{name}:e{i:02d}:requester-limit")
         log = Reader(reg).read_log(out)
         good = [e for e in log["entries"] if not validate(e, {"$ref": RS_ID + "#/$defs/entry"}, reg)]
         valid += len(good)

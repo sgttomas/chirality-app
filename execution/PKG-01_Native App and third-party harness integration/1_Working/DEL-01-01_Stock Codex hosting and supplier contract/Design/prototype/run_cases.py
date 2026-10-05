@@ -145,7 +145,7 @@ def vc16_vc08():
     seed = [json.loads(line) for line in open(os.path.join(BM.SEED_DIR, "A-bin-freshhome.jsonl"))]
     rec_note = [ev["raw"] for ev in seed if ev["kind"] == "recv" and "remoteControl" in ev["raw"]][0]
     held_ok = (ok_start and len(note) == 1 and b.delivered.index(note[0]) == ready_idx + 1
-               and note[0]["meta"]["generation"] == b.generation and note[0]["meta"]["position"] == 2)
+               and note[0]["meta"]["generation"] == b.generation_identity(b.generation) and note[0]["meta"]["position"] == 2)
     result("VC-16", held_ok, "notification received before `initialized` (position 2 of g%d) was held "
            "and delivered right after ready(g%d); not dropped" % (b.generation, b.generation))
     native_ok = note[0]["native"] == rec_note and "generation" not in json.loads(note[0]["native"])
@@ -292,7 +292,7 @@ def vc14():
     ew1 = entry(w, "srv-w1")
     g_old = w.generation
     w.pump(1.5)
-    closed = w.answer("srv-w1", {"decision": "decline"}, person, generation=g_old)
+    closed = w.answer("srv-w1", {"decision": "decline"}, person, generation=w.generation_identity(g_old))
     ew2 = w.register[(g_old, json.dumps("srv-w2"))]
     ok_w = (rw == "accepted-for-write" and ew1["state"] == "settle-write-failed"
             and closed == "refused(generation-closed)" and ew2["state"] == "ended-unanswered")
@@ -513,6 +513,50 @@ def more_transitions():
         LT_USED.update(x.transitions_used)
 
 
+def cc_h_identity_answers():
+    b = new_boundary(scenario="origin", declared={"experimentalApi": True, "requestAttestation": False})
+    b.start()
+    b.pump(0.4)
+    current = b.generation_identity(b.generation)
+    person = {"class": "person-via-interaction", "actorRef": "person:fixture (identity not verified)"}
+    wrong_session = dict(current, appSession="foreign-session")
+    wrong_home = dict(current, home="foreign-home")
+    wrong_counter = dict(current, spawnCounter=current["spawnCounter"] + 1)
+    answer = {"decision": "accept"}
+    refusals = [b.answer("srv-o2", answer, person, generation=g)
+                for g in (wrong_session, wrong_home, wrong_counter, b.generation)]
+    active = b.answer("srv-o2", answer, person, generation=current)
+    b.stop()
+    stale = b.answer("srv-o2", answer, person, generation=current)
+    result("CC-H-answer-identity", all(r == "refused(generation-closed)" for r in refusals)
+           and active == "accepted-for-write" and stale == "refused(generation-closed)",
+           "full current identity accepted; wrong session/home/counter and bare counter refused; closed identity refused")
+    finish(b)
+
+
+def cc_h_cases():
+    b = new_boundary(expected={"label": "codex-cli 0.158.0", "content": None, "outputPin": "0.158.0"})
+    refused = not b.start() and b.state == "refused"
+    b.allow_unverified_dev = True
+    started = b.start(explicit=True)
+    dev = [e for e in b.events if e["transitionId"] == "LT-24"]
+    records = b.records()
+    nonnull = [r["generation"] for r in records if r["generation"] is not None]
+    ok = refused and started and dev[0]["verificationResult"]["result"] == "unverifiable"
+    ok &= all(set(g) == {"appSession", "home", "spawnCounter"} for g in nonnull)
+    ok &= any(d.get("supplierStanding") == "unverified-development" for d in b.delivered)
+    # Repeated export must preserve source state and identities.
+    ok &= b.records() == records
+    other = new_boundary()
+    ok &= b.app_session != other.app_session
+    result("CC-H", ok, "explicit unverified route, full exported H5 identity, distinct sessions, no source mutation")
+    finish(b)
+    mismatch = new_boundary(distribution={"label": "different", "content": "double-tree-1", "outputPin": "0.158.0"})
+    mismatch.allow_unverified_dev = True
+    result("CC-H-mismatch", not mismatch.start() and mismatch.state == "refused", "development option never bypasses mismatch")
+    finish(mismatch)
+
+
 def coverage():
     lt = sorted(set(BM.TRANSITIONS) - LT_USED)
     rt = sorted(set(BM.REGISTER_TRANSITIONS) - RT_USED)
@@ -713,6 +757,8 @@ def main():
             fn()
         except Exception as exc:  # a crash is a failure of that case, reported
             result(fn.__name__, False, "exception: %r" % exc)
+    cc_h_identity_answers()
+    cc_h_cases()
     coverage()
     schema_checks()
     double_conformance()

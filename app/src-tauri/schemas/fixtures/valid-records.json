@@ -1,0 +1,2375 @@
+[
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:acts:0001",
+    "kind": "human_act",
+    "recorder": {
+      "role": "App interface (capturing surface)",
+      "identity": "app-interface:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "seq": 1,
+    "writtenAt": "w001",
+    "body": {
+      "actKind": "A15",
+      "actClass": {
+        "value": "person's act (V4-WF-02)"
+      },
+      "decisionActor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "ChatGPT account (no email reported)",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "workflow revision project:supports-adjust@rev-4"
+      ],
+      "boundContent": [
+        {
+          "method": "workflow revision content identity (method unselected)",
+          "value": "wfrev:rev-4"
+        }
+      ],
+      "scope": "project library FX-W1",
+      "purpose": "make it available in the project library",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:reg-rev-4",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "d1",
+      "evidenceLimits": [
+        "identity not verified"
+      ],
+      "relations": {
+        "reviewedDraft": {
+          "draft": "draft:project:supports-adjust@wfrev:rev-4",
+          "content": {
+            "method": "workflow revision content identity (method unselected)",
+            "value": "wfrev:rev-4"
+          }
+        },
+        "priorRevision": null
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:acts:0002",
+    "kind": "human_act",
+    "recorder": {
+      "role": "App interface (capturing surface)",
+      "identity": "app-interface:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "seq": 2,
+    "writtenAt": "w002",
+    "body": {
+      "actKind": "A4",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "decisionActor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "AF-1"
+      ],
+      "boundContent": [
+        {
+          "method": "file content identity (method unselected)",
+          "value": "AF-1@f1"
+        }
+      ],
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:app-AF-1",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "d2",
+      "evidenceLimits": [
+        "identity not verified"
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:acts:0003",
+    "kind": "act_lapsed",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "seq": 3,
+    "writtenAt": "w003",
+    "body": {
+      "act": {
+        "recordId": "rec:app:acts:0002",
+        "actKind": "A4",
+        "capturedAt": "d2",
+        "capturingSurface": "app_act_control"
+      },
+      "state": "lapsed",
+      "referents": [
+        "AF-1"
+      ],
+      "c0": {
+        "method": "file content identity (method unselected)",
+        "value": "AF-1@f1"
+      },
+      "c1": {
+        "method": "file content identity (method unselected)",
+        "value": "AF-1@f2"
+      },
+      "time": "d3"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:acts:0004",
+    "kind": "human_act",
+    "recorder": {
+      "role": "App interface (capturing surface)",
+      "identity": "app-interface:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "seq": 4,
+    "writtenAt": "w004",
+    "body": {
+      "actKind": "A15",
+      "actClass": {
+        "value": "person's act (V4-WF-02)"
+      },
+      "decisionActor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "codexAccount": "enga@example.invalid",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "workflow revision project:row-review@rr-1",
+        "workflow revision project:span-check@sc-1"
+      ],
+      "boundContent": [
+        {
+          "method": "workflow revision content identity (method unselected)",
+          "value": "wfrev:rr-1"
+        },
+        {
+          "method": "workflow revision content identity (method unselected)",
+          "value": "wfrev:sc-1"
+        }
+      ],
+      "scope": "project library FX-W1",
+      "purpose": "make them available in the project library",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:reg-in-place-2",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "d4",
+      "evidenceLimits": [
+        "identity not verified"
+      ],
+      "relations": {
+        "registeredEntries": [
+          {
+            "subject": "workflow revision project:row-review@rr-1",
+            "reviewedDraft": {
+              "draft": "entry:project:row-review@wfrev:rr-1",
+              "content": {
+                "method": "workflow revision content identity (method unselected)",
+                "value": "wfrev:rr-1"
+              }
+            },
+            "priorRevision": null
+          },
+          {
+            "subject": "workflow revision project:span-check@sc-1",
+            "reviewedDraft": {
+              "draft": "entry:project:span-check@wfrev:sc-1",
+              "content": {
+                "method": "workflow revision content identity (method unselected)",
+                "value": "wfrev:sc-1"
+              }
+            },
+            "priorRevision": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:acts:0005",
+    "kind": "human_act",
+    "recorder": {
+      "role": "App interface (capturing surface)",
+      "identity": "app-interface:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "seq": 5,
+    "writtenAt": "w005",
+    "body": {
+      "actKind": "A16",
+      "actClass": {
+        "value": "person's act (V4-PM-04)"
+      },
+      "decisionActor": {
+        "displayName": "Engineer A",
+        "osAccount": "enga",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "decision package rec:app:requests:0001"
+      ],
+      "boundContent": [
+        {
+          "method": "file content identity (method unselected)",
+          "value": "PKG-1@p1"
+        }
+      ],
+      "scope": "undertaking FX-U1",
+      "purpose": "choose the route for the undertaking's next stage",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:decide-pkg-1",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "d5",
+      "evidenceLimits": [
+        "identity not verified"
+      ],
+      "relations": {
+        "requestRef": "rec:app:requests:0001",
+        "alternativeChosen": "ALT-2"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0001",
+    "kind": "run_opened",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 1,
+    "writtenAt": "w001",
+    "body": {
+      "runId": "run:R-100/13",
+      "startedBy": {
+        "kind": "person",
+        "identity": "Engineer A"
+      },
+      "surface": "App run",
+      "follows": "run:R-100/12",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "project",
+        "sourceRoot": "project:FX-W1",
+        "name": "span-summary",
+        "revision": "rev-2",
+        "revisionVerification": "verified"
+      },
+      "conversationRef": "conv:K-7",
+      "seatRole": "WORKING_ITEMS"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0002",
+    "kind": "supplied_guidance",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 2,
+    "writtenAt": "w002",
+    "body": {
+      "supplyForm": "workflow run start (turn text)",
+      "thread": "conv:K-7",
+      "turn": 6,
+      "sourceIdentity": "workflow:project:FX-W1:span-summary@rev-2",
+      "content": {
+        "method": "workflow revision content identity (method unselected)",
+        "value": "wfrev:ss-2"
+      },
+      "supplyRecord": {
+        "kind": "supply record",
+        "ref": "wr-supply:run-R-100-13",
+        "resolutionAtWrite": "resolved"
+      },
+      "supplyCheck": "verified",
+      "supplyCheckRecord": {
+        "kind": "supply record",
+        "ref": "wr-check:run-R-100-13:start",
+        "resolutionAtWrite": "resolved"
+      },
+      "adoption": "unknown"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0003",
+    "kind": "role_limit_observation",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 3,
+    "writtenAt": "w003",
+    "observedAt": "T-c3",
+    "body": {
+      "limit": "L-TASK-1",
+      "roleInForce": "TASK",
+      "basis": "native-child-role-reported",
+      "standing": "stated-not-enforced",
+      "item": {
+        "kind": "conversation item",
+        "ref": "item:collabAgentToolCall-31",
+        "resolutionAtWrite": "resolved"
+      },
+      "thread": "thr:child-2",
+      "observedAt": "T-c3",
+      "limitAccount": {
+        "kind": "limit account",
+        "ref": "limits:release-1",
+        "resolutionAtWrite": "resolved"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0004",
+    "kind": "tool_permission_settlement",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 4,
+    "writtenAt": "w004",
+    "body": {
+      "request": "tool-request:12",
+      "settledBy": "the supplier",
+      "settlement": "resolved by supplier"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0005",
+    "kind": "tool_permission_settlement",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 5,
+    "writtenAt": "w005",
+    "body": {
+      "request": "tool-request:13",
+      "settledBy": "none \u2014 ended unanswered",
+      "settlement": "ended unanswered (process exit)",
+      "context": "App quit",
+      "custodyEventRef": "cev:0042"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0006",
+    "kind": "evidence_limit",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 6,
+    "writtenAt": "w006",
+    "body": {
+      "label": "App-restart interruption",
+      "subjectRef": "run:R-100/13",
+      "detail": "relaunch after the person's confirmed quit; the run stays interrupted, not ended (EXEC RE-4; RECOVERY DEF-6, DEF-7)"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0007",
+    "kind": "run_ended",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 7,
+    "writtenAt": "w007",
+    "body": {
+      "stoppedBy": "the person",
+      "cause": "the person ended the run (RECOVERY-v0.2 DEF-4; EXEC AE-7)",
+      "waitingArrivals": []
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-13:0008",
+    "kind": "supplied_guidance",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/13",
+    "seq": 8,
+    "writtenAt": "w008",
+    "body": {
+      "supplyForm": "workflow run end notice (turn text)",
+      "thread": "conv:K-7",
+      "turn": 9,
+      "sourceIdentity": "workflow:project:FX-W1:span-summary@rev-2",
+      "content": {
+        "method": "run text identity (method unselected)",
+        "value": "rt:run-R-100-13:end-notice"
+      },
+      "supplyRecord": {
+        "kind": "supply record",
+        "ref": "wr-run-text:run-R-100-13:end-notice",
+        "resolutionAtWrite": "resolved"
+      },
+      "supplyCheck": "verified",
+      "supplyCheckRecord": {
+        "kind": "supply record",
+        "ref": "wr-check:run-R-100-13:end-notice",
+        "resolutionAtWrite": "resolved"
+      },
+      "adoption": "unknown"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0001",
+    "kind": "run_opened",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 1,
+    "writtenAt": "w001",
+    "body": {
+      "runId": "run:R-100/12",
+      "startedBy": {
+        "kind": "person",
+        "identity": "Engineer A"
+      },
+      "surface": "App run",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "project",
+        "sourceRoot": "project:FX-W1",
+        "name": "review-rows",
+        "revision": "rev-7",
+        "revisionVerification": "verified"
+      },
+      "conversationRef": "conv:K-7",
+      "seatRole": "WORKING_ITEMS",
+      "declaredCheckpoints": [
+        {
+          "name": "CP-row-check",
+          "requiredAct": "A4",
+          "subjectClass": "objects a named output concerns"
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0002",
+    "kind": "settings_version",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 2,
+    "writtenAt": "w002",
+    "body": {
+      "settingsVersionId": "set:set-1",
+      "runId": "run:R-100/12",
+      "sourceOfControl": "host",
+      "changeKind": "run start",
+      "operationClassGrants": [
+        {
+          "policyRecord": {
+            "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+            "recordId": "P-03"
+          },
+          "classValue": "may apply within granted autonomy",
+          "grantValue": "propose",
+          "scope": {
+            "modelOrWorkspace": "FX-W1"
+          },
+          "displayState": "effective (policy default)",
+          "requester": "none \u2014 policy default",
+          "settingActor": "none \u2014 policy default",
+          "policyDefault": {
+            "policyRecord": {
+              "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+              "recordId": "P-03"
+            },
+            "defaultValue": "propose"
+          },
+          "establishment": {
+            "controlEffect": "not applicable"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0003",
+    "kind": "operation_entry",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 3,
+    "writtenAt": "w003",
+    "observedAt": "T4a",
+    "body": {
+      "operation": {
+        "id": "OP-C12",
+        "version": "1"
+      },
+      "authorType": "agent",
+      "authorIdentity": {
+        "value": "app-agent-seat:1",
+        "verified": false
+      },
+      "channel": "external channel",
+      "route": "read",
+      "outcome": "success",
+      "relatedEvidence": [
+        {
+          "kind": "content identity",
+          "ref": "out:T4a",
+          "claimedIdentity": "T4a-output",
+          "resolutionAtWrite": "resolved"
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0004",
+    "kind": "checkpoint_arrival",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 4,
+    "writtenAt": "w004",
+    "body": {
+      "checkpoint": "CP-row-check",
+      "requiredAct": "A4",
+      "subjectClass": "objects a named output concerns",
+      "arrivalOrdinal": 1,
+      "event": {
+        "source": "host_read",
+        "ref": "rec:app:run-12:0003",
+        "evidencedTime": {
+          "value": "T4a",
+          "source": "host_outcome_time"
+        }
+      },
+      "referents": [
+        {
+          "subject": "S-2",
+          "content": {
+            "method": "m-fx",
+            "value": "S-2@r12"
+          }
+        },
+        {
+          "subject": "S-3",
+          "content": {
+            "method": "m-fx",
+            "value": "S-3@r12"
+          }
+        }
+      ],
+      "purpose": "rows the examination covered are marked checked",
+      "scope": "S-2, S-3",
+      "limits": [],
+      "requestObservation": {
+        "state": "not yet observed"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0005",
+    "kind": "human_act",
+    "recorder": {
+      "role": "agent",
+      "identity": "app-agent-seat:1"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 5,
+    "writtenAt": "w005",
+    "body": {
+      "actKind": "A4",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "decisionActor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "recordingMode": "faithful recording",
+      "boundSubject": [
+        "S-2"
+      ],
+      "boundContent": [
+        {
+          "method": "m-fx",
+          "value": "S-2@r12"
+        }
+      ],
+      "scope": "S-2",
+      "purpose": "S-2 checked",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:T2",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "T2",
+      "evidenceLimits": [
+        "recorded from the host capture reference; the App did not capture it"
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0006",
+    "kind": "disposition_change",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 6,
+    "writtenAt": "w006",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-row-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "waiting",
+      "annotations": [
+        {
+          "label": "by earlier act",
+          "actRef": "rec:app:run-12:0005",
+          "time": "T2",
+          "referents": [
+            "S-2"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0007",
+    "kind": "act_request",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 7,
+    "writtenAt": "w007",
+    "body": {
+      "requester": {
+        "kind": "agent",
+        "identity": "app-agent-seat:1"
+      },
+      "form": "supplier person-input request",
+      "actKind": "not named by the request",
+      "subject": "not named by the request",
+      "purpose": "not named by the request",
+      "association": "associated with the current arrival",
+      "arrival": {
+        "checkpoint": "CP-row-check",
+        "arrivalOrdinal": 1
+      },
+      "evidence": {
+        "kind": "conversation item",
+        "ref": "item:tool/requestUserInput-12",
+        "resolutionAtWrite": "resolved"
+      },
+      "time": "T4a+1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0008",
+    "kind": "operation_entry",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 8,
+    "writtenAt": "w008",
+    "observedAt": "T5",
+    "body": {
+      "operation": {
+        "id": "OP-C4",
+        "version": "1"
+      },
+      "authorType": "agent",
+      "authorIdentity": {
+        "value": "app-agent-seat:1",
+        "verified": false
+      },
+      "channel": "external channel",
+      "route": "proposal",
+      "outcome": "drafted",
+      "proposalId": "PR-1",
+      "continuedPast": {
+        "checkpoint": "CP-row-check",
+        "act": "A4",
+        "turnInitiator": "agent"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0009",
+    "kind": "human_act",
+    "recorder": {
+      "role": "agent",
+      "identity": "app-agent-seat:1"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 9,
+    "writtenAt": "w009",
+    "body": {
+      "actKind": "A4",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "decisionActor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "recordingMode": "faithful recording",
+      "boundSubject": [
+        "S-3"
+      ],
+      "boundContent": [
+        {
+          "method": "m-fx",
+          "value": "S-3@r12"
+        }
+      ],
+      "scope": "S-3",
+      "purpose": "rows the examination covered are marked checked",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:T5b",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "T5a",
+      "evidenceLimits": [],
+      "relations": {
+        "arrivalAnswered": {
+          "checkpoint": "CP-row-check",
+          "arrivalOrdinal": 1
+        },
+        "requestRef": "rec:app:run-12:0007"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0010",
+    "kind": "disposition_change",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 10,
+    "writtenAt": "w010",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-row-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "performed",
+      "performanceOrdinal": 1,
+      "answeredBy": [
+        "rec:app:run-12:0005",
+        "rec:app:run-12:0009"
+      ],
+      "annotations": [
+        {
+          "label": "answered by acts",
+          "actRefs": [
+            "rec:app:run-12:0005",
+            "rec:app:run-12:0009"
+          ]
+        },
+        {
+          "label": "by earlier act",
+          "actRef": "rec:app:run-12:0005",
+          "time": "T2",
+          "referents": [
+            "S-2"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0011",
+    "kind": "run_resumed",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 11,
+    "writtenAt": "w011",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-row-check",
+        "arrivalOrdinal": 1
+      },
+      "time": "T5c",
+      "firstActionRef": "rec:app:run-12:0012"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0012",
+    "kind": "operation_entry",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 12,
+    "writtenAt": "w012",
+    "observedAt": "T7",
+    "body": {
+      "operation": {
+        "id": "OP-C4",
+        "version": "1"
+      },
+      "authorType": "agent",
+      "authorIdentity": {
+        "value": "app-agent-seat:1",
+        "verified": false
+      },
+      "channel": "external channel",
+      "route": "proposal",
+      "outcome": "refused \u2014 stale",
+      "proposalId": "PR-1",
+      "relatedEvidence": [
+        {
+          "kind": "receipt",
+          "ref": "refusal:T7",
+          "resolutionAtWrite": "resolved"
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0013",
+    "kind": "act_lapsed",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 13,
+    "writtenAt": "w013",
+    "body": {
+      "act": {
+        "recordId": "rec:app:run-12:0009",
+        "actKind": "A4",
+        "capturedAt": "T5a",
+        "capturingSurface": "host_act_facility"
+      },
+      "state": "lapsed",
+      "referents": [
+        "S-3"
+      ],
+      "c0": {
+        "method": "m-fx",
+        "value": "S-3@r12"
+      },
+      "c1": {
+        "method": "m-fx",
+        "value": "S-3@r13"
+      },
+      "time": "T6",
+      "arrival": {
+        "checkpoint": "CP-row-check",
+        "arrivalOrdinal": 1
+      },
+      "when": "after resume"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0014",
+    "kind": "disposition_change",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 14,
+    "writtenAt": "w014",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-row-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "performed",
+      "performanceOrdinal": 1,
+      "answeredBy": [
+        "rec:app:run-12:0005",
+        "rec:app:run-12:0009"
+      ],
+      "annotations": [
+        {
+          "label": "act lapsed at",
+          "time": "T6",
+          "referents": [
+            "S-3"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0015",
+    "kind": "human_act",
+    "recorder": {
+      "role": "agent",
+      "identity": "app-agent-seat:1"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 15,
+    "writtenAt": "w015",
+    "corrects": "rec:app:run-12:0009",
+    "correctionReason": "capture time transcribed as T5a; the host capture reference cap:T5b gives T5b",
+    "body": {
+      "actKind": "A4",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "decisionActor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "recordingMode": "faithful recording",
+      "boundSubject": [
+        "S-3"
+      ],
+      "boundContent": [
+        {
+          "method": "m-fx",
+          "value": "S-3@r12"
+        }
+      ],
+      "scope": "S-3",
+      "purpose": "rows the examination covered are marked checked",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:T5b",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "T5b",
+      "evidenceLimits": [],
+      "relations": {
+        "arrivalAnswered": {
+          "checkpoint": "CP-row-check",
+          "arrivalOrdinal": 1
+        },
+        "requestRef": "rec:app:run-12:0007"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0016",
+    "kind": "supplied_guidance",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 16,
+    "writtenAt": "w016",
+    "body": {
+      "supplyForm": "role guidance at conversation start",
+      "thread": "conv:K-7",
+      "sourceIdentity": "role:WORKING_ITEMS",
+      "content": {
+        "method": "guidance content identity (method unselected)",
+        "value": "g:role-1"
+      },
+      "supplyRecord": {
+        "kind": "supply record",
+        "ref": "supply:conv-K-7:thread-start",
+        "resolutionAtWrite": "resolved"
+      },
+      "limitAccount": {
+        "kind": "limit account",
+        "ref": "limits:release-1",
+        "resolutionAtWrite": "resolved"
+      },
+      "adoption": "unknown"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0017",
+    "kind": "compatibility_report_ref",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 17,
+    "writtenAt": "w017",
+    "body": {
+      "report": {
+        "kind": "compatibility report",
+        "ref": "cr:run-12",
+        "resolutionAtWrite": "resolved"
+      },
+      "occasion": "run start",
+      "passResult": "pass"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0018",
+    "kind": "examination_findings",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 18,
+    "writtenAt": "w018",
+    "body": {
+      "findings": {
+        "kind": "content identity",
+        "ref": "findings:T4",
+        "resolutionAtWrite": "resolved"
+      },
+      "operationEntry": "rec:app:run-12:0003",
+      "examinedBasis": "B1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0019",
+    "kind": "tool_permission_settlement",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 19,
+    "writtenAt": "w019",
+    "body": {
+      "request": "tool-request:9",
+      "settledBy": "the user's Codex mode",
+      "settlement": "answered"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:app:run-12:0020",
+    "kind": "run_ended",
+    "recorder": {
+      "role": "App writer",
+      "identity": "app-writer:local"
+    },
+    "context": {
+      "surface": "App"
+    },
+    "runId": "run:R-100/12",
+    "seq": 20,
+    "writtenAt": "w020",
+    "body": {
+      "stoppedBy": "observed end",
+      "cause": "model ended",
+      "waitingArrivals": []
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0001",
+    "kind": "destination_contacted",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 1,
+    "writtenAt": "w001",
+    "body": {
+      "destination": "M1 model service",
+      "category": "model service",
+      "allowedBy": {
+        "kind": "model choice"
+      },
+      "time": "t1",
+      "modelServiceClass": "cloud"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0002",
+    "kind": "boundary_refusal",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 2,
+    "writtenAt": "w002",
+    "body": {
+      "destination": "W-2",
+      "category": "web access",
+      "stage": "V-D",
+      "reason": "not allowed",
+      "requestingCall": "call:11",
+      "time": "t3"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0003",
+    "kind": "destination_requested",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 3,
+    "writtenAt": "w003",
+    "body": {
+      "requester": "host-agent:E",
+      "target": {
+        "category": "web access",
+        "destination": "W-2"
+      },
+      "purpose": "read invented standard table",
+      "scopeSought": "once",
+      "requestingCall": "call:12",
+      "time": "t4",
+      "carriedCall": "OP-W1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0004",
+    "kind": "human_act",
+    "recorder": {
+      "role": "host control",
+      "identity": "host-control:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 4,
+    "writtenAt": "w004",
+    "body": {
+      "actKind": "A12",
+      "a12Subclass": "network-destination grant",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "governingPolicy": {
+        "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+        "recordId": "P-01"
+      },
+      "decisionActor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "destination W-2 (web access)"
+      ],
+      "boundContent": [
+        {
+          "method": "setting content",
+          "value": "W-2/once/call:12"
+        }
+      ],
+      "scope": "once: call:12",
+      "purpose": "allow the destination the agent asked for",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:grant-call:12",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "t5",
+      "evidenceLimits": [
+        "identity not verified"
+      ],
+      "relations": {
+        "requestRef": "rec:host-E:e-14:0003",
+        "controlEffect": {
+          "state": "established"
+        }
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0005",
+    "kind": "destination_grant",
+    "recorder": {
+      "role": "host control",
+      "identity": "host-control:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 5,
+    "writtenAt": "w005",
+    "body": {
+      "form": "in-work grant",
+      "target": {
+        "category": "web access",
+        "destination": "W-2"
+      },
+      "scope": "once",
+      "time": "t5",
+      "source": "in-work",
+      "a12ActRef": "rec:host-E:e-14:0004",
+      "requestRef": "rec:host-E:e-14:0003"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0006",
+    "kind": "destination_contacted",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 6,
+    "writtenAt": "w006",
+    "body": {
+      "destination": "W-2",
+      "category": "web access",
+      "allowedBy": {
+        "kind": "in-work grant",
+        "grantRef": "rec:host-E:e-14:0005",
+        "scope": "once"
+      },
+      "time": "t5"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0007",
+    "kind": "outside_process",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 7,
+    "writtenAt": "w007",
+    "body": {
+      "processId": "M-1",
+      "declaredDestinations": [
+        "D-1"
+      ],
+      "sandboxed": false,
+      "statelessEvidence": {
+        "discoverListsRevision": true,
+        "modernRequestsOnly": true,
+        "sessionIdentifierSeen": false,
+        "verdict": "stateless revision declared",
+        "time": "t0"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0008",
+    "kind": "evidence_limit",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 8,
+    "writtenAt": "w008",
+    "body": {
+      "label": "process network not observed",
+      "subjectRef": "M-1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0009",
+    "kind": "evidence_limit",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 9,
+    "writtenAt": "w009",
+    "body": {
+      "label": "stateless revision declared, not verified",
+      "subjectRef": "M-1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0010",
+    "kind": "boundary_refusal",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 10,
+    "writtenAt": "w010",
+    "body": {
+      "destination": "M-4",
+      "category": "MCP servers",
+      "stage": "at contact",
+      "reason": "not stateless MCP (2026-07-28)",
+      "time": "t7"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0011",
+    "kind": "destination_requested",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 11,
+    "writtenAt": "w011",
+    "body": {
+      "requester": "host-agent:E",
+      "target": {
+        "category": "other APIs",
+        "destination": "A-4"
+      },
+      "purpose": "read invented table",
+      "scopeSought": "once",
+      "requestingCall": "call:14",
+      "time": "t8",
+      "carriedCall": "OP-A4"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:e-14:0012",
+    "kind": "destination_request_closed",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-14",
+    "seq": 12,
+    "writtenAt": "w012",
+    "body": {
+      "requestRef": "rec:host-E:e-14:0011",
+      "state": "unanswered at end",
+      "carriedCallSent": false,
+      "time": "t9",
+      "cause": "turn cancelled"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0001",
+    "kind": "run_opened",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 1,
+    "writtenAt": "w001",
+    "body": {
+      "runId": "run:E-13",
+      "startedBy": {
+        "kind": "person",
+        "identity": "Engineer A"
+      },
+      "surface": "host-loop run",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "host",
+        "sourceRoot": "fx-root",
+        "name": "supports-adjust",
+        "revision": "rev-3",
+        "revisionVerification": "verified"
+      },
+      "conversationRef": "conv:K-13",
+      "declaredCheckpoints": [
+        {
+          "name": "CP-L4",
+          "requiredAct": "A4",
+          "subjectClass": "objects changed by a named outcome"
+        }
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0002",
+    "kind": "settings_version",
+    "recorder": {
+      "role": "host control",
+      "identity": "host-control:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 2,
+    "writtenAt": "w002",
+    "body": {
+      "settingsVersionId": "set:set-e13-1",
+      "runId": "run:E-13",
+      "sourceOfControl": "host",
+      "changeKind": "run start",
+      "operationClassGrants": [
+        {
+          "policyRecord": {
+            "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+            "recordId": "P-03"
+          },
+          "classValue": "may apply within granted autonomy",
+          "grantValue": "propose",
+          "scope": {
+            "modelOrWorkspace": "FX-W1"
+          },
+          "displayState": "effective (policy default)",
+          "requester": "none \u2014 policy default",
+          "settingActor": "none \u2014 policy default",
+          "policyDefault": {
+            "policyRecord": {
+              "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+              "recordId": "P-03"
+            },
+            "defaultValue": "propose"
+          },
+          "establishment": {
+            "controlEffect": "not applicable"
+          }
+        }
+      ],
+      "destinationSettings": {
+        "hostAgent": "host-agent:E",
+        "modelService": {
+          "service": "cloud model service M1",
+          "signInService": "M1 sign-in",
+          "allowedBy": "model choice"
+        },
+        "categorySwitches": [
+          {
+            "category": "web access",
+            "on": true,
+            "settingActRef": "rec:host-E:control:act-20",
+            "displayState": "effective (person-set)"
+          },
+          {
+            "category": "MCP servers",
+            "on": false,
+            "displayState": "not set"
+          },
+          {
+            "category": "other APIs",
+            "on": false,
+            "displayState": "not set"
+          }
+        ],
+        "namedEntries": [
+          {
+            "destination": "M-1",
+            "category": "MCP servers",
+            "source": "allow list",
+            "settingActRef": "rec:host-E:control:act-21",
+            "displayState": "effective (person-set)"
+          }
+        ],
+        "alwaysOffItems": [
+          {
+            "item": "analytics or usage reporting",
+            "on": false
+          },
+          {
+            "item": "a silent switch to another model or provider",
+            "on": false
+          },
+          {
+            "item": "background downloads or updates",
+            "on": false
+          }
+        ],
+        "inWorkGrants": []
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0003",
+    "kind": "model_turn",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 3,
+    "writtenAt": "w003",
+    "body": {
+      "turn": 1,
+      "requested": "M1",
+      "effective": "M1",
+      "reroute": false,
+      "destinationClass": "user-chosen cloud"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0004",
+    "kind": "destination_contacted",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 4,
+    "writtenAt": "w004",
+    "body": {
+      "destination": "M1 model service",
+      "category": "model service",
+      "allowedBy": {
+        "kind": "model choice"
+      },
+      "time": "t1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0005",
+    "kind": "destination_contacted",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 5,
+    "writtenAt": "w005",
+    "body": {
+      "destination": "W-1",
+      "category": "web access",
+      "allowedBy": {
+        "kind": "category"
+      },
+      "time": "t2"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0006",
+    "kind": "destination_requested",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 6,
+    "writtenAt": "w006",
+    "body": {
+      "requester": "host-agent:E",
+      "target": {
+        "destination": "A-1",
+        "category": "other APIs"
+      },
+      "purpose": "read the invented design-code table",
+      "scopeSought": "once",
+      "requestingCall": "call:17",
+      "carriedCall": "OP-A1 read design-code table",
+      "time": "t3"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0007",
+    "kind": "human_act",
+    "recorder": {
+      "role": "host control",
+      "identity": "host-control:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 7,
+    "writtenAt": "w007",
+    "body": {
+      "actKind": "A12",
+      "a12Subclass": "network-destination grant",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "governingPolicy": {
+        "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+        "recordId": "P-01"
+      },
+      "decisionActor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "destination A-1 (other APIs)"
+      ],
+      "boundContent": [
+        {
+          "method": "setting content",
+          "value": "A-1/once/call:17"
+        }
+      ],
+      "scope": "once: call:17",
+      "purpose": "allow the destination the agent asked for",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:grant-A-1",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "t4",
+      "evidenceLimits": [
+        "identity not verified"
+      ],
+      "relations": {
+        "requestRef": "rec:host-E:run-13:0006",
+        "controlEffect": {
+          "state": "established"
+        }
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0008",
+    "kind": "destination_grant",
+    "recorder": {
+      "role": "host control",
+      "identity": "host-control:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 8,
+    "writtenAt": "w008",
+    "body": {
+      "form": "in-work grant",
+      "target": {
+        "destination": "A-1",
+        "category": "other APIs"
+      },
+      "scope": "once",
+      "time": "t4",
+      "source": "in-work",
+      "a12ActRef": "rec:host-E:run-13:0007",
+      "requestRef": "rec:host-E:run-13:0006"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0009",
+    "kind": "destination_contacted",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 9,
+    "writtenAt": "w009",
+    "body": {
+      "destination": "A-1",
+      "category": "other APIs",
+      "allowedBy": {
+        "kind": "in-work grant",
+        "grantRef": "rec:host-E:run-13:0008",
+        "scope": "once"
+      },
+      "time": "t5"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0010",
+    "kind": "destination_requested",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 10,
+    "writtenAt": "w010",
+    "body": {
+      "requester": "host-agent:E",
+      "target": {
+        "destination": "A-2",
+        "category": "other APIs"
+      },
+      "purpose": "upload a result summary",
+      "scopeSought": "once",
+      "requestingCall": "call:22",
+      "carriedCall": "OP-A2 upload result summary",
+      "time": "t6"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0011",
+    "kind": "act_declined",
+    "recorder": {
+      "role": "host control",
+      "identity": "host-control:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 11,
+    "writtenAt": "w011",
+    "body": {
+      "actor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "declinedKind": "A12",
+      "a12Subclass": "network-destination grant",
+      "subject": [
+        "destination A-2 (other APIs)"
+      ],
+      "time": "t7",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:decline-A-2",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "requestRef": "rec:host-E:run-13:0010"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0012",
+    "kind": "destination_declined",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 12,
+    "writtenAt": "w012",
+    "body": {
+      "target": {
+        "destination": "A-2"
+      },
+      "time": "t7",
+      "requestingCall": "call:22",
+      "requestRef": "rec:host-E:run-13:0010",
+      "actDeclinedRef": "rec:host-E:run-13:0011",
+      "reportedToAgent": "destination not allowed by the person"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0013",
+    "kind": "outside_process",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 13,
+    "writtenAt": "w013",
+    "body": {
+      "processId": "M-1",
+      "declaredDestinations": [
+        "D-1"
+      ],
+      "sandboxed": false,
+      "limitRef": "rec:host-E:run-13:0014"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0014",
+    "kind": "evidence_limit",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 14,
+    "writtenAt": "w014",
+    "body": {
+      "label": "process network not observed",
+      "subjectRef": "M-1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0015",
+    "kind": "boundary_refusal",
+    "recorder": {
+      "role": "host native layer",
+      "identity": "host-native:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 15,
+    "writtenAt": "w015",
+    "body": {
+      "destination": "M-2",
+      "reason": "not stateless MCP (2026-07-28)",
+      "time": "t8"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0016",
+    "kind": "checkpoint_arrival",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 16,
+    "writtenAt": "w016",
+    "body": {
+      "checkpoint": "CP-L4",
+      "requiredAct": "A4",
+      "subjectClass": "objects changed by a named outcome",
+      "arrivalOrdinal": 1,
+      "event": {
+        "source": "loop_event",
+        "ref": "op:T16",
+        "evidencedTime": {
+          "value": "T16",
+          "source": "loop_event_time"
+        }
+      },
+      "referents": [
+        {
+          "subject": "S-4",
+          "content": {
+            "method": "m-fx",
+            "value": "S-4@r16"
+          }
+        }
+      ],
+      "purpose": "check the directly applied support change",
+      "scope": "S-4",
+      "limits": [],
+      "requestObservation": {
+        "state": "not yet observed"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0017",
+    "kind": "act_request",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 17,
+    "writtenAt": "w017",
+    "body": {
+      "requester": {
+        "kind": "agent",
+        "identity": "host-agent:E"
+      },
+      "form": "host-loop A8 event",
+      "actKind": "A4",
+      "subject": [
+        "S-4"
+      ],
+      "purpose": "check the directly applied support change",
+      "association": "associated with the current arrival",
+      "arrival": {
+        "checkpoint": "CP-L4",
+        "arrivalOrdinal": 1
+      },
+      "evidence": {
+        "kind": "loop event",
+        "ref": "event:A8-request-31",
+        "resolutionAtWrite": "resolved"
+      },
+      "time": "T16+1"
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0018",
+    "kind": "human_act",
+    "recorder": {
+      "role": "host facility",
+      "identity": "host-act-facility:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 18,
+    "writtenAt": "w018",
+    "body": {
+      "actKind": "A4",
+      "actClass": {
+        "value": "reserved to the person"
+      },
+      "governingPolicy": {
+        "policyRevision": "DEL-04-01/ACT-POLICY-v0.8",
+        "recordId": "P-01"
+      },
+      "decisionActor": {
+        "hostActor": "Engineer A",
+        "identityVerified": false
+      },
+      "recordingMode": "direct capture",
+      "boundSubject": [
+        "S-4"
+      ],
+      "boundContent": [
+        {
+          "method": "m-fx",
+          "value": "S-4@r16"
+        }
+      ],
+      "scope": "S-4",
+      "purpose": "check the directly applied support change",
+      "captureEvidence": [
+        {
+          "kind": "capture evidence",
+          "ref": "cap:T16a",
+          "resolutionAtWrite": "resolved"
+        }
+      ],
+      "captureTime": "T16a",
+      "evidenceLimits": [],
+      "relations": {
+        "arrivalAnswered": {
+          "checkpoint": "CP-L4",
+          "arrivalOrdinal": 1
+        },
+        "requestRef": "rec:host-E:run-13:0017"
+      }
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0019",
+    "kind": "disposition_change",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 19,
+    "writtenAt": "w019",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-L4",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "performed",
+      "performanceOrdinal": 1,
+      "answeredBy": [
+        "rec:host-E:run-13:0018"
+      ]
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-13:0020",
+    "kind": "run_ended",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-13",
+    "seq": 20,
+    "writtenAt": "w020",
+    "body": {
+      "stoppedBy": "the person",
+      "cause": "person stopped",
+      "waitingArrivals": []
+    }
+  },
+  {
+    "format": "chirality.rs.record",
+    "formatVersion": "0.1",
+    "recordId": "rec:host-E:run-15:0001",
+    "kind": "run_opened",
+    "recorder": {
+      "role": "host loop",
+      "identity": "host-loop:E"
+    },
+    "context": {
+      "surface": "host",
+      "hostIdentity": "FX-PIPE-01"
+    },
+    "runId": "run:E-15",
+    "seq": 1,
+    "writtenAt": "w001",
+    "body": {
+      "runId": "run:E-15",
+      "startedBy": {
+        "kind": "person",
+        "identity": "Engineer A"
+      },
+      "surface": "host-loop run",
+      "workflow": {
+        "kind": "workflow",
+        "origin": "host",
+        "sourceRoot": "fx-root",
+        "name": "supports-adjust",
+        "revision": "rev-3",
+        "revisionVerification": "verified"
+      },
+      "conversationRef": "conv:K-15",
+      "notStarted": {
+        "cause": "no model selected",
+        "evidence": "loop configuration state at start"
+      }
+    }
+  }
+]

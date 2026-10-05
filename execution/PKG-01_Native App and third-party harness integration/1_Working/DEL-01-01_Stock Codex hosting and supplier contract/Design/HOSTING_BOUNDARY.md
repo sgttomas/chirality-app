@@ -1,4 +1,8 @@
 # Stock Codex hosting boundary
+
+**SUP1 current supplier basis (proposed controlled adoption):** owner-authorized
+development/definition pin 0.160.0; §7.0/generated/0.160.0 govern maintained
+identity. Historical 0.158.0 evidence below remains dated; qualification absent.
 - Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.9 (supersedes HOSTING-BOUNDARY-v0.8, last changed at `891242377f` and unchanged at `e4e14d6ae6`, file sha256 3cf0381c42358fec4a2088ab3886e14b66d6d2020482c72e195fda068a6d78b1; earlier: HOSTING-BOUNDARY-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, file sha256 dcf67efc00682967150e5ce094c3961c00248475e8883001cf7045c8b477a865; earlier: HOSTING-BOUNDARY-v0.6, last changed at `3733b1421` and unchanged at `3dd7c22c73`, file sha256 d11d4c574aa3c342bfac9c1d1e9bf3746aa885baafd17eaa296a79a523e3d0b9; HOSTING-BOUNDARY-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 f1a23022df76fe04bfc5ad2220b57d2cdebc101f8d791b4edb163aea6109e11b)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (V4-WF-05 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1): holding a run at a checkpoint is phased to the governance layer, and in the current phase (Phase 1) neither the App nor a host's embedded loop enforces a hold. So no App run is holding at a checkpoint, and this boundary uses none of HP-3 or HP-4 for a checkpoint, makes no hold claim and issues no act request in an agent's place (§6.7). The §6.7 hold-point facts are kept as the **governance-phase definition (retained)**.
@@ -357,7 +361,9 @@ configuration, approval and sandbox choices."
   (ARC §3). Durable custody across relaunch is DEL-01-02's (§6.5;
   RECOVERY-v0.2 §3.5, §5, §7).
 - **H4 Verified before ready.** No receiver is told the supplier is ready
-  until verification (§7.2) and the handshake (§4.2) have both succeeded.
+  until verification (§7.2) and the handshake (§4.2) have both succeeded,
+  or the explicit CC-H development route LT-24 and handshake have succeeded
+  with `supplierStanding: unverified-development` shown to every receiver.
   Frames the supplier sends before `ready` (at 0.158.0 a notification arrives
   together with the initialize response, before the client's `initialized`
   notice; SPIKE §5) are kept in received order under the new generation and
@@ -370,7 +376,11 @@ configuration, approval and sandbox choices."
   home, spawn counter}, so a generation is unique across App sessions
   (RECOVERY-v0.2 §6, F-R6: the ledger outlives the process) and across the
   App's homes (each home has its own child, U-12). PROPOSED form; the
-  semantic element stays one identity.
+  semantic element stays one identity. CC-H candidate representation is
+  `{appSession, home, spawnCounter}` in every boundary record and envelope;
+  `home` is a stable App-owned identity, never a credential or filesystem path.
+  The counter alone is valid only inside a cache scoped to one session/home;
+  exported records never rely on an implicit container for the other elements.
 - **H6 Native delivery.** Well-formed notifications, responses and server
   requests reach receivers with the supplier's own method, identifiers,
   payload **and any other top-level supplier elements** (at 0.158.0 the
@@ -650,7 +660,8 @@ lists what that record carries beyond the transition itself.
 | LT-02 | `stopped` | start-requested | — | `verifying` | actor | observers |
 | LT-03 | `refused` | start-requested | the person's explicit start | `verifying` | actor | observers |
 | LT-04 | `verifying` | verification-passed | `verified` | `spawning` | verification result | observers |
-| LT-05 | `verifying` | verification-failed | `mismatch` or `unverifiable` | `refused` | verification result with element or reason | starter; DEL-04-03 |
+| LT-24 | `verifying` | development-start-authorized | explicit development option; `unverifiable`; observed label present; no known mismatch | `spawning` | unchanged verification result; `supplierStanding: unverified-development`; reason "U-06 development run: unverified distribution, not the pinned supplier" | starter; all receivers; DEL-04-03 |
+| LT-05 | `verifying` | verification-failed | `mismatch`, or `unverifiable` without LT-24 guard | `refused` | verification result with element or reason | starter; DEL-04-03 |
 | LT-06 | `spawning` | spawned | — | `handshaking` | new generation *g*; configuration identity | observers |
 | LT-07 | `spawning` | spawn-failed | bound not reached | `restart-waiting` | failure; failure count | DEL-01-02 |
 | LT-08 | `spawning` | spawn-failed | bound reached | `halted-after-repeated-failure` | failure; failure count | DEL-01-02; the person |
@@ -674,7 +685,8 @@ Not in the table, and so refused as transitions: any automatic start from
 `halted-after-repeated-failure` or `refused`; any end classified as
 deliberate without a stop record; a second initialize on a generation (§4.2
 step 4). A child that ends while `stopping` is the LT-23 end (the stop
-record exists). All 23 rows were exercised by the prototype (VC-27).
+record exists). The original 23 rows were exercised by the prototype (VC-27).
+CC-H adds LT-24; its offline case is reported separately in CC-H.
 
 ## 5. Frame exchange and correlation
 
@@ -1099,7 +1111,35 @@ DEL-03-03's definition (U-24).
 
 ## 7. Supplier version identity and verification
 
-### 7.1 Version identity record (semantic)
+### 7.0 Current maintained supplier identity (SUP1; proposed adoption)
+
+Owner direction in `APP-V4-GROUP-A-20261004/OWNER_DECISIONS.md` advances the
+development/definition pin to **0.160.0**. This supersedes the active D4
+0.158.0 declaration; dated 0.158.0 tables, exchanges and observation files
+below retain their historical meaning. The new generated reference package
+is [`generated/0.160.0/COMMITTED_STATE.md`](generated/0.160.0/COMMITTED_STATE.md),
+with exact identities in `SUPPLIER_IDENTITY.json` and all four-variant native
+generation manifest. Independent SUP1 review precedes product propagation.
+
+| Maintained element | Current value / standing |
+|---|---|
+| Declared development/definition pin | `0.160.0`, owner-authorized SUP1 |
+| Observed version label | `codex-cli 0.160.0` (fresh scratch probe) |
+| Expected development main-binary identity | SHA-256 `112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b`; main binary identity only, not a qualified full distribution |
+| Generated output identity | 0.160.0; TS/JSON, stable/experimental, no formatter; repeat runs byte-identical; complete manifest in generated package |
+| Expected qualified distribution identity | Not established; full executable distribution/App candidate qualification still owed |
+| Development standing | LT-24 `unverified-development` unless §7.2's actual three-part verification basis is established; main-binary hash alone cannot yield LT-04 |
+
+The four additive/documentation changes and unchanged supplier seams are
+recorded in `COMPARISON.json`. `mcpServerStatus/list` gains optional
+`serverName`; native carriage accepts it without requiring its use. Cursor
+anchors widen the item paging request; returned string cursor consumers keep
+their existing path. `Turn.error` may accompany failed or interrupted turns;
+`tooManyDenials` is another native error value, not a new policy or authority.
+No new absent-from-both-generator element is established. Original reference
+choice U-15 and required qualification remain with their current owner.
+
+### 7.1 Historical 0.158.0 version identity record (semantic; retained)
 
 | Element | Source | At 0.158.0 (SPIKE §3, §5) |
 |---|---|---|
@@ -1123,9 +1163,16 @@ generated-output identity names the same pin. A label alone is not
 sufficient (AC-006; F-06). The handshake-reported identity is a **consistency
 check only**: a version parsed from `userAgent` text must not contradict the
 declared pin, but it is weaker than the label and content checks and never
-substitutes for them (S-F-01). Mismatch or unverifiable → `refused`. Running
-an unverified distribution for development, and its label, is U-06; it is
-never labeled the pinned supplier.
+substitutes for them (S-F-01). Mismatch → `refused`. Unverifiable →
+`refused` except the explicit LT-24 development option: an observed version
+label is required and every available comparison must show no mismatch.
+LT-24 retains `unverifiable(reason)` and labels the generation, ready
+announcement, diagnostics and version display `unverified-development`,
+with "U-06 development run: unverified distribution, not the pinned supplier".
+This option is never enabled by absence of qualification evidence, does not
+qualify a pin, and grants no production or release reliance. Its startup option
+name and storage are implementation choices. U-06 is resolved by CC-H, subject
+to independent review; original qualification obligations remain open.
 
 Probe side effect: at 0.158.0 even the version report writes into the home
 it runs against (`CODEX_HOME/tmp/arg0/…`; S-F-17). The label probe uses a
@@ -1317,6 +1364,14 @@ overrides are ignored (OBS-2 O-5; OBS-3 W-6), as v3 observed of resume at
 child start, not per thread/turn.
 
 ### 8.3 Observed model destination (R4-1, R5-4; owner decision D5)
+
+**CC-H thread-start disclosure.** Model contact can precede a turn: CI-8
+records an observation at 0.158.0 of Responses websocket prewarm on
+`thread/start` with Codex's default provider and no credentials (401).
+ACCESS §9 displays this as `phase: thread-start`, `purpose: model`; it is
+not a turn or evidence of prompt content. Requested and supplier-reported
+thread destinations remain distinct. The boundary adds no destination veto,
+provider override, approval/sandbox mandate or default.
 
 Attribution (R5-4; V3-B m-1):
 
@@ -2150,12 +2205,12 @@ v3 code is evidence of behavior, not qualified v4 material.
 
 | Item | Owner | Point of need | Effect on this definition |
 |---|---|---|---|
-| U-01 Pin qualification and re-examination of 0.158.0 (D4 selected it for definition/generation only) | App implementation owner | Before implementation and qualification | 0.158.0 used as definition/generation basis; nothing qualified |
+| U-01 Qualification of the maintained supplier/App candidate (SUP1 owner advances development/definition pin to 0.160.0; historical D4 0.158.0 retained) | App implementation owner | Before qualification reliance | 0.160.0 adopted for definition/development under reviewed SUP1 propagation; expected qualified distribution identity and product qualification still absent |
 | U-02 `UNRESOLVED{OI-008}` Rust/TS division | App implementation owner | Before architecture production contracts | §12 is a proposal only |
 | U-03 ~~`UNRESOLVED{OI-009}`~~ account home, incl. which home the label probe writes into (S-F-17). **Closed at choice level (v0.9)** by DECISION-K3 K-1 (option C) and DECISION-L L-1: App-owned homes sharing the person's configuration by a link, each with its own sign-in; a separate probe home (ACCOUNT-HOME-RECORD-v0.2; ACCESS-v0.2 §3) | Owner with App implementation owner (DEL-01-05) | Before account integration | Mechanism observed for configuration sharing (OBS-2 O-6 M1, M2; §4.2 step 3). Still open: separation of credentials with a credential present (M4, M5; not observed under DECISION-L L-6), and writes through the link |
 | U-04 *Closed by owner decision D3* (tool-permission/sandbox modes are the user's own Codex setting) | — | — | H9, R7 settled |
 | U-05 Restart bound values and grace period | App implementation owner with DEL-01-02 | Before implementation | Rules defined; numbers open |
-| U-06 Running an unverified distribution for development, and its label | App implementation owner | Before implementation | Default: refused as pinned supplier |
+| U-06 Running an unverified distribution for development, and its label | CC-H candidate LT-24; independent review pending | Before product propagation | Explicit unverified-development route; mismatch refused; no pin qualification |
 | U-07 Use of the supplier's notification opt-out (`optOutNotificationMethods`) | App implementation owner | Before implementation | Definition uses none (H7) |
 | U-08 Content-identity algorithm for distribution/output/supplement/guidance records | App implementation owner (with DEL-04-03) | Before qualification records | Spike used SHA-256 as an observation method; not selected for records |
 | U-09 Acknowledgment observation mechanism; `serverRequest/resolved` triggers | DEL-01-02 with this deliverable | Before settlement fixtures | Candidate source named; semantics open. v0.8: the PROPOSED reading of §6.2.1 (after a written reply it is an acknowledgment observation; before any reply, `resolved-by-supplier`) is exercised against the double. OBS-1b observed the notification once, 8 ms after a written accept (§10.1 OB-4), consistent with the reading. **v0.9: narrowed.** The RT-12 reading is adopted by DEL-01-02 (RECOVERY-v0.2 §6 U-09); the before-reply trigger is observed for `turn/interrupt` (OBS-2 O-3; §6.2), so that trigger is closed. Open: other before-reply triggers, and whether every kind is followed by a notification after a reply (for *not-observable-at-pin*) |

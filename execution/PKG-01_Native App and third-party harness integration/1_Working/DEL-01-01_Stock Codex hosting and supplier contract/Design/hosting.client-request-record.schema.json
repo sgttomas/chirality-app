@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.8:client-request-record",
+  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.9:client-request-record",
   "title": "Client request record (PROPOSED)",
-  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §5, §5.1-§5.2 (R12-1, R12-2). One record per request the App sends, or refuses to send, to the supplier through the generic request path. Element names are Chirality's own; the supplier's method, identities, parameters and error content are carried as data. Placement is not chosen (R12-2); persistence is DEL-01-02's.",
+  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §5, §5.1-§5.2 (R12-1, R12-2). One record per request the App sends, or refuses to send, to the supplier through the generic request path. Element names are Chirality's own; the supplier's method, identities, parameters and error content are carried as data. Placement is not chosen (R12-2); persistence is DEL-01-02's. CC-H proposed candidate (2026-10-04); independent review pending.",
   "type": "object",
   "required": ["recordKind", "generation", "requestIdentity", "method", "initiator", "writeResult", "outcome"],
   "additionalProperties": false,
   "properties": {
     "recordKind": {"const": "client-request"},
-    "generation": {"type": ["integer", "null"], "minimum": 1, "description": "Null only when refused before any generation was ready."},
+    "generation": {"type": ["object", "null"], "required": ["appSession", "home", "spawnCounter"], "additionalProperties": false, "properties": {"appSession": {"type": "string", "minLength": 1}, "home": {"type": "string", "minLength": 1}, "spawnCounter": {"type": "integer", "minimum": 1}}, "description": "CC-H: full H5 identity. appSession is unique across App launches; home is stable App-owned home identity, not a credential or OS path."},
     "requestIdentity": {"type": ["string", "integer", "null"], "description": "As sent; null when not sent."},
     "method": {"type": "string", "minLength": 1, "description": "Supplier method, as data."},
     "initiator": {

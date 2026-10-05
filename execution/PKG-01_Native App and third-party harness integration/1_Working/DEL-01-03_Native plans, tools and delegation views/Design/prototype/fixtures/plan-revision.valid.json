@@ -1,7 +1,7 @@
 {
   "description": "Valid: a plan-item revision recovered from Codex history after a relaunch (invented material; the content identity value is a placeholder, not computed).",
   "instance": {
-    "revisionId": "pi:thr-fixture-parent:turn-fixture-2:turn-fixture-2-plan",
+    "revisionId": "pi:v2:dGhyLWZpeHR1cmUtcGFyZW50.dHVybi1maXh0dXJlLTI.dHVybi1maXh0dXJlLTItcGxhbg",
     "kind": "plan-item",
     "threadId": "thr-fixture-parent",
     "turnId": "turn-fixture-2",

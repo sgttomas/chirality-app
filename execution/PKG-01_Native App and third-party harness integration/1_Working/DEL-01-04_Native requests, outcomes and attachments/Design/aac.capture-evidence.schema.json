@@ -216,7 +216,8 @@
     },
     "scope": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "A16 CC-A / CI-4 (owner-selected explicit absence label): nonempty package scope copied unchanged; absent or empty package scope represented exactly as \"not named by the package\", never inferred. Offer/native confirmation/capture/RS copy the same wording. Non-string package scope is invalid, not absent. Other act kinds retain their own authoritative scope rules."
     },
     "purpose": {
       "type": "string",
@@ -361,7 +362,8 @@
     },
     "recordId": {
       "type": "string",
-      "pattern": "^rec:"
+      "pattern": "^rec:",
+      "description": "CC-A / AAC-v0.4 candidate §5.2a: absent at initial durable capture; added once only after a verified successful RS append, using atomic host replacement preserving act facts. Equal is idempotent; a different backlink is a conflict. Recovery joins by the RS capture-evidence reference before deciding to append. Schema shape remains 0.3; runtime rules are not expressible by this field schema."
     },
     "evidenceLimits": {
       "type": "array",

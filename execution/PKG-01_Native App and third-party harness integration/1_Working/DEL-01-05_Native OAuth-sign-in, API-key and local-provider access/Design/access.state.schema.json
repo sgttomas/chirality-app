@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "chirality:app-v4:DEL-01-05:access.state:v0.2",
-  "title": "Access state snapshot (PROPOSED, DEL-01-05/ACCESS-v0.2 §15)",
-  "description": "Homes and access entries as the App observes them. Handed to DEL-01-04 for the conversation start display (I-5). Every object is closed: no credential element can appear.",
+  "$id": "chirality:app-v4:DEL-01-05:access.state:v0.3",
+  "title": "Access state snapshot (PROPOSED, DEL-01-05/ACCESS-v0.2 \u00a715)",
+  "description": "Homes and access entries as the App observes them. Handed to DEL-01-04 for the conversation start display (I-5). Every object is closed: no credential element can appear. CC-H proposed candidate (2026-10-04); independent review pending.",
   "type": "object",
   "required": [
     "schema",
@@ -13,7 +13,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {
-      "const": "chirality.access-state/v0.2"
+      "const": "chirality.access-state/v0.3"
     },
     "observedAt": {
       "type": "string",
@@ -63,11 +63,31 @@
         "childState": {
           "type": "string",
           "minLength": 1,
-          "description": "HOSTING §4.1 state of this home's child, as delivered"
+          "description": "HOSTING \u00a74.1 state of this home's child, as delivered"
         },
         "generation": {
-          "type": "integer",
-          "minimum": 1
+          "type": "object",
+          "required": [
+            "appSession",
+            "home",
+            "spawnCounter"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "appSession": {
+              "type": "string",
+              "minLength": 1
+            },
+            "home": {
+              "type": "string",
+              "minLength": 1
+            },
+            "spawnCounter": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "description": "CC-H: full H5 identity. appSession is unique across App launches; home is stable App-owned home identity, not a credential or OS path."
         },
         "credentialStoreMode": {
           "enum": [

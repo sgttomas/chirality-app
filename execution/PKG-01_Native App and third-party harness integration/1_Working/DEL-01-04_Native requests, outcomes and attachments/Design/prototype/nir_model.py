@@ -241,6 +241,13 @@ def app_prose(card):
 # NIR §4.4  Register double: HOSTING §6.2.1 RT-01...RT-13, U-26 refusal order
 # ---------------------------------------------------------------------------
 
+# CC-H/CI-2 consumer fixture: invented complete H5 identity, not host observation.
+FIXTURE_GENERATION = {"appSession": "aac-fixture-session", "home": "account", "spawnCounter": 1}
+
+def generation_key(generation):
+    """A full H5 tuple is the correlation/closed-generation key."""
+    return (generation["appSession"], generation["home"], generation["spawnCounter"])
+
 REFUSAL_ORDER = ["no-such-request", "generation-closed", "already-resolved", "already-settled",
                  "origin-not-permitted", "invalid-answer"]
 
@@ -261,7 +268,8 @@ class RegisterDouble:
         self.rt_seen.add(rt)
         self.entries[rid].setdefault("_history", []).append(rt)
 
-    def receive(self, rid, method, params, generation=1):
+    def receive(self, rid, method, params, generation=None):
+        generation = copy.deepcopy(FIXTURE_GENERATION if generation is None else generation)
         self.position += 1
         e = {"recordKind": "server-request-entry", "requestIdentity": rid, "generation": generation,
              "method": method, "classification": None, "originClass": NONE, "receiptPosition": self.position,
@@ -297,7 +305,7 @@ class RegisterDouble:
             reasons.append("no-such-request")
         else:
             gen = e["generation"] if generation is None else generation
-            if gen != e["generation"] or e["generation"] in self.closed_generations:
+            if gen != e["generation"] or generation_key(e["generation"]) in self.closed_generations:
                 reasons.append("generation-closed")
             if e["state"] == "resolved-by-supplier":
                 reasons.append("already-resolved")
@@ -363,7 +371,7 @@ class RegisterDouble:
                 "status": "observed", "what": "serverRequest/resolved after the written reply"})
 
     def close_generation(self, generation):
-        self.closed_generations.add(generation)
+        self.closed_generations.add(generation_key(generation))
         for rid in self.order:
             e = self.entries[rid]
             if e["generation"] == generation and e["state"] == "outstanding":
@@ -414,7 +422,7 @@ def card_state(entry):
 
 def answer_submission(entry, native, person, offered, submitted_at):
     """NIR §4.5: the format DEL-01-04 hands to the register's answer operation."""
-    return {"format": "chirality.nir.answer-submission", "formatVersion": "0.1",
+    return {"format": "chirality.nir.answer-submission", "formatVersion": "0.2",
             "requestIdentity": entry["requestIdentity"], "generation": entry["generation"],
             "method": entry["method"], "nativeAnswer": native,
             "origin": {"class": "person-via-interaction", "actorRef": person_ref(person)},

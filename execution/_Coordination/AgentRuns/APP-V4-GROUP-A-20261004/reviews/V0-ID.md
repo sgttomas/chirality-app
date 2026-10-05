@@ -1,0 +1,24 @@
+# V0-ID — record-ID technical choice and P-1 backcheck
+
+2026-10-04. **READY for bounded multi-log record-ID implementation** at CC-ID `370b8da3b50a6c34730baba3fd5743511c0e395c6ad13a098f982570bd9589e5` and RS `97f5b90e68e160370eefb801ccc3a0e81c4f86c7ff0d1eadfe67bbf78d1b7e0f`. No blocking finding. V0-P P-1 is repaired: current OF-9 distinguishes selected Group A App §13.7 paths from remaining host/shared choices.
+
+Independent TASK `/root/group_a_execution/contract_reviewer`, native descendant of WORKING_ITEMS `/root/group_a_execution`; supplied Codex gpt-6.1-sol/medium, no substitution/diversity claim or delegation. Applied already-loaded software-code-review skill; entry/provenance remain in V0-BASIS. Parent supplied ordinary RS/C/WD technical design authority with no new human checkpoint. Read CC-ID, RS §13.2/U-04/OF-9, C §5.3/U-C1, WD revision/method loci, and cached primary uuid/getrandom sources. Only this review written; no Cargo, network, auth/live turns, Git mutation, downloads or product edits.
+
+RS §13.2 is precise and implementable: secure 16 OS bytes, UUIDv4's six fixed version/variant bits leaving 122 random bits, canonical lowercase hyphenated `rec:app:<uuid>`. It truthfully states probabilistic collision resistance rather than guaranteed uniqueness. `seq` stays log-local order and does not determine identity; new App records span writers/projects/libraries/logs. Entropy failure visibly refuses mint/append without weak fallback. Detected identity conflict preserves existing evidence and refuses the conflicting record. Pending late-write retry keeps its minted identity; an append failure never justifies a new capture. Historical/fixture/host tokens remain opaque, resolvable and unmodified. No content canonicalization, capture/run-ID scheme, host identity or other U-04 choice is silently selected. C/WD content/revision identity rules do not make their consumers parse the RS record token.
+
+Cached API source confirms feasibility: getrandom 0.4.2 `fill` returns a Result; uuid 1.23.1 `Builder::from_random_bytes` sets RFC4122 variant and Random version from supplied bytes, then `into_uuid` yields the token. `Uuid::new_v4` has no Result, so the proposed explicit fallible entropy path supports visible failure rather than an opaque panic. This is source/API review, not a compile or proof direct dependency admission occurred.
+
+RS schema is unchanged at `c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6`; existing opaque rec: forms are not narrowed. Earlier schema checks remain applicable; no blanket rerun needed for this prose-only choice. Product checks still needed: injected entropy failure writes nothing; distinct records in separate logs at identical seq get distinct IDs; injected collision refuses; delayed retry retains exact ID; capture backlink binds the actual written entry; legacy references resolve without UUID parsing. A finite uniqueness sample cannot prove global mathematical uniqueness. No product implementation success, host adoption, identity verification, pin qualification or stage acceptance is claimed.
+
+Source hashes actually read (observed at this review):
+
+| Source | SHA-256 |
+|---|---|
+| `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-ID.md` | `370b8da3b50a6c34730baba3fd5743511c0e395c6ad13a098f982570bd9589e5` |
+| `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md` | `97f5b90e68e160370eefb801ccc3a0e81c4f86c7ff0d1eadfe67bbf78d1b7e0f` |
+| `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.schema.json` | `c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6` |
+| `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/CATALOG_AND_READ_BASIS.md` | `0e3ba39cd926a2063fc93621c17ed39d1fc8622b2256f08005d1286e99795294` |
+| `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md` | `262c9e5417cf67b56cf7c3678128ad406e8b4e2fda7057a07bebf04254ab2f31` |
+| `/Users/ryan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uuid-1.23.1/src/builder.rs` | `d332dbf9380bd6275f8c416758a8971db875ce2a661440c8e476cc6f827736c9` |
+| `/Users/ryan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/uuid-1.23.1/src/v4.rs` | `083012653ceff1b1306998176b333863b515ebb46a22aa5c17c172462eb9bd4c` |
+| `/Users/ryan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.4.2/src/lib.rs` | `68bd1f2daa0aec1b55da25c07744869728a8be25d7c7d127bc788cd50fd8687b` |

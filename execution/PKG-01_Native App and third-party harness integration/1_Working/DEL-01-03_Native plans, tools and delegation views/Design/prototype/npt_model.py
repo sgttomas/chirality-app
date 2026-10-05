@@ -13,6 +13,7 @@ nothing across a relaunch (R17-4): `relaunch()` returns a fresh model.
 Numbers and identity methods the Design file leaves open are marked
 TEST VALUE.
 """
+import base64
 import copy
 import hashlib
 import json
@@ -126,12 +127,59 @@ class TransitionRefused(Exception):
     pass
 
 
+def generation_key(g):
+    """Closed H5 identity: no legacy scalar, implicit scope or bool counter."""
+    if not isinstance(g, dict) or set(g) != {"appSession", "home", "spawnCounter"}:
+        raise TransitionRefused("generation must carry the complete H5 identity")
+    if any(not isinstance(g[k], str) or not g[k] for k in ("appSession", "home")):
+        raise TransitionRefused("generation session/home must be nonempty strings")
+    if type(g["spawnCounter"]) is not int or g["spawnCounter"] < 1:
+        raise TransitionRefused("spawn counter must be a positive integer")
+    return (g["appSession"], g["home"], g["spawnCounter"])
+
+
+def generation_object(key):
+    return dict(zip(("appSession", "home", "spawnCounter"), key))
+
+
+def revision_key(kind, thread, turn, item=None, generation=None, position=None):
+    """Operational, lossless component encoding; independent of content identity U-08."""
+    def enc(value):
+        return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
+    if kind == "pi":
+        parts = [enc(thread), enc(turn), enc(item)]
+    else:
+        session, home, counter = generation_key(generation)
+        parts = [enc(session), enc(home), str(counter), enc(thread), enc(turn), str(position)]
+    return kind + ":v2:" + ".".join(parts)
+
+
+def reference_identity_matches(reference):
+    """Semantic component check additional to JSON Schema shape checks."""
+    try:
+        if reference["kind"] == "plan-item":
+            expected = revision_key("pi", reference["threadId"], reference["turnId"], reference["itemId"])
+        elif reference["kind"] == "checklist":
+            expected = revision_key("cl", reference["threadId"], reference["turnId"],
+                                    generation=reference["generation"], position=reference["receiptPosition"])
+        else:
+            return False
+        return reference["revisionId"] == expected
+    except (KeyError, TypeError, AttributeError, TransitionRefused):
+        return False
+
+
 class Model:
-    def __init__(self):
+    def __init__(self, home=None):
+        if home is not None and (not isinstance(home, str) or not home):
+            raise ValueError("view home must be a nonempty App-owned identity")
+        self.home = home
         self.g = None
         self.ready = {}                    # g -> ready(g) record
         self.closed = set()
-        self.plan_items = {}               # (thread, item) -> dict
+        self.scope = None                  # immutable (appSession, home) for this view instance
+        self.last_position = {}            # complete generation key -> last receipt position
+        self.plan_items = {}               # (thread, turn, item) -> dict
         self.plan_order = {}               # thread -> [item keys in completion order]
         self.checklists = {}               # (thread, turn) -> dict(state, revisions)
         self.turn_order = {}               # thread -> [turn ids as first seen]
@@ -167,8 +215,21 @@ class Model:
     def apply(self, ev):
         kind = ev["ev"]
         if kind == "ready":
-            self.g = ev["g"]
-            self.ready[ev["g"]] = ev["record"]
+            g = generation_key(ev["g"])
+            if g in self.closed:
+                raise TransitionRefused("ready of closed generation")
+            if self.scope is not None and g[:2] != self.scope:
+                raise TransitionRefused("ready outside this view's session/home")
+            if self.g is not None and self.g != g and self.g not in self.closed:
+                raise TransitionRefused("active generation must close before replacement")
+            if g in self.ready:
+                raise TransitionRefused("duplicate ready generation")
+            if self.home is not None and self.home != g[1]:
+                raise TransitionRefused("ready outside this view's owning home")
+            self.home = g[1]
+            self.scope = g[:2]
+            self.g = g
+            self.ready[g] = copy.deepcopy(ev["record"])
             self._rebuild_after_close()
         elif kind == "closed":
             self._generation_closed(ev["g"])
@@ -189,7 +250,7 @@ class Model:
         """C-03 (R18-1): after a generation closed, views rebuild from Codex history; checklist
         revisions of the closed generation are not recoverable, as after a relaunch."""
         for cl in self.checklists.values():
-            if cl["state"] == "ended" and any(r["generation"] in self.closed for r in cl["revisions"]):
+            if cl["state"] == "ended" and any(generation_key(r["generation"]) in self.closed for r in cl["revisions"]):
                 _, cl["state"] = self._step("CL", "ended", "view-rebuilt")
                 cl["revisions"] = []
 
@@ -199,8 +260,14 @@ class Model:
             order.append(turn)
 
     def _frame(self, g, pos, frame):
+        g = generation_key(g)
         if g in self.closed:
-            raise TransitionRefused("frame of closed generation %s" % g)
+            raise TransitionRefused("frame of closed generation %s" % (g,))
+        if g != self.g or g not in self.ready:
+            raise TransitionRefused("frame outside the ready generation")
+        if type(pos) is not int or pos < 0 or pos <= self.last_position.get(g, -1):
+            raise TransitionRefused("receipt position must increase within the complete generation")
+        self.last_position[g] = pos
         m = frame.get("method")
         p = frame.get("params", {})
         thread = p.get("threadId")
@@ -235,14 +302,17 @@ class Model:
     def _checklist_update(self, g, pos, p):
         key = (p["threadId"], p["turnId"])
         cl = self.checklists.setdefault(key, {"state": "none", "revisions": []})
+        if cl["state"] == "not-recoverable":
+            # New live observations start a new sequence; history never restores the old one.
+            cl = self.checklists[key] = {"state": "none", "revisions": []}
         rid, cl["state"] = self._step("CL", cl["state"], "plan-updated")
         content = {"explanation": p.get("explanation"), "plan": p["plan"]}
         prev = cl["revisions"][-1] if cl["revisions"] else None
         cid = content_identity({"kind": "checklist", **content})
         cl["revisions"].append({
-            "revisionId": "cl:%s:%s:g%d:p%d" % (key[0], key[1], g, pos),
+            "revisionId": revision_key("cl", key[0], key[1], generation=generation_object(g), position=pos),
             "kind": "checklist", "threadId": key[0], "turnId": key[1],
-            "generation": g, "receiptPosition": pos,
+            "generation": generation_object(g), "receiptPosition": pos,
             "ordinal": len(cl["revisions"]) + 1,
             "content": {"explanation": p.get("explanation"),
                         "steps": [{"step": s["step"], "status": s["status"]} for s in p["plan"]]},
@@ -254,7 +324,7 @@ class Model:
         })
 
     def _plan_delta(self, p):
-        key = (p["threadId"], p["itemId"])
+        key = (p["threadId"], p["turnId"], p["itemId"])
         pi = self.plan_items.setdefault(key, {"state": "absent", "turnId": p["turnId"],
                                               "preview": "", "startObserved": False})
         _, pi["state"] = self._step("PL", pi["state"], "plan-delta")
@@ -262,7 +332,7 @@ class Model:
 
     def _plan_item(self, m, p):
         item = p["item"]
-        key = (p["threadId"], item["id"])
+        key = (p["threadId"], p["turnId"], item["id"])
         pi = self.plan_items.setdefault(key, {"state": "absent", "turnId": p["turnId"],
                                               "preview": "", "startObserved": False})
         if m == "item/started":
@@ -280,9 +350,9 @@ class Model:
         for i, key in enumerate(self.plan_order.get(thread, []), 1):
             pi = self.plan_items[key]
             out.append({
-                "revisionId": "pi:%s:%s:%s" % (thread, pi["turnId"], key[1]),
+                "revisionId": revision_key("pi", thread, pi["turnId"], key[2]),
                 "kind": "plan-item", "threadId": thread, "turnId": pi["turnId"],
-                "itemId": key[1], "ordinal": i,
+                "itemId": key[2], "ordinal": i,
                 "content": {"text": pi["text"]},
                 "contentIdentity": content_identity({"kind": "plan-item", "text": pi["text"]}),
                 "standing": pi["standing"],
@@ -291,7 +361,7 @@ class Model:
         return out
 
     def checklist_revisions(self, thread, turn):
-        return list(self.checklists.get((thread, turn), {}).get("revisions", []))
+        return copy.deepcopy(self.checklists.get((thread, turn), {}).get("revisions", []))
 
     def checklist_state(self, thread, turn):
         return self.checklists.get((thread, turn), {"state": "none"})["state"]
@@ -352,7 +422,7 @@ class Model:
     # ---------- turns and generations ----------
     def _turn_ended(self, thread, turn, status):
         self.turn_status[(thread, turn)] = status
-        for (th, iid), pi in self.plan_items.items():
+        for (th, native_turn, iid), pi in self.plan_items.items():
             if th == thread and pi["turnId"] == turn and pi["state"] == "streaming":
                 _, pi["state"] = self._step("PL", "streaming", "turn-ended")
         cl = self.checklists.get((thread, turn))
@@ -364,6 +434,11 @@ class Model:
         # Deliberately no descendant transition: a parent turn's end changes no child (AC-003).
 
     def _generation_closed(self, g):
+        g = generation_key(g)
+        if g in self.closed:
+            return  # repeat closure cannot end a successor's observations
+        if g != self.g or g not in self.ready:
+            raise TransitionRefused("closure outside the ready generation")
         self.closed.add(g)
         for pi in self.plan_items.values():
             if pi["state"] == "streaming":
@@ -382,6 +457,9 @@ class Model:
 
     # ---------- history reads (after relaunch or on demand) ----------
     def _read(self, ev):
+        # Receiving context is beside the unchanged Codex response, never a native field.
+        if self.home is None or ev.get("home") != self.home:
+            raise TransitionRefused("history source does not match this view's owning home")
         m = ev["method"]
         if m == "thread/items/list":
             thread = ev["params"]["threadId"]
@@ -414,7 +492,7 @@ class Model:
         self._note_turn(thread, turn)
         t = item["type"]
         if t == "plan":
-            key = (thread, item["id"])
+            key = (thread, turn, item["id"])
             pi = self.plan_items.setdefault(key, {"state": "absent", "turnId": turn,
                                                   "preview": "", "startObserved": False})
             before = pi["state"]
@@ -619,7 +697,7 @@ class Model:
             types = ("Views built from generated types at %s; the running supplier reports %s — "
                      "compatibility not verified" % (TYPES_PIN, label_pin))
         exp = rec.get("declaredCapabilities", {}).get("experimentalApi")
-        opt = "Experimental protocol opt-in: %s (generation %d)" % (
+        opt = "Experimental protocol opt-in: %s (generation %s)" % (
             "declared" if exp else "not declared", self.g)
         return [sup, types, opt]
 

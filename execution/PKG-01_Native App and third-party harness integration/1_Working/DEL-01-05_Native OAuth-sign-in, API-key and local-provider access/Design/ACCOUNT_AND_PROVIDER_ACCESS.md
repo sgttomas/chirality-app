@@ -624,8 +624,9 @@ beside them.
 **Which is which, at Codex 0.158.0 (OBS-2 O-7, observed 2026-10-01 without
 sign-in; DECISION-L L-3; R18-3):**
 
-| Start-up traffic | What stops it at 0.158.0 | App action | Standing |
+| Start-up or thread-start traffic | What stops it at 0.158.0 | App action | Standing |
 |---|---|---|---|
+| Model destination at `thread/start` (Responses websocket prewarm before a turn; default provider: `wss://api.openai.com/v1/responses`, 401 without credentials) | Provider-dependent; no general stop setting established | Show as model traffic, `phase: thread-start`, before a turn; preserve the person's provider/model and Codex policy choices | observed@0.158.0 (2026-10-04, CI-8; graph-closure EVIDENCE N-1); local configured-provider probe saw no internet socket within sampling limits |
 | Featured-plugins request to chatgpt.com (401 without sign-in) | `[features] plugins = false` (O-7 v1, v6–v8) | **Follows the person's plugin setting** (L-3 A): plugins on → happens, shown and recorded; plugins off → does not happen. Under the link the person's own file carries the setting, so the App adds nothing; in the fallback (own configuration) the App passes `plugins = false` as a session flag when the person's setting is off | `observed (OBS-2 O-7)` |
 | Plugin repository check or fetch, `github.com/openai/plugins` (`ls-remote` warm; ≈24 MB fetch on a fresh home) | `[features] plugins = false` (v1, v8: no `.tmp/` created on a cold home) | As above (L-3 A) | `observed (OBS-2 O-7)` |
 | Remote-control loop for `chatgpt.com/backend-api/` | No configuration key: `remote_control` is a `removed` feature with no effect (v5); `remote_plugin`, `apps`, `tool_suggest` have none (v2, v3, v6). Only the internal environment variable `CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED=1` stops it (v4) | **Not turned off** (R18-3: an internal variable is not a setting). Shown as observed: without sign-in the loop retries locally about once a second and opens **no socket**; `remoteControl/status/changed` reported `disabled` at start. With a sign-in: not observed (DECISION-L L-6) | `observed (OBS-2 O-7)`; signed-in behaviour not observed |
@@ -644,8 +645,18 @@ is not observed (U-A15). With neither, the App takes the setting as **on**,
 because Codex 0.158.0 made both connections with no setting (O-7 v0), and
 labels the view "plugins on by Codex's default (observed at 0.158.0)". The network view states "Plugins are on in
 your Codex settings, so Codex contacts chatgpt.com and github.com at start"
-or "Plugins are off in your Codex settings; Codex made no start-up
-connection" and the record carries the same (schema `pluginsSetting`).
+or "Plugins are off in your Codex settings; no plugin start-up
+connection was observed" and the record carries the same (schema `pluginsSetting`).
+
+**CC-H disclosure.** Thread start may contact the chosen model destination
+before a turn. This appears as model traffic in the network view, with
+expected-at-pin and App-observed sources kept distinct. CI-8 is a reported
+observation, not a new observation by this author or a universal guarantee.
+A socket establishes contact, not prompt content or a turn. The local-provider
+probe's absence of an internet socket is limited to its sampling window.
+No provider substitution, destination veto, new default, or approval/sandbox
+policy mandate follows; changing user-choice policy requires the owner.
+The schema admits `thread-start` and full H5 generation identity under CC-H.
 
 **Carrier.** The App's own settings (analytics off; `plugins = false` in the
 fallback only) go in the session-flags layer of the App's own child, never
@@ -867,6 +878,22 @@ so nothing was rerun). A
   `actorRef` is derived from it.
 
 ## 18. Version standing and runtime reads (R19-5)
+
+**SUP1 maintained supplier adoption:** owner-authorized development/definition
+pin is 0.160.0, supplied by HOSTING §7.0 and generated/0.160.0. Account/login,
+account/read, provider selection, config/read and config/batchWrite shapes
+are unchanged in regenerated native types. The 0.158.0 rows below remain
+dated supplier observations, not new observations at 0.160.0. VERSION_ADVANCE
+0.160.0's retained observation supports only its stated checks; plugins-on
+traffic, adapter delegation/MCP route, timing and supplier-descendant gaps
+remain unqualified. CI-8's default-provider prewarm is still labelled
+observed@0.158.0 until separately observed at the new pin; no universal
+network claim follows. The per-pin expected list must preserve that evidence
+version separately from the current child version, not relabel old sockets.
+Supplier pin adoption changes no local/cloud/default or user Codex policy
+choice, credential custody, diagnostics standing or access qualification
+obligation. Parent provider probe is development account/model evidence only.
+
 
 **Runtime reads the App uses instead of version inference:**
 

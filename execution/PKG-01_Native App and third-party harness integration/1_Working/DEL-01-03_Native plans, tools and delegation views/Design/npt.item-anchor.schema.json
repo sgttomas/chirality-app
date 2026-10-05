@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "chirality:app-v4:DEL-01-03:npt.item-anchor:v0.2",
-  "title": "Native item anchor (PROPOSED, NPTD-v0.2 §10.2)",
+  "$id": "chirality:app-v4:DEL-01-03:npt.item-anchor:v0.3",
+  "title": "Native item anchor (PROPOSED, NPTD-v0.3 §10.2)",
   "description": "A stable pointer to a native thread, turn, item or plan revision, with this deliverable's display state, offered so that DEL-01-04 (a request card pointing at its item) and DEL-04-03 (a subject reference) can cite what DEL-01-03 shows. An offered interface: DEL-01-03 consumes nothing from those receivers (R17-10). Names are Chirality's own; Codex identities are carried as data.",
   "type": "object",
   "required": ["anchorKind", "threadId", "standing"],
@@ -11,7 +11,7 @@
     "threadId": {"type": "string", "minLength": 1},
     "turnId": {"type": "string", "minLength": 1},
     "itemId": {"type": "string", "minLength": 1},
-    "revisionId": {"type": "string", "pattern": "^(pi|cl):"},
+    "revisionId": {"type": "string", "pattern": "^(pi:v2:[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+|cl:v2:[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[1-9][0-9]*\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.(0|[1-9][0-9]*))(?![\\s\\S])"},
     "nativeKind": {"type": "string", "minLength": 1,
       "description": "The supplier's item type value, unchanged (for example commandExecution)"},
     "displayState": {"enum": ["in-progress", "waiting-on-request", "completed", "failed", "declined",

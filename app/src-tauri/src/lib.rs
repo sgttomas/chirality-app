@@ -11,6 +11,8 @@ pub mod decision_view;
 pub mod hosting;
 pub mod recorder;
 pub mod records;
+pub mod schema_validation;
+pub mod storage;
 pub mod util;
 
 use act_control::{ActControl, InputSource};
@@ -31,7 +33,10 @@ pub struct AppState {
 
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
 fn probe_home() -> PathBuf {
-    let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos();
+    let n = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     let p = std::env::temp_dir().join(format!("cxp.{}.{}", std::process::id(), n));
     let _ = std::fs::create_dir_all(&p);
     p
@@ -39,12 +44,18 @@ fn probe_home() -> PathBuf {
 
 /// Configuration comes only from the environment; no path is built in (owner rule).
 pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    let bin = std::env::var("CHIRALITY_CODEX_BIN").map_err(|_| "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string())?;
-    let home = std::env::var("CHIRALITY_CODEX_HOME").map_err(|_| "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string())?;
+    let bin = std::env::var("CHIRALITY_CODEX_BIN").map_err(|_| {
+        "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
+    })?;
+    let home = std::env::var("CHIRALITY_CODEX_HOME").map_err(|_| {
+        "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
+    })?;
     let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
     let mut cfg = HostConfig::new(bin.into(), home.into(), probe_home(), cwd);
     cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();
-    cfg.allow_unverified_dev = std::env::var("CHIRALITY_ALLOW_UNVERIFIED").map(|v| v == "1").unwrap_or(false);
+    cfg.allow_unverified_dev = std::env::var("CHIRALITY_ALLOW_UNVERIFIED")
+        .map(|v| v == "1")
+        .unwrap_or(false);
     Ok(cfg)
 }
 
@@ -69,23 +80,60 @@ fn host_stop(state: State<'_, AppState>) -> Result<Value, String> {
 }
 
 #[tauri::command(async)]
-fn thread_start(state: State<'_, AppState>) -> Result<Value, String> {
-    let cwd = state.host_config.as_ref().map(|c| c.cwd.display().to_string()).map_err(|e| e.clone())?;
-    state.host.thread_start(&cwd)
+fn thread_start(
+    state: State<'_, AppState>,
+    model: String,
+    model_provider: String,
+) -> Result<Value, String> {
+    let cwd = state
+        .host_config
+        .as_ref()
+        .map(|c| c.cwd.display().to_string())
+        .map_err(|e| e.clone())?;
+    state
+        .host
+        .thread_start_selected(&cwd, &model, &model_provider)
 }
 
 #[tauri::command]
 fn set_person_name(state: State<'_, AppState>, name: String) {
-    *state.person_name.lock().unwrap() = if name.trim().is_empty() { None } else { Some(name.trim().to_string()) };
+    *state.person_name.lock().unwrap() = if name.trim().is_empty() {
+        None
+    } else {
+        Some(name.trim().to_string())
+    };
 }
 
 #[tauri::command]
 fn decision_view(state: State<'_, AppState>) -> Result<Value, String> {
-    let ws = state.workspace.as_ref().ok_or("CHIRALITY_WORKSPACE is not set")?;
-    // The recorder identifies package files (RS §13.6) before the view is derived.
-    let written = recorder::identify_packages(ws)?;
-    let mut v = decision_view::derive(ws, &[recorder::LOG]);
-    v["requestsRecordedNow"] = json!(written.len());
+    let ws = state
+        .workspace
+        .as_ref()
+        .ok_or("CHIRALITY_WORKSPACE is not set")?;
+    // Writer continuation flushes admitted native pending work before ordinary recorder appends.
+    let mut g = state.act.lock().unwrap();
+    let (recovery, written) = if let Some(ac) = g.as_mut() {
+        let (recovery, written) = ac.refresh_recording();
+        (Some(recovery), written)
+    } else {
+        (
+            None,
+            Err("native writer state unavailable; recorder continuation held".into()),
+        )
+    };
+    let mut v = decision_view::derive(ws, &[]);
+    match written {
+        Ok(written) => v["requestsRecordedNow"] = json!(written.len()),
+        Err(e) => v["limits"].as_array_mut().unwrap().push(json!(e)),
+    }
+    if let Some(recovery) = recovery {
+        match recovery {
+            Ok(results) => v["captureRecovery"] = json!(results),
+            Err(e) => {
+                v["captureRecovery"] = json!([{"state":"AC-8 record pending","writeFailure":e}])
+            }
+        }
+    }
     v["workspace"] = json!(ws.display().to_string());
     Ok(v)
 }
@@ -101,8 +149,16 @@ fn compose_offer(state: State<'_, AppState>, request_ref: String) -> Result<Valu
 /// AAC §4.1 steps 3-7 with the §6.2 P-2 placement: the host presents a native
 /// confirmation it fills from the offer; only that confirmation captures.
 #[tauri::command(async)]
-fn decide(app: tauri::AppHandle, state: State<'_, AppState>, offer_id: String, alternative: String) -> Result<Value, String> {
-    let actor = act_control::person(state.person_name.lock().unwrap().as_deref(), util::os_account().as_deref());
+fn decide(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    offer_id: String,
+    alternative: String,
+) -> Result<Value, String> {
+    let actor = act_control::person(
+        state.person_name.lock().unwrap().as_deref(),
+        util::os_account().as_deref(),
+    );
     let mut g = state.act.lock().unwrap();
     let ac = g.as_mut().ok_or("CHIRALITY_WORKSPACE is not set")?;
     let text = ac.confirmation_text(&offer_id, &alternative, &actor)?;
@@ -112,13 +168,21 @@ fn decide(app: tauri::AppHandle, state: State<'_, AppState>, offer_id: String, a
         .message(text)
         .title("Chirality — decide")
         .kind(MessageDialogKind::Warning)
-        .buttons(MessageDialogButtons::OkCancelCustom("Decide".into(), "Cancel".into()))
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            "Decide".into(),
+            "Cancel".into(),
+        ))
         .blocking_show();
     if !confirmed {
         ac.dismiss(&offer_id);
         return Ok(json!({"state": "AC-5 dismissed", "recorded": false}));
     }
-    ac.confirm(&offer_id, &alternative, InputSource::HostNativeConfirmation, actor)
+    ac.confirm(
+        &offer_id,
+        &alternative,
+        InputSource::HostNativeConfirmation,
+        actor,
+    )
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -149,8 +213,14 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            host_status, host_start, host_stop, thread_start, set_person_name,
-            decision_view, compose_offer, decide
+            host_status,
+            host_start,
+            host_stop,
+            thread_start,
+            set_person_name,
+            decision_view,
+            compose_offer,
+            decide
         ])
         .build(tauri::generate_context!())
         .expect("error while building the Tauri application")

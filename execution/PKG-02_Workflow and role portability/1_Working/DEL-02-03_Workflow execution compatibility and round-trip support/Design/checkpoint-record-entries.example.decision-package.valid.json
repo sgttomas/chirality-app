@@ -4,8 +4,7 @@
     "observedAt": "T200",
     "body": {
       "requester": {
-        "kind": "agent",
-        "identity": "thread:fx-u1-manager"
+        "kind": "agent"
       },
       "form": "decision package file",
       "actKind": "A16",

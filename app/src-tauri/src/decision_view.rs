@@ -17,8 +17,16 @@ pub fn person_label(p: &Value) -> String {
         .iter()
         .filter_map(|k| p.get(*k).and_then(|v| v.as_str()).filter(|s| !s.is_empty()))
         .collect();
-    let who = if names.is_empty() { "person not named".to_string() } else { names.join(" / ") };
-    if p.get("identityVerified") == Some(&json!(true)) { who } else { format!("{who} ({PERSON_WORDING})") }
+    let who = if names.is_empty() {
+        "person not named".to_string()
+    } else {
+        names.join(" / ")
+    };
+    if p.get("identityVerified") == Some(&json!(true)) {
+        who
+    } else {
+        format!("{who} ({PERSON_WORDING})")
+    }
 }
 
 pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
@@ -26,6 +34,11 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
     let mut limits: Vec<String> = Vec::new();
     for rp in record_paths {
         let (e, l) = records::read_log(&root.join(rp));
+        entries.extend(e);
+        limits.extend(l);
+    }
+    if record_paths.is_empty() {
+        let (e, l) = crate::storage::read_all(root);
         entries.extend(e);
         limits.extend(l);
     }
@@ -38,7 +51,10 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         .iter()
         .filter(|e| e["kind"] == "act_request" && e["body"].get("alternatives").is_some())
         .collect();
-    let acts: Vec<&Value> = entries.iter().filter(|e| e["kind"] == "human_act").collect();
+    let acts: Vec<&Value> = entries
+        .iter()
+        .filter(|e| e["kind"] == "human_act")
+        .collect();
     let mut rows = Vec::new();
     for p in packages {
         let b = &p["body"];
@@ -51,15 +67,23 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         if alt_ids.iter().collect::<HashSet<_>>().len() != alt_ids.len() {
             row_limits.push("alternative identities repeat within the package".into());
         }
-        let mut orphans: Vec<&str> = cons.iter().filter_map(|c| c["alternative"].as_str())
-            .filter(|a| !alt_ids.contains(a)).collect();
+        let mut orphans: Vec<&str> = cons
+            .iter()
+            .filter_map(|c| c["alternative"].as_str())
+            .filter(|a| !alt_ids.contains(a))
+            .collect();
         orphans.sort();
         orphans.dedup();
         if !orphans.is_empty() {
-            row_limits.push(format!("consequences name no alternative of the package: {orphans:?}"));
+            row_limits.push(format!(
+                "consequences name no alternative of the package: {orphans:?}"
+            ));
         }
-        let missing: Vec<&str> = alt_ids.iter().copied()
-            .filter(|a| !cons.iter().any(|c| c["alternative"] == json!(a))).collect();
+        let missing: Vec<&str> = alt_ids
+            .iter()
+            .copied()
+            .filter(|a| !cons.iter().any(|c| c["alternative"] == json!(a)))
+            .collect();
         if !missing.is_empty() {
             row_limits.push(format!("no consequence stated for: {missing:?}"));
         }
@@ -68,13 +92,20 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         let now = file_identity(&root.join(file_ref));
         let recorded = b["evidence"]["claimedIdentity"].as_str();
         match (&now, recorded) {
-            (None, _) => row_limits.push("package file not available: its current content is unknown".into()),
-            (Some(n), Some(r)) if n != r => row_limits.push("package file differs from the content the request recorded".into()),
+            (None, _) => {
+                row_limits.push("package file not available: its current content is unknown".into())
+            }
+            (Some(n), Some(r)) if n != r => {
+                row_limits.push("package file differs from the content the request recorded".into())
+            }
             _ => {}
         }
         // DV-4, DV-5
         let mut decided: Vec<&Value> = Vec::new();
-        for a in acts.iter().filter(|a| a["body"]["relations"]["requestRef"] == json!(pid)) {
+        for a in acts
+            .iter()
+            .filter(|a| a["body"]["relations"]["requestRef"] == json!(pid))
+        {
             let ab = &a["body"];
             let rid = a["recordId"].as_str().unwrap_or("");
             if ab["actKind"] != b["actKind"] {
@@ -96,7 +127,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             "subject": b["subject"],
             "purpose": b["purpose"],
             "scope": b.get("scope"),
-            "requestedBy": b["requester"].get("identity").unwrap_or(&b["requester"]["kind"]),
+            "requestedBy": b["requester"].get("identity").cloned().unwrap_or(json!("requester identity not established")),
             "alternatives": alts.iter().map(|a| json!({
                 "id": a["id"], "statement": a["statement"],
                 "consequences": cons.iter().filter(|c| c["alternative"] == a["id"]).map(|c| c["statement"].clone()).collect::<Vec<_>>()
@@ -106,11 +137,21 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             "limits": [],
         });
         // DV-6: corrections replace what they correct; a later act supersedes an earlier one.
-        let corrected: HashMap<String, String> = decided.iter()
-            .filter_map(|a| a["corrects"].as_str().map(|c| (c.to_string(), a["recordId"].as_str().unwrap_or("").to_string())))
+        let corrected: HashMap<String, String> = decided
+            .iter()
+            .filter_map(|a| {
+                a["corrects"].as_str().map(|c| {
+                    (
+                        c.to_string(),
+                        a["recordId"].as_str().unwrap_or("").to_string(),
+                    )
+                })
+            })
             .collect();
-        let current: Vec<&&Value> = decided.iter()
-            .filter(|a| !corrected.contains_key(a["recordId"].as_str().unwrap_or(""))).collect();
+        let current: Vec<&&Value> = decided
+            .iter()
+            .filter(|a| !corrected.contains_key(a["recordId"].as_str().unwrap_or("")))
+            .collect();
         if let Some(a) = current.last() {
             let ab = &a["body"];
             let chosen = ab["relations"]["alternativeChosen"].as_str().unwrap_or("");
@@ -132,6 +173,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
                 "decidedBy": person_label(&ab["decisionActor"]),
                 "recordedBy": format!("{} {}", a["recorder"]["role"].as_str().unwrap_or(""), a["recorder"]["identity"].as_str().unwrap_or("")),
                 "recordingMode": ab["recordingMode"],
+                "captureProvenance": "recorded claim; native capture origin not verified by this unsealed reader",
                 "captureEvidence": ab["captureEvidence"].as_array().map(|c| c.iter().map(|x| x["ref"].clone()).collect::<Vec<_>>()),
                 "capturedAt": ab["captureTime"],
                 "lapse": lapse,
@@ -149,8 +191,15 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
     // §6: an act citing a request the log does not hold is a view limit, on no row.
     for a in &acts {
         if let Some(r) = a["body"]["relations"]["requestRef"].as_str() {
-            if by_id.get(r).map(|e| e["kind"] != "act_request").unwrap_or(true) {
-                limits.push(format!("{}: cites request {r}, which this record set does not hold", a["recordId"].as_str().unwrap_or("")));
+            if by_id
+                .get(r)
+                .map(|e| e["kind"] != "act_request")
+                .unwrap_or(true)
+            {
+                limits.push(format!(
+                    "{}: cites request {r}, which this record set does not hold",
+                    a["recordId"].as_str().unwrap_or("")
+                ));
             }
         }
     }

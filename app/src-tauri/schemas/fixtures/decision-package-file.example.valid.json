@@ -1,0 +1,33 @@
+{
+  "format": "chirality.decision-package",
+  "formatVersion": "0.1",
+  "packageId": "pkg:fx-u1:stage-2-route",
+  "actKind": "A16",
+  "subject": [
+    "route for stage 2 of undertaking FX-U1"
+  ],
+  "purpose": "choose how stage 2 of FX-U1 proceeds",
+  "scope": "undertaking FX-U1",
+  "reservedBy": [
+    {
+      "ref": "brief FX-U1, item 4",
+      "statement": "the stage-2 route is decided by the person"
+    }
+  ],
+  "alternatives": [
+    {
+      "id": "ALT-1",
+      "statement": "Start stage 2 now",
+      "consequences": [
+        "Starts today; a changed fact reopens parts"
+      ]
+    },
+    {
+      "id": "ALT-2",
+      "statement": "Hold stage 2 until the version check returns",
+      "consequences": [
+        "Starts later; no rework from a changed fact"
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ Contents
   spawn_plan         the App's session flags and child environment (§6 Q-1; L-3; R18-3)
   network_view       the K-12 view merge, following the person's plugin setting (§9)
 """
+import uuid
 import os
 import re
 import tempfile
@@ -227,7 +228,8 @@ NO_MODEL = "run not started — no model selected"            # R18-2/R15-1: a w
 
 
 class App:
-    def __init__(self):
+    def __init__(self, app_session=None):
+        self.app_session = app_session or str(uuid.uuid4())
         self.rec = Recorder()
         self.children = {"account": {"generation": 1, "state": "ready"}}  # H-key only with a key
         self.account = Machine("AE")
@@ -431,10 +433,10 @@ def state_snapshot(app):
         else:
             entries.append({"entryId": "local-provider:" + pid, "kind": "local-provider", "state": m.state,
                             "home": "account", "providerId": pid, "destinationClass": CLASS["local-provider"]})
-    homes = [{"role": r, "configLink": "linked", "childState": c["state"], "generation": c["generation"],
+    homes = [{"role": r, "configLink": "linked", "childState": c["state"], "generation": {"appSession": app.app_session, "home": r, "spawnCounter": c["generation"]},
               "guidanceLinks": {"agentsMd": "linked", "skills": "linked"}}
              for r, c in sorted(app.children.items())]
-    return {"schema": "chirality.access-state/v0.2", "observedAt": "2026-10-01T12:00:00Z",
+    return {"schema": "chirality.access-state/v0.3", "observedAt": "2026-10-01T12:00:00Z",
             "homes": homes, "entries": entries}
 
 
@@ -560,7 +562,7 @@ EXPECTED_0158 = [
 ]
 
 
-def network_view(observed, plugins, home="account", generation=1):
+def network_view(observed, plugins, home="account", generation=1, *, app_session):
     """observed: list of dicts {address, port, process, phase, host_hint}; host_hint matches the
     expected list only when the sampling tool supplied a name (never inferred from an address)."""
     on = plugins["value"] == "on"
@@ -590,7 +592,7 @@ def network_view(observed, plugins, home="account", generation=1):
         elif ob.get("model"):
             rows.append({"destination": {"host": None, "hostSource": "none", "address": ob["address"],
                                          "port": ob["port"]},
-                         "process": ob["process"], "phase": "turn", "purpose": "model",
+                         "process": ob["process"], "phase": ob["phase"], "purpose": "model",
                          "sources": ["app-observed"], "appSetting": {"state": "not-applicable"},
                          "standing": "app-observed@" + PIN})
         else:
@@ -605,6 +607,6 @@ def network_view(observed, plugins, home="account", generation=1):
                                          "port": 443},
                          "process": e["process"], "phase": "start-up", "purpose": e["purpose"],
                          "sources": ["expected-at-pin"], "appSetting": setting(e), "standing": e["standing"]})
-    return {"schema": "chirality.access-network/v0.2", "pin": PIN, "home": home,
-            "generation": generation, "remoteControlStatus": "disabled", "pluginsSetting": plugins,
+    return {"schema": "chirality.access-network/v0.3", "pin": PIN, "home": home,
+            "generation": {"appSession": app_session, "home": home, "spawnCounter": generation}, "remoteControlStatus": "disabled", "pluginsSetting": plugins,
             "limits": LIMITS, "rows": rows}

@@ -14,9 +14,14 @@ C2 = "thr-fixture-child-2"
 T0 = 1790000000000  # fixture clock origin (Unix ms); TEST VALUE
 
 
+def generation(counter, session="fixture-app-session", home="fixture-account-home"):
+    """Scenario construction uses counters; every emitted input carries the full H5 object."""
+    return {"appSession": session, "home": home, "spawnCounter": counter}
+
+
 def ready(g, label="codex-cli 0.158.0", experimental=True, result="development-unverified",
           detail=None):
-    return {"ev": "ready", "g": g, "record": {
+    return {"ev": "ready", "g": generation(g), "record": {
         "declaredPin": "0.158.0", "observedLabel": label,
         "verification": {"result": result, "detail": detail},
         "qualificationRef": None,
@@ -27,7 +32,7 @@ class Stream:
     """Assigns receipt positions per generation, as the host would (HOSTING §5 Order)."""
 
     def __init__(self, g=1):
-        self.g = g
+        self.g = generation(g)
         self.pos = 0
         self.events = []
 
@@ -42,7 +47,7 @@ class Stream:
         return self
 
     def new_generation(self, g):
-        self.g = g
+        self.g = generation(g)
         self.pos = 0
         return self
 
@@ -143,7 +148,7 @@ def sc_plans():
     s.frame("turn/plan/updated", {"threadId": P, "turnId": "turn-fixture-3",
                                   "explanation": "Datasheet read.", "plan": steps2}, 13)
     s.frame("turn/completed", {"threadId": P, "turn": turn("turn-fixture-3", "completed")}, 14)
-    s.add({"ev": "read", "method": "thread/items/list", "params": {"threadId": P, "turnId": "turn-fixture-1"},
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/items/list", "params": {"threadId": P, "turnId": "turn-fixture-1"},
            "at": T0 + 15, "result": {"data": [
                {"turnId": "turn-fixture-1", "item": plan_item(
                    "turn-fixture-1-plan", "1. Read the invented pump datasheet.\n2. Draft the sizing note."),
@@ -155,11 +160,11 @@ def sc_plans_history():
     """After relaunch: history reads return the two plan items; checklist updates are not
     in history (TurnPlanStep occurs only in TurnPlanUpdatedNotification)."""
     s = Stream(2).add(ready(2))
-    s.add({"ev": "read", "method": "thread/turns/list", "params": {"threadId": P}, "at": T0 + 100,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/turns/list", "params": {"threadId": P}, "at": T0 + 100,
            "result": {"data": [turn("turn-fixture-1", "completed"), turn("turn-fixture-2", "completed"),
                                turn("turn-fixture-3", "completed")],
                       "nextCursor": None, "backwardsCursor": None}})
-    s.add({"ev": "read", "method": "thread/items/list", "params": {"threadId": P}, "at": T0 + 101,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/items/list", "params": {"threadId": P}, "at": T0 + 101,
            "result": {"data": [
                {"turnId": "turn-fixture-1", "item": plan_item(
                    "turn-fixture-1-plan", "1. Read the invented pump datasheet.\n2. Draft the sizing note."),
@@ -186,7 +191,7 @@ def sc_plan_incomplete():
            "requestId": "srv-fixture-5", "state": "outstanding", "origin": None})
     s.frame("item/started", {"threadId": P, "turnId": "turn-fixture-5", "item": cmd("item-fixture-cmd-6", "inProgress"),
                              "startedAtMs": T0 + 5}, 5)
-    s.add({"ev": "closed", "g": 1, "reason": "exited-unexpectedly"})
+    s.add({"ev": "closed", "g": generation(1), "reason": "exited-unexpectedly"})
     return s.events
 
 
@@ -196,7 +201,7 @@ def sc_recovery_reads():
     these completions after an exit: OBS-2 O-2 saw the open item absent and the turn read back
     interrupted (the TI-14 path); the completed plan item here is a constructed variant."""
     s = Stream(2).add(ready(2))
-    s.add({"ev": "read", "method": "thread/items/list", "params": {"threadId": P, "turnId": "turn-fixture-5"},
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/items/list", "params": {"threadId": P, "turnId": "turn-fixture-5"},
            "at": T0 + 300, "result": {"data": [
                {"turnId": "turn-fixture-5", "item": plan_item("turn-fixture-5-plan", "1. Partial, completed."),
                 "startedAtMs": None, "completedAtMs": None},
@@ -204,7 +209,7 @@ def sc_recovery_reads():
                 "startedAtMs": None, "completedAtMs": None}],
                "nextCursor": None, "backwardsCursor": None}})
     # The turn reads back interrupted and item-fixture-cmd-6 is absent from history (OBS-2 O-2 shape)
-    s.add({"ev": "read", "method": "thread/turns/list", "params": {"threadId": P}, "at": T0 + 301,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/turns/list", "params": {"threadId": P}, "at": T0 + 301,
            "result": {"data": [turn("turn-fixture-5", "interrupted")], "nextCursor": None,
                       "backwardsCursor": None}})
     return s.events
@@ -266,7 +271,7 @@ def sc_tools():
                                         "content": [{"type": "text", "text": "Approved, I accept the sizing."}]},
                                "completedAtMs": T0 + 13}, 13)
     s.frame("turn/completed", {"threadId": P, "turn": turn(tu, "interrupted")}, 14)
-    s.add({"ev": "read", "method": "thread/items/list", "params": {"threadId": P, "turnId": tu}, "at": T0 + 15,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/items/list", "params": {"threadId": P, "turnId": tu}, "at": T0 + 15,
            "result": {"data": [{"turnId": tu, "item": cmd("item-fixture-cmd-3", "completed", out="late\n", code=0),
                                 "startedAtMs": None, "completedAtMs": None}],
                       "nextCursor": None, "backwardsCursor": None}})
@@ -297,13 +302,13 @@ def sc_delegation(task_role=False):
 
 def sc_delegation_end_and_read():
     ev = sc_delegation()
-    ev.append({"ev": "closed", "g": 1, "reason": "exited-unexpectedly"})
+    ev.append({"ev": "closed", "g": generation(1), "reason": "exited-unexpectedly"})
     s = Stream(2).add(ready(2))
     s.frame("thread/status/changed", {"threadId": C1, "status": {"type": "idle"}}, 199)
-    s.add({"ev": "read", "method": "thread/read", "at": T0 + 200,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/read", "at": T0 + 200,
            "result": {"thread": thread_obj(C1, parent=P, status="idle", role="reviewer",
                                            nickname="Ada-fixture")}})
-    s.add({"ev": "read", "method": "thread/read", "at": T0 + 201,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/read", "at": T0 + 201,
            "result": {"thread": thread_obj(C2, parent=C1, status="notLoaded", depth=2)}})
     return ev + s.events
 
@@ -322,9 +327,9 @@ def sc_not_found():
     s.frame("item/completed", {"threadId": P, "turnId": tu,
                                "item": subagent("item-fixture-sa-9", "interacted", C2, "/root/other"),
                                "completedAtMs": T0 + 3}, 3)
-    s.add({"ev": "closed", "g": 1, "reason": "stopped"})
+    s.add({"ev": "closed", "g": generation(1), "reason": "stopped"})
     s2 = Stream(2).add(ready(2))
-    s2.add({"ev": "read", "method": "thread/read", "at": T0 + 400,
+    s2.add({"ev": "read", "home": "fixture-account-home", "method": "thread/read", "at": T0 + 400,
             "result": {"thread": thread_obj(C2, parent=P, status="idle")}})
     return s.events + s2.events
 
@@ -340,7 +345,7 @@ def sc_goals():
     s.frame("thread/goal/updated", {"threadId": P, "turnId": "turn-fixture-11", "goal": goal("active")}, 1)
     s.frame("thread/goal/updated", {"threadId": P, "turnId": "turn-fixture-11", "goal": goal("complete")}, 2)
     s.frame("thread/goal/cleared", {"threadId": P}, 3)
-    s.add({"ev": "read", "method": "thread/goal/get", "params": {"threadId": P}, "at": T0 + 4,
+    s.add({"ev": "read", "home": "fixture-account-home", "method": "thread/goal/get", "params": {"threadId": P}, "at": T0 + 4,
            "result": {"goal": goal("paused")}})
     return s.events
 
