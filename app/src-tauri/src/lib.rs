@@ -159,30 +159,26 @@ fn thread_start(
     let composition = runtime_session::compose_role(&root, role)?;
     composition.verify()?;
     let generation = state.host.snapshot()["generation"].clone();
-    let mut selection =
-        access::ConversationSelection::new(&util::opaque_id("conversation:")?, &cwd)?;
+    let attempt_id = util::opaque_id("conversation:")?;
+    let mut selection = access::ConversationSelection::new(&attempt_id, &cwd)?;
     selection.choose(&entry_id, &model_provider, &model, false)?;
     selection.start_params(&generation, "account", false)?;
-    // Serialize starts while leaving observer/status reads independent of transport wait.
-    {
+    // Serialize the claim; fallible no-effect preparation completes before
+    // either shared state publishes Starting. Transport waits hold no slot lock.
+    let supply_ref = {
         let mut slot = state.access_selection.lock().unwrap();
-        if slot
-            .as_ref()
-            .map(|s| s.snapshot()["state"] == "starting")
-            .unwrap_or(false)
-        {
-            return Err("thread start in progress".into());
-        }
-        *slot = Some(selection);
-    }
-    *state.role_supply_status.lock().unwrap() = json!({"state":"starting","selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+        let supply_ref = runtime_session::claim_start(&mut slot, selection, || util::opaque_id("sup:"))?;
+        *state.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+        supply_ref
+    };
     // Freeze the verified original composition before native dispatch. Actual
     // Host receipt IDs, exact sent bytes and correlated results bind its role.
-    let supply_ref = util::opaque_id("sup:")?;
     let dispatch = state.host.thread_start_with_guidance_dispatch(&generation, &cwd, &model, &model_provider, &composition.text);
-    let result = match dispatch {
+    // All post-claim failures flow through finalization; ? cannot strand Starting.
+    let result = (|| -> Result<Value, String> { match dispatch {
         Ok(receipt) => {
-            state.history.lock().unwrap().start_dispatched(receipt.clone(), &composition, &supply_ref)?;
+            state.history.lock().unwrap().start_dispatched(receipt.clone(), &composition, &supply_ref)
+                .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
             let waited = state.host.source_request_wait(&receipt, std::time::Duration::from_secs(20));
             state.history.lock().unwrap().reconcile(&state.host);
             match waited {
@@ -192,22 +188,19 @@ fn thread_start(
             }
         },
         Err(error) => Err(error),
+    } })();
+    let result = {
+        let mut slot = state.access_selection.lock().unwrap();
+        let result = match slot.as_mut() {
+            Some(selection) => runtime_session::finalize_start_attempt(selection, &attempt_id, &generation, &state.host.snapshot()["generation"], result),
+            None => Err("Start selection unavailable; native effect remains as observed in retained receipts".into()),
+        };
+        let mut status = state.role_supply_status.lock().unwrap();
+        if status["attemptId"] == attempt_id && status["generation"] == generation {
+            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+        }
+        result
     };
-    *state.role_supply_status.lock().unwrap() = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
-    let mut slot = state.access_selection.lock().unwrap();
-    let selection = slot.as_mut().ok_or("selection unavailable")?;
-    match &result {
-        Ok(response) if state.host.snapshot()["generation"] == generation => {
-            selection.started(&generation, &response["result"])?;
-        }
-        Ok(_) => {
-            selection.start_failed("unknown: owning generation changed during thread start")?;
-            return Err("owning generation changed during thread start".into());
-        }
-        Err(e) => {
-            selection.start_failed(e)?;
-        }
-    }
     result
 }
 

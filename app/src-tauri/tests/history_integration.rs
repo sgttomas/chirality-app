@@ -310,3 +310,89 @@ fn original_mock_role_binding_remains_fixed_and_cold_imported_state_unknown() {
         );
     }
 }
+
+fn start_selection(id: &str) -> chirality_app_v4_lib::access::ConversationSelection {
+    let mut selection =
+        chirality_app_v4_lib::access::ConversationSelection::new(id, "/mock").unwrap();
+    selection
+        .choose("chatgpt-account", "mock-provider", "mock-model", false)
+        .unwrap();
+    selection.start_params(&g(), "account", false).unwrap();
+    selection
+}
+#[test]
+fn failed_no_effect_preclaim_preserves_previous_selection_and_can_claim_again() {
+    use chirality_app_v4_lib::runtime_session::claim_start;
+    let mut previous =
+        chirality_app_v4_lib::access::ConversationSelection::new("previous", "/mock").unwrap();
+    previous
+        .choose(
+            "chatgpt-account",
+            "previous-provider",
+            "previous-model",
+            false,
+        )
+        .unwrap();
+    let before = previous.snapshot();
+    let mut slot = Some(previous);
+    assert!(claim_start(&mut slot, start_selection("failed"), || Err(
+        "injected entropy failure before dispatch".into()
+    ))
+    .is_err());
+    assert_eq!(slot.as_ref().unwrap().snapshot(), before);
+    assert_eq!(
+        claim_start(&mut slot, start_selection("second"), || Ok(
+            "sup:second".into()
+        ))
+        .unwrap(),
+        "sup:second"
+    );
+    assert_eq!(slot.as_ref().unwrap().snapshot()["state"], "starting");
+}
+#[test]
+fn every_postclaim_error_finalizes_without_synthetic_native_success_or_resend() {
+    use chirality_app_v4_lib::runtime_session::{claim_start, finalize_start_attempt};
+    let mut newer = start_selection("newer-attempt");
+    let newer_before = newer.snapshot();
+    assert!(finalize_start_attempt(
+        &mut newer,
+        "old-attempt",
+        &g(),
+        &g(),
+        Err("old operation failed".into())
+    )
+    .is_err());
+    assert_eq!(newer.snapshot(), newer_before);
+    let mut old_generation = g();
+    old_generation["appSession"] = json!("old-session");
+    assert!(finalize_start_attempt(
+        &mut newer,
+        "newer-attempt",
+        &old_generation,
+        &g(),
+        Err("old generation failed".into())
+    )
+    .is_err());
+    assert_eq!(newer.snapshot(), newer_before);
+
+    let mut changed = g();
+    changed["spawnCounter"] = json!(2);
+    for (id, current, result) in [
+        ("dispatch-refused", g(), Err("refused-not-sent: not-ready".into())),
+        ("postdispatch-role", g(), Err("Native start dispatched; original role preparation failed; unknown native effect in retained receipt".into())),
+        ("malformed-result", g(), Ok(json!({"id":99,"result":{"thread":{"id":""}}}))),
+        ("changed-generation", changed, Ok(json!({"id":99,"result":native_result("native-thread")}))),
+        ("mixed-envelope", g(), Ok(json!({"id":99,"result":native_result("native-thread"),"error":{"code":-1,"message":"error"}}))),
+    ] {
+        let mut slot = None;
+        claim_start(&mut slot, start_selection(id), || Ok(format!("sup:{id}"))).unwrap();
+        assert!(finalize_start_attempt(slot.as_mut().unwrap(), id, &g(), &current, result).is_err());
+        let failed = slot.as_ref().unwrap().snapshot();
+        assert_eq!(failed["state"], "start-failed", "{id}");
+        assert!(failed["refusal"]["text"].as_str().unwrap().len() > 0);
+        assert!(failed["thread"].is_null());
+        // Only an explicit independently requested attempt claims again.
+        claim_start(&mut slot, start_selection("explicit-next"), || Ok("sup:next".into())).unwrap();
+        assert_eq!(slot.as_ref().unwrap().snapshot()["state"], "starting");
+    }
+}

@@ -77,3 +77,20 @@ Same isolated approved cache/cwd; no native/model/auth/network operation or shar
 | `hosting.rs` | `0c381383a6c68d15bae9935b2ebca1e2f2f24099f27291714aaa72263a281a2d` |
 | `conversation_transport_tests block` | `4a1a686cfae4b3426bd5751ff6b414baef94743f78d8e8a85c39eb735a6e3056` |
 | `new mixed-envelope regression` | `b66ca541e403b2540dc6202d88e30212ca6a67d86bc0371318983c317be44783` |
+
+## Shared registration-refusal receipt witness — additive cfg(test) only
+
+Parent authorized the shared HistorySession owner's request for a genuine private-receipt assertion after its start_dispatched repair. Only the existing joined cfg(test) fixture is extended; Host production/API remains exactly HT-M1-reviewed production. A fresh actual /bin/cat start write and complete native result use an invalid local supply reference. start_dispatched returns Err while retaining actual request ID/ref/write/pending-or-observed outcome and rolePreparationError. After waiting and reconciliation, the original receipt still reports correlated native result; no new operational thread/role or second send is created. Immediate outcome allows pending or result to respect actual reader timing; post-wait outcome is explicitly result. No imported/fabricated receipt or production test-support API.
+
+Frozen test candidate whole Host SHA fe3d797cff2cc2bd89b41673052fa0cd6012ab1e24b8ad11b5c2ad5895075315; conversation testblock2352f8b8d19fd6795610b392204ec43ba334a2d6973ee845fbfceba9f5e5ceca; added extension c85accd90109701874b225d8e6af5a6618479de4542f647b74a59032183f9add. Production before the first cfg(test) module is unchanged at d0f14888f27a09504756bd5ee2aa4249fe407eba81bbdf285b082c2e7a94cd61. Mechanical deletion of exactly the additive extension reconstructs whole-file0c381383a6c68d15bae9935b2ebca1e2f2f24099f27291714aaa72263a281a2d (asserted). No existing oracle changed.
+
+Parent assigned actual combined execution to history_product_join's Cargo slot; this author did not launch a duplicate Cargo run. Source syntax emit-to-stdout check passes without rewriting. Actual combined output will be attributed below when returned; frozen preparation alone is not a passing test claim.
+
+Actual combined return from `/root/group_a_execution/history_product_join` on frozen Hostfe3d797c:
+
+| Sibling-executed check | Reported actual result |
+| --- | --- |
+| `cargo test --offline --locked --lib history_bridge_` with approved isolated cache | exit0;7/7 passed;2.98s compile,0.38s run; genuine joined registration-refusal extension and HT-M1 mixed-envelope regression passed |
+| Shared history/conversation/recovery/runtime integration groups | exit0;7+5+6+10=28/28 passed;3.74s compile;respective0.25/0.06/0.08/0.17s runs |
+
+Sibling's original tool turn retains full output and its record owns shared source/check details. This author attributes the communicated execution rather than claiming its own duplicate run. Cargo RELEASED; no additional source change after freeze. Test-only candidate ready for independent shared review; original Host production R1 remains unchanged, and no supplier qualification follows from mock evidence.

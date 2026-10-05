@@ -136,6 +136,15 @@ For the offline thread exercise, enter model `skeleton-no-model` and provider
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
 
+For stored history, choose **Read stored conversations**, then select a received
+conversation. **Read metadata**, **Read turns**, **Read goal**, and per-turn item
+controls read disposable native pages; opaque page cursors belong to their
+received stream. **Continue selected conversation** separately requests native
+resume before permitting operational text input. It keeps the conversation’s
+existing guidance/settings and does not resend automatically. Original App role
+evidence is shown only when retained in this process; a cold restart shows
+Unknown. Reading child metadata does not supply a child role.
+
 ## Storage and remaining work
 
 Project run logs use `.chirality/records/runs/<safe-run-key>/<safe-writer-key>.jsonl`;

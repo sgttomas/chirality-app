@@ -86,3 +86,18 @@ Executable built at `app/src-tauri/target/debug/deps/native_backend_smoke-8b4d76
 | `app/src-tauri/src/lib.rs` | `e1897437ab1c7f07c823d892e2c8102d4370503deb7745eed531f930fdf8e7e3` |
 | `app/src-tauri/Cargo.lock` | `2fad2d658b3ffaf7b3973d5ab7da693788613f7462eaeca9d4b6b9ad826f7012` |
 | `app/src-tauri/target/debug/deps/native_backend_smoke-8b4d768aa29ed2da` | `8533812017aec101f14e6e3f79d2b2b2350b5845589b133fb29b774e11bb45a0` |
+
+## Primary-start receipt/session successor — proposed, live held
+
+Prior repaired fixture `3e88cbeccf99d0e9865f7f1e19ccef979d2d63a8eb136bfd20ea0b8a578a3f3e` and its earlier source/build records remain historical. It invoked synchronous Host.thread_start_with_guidance and did **not** witness the new shared primary-start receipt/session join. Prior private executable/snapshots are unchanged and are not a warrant for this new path.
+
+Checkpoint `24f8075a62d2f4bdf38b32f1a15a0f9276a12d29` contains an inline private lib thread_start command, not a public start_native_thread helper. The manager confirmed that shorthand. This successor reproduces the actual public orchestration it calls: Host.thread_start_with_guidance_dispatch → the one HistorySession.start_dispatched (which freezes PreparedStart) → source_request_wait → same-session reconcile (PreparedStart.observe and Host.thread_start_dispatch_finish) → start_admitted. No independent PreparedStart observation or imported binding is used to manufacture the witness.
+
+Before text submission, it requires the retained genuine SourceRequest identity/reference, actual written frame, current source and exact dispatched guidance; operational thread presence and the same HistorySession's original supply/home/thread/HELP_HUMAN binding and composition identity must agree. Output contains only resulting booleans/path label, safe composition identity and existing allowlisted outcome fields; adoption stays unknown. All mktemp-d, no-grant/error/liveness/private-output, exact observed reply and full selected-turn oracles remain. This is backend dispatch/session evidence, not invocation of private Tauri IPC or proof of UI starting-slot cleanup.
+
+Granted compilation-only check `--offline --locked --no-run --test native_backend_smoke`: exit0, 10.95s. Focused pure_smoke_evidence_tests: exit0, **2/2**, live test filtered out. No ignored/native/model/env/path/auth execution; slot released. New shared Starting cleanup repair (supply mint/start_dispatched error paths) is original-owner work with its own backcheck. **Current live candidate is held pending that repaired shared checkpoint and actual review/source pin refresh.** A recompile against arbitrary current Host/WIP is not substituted for that join witness.
+
+| Proposed primary-start fixture artifact | SHA-256 |
+|---|---|
+| `tests/native_backend_smoke.rs` | `5c966daca7731a64e5f1fc1af5032e183a1298f9411dd6bf881ce8cd6e5e153f` |
+| Compilation-only executable | `58242b07dc48553aa76ed270c0066809164fffb7637f8d3b0764bad3a7ad3a26` |

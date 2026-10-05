@@ -41,3 +41,29 @@ All paths are under `projects/chirality-app-v4/` except the instruction/manual s
 Actual resolved checkout: `/Users/ryan/.codex/worktrees/077c/chirality`; RootAGENTS f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977; own `agents/AGENT_TASK.md` 1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7; v4 `loop/LOOP_INIT.md` 45c23cf477e23aff1d0152189caf7e8ebfb53eca42e3a1fae87a06af8c197f28. No other role body activated or descendant launched.
 
 `docs/alignment-manual/README.md` 31217d30b0d2743bef0d7c1a54bb9a81814d56b24ff0961cf01d9532952e305f; AUMv3 headings to level3 and selective §11/§14 v4 entry (`docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md` 08ca0e40cd5157574a011bac57d539e77e9007a0d46494785da8b92745391b1a); full FieldBook (`Project_Management_for_Human_Agent_Teams_Field_Book_v1.md` 02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3). Current Group A graph/READING/IMPLEMENTATION_ROUTE and V2-I1-HISTORY-R1/V2-I2-ROLE-LIFECYCLE-R1 supplied the recovered route/review boundaries. ROLE_SUPPLY selection/store-change/carrier/resume clauses selectively read, plus actual current Host/lib/runtime/App and existing integration test sources. No workflow or skill body was activated for this bounded direct implementation.
+
+## R1 successor — start claim cleanup repair (2026-10-05)
+
+Manager assigned the independent reviewer's source finding: post-claim `opaque_id("sup:")?`, lifecycle preparation `?` and result-receiving `started(...)?` could return while shared access selection and role status remained Starting. The original source finding and the original candidate/checks above remain historical; no original checkpoint bytes were changed. This successor is frozen for the same reviewer's backcheck.
+
+`claim_start` completes fallible no-effect supply-ref preparation before publishing a shared claim; failure preserves the previous selection. The command captures every post-claim error and routes it through `finalize_start_attempt`, then publishes truthful failure/unknown role status. Cleanup matches the original conversation attempt ID **and** full owning generation before mutating selection; replacement claims remain unchanged. Role status includes the same attempt ID/full generation, and its guarded publication occurs under the access-selection lock. A stale completion cannot overwrite a newer operation/generation's status.
+
+Already-dispatched role preparation failure retains the genuine private SourceRequest and its actual ID/ref/write/outcome in HistorySession. The preparation error stays visible when later correlated response evidence arrives. A missing PreparedStart never creates a role binding or active start admission, and no code resends. Failure text distinguishes native dispatch/unknown effect from refused-not-sent/no-effect preparation. A later independently requested start is possible; no automatic retry is introduced.
+
+Two added regression tests exercise injected preclaim entropy failure preserving prior state and a later explicit claim, plus postclaim dispatch refusal/role refusal/malformed result/generation change/mixed-envelope cleanup. Replacement attempt and old-session controls preserve a newer Starting selection byte-for-byte. Core's additive private-receipt fixture independently exercises actual written start → invalid supply ref → retained original actual RPC ID/ref/write/outcome → native correlated result → no role/admission/new client request. Receipt capabilities are never fabricated by integration tests.
+
+Manager granted the serialized Cargo slot after the narrow smoke author released it. Against exact Core whole-file `fe3d797cff2cc2bd89b41673052fa0cd6012ab1e24b8ad11b5c2ad5895075315` (Core production repaired and its additive receipt-refusal test frozen; no Host edits by this TASK), approved existing CARGO_HOME/offline/locked:
+
+- `cargo test --offline --locked --lib history_bridge_`: **7/7 PASS**, exit0, compile2.98s/run0.38s. This includes the actual new mixed-result/error refusal test and joined genuine lifecycle-preparation refusal extension. Prior passing6/6 is not substituted for these repair assertions.
+- `cargo test --offline --locked --test history_integration --test conversation_integration --test runtime_integration --test recovery_startup`: **28/28 PASS**, exit0, compile3.74s (history7/run0.25s, conversation5/0.06s, runtime10/0.17s, recovery6/0.08s).
+
+Cargo/source reservation released promptly to manager/Core. The App.tsx bytes are unchanged from the frontend/static-render checks above; this repair changes only Rust command/session cleanup, tests and this record. No native supplier/model/account/window/checkpoint/Git/dependency/Design/instruction operation. Original ROLE/native-history modules and all earlier limits remain unchanged.
+
+| Current repaired owned source | SHA-256 |
+|---|---|
+| app/src-tauri/src/lib.rs | 4ab7de274ac32b661d1af1c540a30680c699597e22da07bca700fa5a3b79a989 |
+| app/src-tauri/src/runtime_session.rs | ed2e61b60828a2cd39510e919cc00bff733185e68120fa5726684ae11a940601 |
+| app/src-tauri/tests/history_integration.rs | d41b42bc40b349f24b56b9d61e20a2efd9a15b804f7a9d645e9ffe70624a3ca5 |
+| app/src/App.tsx — unchanged | 316cd7b31c5d8b8857380779a02936e766c71374eebb12d406baebca2f4e1d4a |
+
+These successor seals replace the earlier owned-source candidate for backcheck only; independent READY/manager fan-in and actual native product qualification are not claimed by this author return.

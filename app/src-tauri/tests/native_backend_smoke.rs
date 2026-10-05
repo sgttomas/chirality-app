@@ -5,7 +5,7 @@ use chirality_app_v4_lib::{
     role_supply::Role,
     runtime_session::{
         compose_role, seed_instructions, send_conversation_text, start_with_recovery,
-        RecoveryStartup, RuntimeSession,
+        HistorySession, RecoveryStartup, RuntimeSession,
     },
     util::{opaque_id, sha256_hex},
 };
@@ -283,10 +283,45 @@ fn parent_authorized_stock_native_one_greeting() -> ProbeResult<()> {
     let workspace_text = workspace
         .to_str()
         .ok_or("non-Unicode workspace unsupported by current thread API")?;
-    let thread_response = probe
+    // Exact primary-start orchestration used by lib.rs at checkpoint 24f807:
+    // genuine source dispatch, one HistorySession preparation/reconcile, admission.
+    let mut history = HistorySession::default();
+    let supply_ref = opaque_id("sup:").map_err(|_| "start supply identity failed")?;
+    let receipt = probe
         .host
-        .thread_start_with_guidance(workspace_text, MODEL, &provider, &composition.text)
-        .map_err(|_| "native thread/start failed; details private")?;
+        .thread_start_with_guidance_dispatch(
+            &generation,
+            workspace_text,
+            MODEL,
+            &provider,
+            &composition.text,
+        )
+        .map_err(|_| "production primary dispatch failed; details private")?;
+    history
+        .start_dispatched(receipt.clone(), &composition, &supply_ref)
+        .map_err(|_| "shared start preparation failed; details private")?;
+    let start_evidence = probe
+        .host
+        .source_request_wait(&receipt, Duration::from_secs(20))
+        .map_err(|_| "production source wait failed; details private")?;
+    history.reconcile(&probe.host);
+    if !history.start_admitted(&receipt) {
+        return Err("shared primary start not operationally admitted");
+    }
+    let source = probe
+        .host
+        .source_request(&generation, receipt.request_id())
+        .map_err(|_| "genuine source request unavailable")?;
+    if source.request_ref() != receipt.request_ref()
+        || start_evidence["writeResult"] != "written"
+        || start_evidence["sourceCurrent"] != true
+        || start_evidence["requestIdentity"] != *receipt.request_id()
+        || start_evidence["sentFrame"] != *receipt.attempted_frame()
+        || start_evidence["sentFrame"]["params"]["developerInstructions"] != composition.text
+    {
+        return Err("primary start source receipt does not bind actual dispatched guidance");
+    }
+    let thread_response = start_evidence["response"].clone();
     let result = &thread_response["result"];
     if result["model"] != MODEL || result["modelProvider"] != provider {
         return Err("native destination differs from requested Parent selection");
@@ -297,6 +332,33 @@ fn parent_authorized_stock_native_one_greeting() -> ProbeResult<()> {
     let thread = result["thread"]["id"]
         .as_str()
         .ok_or("native thread identity absent")?;
+    let home = generation["home"]
+        .as_str()
+        .ok_or("native home identity absent")?;
+    let binding = history
+        .binding(home, thread)
+        .ok_or("shared original role binding absent")?;
+    let role_binding = binding.evidence();
+    let role_in_force = history.role(home, thread);
+    if binding.supply_ref() != supply_ref
+        || binding.home() != home
+        || binding.thread() != thread
+        || role_binding["binding"]["original"]["identity"]
+            != composition.carried["developerInstructions"]["content"]
+        || role_binding["adoption"] != "unknown"
+        || role_in_force["standing"] != "app-observed"
+        || role_in_force["role"] != "HELP_HUMAN"
+    {
+        return Err("shared original role binding does not match source-admitted thread");
+    }
+    if !probe.host.snapshot()["threads"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|t| t["generation"] == generation && t["threadId"] == thread)
+    {
+        return Err("source-admitted operational thread absent");
+    }
     inspect_snapshot(
         &probe.host.snapshot(),
         &generation,
@@ -420,9 +482,9 @@ fn parent_authorized_stock_native_one_greeting() -> ProbeResult<()> {
         "{}",
         json!({"probe":"real-production-backend-one-greeting","reply":observed_reply,"nativeReceivedTextObserved":true,"nativeTerminalEventObserved":true,"nativeTerminalStatus":terminal,
         "requestedModel":MODEL,"reportedModel":MODEL,"reportedReasoningEffort":"medium","providerMatchedParentSelection":true,
-        "requestedRole":"HELP_HUMAN","roleAdoption":"not established","compositionIdentity":composition.carried["developerInstructions"]["content"],
+        "requestedRole":"HELP_HUMAN","roleAdoption":"not established","primaryStartPath":"production dispatch/HistorySession reconcile/finish","genuineSourceRequestBound":true,"sharedOriginalRoleBindingObserved":true,"compositionIdentity":composition.carried["developerInstructions"]["content"],
         "ledgerSessionEntries":1,"ledgerStanding":"App-observed pointers; not native act proof","supplierQualification":"unverified-development",
-        "source":{"smoke":sha256_hex(include_bytes!("native_backend_smoke.rs")),"hosting":sha256_hex(include_bytes!("../src/hosting.rs")),"runtimeSession":sha256_hex(include_bytes!("../src/runtime_session.rs")),"nativeRequests":sha256_hex(include_bytes!("../src/native_requests.rs")),"lib":sha256_hex(include_bytes!("../src/lib.rs")),"lockfile":sha256_hex(include_bytes!("../Cargo.lock"))}})
+        "source":{"smoke":sha256_hex(include_bytes!("native_backend_smoke.rs")),"hosting":sha256_hex(include_bytes!("../src/hosting.rs")),"runtimeSession":sha256_hex(include_bytes!("../src/runtime_session.rs")),"nativeRequests":sha256_hex(include_bytes!("../src/native_requests.rs")),"lib":sha256_hex(include_bytes!("../src/lib.rs")),"roleLifecycle":sha256_hex(include_bytes!("../src/role_lifecycle.rs")),"nativeHistory":sha256_hex(include_bytes!("../src/native_history.rs")),"lockfile":sha256_hex(include_bytes!("../Cargo.lock"))}})
     );
     Ok(())
 }

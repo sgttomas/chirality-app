@@ -806,24 +806,37 @@ impl HistorySession {
         supply_ref: &str,
     ) -> Result<(), String> {
         let e = receipt.evidence();
-        let prepared = crate::role_lifecycle::PreparedStart::new(
-            e["home"].as_str().ok_or("start home absent")?,
-            e["generation"].clone(),
-            e["requestIdentity"].clone(),
-            e["requestRef"]
-                .as_str()
-                .ok_or("start request reference absent")?,
-            supply_ref,
-            composition,
-        )?;
+        let prepared = (|| {
+            crate::role_lifecycle::PreparedStart::new(
+                e["home"].as_str().ok_or("start home absent")?,
+                e["generation"].clone(),
+                e["requestIdentity"].clone(),
+                e["requestRef"]
+                    .as_str()
+                    .ok_or("start request reference absent")?,
+                supply_ref,
+                composition,
+            )
+        })();
+        let error = prepared.as_ref().err().cloned();
+        let mut summary = receipt_summary(&e);
+        if let Some(error) = error.as_ref() {
+            summary["rolePreparationError"] = json!(error);
+        }
+        // Registration already happened at Host. Keep its actual receipt even
+        // when role preparation fails; neither no-send nor automatic retry follows.
         self.starts.push(StartPending {
             receipt,
-            prepared: Some(prepared),
+            prepared: prepared.ok(),
             finished: false,
-            evidence: receipt_summary(&e),
+            evidence: summary,
         });
-        Ok(())
+        match error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
+
     /// Only private Host receipts select responses. Renderer JSON cannot supply
     /// receipt/source evidence or original role buffers. Waiting never resends.
     pub fn reconcile(&mut self, host: &crate::hosting::Host) {
@@ -839,7 +852,11 @@ impl HistorySession {
                     continue;
                 }
             };
+            let preparation_error = pending.evidence.get("rolePreparationError").cloned();
             pending.evidence = receipt_summary(&status);
+            if let Some(error) = preparation_error {
+                pending.evidence["rolePreparationError"] = error;
+            }
             if status["sourceCurrent"] != true {
                 pending.finished = true;
                 continue;
@@ -1053,4 +1070,51 @@ impl HistorySession {
 
 fn receipt_summary(e: &Value) -> Value {
     json!({"generation":e["generation"],"home":e["home"],"requestIdentity":e["requestIdentity"],"requestRef":e["requestRef"],"writeResult":e["writeResult"],"outcome":e["outcome"],"waitingEnded":e["waitingEnded"],"sourceCurrent":e["sourceCurrent"],"writeError":e["writeError"]})
+}
+
+/// Complete every claimed start once. Local receiving errors remain distinct
+/// from the already-sent native operation, whose receipt is retained separately.
+pub fn finalize_start_attempt(
+    selection: &mut crate::access::ConversationSelection,
+    attempt_id: &str,
+    generation: &Value,
+    current_generation: &Value,
+    result: Result<Value, String>,
+) -> Result<Value, String> {
+    if selection.snapshot()["conversation"] != attempt_id
+        || selection.owning_generation() != Some(generation)
+    {
+        return Err("Start claim was replaced; newer operation state preserved, original native receipt retained".into());
+    }
+    let result = result.and_then(|response| {
+        if generation != current_generation { return Err("unknown: owning generation changed during thread start; native receipt retained".into()); }
+        if response.get("error").is_some() { return Err(format!("Native start error observed: {}; no successful start inferred", response["error"])); }
+        selection.started(generation, &response["result"])
+            .map_err(|error| format!("Start response could not be received: {error}; native effect remains as observed in retained receipt"))?;
+        Ok(response)
+    });
+    if let Err(error) = result.as_ref() {
+        if selection.snapshot()["state"] == "starting" {
+            selection.start_failed(error)?;
+        }
+    }
+    result
+}
+
+/// Publish a prepared start only after fallible no-effect preparation succeeds.
+/// An error preserves the previous selection and its truthful state.
+pub fn claim_start(
+    slot: &mut Option<crate::access::ConversationSelection>,
+    selection: crate::access::ConversationSelection,
+    prepare_supply_ref: impl FnOnce() -> Result<String, String>,
+) -> Result<String, String> {
+    if slot
+        .as_ref()
+        .is_some_and(|previous| previous.snapshot()["state"] == "starting")
+    {
+        return Err("thread start in progress".into());
+    }
+    let supply_ref = prepare_supply_ref()?;
+    *slot = Some(selection);
+    Ok(supply_ref)
 }

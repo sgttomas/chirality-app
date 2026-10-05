@@ -1,0 +1,12 @@
+# P3 checkpoint validation — 2026-10-05
+
+WORKING_ITEMS validated committed source `24f8075a62d2f4bdf38b32f1a15a0f9276a12d29` through a Git archive of the complete v4 project. Active attachment Designs and held workflow parser files were excluded by that committed source boundary. Archive origin: `/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-24f807-0hfa4hep`. Native descendants remain the implementation/review mechanism; this is manager validation, not independent review.
+
+- Full `cargo test --offline --locked`: exit 0, aggregate **228 passed, 0 failed, 1 ignored** across reported harnesses, including the real offline stock 0.160 handshake. The ignored authenticated smoke was not executed.
+- `npm test`: exit 0, **3 passed, 0 failed, 0 skipped**, validating actual Rust outputs against canonical Design schemas.
+- `npm run build`: exit 0, TypeScript plus Vite passed.
+- `python3 schemas/sync.py`: exit 0, all six embedded resources match source bytes, hashes and declared IDs.
+
+Cargo used the approved isolated `CARGO_HOME=/tmp/chirality-app-v4-group-a-cargo-home`, offline network setting and existing shared target. Supplier path was the approved stock 0.160.0 binary with expected SHA `112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b`. No downloads, credentials, model prediction or UI actions occurred. Cargo was released after Node checks. Full logs remain machine-local: Rust SHA `e9600c6e39db4a6c48856a826516a39f8d4732872b5d8dd527877b1a91822691`; Node SHA `4130817d1b02788cc5a700a04f1d0ad7b9a51dcbfb378445a51393e620528245`.
+
+The original Host mixed-result/error finding and its R1 backcheck remain separate evidence. Shared integration independent review subsequently found a post-Starting early-return cleanup gap; original owner repair/backcheck is required. Passing checkpoint checks do not establish that failure branch. Existing A16 output evidence preserves its original ending blank lines; `git diff --check` reports those five transcript endings, not source whitespace defects. Manager graph ending was corrected. Prior backend live witness remains at its original source pins. A successor smoke fixture must consume the new shared start path before any live rerun; compilation of the unchanged old helper fixture alone would not establish that path. Native UI, Continue supplier witness, cold role-source custody and whole Group A completion remain open.
