@@ -1,0 +1,58 @@
+# I1-HOME-BOOTSTRAP — explicit M-A receiving module
+
+2026-10-05. TASK `/root/group_a_execution/design_hosting_access`, parent WORKING_ITEMS `/root/group_a_execution`, delegated-harness-native, no descendants. Bounded ordinary implementation authorized by parent after pre-mutation source/interface report and independent BASIS READY. **Synthetic candidate: 9/9 targeted controls passed; awaiting independent implementation review.** No actual supplier/home/auth/discovery/bootstrap qualification.
+
+## Accepted basis and scope
+
+ACCESS §3, K1/K2-1, M-A and owner DECISION-L L1 adopt separate App-owned account/API-key homes, sharing exactly native config.toml, global AGENTS.md and skills through links. API-key creation belongs to person's add-key route; probe has no shared resources. Authentication/keyring, thread/session/history/state/log/plugin custody stays native per home. Missing/broken resources are visible, no silent copy/repair or native startup veto. The existing home decision explicitly leaves native mechanism qualification open. Basis reviewer admitted explicit parameters without new registry/layout/default/human gate.
+
+Only new `src/home_resources.rs`, isolated `tests/home_resources.rs`, and this record are written. No shared lib/Cargo manifest/hosting/recovery/UI/Design changes; module is not registered in production. Existing storage helpers reused. Explicit Root placement/resource inputs remain unsupplied product integration inputs, not invented defaults or human-reserved choices.
+
+## Actual smallest interface and source ownership
+
+`OwnedHomePlan::new(App-data PathBuf, home PathBuf, HomeClass, optional SharedResourceTargets)` carries explicit absolute lossless native paths. Root must supply actual owned source/selection: construction is not authority proof. Home is strict descendant of App-data root, without relative aliases or owning-directory symlink. Account/ApiKey require explicit targets; absence refuses this setup contribution, not an existing native lifecycle. Probe forbids targets. HomeClass account/api-key/probe is distinct from opaque generation.home `app-home:SHA256(native OS path bytes)` using existing HOST convention; display strings never round-trip into dispatch or identity. No full-H5 namespace or native parameters are changed.
+
+`validate_distinct_homes(&[...])` is required at Root binding for the whole account/key/probe set; recheck before setup and after prepared directories exist. It rejects same/nested lexical paths and currently canonical actual directory overlaps (including case aliases); all owning symlinks are rejected by storage checks. `validate_distinct_account_homes(account,key)` also enforces classes and identical explicit shared resource references. No registry or permanent uniqueness guarantee is introduced.
+
+`prepare` creates only explicit owned directory and create-only fixed-name links. Existing exact links are inspected; foreign files/directories/symlinks remain untouched. `inspect` returns fresh typed resource states Linked/TargetMissing/TargetTypeMismatch/Conflict/NotSupplied plus original destination/intended target and availability limits. Dangling intended links are visible and remain dangling; never copied, automatically relocated or advertised Linked. Source target symlinks are the person's native resource choice and observed only for target type; no source content reads. Probe neither creates resources nor chooses account defaults; an existing resource conflict is preserved.
+
+`resolved_config_write_target` verifies current exact intended App link, regular source and resolved native target; it returns a point-in-time PathBuf observation only. Later explicitly person-directed native config writes must revalidate source/link/version and inspect after the write under ACCESS CL10. It conveys no permission, stable binding/TOCTOU proof, config write or native discovery witness. UnitB does not parse config, choose models/provider/approval/sandbox, access auth, invoke native processes or rewrite user resources.
+
+## Concrete tests and limitations
+
+Nine isolated controls use actual `mktemp -d` with wholly synthetic App/native-resource roots and literal fixture content. Tests exercise exactly three links, independent home classes/byte identities, unchanged resources and no auth/history copy; idempotence; same/nested and symlink aliases; visible missing targets; foreign replacement preservation; current resolved native source including user source symlink and wrong types; probe no links; changed receiving directory rejection; lossless OS-byte identities versus identical lossy display; entire receiving set including probe and conditional case-insensitive actual-directory alias. Invalid-byte path control is pure identity only, no filesystem acceptance claim. No fixture is passed to Codex.
+
+Standalone rustfmt completed. Parent released exclusive Cargo after Core UnitA frozen. Actual command in app/src-tauri: `CARGO_HOME=/tmp/chirality-app-v4-group-a-cargo-home CARGO_NET_OFFLINE=true CHIRALITY_SKIP_CODEX=1 cargo test --offline --locked --test home_resources`. Exit 0: 9 passed, 0 failed, 0 ignored; test execution 0.15s, compilation 12.09s. Tool process session 15717/chunks fc9b1f,f440e8,307705. Cargo slot released immediately after completion; no subsequent Cargo run. Warnings: existing unbound UnitA methods/types and unregistered UnitB observation/display APIs, no compilation/test failure. Checks cannot establish real native config/global AGENTS/skills discovery, secure credential isolation, supplier startup or product integration.
+
+Static path checks/create-only links and directory fsync use existing storage helpers; they do not establish adversarial atomic pathname ownership or prevent future external replacement. Pair verification is a current observation, required again at Root binding/use; native startup/config receiving must maintain actual source ownership. Failed link setup may leave a created link and returns a precise failure; inspect exposes actual partial state. A returned config target cannot be cached as future write authority.
+
+## Required consumer adoption
+
+Root selects App-data/home native paths and native resource references explicitly; registers this module separately and calls whole-set distinctness checks at binding/setup. Person add-key route invokes H-key preparation; no account-start fallback. Host receives actual lossless home path and opaque byte identity, preserving full H5. ACCESS shows states/limits without startup veto; NIR secret entry and UnitA account RPC remain separate. REC keeps each actual native home/thread history and removal preserves prior home/readability. ROLE/native base/global discovery need their own supplier-version witnesses. Later config API consumes only freshly revalidated target/version, not cached observation. UnitA synthetic SourceRequest secret-boundary repair is independent and not held by missing real topology inputs.
+
+## Frozen supplied basis and candidate identities
+
+| Source/candidate | SHA-256 |
+|---|---|
+| `projects/chirality-app-v4/app/src-tauri/src/home_resources.rs` | `108dc76092e13b5b799edd0220a2ba66661c072a11fedcf4946c7f09f050adbd` |
+| `projects/chirality-app-v4/app/src-tauri/tests/home_resources.rs` | `c2035574aa8b5c6f2ba67e468d3e31a9ea1b836ea3c3bb3e04cf0895a9c445b6` |
+| `projects/chirality-app-v4/app/src-tauri/src/storage.rs` | `ae8439c47b86a3225bf46e893bfa1159a2189d0cc8579692d468a78ea9267d77` |
+| `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md` | `5067ed0b64b0a7787d33809b542c1cbadd02793e136b136e330bb933d5f8a203` |
+| `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_HOME_DECISION_RECORD.md` | `f77f87927558ca73ab862fbe1452eaf5a0c47b6bb53b89c1419e2324ec4dad5d` |
+| `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md` | `8a5d11149045770dfcf1a19ebabb86bfe9f04cd3e65ed36166cb8593e2fe20ac` |
+| `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-I1-HOME-BOOTSTRAP-BASIS.md` | `f5c23db0fd3caadc1c0fe719f66b3b545178d2c1ba19a95dd81ef7d133c13458` |
+| `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/I1-ACCESS-HOME-NEXT.md` | `b365c03174480419d49ddd5afa36f806011f1fc8ede3fb18c9137beb578ff164` |
+
+## Confirmed missing-leaf relationship repair candidate
+
+Original candidate association remains module `108dc76092e13b5b799edd0220a2ba66661c072a11fedcf4946c7f09f050adbd`, tests `c2035574aa8b5c6f2ba67e468d3e31a9ea1b836ea3c3bb3e04cf0895a9c445b6`, record `e409a54056f4101d0f245feb9464e8903bdd26b5b88cf4612ee728621d42f1a1`; original 9/9 passed. Reviewer exact-source probe separately confirmed two missing-leaf refusal failures (compile0/test101), with unrelated missing sibling passing. Existing Account / ACCOUNT parent was same actual directory while missing child made canonicalization of whole child fail; config RECEIVING/config.toml had existing parent identical to receiving home. Existing equal-leaf concern was NOT REPRODUCED: Rust canonicalization correctly refused, despite preliminary Python path behavior. The failure evidence is preserved separately by reviewer; passing original suite is not repair proof.
+
+Minimal receiving repair observes existing ancestor identity/path through actual Rust canonicalization, retaining unresolved native suffix. Known shared source overlap is checked during constructor and before setup/inspect; entire home-set validation includes missing descendants of currently existing aliased parents. Native source symlinks retain actual readlink target relation, including dangling targets; an unavailable/cyclic source relationship remains unavailable, not a native lifecycle veto. No lowercasing, registry, guessed defaults or blanket missing-target rejection. Future missing-name case equivalence/creation/external replacement remains unproved: Root must repeat entire-set checks after directories exist and at source binding. Static checks are not adversarial filesystem atomicity.
+
+Original nine controls retained; three additional controls cover actual filesystem dev/inode-asserted case alias plus missing descendant, constructor resource-under-receiving alias plus missing file, before-setup source-link change into receiving home with no link effects, and unrelated missing home/dangling external source positives. Case-specific branch is conditioned on actual alias existence; on this Mac reviewer already established the alias. Pure source test cannot claim unsupported filesystem behavior.
+
+Repair candidate actual targeted Cargo: same approved environment/command, process22001 chunks14db04/6cc2d7, compile6.79s/test0.34s, exit0: 12 passed, 0 failed/ignored. Original9 retained plus3 controls; standalone rustfmt passed. Lane released immediately after result. Same reviewer backcheck remains required; no native/product qualification inferred. Case-branch observations remain explicitly filesystem-conditioned; unsupported platforms do not obtain alias-exclusion proof by skipping. Original top-level nine-test account is original candidate evidence, not successor readiness.
+
+Repair `projects/chirality-app-v4/app/src-tauri/src/home_resources.rs` SHA-256 `d2c933cd08dc4a613650c5514e2c621fbcdd37e1cac69d8d3763c03c6447064d`.
+
+Repair `projects/chirality-app-v4/app/src-tauri/tests/home_resources.rs` SHA-256 `c0342111889e5a6f58fd646bcae5ebb3585636d8604c1682e3cd0e2d5394427e`.
