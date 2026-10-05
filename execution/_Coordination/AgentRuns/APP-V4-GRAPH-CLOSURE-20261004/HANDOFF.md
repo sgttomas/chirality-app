@@ -6,13 +6,31 @@ to.
 
 ## Starting the session
 
-Use `projects/chirality-app-v4/init/dev-loop-init-prompt.md`. A suggested
-steer:
+Paste this into a new session at the repository root. It is
+`projects/chirality-app-v4/init/dev-loop-init-prompt.md` with a steer filled
+in:
 
-> Steer (this run): Group A (runtime and contract core) development loop, starting from the walking skeleton in `app/`. First: resolve the nine contract issues in `app/CONTRACT_ISSUES.md` through change control with the affected deliverables' design agents; then fan out within group A.
+```
+<init-prompt>
+Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.
+Set `WORKING_ROOT` to `{REPO_ROOT}/projects/chirality-app-v4`.
+Read `{REPO_ROOT}/AGENTS.md`.
+Read `{REPO_ROOT}/agents/AGENT_HELP_HUMAN.md`.
+Act as `HELP_HUMAN` for `{WORKING_ROOT}`.
+Read `{WORKING_ROOT}/loop/LOOP_INIT.md` and follow it.
+Steer (this run): Group A (runtime and contract core) development loop toward 90%, starting from the walking skeleton in `app/`. First: resolve the nine contract issues in `app/CONTRACT_ISSUES.md` through change control with the affected deliverables' design agents; then fan out within group A. Read `execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/HANDOFF.md` once for orientation.
+</init-prompt>
+```
 
-The owner's merge hold of 2026-10-04 was lifted the same day. Groups B and C can
-start their own loops in parallel against group A's agreed contracts.
+**Toward 90%.** The Field Book's 90% stage is "produced deliverables":
+intended contributions integrated, records reconciled, and an identified
+product ready for concentrated examination in use and debugging. The owner
+assesses that gate. The work runs in group order A → {B, C} → D → E (one
+exception, DEP-09-09-012, is sequenced by a work graph). Groups B and C can
+start their own loops in parallel once group A's contracts are agreed: use
+the same init prompt with the steer naming the group.
+
+The owner's merge hold of 2026-10-04 was lifted the same day.
 
 ## Where things are
 
