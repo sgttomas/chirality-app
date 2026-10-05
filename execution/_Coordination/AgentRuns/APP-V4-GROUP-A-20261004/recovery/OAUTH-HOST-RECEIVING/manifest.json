@@ -1,0 +1,55 @@
+{
+  "owner": "/root/group_a_execution/runtime_core_resume",
+  "parent": "/root/group_a_execution",
+  "role": "TASK; delegated-harness-native; no delegation",
+  "source_baseline": {
+    "hosting.rs": {
+      "baseline_sha256": "6c48be0e0fdd32a8446095d4681cc11ff5e756ac8cc9d51df1b460ef0b51c82c",
+      "edited_sha256": "a497566924a981a4753cee0ee007a7374c9782120b3a18d85b97702d56ed867a"
+    },
+    "auth_rpc.rs": {
+      "baseline_sha256": "566b52ab2d2eedbc2f98835c07cd3369a2f9046f33d7cead063bbe9ddc45734f",
+      "edited_sha256": "c702d86d6d6bc82a01aae5b29ae7fa387a5cb3a9ee48dbbe5375775fbd7310c9"
+    }
+  },
+  "controller_unchanged_sha256": "8096834b5eb9d73f140f585a01bd55535d4d7ec682220ca145daeecddf283060",
+  "scratch": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-oauth-host-delta-svjrpvnz",
+  "patch_sha256": "326a0d28ab101872b17ee11c5e84b2ac19579a8aaad9c08484b69cc0f564552f",
+  "patch_apply_root": "projects/chirality-app-v4/app",
+  "only_live_writes": "this private delta evidence and receiving plan; no product source writes",
+  "inputs_sha256": {
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-ACCESS-OAUTH-CONTROL-CUSTODY.md": "8efa4401058a74d03cd57177699e463798cff5e78d123e7b8d5f6a7642fb36a4",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/I1-OAUTH-CONTROL.md": "e4dbe2594463d6972394fa270f18a59690a83b9b65dfdcdf63b60989a452f07d",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V1-I1-OAUTH-CONTROL.md": "698002f32ed79d94fca99a67c9ea3a8fc3e4df51aefe4edcabb1c07f8655a975",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-ACCESS-OAUTH-CONTROL-CUSTODY.md": "0b40d528d87be936bf977f05391a4f575e464fc67833b0f7fdd995f56b275cd1",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-NIR-OAUTH-CONTROL-CUSTODY.md": "ceb794e469ccc1d9ddfa1e4bc2c53aef7239d2fe656334654c0c1978c5541fe9",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-REC-OAUTH-CONTROL-CUSTODY.md": "690accb9e829f4226724bee797602bc25f8cb9320afc3942f8b6517f421ee6f0",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V0-NPTD-OAUTH-CONTROL-CUSTODY.md": "ebdaf543d1e8fc5d82ce78c06c0a357aa4475ea6d9f54ffe5fc044895111da32",
+    "projects/chirality-app-v4/app/src-tauri/src/oauth_control.rs": "8096834b5eb9d73f140f585a01bd55535d4d7ec682220ca145daeecddf283060",
+    "projects/chirality-app-v4/app/src-tauri/tests/oauth_control.rs": "488f4c47d0667e24b87bf940761f4f678da3b355a3646a39abc8e9dcc20d0327",
+    "projects/chirality-app-v4/app/src-tauri/resources/supplier/0.160.0/codex_app_server_protocol.schemas.json": "7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5",
+    "projects/chirality-app-v4/app/src-tauri/resources/supplier/0.160.0/codex_app_server_protocol.v2.schemas.json": "e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md": "26659864fd1b720d51bc5bf8038311238e9d6b1775f62a4e08fd2917dba4f9ec",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md": "9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85",
+    "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs": "5cfeb3ffaa6f75374495c1e8ef1b1f1ffd283924e5a8bf7f2bcf0047883138bd",
+    "projects/chirality-app-v4/app/src-tauri/src/lib.rs": "09d654a1f5220cc451bf5b536876b5513289cf8b3296cd49c6ad6ec9e7897730"
+  },
+  "reading_extent": "full private controller/API/source record and V1; protocol six selected definitions decoded from local pinned bundle; CC full; adopted ACCESS AE/Q/CR7.1 and HOST privacy/source clauses; recipient reviews pertinent sections (initial multi-read output partially truncated); existing Host/auth source relevant registration/gate/writes/admission/stop/closure/projection and fixture helpers; inherited TASK/Root/LOOP provenance from PG1; actual existing Root native_api_key_entry/run_on_main_thread, submit_native_home_key and logout_home immutable target/confirmation adapters read to compare receiving API",
+  "validation": [
+    {
+      "command": "rustfmt --edition 2021 --emit stdout --config skip_children=true <scratch>/hosting.rs",
+      "result": "exit0; emitted formatted scratch-only output; syntax parsing only; candidate original formatting preserved"
+    },
+    {
+      "command": "rustfmt --edition 2021 --emit stdout --config skip_children=true <scratch>/auth_rpc.rs",
+      "result": "exit0; emitted formatted scratch-only output; syntax parsing only; candidate original formatting preserved"
+    },
+    {
+      "command": "git apply --check --directory=projects/chirality-app-v4/app <oauth-host.patch>",
+      "result": "final patch exit0; read-only apply check, no apply"
+    }
+  ],
+  "tests": "9 proposed oauth_host_ Host-owned cat-wire/native-callback controls; uncompiled/unexecuted",
+  "scope_limits": "No Cargo/native/auth/model/network/download/Git mutation; no real native UI/credential/home content; controller remains unchanged; live apply/testing/independent review require next coordinated source/Cargo grant",
+  "host_source_difference": "ACCESS AE7 definitive written native start error is represented separately as safe Host StartRejected; pure controller unchanged, no source loss converted to rejection."
+}

@@ -72,6 +72,7 @@ pub fn generic_guard(method: &str, params: &Value) -> Result<(), String> {
             "unsupported/malformed generic account login mode; no credential frame sent".into(),
         );
     }
+    if method=="account/login/cancel" {return Err("native OAuth cancellation requires original private pending control; generic route refused without send".into());}
     if method == "getAuthStatus" && params["includeToken"] == true {
         return Err("token-inclusive status is not supported by this App boundary".into());
     }
@@ -154,11 +155,86 @@ pub fn protocol_envelope(frame: &Value) -> bool {
         && object.get("method").is_none()
         && (object.contains_key("result") || object.contains_key("error"))
 }
+/// OAuth-only fresh allowlisted projection: unknown echo fields/keys are unavailable,
+/// not copied into public evidence. This does not filter unrelated native methods.
+fn oauth_projection(frame:&Value,method:&str,safe_id:Option<&Value>)->Value {
+    let mut safe=json!({});
+    if frame.get("id").is_some(){safe["id"]=safe_id.cloned().unwrap_or(Value::Null);}
+    if frame.get("jsonrpc").is_some(){safe["jsonrpc"]=json!("2.0");}
+    if frame.get("method").is_some(){safe["method"]=json!(method);}
+    if frame.get("params").is_some(){
+        let params=&frame["params"];
+        safe["params"]=match method{
+            "account/login/start"=>{let mut p=json!({"type":match params["type"].as_str(){Some("chatgpt")=>"chatgpt",Some("chatgptDeviceCode")=>"chatgptDeviceCode",Some("apiKey")=>"apiKey",Some("chatgptAuthTokens")=>"chatgptAuthTokens",Some("amazonBedrock")=>"amazonBedrock",_=>REDACTED}});for key in ["apiKey","accessToken","secretAccessKey","sessionToken","accessKeyId"]{if params.get(key).is_some(){p[key]=json!(REDACTED);}}p},
+            "account/login/cancel"=>json!({"loginId":REDACTED}),
+            _=>{let mut p=json!({"originalControlMaterial":"redacted/unavailable"});
+                if let Some(success)=params.get("success"){p["success"]=if success.is_boolean(){success.clone()}else{json!(REDACTED)};}
+                if params.get("loginId").is_some(){p["loginId"]=json!(REDACTED);}
+                if params.get("error").is_some(){p["error"]=if params["error"].is_null(){Value::Null}else{json!(ERROR_REDACTED)};}
+                p},
+        };
+    }
+    if let Some(result)=frame.get("result"){
+        safe["result"]=if method=="account/login/cancel"{
+            json!({"status":match result["status"].as_str(){Some("canceled")=>"canceled",Some("notFound")=>"notFound",_=>REDACTED}})
+        }else{
+            let mut r=json!({"type":match result["type"].as_str(){Some("chatgpt")=>"chatgpt",Some("chatgptDeviceCode")=>"chatgptDeviceCode",Some("apiKey")=>"apiKey",Some("chatgptAuthTokens")=>"chatgptAuthTokens",Some("amazonBedrock")=>"amazonBedrock",_=>REDACTED}});
+            if matches!(result["type"].as_str(),Some("chatgpt"|"chatgptDeviceCode")){for key in ["loginId","authUrl","verificationUrl","userCode"]{if result.get(key).is_some(){r[key]=json!(REDACTED);}}}
+            r
+        };
+    }
+    if let Some(error)=frame.get("error"){
+        let mut e=json!({"message":ERROR_REDACTED});
+        if error["code"].as_i64().is_some(){e["code"]=error["code"].clone();}
+        safe["error"]=e;
+    }
+    safe["protectedOriginalFieldsUnavailable"]=json!(true);
+    safe
+}
+
+/// Sensitive-key-bearing uncorrelated reply from an already known account channel:
+/// retain framing/scope, withhold payload; this does not invent a correlated method.
+pub(super) fn uncorrelated_account_projection(frame:&Value,possible_original_account:bool)->Option<Value>{
+    fn sensitive(v:&Value)->bool{match v{
+        Value::Object(o)=>o.iter().any(|(k,v)|credential_key(k)||presentation_key(k)||k=="loginId"||sensitive(v)),
+        Value::Array(a)=>a.iter().any(sensitive),_=>false,
+    }}
+    if frame.get("method").is_some()||(!possible_original_account&&!sensitive(frame)){return None;}
+    let mut safe=json!({"originalAccountPayload":"redacted/unavailable; uncorrelated, no native method invented"});
+    if frame.get("id").is_some(){safe["id"]=Value::Null;}
+    if frame.get("result").is_some(){safe["result"]=json!(REDACTED);}
+    if frame.get("error").is_some(){safe["error"]=json!({"message":ERROR_REDACTED});}
+    Some(safe)
+}
+/// Inbound framing requires Host-owned correlation, unlike source-created outbound IDs.
+/// Textual resemblance to an original typed account RPC is privacy-only, never admission.
+pub(super) fn project_received_frame(frame:&Value,correlated_method:Option<&str>,safe_id:Option<&Value>,possible_original_account:bool,known_account_channel:bool)->(Value,bool){
+    let method=frame.get("method").and_then(Value::as_str);
+    if let Some(method)=method.filter(|m|account_method(m)){
+        if matches!(method,"account/login/start"|"account/login/cancel"|"account/login/completed"){
+            let mut safe=oauth_projection(frame,method,None);
+            if frame.get("id").is_some(){safe["framingIdentity"]=json!("original auth framing identity unavailable; not a client RPC association");}
+            return(safe,true);
+        }
+        if frame.get("id").is_some(){return(json!({"method":method,"id":null,"params":REDACTED,"framingIdentity":"original auth request identity/payload unavailable; private mandatory error reply only"}),true);}
+    }
+    if known_account_channel&&correlated_method.is_none(){
+        if let Some(safe)=uncorrelated_account_projection(frame,possible_original_account){return(safe,true);}
+    }
+    // Only the actual exact typed original request identity may be reflected for a reply.
+    if let Some(method)=correlated_method.filter(|m|matches!(*m,"account/login/start"|"account/login/cancel")){
+        return(oauth_projection(frame,method,safe_id),true);
+    }
+    project_frame(frame,correlated_method)
+}
 pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, bool) {
     let method = frame
         .get("method")
         .and_then(Value::as_str)
         .or(correlated_method);
+    if let Some(method)=method.filter(|m|matches!(*m,"account/login/start"|"account/login/cancel"|"account/login/completed")){
+        return (oauth_projection(frame,method,frame.get("id")),true);
+    }
     let auth = method.is_some_and(account_method);
     if !auth {
         return (frame.clone(), false);
@@ -311,6 +387,7 @@ pub fn typed_observation(
         "account/login/start" => {
             json!({"state":if result["type"]=="apiKey" && requested_mode==Some("apiKey"){"native API-key presence reported; validity unknown until actual use"}else{"unexpected native login result; presence unknown"},"nativeType":result["type"],"credentialValidity":"unknown","identityVerified":false})
         }
+        "account/login/cancel"=>json!({"state":"native cancel response observed; no broader account/process effects inferred","status":result["status"],"identityVerified":false}),
         "account/read" => {
             json!({"state":if result.get("account").is_none(){"account omitted; unknown/unavailable"}else if result["account"].is_null(){"native account null observed"}else{"native account type observed"},"account":result.get("account"),"requiresOpenaiAuth":result.get("requiresOpenaiAuth"),"identityVerified":false})
         }

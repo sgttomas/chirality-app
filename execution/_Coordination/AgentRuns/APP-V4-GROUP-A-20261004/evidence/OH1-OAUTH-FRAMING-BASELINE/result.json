@@ -1,0 +1,24 @@
+{
+  "basis_commit": "e2a5addf3ffd83a8cd9cd102134e46831a60b0d8",
+  "snapshot": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-oh1-baseline-6qqvow_7",
+  "method": "read-only Git archive; append two baseline-compatible genuine SourceRequest/cat controls only; no OAuth controller authority in baseline",
+  "baseline_source_sha256": {
+    "hosting.rs": "6c48be0e0fdd32a8446095d4681cc11ff5e756ac8cc9d51df1b460ef0b51c82c",
+    "auth_rpc.rs": "566b52ab2d2eedbc2f98835c07cd3369a2f9046f33d7cead063bbe9ddc45734f"
+  },
+  "altered_host_sha256": "2ffa7512d7b1e0676c2e9ee548ed31cb0dd1b6d5ce52f6dafdc7b500e45d427b",
+  "test_additions_sha256": "54be403780778e457db4437ca5c90e5ce217aa401d8e02662fa836bc3ab71cf1",
+  "command": "CARGO_HOME=/tmp/chirality-app-v4-group-a-cargo-home CARGO_TARGET_DIR=/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target CHIRALITY_SKIP_CODEX=1 cargo test --offline --locked --lib oauth_baseline_oh1_ -- --nocapture",
+  "session": 75208,
+  "exit_code": 101,
+  "passed": 0,
+  "failed": 2,
+  "filtered": 115,
+  "compile_seconds": 4.97,
+  "run_seconds": 0.05,
+  "both_failures": "synthetic canary leaked into retained output",
+  "source_response_preservation_assertions_passed": true,
+  "localization": "both vectors pre-existing before OAuth hook delta; new OAuth projection preserved the gap; no admission/controller failure or real credential exposure claim",
+  "lane_released": true,
+  "review_original_reference": "../OH1-OAUTH-FRAMING-ORIGINAL/result.json"
+}

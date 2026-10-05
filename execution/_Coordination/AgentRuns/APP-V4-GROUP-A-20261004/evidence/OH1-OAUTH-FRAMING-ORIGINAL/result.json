@@ -1,0 +1,30 @@
+{
+  "basis": "e2a5addf3ffd83a8cd9cd102134e46831a60b0d8",
+  "scratch": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-oh1-original-v1pg8nvq",
+  "cwd": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-oh1-original-v1pg8nvq/projects/chirality-app-v4/app/src-tauri",
+  "source_method": "read-only Git archive baseline plus exact frozen live Host/auth bytes; only appended review controls in scratch Host module",
+  "source_pins": {
+    "hosting.rs": "4c26c2ab050c498d899d47d92d15b263891daefc414ee767286fdabcccd226fd",
+    "auth_rpc.rs": "c702d86d6d6bc82a01aae5b29ae7fa387a5cb3a9ee48dbbe5375775fbd7310c9",
+    "oauth_control.rs": "8096834b5eb9d73f140f585a01bd55535d4d7ec682220ca145daeecddf283060"
+  },
+  "additions_sha256": "b51cdc3b910b293726984259d5318c846f2f6435c382bd03f9e2b9251063581c",
+  "command": "CARGO_HOME=/tmp/chirality-app-v4-group-a-cargo-home CHIRALITY_SKIP_CODEX=1 CARGO_TARGET_DIR=<existing approved shared target> cargo test --offline --locked --lib oauth_review_oh1_ -- --nocapture",
+  "exit_code": 101,
+  "elapsed_seconds": 6.92,
+  "lane_released": true,
+  "limits": "reviewer synthetic existing Host fixture only; no stock/native/auth/model/network/credentials; live product untouched",
+  "frozen_product_before_additions_sha256": {
+    "hosting.rs": "a497566924a981a4753cee0ee007a7374c9782120b3a18d85b97702d56ed867a",
+    "auth_rpc.rs": "c702d86d6d6bc82a01aae5b29ae7fa387a5cb3a9ee48dbbe5375775fbd7310c9",
+    "oauth_control.rs": "8096834b5eb9d73f140f585a01bd55535d4d7ec682220ca145daeecddf283060"
+  },
+  "original_source_reconstruction_matches_live_frozen": true,
+  "compile_seconds": 6.24,
+  "test_seconds": 0.08,
+  "passed": 0,
+  "failed": 2,
+  "filtered": 124,
+  "cargo_session": 89068,
+  "fixture_cleanup": "existing exchange fixture completed/reaped owned cat before injected events; no new process/native framework added"
+}
