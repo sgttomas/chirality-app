@@ -1068,7 +1068,7 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "text_identity": {
-      "description": "WR §16.3 TX-4: sha256 over the UTF-8 encoding of a text element, written in lowercase hex.",
+      "description": "WR §16.3 TX-4 / CC-WR-TEXT-METHOD-ADOPTION: new App text uses chirality.app.exact-bytes.sha256/v1 over exact UTF-8 bytes. Historical and other method/value inputs remain opaque; different methods are incomparable, never relabelled.",
       "type": "object",
       "required": [
         "method",
@@ -1077,7 +1077,8 @@
       "additionalProperties": false,
       "properties": {
         "method": {
-          "const": "sha256 over UTF-8 text"
+          "type": "string",
+          "minLength": 1
         },
         "value": {
           "$ref": "#/$defs/hex64"
@@ -1533,6 +1534,7 @@
             "verified",
             "text differs, workflow bytes equal",
             "text differs, workflow bytes differ",
+            "incomparable",
             "not found",
             "unreadable"
           ]
@@ -1568,7 +1570,8 @@
                   "enum": [
                     "verified",
                     "text differs, workflow bytes equal",
-                    "text differs, workflow bytes differ"
+                    "text differs, workflow bytes differ",
+                    "incomparable"
                   ]
                 }
               },

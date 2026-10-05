@@ -1,0 +1,45 @@
+{
+  "basis": "CC-CONTENT-IDENTITY reviewed successor 453746e687c3cd6488eb8c57b50a19a5525b3ce0b7270cbe5f1b8c577d32b862",
+  "method": "chirality.app.workflow-package.sha256/v1",
+  "generator": "Independent Python hashlib + struct.pack(>Q) over literal raw bytes; not Rust/prototype execution",
+  "vectors": [
+    {
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "hex": "776f726b666c6f770a"
+        },
+        {
+          "path": "resource.bin",
+          "hex": "00ff"
+        }
+      ],
+      "digest": "0c8db7f93e14aa8b667df62e56d4f7de4e3d0eae64e80112a1f519a8d26d7767"
+    },
+    {
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "hex": "776f726b666c6f770a"
+        },
+        {
+          "path": "resource.bin",
+          "hex": "00ff"
+        },
+        {
+          "path": "resources/ü\npath",
+          "hex": "0d0a00fe"
+        },
+        {
+          "path": "carriage-manifest.json",
+          "hex": "7b226e6f7465223a22696e73696465206d65616e7320696e636c75646564227d0a"
+        },
+        {
+          "path": "back\\slash",
+          "hex": "6e6f206e6f726d616c697a6174696f6e"
+        }
+      ],
+      "digest": "470cb4f164270379a751452a9f769adbda6425e023ebd6fcc45b781db0c454a1"
+    }
+  ]
+}

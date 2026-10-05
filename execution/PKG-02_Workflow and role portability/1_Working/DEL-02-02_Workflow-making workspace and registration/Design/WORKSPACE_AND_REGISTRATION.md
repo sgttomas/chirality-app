@@ -517,7 +517,7 @@ The run-start text is, in this order, each line ended by a line feed:
 - **TX-1** Only a selected revision with standing LS-1, LS-5, LS-6 or LS-8 is composed. A draft is never composed (K-7; TT-3).
 - **TX-2** A `"` in a source root is written as `'` in the start line; nothing else is escaped.
 - **TX-3 Extraction.** The body is the text between the begin-marker line (and its line feed) and the **last** occurrence of a line feed followed by the end marker. Because the marker carries the revision, a workflow would have to contain its own revision value to collide with it.
-- **TX-4 Identity.** The text identity is sha256 over the UTF-8 encoding of the whole text element (`text_identity`, method "sha256 over UTF-8 text"); `workflow_file.content` is sha256 over `WORKFLOW.md`'s bytes. The revision identity (U-03) stays the identity of the whole package.
+- **TX-4 Identity (CC-WR-TEXT-METHOD-ADOPTION, 2026-10-05).** New App writers designate the whole run-start/end text element's exact UTF-8 bytes and `workflow_file.content`'s exact stored `WORKFLOW.md` bytes with `chirality.app.exact-bytes.sha256/v1`: lowercase 64-hex SHA-256, no normalization or excluded bytes. Framing belongs to composed text; source bytes, composed text and whole-package revision remain separate scopes. This adopts CC-CONTENT-IDENTITY and EXEC TR-4's selected text method, not a new algorithm. Historical `sha256 over UTF-8 text` and other incoming method/value objects remain unchanged opaque inputs. Only the same method and subject/scope permit comparison; equal digest characters under different methods do not verify supply, body equality, registration or A15. The schema accepts a nonempty opaque method and the existing lowercase-hex value shape; schema validity establishes neither source authority nor actual supply.
 - **TX-5 End notice (the run-end line of R20-3).** When a run ends and no run starts with the next turn, the App prefixes the person's next turn with one App-written line, sent as the turn's first text element before the person's own text: `[Chirality] Workflow run ended: ‹name› revision ‹rev12› (run ‹run id›, ‹how›). No workflow is in force.` once. If the next turn starts a run instead, its chain line says the same and no separate notice is sent.
 - **TX-6 Determinism.** The same selection, run identity, chain and revision bytes give the same text (prototype P-48). The `run_text` record keeps the lines and identities, not a second copy of the bytes (the store holds them; Codex's history holds the text).
 - The model is not shown other registered workflows: the text names only this workflow and, on a chain line, the previous one (R19-7; prototype P-49).
@@ -550,8 +550,9 @@ The run-start text is, in this order, each line ended by a line feed:
 | State | Condition |
 |---|---|
 | *verified* | The turn's user message holds a text element whose identity equals the composed text's |
-| *text differs, workflow bytes equal* | The text differs but the extracted body (TX-3) equals `WORKFLOW.md`: framing changed |
+| *text differs, workflow bytes equal* | The text differs under the same method, but the extracted body (TX-3) has the same method/scope and equals `WORKFLOW.md`: framing changed |
 | *text differs, workflow bytes differ* | Neither matches (for example line endings converted) |
+| *incomparable* | Observed text exists, but its method differs from the preserved expected text method, or a required body comparison has a different method. Preserve both identities and an explicit limit; no equality or changed-byte inference. Historical checks remain historical |
 | *not found* | The turn, its user message or a text element is absent |
 | *unreadable* | The `thread/items/list` read failed, or one of its pages could not be read (SC-3; R21-4); read again later |
 
@@ -590,3 +591,7 @@ The run-start text is, in this order, each line ended by a line feed:
 **SQ-END — end a run without a successor.** EN-1 the person ends the run (cause *completed* when on a finished report, FN-2; otherwise *ended by the person*), recorded by DEL-02-03; EN-2 the next turn carries the end notice first (TX-5); EN-3 supply check of the notice. If no further turn comes, nothing more is sent.
 
 **SQ-CHAIN — (b) proposal.** CP-1 an agent message completes with a proposal line (PR-1); CP-2 offer (PR-2, PR-3); CP-3 the person confirms (PR-4) or ignores it; CP-4 SQ-RUN from RN-2 with `prior_run` and the chain line.
+
+### CC-WR-TEXT-METHOD-ADOPTION receiving boundary
+
+Bounded 2026-10-05 source adoption; historical fixture identities remain intact. Receiver fields remain `run_text.text_identity`, `run_text.workflow_file.content`, and `supply_check.expected_text/expected_workflow/observed_text`, each `{method,value}`; `supply_check.state` adds `incomparable`. WR package identity/ID-2/RB-1…RB-4 and native supply/registration evidence remain independent. Product I2 must separately adopt the reviewed schema/semantics. No human gate, authentication, act, registration or model adoption is inferred.

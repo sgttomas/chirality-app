@@ -1,0 +1,7 @@
+{
+  "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md": "5ed5da8842b32b87ae68db3476192a55fc8ff151802684b10bdca16eaa8b8d8b",
+  "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.schema.json": "6228a28cc1776e2e15a99cd5201eccdbe9db10e7968f7d7a67b974bae18b5928",
+  "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/prototype/wrproto.py": "256168a263f0ea5cf7af81da44ce1c21bdead70ab64205dff6e445161e4900c1",
+  "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.valid.examples.jsonl": "9b21cc8b5860c4b312ab0a8f091fff394b0db86368e199d34b472e7828e1b063",
+  "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.invalid.examples.json": "2a2f2afccd9f6d11391228e738587a77406bc6c9857ea1ad467d88797b863866"
+}

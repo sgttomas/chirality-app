@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-02-04:role-supply-record:0.2",
+  "title": "Role supply record (PROPOSED, ROLE-v0.2 §6.1)",
+  "description": "One record per conversation start (thread/start, the only request that supplies role guidance) and per same-role fork (thread/fork, which inherits it). Role guidance only: product guidance + the conversation's role (R19-1, R19-7); a workflow is supplied per run by DEL-02-02's run-start text and recorded there. The record is the 'source identity supplied by the composing owner' of HOSTING §8.2 and the proposed body of RS R3 'supplied_guidance' for role guidance. Supplied is not adopted: adoption is always 'unknown'. PROPOSED; not accepted.",
+  "type": "object",
+  "required": ["format", "formatVersion", "supplyId", "thread", "trigger", "request", "selection", "outcome", "adoption"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "chirality.role.supply"},
+    "formatVersion": {"const": "0.2"},
+    "supplyId": {"type": "string", "pattern": "^sup:"},
+    "thread": {"type": "string", "minLength": 1, "description": "Codex thread identity as observed (App-observed pointer, R17-4); for a refused start, the App's conversation reference; for a fork, the new thread once reported"},
+    "trigger": {"enum": ["thread-start", "fork"]},
+    "inheritedFrom": {"type": "string", "pattern": "^sup:", "description": "Fork only: the source conversation's start record, whose guidance the fork keeps (OBS-3 W-6)"},
+    "continuedFrom": {
+      "type": "object",
+      "description": "'Continue as <role>' only (R19-3, R19-8): the conversation this new one continues. A relation, not a copy: no history is carried; the person's edited handoff summary is the new conversation's first message, in Codex history",
+      "required": ["thread", "supplyRef"],
+      "additionalProperties": false,
+      "properties": {
+        "thread": {"type": "string", "minLength": 1},
+        "supplyRef": {"type": "string", "pattern": "^sup:"}
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": ["method"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {"enum": ["thread/start", "thread/fork"]},
+        "requestRef": {"type": "string", "minLength": 1, "description": "HOSTING §5 client-request identity; absent when refused before send"},
+        "generation": {"type": "integer", "minimum": 1, "description": "HOSTING §4 generation"}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "required": ["role", "preselected"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK", "none"]},
+        "preselected": {"type": "boolean", "description": "true when the role came from the role set's default and the person kept it (R17-9)"},
+        "roleSet": {"$ref": "#/$defs/contentIdentity", "description": "Content identity of the bundled role set (roles.json) in force"}
+      }
+    },
+    "carried": {
+      "type": "object",
+      "required": ["developerInstructions", "baseInstructions", "nativeChildRoles"],
+      "additionalProperties": false,
+      "properties": {
+        "compositionFormat": {"const": "chirality.role.compose/0.2"},
+        "developerInstructions": {
+          "type": "object",
+          "required": ["content", "byteLength", "parts"],
+          "additionalProperties": false,
+          "properties": {
+            "content": {"$ref": "#/$defs/contentIdentity"},
+            "byteLength": {"type": "integer", "minimum": 1},
+            "parts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/part"}}
+          }
+        },
+        "baseInstructions": {"const": "not-set", "description": "R17-8: never set"},
+        "nativeChildRoles": {"type": "array", "items": {"$ref": "#/$defs/childRole"}}
+      }
+    },
+    "supplierReported": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instructionSources": {
+          "description": "ThreadStartResponse / ThreadForkResponse instructionSources as reported (the harness's own discovered instruction files); 'not-reported' when no response was read",
+          "oneOf": [
+            {"type": "array", "items": {"type": "string"}},
+            {"const": "not-reported"}
+          ]
+        },
+        "agentRole": {"type": ["string", "null"], "description": "Thread.agentRole as reported (sub-agent threads only)"},
+        "forkedFromId": {"type": ["string", "null"], "description": "Thread.forkedFromId as reported for a fork (OBS-3 W-6: only thread/read and the fork response report it)"}
+      }
+    },
+    "outcome": {"enum": ["supplied", "inherited", "refused-before-send", "request-failed", "unknown-no-response"]},
+    "refusal": {"enum": ["guidance-file-missing", "guidance-file-unreadable", "guidance-not-utf8", "role-set-invalid", "forbidden-input-in-request"]},
+    "adoption": {"const": "unknown", "description": "Supplied is not adopted (CLM-004; HOSTING §8.2 P-15)"}
+  },
+  "allOf": [
+    {"if": {"properties": {"trigger": {"const": "thread-start"}}, "required": ["trigger"]},
+     "then": {"properties": {"request": {"properties": {"method": {"const": "thread/start"}}},
+                             "outcome": {"enum": ["supplied", "refused-before-send", "request-failed", "unknown-no-response"]}},
+              "not": {"required": ["inheritedFrom"]}}},
+    {"if": {"properties": {"trigger": {"const": "fork"}}, "required": ["trigger"]},
+     "then": {"required": ["inheritedFrom"],
+              "properties": {"request": {"properties": {"method": {"const": "thread/fork"}}},
+                             "outcome": {"enum": ["inherited", "request-failed", "unknown-no-response"]}},
+              "allOf": [{"not": {"required": ["carried"]}}, {"not": {"required": ["continuedFrom"]}}]}},
+    {"if": {"properties": {"outcome": {"const": "refused-before-send"}}, "required": ["outcome"]},
+     "then": {"required": ["refusal"], "not": {"required": ["carried"]}},
+     "else": {"not": {"required": ["refusal"]}}},
+    {"if": {"properties": {"trigger": {"const": "thread-start"}, "outcome": {"enum": ["supplied", "request-failed", "unknown-no-response"]}}, "required": ["trigger", "outcome"]},
+     "then": {"required": ["carried"]}},
+    {"if": {"properties": {"selection": {"properties": {"role": {"const": "none"}}}}},
+     "then": {"properties": {"carried": {"properties": {"developerInstructions": {"properties": {"parts": {"items": {"not": {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]}}}}}}}}}}
+  ],
+  "$defs": {
+    "contentIdentity": {
+      "description": "Same shape as RS-v0.8 contentIdentity. Method designation required; the algorithm is open (HOSTING U-08).",
+      "oneOf": [
+        {"type": "object", "required": ["method", "value"], "additionalProperties": false,
+         "properties": {"method": {"type": "string", "minLength": 1}, "value": {"type": "string", "minLength": 1}}},
+        {"type": "object", "required": ["notObtainable", "reason"], "additionalProperties": false,
+         "properties": {"notObtainable": {"const": true}, "reason": {"type": "string", "minLength": 1}}}
+      ]
+    },
+    "guidanceSource": {
+      "type": "object",
+      "required": ["store", "path", "release", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "store": {"enum": ["seeded-copy"]},
+        "path": {"type": "string", "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"},
+        "release": {"type": "string", "minLength": 1, "description": "App release whose default was seeded"},
+        "state": {"enum": ["default", "modified"]},
+        "defaultContent": {"$ref": "#/$defs/contentIdentity", "description": "The shipped default's identity, for comparison"}
+      }
+    },
+    "part": {
+      "type": "object",
+      "required": ["kind", "source", "content", "offset", "length"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["product-guidance", "role-guidance"], "description": "No workflow part (R19-1, R19-7)"},
+        "role": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"]},
+        "source": {"$ref": "#/$defs/guidanceSource"},
+        "content": {"$ref": "#/$defs/contentIdentity"},
+        "offset": {"type": "integer", "minimum": 0, "description": "Byte offset of the part in the UTF-8 composed text"},
+        "length": {"type": "integer", "minimum": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]},
+         "then": {"required": ["role"]}}
+      ]
+    },
+    "childRole": {
+      "type": "object",
+      "required": ["role", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"]},
+        "status": {"enum": ["supplied", "not-supplied"]},
+        "configKeys": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^agents\\.(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.(description|config_file)$"}},
+        "composed": {"$ref": "#/$defs/contentIdentity", "description": "Identity of the child's developer_instructions text (product guidance + role); it replaces the parent's for the child (OBS-2 O-4a, through an adapter)"},
+        "file": {"$ref": "#/$defs/contentIdentity", "description": "Identity of the role configuration file the key names"},
+        "reason": {"enum": ["user-configuration-defines-role", "not-offered-by-role", "mechanism-not-supported-at-pin", "user-configuration-not-read"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "supplied"}}, "required": ["status"]},
+         "then": {"required": ["configKeys", "composed", "file"], "not": {"required": ["reason"]}},
+         "else": {"required": ["reason"], "not": {"required": ["configKeys"]}}}
+      ]
+    }
+  }
+}

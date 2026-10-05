@@ -13,6 +13,7 @@ crate-type = ["rlib", "staticlib", "cdylib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+pulldown-cmark = { version = "=0.13.4", default-features = false }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }

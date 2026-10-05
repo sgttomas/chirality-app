@@ -83,11 +83,47 @@ struct Pending {
     revision: u64,
     waiting_ended: bool,
 }
+// Correlation metadata only. The raw page remains in Selection.items_page.
+struct AcceptedItems {
+    query: HistoryQuery,
+    selection_epoch: u64,
+    revision: u64,
+}
+
+/// A borrowed latest read-only acceptance observation. Public `receive` alone
+/// cannot establish supplier authenticity, operational admission or an act.
+/// The owning Host must separately verify its private written/correlated source.
+pub(crate) struct AcceptedItemsObservation<'a> {
+    accepted: &'a AcceptedItems,
+    page: &'a Value,
+}
+impl AcceptedItemsObservation<'_> {
+    pub(crate) fn query(&self) -> &HistoryQuery {
+        &self.accepted.query
+    }
+    pub(crate) fn owner_instance(&self) -> u64 {
+        self.accepted.query.factory_id
+    }
+    pub(crate) fn selection_epoch(&self) -> u64 {
+        self.accepted.selection_epoch
+    }
+    pub(crate) fn stream_revision(&self) -> u64 {
+        self.accepted.revision
+    }
+    pub(crate) fn stream(&self) -> &str {
+        "item-pages"
+    }
+    pub(crate) fn page(&self) -> &Value {
+        self.page
+    }
+}
+
 struct Selection {
     thread: String,
     metadata: Option<Value>,
     turns_page: Option<Value>,
     items_page: Option<Value>,
+    accepted_items: Option<AcceptedItems>,
     goal: Option<Value>,
     turn_ids: HashSet<String>,
     turn_cursors: HashSet<(String, Direction)>,
@@ -108,6 +144,7 @@ impl Selection {
             metadata: None,
             turns_page: None,
             items_page: None,
+            accepted_items: None,
             goal: None,
             turn_ids: HashSet::new(),
             turn_cursors: HashSet::new(),
@@ -417,6 +454,48 @@ impl NativeHistory {
             Kind::Items(id, turn.into(), direction),
         )
     }
+    /// Current accepted item-page observation only; a refusal withholds this
+    /// witness, not the prior raw read-only page or supplier history itself.
+    pub(crate) fn accepted_items_observation<'a>(
+        &'a self,
+        query: &HistoryQuery,
+    ) -> Result<AcceptedItemsObservation<'a>, String> {
+        if self.closed
+            || query.factory_id != self.factory_id
+            || query.home != self.home
+            || query.generation != self.generation
+            || query.method != "thread/items/list"
+        {
+            return Err("foreign/stale/closed accepted history observation".into());
+        }
+        let selected = self.selected()?;
+        let accepted = selected
+            .accepted_items
+            .as_ref()
+            .ok_or("accepted item-page observation unavailable")?;
+        if accepted.query != *query
+            || accepted.selection_epoch != self.selection_epoch
+            || query.params["threadId"] != selected.thread
+            || self.streams.get("item-pages") != Some(&accepted.revision)
+        {
+            return Err("accepted item-page query/selection/stream superseded".into());
+        }
+        if selected.errors.contains_key("item-pages")
+            || self.pending.values().any(|p| {
+                p.stream == "item-pages"
+                    && p.revision == accepted.revision
+                    && p.selection_epoch == self.selection_epoch
+            })
+        {
+            return Err("accepted item-page current observation pending or unavailable".into());
+        }
+        let page = selected
+            .items_page
+            .as_ref()
+            .ok_or("accepted item-page raw result unavailable")?;
+        Ok(AcceptedItemsObservation { accepted, page })
+    }
+
     pub fn read_goal(&mut self) -> Result<HistoryQuery, String> {
         let id = self.selected()?.thread.clone();
         self.issue(
@@ -636,6 +715,11 @@ impl NativeHistory {
                 }
                 capture_cursors(s.item_cursors.entry(turn).or_default(), result, direction);
                 s.items_page = Some(result.clone());
+                s.accepted_items = Some(AcceptedItems {
+                    query: query.clone(),
+                    selection_epoch: self.selection_epoch,
+                    revision,
+                });
             }
             Kind::Goal(_) => {
                 self.selection.as_mut().unwrap().goal = Some(result.clone());

@@ -1,5 +1,7 @@
 //! RS W-3/R-6 correction projection from once-read, schema-checked claims.
 //! No writer, native provenance/admission or general R-7 policy is introduced.
+#[path = "record_semantics.rs"]
+pub mod record_semantics;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::PathBuf;
@@ -44,6 +46,7 @@ fn reaches(edges: &BTreeMap<String, BTreeSet<String>>, from: &str, to: &str) -> 
 pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String>) -> Value {
     let mut grouped: BTreeMap<String, Vec<&Value>> = BTreeMap::new();
     let mut diagnostics = Vec::new();
+    let mut semantic = BTreeMap::new();
     for claim in claims {
         let record = &claim["record"];
         if let Err(error) = crate::schema_validation::bundled().and_then(|v| v.validate(record)) {
@@ -53,6 +56,13 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
             continue;
         }
         if let Some(id) = record["recordId"].as_str() {
+            let assessment = record_semantics::check_a15_correspondence(record);
+            if !assessment.eligible_for_derived_claim() {
+                diagnostics.push(json!({"recordId":id,"state":assessment.snapshot()["status"],"reason":assessment.reasons,"scope":"A15 HA-10/R-7 subset; native custody remains unknown"}));
+            }
+            // Every schema-readable source remains in correction grouping. A
+            // semantic breach affects derived eligibility, never raw custody.
+            semantic.insert(id.to_owned(), assessment);
             grouped.entry(id.into()).or_default().push(claim);
         }
     }
@@ -120,7 +130,11 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
     let mut edges: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut corrected: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for (id, target) in &links {
-        if refused.contains_key(id) || refused.contains_key(target) {
+        if refused.contains_key(id) || refused.contains_key(target)
+            || semantic.get(id).is_some_and(|s| !s.eligible_for_derived_claim()) {
+            // A semantically invalid/incomparable correction is readable but
+            // cannot suppress a valid predecessor. A valid repair can correct
+            // an ineligible original; CI-12 relation/order logic stays intact.
             continue;
         }
         edges.entry(target.clone()).or_default().insert(id.clone());
@@ -132,6 +146,8 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
     for (a, target_a) in &links {
         for (b, target_b) in &links {
             if a == b || target_a != target_b || refused.contains_key(a) || refused.contains_key(b)
+                || semantic.get(a).is_some_and(|s| !s.eligible_for_derived_claim())
+                || semantic.get(b).is_some_and(|s| !s.eligible_for_derived_claim())
             {
                 continue;
             }
@@ -173,6 +189,7 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
             .iter()
             .filter(|a| {
                 !refused.contains_key(*a)
+                    && semantic.get(*a).is_none_or(|s| s.eligible_for_derived_claim())
                     && !members.iter().any(|b| a != &b && reaches(&edges, a, b))
             })
             .cloned()
@@ -192,7 +209,7 @@ pub fn project_from_read_claims(claims: &[Value], complete_logs: &HashSet<String
     }
     let projections:Vec<_>=claims.iter().map(|claim| {
         let id=claim["record"]["recordId"].as_str().unwrap_or("");
-        json!({"record":claim["record"],"source":claim["source"],"correctedBy":corrected.get(id).cloned().unwrap_or_default(),"relationLimit":refused.get(id),"identityResolution":if conflicts.contains(id){"conflicting identity"}else if grouped.get(id).is_some_and(|v|v.len()>1){"one unchanged claim; identical sources retained"}else{"unique readable identity"},"provenance":"recorded claim; not verified native evidence"})
+        json!({"record":claim["record"],"source":claim["source"],"correctedBy":corrected.get(id).cloned().unwrap_or_default(),"relationLimit":refused.get(id),"a15Semantics":record_semantics::check_a15_correspondence(&claim["record"]).snapshot(),"identityResolution":if conflicts.contains(id){"conflicting identity"}else if grouped.get(id).is_some_and(|v|v.len()>1){"one unchanged claim; identical sources retained"}else{"unique readable identity"},"provenance":"recorded claim; not verified native evidence"})
     }).collect();
-    json!({"view":"RS W-3/R-6 correction relations; derived, not authority","claims":projections,"correctionGroups":groups,"diagnostics":diagnostics,"scope":"same-kind correction relations only; other R-7 rules/admission remain with owning consumers"})
+    json!({"view":"RS W-3/R-6 correction relations; derived, not authority","claims":projections,"correctionGroups":groups,"diagnostics":diagnostics,"scope":"same-kind correction relations plus A15 HA-10/R-7 intrinsic correspondence subset; full registration/capture/native admission remain with owning consumers"})
 }

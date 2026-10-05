@@ -835,8 +835,29 @@ class Workspace:
 
 
 # ------------------------------------------------------------------ run text (R19-2, R19-7; WR section 16)
+TEXT_METHOD = "chirality.app.exact-bytes.sha256/v1"
+LEGACY_TEXT_METHOD = "sha256 over UTF-8 text"
+
+
 def tsha(text):
-    return {"method": "sha256 over UTF-8 text", "value": hashlib.sha256(text.encode("utf-8")).hexdigest()}
+    return {"method": TEXT_METHOD, "value": hashlib.sha256(text.encode("utf-8")).hexdigest()}
+
+
+def text_standing(got, rec):
+    """Observe exact text scope; never bridge historical method labels."""
+    observed = tsha(got)
+    if rec["text_identity"]["method"] != observed["method"]:
+        return "incomparable"
+    if observed == rec["text_identity"]:
+        return "verified"
+    body = extract_body(got, rec["workflow"]) if rec["purpose"] == "run start" else None
+    if body is not None:
+        expected = rec["workflow_file"]["content"]
+        if expected["method"] != TEXT_METHOD:
+            return "incomparable"
+        if tsha(body) == expected:
+            return "text differs, workflow bytes equal"
+    return "text differs, workflow bytes differ"
 
 
 def rev12(t):
@@ -899,7 +920,7 @@ class RunDesk:
         text = "\n".join(head) + "\n" + body + "\n" + e
         rec = {"record_kind": "run_text", "purpose": "run start", "framing": FRAME, "run": run, "conversation": c,
                "workflow": t, "holding_library": sel["holding_library"],
-               "workflow_file": {"path": "WORKFLOW.md", "content": {"method": "sha256 over UTF-8 text",
+               "workflow_file": {"path": "WORKFLOW.md", "content": {"method": TEXT_METHOD,
                                                                     "value": hashlib.sha256(raw).hexdigest()},
                                  "bytes": len(raw)},
                "chain": chain, "origin_of_start": origin, "selection": sel["selection_id"], "lines": lines,
@@ -996,12 +1017,9 @@ class RunDesk:
             return self.ws.emit(out)
         got = texts[0]["text"]
         out.update({"turn": turn_id, "item": um[0]["id"], "located_by": located, "observed_text": tsha(got)})
-        if tsha(got) == rec["text_identity"]:
-            out["state"] = "verified"
-        else:
-            body = extract_body(got, rec["workflow"]) if rec["purpose"] == "run start" else None
-            same = body is not None and hashlib.sha256(body.encode("utf-8")).hexdigest() == rec["workflow_file"]["content"]["value"]
-            out["state"] = "text differs, workflow bytes equal" if same else "text differs, workflow bytes differ"
+        out["state"] = text_standing(got, rec)
+        if out["state"] == "incomparable":
+            out["evidence_limits"].append("identity methods incomparable; historical values retained without relabelling")
         return self.ws.emit(out)
 
     # ---- agent proposals (PR-1..PR-5)
@@ -1678,7 +1696,9 @@ def main():
                     bad63.append(("markers or proposal line", r["run"]))
                 head = [L[k] for k in ("chain_line", "start_line", "proposal_line", "files_line", "begin_marker") if k in L]
                 txt = "\n".join(head) + "\n" + raw.decode("utf-8") + "\n" + L["end_marker"]
-            if tsha(txt) != r["text_identity"] or len(txt.encode("utf-8")) != r["text_bytes"]:
+            # Explicit historical fixture algorithm only; no cross-method comparison.
+            fixture_identity = {"method": LEGACY_TEXT_METHOD, "value": hashlib.sha256(txt.encode("utf-8")).hexdigest()}
+            if fixture_identity != r["text_identity"] or len(txt.encode("utf-8")) != r["text_bytes"]:
                 bad63.append(("text identity or bytes", r["run"], r["purpose"]))
             texts[(r["run"], r["purpose"])] = r["text_identity"]
         for r in valid:

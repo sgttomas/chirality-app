@@ -1,0 +1,12 @@
+error[E0451]: fields `identity`, `snapshot` and `act_ref` of struct `workflow_workspace::RegisteredRevision` are private
+ --> /private/tmp/chirality-wr-visibility-5rooaejd/private_registered.rs:5:100
+  |
+5 | ...ot)->RegisteredRevision { RegisteredRevision { identity,snapshot,act_ref:"claimed".into() } } fn main() {}
+  |                                                   ^^^^^^^^ ^^^^^^^^ ^^^^^^^ private field
+  |                                                   |        |
+  |                                                   |        private field
+  |                                                   private field
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0451`.

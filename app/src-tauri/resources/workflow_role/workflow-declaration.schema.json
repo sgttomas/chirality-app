@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-02-01:workflow-declaration:WD-v0.8",
+  "title": "Workflow declared part (DEL-02-01 WD-v0.8 §3.5-§3.7, §4; PROPOSED)",
+  "description": "PROPOSED schema of the JSON document carried in a workflow package's WORKFLOW.md as the fenced block with info string `workflow-declaration` (WD §3.5). Names are Chirality's own; no host or supplier wire field is selected. The schema states the conformant form an author writes at contract version WD-v0.8. A consumer does not reject a whole document for an element-level failure: it reads in the order of WD §3.7, attributes each failure to its element and classifies it by WD §3.4 and §11. An omitted category is undeclared; an empty array is declared empty. Status: DRAFT, unsupplied, not implemented, not accepted.",
+  "type": "object",
+  "required": ["declaration_contract_version"],
+  "additionalProperties": false,
+  "properties": {
+    "declaration_contract_version": {
+      "description": "WD §3.3. The contract version this document is written against. A consumer that knows a lower version reads the document as not established (WD §3.4; VO-3).",
+      "const": "WD-v0.8"
+    },
+    "expected_inputs": {
+      "description": "WD §4.1. Omitted: undeclared. Empty: declared empty.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/expected_input"}
+    },
+    "required_tools": {
+      "description": "WD §4.2. Omitted: undeclared. Empty: declared empty.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/required_tool"}
+    },
+    "checkpoints": {
+      "description": "WD §4.3. Omitted: undeclared. Empty: declared empty (\"this workflow declares no checkpoints\").",
+      "type": "array",
+      "items": {"$ref": "#/$defs/checkpoint"}
+    },
+    "returned_outputs": {
+      "description": "WD §4.4. Omitted: undeclared. Empty: declared empty.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/returned_output"}
+    },
+    "returned_evidence": {
+      "description": "WD §4.5. Omitted: undeclared. Empty: declared empty.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/returned_evidence"}
+    },
+    "compatible_roles": {
+      "description": "WD §4.7. Omission inherits compatibility; it never expands a role.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"]}
+    },
+    "tool_restriction": {"$ref": "#/$defs/tool_restriction"}
+  },
+  "$defs": {
+    "local_name": {
+      "description": "A local name, unique within its category of one declared part (WD §3.7 DN-1).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "text": {"type": "string", "minLength": 1},
+    "stages": {
+      "description": "Where in the method the element applies: prose section headings (WD §4.1, §4.2.2).",
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/text"}
+    },
+    "host_outcome": {
+      "description": "A P §9 outcome that can be observed for a named host operation, as a token (queued, accepted, rejected, withdrawn, applied (receipt), refused - invalid, refused - stale, application error). P owns the names and the tokens: each value is a value of P-v0.8 `proposal_state.schema.json` `$defs/item_state`, and WD follows P (WD §3.6; R14-6). `applied` is P's token for applied (receipt).",
+      "enum": ["queued", "accepted", "rejected", "withdrawn", "applied", "refused_invalid", "refused_stale", "application_error"]
+    },
+    "workflow_identity": {
+      "description": "WD §6.1 identity tuple {kind, origin, source root, name, revision} with derived-from (R-9; PROPOSED; V18-2 m-9). Not a member of the declared part: consumer schemas that carry a workflow identity may reference this definition (`workflow-declaration.schema.json#/$defs/workflow_identity`) or state their mapping to it. A tuple without `revision` identifies a library slot, not selected content (WD §6.1); a consumer that records selected content requires it. `derived_from` is the full tuple of the workflow adapted from, never a string. The revision value is opaque content identity; CC-CONTENT-IDENTITY selects chirality.app.workflow-package.sha256/v1 for new App package/draft revisions (WD §6.1). Host/legacy values and method designations remain faithfully carried and are not rewritten; different methods are incomparable. `revision_method` carries the identity method designation where known.",
+      "type": "object",
+      "required": ["kind", "origin", "source_root", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "workflow"},
+        "origin": {"enum": ["project", "user", "bundled", "host"]},
+        "source_root": {"$ref": "#/$defs/text"},
+        "name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "minLength": 1, "maxLength": 64},
+        "revision": {"$ref": "#/$defs/text"},
+        "revision_method": {"$ref": "#/$defs/text"},
+        "derived_from": {"$ref": "#/$defs/workflow_identity"}
+      }
+    },
+    "workflow_ref": {
+      "description": "Identity of another workflow whose run output is an input (WD §4.1, §6.1). The revision is a label for a content identity whose algorithm is open (U-03).",
+      "type": "object",
+      "required": ["origin", "source_root", "name", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "origin": {"enum": ["project", "user", "bundled", "host"]},
+        "source_root": {"$ref": "#/$defs/text"},
+        "name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "minLength": 1, "maxLength": 64},
+        "revision": {"$ref": "#/$defs/text"},
+        "output": {"$ref": "#/$defs/local_name"}
+      }
+    },
+    "expected_input": {
+      "description": "WD §4.1 expected input.",
+      "type": "object",
+      "required": ["name", "meaning", "kind", "necessity", "stages"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/local_name"},
+        "meaning": {"$ref": "#/$defs/text"},
+        "kind": {"enum": ["host_read", "file_supplied", "person_supplied", "workflow_output"]},
+        "necessity": {"enum": ["required", "optional"]},
+        "absence_effect": {"$ref": "#/$defs/text"},
+        "basis_requirement": {"$ref": "#/$defs/text"},
+        "read_through": {"$ref": "#/$defs/local_name"},
+        "source_workflow": {"$ref": "#/$defs/workflow_ref"},
+        "stages": {"$ref": "#/$defs/stages"}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "host_read"}}, "required": ["kind"]}, "then": {"required": ["read_through", "basis_requirement"]}},
+        {"if": {"properties": {"kind": {"const": "workflow_output"}}, "required": ["kind"]}, "then": {"required": ["source_workflow"]}},
+        {"if": {"properties": {"necessity": {"const": "optional"}}, "required": ["necessity"]}, "then": {"required": ["absence_effect"]}}
+      ]
+    },
+    "harness_capability": {
+      "description": "WD §4.2.5 harness capability names (PROPOSED; meanings read against the Codex 0.158.0 pin, HOSTING §8 and PIN-SPIKE §4).",
+      "enum": ["shell-command", "file-change", "web-search", "agent-delegation", "mcp-tool-call", "dynamic-tool-call", "person-input-request", "image-view", "image-generation", "plan-update"]
+    },
+    "required_tool": {
+      "description": "WD §4.2.2 required tool reference. The governing checkpoint constraint is derived, never authored (WD §4.2.2), so it has no field here.",
+      "type": "object",
+      "required": ["name", "class", "purpose", "necessity", "stages"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/local_name"},
+        "class": {"enum": ["host_operation", "harness_capability"]},
+        "operation": {
+          "description": "Opaque DEL-03-01 operation identity (C §3 element 1), carried as C writes it.",
+          "$ref": "#/$defs/text"
+        },
+        "versions": {
+          "description": "Exact versions only (C §3.2; U-07).",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/text"}
+        },
+        "capability": {"$ref": "#/$defs/harness_capability"},
+        "purpose": {"$ref": "#/$defs/text"},
+        "necessity": {"enum": ["required", "optional"]},
+        "fallback": {"$ref": "#/$defs/text"},
+        "stages": {"$ref": "#/$defs/stages"}
+      },
+      "allOf": [
+        {"if": {"properties": {"class": {"const": "host_operation"}}, "required": ["class"]}, "then": {"required": ["operation"], "not": {"required": ["capability"]}}},
+        {"if": {"properties": {"class": {"const": "harness_capability"}}, "required": ["class"]}, "then": {"required": ["capability"], "not": {"anyOf": [{"required": ["operation"]}, {"required": ["versions"]}]}}},
+        {"if": {"properties": {"necessity": {"const": "optional"}}, "required": ["necessity"]}, "then": {"required": ["fallback"]}}
+      ]
+    },
+    "reached_when": {
+      "description": "WD §4.3.1 reached-when: (a) before_dispatch of a named required tool reference; (b) output_produced, observed production of a named declared output; (c) host_outcome, an observed host outcome of named operations.",
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["before_dispatch", "output_produced", "host_outcome"]},
+        "tool": {"$ref": "#/$defs/local_name"},
+        "output": {"$ref": "#/$defs/local_name"},
+        "tools": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/local_name"}},
+        "outcome": {"$ref": "#/$defs/host_outcome"}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "before_dispatch"}}, "required": ["kind"]}, "then": {"required": ["tool"]}},
+        {"if": {"properties": {"kind": {"const": "output_produced"}}, "required": ["kind"]}, "then": {"required": ["output"]}},
+        {"if": {"properties": {"kind": {"const": "host_outcome"}}, "required": ["kind"]}, "then": {"required": ["tools", "outcome"]}}
+      ]
+    },
+    "grant_setting": {
+      "description": "WD §4.3.1 grant setting: the declared setting content of an A12 checkpoint (classes, grant value, scope). Operation-class grant only (R10-9).",
+      "type": "object",
+      "required": ["classes", "grant_value", "scope"],
+      "additionalProperties": false,
+      "properties": {
+        "classes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+        "grant_value": {"$ref": "#/$defs/text"},
+        "scope": {
+          "type": "object",
+          "required": ["workspace"],
+          "additionalProperties": false,
+          "properties": {
+            "workspace": {"$ref": "#/$defs/text"},
+            "objects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}},
+            "objects_rule": {
+              "description": "A run-dependent scope, declared as a binding rule resolved at arrival (R5-3).",
+              "enum": ["targets_of_held_call"]
+            }
+          }
+        }
+      }
+    },
+    "subject": {
+      "description": "WD §4.3.1 subject class and its named referent. Bound at run time (WD §4.3.6).",
+      "type": "object",
+      "required": ["class"],
+      "additionalProperties": false,
+      "properties": {
+        "class": {"enum": ["change_items_of_named_proposal", "named_output", "objects_named_output_concerns", "objects_changed_by_named_outcome", "targets_of_held_call", "grant_setting"]},
+        "output": {"$ref": "#/$defs/local_name"},
+        "tools": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/local_name"}},
+        "outcome": {"$ref": "#/$defs/host_outcome"},
+        "setting": {"$ref": "#/$defs/grant_setting"}
+      },
+      "allOf": [
+        {"if": {"properties": {"class": {"enum": ["named_output", "objects_named_output_concerns"]}}, "required": ["class"]}, "then": {"required": ["output"]}},
+        {"if": {"properties": {"class": {"const": "objects_changed_by_named_outcome"}}, "required": ["class"]}, "then": {"required": ["tools", "outcome"]}}
+      ]
+    },
+    "decision_path": {
+      "description": "WD §4.3.1 on negative decision, on mixed decision, on subject absent: stop, return to a named stage, or proceed on a stated branch.",
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"enum": ["stop", "return_to_stage", "proceed_on_branch"]},
+        "stage": {"$ref": "#/$defs/text"},
+        "branch": {"$ref": "#/$defs/text"},
+        "explanation": {"$ref": "#/$defs/text"}
+      },
+      "allOf": [
+        {"if": {"properties": {"path": {"const": "return_to_stage"}}, "required": ["path"]}, "then": {"required": ["stage"]}},
+        {"if": {"properties": {"path": {"const": "proceed_on_branch"}}, "required": ["path"]}, "then": {"required": ["branch"]}}
+      ]
+    },
+    "held_actions": {
+      "description": "WD §4.3.1 held actions: host operations only (named), or listed steps with each App-side step marked. A malformed element does not show host operations only, so the governance-phase conservative default applies (R10-10).",
+      "type": "object",
+      "required": ["form"],
+      "additionalProperties": false,
+      "properties": {
+        "form": {"enum": ["host_operations_only", "listed_steps"]},
+        "tools": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/local_name"}},
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["step", "app_side"],
+            "additionalProperties": false,
+            "properties": {
+              "step": {"$ref": "#/$defs/text"},
+              "app_side": {"type": "boolean"},
+              "tool": {"$ref": "#/$defs/local_name"}
+            }
+          }
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"form": {"const": "host_operations_only"}}, "required": ["form"]}, "then": {"required": ["tools"]}},
+        {"if": {"properties": {"form": {"const": "listed_steps"}}, "required": ["form"]}, "then": {"required": ["steps"]}}
+      ]
+    },
+    "checkpoint": {
+      "description": "WD §4.3.1 checkpoint declaration. Combination validity (FB-13, FB-16, FB-17) is checked after this schema (WD §3.7 VO-7 to VO-9).",
+      "type": "object",
+      "required": ["name", "required_act", "reached_when", "subject", "position", "scope", "purpose", "actor", "expected_act_evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/local_name"},
+        "required_act": {
+          "description": "Closed list (R-1; ACT §4.1). A recognized act kind outside the list is invalid (FB-03); an unrecognized name is not established (FB-04).",
+          "enum": ["A4", "A5", "A6", "A7", "A12"]
+        },
+        "reached_when": {"$ref": "#/$defs/reached_when"},
+        "subject": {"$ref": "#/$defs/subject"},
+        "position": {"$ref": "#/$defs/text"},
+        "scope": {"$ref": "#/$defs/text"},
+        "purpose": {"$ref": "#/$defs/text"},
+        "actor": {"enum": ["the_person", "the_accountable_professional"]},
+        "on_negative_decision": {"$ref": "#/$defs/decision_path"},
+        "on_mixed_decision": {"$ref": "#/$defs/decision_path"},
+        "on_subject_absent": {"$ref": "#/$defs/decision_path"},
+        "expected_act_evidence": {
+          "type": "object",
+          "required": ["capturing_surface", "description"],
+          "additionalProperties": false,
+          "properties": {
+            "capturing_surface": {"enum": ["host_act_facility", "app_act_control", "grant_control"]},
+            "description": {"$ref": "#/$defs/text"}
+          }
+        },
+        "held_actions": {"$ref": "#/$defs/held_actions"},
+        "governed": {
+          "description": "PROPOSED (R8-1). Present only as \"yes\". An unrecognized value is preserved and reported (FB-19).",
+          "const": "yes"
+        },
+        "fresh_act_required": {
+          "description": "PROPOSED (R12-10; EXEC SP-6F). Present only as \"yes\". Takes effect only for a checkpoint declared governed, in the governance phase (WD §4.3.1).",
+          "const": "yes"
+        }
+      }
+    },
+    "production": {
+      "description": "WD §4.4 production of a host-change output: the host outcome of the named operations that produces it.",
+      "type": "object",
+      "required": ["tools", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "tools": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/local_name"}},
+        "outcome": {"$ref": "#/$defs/host_outcome"}
+      }
+    },
+    "returned_output": {
+      "description": "WD §4.4 returned output. A message-form output names its designating line (R10-8).",
+      "type": "object",
+      "required": ["name", "meaning", "form", "destination", "promised_standing"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/local_name"},
+        "meaning": {"$ref": "#/$defs/text"},
+        "form": {"enum": ["host_change", "file", "message", "workflow_input", "human_act_standing"]},
+        "destination": {"$ref": "#/$defs/text"},
+        "promised_standing": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}},
+        "gating_checkpoint": {"$ref": "#/$defs/local_name"},
+        "produced_by": {"$ref": "#/$defs/production"},
+        "path": {
+          "description": "File form: path of the file relative to the project root; required for a file output (WD §4.4; VO-7; V18-2 m-2).",
+          "$ref": "#/$defs/text"
+        },
+        "designating_line": {
+          "description": "Message form: the exact first non-empty line (trimmed) of the completed agent message that is this output (WD §4.4 OP-1 to OP-6).",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\n\\r]*\\S[^\\n\\r]*$"
+        },
+        "relies_on": {
+          "description": "The read or examination tools whose results this output reports; needed for the subject class \"objects a named output concerns\" (WD §4.3.1).",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/local_name"}
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"form": {"const": "message"}}, "required": ["form"]}, "then": {"required": ["designating_line"]}},
+        {"if": {"properties": {"form": {"const": "file"}}, "required": ["form"]}, "then": {"required": ["path"]}},
+        {"if": {"properties": {"form": {"const": "human_act_standing"}}, "required": ["form"]}, "then": {"required": ["gating_checkpoint"]}}
+      ]
+    },
+    "returned_evidence": {
+      "description": "WD §4.5 returned evidence, by reference.",
+      "type": "object",
+      "required": ["name", "meaning", "kind", "supports"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/local_name"},
+        "meaning": {"$ref": "#/$defs/text"},
+        "kind": {"enum": ["host_receipt_reference", "read_basis_reference", "evaluated_basis", "host_result_reference", "examination_reference", "human_act_record_reference", "run_record_reference"]},
+        "supports": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/local_name"}}
+      }
+    },
+    "tool_restriction": {
+      "description": "WD §4.7 tool restriction: a ceiling, never a requirement (WD §4.2.3). The names are those of the harness that would enforce it.",
+      "type": "object",
+      "required": ["capabilities"],
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}}
+      }
+    }
+  }
+}
