@@ -199,6 +199,7 @@ struct SourceEvidence {
     auth_projection: bool,
     auth_policy_standing: Option<String>,
     auth_response_shape: Option<bool>,
+    source_pipe:Option<(u64,(u64,u64))>,
 }
 impl SourceRequest {
     pub fn generation(&self) -> &Value { &self.generation }
@@ -217,6 +218,64 @@ impl SourceRequest {
             "sourceCurrent":i.generation==self.generation&&i.state=="ready"&&!i.server_requests.is_closed(&self.generation)})
     }
 }
+/// Genuine source-bound native turn result metadata; no DTO constructor/Serde/Clone.
+/// Raw reply remains in existing source custody; no second transcript/result cache.
+pub(crate) struct PreparedNativeTurnStart<'a> {
+    source:&'a SourceRequest,
+    turn_id:String,
+    reply_status:String,
+    observed_status:String,
+}
+impl PreparedNativeTurnStart<'_> {
+    pub(crate) fn source(&self)->&SourceRequest {self.source}
+    pub(crate) fn turn_id(&self)->&str {&self.turn_id}
+    pub(crate) fn reply_status(&self)->&str {&self.reply_status}
+    pub(crate) fn observed_status(&self)->&str {&self.observed_status}
+}
+
+/// A genuine current accepted read, borrowed from NativeHistory; no raw transcript copy.
+/// No public constructor/Serde/Clone: JSON observation is not source authority.
+pub(crate) struct AcceptedNativeItemPage<'a> {
+    observed: crate::native_history::AcceptedItemsObservation<'a>,
+    source: NativeItemPageSource,
+}
+#[derive(Clone)]
+struct NativeItemPageSource { dispatch: HistoryDispatch, receipt_position: u64 }
+impl AcceptedNativeItemPage<'_> {
+    pub(crate) fn query(&self)->&HistoryQuery {self.observed.query()}
+    pub(crate) fn page(&self)->&Value {self.observed.page()}
+    pub(crate) fn source_request_id(&self)->&Value {self.source.dispatch.source.request_id()}
+    pub(crate) fn source_request_ref(&self)->&str {self.source.dispatch.source.request_ref()}
+    pub(crate) fn owner_instance(&self)->u64 {self.observed.owner_instance()}
+    pub(crate) fn selection_epoch(&self)->u64 {self.observed.selection_epoch()}
+    pub(crate) fn stream_revision(&self)->u64 {self.observed.stream_revision()}
+}
+enum NativeItemCursor { Available(String), Exhausted, NotReported }
+/// One non-transferable item traversal. Holds source/query/coverage metadata only.
+pub(crate) struct NativeItemsSupplyCheck {
+    owner_instance:u64,
+    selection_epoch:u64,
+    last_revision:u64,
+    sources:Vec<NativeItemPageSource>,
+    cursor:NativeItemCursor,
+    seen_cursors:std::collections::HashSet<String>,
+    pending:Option<HistoryDispatch>,
+}
+impl NativeItemsSupplyCheck {
+    pub(crate) fn last_query(&self)->&HistoryQuery {&self.sources.last().unwrap().dispatch.query}
+    pub(crate) fn next_cursor(&self)->Option<&str> {match &self.cursor{NativeItemCursor::Available(c)=>Some(c),_=>None}}
+}
+/// Observational completion at the final owning guard, not ongoing native authority,
+/// workflow registration/A15, model adoption, or a serializable/replayable proof.
+pub(crate) struct NativeItemCoverageSeal { check:NativeItemsSupplyCheck }
+impl NativeItemCoverageSeal {
+    pub(crate) fn query(&self)->&HistoryQuery {self.check.last_query()}
+    pub(crate) fn page_count(&self)->usize {self.check.sources.len()}
+    pub(crate) fn source_receipts(&self)->impl Iterator<Item=(&Value,&str,u64)> {
+        self.check.sources.iter().map(|p|(p.dispatch.source.request_id(),p.dispatch.source.request_ref(),p.receipt_position))
+    }
+}
+
 #[derive(Clone)]
 pub struct HistoryDispatch { query: HistoryQuery, source: SourceRequest }
 impl HistoryDispatch {
@@ -915,7 +974,7 @@ impl Host {
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None});
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
             let controller=oauth_control::Controller::begin(&pin);
@@ -927,7 +986,8 @@ impl Host {
         }
         if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
         if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":frame["params"]["threadId"],"turnId":frame["params"]["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
-        let captured=self.capture_pipe(&i);drop(i);
+        let captured=self.capture_pipe(&i);
+        i.source_requests.get_mut(&id.to_string()).unwrap().source_pipe=captured.as_ref().ok().map(|bound|(bound.epoch,bound.identity));drop(i);
         let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential{
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
         }else{self.frame_write.lock().unwrap()};
@@ -1162,6 +1222,91 @@ impl Host {
     pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}
     pub fn history_dispatch_status(&self, dispatch: &HistoryDispatch) -> Result<Value,String> {self.source_request_status(&dispatch.source)}
 
+    /// Private actual SourceEvidence only; caller evidence JSON is never consumed as proof.
+    fn native_item_source<'a>(&self,i:&'a Inner,dispatch:&HistoryDispatch)->Result<&'a SourceEvidence,String>{
+        let source=dispatch.source.source.upgrade().ok_or("native page source Host unavailable")?;
+        if !Arc::ptr_eq(&self.inner,&source){return Err("native page dispatch belongs to foreign Host".into());}
+        let q=&dispatch.query;let request=&dispatch.source;
+        crate::recovery::generation_ref(q.generation())?;
+        if q.method()!="thread/items/list"||q.generation()["home"]!=q.home()||request.generation!=*q.generation()||request.frame["method"]!=q.method()||request.frame["params"]!=*q.params(){return Err("native page original method/query/home/full generation differs".into());}
+        Self::validate_native_result("ThreadItemsListParams",q.params())?;
+        if q.params()["threadId"].as_str().is_none_or(str::is_empty)||q.params()["turnId"].as_str().is_none_or(str::is_empty){return Err("native page exact conversation/turn unavailable".into());}
+        if i.generation!=*q.generation()||i.state!="ready"||i.server_requests.is_closed(q.generation()){return Err("native page source closed/replaced/not-ready".into());}
+        let e=i.source_requests.get(&request.request_id().to_string()).ok_or("native page original source record unavailable")?;
+        if e.request.generation!=request.generation||e.request.frame!=request.frame||e.request.request_ref!=request.request_ref||!e.written||e.write_attempt_in_progress||e.write_error.is_some()||e.source_limit.is_some()||e.attempt_position.is_none()||e.auth_projection{return Err("native page source binding or actual complete write unavailable".into());}
+        let (epoch,identity)=e.source_pipe.ok_or("native page original captured pipe binding unavailable")?;
+        if epoch!=i.attachment_pipe_epoch{return Err("native page original pipe epoch changed".into());}
+        let stdin=self.stdin.lock().unwrap();let pipe=stdin.as_ref().ok_or("native page original pipe closed")?;
+        if Self::pipe_identity(pipe)?!=identity{return Err("native page original pipe identity changed".into());}
+        let response=e.response.as_ref().ok_or("native page correlated native response unavailable")?;
+        if response.get("id")!=Some(request.request_id())||response.get("method").is_some()||response.get("error").is_some()||e.response_position.is_none_or(|p|p==0){return Err("native page typed correlated result/receipt unavailable".into());}
+        let result=response.get("result").ok_or("native page native result absent")?;
+        Self::validate_native_result("ThreadItemsListResponse",result)?;
+        if result["data"].as_array().unwrap().iter().any(|entry|entry["turnId"]!=q.params()["turnId"]){return Err("native page original result turn differs".into());}
+        Ok(e)
+    }
+    fn native_item_cursor(page:&Value)->NativeItemCursor {
+        match page.get("nextCursor"){Some(Value::Null)=>NativeItemCursor::Exhausted,Some(Value::String(c))=>NativeItemCursor::Available(c.clone()),_=>NativeItemCursor::NotReported}
+    }
+    fn native_item_page_current(&self,i:&Inner,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
+        let e=self.native_item_source(i,&page.source.dispatch)?;
+        if page.observed.stream()!="item-pages"||page.observed.query()!=&page.source.dispatch.query||page.observed.owner_instance()==0||page.observed.selection_epoch()==0||page.observed.stream_revision()==0||e.response_position!=Some(page.source.receipt_position)||e.response.as_ref().unwrap()["result"]!=*page.observed.page(){return Err("native page accepted query/owner/epoch/stream/raw source differs".into());}
+        Ok(())
+    }
+    /// Borrow existing latest accepted page and bind genuine transport BEFORE giving WR a page.
+    pub(crate) fn mint_accepted_items_page<'a>(&self,dispatch:&HistoryDispatch,observed:crate::native_history::AcceptedItemsObservation<'a>)->Result<AcceptedNativeItemPage<'a>,String>{
+        let i=self.inner.0.lock().unwrap();let e=self.native_item_source(&i,dispatch)?;
+        let page=AcceptedNativeItemPage{observed,source:NativeItemPageSource{dispatch:dispatch.clone(),receipt_position:e.response_position.unwrap()}};
+        self.native_item_page_current(&i,&page)?;Ok(page)
+    }
+    /// Explicit currentness recheck; a retained page remains historical after source loss.
+    pub(crate) fn revalidate_accepted_items_page(&self,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
+        let i=self.inner.0.lock().unwrap();self.native_item_page_current(&i,page)
+    }
+    pub(crate) fn begin_native_items_supply_check(&self,page:&AcceptedNativeItemPage<'_>)->Result<NativeItemsSupplyCheck,String>{
+        let i=self.inner.0.lock().unwrap();self.native_item_page_current(&i,page)?;
+        if page.query().params()["sortDirection"]!="asc"||page.query().params().get("cursor").is_some(){return Err("native supply check requires first ascending page without cursor".into());}
+        let cursor=Self::native_item_cursor(page.page());let mut seen_cursors=std::collections::HashSet::new();
+        if let NativeItemCursor::Available(c)=&cursor{seen_cursors.insert(c.clone());}
+        Ok(NativeItemsSupplyCheck{owner_instance:page.owner_instance(),selection_epoch:page.selection_epoch(),last_revision:page.stream_revision(),sources:vec![page.source.clone()],cursor,seen_cursors,pending:None})
+    }
+    fn native_item_check_sources(&self,i:&Inner,check:&NativeItemsSupplyCheck)->Result<(),String>{
+        if check.sources.is_empty(){return Err("native item check source coverage absent".into());}
+        for pin in &check.sources{let e=self.native_item_source(i,&pin.dispatch)?;if e.response_position!=Some(pin.receipt_position){return Err("native item check original receipt association changed".into());}}
+        Ok(())
+    }
+    /// Sole Host writer registers this continuation for THIS check before acceptance.
+    /// Root first uses NativeHistory's existing item factory; no alternate query/IO path.
+    pub(crate) fn dispatch_next_native_items_supply_page(&self,check:&mut NativeItemsSupplyCheck,query:&HistoryQuery)->Result<HistoryDispatch,String>{
+        {let i=self.inner.0.lock().unwrap();self.native_item_check_sources(&i,check)?;}
+        if check.pending.is_some(){return Err("native item check already has a registered continuation; no resend".into());}
+        let NativeItemCursor::Available(cursor)=&check.cursor else{return Err("native item continuation absent/unknown/exhausted".into());};
+        let last=check.last_query();
+        if query.method()!="thread/items/list"||query.home()!=last.home()||query.generation()!=last.generation()||query.params()["threadId"]!=last.params()["threadId"]||query.params()["turnId"]!=last.params()["turnId"]||query.params()["sortDirection"]!="asc"||query.params().get("cursor").and_then(Value::as_str)!=Some(cursor.as_str()){return Err("native item continuation changed scope/direction/cursor".into());}
+        let dispatch=self.history_dispatch(query)?;check.pending=Some(dispatch.clone());Ok(dispatch)
+    }
+    pub(crate) fn accept_next_native_items_supply_page(&self,check:&mut NativeItemsSupplyCheck,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
+        let i=self.inner.0.lock().unwrap();self.native_item_check_sources(&i,check)?;self.native_item_page_current(&i,page)?;
+        let pending=check.pending.as_ref().ok_or("native item page was not registered by this check")?;
+        if pending.source.request_ref!=page.source.dispatch.source.request_ref||pending.source.generation!=page.source.dispatch.source.generation||pending.source.frame!=page.source.dispatch.source.frame||pending.query!=*page.query()||page.owner_instance()!=check.owner_instance||page.selection_epoch()!=check.selection_epoch||Some(page.stream_revision())!=check.last_revision.checked_add(1){return Err("native item continuation source/owner/selection/stream changed or unrelated item query intervened".into());}
+        let cursor=Self::native_item_cursor(page.page());
+        if let NativeItemCursor::Available(next)=&cursor{if check.seen_cursors.contains(next){return Err("native item cursor loop; coverage incomplete".into());}}
+        if let NativeItemCursor::Available(next)=&cursor{check.seen_cursors.insert(next.clone());}
+        check.sources.push(page.source.clone());check.last_revision=page.stream_revision();check.cursor=cursor;check.pending=None;Ok(())
+    }
+    /// Final owning check at one instant: all genuine original receipts + latest accepted
+    /// owner/epoch/item stream, own cursor progression and explicit-null exhaustion.
+    /// No Host/controller lock is held through downstream record writing/native/UI work.
+    pub(crate) fn finish_native_items_supply_check(&self,check:NativeItemsSupplyCheck,observed:crate::native_history::AcceptedItemsObservation<'_>)->Result<NativeItemCoverageSeal,String>{
+        let i=self.inner.0.lock().unwrap();self.native_item_check_sources(&i,&check)?;
+        if check.pending.is_some()||!matches!(&check.cursor,NativeItemCursor::Exhausted){return Err("native item coverage not explicitly exhausted; omission/error/pending remains unknown".into());}
+        let last=check.sources.last().unwrap();
+        if observed.query()!=&last.dispatch.query||observed.owner_instance()!=check.owner_instance||observed.selection_epoch()!=check.selection_epoch||observed.stream_revision()!=check.last_revision||observed.stream()!="item-pages"{return Err("native item final selected owner/epoch/query/stream superseded".into());}
+        let e=self.native_item_source(&i,&last.dispatch)?;
+        if e.response.as_ref().unwrap()["result"]!=*observed.page(){return Err("native item final accepted data differs from actual source".into());}
+        Ok(NativeItemCoverageSeal{check})
+    }
+
     pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
         self.check_source(&dispatch.source)?;
         if dispatch.query.method()!="thread/resume"||dispatch.query.params()!=&json!({"threadId":history.selected_thread()}) {return Err("only original explicit Continue packet can admit".into());}
@@ -1219,7 +1364,7 @@ impl Host {
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
-            i.source_requests.insert(id.to_string(),SourceEvidence{request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+            i.source_requests.insert(id.to_string(),SourceEvidence{request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
         };
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
@@ -1343,6 +1488,47 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     pub fn turn_start_text(&self, generation: &Value, thread_id: &str, text: &str) -> Result<Value, String> {
         self.conversation_operation("turn/start", generation,
             Self::text_turn_params(thread_id, text)?, Duration::from_secs(20))
+    }
+
+    fn prepared_run_turn_params(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str)->Result<Value,String>{
+        crate::recovery::generation_ref(generation)?;
+        if &prepared.scope().generation!=generation||generation["home"]!=prepared.scope().home{return Err("prepared turn full generation/home differs from original run scope".into());}
+        let params=prepared.turn_params(person_text,client_id)?;
+        Self::validate_native_result("TurnStartParams",&params)?;
+        Ok(params)
+    }
+    /// Owning native sender for production-prepared exact ordered workflow/person text.
+    /// PreparedRunText proves neither an active run nor an act/model qualification here.
+    pub(crate) fn turn_start_prepared_run_text(&self,generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str)->Result<SourceRequest,String>{
+        let params=Self::prepared_run_turn_params(generation,prepared,person_text,client_id)?;
+        self.request_begin_scoped("turn/start",params,json!({"kind":"person-directed"}),false,Some(generation))
+    }
+    /// Root retains the original prepared/person/client tuple and genuine source on every
+    /// error/unknown result. No generic evidence JSON can admit a native turn through this API.
+    pub(crate) fn turn_start_prepared_finish<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
+        self.check_source(source)?;
+        let expected=Self::prepared_run_turn_params(source.generation(),prepared,person_text,client_id)?;
+        if source.frame["method"]!="turn/start"||source.frame["params"]!=expected{return Err("original prepared turn sender/ordered text/client identity differs".into());}
+        self.wait_source_response(source,wait)?;
+        let i=self.inner.0.lock().unwrap();
+        if i.generation!=source.generation||i.state!="ready"||i.server_requests.is_closed(source.generation()){return Err("prepared turn result source closed/replaced; original source retained".into());}
+        Self::check_conversation_request(&i,"turn/start",&expected)?;
+        let e=i.source_requests.get(&source.request_id().to_string()).ok_or("prepared turn source unavailable")?;
+        if e.request.generation!=source.generation||e.request.frame!=source.frame||e.request.request_ref!=source.request_ref||!e.written||e.write_attempt_in_progress||e.write_error.is_some()||e.source_limit.is_some(){return Err("prepared turn actual complete source write/binding unavailable".into());}
+        let(epoch,identity)=e.source_pipe.ok_or("prepared turn original pipe binding unavailable")?;
+        if epoch!=i.attachment_pipe_epoch||Self::pipe_identity(self.stdin.lock().unwrap().as_ref().ok_or("prepared turn source pipe closed")?)?!=identity{return Err("prepared turn original source pipe changed".into());}
+        let response=e.response.as_ref().ok_or("prepared turn correlated native response unavailable")?;
+        if response.get("id")!=Some(source.request_id())||response.get("method").is_some()||e.response_position.is_none(){return Err("prepared turn actual correlated native response differs".into());}
+        if response.get("error").is_some(){return Err("prepared turn native error observed; original source/error retained, no successful turn inferred".into());}
+        let result=response.get("result").ok_or("prepared turn native result unavailable")?;
+        Self::validate_native_result("TurnStartResponse",result)?;
+        let native=&result["turn"];let id=native["id"].as_str().filter(|id|!id.is_empty()).ok_or("prepared turn native identity absent")?;
+        // Existing received terminal ordering is authoritative for the view; never revive it
+        // from an older inProgress reply or imply the model/workflow succeeded.
+        let observed=i.conversation_turns.iter().find(|t|t["generation"]==source.generation&&t["threadId"]==expected["threadId"]&&t["turnId"]==id).ok_or("prepared turn current receiving observation unavailable")?;
+        let reply_status=native["status"].as_str().ok_or("prepared turn native status unavailable")?;
+        let observed_status=observed["nativeTurn"]["status"].as_str().ok_or("prepared turn observed status unavailable")?;
+        Ok(PreparedNativeTurnStart{source,turn_id:id.into(),reply_status:reply_status.into(),observed_status:observed_status.into()})
     }
 
     /// Native interrupt acknowledgment is distinct from turn completion.
@@ -2585,6 +2771,137 @@ mod conversation_transport_tests {
         let plain=json!({"id":"ordinary-unrelated-reply","result":{"ordinary":"preserved"}});host.on_line(&serde_json::to_vec(&plain).unwrap(),&g());assert_eq!(host.journal().last().unwrap()["frame"],plain);
         let notice=json!({"method":"unrelated/native-notification","params":{"ordinary":"preserved"}});host.on_line(&serde_json::to_vec(&notice).unwrap(),&g());assert_eq!(host.journal().last().unwrap()["frame"],notice);
         assert_eq!(host.account_oauth_observation(&login).unwrap()["phase"],"Pending");assert_auth_retained_safe(&host,Some(login.source()));
+    }
+    // Proposed genuine private Host/cat receiving controls; no real supplier/model/UI.
+    struct NativePagePipe { host:Arc<Host>, child:Child, reader:BufReader<std::process::ChildStdout> }
+    impl NativePagePipe {
+        fn new()->Self {
+            let host=host();let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+            *host.stdin.lock().unwrap()=child.stdin.take();let reader=BufReader::new(child.stdout.take().unwrap());Self{host,child,reader}
+        }
+        fn reply(&mut self,dispatch:&HistoryDispatch,result:&Value){
+            let mut line=String::new();self.reader.read_line(&mut line).unwrap();let actual:Value=serde_json::from_str(&line).unwrap();
+            assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],*dispatch.query().params());
+            self.host.on_line(&serde_json::to_vec(&json!({"id":actual["id"],"result":result})).unwrap(),&g());
+        }
+        fn dispatch(&mut self,query:&HistoryQuery,result:&Value)->HistoryDispatch {
+            let d=self.host.history_dispatch(query).unwrap();self.reply(&d,result);d
+        }
+    }
+    impl Drop for NativePagePipe {fn drop(&mut self){*self.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());}}
+    fn native_page_selected()->NativeHistory {
+        use crate::native_history::Direction;let mut h=NativeHistory::new("conversation-home",g()).unwrap();let q=h.list_threads(None,Direction::Desc).unwrap();
+        let t=|id:&str|json!({"id":id,"cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"synthetic","projectId":null,"sessionId":"session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+        h.receive(&q,"conversation-home",&g(),&json!({"data":[t("thread"),t("other")],"nextCursor":null})).unwrap();h.select("thread").unwrap();
+        let q=h.turns_page(None,Direction::Desc).unwrap();h.receive(&q,"conversation-home",&g(),&json!({"data":[{"id":"turn","status":"completed","items":[],"itemsView":"summary","error":null}],"nextCursor":null})).unwrap();h
+    }
+    fn native_page_data(next:Value)->Value {json!({"data":[{"turnId":"turn","item":{"id":"user","type":"userMessage","content":[{"type":"text","text":"synthetic exact\r\ntext","text_elements":[]}]}}],"nextCursor":next,"nativeExtra":{"preserved":true}})}
+    #[test]
+    fn native_page_mint_genuine_source_borrows_page_and_keeps_query_rpc_namespaces_distinct(){
+        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();assert_eq!(page.page(),&raw);assert_ne!(json!(page.query().id()),*page.source_request_id());assert!(std::ptr::eq(page.page(),h.accepted_items_observation(&q).unwrap().page()));assert_eq!(page.source_request_ref(),d.source().request_ref());
+        f.host.revalidate_accepted_items_page(&page).unwrap();let check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
+        let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&q).unwrap()).unwrap();assert_eq!(seal.page_count(),1);assert_eq!(seal.source_receipts().count(),1);
+    }
+    #[test]
+    fn native_page_mint_own_ascending_cursor_progress_and_explicit_null_finish(){
+        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(json!("opaque-next"));let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let mut check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
+        let next=h.items_page("turn",check.next_cursor(),Direction::Asc).unwrap();assert!(h.accepted_items_observation(&q).is_err());assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
+        let d=f.host.dispatch_next_native_items_supply_page(&mut check,&next).unwrap();let tail=json!({"data":[],"nextCursor":null});f.reply(&d,&tail);h.receive(&next,"conversation-home",&g(),&tail).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&next).unwrap()).unwrap();f.host.accept_next_native_items_supply_page(&mut check,&page).unwrap();drop(page);
+        // Other logical streams remain independent of this accepted item stream.
+        let goal=h.read_goal().unwrap();h.receive(&goal,"conversation-home",&g(),&json!({"goal":null})).unwrap();
+        let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&next).unwrap()).unwrap();assert_eq!(seal.page_count(),2);assert_eq!(seal.query(),&next);
+    }
+    #[test]
+    fn native_page_mint_omitted_cursor_unknown_and_desc_does_not_seed_supply_check(){
+        use crate::native_history::Direction;for direction in [Direction::Asc,Direction::Desc]{
+            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,direction).unwrap();let raw=json!({"data":[]});let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+            let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();
+            if direction==Direction::Desc{assert!(f.host.begin_native_items_supply_check(&page).is_err());}else{let check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);assert!(f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&q).unwrap()).is_err());}
+            assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
+        }
+    }
+    #[test]
+    fn native_page_mint_unregistered_or_intervening_item_queries_cannot_join_this_check(){
+        use crate::native_history::Direction;for intervening in [false,true]{
+            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(json!("opaque-next"));let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+            let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let mut check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
+            if intervening{h.items_page("turn",None,Direction::Asc).unwrap();}
+            let q=h.items_page("turn",Some("opaque-next"),Direction::Asc).unwrap();let tail=json!({"data":[],"nextCursor":null});
+            let d=if intervening{let d=f.host.dispatch_next_native_items_supply_page(&mut check,&q).unwrap();f.reply(&d,&tail);d}else{f.dispatch(&q,&tail)};
+            h.receive(&q,"conversation-home",&g(),&tail).unwrap();let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();assert!(f.host.accept_next_native_items_supply_page(&mut check,&page).is_err());assert_eq!(page.page(),&tail);
+        }
+    }
+    #[test]
+    fn native_page_mint_closed_or_changed_source_is_historical_not_current(){
+        use crate::native_history::Direction;for change in ["closure","epoch"]{
+            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+            let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let check=f.host.begin_native_items_supply_check(&page).unwrap();
+            {let mut i=f.host.inner.0.lock().unwrap();if change=="closure"{Host::close_generation(&mut i);}else{i.attachment_pipe_epoch+=1;}}
+            assert!(f.host.revalidate_accepted_items_page(&page).is_err());assert_eq!(page.page(),&raw);drop(page);assert!(f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&q).unwrap()).is_err());assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
+        }
+    }
+    #[test]
+    fn native_page_mint_readonly_json_drift_foreign_host_and_failed_actual_write_refuse(){
+        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);let d=f.dispatch(&q,&raw);
+        let mut other=raw.clone();other["data"][0]["item"]["content"][0]["text"]=json!("caller JSON differs");h.receive(&q,"conversation-home",&g(),&other).unwrap();assert!(f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());
+        assert!(host().mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());
+        // Genuine SourceRequest, but failed real transport is never written proof.
+        let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*failed.host.stdin.lock().unwrap()=None;let d=failed.host.history_dispatch(&q).unwrap();h.receive(&q,"conversation-home",&g(),&raw).unwrap();assert!(failed.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());
+    }
+
+    #[test]
+    fn native_page_mint_pending_wrongtyped_error_and_malformed_reply_never_use_json_acceptance_as_proof(){
+        use crate::native_history::Direction;for kind in ["pending","wrongtyped","error","malformed"]{
+            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);
+            let d=f.host.history_dispatch(&q).unwrap();let mut line=String::new();f.reader.read_line(&mut line).unwrap();let wire:Value=serde_json::from_str(&line).unwrap();
+            h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+            let reply=match kind{"wrongtyped"=>Some(json!({"id":wire["id"].to_string(),"result":raw})),"error"=>Some(json!({"id":wire["id"],"error":{"code":-32600,"message":"synthetic refusal"}})),"malformed"=>Some(json!({"id":wire["id"],"result":{"data":"invalid"}})),_=>None};
+            if let Some(reply)=reply{f.host.on_line(&serde_json::to_vec(&reply).unwrap(),&g());}
+            assert!(f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
+        }
+    }
+    struct PreparedTurnFixture { root:PathBuf, prepared:crate::workflow_workspace::PreparedRunText }
+    impl PreparedTurnFixture {
+        fn new(thread:&str)->Self {
+            use crate::workflow_workspace::{Snapshot,Selection,WorkflowIdentity,RunScope,PreparedRunText,SNAPSHOT_METHOD};
+            let root=std::env::temp_dir().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
+            let snapshot=Snapshot::capture(&root).unwrap();let identity=WorkflowIdentity{kind:"workflow".into(),origin:"bundled".into(),source_root:"synthetic-bundled-root".into(),name:"synthetic".into(),revision:snapshot.revision().to_owned(),revision_method:SNAPSHOT_METHOD.into(),derived_from:None};
+            let selection=Selection::synthetic_shipped(snapshot,identity).unwrap();let scope=RunScope{run:"run:synthetic".into(),conversation:thread.into(),home:"conversation-home".into(),generation:g(),source_root:"synthetic-bundled-root".into(),holding_library:"synthetic-holding".into(),selection_ref:"selection:synthetic".into(),revision_store:root.clone()};
+            let prepared=PreparedRunText::start(&selection,scope,"synthetic folder",None).unwrap();Self{root,prepared}
+        }
+    }
+    impl Drop for PreparedTurnFixture {fn drop(&mut self){std::fs::remove_dir_all(&self.root).unwrap();}}
+    #[test]
+    fn prepared_turn_dispatch_exact_order_client_id_and_genuine_failed_native_result(){
+        let host=host();let f=PreparedTurnFixture::new("thread");let mut source=None;
+        let(result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("failed")}})),vec![],||{
+            let r=host.turn_start_prepared_run_text(&g(),&f.prepared,"person exact\r\ntext","client:original")?;
+            {let received=host.turn_start_prepared_finish(&r,&f.prepared,"person exact\r\ntext","client:original",Duration::from_millis(50))?;assert!(std::ptr::eq(received.source(),&r));assert_eq!(received.turn_id(),"turn");assert_eq!(received.reply_status(),"failed");assert_eq!(received.observed_status(),"failed");}
+            let e=r.evidence();source=Some(r);Ok(e)
+        });
+        assert_eq!(outbound["params"],f.prepared.turn_params("person exact\r\ntext","client:original").unwrap());assert_eq!(outbound["params"]["input"][0]["text"],f.prepared.text());assert_eq!(outbound["params"]["input"][1]["text"],"person exact\r\ntext");assert_eq!(outbound["params"]["clientUserMessageId"],"client:original");assert!(outbound["params"].get("approvalPolicy").is_none());assert_eq!(result.unwrap()["writeResult"],"written");assert!(source.is_some());
+    }
+    #[test]
+    fn prepared_turn_finish_preserves_prior_terminal_and_refuses_changed_original_input(){
+        let host=host();let f=PreparedTurnFixture::new("thread");let completed=json!({"method":"turn/completed","params":{"threadId":"thread","turn":turn("completed")}});
+        let(result,_)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![completed],||{
+            let r=host.turn_start_prepared_run_text(&g(),&f.prepared,"original person","client:original")?;
+            assert!(host.turn_start_prepared_finish(&r,&f.prepared,"changed person","client:original",Duration::from_millis(10)).is_err());
+            assert!(host.turn_start_prepared_finish(&r,&f.prepared,"original person","client:changed",Duration::from_millis(10)).is_err());
+            let receipt=host.turn_start_prepared_finish(&r,&f.prepared,"original person","client:original",Duration::from_millis(50))?;
+            assert_eq!(receipt.reply_status(),"inProgress");assert_eq!(receipt.observed_status(),"completed");Ok(json!({"turn":receipt.turn_id()}))
+        });assert_eq!(result.unwrap()["turn"],"turn");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"completed");assert_eq!(host.client_requests().len(),1);
+    }
+    #[test]
+    fn prepared_turn_scope_refusals_and_native_error_retain_original_receipt_without_resend(){
+        let host=host();let f=PreparedTurnFixture::new("thread");let unknown=PreparedTurnFixture::new("unknown");
+        no_attachment_write(&host,||{let mut foreign=g();foreign["home"]=json!("foreign");assert!(host.turn_start_prepared_run_text(&foreign,&f.prepared,"person","client:original").is_err());assert!(host.turn_start_prepared_run_text(&g(),&f.prepared,"person","").is_err());assert!(host.turn_start_prepared_run_text(&g(),&unknown.prepared,"person","client:original").is_err());});assert!(host.client_requests().is_empty());
+        let(result,_)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"synthetic native refusal"}})),vec![],||{
+            let r=host.turn_start_prepared_run_text(&g(),&f.prepared,"person","client:original")?;assert!(host.turn_start_prepared_finish(&r,&f.prepared,"person","client:original",Duration::from_millis(50)).is_err());Ok(r.evidence())
+        });assert_eq!(result.unwrap()["outcome"],"response-observed-error");assert_eq!(host.client_requests().len(),1);assert_eq!(host.snapshot()["conversationTurns"],json!([]));
     }
 
 }

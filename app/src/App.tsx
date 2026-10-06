@@ -256,6 +256,44 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
   </section>;
 }
 
+export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
+  const [name,setName]=useState("coordinated-knowledge-work");
+  const [inPlace,setInPlace]=useState(false);
+  const [thread,setThread]=useState("");
+  const [text,setText]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("");
+  const action=async(command:string,args:Record<string,unknown>)=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));}catch(e){setMessage(String(e));}finally{setBusy(false);}};
+  const entries:Json[]=data?.reviews??[];
+  return <section><h2>Workflow selection and native registration</h2>
+    <p>Development content, native registration, supplied text, model adoption and run standing remain separate observations.</p>
+    <button disabled={busy} onClick={()=>action("workflow_select_development",{})}>Select exact development workflow holding copy…</button>
+    <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"project"})}>Open project workflow library…</button>
+    <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"user"})}>Open user workflow library…</button>
+    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary},null,2)}</pre>
+    <label>Draft or entry name <input value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
+    <button disabled={busy||!data?.selection||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>Create draft from selected content</button>
+    <label><input type="checkbox" checked={inPlace} onChange={e=>setInPlace(e.target.checked)} disabled={busy}/> Review existing unregistered in-place entry</label>
+    <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace})}>Read actual library entry for review</button>
+    {entries.map(review=><article key={review.reference}>
+      <h3>{review.reference}</h3><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(review.status??review,null,2)}</pre>
+      <button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>Register this review through native A15 confirmation…</button>
+      <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
+      {(review.status?.entries??[]).filter((entry:Json)=>entry.state==="registered").map((entry:Json)=><button key={entry.identity.revision} disabled={busy} onClick={()=>action("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select hot registered {entry.identity.name} holding copy…</button>)}
+    </article>)}
+    <h3>Send selected workflow text</h3>
+    <label>Current native conversation <select value={thread} onChange={e=>setThread(e.target.value)} disabled={busy}><option value="">Select conversation</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
+    <label>Person text <textarea value={text} onChange={e=>setText(e.target.value)} disabled={busy} rows={3}/></label>
+    <button disabled={busy||host?.state!=="ready"||!thread||!data?.selection} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
+    {(data?.runs??[]).map((run:Json)=><article key={run.reference}><h3>{run.reference}</h3><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(run,null,2)}</pre>
+      <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Send original prepared text once</button>
+      <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages</button>
+      <p>Load/select this conversation and its received turn in native History first. A failed native turn may retain supplied text; it does not establish model uptake or workflow execution.</p>
+    </article>)}
+    {message&&<p role="status" style={{whiteSpace:"pre-wrap"}}>{message}</p>}
+  </section>;
+}
+
 export function HomeAccessPanel({ routing, access, resources, oauth, generation, act }: { routing: Json; access: Json; resources: Json; oauth?: Json; generation: Json; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -472,6 +510,7 @@ export function App() {
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
 
+      <WorkflowRootPanel data={host?.workflowRoot} host={host} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
       <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
 
       <section>

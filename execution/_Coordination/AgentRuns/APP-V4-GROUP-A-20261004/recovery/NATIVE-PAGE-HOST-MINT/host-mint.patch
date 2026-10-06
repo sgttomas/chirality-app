@@ -1,0 +1,279 @@
+--- a/src-tauri/src/hosting.rs
++++ b/src-tauri/src/hosting.rs
+@@ -199,6 +199,7 @@
+     auth_projection: bool,
+     auth_policy_standing: Option<String>,
+     auth_response_shape: Option<bool>,
++    source_pipe:Option<(u64,(u64,u64))>,
+ }
+ impl SourceRequest {
+     pub fn generation(&self) -> &Value { &self.generation }
+@@ -217,6 +218,49 @@
+             "sourceCurrent":i.generation==self.generation&&i.state=="ready"&&!i.server_requests.is_closed(&self.generation)})
+     }
+ }
++/// A genuine current accepted read, borrowed from NativeHistory; no raw transcript copy.
++/// No public constructor/Serde/Clone: JSON observation is not source authority.
++pub(crate) struct AcceptedNativeItemPage<'a> {
++    observed: crate::native_history::AcceptedItemsObservation<'a>,
++    source: NativeItemPageSource,
++}
++#[derive(Clone)]
++struct NativeItemPageSource { dispatch: HistoryDispatch, receipt_position: u64 }
++impl AcceptedNativeItemPage<'_> {
++    pub(crate) fn query(&self)->&HistoryQuery {self.observed.query()}
++    pub(crate) fn page(&self)->&Value {self.observed.page()}
++    pub(crate) fn source_request_id(&self)->&Value {self.source.dispatch.source.request_id()}
++    pub(crate) fn source_request_ref(&self)->&str {self.source.dispatch.source.request_ref()}
++    pub(crate) fn owner_instance(&self)->u64 {self.observed.owner_instance()}
++    pub(crate) fn selection_epoch(&self)->u64 {self.observed.selection_epoch()}
++    pub(crate) fn stream_revision(&self)->u64 {self.observed.stream_revision()}
++}
++enum NativeItemCursor { Available(String), Exhausted, NotReported }
++/// One non-transferable item traversal. Holds source/query/coverage metadata only.
++pub(crate) struct NativeItemsSupplyCheck {
++    owner_instance:u64,
++    selection_epoch:u64,
++    last_revision:u64,
++    sources:Vec<NativeItemPageSource>,
++    cursor:NativeItemCursor,
++    seen_cursors:std::collections::HashSet<String>,
++    pending:Option<HistoryDispatch>,
++}
++impl NativeItemsSupplyCheck {
++    pub(crate) fn last_query(&self)->&HistoryQuery {&self.sources.last().unwrap().dispatch.query}
++    pub(crate) fn next_cursor(&self)->Option<&str> {match &self.cursor{NativeItemCursor::Available(c)=>Some(c),_=>None}}
++}
++/// Observational completion at the final owning guard, not ongoing native authority,
++/// workflow registration/A15, model adoption, or a serializable/replayable proof.
++pub(crate) struct NativeItemCoverageSeal { check:NativeItemsSupplyCheck }
++impl NativeItemCoverageSeal {
++    pub(crate) fn query(&self)->&HistoryQuery {self.check.last_query()}
++    pub(crate) fn page_count(&self)->usize {self.check.sources.len()}
++    pub(crate) fn source_receipts(&self)->impl Iterator<Item=(&Value,&str,u64)> {
++        self.check.sources.iter().map(|p|(p.dispatch.source.request_id(),p.dispatch.source.request_ref(),p.receipt_position))
++    }
++}
++
+ #[derive(Clone)]
+ pub struct HistoryDispatch { query: HistoryQuery, source: SourceRequest }
+ impl HistoryDispatch {
+@@ -915,7 +959,7 @@
+         // record schema; only completion of the actual write sets sentFrame.
+         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
+         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
+-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None});
++        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None});
+         if let Some(mode)=oauth_mode{
+             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
+             let controller=oauth_control::Controller::begin(&pin);
+@@ -927,7 +971,8 @@
+         }
+         if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
+         if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":frame["params"]["threadId"],"turnId":frame["params"]["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
+-        let captured=self.capture_pipe(&i);drop(i);
++        let captured=self.capture_pipe(&i);
++        i.source_requests.get_mut(&id.to_string()).unwrap().source_pipe=captured.as_ref().ok().map(|bound|(bound.epoch,bound.identity));drop(i);
+         let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential{
+             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
+         }else{self.frame_write.lock().unwrap()};
+@@ -1162,6 +1207,91 @@
+     pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}
+     pub fn history_dispatch_status(&self, dispatch: &HistoryDispatch) -> Result<Value,String> {self.source_request_status(&dispatch.source)}
+ 
++    /// Private actual SourceEvidence only; caller evidence JSON is never consumed as proof.
++    fn native_item_source<'a>(&self,i:&'a Inner,dispatch:&HistoryDispatch)->Result<&'a SourceEvidence,String>{
++        let source=dispatch.source.source.upgrade().ok_or("native page source Host unavailable")?;
++        if !Arc::ptr_eq(&self.inner,&source){return Err("native page dispatch belongs to foreign Host".into());}
++        let q=&dispatch.query;let request=&dispatch.source;
++        crate::recovery::generation_ref(q.generation())?;
++        if q.method()!="thread/items/list"||q.generation()["home"]!=q.home()||request.generation!=*q.generation()||request.frame["method"]!=q.method()||request.frame["params"]!=*q.params(){return Err("native page original method/query/home/full generation differs".into());}
++        Self::validate_native_result("ThreadItemsListParams",q.params())?;
++        if q.params()["threadId"].as_str().is_none_or(str::is_empty)||q.params()["turnId"].as_str().is_none_or(str::is_empty){return Err("native page exact conversation/turn unavailable".into());}
++        if i.generation!=*q.generation()||i.state!="ready"||i.server_requests.is_closed(q.generation()){return Err("native page source closed/replaced/not-ready".into());}
++        let e=i.source_requests.get(&request.request_id().to_string()).ok_or("native page original source record unavailable")?;
++        if e.request.generation!=request.generation||e.request.frame!=request.frame||e.request.request_ref!=request.request_ref||!e.written||e.write_attempt_in_progress||e.write_error.is_some()||e.source_limit.is_some()||e.attempt_position.is_none()||e.auth_projection{return Err("native page source binding or actual complete write unavailable".into());}
++        let (epoch,identity)=e.source_pipe.ok_or("native page original captured pipe binding unavailable")?;
++        if epoch!=i.attachment_pipe_epoch{return Err("native page original pipe epoch changed".into());}
++        let stdin=self.stdin.lock().unwrap();let pipe=stdin.as_ref().ok_or("native page original pipe closed")?;
++        if Self::pipe_identity(pipe)?!=identity{return Err("native page original pipe identity changed".into());}
++        let response=e.response.as_ref().ok_or("native page correlated native response unavailable")?;
++        if response.get("id")!=Some(request.request_id())||response.get("method").is_some()||response.get("error").is_some()||e.response_position.is_none_or(|p|p==0){return Err("native page typed correlated result/receipt unavailable".into());}
++        let result=response.get("result").ok_or("native page native result absent")?;
++        Self::validate_native_result("ThreadItemsListResponse",result)?;
++        if result["data"].as_array().unwrap().iter().any(|entry|entry["turnId"]!=q.params()["turnId"]){return Err("native page original result turn differs".into());}
++        Ok(e)
++    }
++    fn native_item_cursor(page:&Value)->NativeItemCursor {
++        match page.get("nextCursor"){Some(Value::Null)=>NativeItemCursor::Exhausted,Some(Value::String(c))=>NativeItemCursor::Available(c.clone()),_=>NativeItemCursor::NotReported}
++    }
++    fn native_item_page_current(&self,i:&Inner,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
++        let e=self.native_item_source(i,&page.source.dispatch)?;
++        if page.observed.stream()!="item-pages"||page.observed.query()!=&page.source.dispatch.query||page.observed.owner_instance()==0||page.observed.selection_epoch()==0||page.observed.stream_revision()==0||e.response_position!=Some(page.source.receipt_position)||e.response.as_ref().unwrap()["result"]!=*page.observed.page(){return Err("native page accepted query/owner/epoch/stream/raw source differs".into());}
++        Ok(())
++    }
++    /// Borrow existing latest accepted page and bind genuine transport BEFORE giving WR a page.
++    pub(crate) fn mint_accepted_items_page<'a>(&self,dispatch:&HistoryDispatch,observed:crate::native_history::AcceptedItemsObservation<'a>)->Result<AcceptedNativeItemPage<'a>,String>{
++        let i=self.inner.0.lock().unwrap();let e=self.native_item_source(&i,dispatch)?;
++        let page=AcceptedNativeItemPage{observed,source:NativeItemPageSource{dispatch:dispatch.clone(),receipt_position:e.response_position.unwrap()}};
++        self.native_item_page_current(&i,&page)?;Ok(page)
++    }
++    /// Explicit currentness recheck; a retained page remains historical after source loss.
++    pub(crate) fn revalidate_accepted_items_page(&self,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
++        let i=self.inner.0.lock().unwrap();self.native_item_page_current(&i,page)
++    }
++    pub(crate) fn begin_native_items_supply_check(&self,page:&AcceptedNativeItemPage<'_>)->Result<NativeItemsSupplyCheck,String>{
++        let i=self.inner.0.lock().unwrap();self.native_item_page_current(&i,page)?;
++        if page.query().params()["sortDirection"]!="asc"||page.query().params().get("cursor").is_some(){return Err("native supply check requires first ascending page without cursor".into());}
++        let cursor=Self::native_item_cursor(page.page());let mut seen_cursors=std::collections::HashSet::new();
++        if let NativeItemCursor::Available(c)=&cursor{seen_cursors.insert(c.clone());}
++        Ok(NativeItemsSupplyCheck{owner_instance:page.owner_instance(),selection_epoch:page.selection_epoch(),last_revision:page.stream_revision(),sources:vec![page.source.clone()],cursor,seen_cursors,pending:None})
++    }
++    fn native_item_check_sources(&self,i:&Inner,check:&NativeItemsSupplyCheck)->Result<(),String>{
++        if check.sources.is_empty(){return Err("native item check source coverage absent".into());}
++        for pin in &check.sources{let e=self.native_item_source(i,&pin.dispatch)?;if e.response_position!=Some(pin.receipt_position){return Err("native item check original receipt association changed".into());}}
++        Ok(())
++    }
++    /// Sole Host writer registers this continuation for THIS check before acceptance.
++    /// Root first uses NativeHistory's existing item factory; no alternate query/IO path.
++    pub(crate) fn dispatch_next_native_items_supply_page(&self,check:&mut NativeItemsSupplyCheck,query:&HistoryQuery)->Result<HistoryDispatch,String>{
++        {let i=self.inner.0.lock().unwrap();self.native_item_check_sources(&i,check)?;}
++        if check.pending.is_some(){return Err("native item check already has a registered continuation; no resend".into());}
++        let NativeItemCursor::Available(cursor)=&check.cursor else{return Err("native item continuation absent/unknown/exhausted".into());};
++        let last=check.last_query();
++        if query.method()!="thread/items/list"||query.home()!=last.home()||query.generation()!=last.generation()||query.params()["threadId"]!=last.params()["threadId"]||query.params()["turnId"]!=last.params()["turnId"]||query.params()["sortDirection"]!="asc"||query.params().get("cursor").and_then(Value::as_str)!=Some(cursor.as_str()){return Err("native item continuation changed scope/direction/cursor".into());}
++        let dispatch=self.history_dispatch(query)?;check.pending=Some(dispatch.clone());Ok(dispatch)
++    }
++    pub(crate) fn accept_next_native_items_supply_page(&self,check:&mut NativeItemsSupplyCheck,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
++        let i=self.inner.0.lock().unwrap();self.native_item_check_sources(&i,check)?;self.native_item_page_current(&i,page)?;
++        let pending=check.pending.as_ref().ok_or("native item page was not registered by this check")?;
++        if pending.source.request_ref!=page.source.dispatch.source.request_ref||pending.source.generation!=page.source.dispatch.source.generation||pending.source.frame!=page.source.dispatch.source.frame||pending.query!=*page.query()||page.owner_instance()!=check.owner_instance||page.selection_epoch()!=check.selection_epoch||Some(page.stream_revision())!=check.last_revision.checked_add(1){return Err("native item continuation source/owner/selection/stream changed or unrelated item query intervened".into());}
++        let cursor=Self::native_item_cursor(page.page());
++        if let NativeItemCursor::Available(next)=&cursor{if check.seen_cursors.contains(next){return Err("native item cursor loop; coverage incomplete".into());}}
++        if let NativeItemCursor::Available(next)=&cursor{check.seen_cursors.insert(next.clone());}
++        check.sources.push(page.source.clone());check.last_revision=page.stream_revision();check.cursor=cursor;check.pending=None;Ok(())
++    }
++    /// Final owning check at one instant: all genuine original receipts + latest accepted
++    /// owner/epoch/item stream, own cursor progression and explicit-null exhaustion.
++    /// No Host/controller lock is held through downstream record writing/native/UI work.
++    pub(crate) fn finish_native_items_supply_check(&self,check:NativeItemsSupplyCheck,observed:crate::native_history::AcceptedItemsObservation<'_>)->Result<NativeItemCoverageSeal,String>{
++        let i=self.inner.0.lock().unwrap();self.native_item_check_sources(&i,&check)?;
++        if check.pending.is_some()||!matches!(&check.cursor,NativeItemCursor::Exhausted){return Err("native item coverage not explicitly exhausted; omission/error/pending remains unknown".into());}
++        let last=check.sources.last().unwrap();
++        if observed.query()!=&last.dispatch.query||observed.owner_instance()!=check.owner_instance||observed.selection_epoch()!=check.selection_epoch||observed.stream_revision()!=check.last_revision||observed.stream()!="item-pages"{return Err("native item final selected owner/epoch/query/stream superseded".into());}
++        let e=self.native_item_source(&i,&last.dispatch)?;
++        if e.response.as_ref().unwrap()["result"]!=*observed.page(){return Err("native item final accepted data differs from actual source".into());}
++        Ok(NativeItemCoverageSeal{check})
++    }
++
+     pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
+         self.check_source(&dispatch.source)?;
+         if dispatch.query.method()!="thread/resume"||dispatch.query.params()!=&json!({"threadId":history.selected_thread()}) {return Err("only original explicit Continue packet can admit".into());}
+@@ -1219,7 +1349,7 @@
+             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
+             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
+             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
+-            i.source_requests.insert(id.to_string(),SourceEvidence{request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
++            i.source_requests.insert(id.to_string(),SourceEvidence{request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+         };
+         // Never hold Inner across file operations. Failure consumes its reserved
+         // RPC; partial/uncertain publication cannot authorize native write.
+@@ -2586,5 +2716,96 @@
+         let notice=json!({"method":"unrelated/native-notification","params":{"ordinary":"preserved"}});host.on_line(&serde_json::to_vec(&notice).unwrap(),&g());assert_eq!(host.journal().last().unwrap()["frame"],notice);
+         assert_eq!(host.account_oauth_observation(&login).unwrap()["phase"],"Pending");assert_auth_retained_safe(&host,Some(login.source()));
+     }
+-
+-}
++    // Proposed genuine private Host/cat receiving controls; no real supplier/model/UI.
++    struct NativePagePipe { host:Arc<Host>, child:Child, reader:BufReader<std::process::ChildStdout> }
++    impl NativePagePipe {
++        fn new()->Self {
++            let host=host();let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
++            *host.stdin.lock().unwrap()=child.stdin.take();let reader=BufReader::new(child.stdout.take().unwrap());Self{host,child,reader}
++        }
++        fn reply(&mut self,dispatch:&HistoryDispatch,result:&Value){
++            let mut line=String::new();self.reader.read_line(&mut line).unwrap();let actual:Value=serde_json::from_str(&line).unwrap();
++            assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],*dispatch.query().params());
++            self.host.on_line(&serde_json::to_vec(&json!({"id":actual["id"],"result":result})).unwrap(),&g());
++        }
++        fn dispatch(&mut self,query:&HistoryQuery,result:&Value)->HistoryDispatch {
++            let d=self.host.history_dispatch(query).unwrap();self.reply(&d,result);d
++        }
++    }
++    impl Drop for NativePagePipe {fn drop(&mut self){*self.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());}}
++    fn native_page_selected()->NativeHistory {
++        use crate::native_history::Direction;let mut h=NativeHistory::new("conversation-home",g()).unwrap();let q=h.list_threads(None,Direction::Desc).unwrap();
++        let t=|id:&str|json!({"id":id,"cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"synthetic","projectId":null,"sessionId":"session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
++        h.receive(&q,"conversation-home",&g(),&json!({"data":[t("thread"),t("other")],"nextCursor":null})).unwrap();h.select("thread").unwrap();
++        let q=h.turns_page(None,Direction::Desc).unwrap();h.receive(&q,"conversation-home",&g(),&json!({"data":[{"id":"turn","status":"completed","items":[],"itemsView":"summary","error":null}],"nextCursor":null})).unwrap();h
++    }
++    fn native_page_data(next:Value)->Value {json!({"data":[{"turnId":"turn","item":{"id":"user","type":"userMessage","content":[{"type":"text","text":"synthetic exact\r\ntext","text_elements":[]}]}}],"nextCursor":next,"nativeExtra":{"preserved":true}})}
++    #[test]
++    fn native_page_mint_genuine_source_borrows_page_and_keeps_query_rpc_namespaces_distinct(){
++        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
++        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();assert_eq!(page.page(),&raw);assert_ne!(json!(page.query().id()),*page.source_request_id());assert!(std::ptr::eq(page.page(),h.accepted_items_observation(&q).unwrap().page()));assert_eq!(page.source_request_ref(),d.source().request_ref());
++        f.host.revalidate_accepted_items_page(&page).unwrap();let check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
++        let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&q).unwrap()).unwrap();assert_eq!(seal.page_count(),1);assert_eq!(seal.source_receipts().count(),1);
++    }
++    #[test]
++    fn native_page_mint_own_ascending_cursor_progress_and_explicit_null_finish(){
++        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(json!("opaque-next"));let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
++        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let mut check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
++        let next=h.items_page("turn",check.next_cursor(),Direction::Asc).unwrap();assert!(h.accepted_items_observation(&q).is_err());assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
++        let d=f.host.dispatch_next_native_items_supply_page(&mut check,&next).unwrap();let tail=json!({"data":[],"nextCursor":null});f.reply(&d,&tail);h.receive(&next,"conversation-home",&g(),&tail).unwrap();
++        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&next).unwrap()).unwrap();f.host.accept_next_native_items_supply_page(&mut check,&page).unwrap();drop(page);
++        // Other logical streams remain independent of this accepted item stream.
++        let goal=h.read_goal().unwrap();h.receive(&goal,"conversation-home",&g(),&json!({"goal":null})).unwrap();
++        let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&next).unwrap()).unwrap();assert_eq!(seal.page_count(),2);assert_eq!(seal.query(),&next);
++    }
++    #[test]
++    fn native_page_mint_omitted_cursor_unknown_and_desc_does_not_seed_supply_check(){
++        use crate::native_history::Direction;for direction in [Direction::Asc,Direction::Desc]{
++            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,direction).unwrap();let raw=json!({"data":[]});let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
++            let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();
++            if direction==Direction::Desc{assert!(f.host.begin_native_items_supply_check(&page).is_err());}else{let check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);assert!(f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&q).unwrap()).is_err());}
++            assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
++        }
++    }
++    #[test]
++    fn native_page_mint_unregistered_or_intervening_item_queries_cannot_join_this_check(){
++        use crate::native_history::Direction;for intervening in [false,true]{
++            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(json!("opaque-next"));let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
++            let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let mut check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
++            if intervening{h.items_page("turn",None,Direction::Asc).unwrap();}
++            let q=h.items_page("turn",Some("opaque-next"),Direction::Asc).unwrap();let tail=json!({"data":[],"nextCursor":null});
++            let d=if intervening{let d=f.host.dispatch_next_native_items_supply_page(&mut check,&q).unwrap();f.reply(&d,&tail);d}else{f.dispatch(&q,&tail)};
++            h.receive(&q,"conversation-home",&g(),&tail).unwrap();let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();assert!(f.host.accept_next_native_items_supply_page(&mut check,&page).is_err());assert_eq!(page.page(),&tail);
++        }
++    }
++    #[test]
++    fn native_page_mint_closed_or_changed_source_is_historical_not_current(){
++        use crate::native_history::Direction;for change in ["closure","epoch"]{
++            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
++            let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let check=f.host.begin_native_items_supply_check(&page).unwrap();
++            {let mut i=f.host.inner.0.lock().unwrap();if change=="closure"{Host::close_generation(&mut i);}else{i.attachment_pipe_epoch+=1;}}
++            assert!(f.host.revalidate_accepted_items_page(&page).is_err());assert_eq!(page.page(),&raw);drop(page);assert!(f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&q).unwrap()).is_err());assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
++        }
++    }
++    #[test]
++    fn native_page_mint_readonly_json_drift_foreign_host_and_failed_actual_write_refuse(){
++        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);let d=f.dispatch(&q,&raw);
++        let mut other=raw.clone();other["data"][0]["item"]["content"][0]["text"]=json!("caller JSON differs");h.receive(&q,"conversation-home",&g(),&other).unwrap();assert!(f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());
++        assert!(host().mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());
++        // Genuine SourceRequest, but failed real transport is never written proof.
++        let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*failed.host.stdin.lock().unwrap()=None;let d=failed.host.history_dispatch(&q).unwrap();h.receive(&q,"conversation-home",&g(),&raw).unwrap();assert!(failed.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());
++    }
++
++    #[test]
++    fn native_page_mint_pending_wrongtyped_error_and_malformed_reply_never_use_json_acceptance_as_proof(){
++        use crate::native_history::Direction;for kind in ["pending","wrongtyped","error","malformed"]{
++            let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(Value::Null);
++            let d=f.host.history_dispatch(&q).unwrap();let mut line=String::new();f.reader.read_line(&mut line).unwrap();let wire:Value=serde_json::from_str(&line).unwrap();
++            h.receive(&q,"conversation-home",&g(),&raw).unwrap();
++            let reply=match kind{"wrongtyped"=>Some(json!({"id":wire["id"].to_string(),"result":raw})),"error"=>Some(json!({"id":wire["id"],"error":{"code":-32600,"message":"synthetic refusal"}})),"malformed"=>Some(json!({"id":wire["id"],"result":{"data":"invalid"}})),_=>None};
++            if let Some(reply)=reply{f.host.on_line(&serde_json::to_vec(&reply).unwrap(),&g());}
++            assert!(f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).is_err());assert_eq!(h.snapshot()["selected"]["itemsPage"],raw);
++        }
++    }
++
++}

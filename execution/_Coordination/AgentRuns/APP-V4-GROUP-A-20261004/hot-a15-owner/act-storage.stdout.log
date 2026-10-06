@@ -1,0 +1,1233 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: field `a15_offers` is never read
+   --> src/act_control.rs:104:5
+    |
+100 | pub struct ActControl {
+    |            ---------- field in this struct
+...
+104 |     a15_offers: HashMap<String, a15::A15OfferSlot>,
+    |     ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple methods are never used
+  --> src/act_control_a15.rs:17:19
+   |
+16 | impl A15Binding {
+   | --------------- methods in this implementation
+17 |     pub(crate) fn subject(&self) -> &WorkflowIdentity {
+   |                   ^^^^^^^
+...
+20 |     pub(crate) fn content_method(&self) -> &str {
+   |                   ^^^^^^^^^^^^^^
+...
+23 |     pub(crate) fn content_value(&self) -> &str {
+   |                   ^^^^^^^^^^^^^
+...
+26 |     pub(crate) fn reviewed_id3(&self) -> &str {
+   |                   ^^^^^^^^^^^^
+...
+29 |     pub(crate) fn reviewed_content_method(&self) -> &str {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^
+...
+32 |     pub(crate) fn reviewed_content_value(&self) -> &str {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^
+...
+35 |     pub(crate) fn prior(&self) -> Option<&WorkflowIdentity> {
+   |                   ^^^^^
+...
+38 |     fn content(&self) -> Value {
+   |        ^^^^^^^
+...
+41 |     fn reviewed(&self) -> Value {
+   |        ^^^^^^^^
+...
+44 |     fn subject_ref(&self) -> Result<String, String> {
+   |        ^^^^^^^^^^^
+
+warning: function `rs_tuple` is never used
+  --> src/act_control_a15.rs:51:4
+   |
+51 | fn rs_tuple(tuple: &WorkflowIdentity) -> Value {
+   |    ^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/act_control_a15.rs:60:5
+   |
+59 | struct BoundReview {
+   |        ----------- fields in this struct
+60 |     review_ref: String,
+   |     ^^^^^^^^^^
+61 |     descriptor_id: String,
+   |     ^^^^^^^^^^^^^
+62 |     descriptor_kind: String,
+   |     ^^^^^^^^^^^^^^^
+63 |     library_root: PathBuf,
+   |     ^^^^^^^^^^^^
+64 |     act_log: PathBuf,
+   |     ^^^^^^^
+65 |     descriptor: Value,
+   |     ^^^^^^^^^^
+66 |     presentation: Value,
+   |     ^^^^^^^^^^^^
+67 |     bindings: Vec<A15Binding>,
+   |     ^^^^^^^^
+
+warning: associated items `observe` and `matches` are never used
+   --> src/act_control_a15.rs:70:8
+    |
+ 69 | impl BoundReview {
+    | ---------------- associated items in this implementation
+ 70 |     fn observe(view: &CurrentReviewView<'_>) -> Result<Self, String> {
+    |        ^^^^^^^
+...
+200 |     fn matches(&self, other: &Self) -> bool {
+    |        ^^^^^^^
+
+warning: struct `A15NativeWitness` is never constructed
+   --> src/act_control_a15.rs:211:8
+    |
+211 | struct A15NativeWitness {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: struct `HotA15Receipt` is never constructed
+   --> src/act_control_a15.rs:217:19
+    |
+217 | pub(crate) struct HotA15Receipt {
+    |                   ^^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/act_control_a15.rs:224:19
+    |
+223 | impl HotA15Receipt {
+    | ------------------ methods in this implementation
+224 |     pub(crate) fn review_ref(&self) -> &str {
+    |                   ^^^^^^^^^^
+...
+227 |     pub(crate) fn descriptor_id(&self) -> &str {
+    |                   ^^^^^^^^^^^^^
+...
+230 |     pub(crate) fn descriptor_kind(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^^
+...
+233 |     pub(crate) fn library_root(&self) -> &Path {
+    |                   ^^^^^^^^^^^^
+...
+236 |     pub(crate) fn act_log(&self) -> &Path {
+    |                   ^^^^^^^
+...
+239 |     pub(crate) fn record_id(&self) -> &str {
+    |                   ^^^^^^^^^
+...
+242 |     pub(crate) fn capture_id(&self) -> &str {
+    |                   ^^^^^^^^^^
+...
+245 |     pub(crate) fn ordered_bindings(&self) -> &[A15Binding] {
+    |                   ^^^^^^^^^^^^^^^^
+
+warning: struct `A15OfferRef` is never constructed
+   --> src/act_control_a15.rs:249:19
+    |
+249 | pub(crate) struct A15OfferRef {
+    |                   ^^^^^^^^^^^
+
+warning: method `id` is never used
+   --> src/act_control_a15.rs:253:19
+    |
+252 | impl A15OfferRef {
+    | ---------------- method in this implementation
+253 |     pub(crate) fn id(&self) -> &str {
+    |                   ^^
+
+warning: enum `HotA15Result` is never used
+   --> src/act_control_a15.rs:257:17
+    |
+257 | pub(crate) enum HotA15Result {
+    |                 ^^^^^^^^^^^^
+
+warning: fields `bound`, `original_offer`, `record_id`, and `receipt_issued` are never read
+   --> src/act_control_a15.rs:270:5
+    |
+268 | pub(super) struct A15Custody {
+    |                   ---------- fields in this struct
+269 |     library_root: PathBuf,
+270 |     bound: Option<BoundReview>,
+    |     ^^^^^
+271 |     original_offer: Value,
+    |     ^^^^^^^^^^^^^^
+272 |     record_id: Option<String>,
+    |     ^^^^^^^^^
+273 |     receipt_issued: bool,
+    |     ^^^^^^^^^^^^^^
+
+warning: fields `bound`, `offer`, `state`, `actor`, `context`, and `capture_id` are never read
+   --> src/act_control_a15.rs:281:5
+    |
+280 | pub(super) struct A15OfferSlot {
+    |                   ------------ fields in this struct
+281 |     bound: Option<BoundReview>,
+    |     ^^^^^
+282 |     offer: Value,
+    |     ^^^^^
+283 |     state: OfferState,
+    |     ^^^^^
+284 |     actor: Option<Value>,
+    |     ^^^^^
+285 |     context: Option<Value>,
+    |     ^^^^^^^
+286 |     capture_id: Option<String>,
+    |     ^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/act_control_a15.rs:289:19
+    |
+288 | impl ActControl {
+    | --------------- methods in this implementation
+289 |     pub(crate) fn compose_a15(
+    |                   ^^^^^^^^^^^
+...
+327 |     pub(crate) fn a15_confirmation_text(
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+...
+366 |     pub(crate) fn frozen_a15_offer_digest(&self, offer: &A15OfferRef) -> Result<&Value, String> {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^
+...
+378 |     pub(crate) fn present_a15(&mut self, offer: &A15OfferRef) -> Result<(), String> {
+    |                   ^^^^^^^^^^^
+...
+387 |     pub(crate) fn dismiss_a15(&mut self, offer: &A15OfferRef) {
+    |                   ^^^^^^^^^^^
+...
+394 |     pub(crate) fn confirm_a15_after_native_event(
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+481 |     pub(crate) fn continue_a15(&mut self, offer: &A15OfferRef) -> Result<HotA15Result, String> {
+    |                   ^^^^^^^^^^^^
+...
+506 |     fn finish_a15_delivery(&mut self, offer: &A15OfferRef) -> Result<HotA15Result, String> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `AcceptedNativeItemPage` is never constructed
+   --> src/hosting.rs:223:19
+    |
+223 | pub(crate) struct AcceptedNativeItemPage<'a> {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `NativeItemPageSource` is never constructed
+   --> src/hosting.rs:228:8
+    |
+228 | struct NativeItemPageSource { dispatch: HistoryDispatch, receipt_position: u64 }
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/hosting.rs:230:19
+    |
+229 | impl AcceptedNativeItemPage<'_> {
+    | ------------------------------- methods in this implementation
+230 |     pub(crate) fn query(&self)->&HistoryQuery {self.observed.query()}
+    |                   ^^^^^
+231 |     pub(crate) fn page(&self)->&Value {self.observed.page()}
+    |                   ^^^^
+232 |     pub(crate) fn source_request_id(&self)->&Value {self.source.dispatch.source.request_id()}
+    |                   ^^^^^^^^^^^^^^^^^
+233 |     pub(crate) fn source_request_ref(&self)->&str {self.source.dispatch.source.request_ref()}
+    |                   ^^^^^^^^^^^^^^^^^^
+234 |     pub(crate) fn owner_instance(&self)->u64 {self.observed.owner_instance()}
+    |                   ^^^^^^^^^^^^^^
+235 |     pub(crate) fn selection_epoch(&self)->u64 {self.observed.selection_epoch()}
+    |                   ^^^^^^^^^^^^^^^
+236 |     pub(crate) fn stream_revision(&self)->u64 {self.observed.stream_revision()}
+    |                   ^^^^^^^^^^^^^^^
+
+warning: enum `NativeItemCursor` is never used
+   --> src/hosting.rs:238:6
+    |
+238 | enum NativeItemCursor { Available(String), Exhausted, NotReported }
+    |      ^^^^^^^^^^^^^^^^
+
+warning: struct `NativeItemsSupplyCheck` is never constructed
+   --> src/hosting.rs:240:19
+    |
+240 | pub(crate) struct NativeItemsSupplyCheck {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `last_query` and `next_cursor` are never used
+   --> src/hosting.rs:250:19
+    |
+249 | impl NativeItemsSupplyCheck {
+    | --------------------------- methods in this implementation
+250 |     pub(crate) fn last_query(&self)->&HistoryQuery {&self.sources.last().unwrap().dispatch.query}
+    |                   ^^^^^^^^^^
+251 |     pub(crate) fn next_cursor(&self)->Option<&str> {match &self.cursor{NativeItemCursor::Available(c)=>Some(c),_=>None}}
+    |                   ^^^^^^^^^^^
+
+warning: struct `NativeItemCoverageSeal` is never constructed
+   --> src/hosting.rs:255:19
+    |
+255 | pub(crate) struct NativeItemCoverageSeal { check:NativeItemsSupplyCheck }
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `query`, `page_count`, and `source_receipts` are never used
+   --> src/hosting.rs:257:19
+    |
+256 | impl NativeItemCoverageSeal {
+    | --------------------------- methods in this implementation
+257 |     pub(crate) fn query(&self)->&HistoryQuery {self.check.last_query()}
+    |                   ^^^^^
+258 |     pub(crate) fn page_count(&self)->usize {self.check.sources.len()}
+    |                   ^^^^^^^^^^
+259 |     pub(crate) fn source_receipts(&self)->impl Iterator<Item=(&Value,&str,u64)> {
+    |                   ^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+    --> src/hosting.rs:1119:19
+     |
+ 376 | impl Host {
+     | --------- associated items in this implementation
+...
+1119 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+...
+1211 |     fn native_item_source<'a>(&self,i:&'a Inner,dispatch:&HistoryDispatch)->Result<&'a SourceEvidence,String>{
+     |        ^^^^^^^^^^^^^^^^^^
+...
+1233 |     fn native_item_cursor(page:&Value)->NativeItemCursor {
+     |        ^^^^^^^^^^^^^^^^^^
+...
+1236 |     fn native_item_page_current(&self,i:&Inner,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1242 |     pub(crate) fn mint_accepted_items_page<'a>(&self,dispatch:&HistoryDispatch,observed:crate::native_history::AcceptedItemsObservation<'...
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1248 |     pub(crate) fn revalidate_accepted_items_page(&self,page:&AcceptedNativeItemPage<'_>)->Result<(),String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1251 |     pub(crate) fn begin_native_items_supply_check(&self,page:&AcceptedNativeItemPage<'_>)->Result<NativeItemsSupplyCheck,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1258 |     fn native_item_check_sources(&self,i:&Inner,check:&NativeItemsSupplyCheck)->Result<(),String>{
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1265 |     pub(crate) fn dispatch_next_native_items_supply_page(&self,check:&mut NativeItemsSupplyCheck,query:&HistoryQuery)->Result<HistoryDisp...
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1273 |     pub(crate) fn accept_next_native_items_supply_page(&self,check:&mut NativeItemsSupplyCheck,page:&AcceptedNativeItemPage<'_>)->Result<...
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1285 |     pub(crate) fn finish_native_items_supply_check(&self,check:NativeItemsSupplyCheck,observed:crate::native_history::AcceptedItemsObserv...
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `query`, `selection_epoch`, and `revision` are never read
+  --> src/native_history.rs:88:5
+   |
+87 | struct AcceptedItems {
+   |        ------------- fields in this struct
+88 |     query: HistoryQuery,
+   |     ^^^^^
+89 |     selection_epoch: u64,
+   |     ^^^^^^^^^^^^^^^
+90 |     revision: u64,
+   |     ^^^^^^^^
+
+warning: struct `AcceptedItemsObservation` is never constructed
+  --> src/native_history.rs:96:19
+   |
+96 | pub(crate) struct AcceptedItemsObservation<'a> {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `query`, `owner_instance`, `selection_epoch`, `stream_revision`, `stream`, and `page` are never used
+   --> src/native_history.rs:101:19
+    |
+100 | impl AcceptedItemsObservation<'_> {
+    | --------------------------------- methods in this implementation
+101 |     pub(crate) fn query(&self) -> &HistoryQuery {
+    |                   ^^^^^
+...
+104 |     pub(crate) fn owner_instance(&self) -> u64 {
+    |                   ^^^^^^^^^^^^^^
+...
+107 |     pub(crate) fn selection_epoch(&self) -> u64 {
+    |                   ^^^^^^^^^^^^^^^
+...
+110 |     pub(crate) fn stream_revision(&self) -> u64 {
+    |                   ^^^^^^^^^^^^^^^
+...
+113 |     pub(crate) fn stream(&self) -> &str {
+    |                   ^^^^^^
+...
+116 |     pub(crate) fn page(&self) -> &Value {
+    |                   ^^^^
+
+warning: method `accepted_items_observation` is never used
+   --> src/native_history.rs:459:19
+    |
+271 | impl NativeHistory {
+    | ------------------ method in this implementation
+...
+459 |     pub(crate) fn accepted_items_observation<'a>(
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `SCHEMA` is never used
+ --> src/workflow_declaration.rs:6:11
+  |
+6 | pub const SCHEMA: &str =
+  |           ^^^^^^
+
+warning: constant `CATEGORIES` is never used
+ --> src/workflow_declaration.rs:8:11
+  |
+8 | pub const CATEGORIES: [(&str, &str); 5] = [
+  |           ^^^^^^^^^^
+
+warning: struct `UniqueJson` is never constructed
+  --> src/workflow_declaration.rs:17:8
+   |
+17 | struct UniqueJson(Value);
+   |        ^^^^^^^^^^
+
+warning: function `parse_unique` is never used
+  --> src/workflow_declaration.rs:79:8
+   |
+79 | pub fn parse_unique(text: &str) -> Result<Value, String> {
+   |        ^^^^^^^^^^^^
+
+warning: enum `Reading` is never used
+  --> src/workflow_declaration.rs:87:10
+   |
+87 | pub enum Reading {
+   |          ^^^^^^^
+
+warning: struct `Element` is never constructed
+  --> src/workflow_declaration.rs:95:12
+   |
+95 | pub struct Element {
+   |            ^^^^^^^
+
+warning: struct `Declaration` is never constructed
+   --> src/workflow_declaration.rs:101:12
+    |
+101 | pub struct Declaration {
+    |            ^^^^^^^^^^^
+
+warning: struct `LocatedDeclaration` is never constructed
+   --> src/workflow_declaration.rs:112:12
+    |
+112 | pub struct LocatedDeclaration {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: function `body_start` is never used
+   --> src/workflow_declaration.rs:118:4
+    |
+118 | fn body_start(text: &str) -> usize {
+    |    ^^^^^^^^^^
+
+warning: function `literal_declaration_opener` is never used
+   --> src/workflow_declaration.rs:153:4
+    |
+153 | fn literal_declaration_opener(text: &str, start: usize) -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `locate` is never used
+   --> src/workflow_declaration.rs:172:8
+    |
+172 | pub fn locate(text: &str) -> Result<Option<LocatedDeclaration>, String> {
+    |        ^^^^^^
+
+warning: function `extract` is never used
+   --> src/workflow_declaration.rs:225:8
+    |
+225 | pub fn extract(text: &str) -> Result<Option<String>, String> {
+    |        ^^^^^^^
+
+warning: function `validator` is never used
+   --> src/workflow_declaration.rs:234:4
+    |
+234 | fn validator(def: Option<&str>) -> Result<jsonschema::Validator, String> {
+    |    ^^^^^^^^^
+
+warning: function `read` is never used
+   --> src/workflow_declaration.rs:247:8
+    |
+247 | pub fn read(text: &str) -> Result<Declaration, String> {
+    |        ^^^^
+
+warning: function `domain_checks` is never used
+   --> src/workflow_declaration.rs:367:4
+    |
+367 | fn domain_checks(r: &mut Declaration) {
+    |    ^^^^^^^^^^^^^
+
+warning: constant `SNAPSHOT_METHOD` is never used
+  --> src/workflow_workspace.rs:17:11
+   |
+17 | pub const SNAPSHOT_METHOD: &str = "chirality.app.workflow-package.sha256/v1";
+   |           ^^^^^^^^^^^^^^^
+
+warning: methods `validate` and `same_slot` are never used
+  --> src/workflow_workspace.rs:31:12
+   |
+30 | impl WorkflowIdentity {
+   | --------------------- methods in this implementation
+31 |     pub fn validate(&self) -> Result<(), String> {
+   |            ^^^^^^^^
+...
+47 |     pub fn same_slot(&self, other: &Self) -> bool {
+   |            ^^^^^^^^^
+
+warning: function `valid_name` is never used
+  --> src/workflow_workspace.rs:53:8
+   |
+53 | pub fn valid_name(n: &str) -> bool {
+   |        ^^^^^^^^^^
+
+warning: struct `Snapshot` is never constructed
+  --> src/workflow_workspace.rs:63:12
+   |
+63 | pub struct Snapshot {
+   |            ^^^^^^^^
+
+warning: multiple associated items are never used
+   --> src/workflow_workspace.rs:68:12
+    |
+ 67 | impl Snapshot {
+    | ------------- associated items in this implementation
+ 68 |     pub fn capture(root: &Path) -> Result<Self, String> {
+    |            ^^^^^^^
+...
+ 80 |     pub fn from_files(files: BTreeMap<String, Vec<u8>>) -> Result<Self, String> {
+    |            ^^^^^^^^^^
+...
+108 |     pub fn manifest(&self) -> Vec<serde_json::Value> {
+    |            ^^^^^^^^
+...
+111 |     pub fn hygiene_findings(&self) -> Vec<String> {
+    |            ^^^^^^^^^^^^^^^^
+...
+146 |     pub fn revision(&self) -> &str {
+    |            ^^^^^^^^
+...
+149 |     pub fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+    |            ^^^^^
+...
+152 |     pub fn workflow_text(&self) -> &str {
+    |            ^^^^^^^^^^^^^
+...
+155 |     pub fn declaration(&self) -> Result<Declaration, String> {
+    |            ^^^^^^^^^^^
+...
+158 |     pub fn identity(
+    |            ^^^^^^^^
+...
+177 |     pub fn publish_new(&self, destination: &Path) -> Result<(), String> {
+    |            ^^^^^^^^^^^
+
+warning: function `walk` is never used
+   --> src/workflow_workspace.rs:197:4
+    |
+197 | fn walk(base: &Path, dir: &Path, out: &mut BTreeMap<String, Vec<u8>>) -> Result<(), String> {
+    |    ^^^^
+
+warning: struct `DraftKey` is never constructed
+   --> src/workflow_workspace.rs:221:12
+    |
+221 | pub struct DraftKey {
+    |            ^^^^^^^^
+
+warning: struct `Review` is never constructed
+   --> src/workflow_workspace.rs:227:12
+    |
+227 | pub struct Review {
+    |            ^^^^^^
+
+warning: associated items `open`, `snapshot`, `is_current`, and `descriptor` are never used
+   --> src/workflow_workspace.rs:236:12
+    |
+235 | impl Review {
+    | ----------- associated items in this implementation
+236 |     pub fn open(
+    |            ^^^^
+...
+312 |     pub fn snapshot(&self) -> &Snapshot {
+    |            ^^^^^^^^
+...
+315 |     pub fn is_current(&self, live: &Snapshot, latest: Option<&WorkflowIdentity>) -> bool {
+    |            ^^^^^^^^^^
+...
+318 |     pub fn descriptor(&self) -> serde_json::Value {
+    |            ^^^^^^^^^^
+
+warning: struct `RegistrationAdapterClaim` is never constructed
+   --> src/workflow_workspace.rs:325:12
+    |
+325 | pub struct RegistrationAdapterClaim {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RegistrationClaimMatch` is never constructed
+   --> src/workflow_workspace.rs:333:12
+    |
+333 | pub struct RegistrationClaimMatch {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `compare`, `identity`, `snapshot`, `claimed_act_ref`, `selection_eligible`, and `evidence` are never used
+   --> src/workflow_workspace.rs:339:12
+    |
+338 | impl RegistrationClaimMatch {
+    | --------------------------- associated items in this implementation
+339 |     pub fn compare(
+    |            ^^^^^^^
+...
+367 |     pub fn identity(&self) -> &WorkflowIdentity {
+    |            ^^^^^^^^
+...
+370 |     pub fn snapshot(&self) -> &Snapshot {
+    |            ^^^^^^^^
+...
+373 |     pub fn claimed_act_ref(&self) -> &str {
+    |            ^^^^^^^^^^^^^^^
+...
+376 |     pub fn selection_eligible(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+379 |     pub fn evidence(&self) -> serde_json::Value {
+    |            ^^^^^^^^
+
+warning: struct `RegisteredRevision` is never constructed
+   --> src/workflow_workspace.rs:386:12
+    |
+386 | pub struct RegisteredRevision {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: methods `identity`, `act_ref`, and `select` are never used
+   --> src/workflow_workspace.rs:392:12
+    |
+391 | impl RegisteredRevision {
+    | ----------------------- methods in this implementation
+392 |     pub fn identity(&self) -> &WorkflowIdentity {
+    |            ^^^^^^^^
+...
+395 |     pub fn act_ref(&self) -> &str {
+    |            ^^^^^^^
+...
+398 |     pub fn select(&self) -> Selection {
+    |            ^^^^^^
+
+warning: struct `Selection` is never constructed
+   --> src/workflow_workspace.rs:407:12
+    |
+407 | pub struct Selection {
+    |            ^^^^^^^^^
+
+warning: enum `SelectionAdmission` is never used
+   --> src/workflow_workspace.rs:414:10
+    |
+414 | pub enum SelectionAdmission {
+    |          ^^^^^^^^^^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_workspace.rs:424:12
+    |
+423 | impl SelectionAdmission {
+    | ----------------------- method in this implementation
+424 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: methods `identity`, `snapshot`, `admission`, `verify_store`, `run_start_text`, and `run_turn_params` are never used
+   --> src/workflow_workspace.rs:454:12
+    |
+433 | impl Selection {
+    | -------------- methods in this implementation
+...
+454 |     pub fn identity(&self) -> &WorkflowIdentity {
+    |            ^^^^^^^^
+...
+457 |     pub fn snapshot(&self) -> &Snapshot {
+    |            ^^^^^^^^
+...
+460 |     pub fn admission(&self) -> &SelectionAdmission {
+    |            ^^^^^^^^^
+...
+463 |     pub fn verify_store(&self, path: &Path) -> Result<(), String> {
+    |            ^^^^^^^^^^^^
+...
+472 |     pub fn run_start_text(&self, run: &str, folder_label: &str) -> Result<String, String> {
+    |            ^^^^^^^^^^^^^^
+...
+512 |     pub fn run_turn_params(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `collisions` is never used
+   --> src/workflow_workspace.rs:532:8
+    |
+532 | pub fn collisions<'a>(name: &str, entries: &'a [WorkflowIdentity]) -> Vec<&'a WorkflowIdentity> {
+    |        ^^^^^^^^^^
+
+warning: enum `UntrustedPageComparisonState` is never used
+   --> src/workflow_workspace.rs:538:10
+    |
+538 | pub enum UntrustedPageComparisonState {
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `UntrustedPageComparison` is never constructed
+   --> src/workflow_workspace.rs:546:12
+    |
+546 | pub struct UntrustedPageComparison {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `compare_untrusted_pages` is never used
+   --> src/workflow_workspace.rs:558:8
+    |
+558 | pub fn compare_untrusted_pages(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `expected_marker_body` is never used
+   --> src/workflow_workspace.rs:642:4
+    |
+642 | fn expected_marker_body<'a>(expected: &str, observed: &'a str) -> Option<&'a str> {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RunScope` is never constructed
+   --> src/workflow_workspace.rs:668:12
+    |
+668 | pub struct RunScope {
+    |            ^^^^^^^^
+
+warning: method `validate` is never used
+   --> src/workflow_workspace.rs:679:8
+    |
+678 | impl RunScope {
+    | ------------- method in this implementation
+679 |     fn validate(&self, selection: &Selection) -> Result<(), String> {
+    |        ^^^^^^^^
+
+warning: enum `RunEndReason` is never used
+   --> src/workflow_workspace.rs:704:10
+    |
+704 | pub enum RunEndReason {
+    |          ^^^^^^^^^^^^
+
+warning: method `text` is never used
+   --> src/workflow_workspace.rs:710:8
+    |
+709 | impl RunEndReason {
+    | ----------------- method in this implementation
+710 |     fn text(&self) -> Result<String, String> {
+    |        ^^^^
+
+warning: struct `OwnerRunEnd` is never constructed
+   --> src/workflow_workspace.rs:722:12
+    |
+722 | pub struct OwnerRunEnd {
+    |            ^^^^^^^^^^^
+
+warning: struct `PreparedRunText` is never constructed
+   --> src/workflow_workspace.rs:730:12
+    |
+730 | pub struct PreparedRunText {
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `exact_text_identity` is never used
+   --> src/workflow_workspace.rs:737:4
+    |
+737 | fn exact_text_identity(text: &str) -> serde_json::Value {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `wr_validate` is never used
+   --> src/workflow_workspace.rs:740:4
+    |
+740 | fn wr_validate(target: &str, value: &serde_json::Value) -> Result<(), String> {
+    |    ^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> src/workflow_workspace.rs:763:12
+    |
+762 | impl PreparedRunText {
+    | -------------------- associated items in this implementation
+763 |     pub fn start(
+    |            ^^^^^
+...
+842 |     pub fn text(&self) -> &str {
+    |            ^^^^
+...
+845 |     pub fn record(&self) -> &serde_json::Value {
+    |            ^^^^^^
+...
+848 |     pub fn admission(&self) -> &SelectionAdmission {
+    |            ^^^^^^^^^
+...
+851 |     pub fn scope(&self) -> &RunScope {
+    |            ^^^^^
+...
+854 |     pub fn turn_params(
+    |            ^^^^^^^^^^^
+...
+871 |     pub fn end_notice(&self, end: &OwnerRunEnd) -> Result<(String, serde_json::Value), String> {
+    |            ^^^^^^^^^^
+...
+896 |     fn selected_body<'a>(&self, observed: &'a str) -> Option<&'a str> {
+    |        ^^^^^^^^^^^^^
+...
+927 |     pub fn compare_observed_text(
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `TextComparison` is never constructed
+   --> src/workflow_workspace.rs:962:12
+    |
+962 | pub struct TextComparison {
+    |            ^^^^^^^^^^^^^^
+
+warning: constant `NAME` is never used
+  --> src/workflow_catalog.rs:10:11
+   |
+10 | pub const NAME: &str = "coordinated-knowledge-work";
+   |           ^^^^
+
+warning: constant `STANDING` is never used
+  --> src/workflow_catalog.rs:11:11
+   |
+11 | pub const STANDING: &str = "App-v4 development build candidate; not a published release";
+   |           ^^^^^^^^
+
+warning: constant `REVISION` is never used
+  --> src/workflow_catalog.rs:12:7
+   |
+12 | const REVISION: &str = "1b1733864cd89fd6d8ca74bf3e2084ff1105c1fc7d76537eefb42e2ae9a41e83";
+   |       ^^^^^^^^
+
+warning: constant `WORKFLOW` is never used
+  --> src/workflow_catalog.rs:13:7
+   |
+13 | const WORKFLOW: &[u8] =
+   |       ^^^^^^^^
+
+warning: constant `NOTES` is never used
+  --> src/workflow_catalog.rs:15:7
+   |
+15 | const NOTES: &[u8] =
+   |       ^^^^^
+
+warning: struct `DevelopmentCatalog` is never constructed
+  --> src/workflow_catalog.rs:20:12
+   |
+20 | pub struct DevelopmentCatalog {
+   |            ^^^^^^^^^^^^^^^^^^
+
+warning: associated items `load`, `identity`, `standing`, `select_embedded`, and `recognize_holding_copy` are never used
+  --> src/workflow_catalog.rs:25:12
+   |
+24 | impl DevelopmentCatalog {
+   | ----------------------- associated items in this implementation
+25 |     pub fn load() -> Result<Self, String> {
+   |            ^^^^
+...
+51 |     pub fn identity(&self) -> &WorkflowIdentity {
+   |            ^^^^^^^^
+...
+55 |     pub fn standing(&self) -> &'static str {
+   |            ^^^^^^^^
+...
+60 |     pub fn select_embedded(&self) -> Selection {
+   |            ^^^^^^^^^^^^^^^
+...
+66 |     pub fn recognize_holding_copy(&self, package: &Path) -> Result<HoldingCopySelection, String> {
+   |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `HoldingCopySelection` is never constructed
+  --> src/workflow_catalog.rs:90:12
+   |
+90 | pub struct HoldingCopySelection {
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `selection`, `package_path`, `standing`, and `verify_current` are never used
+   --> src/workflow_catalog.rs:95:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- methods in this implementation
+ 95 |     pub fn selection(&self) -> &Selection {
+    |            ^^^^^^^^^
+...
+ 98 |     pub fn package_path(&self) -> &Path {
+    |            ^^^^^^^^^^^^
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+...
+105 |     pub fn verify_current(&self) -> Result<(), String> {
+    |            ^^^^^^^^^^^^^^
+
+warning: struct `LibraryOwner` is never constructed
+  --> src/workflow_library.rs:15:19
+   |
+15 | pub(crate) struct LibraryOwner {
+   |                   ^^^^^^^^^^^^
+
+warning: associated items `open`, `record_base`, `review_draft`, `review_in_place`, and `review` are never used
+  --> src/workflow_library.rs:22:19
+   |
+21 | impl LibraryOwner {
+   | ----------------- associated items in this implementation
+22 |     pub(crate) fn open(root: PathBuf, origin: &str, source_root: &str) -> Result<Self, String> {
+   |                   ^^^^
+...
+39 |     pub(crate) fn record_base(&mut self, name: &str, selection: &Selection) -> Result<(), String> {
+   |                   ^^^^^^^^^^^
+...
+49 |     pub(crate) fn review_draft(
+   |                   ^^^^^^^^^^^^
+...
+56 |     pub(crate) fn review_in_place(&self, names: &[String]) -> Result<ReviewSession, String> {
+   |                   ^^^^^^^^^^^^^^^
+...
+59 |     fn review(
+   |        ^^^^^^
+
+warning: function `lineage_reaches` is never used
+   --> src/workflow_library.rs:194:4
+    |
+194 | fn lineage_reaches(base: &WorkflowIdentity, target: &WorkflowIdentity) -> bool {
+    |    ^^^^^^^^^^^^^^^
+
+warning: enum `ReviewMode` is never used
+   --> src/workflow_library.rs:202:6
+    |
+202 | enum ReviewMode {
+    |      ^^^^^^^^^^
+
+warning: struct `ReviewedEntry` is never constructed
+   --> src/workflow_library.rs:207:8
+    |
+207 | struct ReviewedEntry {
+    |        ^^^^^^^^^^^^^
+
+warning: struct `ReviewSession` is never constructed
+   --> src/workflow_library.rs:215:19
+    |
+215 | pub(crate) struct ReviewSession {
+    |                   ^^^^^^^^^^^^^
+
+warning: methods `descriptor_kind`, `withdraw`, `current`, `compose_descriptor`, `compose_presentation`, and `begin_hot_registration` are never used
+   --> src/workflow_library.rs:230:8
+    |
+229 | impl ReviewSession {
+    | ------------------ methods in this implementation
+230 |     fn descriptor_kind(&self) -> &'static str {
+    |        ^^^^^^^^^^^^^^^
+...
+237 |     pub(crate) fn withdraw(&self) {
+    |                   ^^^^^^^^
+...
+240 |     pub(crate) fn current(&self) -> Result<CurrentReviewView<'_>, String> {
+    |                   ^^^^^^^
+...
+261 |     fn compose_descriptor(&self) -> Value {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+272 |     fn compose_presentation(&self) -> Value {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+281 |     pub(crate) fn begin_hot_registration(
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `CurrentReviewView` is never constructed
+   --> src/workflow_library.rs:315:19
+    |
+315 | pub(crate) struct CurrentReviewView<'a> {
+    |                   ^^^^^^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/workflow_library.rs:319:19
+    |
+318 | impl CurrentReviewView<'_> {
+    | -------------------------- methods in this implementation
+319 |     pub(crate) fn revalidate(&self) -> Result<(), String> {
+    |                   ^^^^^^^^^^
+...
+322 |     pub(crate) fn descriptor(&self) -> &Value {
+    |                   ^^^^^^^^^^
+...
+325 |     pub(crate) fn descriptor_kind(&self) -> &'static str {
+    |                   ^^^^^^^^^^^^^^^
+...
+328 |     pub(crate) fn review_ref(&self) -> &str {
+    |                   ^^^^^^^^^^
+...
+331 |     pub(crate) fn descriptor_id(&self) -> &str {
+    |                   ^^^^^^^^^^^^^
+...
+334 |     pub(crate) fn library_root(&self) -> &Path {
+    |                   ^^^^^^^^^^^^
+...
+337 |     pub(crate) fn act_log(&self) -> &Path {
+    |                   ^^^^^^^
+...
+340 |     pub(crate) fn review_presentation(&self) -> &Value {
+    |                   ^^^^^^^^^^^^^^^^^^^
+...
+343 |     pub(crate) fn ordered_bindings(
+    |                   ^^^^^^^^^^^^^^^^
+
+warning: struct `BorrowedReviewBinding` is never constructed
+   --> src/workflow_library.rs:352:19
+    |
+352 | pub(crate) struct BorrowedReviewBinding<'a> {
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/workflow_library.rs:356:19
+    |
+355 | impl BorrowedReviewBinding<'_> {
+    | ------------------------------ methods in this implementation
+356 |     pub(crate) fn subject(&self) -> &WorkflowIdentity {
+    |                   ^^^^^^^
+...
+359 |     pub(crate) fn content_method(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^
+...
+362 |     pub(crate) fn content_value(&self) -> &str {
+    |                   ^^^^^^^^^^^^^
+...
+365 |     pub(crate) fn reviewed_id3(&self) -> &str {
+    |                   ^^^^^^^^^^^^
+...
+368 |     pub(crate) fn reviewed_content_method(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^
+...
+371 |     pub(crate) fn reviewed_content_value(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+...
+374 |     pub(crate) fn prior(&self) -> Option<&WorkflowIdentity> {
+    |                   ^^^^^
+
+warning: function `content` is never used
+   --> src/workflow_library.rs:378:4
+    |
+378 | fn content(e: &ReviewedEntry) -> Value {
+    |    ^^^^^^^
+
+warning: function `diff` is never used
+   --> src/workflow_library.rs:381:4
+    |
+381 | fn diff(
+    |    ^^^^
+
+warning: function `read_ledger` is never used
+   --> src/workflow_library.rs:387:4
+    |
+387 | fn read_ledger(root: &Path) -> Result<Vec<Value>, String> {
+    |    ^^^^^^^^^^^
+
+warning: function `slot_lines` is never used
+   --> src/workflow_library.rs:409:4
+    |
+409 | fn slot_lines(rows: &[Value], origin: &str, source: &str, name: &str) -> Vec<Value> {
+    |    ^^^^^^^^^^
+
+warning: function `latest` is never used
+   --> src/workflow_library.rs:419:4
+    |
+419 | fn latest(rows: &[Value]) -> Result<Option<WorkflowIdentity>, String> {
+    |    ^^^^^^
+
+warning: function `store_path` is never used
+   --> src/workflow_library.rs:426:4
+    |
+426 | fn store_path(root: &Path, id: &WorkflowIdentity) -> PathBuf {
+    |    ^^^^^^^^^^
+
+warning: enum `Progress` is never used
+   --> src/workflow_library.rs:433:6
+    |
+433 | enum Progress {
+    |      ^^^^^^^^
+
+warning: struct `HotRegistrationAttempt` is never constructed
+   --> src/workflow_library.rs:440:19
+    |
+440 | pub(crate) struct HotRegistrationAttempt {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `PublicationOutcome` is never used
+   --> src/workflow_library.rs:446:17
+    |
+446 | pub(crate) enum PublicationOutcome {
+    |                 ^^^^^^^^^^^^^^^^^^
+
+warning: enum `EntryOutcome` is never used
+   --> src/workflow_library.rs:451:17
+    |
+451 | pub(crate) enum EntryOutcome {
+    |                 ^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/workflow_library.rs:466:19
+    |
+465 | impl HotRegistrationAttempt {
+    | --------------------------- methods in this implementation
+466 |     pub(crate) fn advance(&mut self) -> Vec<EntryOutcome> {
+    |                   ^^^^^^^
+...
+517 |     fn advance_entry(&mut self, index: usize) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^
+...
+598 |     fn line(&self, index: usize, rows: &[Value], outcome: &str) -> Value {
+    |        ^^^^
+...
+608 |     fn fail_entry(&mut self, index: usize, reason: String, rows: &[Value]) -> Result<(), String> {
+    |        ^^^^^^^^^^
+...
+617 |     fn finish_line(&mut self, index: usize, line: Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^
+...
+625 |     fn finish_commit(&mut self, index: usize, _line: Value) -> Result<(), String> {
+    |        ^^^^^^^^^^^^^
+...
+654 |     fn publish_copy(&self, index: usize) -> Result<(), String> {
+    |        ^^^^^^^^^^^^
+
+warning: function `append_line` is never used
+   --> src/workflow_library.rs:697:4
+    |
+697 | fn append_line(root: &Path, line: &Value) -> Result<(), String> {
+    |    ^^^^^^^^^^^
+
+warning: function `sync_package` is never used
+   --> src/workflow_library.rs:716:4
+    |
+716 | fn sync_package(path: &Path) -> Result<(), String> {
+    |    ^^^^^^^^^^^^
+
+warning: function `publish_reserved_store` is never used
+   --> src/workflow_library.rs:737:4
+    |
+737 | fn publish_reserved_store(snapshot: &Snapshot, store: &Path) -> Result<(), String> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `Outcome` is never used
+ --> src/execution_compatibility.rs:8:10
+  |
+8 | pub enum Outcome {
+  |          ^^^^^^^
+
+warning: struct `Operation` is never constructed
+  --> src/execution_compatibility.rs:18:12
+   |
+18 | pub struct Operation {
+   |            ^^^^^^^^^
+
+warning: struct `Environment` is never constructed
+  --> src/execution_compatibility.rs:24:12
+   |
+24 | pub struct Environment {
+   |            ^^^^^^^^^^^
+
+warning: struct `ToolResult` is never constructed
+  --> src/execution_compatibility.rs:31:12
+   |
+31 | pub struct ToolResult {
+   |            ^^^^^^^^^^
+
+warning: enum `Check` is never used
+  --> src/execution_compatibility.rs:39:10
+   |
+39 | pub enum Check {
+   |          ^^^^^
+
+warning: struct `Compatibility` is never constructed
+  --> src/execution_compatibility.rs:45:12
+   |
+45 | pub struct Compatibility {
+   |            ^^^^^^^^^^^^^
+
+warning: associated functions `check_for_role` and `check` are never used
+   --> src/execution_compatibility.rs:52:12
+    |
+ 51 | impl Compatibility {
+    | ------------------ associated functions in this implementation
+ 52 |     pub fn check_for_role(
+    |            ^^^^^^^^^^^^^^
+...
+108 |     pub fn check(declaration: &Declaration, env: &Environment) -> Self {
+    |            ^^^^^
+
+warning: function `host_presence` is never used
+   --> src/execution_compatibility.rs:172:4
+    |
+172 | fn host_presence(v: &Value, e: &Environment) -> (Outcome, String) {
+    |    ^^^^^^^^^^^^^
+
+warning: function `harness_presence` is never used
+   --> src/execution_compatibility.rs:220:4
+    |
+220 | fn harness_presence(name: &str, e: &Environment) -> (Outcome, String) {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: struct `ConfirmedA15Event` is never constructed
+ --> src/a15_native.rs:7:19
+  |
+7 | pub(crate) struct ConfirmedA15Event {
+  |                   ^^^^^^^^^^^^^^^^^
+
+warning: methods `offer_id`, `offer_digest`, `actor`, and `owning_context` are never used
+  --> src/a15_native.rs:14:19
+   |
+13 | impl ConfirmedA15Event {
+   | ---------------------- methods in this implementation
+14 |     pub(crate) fn offer_id(&self) -> &str {
+   |                   ^^^^^^^^
+...
+17 |     pub(crate) fn offer_digest(&self) -> &Value {
+   |                   ^^^^^^^^^^^^
+...
+20 |     pub(crate) fn actor(&self) -> &Value {
+   |                   ^^^^^
+...
+23 |     pub(crate) fn owning_context(&self) -> &Value {
+   |                   ^^^^^^^^^^^^^^
+
+warning: function `confirm_native` is never used
+  --> src/a15_native.rs:48:15
+   |
+48 | pub(crate) fn confirm_native(
+   |               ^^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (lib) generated 121 warnings
+warning: function `evidence_output` is never used
+  --> tests/common/mod.rs:52:8
+   |
+52 | pub fn evidence_output() -> PathBuf {
+   |        ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `chirality-app-v4` (test "act_storage") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.64s
+     Running tests/act_storage.rs (target/debug/deps/act_storage-34adf9b64c5ece6b)
+
+running 24 tests
+test capture_store_failure_is_visible_without_record_or_relocation ... ok
+test fabricated_cold_capture_and_pending_files_never_create_native_act ... ok
+test cold_capture_without_writer_submission_is_held_without_mint_or_reissue ... ok
+test frozen_native_choice_cancel_and_script_refuse_without_capture ... ok
+test historical_request_observer_requires_registered_origin_and_exact_file_reference ... ok
+test incomplete_registered_legacy_history_refuses_discovery_without_rewriting_or_reissuing ... ok
+test crash_after_append_reconciles_backlink_once_without_duplicate ... ok
+test backlink_failure_stays_recorded_link_pending_then_recovers_without_append ... ok
+test incomplete_foreign_log_blocks_recovery_and_backlink_even_after_local_append ... ok
+test legacy_and_library_history_remain_in_place_and_opaque ... ok
+test legacy_request_discovery_never_coerces_unknown_methods_or_malformed_legacy_values ... ok
+test fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush ... ok
+test duplicate_and_disagreeing_discovered_capture_records_never_replay ... ok
+test malformed_packages_duplicate_alternatives_and_digest_changes_refuse ... ok
+test run_and_outside_run_logs_keep_identity_and_do_not_duplicate ... ok
+test observed_buffer_hash_and_fields_agree_after_controlled_file_replacement ... ok
+test unverified_cold_files_neither_grant_append_authority_nor_hold_unrelated_refresh ... ok
+test hot_pending_batch_keeps_native_event_order_before_delay_limits ... ok
+test refresh_flushes_pending_native_admission_before_new_recorder_input ... ok
+test rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id ... ok
+test older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_latest ... ok
+test scope_absence_and_requester_limit_are_source_faithful ... ok
+test concurrent_append_sequences_and_cross_log_ids_are_unique ... ok
+test writer_sequence_gaps_duplicates_and_reordering_hold_append_and_backlink ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.40s
+

@@ -108,6 +108,14 @@ npm test
 (cd src-tauri && cargo test --offline --locked)
 ```
 
+Use the complete published platform package, with its `bin/codex` entrypoint,
+helper binaries, resources and `codex-package.json` retained in their original
+layout. Include the package's `codex-path` directory in the child process's
+`PATH`. With only `codex` copied, the stock supplier warns that Code Mode lacks
+its required host and will fail closed. The approved 0.160.0 archive's complete layout was separately
+verified and probed; earlier flat-binary observations remain source-specific.
+This development setup does not establish qualified distribution identity.
+
 `npm test` validates actual Rust outputs against canonical Design schemas,
 without reference rewrites. Rust tests also check runtime refusal, capture
 failure/recovery, ordering, namespace and provenance negatives. With no supplier
@@ -174,10 +182,7 @@ controls explicitly exclude it. An error can follow an actual native write;
 inspect the submission's retained source/outcome instead of assuming no send or
 retrying automatically.
 
-The current owned start branch is account-home only (`H-acct`). API-key-owned
-home startup (`H-key`) remains required later work. A continued conversation
-without a trustworthy home-class association stays unknown; its current context
-may remain hot-only. This is independent of model/provider choice.
+The App routes configured account (`H-acct`) and explicitly prepared API-key (`H-key`) homes separately. Per-home resource and metadata guards preserve existing account use when a prospective key proposal fails. Key entry and OAuth controls use native source-bound adapters; their actual OS/auth/provider journeys remain unqualified. A continued conversation without a trustworthy home-class association stays unknown and may remain hot-only. Home class is independent of model/provider choice.
 
 ## Storage and remaining work
 
@@ -197,15 +202,9 @@ tags through the existing pointer ledger; no competing ledger is opened.
 
 Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history
-rebuild and cold role-source reconciliation, child role supply, per-home configuration linking, other
-act kinds and actual policy/standing control/reader joins remain in the Group A
-graph. Full workflow parsing awaits the exact CommonMark dependency decision;
-the handwritten subset is not production-complete. External dispatch and host
-qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, hot A15/registered-library transactions and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; genuine native page supply and the full registered workflow journey remain connecting work. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
-its exact source pins and limits are recorded in the run. Physical App UI/IPC
-smoke remains a separate unfinished witness. Host joins stay deferred to their owning sessions.
+its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.

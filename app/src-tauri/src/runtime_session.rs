@@ -3770,3 +3770,572 @@ for line in sys.stdin:
         f.safe();
     }
 }
+
+// Actual Root-held workflow selection/review/registration state. Public summaries
+// are observations; none can construct a closed selection, A15 event or receipt.
+pub(crate) struct WorkflowLibraryContext {
+    pub reference: String,
+    pub root: std::path::PathBuf,
+    pub origin: String,
+    pub source_root: String,
+    pub owner: std::sync::Mutex<crate::workflow_workspace::registration::LibraryOwner>,
+    pub control: std::sync::Arc<std::sync::Mutex<Option<crate::act_control::ActControl>>>,
+}
+pub(crate) struct WorkflowReviewContext {
+    pub reference: String,
+    pub library: std::sync::Arc<WorkflowLibraryContext>,
+    pub home: std::sync::Arc<HomeSession>,
+    pub home_context: Value,
+    pub review: Option<crate::workflow_workspace::registration::ReviewSession>,
+    pub offer: Option<crate::act_control::A15OfferRef>,
+    pub attempted_native: bool,
+    pub transaction: Option<crate::workflow_workspace::registration::HotRegistrationAttempt>,
+    pub status: Value,
+    pub registered:
+        std::collections::HashMap<String, crate::workflow_workspace::RegisteredRevision>,
+}
+struct WorkflowSelectionState {
+    reference: String,
+    selection: crate::workflow_workspace::Selection,
+    package: std::path::PathBuf,
+}
+pub(crate) struct WorkflowRootSession {
+    selected: Option<WorkflowSelectionState>,
+    pub libraries: std::collections::HashMap<String, std::sync::Arc<WorkflowLibraryContext>>,
+    pub active_library: Option<String>,
+    pub reviews:
+        std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<WorkflowReviewContext>>>,
+    pub active_review: Option<String>,
+    pub runs: std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+}
+impl Default for WorkflowRootSession {
+    fn default() -> Self {
+        Self {
+            selected: None,
+            libraries: Default::default(),
+            active_library: None,
+            reviews: Default::default(),
+            active_review: None,
+            runs: Default::default(),
+        }
+    }
+}
+impl WorkflowRootSession {
+    pub fn snapshot(&self) -> Value {
+        json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err()})),
+            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
+            "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
+            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>json!({"reference":id,"runText":run.prepared.record(),"source":run.source.as_ref().map(|s|s.evidence()),"turn":run.turn_id,"status":run.status,"supply":run.supply}),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
+            "limit":"closed development/actual hot registrations only; no cold file authority, compatibility or model adoption claim"})
+    }
+    pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
+        let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
+        let held = catalog.recognize_holding_copy(&path)?;
+        held.verify_current()?;
+        self.selected = Some(WorkflowSelectionState {
+            reference: crate::util::opaque_id("workflow-selection:")?,
+            selection: held.selection().clone(),
+            package: path,
+        });
+        Ok(self.snapshot())
+    }
+    pub fn open_library(
+        &mut self,
+        root: std::path::PathBuf,
+        origin: &str,
+        workspace: Option<&std::path::Path>,
+        workspace_control: std::sync::Arc<std::sync::Mutex<Option<crate::act_control::ActControl>>>,
+    ) -> Result<String, String> {
+        crate::storage::check_path(&root)?;
+        if !root.is_absolute() || !root.is_dir() {
+            return Err("Native-picked existing physical library root required".into());
+        }
+        if let Some(existing) = self.libraries.values().find(|l| l.root == root) {
+            if existing.origin != origin {
+                return Err("Actual library root already opened with a different source origin; no reinterpretation".into());
+            }
+            let id = existing.reference.clone();
+            self.active_library = Some(id.clone());
+            return Ok(id);
+        }
+        let source_root=root.to_str().ok_or("Native library root is not Unicode; source-qualified identity cannot be encoded losslessly")?.to_owned();
+        let control=match workspace {
+            Some(ws) if ws==root.as_path()=>workspace_control,
+            Some(ws) if std::fs::canonicalize(ws).ok().as_ref()==Some(&root)=>return Err("Existing workspace writer uses an alias of this library root; no second control or silent relocation".into()),
+            _=>std::sync::Arc::new(std::sync::Mutex::new(Some(crate::act_control::ActControl::new(&root)))),
+        };
+        let owner = crate::workflow_workspace::registration::LibraryOwner::open(
+            root.clone(),
+            origin,
+            &source_root,
+        )?;
+        let id = crate::util::opaque_id("workflow-library:")?;
+        self.libraries.insert(
+            id.clone(),
+            std::sync::Arc::new(WorkflowLibraryContext {
+                reference: id.clone(),
+                root,
+                origin: origin.into(),
+                source_root,
+                owner: std::sync::Mutex::new(owner),
+                control,
+            }),
+        );
+        self.active_library = Some(id.clone());
+        Ok(id)
+    }
+    pub fn active_library(&self) -> Result<std::sync::Arc<WorkflowLibraryContext>, String> {
+        self.active_library
+            .as_ref()
+            .and_then(|r| self.libraries.get(r))
+            .cloned()
+            .ok_or("No actual native library context selected".into())
+    }
+    pub fn select_hot_registered_copy(
+        &mut self,
+        review_ref: &str,
+        revision: &str,
+        path: std::path::PathBuf,
+    ) -> Result<Value, String> {
+        let review = self
+            .reviews
+            .get(review_ref)
+            .cloned()
+            .ok_or("Original hot review not retained; ledger/JSON cannot select")?;
+        let review = review.try_lock().map_err(|_| "Original review owner busy/unavailable; selection pending, no transfer")?;
+        let actual = review
+            .registered
+            .get(revision)
+            .ok_or("Actual hot registered revision unavailable")?;
+        let selection = actual.select();
+        selection.verify_store(&path)?;
+        self.selected = Some(WorkflowSelectionState {
+            reference: crate::util::opaque_id("workflow-selection:")?,
+            selection,
+            package: path,
+        });
+        drop(review);
+        Ok(self.snapshot())
+    }
+    pub fn create_selected_draft(&mut self, name: &str) -> Result<Value, String> {
+        if !crate::workflow_workspace::valid_name(name) {
+            return Err("Invalid workflow draft name".into());
+        }
+        let selected = self
+            .selected
+            .as_ref()
+            .ok_or("Select an actual closed workflow holding copy first")?;
+        selected.selection.verify_store(&selected.package)?;
+        let library = self.active_library()?;
+        let mut owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; draft operation pending")?;
+        let target = library.root.join(".chirality/workflow-drafts").join(name);
+        crate::storage::check_path(&target)?;
+        if target.exists() {
+            return Err("Existing draft preserved; no overwrite".into());
+        }
+        std::fs::create_dir_all(&target).map_err(|e| e.to_string())?;
+        for (relative, bytes) in selected.selection.snapshot().files() {
+            let path = target.join(relative);
+            crate::storage::check_path(&path)?;
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            std::fs::write(path, bytes).map_err(|e| e.to_string())?;
+        }
+        owner.record_base(name, &selected.selection)?;
+        Ok(
+            json!({"state":"draft copied from actual closed selection","library":library.reference,"name":name,"base":selected.selection.identity(),"registration":"not captured/registered; edit then Review"}),
+        )
+    }
+    pub fn begin_review(
+        &mut self,
+        home: std::sync::Arc<HomeSession>,
+        context: Value,
+        names: Vec<String>,
+        in_place: bool,
+    ) -> Result<Value, String> {
+        let library = self.active_library()?;
+        // The caller holds Root. Never wait for an owner retained by native
+        // interaction, whose observer must acquire Root before/after the dialog.
+        let mut control_guard = library.control.try_lock().map_err(|_| "Original capture owner busy/unavailable; review pending, no capture")?;
+        let control = control_guard.as_mut().ok_or("Actual owning library control unavailable")?;
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; review pending")?;
+        let review = if in_place {
+            owner.review_in_place(&names)?
+        } else {
+            if names.len() != 1 {
+                return Err("One draft name required".into());
+            }
+            let revision=owner.listed_draft_revision(&names[0])?;
+            owner.review_draft(&names[0],&revision)?
+        };
+        let view = review.current()?;
+        let reference = view.review_ref().to_owned();
+        let presentation = view.review_presentation().clone();
+        let offer = control.compose_a15(&view)?;
+        drop(owner);
+        drop(control_guard);
+        self.reviews.insert(reference.clone(),std::sync::Arc::new(std::sync::Mutex::new(WorkflowReviewContext{reference:reference.clone(),library,home,home_context:context,review:Some(review),offer:Some(offer),attempted_native:false,transaction:None,registered:Default::default(),status:json!({"state":"reviewed; native A15 not captured","presentation":presentation})})));
+        self.active_review = Some(reference);
+        Ok(self.snapshot())
+    }
+    pub fn prepare_run(
+        &mut self,
+        home: std::sync::Arc<HomeSession>,
+        generation: &Value,
+        thread: &str,
+        person_text: String,
+    ) -> Result<String, String> {
+        current_conversation(&home.host.snapshot(), generation, thread)?;
+        let selected = self
+            .selected
+            .as_ref()
+            .ok_or("No actual closed workflow selection")?;
+        selected.selection.verify_store(&selected.package)?;
+        let run = crate::util::opaque_id("workflow-run:")?;
+        let scope = crate::workflow_workspace::RunScope {
+            run: run.clone(),
+            conversation: thread.into(),
+            home: generation["home"]
+                .as_str()
+                .ok_or("Native home absent")?
+                .into(),
+            generation: generation.clone(),
+            source_root: selected.selection.identity().source_root.clone(),
+            holding_library: selected
+                .package
+                .parent()
+                .ok_or("Holding library path unavailable")?
+                .to_str()
+                .ok_or("Holding library path is not Unicode")?
+                .into(),
+            selection_ref: selected.reference.clone(),
+            revision_store: selected.package.clone(),
+        };
+        let prepared = crate::workflow_workspace::PreparedRunText::start(
+            &selected.selection,
+            scope,
+            "selected native workflow holding copy",
+            None,
+        )?;
+        let client_id = crate::util::opaque_id("workflow-message:")?;
+        self.runs.insert(run.clone(),std::sync::Arc::new(std::sync::Mutex::new(WorkflowRun{home,prepared,person_text,client_id,source:None,attempted:false,turn_id:None,status:json!({"state":"prepared; not sent","adoption":"unknown","runStanding":"no active run inferred from text preparation"}),supply:Value::Null})));
+        Ok(run)
+    }
+}
+pub(crate) struct WorkflowRun {
+    pub home: std::sync::Arc<HomeSession>,
+    pub prepared: crate::workflow_workspace::PreparedRunText,
+    pub person_text: String,
+    pub client_id: String,
+    pub source: Option<crate::hosting::SourceRequest>,
+    pub attempted: bool,
+    pub turn_id: Option<String>,
+    pub status: Value,
+    pub supply: Value,
+}
+impl WorkflowReviewContext {
+    pub fn accept_result(
+        &mut self,
+        result: crate::act_control::HotA15Result,
+    ) -> Result<(), String> {
+        match result {
+            crate::act_control::HotA15Result::Recorded(receipt) => {
+                self.status = json!({"state":"actual hot A15 recorded; registration handoff pending/not completed"});
+                let session = self
+                    .review
+                    .take()
+                    .ok_or("Original owner review already transferred")?;
+                self.transaction = Some(session.begin_hot_registration(receipt)?);
+                self.status =
+                    json!({"state":"actual hot A15 recorded; registration attempt retained"});
+                self.advance();
+            }
+            crate::act_control::HotA15Result::RecordPending { capture_id, reason } => {
+                self.status = json!({"state":"actual captured A15 record pending","captureId":capture_id,"reason":reason,"registration":"not authorized until actual hot receipt"})
+            }
+            crate::act_control::HotA15Result::AlreadyTransferred {
+                capture_id,
+                record_id,
+            } => {
+                self.status = json!({"state":"original receipt already transferred; no second transaction","captureId":capture_id,"recordId":record_id})
+            }
+        }
+        Ok(())
+    }
+    pub fn advance(&mut self) {
+        if let Some(attempt) = self.transaction.as_mut() {
+            let outcomes = attempt.advance();
+            for outcome in &outcomes {
+                if let crate::workflow_workspace::registration::EntryOutcome::Registered {
+                    revision,
+                    ..
+                } = outcome
+                {
+                    self.registered
+                        .insert(revision.identity().revision.clone(), revision.clone());
+                }
+            }
+            self.status = json!({"state":"original registration attempt advanced","entries":outcomes.iter().map(|o|match o{
+                crate::workflow_workspace::registration::EntryOutcome::Registered{revision,publication}=>json!({"state":"registered","identity":revision.identity(),"actRef":revision.act_ref(),"publication":format!("{publication:?}")}),
+                crate::workflow_workspace::registration::EntryOutcome::NotCompleted{identity,reason}=>json!({"state":"not completed","identity":identity,"reason":reason}),
+                crate::workflow_workspace::registration::EntryOutcome::Pending{identity,reason}=>json!({"state":"pending; not registered","identity":identity,"reason":reason}),
+            }).collect::<Vec<_>>()});
+        }
+    }
+}
+impl WorkflowRun {
+    pub fn send(&mut self) -> Result<Value, String> {
+        if self.attempted {
+            return Err("Original workflow source attempt retained; no resend".into());
+        }
+        current_conversation(
+            &self.home.host.snapshot(),
+            &self.prepared.scope().generation,
+            &self.prepared.scope().conversation,
+        )?;
+        self.attempted = true;
+        let source = self.home.host.turn_start_prepared_run_text(
+            &self.prepared.scope().generation,
+            &self.prepared,
+            &self.person_text,
+            &self.client_id,
+        )?;
+        self.source = Some(source.clone());
+        match self.home.host.turn_start_prepared_finish(
+            &source,
+            &self.prepared,
+            &self.person_text,
+            &self.client_id,
+            std::time::Duration::from_secs(20),
+        ) {
+            Ok(native) => {
+                self.turn_id = Some(native.turn_id().to_owned());
+                self.status = json!({"state":"native workflow-text turn observed","replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"adoption":"unknown","runStanding":"native input/turn observations are separate from workflow execution/adoption/run end"});
+            }
+            Err(error) => {
+                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","limit":error,"automaticRetry":false,"adoption":"unknown"});
+                return Err("Original native workflow source outcome unavailable; inspect retained source, no resend".into());
+            }
+        }
+        Ok(self.status.clone())
+    }
+    pub fn check_native_supply(&mut self) -> Result<Value, String> {
+        let turn = self
+            .turn_id
+            .clone()
+            .ok_or("Original native turn identity not received; no page guess")?;
+        let generation = self.prepared.scope().generation.clone();
+        let thread = self.prepared.scope().conversation.clone();
+        current_conversation(&self.home.host.snapshot(), &generation, &thread)?;
+        let query = {
+            let mut receiver = self.home.history.lock().unwrap();
+            receiver.reconcile(&self.home.host);
+            let h = receiver
+                .history_mut()
+                .ok_or("Native History owner unavailable")?;
+            if h.selected_thread() != Some(thread.as_str()) {
+                return Err("Select this original conversation in native History and load its turns before checking supply".into());
+            }
+            h.items_page(&turn, None, crate::native_history::Direction::Asc)?
+        };
+        let mut query = query;
+        let mut check = None;
+        let mut pages = Vec::new();
+        loop {
+            let dispatch = match check.as_mut() {
+                None => self.home.host.history_dispatch(&query)?,
+                Some(check) => self
+                    .home
+                    .host
+                    .dispatch_next_native_items_supply_page(check, &query)?,
+            };
+            self.home
+                .history
+                .lock()
+                .unwrap()
+                .dispatched(dispatch.clone());
+            self.home
+                .host
+                .history_wait(&dispatch, std::time::Duration::from_secs(20))?;
+            let mut receiver = self.home.history.lock().unwrap();
+            receiver.reconcile(&self.home.host);
+            let h = receiver
+                .history_mut()
+                .ok_or("Original NativeHistory owner ended")?;
+            let observed = h.accepted_items_observation(&query)?;
+            let accepted = self
+                .home
+                .host
+                .mint_accepted_items_page(&dispatch, observed)?;
+            self.home.host.revalidate_accepted_items_page(&accepted)?;
+            pages.push(accepted.page().clone()); // Bounded transient comparison; never a proof/cache.
+            if let Some(check) = check.as_mut() {
+                self.home
+                    .host
+                    .accept_next_native_items_supply_page(check, &accepted)?;
+            } else {
+                check = Some(self.home.host.begin_native_items_supply_check(&accepted)?);
+            }
+            drop(accepted);
+            let next = check.as_ref().unwrap().next_cursor().map(str::to_owned);
+            if let Some(next) = next {
+                query = h.items_page(&turn, Some(&next), crate::native_history::Direction::Asc)?;
+                continue;
+            }
+            let seal = self.home.host.finish_native_items_supply_check(
+                check.take().unwrap(),
+                h.accepted_items_observation(&query)?,
+            )?;
+            let mut index = 0;
+            let comparison = crate::workflow_workspace::compare_untrusted_pages(
+                self.prepared.text(),
+                &turn,
+                &self.client_id,
+                |_| {
+                    let page = pages.get(index).cloned().ok_or("No checked native page")?;
+                    index += 1;
+                    Ok(page)
+                },
+            );
+            self.supply = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":generation,"thread":thread,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
+            return Ok(self.supply.clone());
+        }
+    }
+}
+
+#[cfg(all(test,unix))]
+mod workflow_root_tests {
+    use super::*;
+    use std::{path::PathBuf,sync::{Arc,Mutex},time::Duration};
+    struct Fixture {root:PathBuf,package:PathBuf}
+    impl Fixture {
+        fn new()->Self {
+            let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("workflow-root-fixture-").unwrap());
+            std::fs::create_dir(&root).unwrap();let package=root.join(crate::workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
+            let catalog=crate::workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();
+            for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
+            Self{root,package}
+        }
+        fn selected(&self)->WorkflowRootSession{let mut root=WorkflowRootSession::default();root.select_development_copy(self.package.clone()).unwrap();root}
+    }
+    impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
+    #[test]
+    fn workflow_root_closed_selection_real_review_hot_receipt_and_transaction(){
+        let f=Fixture::new();let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));
+        let library_ref=root.open_library(f.root.clone(),"project",Some(&f.root),control.clone()).unwrap();
+        assert!(Arc::ptr_eq(&root.active_library().unwrap().control,&control));
+        assert_eq!(root.open_library(f.root.clone(),"project",Some(&f.root),control.clone()).unwrap(),library_ref);
+        root.create_selected_draft("coordinated-knowledge-work").unwrap();
+        let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("supplier intentionally unavailable".into())).unwrap());
+        root.begin_review(home,json!({"hostState":"absent","identityVerified":false}),vec!["coordinated-knowledge-work".into()],false).unwrap();
+        let reference=root.active_review.clone().unwrap();let review=root.reviews[&reference].clone();let mut review=review.lock().unwrap();
+        let library=review.library.clone();let offer=review.offer.as_ref().unwrap();
+        let current=review.review.as_ref().unwrap().current().unwrap();
+        let actor=crate::act_control::person(Some("synthetic native fixture"),Some("fixture OS"));let context=json!({"library":library.reference,"home":"explicit absent/unknown fixture source","identityVerified":false});
+        let mut owner_guard=control.lock().unwrap();let owner=owner_guard.as_mut().unwrap();
+        owner.a15_confirmation_text(offer,&current,&actor,&context).unwrap();owner.present_a15(offer).unwrap();
+        let event=crate::a15_native::ConfirmedA15Event::synthetic_for_test(offer.id().into(),owner.frozen_a15_offer_digest(offer).unwrap().clone(),actor,context);
+        let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(current);drop(owner_guard);
+        review.attempted_native=true;review.accept_result(result).unwrap();
+        let revision=review.registered.values().next().unwrap().identity().revision.clone();
+        assert_eq!(review.status["entries"][0]["state"],"registered");drop(review);
+        root.select_hot_registered_copy(&reference,&revision,f.root.join(".chirality/workflows/coordinated-knowledge-work")).unwrap();
+        assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
+        let mut cold=WorkflowRootSession::default();assert!(cold.select_hot_registered_copy(&reference,&revision,f.package.clone()).is_err(),"readable ledger/tuple cannot recreate hot registration authority");
+        assert!(cold.select_development_copy(f.root.join(".chirality/workflows/coordinated-knowledge-work")).is_ok(),"exact copy can separately retain development admission, not old A15");
+    }
+    #[test]
+    fn workflow_root_whole_selected_copy_changes_and_library_alias_are_refused(){
+        let f=Fixture::new();let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));
+        root.open_library(f.root.clone(),"project",Some(&f.root),control.clone()).unwrap();
+        std::fs::write(f.package.join("REVIEW-NOTES.md"),"changed separate package file").unwrap();
+        assert!(root.create_selected_draft("kept-draft").is_err());assert!(!f.root.join(".chirality/workflow-drafts/kept-draft").exists());
+        let alias=f.root.join("aliased-library");std::os::unix::fs::symlink(&f.root,&alias).unwrap();
+        assert!(root.open_library(alias,"project",Some(&f.root),control).is_err());
+    }
+    struct Peer { fixture:Fixture,home:Arc<HomeSession>,generation:Value }
+    impl Peer {
+        fn new()->Self {
+            use std::os::unix::fs::PermissionsExt;
+            let fixture=Fixture::new();for name in ["account","probe"]{std::fs::create_dir(fixture.root.join(name)).unwrap();}
+            let script=fixture.root.join("owned-peer.py");
+            std::fs::write(&script,r#"#!/usr/bin/python3
+import sys,json,os
+if '--version' in sys.argv:
+ print('codex-cli 0.160.0');sys.exit(0)
+def emit(v):print(json.dumps(v),flush=True)
+def thread():return {'id':'thread','cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
+def turn():return {'id':'turn','status':'failed','items':[],'error':None,'itemsView':'summary'}
+text='';client=''
+for line in sys.stdin:
+ f=json.loads(line)
+ with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
+ method=f.get('method')
+ if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
+ elif method=='thread/start':result={'thread':thread(),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+ elif method=='turn/start':
+  text=f['params']['input'][0]['text'];client=f['params']['clientUserMessageId'];result={'turn':turn()}
+ elif method=='thread/list':result={'data':[thread()],'nextCursor':None,'backwardsCursor':None}
+ elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
+ elif method=='thread/items/list':result={'data':[{'turnId':'turn','item':{'type':'userMessage','id':'message','clientId':client,'content':[{'type':'text','text':text}]}}],'nextCursor':None}
+ else:continue
+ emit({'id':f['id'],'result':result})
+"#).unwrap();std::fs::set_permissions(&script,std::fs::Permissions::from_mode(0o700)).unwrap();
+            let mut cfg=crate::hosting::HostConfig::new(script,fixture.root.join("account"),fixture.root.join("probe"),fixture.root.clone());cfg.allow_unverified_dev=true;cfg.wait_limit=Duration::from_secs(2);
+            let host=Arc::new(crate::hosting::Host::new());host.start(&cfg,"owned workflow source fixture").unwrap();assert_eq!(host.snapshot()["supplierStanding"],"unverified-development");
+            let generation=host.snapshot()["generation"].clone();host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
+            let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,host,Ok(cfg)).unwrap());Self{fixture,home,generation}
+        }
+        fn wire(&self)->Vec<Value>{std::fs::read_to_string(self.fixture.root.join("wire.jsonl")).unwrap().lines().map(|line|serde_json::from_str(line).unwrap()).collect()}
+        fn select_history(&self){
+            let list={let mut receiver=self.home.history.lock().unwrap();receiver.reconcile(&self.home.host);receiver.history_mut().unwrap().list_threads(None,crate::native_history::Direction::Asc).unwrap()};
+            self.receive(list);
+            self.home.history.lock().unwrap().history_mut().unwrap().select("thread").unwrap();
+            let turns=self.home.history.lock().unwrap().history_mut().unwrap().turns_page(None,crate::native_history::Direction::Asc).unwrap();self.receive(turns);
+        }
+        fn receive(&self,query:crate::native_history::HistoryQuery){let dispatch=self.home.host.history_dispatch(&query).unwrap();self.home.history.lock().unwrap().dispatched(dispatch.clone());self.home.host.history_wait(&dispatch,Duration::from_secs(2)).unwrap();self.home.history.lock().unwrap().reconcile(&self.home.host);}
+    }
+    impl Drop for Peer{fn drop(&mut self){let _=self.home.host.stop("owned fixture cleanup","test ended");}}
+    #[test]
+    fn workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages(){
+        let peer=Peer::new();let mut root=peer.fixture.selected();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        run.send().unwrap();assert_eq!(run.turn_id.as_deref(),Some("turn"));assert_eq!(run.status["observedStatus"],"failed");
+        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],run.prepared.turn_params("person exact\r\ntext",&run.client_id).unwrap());
+        assert!(run.send().is_err());assert_eq!(peer.wire().iter().filter(|f|f["method"]=="turn/start").count(),1);
+        peer.select_history();let supply=run.check_native_supply().unwrap();assert_eq!(supply["pageCount"],1);assert_eq!(supply["comparison"]["state"],"equal_claimed_text");assert_eq!(supply["adoption"],"unknown");assert_eq!(supply["sourceReceipts"].as_array().unwrap().len(),1);
+    }
+    #[test]
+    fn workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend(){
+        let peer=Peer::new();let mut root=peer.fixture.selected();let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
+        assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into()).is_err());
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
+        peer.home.host.stop_scoped(&peer.generation,"fixture","source loss").unwrap();assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(run.source.as_ref().unwrap().request_ref(),original);assert_eq!(run.status["adoption"],"unknown");
+    }
+    #[test]
+    fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){
+        let f=Fixture::new();let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));
+        root.open_library(f.root.clone(),"project",Some(&f.root),control.clone()).unwrap();root.create_selected_draft("coordinated-knowledge-work").unwrap();
+        let root=Arc::new(Mutex::new(root));let held=control.lock().unwrap();let shared=root.clone();
+        let(started_tx,started_rx)=std::sync::mpsc::channel();let(done_tx,done_rx)=std::sync::mpsc::channel();
+        let worker=std::thread::spawn(move||{let mut root=shared.lock().unwrap();started_tx.send(()).unwrap();let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("offline fixture".into())).unwrap());let result=root.begin_review(home,json!({"hostState":"absent"}),vec!["coordinated-knowledge-work".into()],false);drop(root);done_tx.send(result.is_err()).unwrap();});
+        started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let outcome=done_rx.recv_timeout(Duration::from_millis(200));
+        let observer_root_available=root.try_lock().is_ok();
+        drop(held);worker.join().unwrap();
+        assert_eq!(outcome.ok(),Some(true),"busy original capture owner must return explicit pending refusal; no workflow-root wait");
+        assert!(observer_root_available,"native pre/post observer must still acquire actual global workflow state");
+    }
+    #[test]
+    fn workflow_root_wrc1_busy_review_selection_refuses_without_global_wait(){
+        let f=Fixture::new();let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));root.open_library(f.root.clone(),"project",Some(&f.root),control).unwrap();root.create_selected_draft("coordinated-knowledge-work").unwrap();
+        let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("offline fixture".into())).unwrap());root.begin_review(home,json!({"hostState":"absent"}),vec!["coordinated-knowledge-work".into()],false).unwrap();
+        let reference=root.active_review.clone().unwrap();let original=root.reviews[&reference].clone();let held=original.lock().unwrap();let root=Arc::new(Mutex::new(root));let shared=root.clone();let package=f.package.clone();
+        let(started_tx,started_rx)=std::sync::mpsc::channel();let(done_tx,done_rx)=std::sync::mpsc::channel();
+        let worker=std::thread::spawn(move||{let mut root=shared.lock().unwrap();started_tx.send(()).unwrap();let result=root.select_hot_registered_copy(&reference,"not-a-replayable-registered-identity",package);drop(root);done_tx.send(result.is_err()).unwrap();});
+        started_rx.recv_timeout(Duration::from_secs(2)).unwrap();let outcome=done_rx.recv_timeout(Duration::from_millis(200));let observer_root_available=root.try_lock().is_ok();drop(held);worker.join().unwrap();
+        assert_eq!(outcome.ok(),Some(true),"busy original review must return pending, not block workflow root");assert!(observer_root_available);
+    }
+
+}

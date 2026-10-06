@@ -1,0 +1,42 @@
+{
+  "fixed_binary_association": "fixed-binary-association.json",
+  "binary_copy_sha256": "027da67079d175368e7047485144c6a52962f4804b646639a8b3a526c2f8316f",
+  "compiled_basis": "parent actual no-run lib2b84/runtimee29d/App6814/Hoste5b/AACaa1823/library8504/workspace9fe3/ASfc4b",
+  "commands": [
+    {
+      "command": "/tmp/chirality-immutable-sender.1aaF0d/fixed-tests hosting::",
+      "environment": "CARGO_NET_OFFLINE=true CHIRALITY_SKIP_CODEX=1",
+      "session": 43894,
+      "exit_code": 0,
+      "passed": 94,
+      "failed": 0,
+      "ignored": 1,
+      "filtered": 112,
+      "run_seconds": 7.61,
+      "ignored_meaning": "internal worker invoked/exercised by passing active bounded watchdog from same fixed current_exe copy"
+    },
+    {
+      "command": "/tmp/chirality-immutable-sender.1aaF0d/fixed-tests workflow_workspace::workflow_role_tests::supply_reads_all_pages_and_never_assumes_send_is_verified --exact",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "run_seconds": 0.0
+    },
+    {
+      "command": "/tmp/chirality-immutable-sender.1aaF0d/fixed-tests workflow_workspace::workflow_role_tests::untrusted_page_bytes_and_adapter_matches_never_grant_authority --exact",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "run_seconds": 0.0
+    }
+  ],
+  "distinct_passes": 96,
+  "coverage": "hosting94 includes prepared3/history7/page7/OH1/transport/ARC/Stop; standalone native_history/native_page_witness/history_integration not in lib executable, no zero-test pass inferred",
+  "no_cargo_recompile": true,
+  "no_new_source_result_rebinding": true,
+  "copy_stationary_before_after": true,
+  "released": true,
+  "no_owned_active_process": true,
+  "scope": "only synthetic existing owned cat/source/physical fixture tests; no native/auth/model/network; future Root added tests/edits not covered",
+  "sender_independent_review": "parent reported READY beda7051 on actual e5b+3/3; final affected execution is separate exact binary association"
+}

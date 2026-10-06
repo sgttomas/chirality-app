@@ -1,0 +1,86 @@
+{
+  "supplier": "0.160.0",
+  "entrypoint": "/Users/ryan/Library/Caches/chirality-dev/codex/0.160.0/complete-package/package/vendor/aarch64-apple-darwin/bin/codex",
+  "installEvidence": "CODEX_0160_COMPLETE_DEVELOPMENT_INSTALL.json",
+  "probeRoot": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-complete-carrier.PIS7mjz9oe",
+  "completed": true,
+  "supplierExitCode": 0,
+  "seconds": 3.45,
+  "warnings": [],
+  "ownedProcessMatchExit": 1,
+  "ownedProcessIds": [],
+  "threadCases": [
+    {
+      "label": "plain-before",
+      "startKind": "result",
+      "error": null,
+      "turnKind": "result",
+      "turnError": null,
+      "providerCaptureIndex": 0
+    },
+    {
+      "label": "per-thread-app",
+      "startKind": "result",
+      "error": null,
+      "turnKind": "result",
+      "turnError": null,
+      "providerCaptureIndex": 1
+    },
+    {
+      "label": "plain-after",
+      "startKind": "result",
+      "error": null,
+      "turnKind": "result",
+      "turnError": null,
+      "providerCaptureIndex": 2
+    }
+  ],
+  "roleMarkerExposure": [
+    {
+      "app": false,
+      "user": true
+    },
+    {
+      "app": true,
+      "user": true
+    },
+    {
+      "app": false,
+      "user": true
+    }
+  ],
+  "configAgents": null,
+  "actualModelUsed": false,
+  "childSpawned": false,
+  "authUsed": false,
+  "limits": [
+    "The missing-Code-Mode-host warning is absent with the complete layout. No Code Mode tool, child spawn, model, native App UI or release qualification is exercised.",
+    "Distinct per-thread role exposure and config/read omission recur on the complete package; all colliding origins and actual child carriage remain unresolved.",
+    "The child process PATH prepends the package codex-path directory; normal process environment and user configuration remain unchanged."
+  ],
+  "rawSha256": {
+    "probe.py": "be98e12a976768d2c05e3c276565e8649a75eb812bed775402671e4cf8a46a7c",
+    "stdout.jsonl": "a7c8488b4cc6f904372f2d86f646e44090e021fc8cb3a52ed8f798dbd5e80dc7",
+    "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "result.json": "25a13251cf8764bb2dc8a98a72353604121c21b5cc8bb19f3168ad8b7017a320"
+  },
+  "initialProcessObserver": {
+    "exitCode": 2,
+    "meaning": "Invalid non-capturing regex was an observation error, not evidence of no processes. Initial stderr not retained."
+  },
+  "processObserver": {
+    "pattern": "^(/Users/ryan/Library/Caches/chirality\\-dev/codex/0\\.160\\.0/complete\\-package/package/vendor/aarch64\\-apple\\-darwin/bin/codex|/Users/ryan/Library/Caches/chirality\\-dev/codex/0\\.160\\.0/complete\\-package/package/vendor/aarch64\\-apple\\-darwin/bin/codex\\-code\\-mode\\-host)( |$)",
+    "literalPathPositiveControls": true,
+    "prefixedPathNegativeControls": true,
+    "stderr": "",
+    "noMatchingProcessObserved": true
+  },
+  "secondProcessObserver": {
+    "observed": {
+      "pattern": "^/Users/ryan/Library/Caches/chirality-dev/codex/0\\.160\\.0/complete-package/package/vendor/aarch64-apple-darwin/bin/codex(-code-mode-host)?( |$)",
+      "stderr": "",
+      "noMatchingProcessObserved": true
+    },
+    "meaning": "Rejected during self-check: its raw-string dots were overescaped, so its absence result is not relied upon."
+  }
+}

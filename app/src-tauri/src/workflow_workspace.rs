@@ -9,6 +9,10 @@ use std::{collections::BTreeMap, fs, path::Path};
 #[path = "workflow_catalog.rs"]
 pub mod development_catalog;
 
+/// Owner-held native A15 review and immutable library transaction.
+#[path = "workflow_library.rs"]
+pub(crate) mod registration;
+
 /// Reviewed CC-CONTENT-IDENTITY App-only package method; no host/global adoption.
 pub const SNAPSHOT_METHOD: &str = "chirality.app.workflow-package.sha256/v1";
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -960,3 +964,15 @@ pub struct TextComparison {
     pub observed_text: serde_json::Value,
     pub evidence_limits: Vec<String>,
 }
+
+#[cfg(test)]
+#[path = "workflow_role_tests.rs"]
+mod workflow_role_tests;
+
+#[cfg(test)]
+#[path = "workflow_receiving_tests.rs"]
+mod workflow_receiving_tests;
+
+#[cfg(test)]
+#[path = "workflow_catalog_tests.rs"]
+mod workflow_catalog_tests;

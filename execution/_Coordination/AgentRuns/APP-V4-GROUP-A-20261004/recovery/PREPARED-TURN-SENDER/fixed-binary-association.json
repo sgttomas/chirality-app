@@ -1,0 +1,10 @@
+{
+  "binary_path": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9",
+  "copy_path": "/tmp/chirality-immutable-sender.1aaF0d/fixed-tests",
+  "binary_and_copy_sha256": "027da67079d175368e7047485144c6a52962f4804b646639a8b3a526c2f8316f",
+  "host_preserved_copy": "/tmp/chirality-immutable-sender.1aaF0d/hosting.rs",
+  "host_sha256": "e5b908ba9635b74ff27c79f4f568c139967aaa4edfa0f9a16dadde50dfe4db34",
+  "parent_no_run_compile_basis": "Root actual no-run; lib2b84/runtimee29d/App6814/Hoste5b/AACaa1823/library8504/workspace9fe3/ASfc4b",
+  "scope": "exact immutable compiled source association; future Root edits/tests not rebound; direct selectors, no Cargo/recompile",
+  "command_environment": "CARGO_NET_OFFLINE=true CHIRALITY_SKIP_CODEX=1; synthetic Host/cat fixtures only"
+}

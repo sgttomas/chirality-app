@@ -1,0 +1,8 @@
+[
+  {
+    "path": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/aac-a15-test-eb7fd2f1-7508-4188-b542-aa913ef83ab9",
+    "fixture_sha256": "0993ae0f21c9441fb3494640a846bbcbd03ca2c1a916a39064082a96e02f842f",
+    "cause": "original synthetic lock-fault panic left no RAII cleanup",
+    "action": "removed exact task-owned fixture after preserving source/result"
+  }
+]

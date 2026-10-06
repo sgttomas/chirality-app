@@ -1,4 +1,4 @@
-//! App act control, A16 "decide" only.
+//! App act control: A16 decide and closed native A15 registration capture.
 //!
 //! DEL-01-04 APP_ACT_CONTROL.md (AAC-v0.3):
 //! - §1.2 row A16: one decision package per act, wording "decide", no decline,
@@ -19,6 +19,9 @@
 //! and HA-11; act class from DEL-04-01 ACT_AND_POLICY_CONTRACT.md §2.1 (A16,
 //! "person's act (V4-PM-04)").
 
+#[path = "act_control_a15.rs"]
+mod a15;
+pub(crate) use a15::{A15OfferRef, HotA15Receipt, HotA15Result};
 use crate::canonical::{offer_digest, OFFER_DIGEST_METHOD};
 use crate::recorder::LOG;
 use crate::records;
@@ -83,9 +86,10 @@ pub struct OfferSlot {
     request_record: Value,
 }
 
-#[derive(Clone)]
 struct NativeCapture {
     ordinal: usize,
+    target_log: String,
+    a15: Option<a15::A15Custody>,
     written: bool,
     delay_pending: bool,
     capture: Value,
@@ -97,6 +101,7 @@ pub struct ActControl {
     pub workspace: PathBuf,
     pub offers: HashMap<String, OfferSlot>,
     native_captures: HashMap<String, NativeCapture>,
+    a15_offers: HashMap<String, a15::A15OfferSlot>,
 }
 
 /// Preserve the exact request bound when this offer was composed. Identical
@@ -153,6 +158,7 @@ impl ActControl {
             workspace: workspace.to_path_buf(),
             offers: HashMap::new(),
             native_captures: HashMap::new(),
+            a15_offers: HashMap::new(),
         }
     }
 
@@ -401,6 +407,8 @@ impl ActControl {
         let _ownership = storage::lock(&ws.join(CAPTURE_STORE).join(".capture.lock"))?;
         let mut native = NativeCapture {
             ordinal: self.native_captures.len(),
+            target_log: LOG.into(),
+            a15: None,
             written: false,
             delay_pending: false,
             capture: capture.clone(),
@@ -487,7 +495,9 @@ impl ActControl {
         for (_, id) in &ids {
             let native = self.native_captures.get_mut(id).unwrap();
             let original = native.capture.clone();
-            let result = if earlier_held && !native.written {
+            let result = if native.a15.as_ref().is_some_and(|a|!a.belongs_to(&self.workspace)) {
+                json!({"state":"AC-8 record pending","capture":original,"writeFailure":"A15 original library custody changed; no write or relocation"})
+            } else if earlier_held && !native.written {
                 let error="older trusted native submission remains pending; captured facts retained in writer admission order";
                 pending_failure(&self.workspace, native, error);
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":error})
@@ -626,6 +636,7 @@ impl ActControl {
 }
 
 fn act_body(capture: &Value) -> Value {
+    if capture["actKind"] == "A15" { return a15::a15_body(capture); }
     json!({
         "actKind":"A16", "actClass":{"value":"person's act (V4-PM-04)"},
         "decisionActor":capture["actor"],"recordingMode":"direct capture",
@@ -661,7 +672,10 @@ fn recover_capture(
     if hot.as_ref().is_some_and(|h| h.capture != *original) {
         return Err("capture disagrees with original native custody; no replay".into());
     }
-    if disk_pending.is_some_and(|p| p["capture"] != *original || p["log"] != LOG) {
+    let target_log = hot.as_ref().map(|h| h.target_log.clone()).unwrap_or_else(|| {
+        if original["actKind"] == "A15" { ".chirality/records/acts.jsonl".into() } else { LOG.into() }
+    });
+    if disk_pending.is_some_and(|p| p["capture"] != *original || p["log"] != target_log) {
         return Err("pending capture/owning log disagreement; no replay".into());
     }
     let cap_path = storage::capture_path(root, id);
@@ -745,7 +759,7 @@ fn recover_capture(
             );
         };
         if native.pending.is_none() {
-            match records::prepare_capture_submission(root, original, LOG) {
+            match records::prepare_capture_submission(root, original, &target_log) {
                 Ok(mut p) => {
                     if let Some(e) = &native.failure {
                         p["delayed"] = json!(true);

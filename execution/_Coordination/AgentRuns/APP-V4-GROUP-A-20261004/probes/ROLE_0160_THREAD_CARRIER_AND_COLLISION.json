@@ -1,0 +1,437 @@
+{
+  "supplier": "0.160.0",
+  "binarySha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+  "actualModelUsed": false,
+  "childSpawned": false,
+  "authUsed": false,
+  "configurationBoundary": "Fresh mktemp homes/workspaces and synthetic files only. Each fixture responded HTTP400 before model execution. App-server and loopback fixture stopped after each case. No normal user configuration touched.",
+  "documentation": [
+    "https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents",
+    "https://learn.chatgpt.com/docs/app-server"
+  ],
+  "observations": [
+    "Distinct per-thread App role appeared only in the configured thread; ordinary before/after siblings retained only the synthetic user role.",
+    "config/read with includeLayers true returned agents:null and no agent-origin keys despite actual standalone user role exposure.",
+    "Same-name per-thread override shadowed the synthetic user role description only in that thread; sibling exposure remained original.",
+    "Initial observer checked only top-level tools and was inconclusive. Corrected observer located native tool descriptions at input[0].tools[2].tools[4].parameters.properties.agent_type.description."
+  ],
+  "limits": [
+    "Tool-description exposure is not child spawn, actual child instruction carriage, base preservation or model adoption.",
+    "File/project/plugin discovery completeness and precedence are not established. config/read alone cannot justify treating the user catalog as empty.",
+    "No proposed product carrier, new shared resource, process-wide fallback or Design amendment is adopted by this probe. U-R3 remains partially unresolved."
+  ],
+  "cases": [
+    {
+      "case": "initial_observer",
+      "root": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-child-carrier.py1VWdaeKd",
+      "completed": true,
+      "supplierExitCode": 0,
+      "seconds": 0.79,
+      "requests": [
+        "initialize",
+        "config/read",
+        "thread/start",
+        "turn/start",
+        "thread/start",
+        "turn/start",
+        "thread/start",
+        "turn/start",
+        "config/read"
+      ],
+      "threadCases": [
+        {
+          "label": "plain-before",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 0
+        },
+        {
+          "label": "per-thread-app",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 1
+        },
+        {
+          "label": "plain-after",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 2
+        }
+      ],
+      "configAgentsBefore": null,
+      "configAgentsAfter": null,
+      "configAgentOriginKeys": [],
+      "captures": [
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58501,
+          "bodySha256": "e4aab2ef903d3ba36b284e90cb02965a5b74ab8eccba5ac16fc3f9dc91a9a42c"
+        },
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58709,
+          "bodySha256": "f10907fdb764fd1f402baf327fd4dfa31144d47370c418b80ea1065570f3ed6e"
+        },
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58501,
+          "bodySha256": "e5c293a0cae09c4a99bf900ea3d0d8a661d0bdfe5d93a683d117d328f0546bec"
+        }
+      ],
+      "rawSha256": {
+        "probe.py": "f2f9d3c4cf81f303b78f6b09c782de44bc4ca53a89c1df348a5819de677d608a",
+        "stdout.jsonl": "36bf294bc591a066ea158fa83ebedbe1b5e2b1f3e71a2adffd934c7f3adf9b0d",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "result.json": "f768b8567c39f2bb930af799f5e6cc4cef1119441828970a61b2cc8988ac9a83"
+      },
+      "syntheticUserFileSha256": "74fc4d0a3e964632120e712434a6ce1c0633745d5e0d5eff4a07f52fe9e73079"
+    },
+    {
+      "case": "distinct_names",
+      "root": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-child-carrier-r2.w7bEGcWnlO",
+      "completed": true,
+      "supplierExitCode": 0,
+      "seconds": 0.75,
+      "requests": [
+        "initialize",
+        "config/read",
+        "thread/start",
+        "turn/start",
+        "thread/start",
+        "turn/start",
+        "thread/start",
+        "turn/start",
+        "config/read"
+      ],
+      "threadCases": [
+        {
+          "label": "plain-before",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 0
+        },
+        {
+          "label": "per-thread-app",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 1
+        },
+        {
+          "label": "plain-after",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 2
+        }
+      ],
+      "configAgentsBefore": null,
+      "configAgentsAfter": null,
+      "configAgentOriginKeys": [],
+      "captures": [
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58507,
+          "bodySha256": "66e1eac614a61e8759240c4950984522f327c83dd843ff267fc0388e04df4495",
+          "appMarkerAnywhere": false,
+          "userMarkerAnywhere": true,
+          "payloadKeys": [
+            "client_metadata",
+            "include",
+            "input",
+            "model",
+            "parallel_tool_calls",
+            "prompt_cache_key",
+            "reasoning",
+            "store",
+            "stream",
+            "text",
+            "tool_choice"
+          ],
+          "markerLocations": [
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "USER_CARRIER_MARKER"
+            }
+          ],
+          "privatePayloadSha256": "95ae082b4595ccb103110c9a9c19e357799ffe629463a6b86d7dc9310ee47f11"
+        },
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58715,
+          "bodySha256": "c3bed53b15981f1edadca65319b68055e37694b7cc3badca44bcb41a08cd8d9b",
+          "appMarkerAnywhere": true,
+          "userMarkerAnywhere": true,
+          "payloadKeys": [
+            "client_metadata",
+            "include",
+            "input",
+            "model",
+            "parallel_tool_calls",
+            "prompt_cache_key",
+            "reasoning",
+            "store",
+            "stream",
+            "text",
+            "tool_choice"
+          ],
+          "markerLocations": [
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "APP_CARRIER_MARKER"
+            },
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "USER_CARRIER_MARKER"
+            }
+          ],
+          "privatePayloadSha256": "c7f0c1aa4aba4ad4c0853ea51ca0b11696fcd6c207e59dfef4273a2cba6a4319"
+        },
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58507,
+          "bodySha256": "737854d477ed814b710c7b94cc06394a2ad987597f0ddf65c83512069fc751dd",
+          "appMarkerAnywhere": false,
+          "userMarkerAnywhere": true,
+          "payloadKeys": [
+            "client_metadata",
+            "include",
+            "input",
+            "model",
+            "parallel_tool_calls",
+            "prompt_cache_key",
+            "reasoning",
+            "store",
+            "stream",
+            "text",
+            "tool_choice"
+          ],
+          "markerLocations": [
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "USER_CARRIER_MARKER"
+            }
+          ],
+          "privatePayloadSha256": "17b226edb2cdb858c4319a25d67a1625cd0192c48ac6d95578a15825fb2f6b68"
+        }
+      ],
+      "rawSha256": {
+        "probe.py": "69b1b157790d18e9b4cf816d3e4a2d76c68a7777e3bd2e68e84100e5405ea539",
+        "stdout.jsonl": "d1836b7d731ef868a1ffd82ac96e468dd95af4574986d3ac674e6686c47cf6a6",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "result.json": "bb302bf291e51ff35f47a20edfb5e6fdeb5769adfde15257710e5f775769bdc2"
+      },
+      "syntheticUserFileSha256": "74fc4d0a3e964632120e712434a6ce1c0633745d5e0d5eff4a07f52fe9e73079"
+    },
+    {
+      "case": "same_name_collision",
+      "root": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-child-collision.lDrr5j5s6p",
+      "completed": true,
+      "supplierExitCode": 0,
+      "seconds": 0.76,
+      "requests": [
+        "initialize",
+        "config/read",
+        "thread/start",
+        "turn/start",
+        "thread/start",
+        "turn/start",
+        "thread/start",
+        "turn/start",
+        "config/read"
+      ],
+      "threadCases": [
+        {
+          "label": "plain-before",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 0
+        },
+        {
+          "label": "per-thread-app-collision",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 1
+        },
+        {
+          "label": "plain-after",
+          "startKind": "result",
+          "error": null,
+          "turnKind": "result",
+          "turnError": null,
+          "providerCaptureIndex": 2
+        }
+      ],
+      "configAgentsBefore": null,
+      "configAgentsAfter": null,
+      "configAgentOriginKeys": [],
+      "captures": [
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58505,
+          "bodySha256": "5f8f37c10c4fd85df67a9e6f3fd545039d6c1ac162196c0759d402088c48f7aa",
+          "appMarkerAnywhere": false,
+          "userMarkerAnywhere": true,
+          "payloadKeys": [
+            "client_metadata",
+            "include",
+            "input",
+            "model",
+            "parallel_tool_calls",
+            "prompt_cache_key",
+            "reasoning",
+            "store",
+            "stream",
+            "text",
+            "tool_choice"
+          ],
+          "markerLocations": [
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "USER_CARRIER_MARKER"
+            }
+          ],
+          "privatePayloadSha256": "359d86a44f98cae50c35f28a938105c103061e653e00ecc09b36891fe9744b3d"
+        },
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58497,
+          "bodySha256": "53b16c533a8b66eb09a56b96991945865d3bd4d98e50aad7f47a73d86aed5d6b",
+          "appMarkerAnywhere": true,
+          "userMarkerAnywhere": false,
+          "payloadKeys": [
+            "client_metadata",
+            "include",
+            "input",
+            "model",
+            "parallel_tool_calls",
+            "prompt_cache_key",
+            "reasoning",
+            "store",
+            "stream",
+            "text",
+            "tool_choice"
+          ],
+          "markerLocations": [
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "APP_CARRIER_MARKER"
+            }
+          ],
+          "privatePayloadSha256": "4fd6067860a7a73f3f611c38efeed42a2af8e6d9d32b6a7988ab46e542ff8d33"
+        },
+        {
+          "path": "/v1/responses",
+          "bodyBytes": 58505,
+          "bodySha256": "65fdfd6dd510edd3a79e842a107ec3bc40cbfc9ccf69246a7c134321b3d33d05",
+          "appMarkerAnywhere": false,
+          "userMarkerAnywhere": true,
+          "payloadKeys": [
+            "client_metadata",
+            "include",
+            "input",
+            "model",
+            "parallel_tool_calls",
+            "prompt_cache_key",
+            "reasoning",
+            "store",
+            "stream",
+            "text",
+            "tool_choice"
+          ],
+          "markerLocations": [
+            {
+              "path": "$.input[0].tools[2].tools[4].parameters.properties.agent_type.description",
+              "marker": "USER_CARRIER_MARKER"
+            }
+          ],
+          "privatePayloadSha256": "24862d4dbf687e72461374ef44730e71fe2bb3b8111bb83bce7915bc4f4d1107"
+        }
+      ],
+      "rawSha256": {
+        "probe.py": "c8ab55a5ccc2bef80624c4173180c0bd8a7fbece5be1666df8abe084fd48f4c2",
+        "stdout.jsonl": "8fbaf7f73ae651392e41df6adc968820cdb112b231bb6e832d1fe038f3b2271a",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "result.json": "f88b991dba233e81d1131e5ff453c59f7de706b5e8ce2428ddfc3a68b93477d5"
+      },
+      "syntheticUserFileSha256": "74fc4d0a3e964632120e712434a6ce1c0633745d5e0d5eff4a07f52fe9e73079"
+    }
+  ],
+  "completeLayoutCollisionSuccessor": {
+    "installEvidence": "CODEX_0160_COMPLETE_DEVELOPMENT_INSTALL.json",
+    "entrypoint": "/Users/ryan/Library/Caches/chirality-dev/codex/0.160.0/complete-package/package/vendor/aarch64-apple-darwin/bin/codex",
+    "probeRoot": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-complete-collision.ZHkXtUpZkH",
+    "completed": true,
+    "supplierExitCode": 0,
+    "seconds": 0.8,
+    "configAgentsBefore": null,
+    "configAgentsAfter": null,
+    "exposure": [
+      {
+        "app": false,
+        "user": true
+      },
+      {
+        "app": true,
+        "user": false
+      },
+      {
+        "app": false,
+        "user": true
+      }
+    ],
+    "rawSha256": {
+      "probe.py": "6eccb45b43bcb6195d9475f7290151d6aa3916d819be38e7190bd19210549e6a",
+      "stdout.jsonl": "a31f3823f487804e4321a56a733781e17c2678466ba2f42813b0d0dde9baaf6e",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result.json": "b45eafd0e538d6a3c3e040a713fa095bec68d87f21c7500feb0517307639f221"
+    },
+    "cleanup": {
+      "pattern": "^(/Users/ryan/Library/Caches/chirality\\-dev/codex/0\\.160\\.0/complete\\-package/package/vendor/aarch64\\-apple\\-darwin/bin/codex|/Users/ryan/Library/Caches/chirality\\-dev/codex/0\\.160\\.0/complete\\-package/package/vendor/aarch64\\-apple\\-darwin/bin/codex\\-code\\-mode\\-host)( |$)",
+      "exitCode": 1,
+      "stderr": "",
+      "matchingPids": [],
+      "noMatchingProcessObserved": true
+    }
+  },
+  "interfaceInspection": {
+    "actualCommands": [
+      "codex --help",
+      "codex debug --help",
+      "codex doctor --help",
+      "codex app-server --help",
+      "codex debug prompt-input --help"
+    ],
+    "exitCodes": 0,
+    "scratchHomeUsed": true,
+    "observedPromptInputCommand": "renders model-visible prompt input as JSON",
+    "promptInputCommandExecuted": false,
+    "doctorExecuted": false,
+    "observedAgentTypeSchemaKeys": [
+      "type",
+      "description"
+    ],
+    "structuredAgentEnumPresent": false,
+    "scope": "Local current-pin help and actual private captured schema only; neither a catalog adapter nor complete discovery is adopted."
+  },
+  "instructionOrigins": {
+    "/Users/ryan/.codex/skills/.system/openai-docs/SKILL.md": "aa6829e21df2223167c85d2e49b6337a7345c84c1033f1ec10182c7882b36d45",
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_HELP_HUMAN.md": "0c2fe7a3097ad26c93c0267e4da6aaf90c9264489df8dc368fad657bcac69183",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+  }
+}

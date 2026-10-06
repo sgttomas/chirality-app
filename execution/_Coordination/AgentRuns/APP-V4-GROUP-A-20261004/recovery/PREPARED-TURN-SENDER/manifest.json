@@ -1,0 +1,11 @@
+{
+  "baseline_host_sha256": "8163457524cfd4746e8546045c1d51e6b963848872c40a11402df388d102e1e6",
+  "prepared_host_sha256": "4db5b248e566ac905c3b7b5137c6ddbe582b0f4f15f6d9853b5957d1aecd4e27",
+  "patch_sha256": "651aa674c27aec2ced846110a016020ef4e8e1bdc4498b27e99e80a9c81330fb",
+  "scratch": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-prepared-turn-fit-2rg6w69e",
+  "root_fit": "access_consumer_resume explicit native-handle/signature/finish ACK before mutation",
+  "scope": "Host only; existing text/attachment/steering/page mint unaffected code bodies; no generic Value/Host.request/attachment workaround; no admission DTO/factory",
+  "tests": "3 proposed contained actual source/cat/prepared-store controls, unexecuted",
+  "validation": "rustfmt syntax parsing exit0 only",
+  "no_native_auth_model_network_or_git": true
+}

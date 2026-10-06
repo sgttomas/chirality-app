@@ -1,0 +1,80 @@
+{
+  "supplier": "0.160.0",
+  "binarySha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+  "purpose": "fresh empty-thread native read-route matrix",
+  "authUsed": false,
+  "modelTurnStarted": false,
+  "requests": [
+    "initialize",
+    "thread/start",
+    "thread/turns/list",
+    "thread/read",
+    "thread/read",
+    "account/requirements/read",
+    "account/read"
+  ],
+  "notificationMethods": [
+    "remoteControl/status/changed",
+    "thread/started"
+  ],
+  "readRoutes": [
+    {
+      "method": "thread/turns/list",
+      "includeTurns": null,
+      "kind": "error",
+      "error": {
+        "code": -32600,
+        "message": "thread 01a10e5b-8fdb-71f0-b9d6-2e2d2845a001 is not materialized yet; thread/turns/list is unavailable before first user message"
+      }
+    },
+    {
+      "method": "thread/read",
+      "includeTurns": false,
+      "kind": "result",
+      "resultKeys": [
+        "thread"
+      ],
+      "threadMatchesRequested": true,
+      "turnsPresent": true,
+      "turnCount": 0
+    },
+    {
+      "method": "thread/read",
+      "includeTurns": true,
+      "kind": "error",
+      "error": {
+        "code": -32601,
+        "message": "list_turns is not supported yet"
+      }
+    },
+    {
+      "method": "account/requirements/read",
+      "includeTurns": null,
+      "kind": "error",
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `account/requirements/read`, expected one of `initialize`, `server/diagnostics`, `userVerification/status`, `userVerification/enroll`, `userVerification/delete`, `userVerification/verify`, `userVerification/cancel`, `thread/start`, `thread/resume`, `thread/fork`, `thread/archive`, `thread/delete`, `thread/unsubscribe`, `thread/increment_elicitation`, `thread/decrement_elicitation`, `thread/name/set`, `thread/goal/set`, `thread/goal/get`, `thread/goal/clear`, `thread/queue/add`, `thread/queue/list`, `thread/queue/update`, `thread/queue/delete`, `thread/queue/reorder`, `thread/queue/start`, `thread/metadata/update`, `thread/attachment/add`, `thread/attachment/list`, `thread/attachment/remove`, `thread/section/move`, `thread/settings/update`, `thread/memoryMode/set`, `memory/status`, `memory/reset`, `rollout/compress`, `thread/unarchive`, `thread/compact/start`, `thread/shellCommand`, `thread/approveGuardianDeniedAction`, `thread/backgroundTerminals/clean`, `thread/backgroundTerminals/list`, `thread/backgroundTerminals/terminate`, `thread/revert`, `thread/list`, `project/list`, `project/read`, `project/create`, `project/import`, `project/update`, `project/move`, `project/delete`, `threadSection/list`, `threadSection/create`, `threadSection/update`, `threadSection/delete`, `thread/search`, `thread/searchOccurrences`, `thread/loaded/list`, `thread/read`, `thread/turns/list`, `thread/items/list`, `thread/inject_items`, `skills/list`, `skills/extraRoots/set`, `hooks/list`, `marketplace/add`, `marketplace/remove`, `marketplace/upgrade`, `plugin/list`, `plugin/search`, `plugin/installed`, `plugin/reconcile`, `plugin/read`, `plugin/skill/read`, `plugin/share/save`, `plugin/share/updateTargets`, `plugin/share/list`, `plugin/share/checkout`, `plugin/share/delete`, `app/read`, `app/list`, `app/installed`, `fs/readFile`, `fs/writeFile`, `fs/createDirectory`, `fs/getMetadata`, `fs/readDirectory`, `fs/remove`, `fs/copy`, `fs/watch`, `fs/unwatch`, `skills/config/write`, `plugin/install`, `plugin/uninstall`, `turn/start`, `turn/settings/update`, `turn/steer`, `turn/interrupt`, `thread/realtime/start`, `thread/realtime/appendAudio`, `thread/realtime/appendText`, `thread/realtime/appendSpeech`, `thread/realtime/stop`, `thread/timeline/list`, `thread/realtime/listVoices`, `review/start`, `model/list`, `account/gatewayOAuth/read`, `account/gatewayOAuth/login`, `account/gatewayOAuth/cancel`, `modelProvider/capabilities/read`, `experimentalFeature/list`, `permissionProfile/list`, `experimentalFeature/enablement/set`, `remoteControl/enable`, `remoteControl/disable`, `remoteControl/status/read`, `remoteControl/pairing/start`, `remoteControl/pairing/status`, `remoteControl/client/list`, `remoteControl/client/revoke`, `collaborationMode/list`, `mock/experimentalMethod`, `environment/add`, `environment/info`, `environment/status`, `mcpServer/oauth/login`, `config/mcpServer/reload`, `mcpServerStatus/list`, `mcpServer/resource/read`, `mcpServer/event/stream/start`, `mcpServer/event/stream/stop`, `mcpServer/tool/call`, `windowsSandbox/setupStart`, `windowsSandbox/readiness`, `account/login/start`, `account/bedrock/discover`, `account/bedrock/setup`, `account/login/cancel`, `account/logout`, `account/rateLimits/read`, `account/rateLimitResetCredit/consume`, `account/usage/read`, `account/workspaceMessages/read`, `account/sendAddCreditsNudgeEmail`, `feedback/upload`, `command/exec`, `command/exec/write`, `command/exec/terminate`, `command/exec/resize`, `process/spawn`, `process/writeStdin`, `process/kill`, `process/resizePty`, `config/read`, `externalAgentConfig/detect`, `externalAgentConfig/import`, `externalAgentConfig/import/recordHistory`, `externalAgentConfig/import/readHistories`, `config/value/write`, `config/batchWrite`, `configRequirements/read`, `account/read`, `getConversationSummary`, `gitDiffToRemote`, `getAuthStatus`, `fuzzyFileSearch`, `fuzzyFileSearch/sessionStart`, `fuzzyFileSearch/sessionUpdate`, `fuzzyFileSearch/sessionStop`"
+      }
+    },
+    {
+      "method": "account/read",
+      "includeTurns": null,
+      "kind": "result",
+      "resultKeys": [
+        "account",
+        "requiresOpenaiAuth",
+        "workspaceRouting"
+      ],
+      "accountIsNull": true
+    }
+  ],
+  "completed": true,
+  "supplierExitCode": 0,
+  "seconds": 0.08,
+  "probeCorrection": "account/requirements/read was a parent probe typo. Maintained App correctly uses configRequirements/read. The unknown-method error is not a product finding.",
+  "limits": [
+    "Fresh empty/unmaterialized thread only; later materialized probe succeeds.",
+    "No model turn, sign-in or credentials. Supplier exited normally."
+  ],
+  "privateEvidenceRoot": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-read-routes-cxxfjjuz"
+}

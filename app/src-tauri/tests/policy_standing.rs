@@ -660,3 +660,156 @@ fn reviewer_exact_ended_projection_retains_lapse_and_declaration_labels() {
         assert!(out.evidence_limit.is_some());
     }
 }
+
+fn settings_example() -> Value {
+    fixture("AS_SETTINGS_IN.valid.examples.json")[0]["instance"].clone()
+}
+fn settings_record(body: Value) -> Value {
+    serde_json::json!({"kind":"settings_version", "body":body})
+}
+#[test]
+fn settings_comparison_match_missing_and_exact_scope_grant_are_read_only() {
+    let display = settings_example();
+    let entries = vec![settings_record(display.clone())];
+    let original = (display.clone(), entries.clone());
+    let matched = compare_settings_versions(&[display.clone()], &entries, &SettingsRecordRead::Written, &[]);
+    assert_eq!(matched.versions[0].state, SettingsComparisonState::Match);
+    assert!(matched.versions[0].defects.is_empty());
+    let mut changed = display.clone();
+    changed["operationClassGrants"][0]["scope"]["run"] = "different-run".into();
+    changed["operationClassGrants"][0]["grantValue"] = "direct".into();
+    let mismatch = compare_settings_versions(&[changed], &entries, &SettingsRecordRead::Written, &[]);
+    assert_eq!(mismatch.versions[0].state, SettingsComparisonState::Mismatch);
+    assert!(!mismatch.versions[0].operation_grant_differences.is_empty());
+    assert!(mismatch.versions[0].destination_differences.is_empty());
+    let missing_record = compare_settings_versions(&[display.clone()], &[], &SettingsRecordRead::Written, &[]);
+    assert_eq!(missing_record.versions[0].state, SettingsComparisonState::MissingInRecord);
+    let missing_display = compare_settings_versions(&[], &entries, &SettingsRecordRead::Written, &[]);
+    assert_eq!(missing_display.versions[0].state, SettingsComparisonState::MissingInDisplay);
+    assert_eq!((display, entries), original);
+}
+#[test]
+fn settings_comparison_refused_version_and_known_elements_keep_limits() {
+    let display = settings_example();
+    let entries = vec![settings_record(display.clone())];
+    let limits = vec!["destinations not observed".to_string(), "process network not observed".to_string()];
+    let refused = compare_settings_versions(&[display.clone()], &entries, &SettingsRecordRead::RefusedVersion("0.99".into()), &limits);
+    assert_eq!(refused.versions[0].state, SettingsComparisonState::MissingInRecord);
+    assert!(refused.versions[0].record_claims.is_empty());
+    assert!(refused.versions[0].limits.iter().any(|s| s == "missing in record (unreadable version 0.99)"));
+    assert!(refused.limits.contains(&limits[0]));
+    let mut partial = serde_json::json!({"settingsVersionId":display["settingsVersionId"], "sourceOfControl":display["sourceOfControl"]});
+    let limited = compare_settings_versions(&[display.clone()], &[settings_record(partial.clone())], &SettingsRecordRead::ReadLimited, &limits);
+    assert_eq!(limited.versions[0].state, SettingsComparisonState::Match);
+    assert!(limited.versions[0].limits.iter().any(|s| s.contains("read limited")));
+    assert!(limited.versions[0].operation_grant_differences.is_empty());
+    partial["sourceOfControl"] = if display["sourceOfControl"] == "App" { "host" } else { "App" }.into();
+    let mismatch = compare_settings_versions(&[display], &[settings_record(partial)], &SettingsRecordRead::ReadLimited, &limits);
+    assert_eq!(mismatch.versions[0].state, SettingsComparisonState::Mismatch);
+    assert_eq!(mismatch.versions[0].metadata_differences, vec!["sourceOfControl"]);
+    assert!(!serde_json::to_string(&mismatch).unwrap().contains("no destinations contacted"));
+}
+#[test]
+fn settings_comparison_known_partial_grant_does_not_compare_omitted_scope_fields() {
+    let display = settings_example();
+    let g = &display["operationClassGrants"][0];
+    let partial = serde_json::json!({"settingsVersionId":display["settingsVersionId"],"operationClassGrants":[{"policyRecord":g["policyRecord"], "scope":{}, "grantValue":g["grantValue"]}]});
+    let result = compare_settings_versions(&[display.clone()], &[settings_record(partial.clone())], &SettingsRecordRead::ReadLimited, &[]);
+    assert_eq!(result.versions[0].state, SettingsComparisonState::Match);
+    let mut changed = partial; changed["operationClassGrants"][0]["grantValue"] = if g["grantValue"]=="direct" {"propose"} else {"direct"}.into();
+    let result = compare_settings_versions(&[display], &[settings_record(changed)], &SettingsRecordRead::ReadLimited, &[]);
+    assert_eq!(result.versions[0].state, SettingsComparisonState::Mismatch);
+    assert!(result.versions[0].operation_grant_differences.iter().any(|s|s.ends_with("grantValue")));
+}
+#[test]
+fn settings_comparison_destination_separation_and_required_references_are_defects() {
+    let cases = fixture("AS_SETTINGS_IN.valid.examples.json");
+    let display = cases.as_array().unwrap().iter().map(|c|&c["instance"]).find(|d|d.get("destinationSettings").is_some()).unwrap().clone();
+    let mut changed = display.clone();
+    changed["destinationSettings"]["modelService"]["service"] = "different-service".into();
+    let result = compare_settings_versions(&[display.clone()], &[settings_record(changed)], &SettingsRecordRead::Written, &[]);
+    assert_eq!(result.versions[0].state, SettingsComparisonState::Mismatch);
+    assert!(result.versions[0].operation_grant_differences.is_empty());
+    assert!(!result.versions[0].destination_differences.is_empty());
+    let mut invalid = display.clone();
+    invalid["destinationSettings"]["inWorkGrants"] = serde_json::json!([{"target":{"destination":"example.test"},"scope":"once","state":"in force","requestRef":"rec:request"}]);
+    let original = invalid.clone();
+    let result = compare_settings_versions(&[invalid.clone()], &[settings_record(invalid.clone())], &SettingsRecordRead::Written, &[]);
+    assert_eq!(result.versions[0].state, SettingsComparisonState::Mismatch);
+    assert!(result.versions[0].defects.iter().any(|s| s.contains("not a grant")));
+    assert_eq!(invalid, original);
+    let mut invalid = settings_example();
+    invalid["operationClassGrants"][0]["displayState"]="effective (person-set)".into();
+    invalid["operationClassGrants"][0].as_object_mut().unwrap().remove("settingActRef");
+    let result = compare_settings_versions(&[invalid.clone()], &[settings_record(invalid)], &SettingsRecordRead::Written, &[]);
+    assert!(result.versions[0].defects.iter().any(|s|s.contains("lacks A12 reference")));
+    let mut invalid = settings_example();
+    invalid["operationClassGrants"][0]["displayState"]="effective (policy default)".into();
+    invalid["operationClassGrants"][0].as_object_mut().unwrap().remove("policyDefault");
+    let result = compare_settings_versions(&[invalid.clone()], &[settings_record(invalid)], &SettingsRecordRead::Written, &[]);
+    assert!(result.versions[0].defects.iter().any(|s|s.contains("lacks policy-class reference")));
+}
+#[test]
+fn settings_comparison_duplicates_never_select_a_version_or_collection_winner() {
+    let display = settings_example();
+    let mut other = display.clone(); other["sourceOfControl"]="host".into();
+    for records in [vec![settings_record(display.clone()),settings_record(other.clone())],vec![settings_record(other),settings_record(display.clone())]] {
+        let result = compare_settings_versions(&[display.clone()], &records, &SettingsRecordRead::Written, &[]);
+        assert_eq!(result.versions[0].state, SettingsComparisonState::Mismatch);
+        assert_eq!(result.versions[0].record_claims.len(), 2);
+        assert!(result.versions[0].defects.iter().any(|s|s.contains("no filename")));
+    }
+    let mut duplicate = display.clone();
+    let g = duplicate["operationClassGrants"][0].clone();
+    duplicate["operationClassGrants"].as_array_mut().unwrap().push(g);
+    let result = compare_settings_versions(&[duplicate.clone()], &[settings_record(duplicate)], &SettingsRecordRead::Written, &[]);
+    assert_eq!(result.versions[0].state, SettingsComparisonState::Mismatch);
+    assert!(result.versions[0].operation_grant_differences.iter().any(|s|s.contains("no winner")));
+    let result = compare_settings_versions(&[display.clone(),display.clone()], &[settings_record(display)], &SettingsRecordRead::Written, &[]);
+    assert_eq!(result.versions[0].display_claims.len(),2);
+    assert_eq!(result.versions[0].state,SettingsComparisonState::Mismatch);
+}
+#[test]
+fn settings_comparison_empty_inventory_retains_record_read_state() {
+    let refused = compare_settings_versions(&[], &[], &SettingsRecordRead::RefusedVersion("0.99".into()), &[]);
+    assert!(refused.versions.is_empty());
+    assert!(refused.limits.iter().any(|s|s.contains("unreadable version 0.99")));
+    let limited = compare_settings_versions(&[], &[], &SettingsRecordRead::ReadLimited, &[]);
+    assert!(limited.versions.is_empty());
+    assert!(limited.limits.iter().any(|s|s.contains("read limited")));
+}
+#[test]
+fn settings_comparison_known_two_scopes_survive_limited_read() {
+    let mut body=settings_example();
+    let mut a=body["operationClassGrants"][0].clone();a["scope"]=serde_json::json!({"run":"A"});
+    let mut b=a.clone();b["scope"]["run"]="B".into();
+    body["operationClassGrants"]=serde_json::json!([a,b]);
+    SchemaClaim::receive(body.clone(),true).unwrap();
+    for state in [SettingsRecordRead::Written,SettingsRecordRead::ReadLimited] {
+        let report=compare_settings_versions(&[body.clone()],&[settings_record(body.clone())],&state,&[]);
+        assert_eq!(report.versions[0].state,SettingsComparisonState::Match,"{state:?}: {:?}",report.versions[0].operation_grant_differences);
+        assert!(report.versions[0].defects.is_empty());
+    }
+}
+#[test]
+fn settings_comparison_incomplete_scope_ambiguity_is_a_limit_not_conflict() {
+    let mut body=settings_example();
+    let mut a=body["operationClassGrants"][0].clone();a["scope"]=serde_json::json!({"run":"A"});
+    let mut b=a.clone();b["scope"]["run"]="B".into();
+    body["operationClassGrants"]=serde_json::json!([a,b]);
+    let mut known=body.clone();
+    known["operationClassGrants"]=serde_json::json!([{"policyRecord":body["operationClassGrants"][0]["policyRecord"],"scope":{}}]);
+    let original=(body.clone(),known.clone());
+    let report=compare_settings_versions(&[body.clone()],&[settings_record(known.clone())],&SettingsRecordRead::ReadLimited,&[]);
+    assert_eq!(report.versions[0].state,SettingsComparisonState::Match);
+    assert!(report.versions[0].operation_grant_differences.is_empty());
+    assert!(report.versions[0].limits.iter().any(|s|s.contains("scope association unknown; no winner selected")));
+    assert_eq!((body.clone(),known),original);
+    let mut changed=body.clone();changed["operationClassGrants"][0]["grantValue"]="direct".into();
+    let report=compare_settings_versions(&[body.clone()],&[settings_record(changed)],&SettingsRecordRead::ReadLimited,&[]);
+    assert_eq!(report.versions[0].state,SettingsComparisonState::Mismatch);
+    assert!(!report.versions[0].operation_grant_differences.is_empty());
+    let mut absent=body.clone();absent["operationClassGrants"][0]["scope"]["run"]="C".into();
+    let report=compare_settings_versions(&[body],&[settings_record(absent)],&SettingsRecordRead::ReadLimited,&[]);
+    assert_eq!(report.versions[0].state,SettingsComparisonState::Mismatch);
+}

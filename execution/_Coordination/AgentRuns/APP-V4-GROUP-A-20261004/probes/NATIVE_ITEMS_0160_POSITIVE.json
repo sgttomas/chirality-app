@@ -1,0 +1,154 @@
+{
+  "supplier": "0.160.0",
+  "binarySha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+  "purpose": "synthetic user-message native item observation; owned loopback error provider",
+  "authUsed": false,
+  "nativeTurnRequested": true,
+  "actualModelUsed": false,
+  "requests": [
+    "initialize",
+    "thread/start",
+    "turn/start",
+    "thread/items/list",
+    "thread/turns/list",
+    "thread/read",
+    "thread/read",
+    "configRequirements/read",
+    "account/read",
+    "turn/interrupt"
+  ],
+  "notificationMethods": [
+    "deprecationNotice",
+    "error",
+    "item/completed",
+    "item/started",
+    "remoteControl/status/changed",
+    "thread/started",
+    "thread/status/changed",
+    "turn/completed",
+    "turn/started",
+    "warning"
+  ],
+  "turnStartKind": "result",
+  "turnStartError": null,
+  "readRoutes": [
+    {
+      "method": "thread/items/list",
+      "includeTurns": null,
+      "kind": "result",
+      "resultKeys": [
+        "backwardsCursor",
+        "data",
+        "nextCursor"
+      ],
+      "syntheticItems": [
+        {
+          "turnId": "01a10e70-4874-7613-9ff9-b00dff1ab439",
+          "item": {
+            "type": "userMessage",
+            "id": "01a10e70-4883-71a3-9379-347e89bd815f",
+            "clientId": "chirality-synthetic-items-001",
+            "content": [
+              {
+                "type": "text",
+                "text": "Owned synthetic native-history probe; no human act or model output is claimed.",
+                "text_elements": []
+              }
+            ]
+          },
+          "startedAtMs": 1791243602052,
+          "completedAtMs": 1791243602052
+        }
+      ],
+      "dataCount": 1,
+      "nextCursorPresent": true,
+      "nextCursor": null
+    },
+    {
+      "method": "thread/turns/list",
+      "includeTurns": null,
+      "kind": "result",
+      "resultKeys": [
+        "backwardsCursor",
+        "data",
+        "nextCursor"
+      ],
+      "dataCount": 1,
+      "nextCursorPresent": true,
+      "nextCursor": null
+    },
+    {
+      "method": "thread/read",
+      "includeTurns": false,
+      "kind": "result",
+      "resultKeys": [
+        "thread"
+      ],
+      "threadMatchesRequested": true,
+      "turnsPresent": true,
+      "turnCount": 0
+    },
+    {
+      "method": "thread/read",
+      "includeTurns": true,
+      "kind": "result",
+      "resultKeys": [
+        "thread"
+      ],
+      "threadMatchesRequested": true,
+      "turnsPresent": true,
+      "turnCount": 1
+    },
+    {
+      "method": "configRequirements/read",
+      "includeTurns": null,
+      "kind": "result",
+      "resultKeys": [
+        "requirements"
+      ]
+    },
+    {
+      "method": "account/read",
+      "includeTurns": null,
+      "kind": "result",
+      "resultKeys": [
+        "account",
+        "requiresOpenaiAuth",
+        "workspaceRouting"
+      ],
+      "accountIsNull": true
+    }
+  ],
+  "boundedInterrupt": {
+    "kind": "error",
+    "error": {
+      "code": -32600,
+      "message": "no active turn to interrupt"
+    }
+  },
+  "completed": true,
+  "loopbackRequests": [
+    {
+      "path": "/v1/responses",
+      "bodyBytes": 43100,
+      "bodySha256": "9b831f3e8df7eaf846164b160332f37662ae19679480d4691d9a72b12da53842"
+    }
+  ],
+  "supplierExitCode": 0,
+  "seconds": 0.6,
+  "executionBoundary": "Initial command sandbox denied loopback bind before supplier launch. Automatic review approved require_escalated retry of this exact bounded fixture; fixture was 127.0.0.1 only and always HTTP 400.",
+  "source": "Direct stdio official stock supplier observation, not App receiving or workflow execution.",
+  "limits": [
+    "One genuine native userMessage contains exact synthetic input and matching clientId from clientUserMessageId. Terminal nextCursor is explicitly null.",
+    "No actual model, authentication, human act, multi-page traversal, workflow uptake/adoption or App-native capability is established.",
+    "Turn failed on the owned HTTP error fixture before readback; interrupt returned no active turn. Supplier exited zero; server shutdown and closed.",
+    "Fixture retained only provider request length and SHA, not its prompt body."
+  ],
+  "privateEvidenceRoot": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-positive-items.rDBpWYDErg",
+  "rawSha256": {
+    "probe.py": "abc1819cdf921a4924d7591480ac9a4e2af49dc786a2672c7d754935693beedb",
+    "stdout.jsonl": "0d1963c70b9c15e09362f5c9169fd7b9cea9df132190c1006816f3e5a32b9d0a",
+    "stderr.log": "accf72a734f44e97794222e5f351561dd20c6fac2727f51f0949ce290ef6c873",
+    "result.json": "6f48f86b31576b4bfc5d8f661c4c6de9af6aecbb61d53eb46b400dee1476dc7a"
+  }
+}
