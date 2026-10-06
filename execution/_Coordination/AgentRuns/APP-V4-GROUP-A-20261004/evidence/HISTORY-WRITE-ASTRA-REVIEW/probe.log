@@ -1,0 +1,1 @@
+800 actual descriptor writes: 800 EBADF, 0 success; metadata/fstat identity retained after F_DUPFD_CLOEXEC; 100 concurrent cat spawns reaped

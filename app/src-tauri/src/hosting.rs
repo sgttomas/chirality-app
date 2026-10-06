@@ -1936,7 +1936,12 @@ fn generated_outputs_match() -> bool {
 }
 
 #[cfg(test)]
-fn install_broken_test_input(host:&Host){let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();let pipe=child.stdin.take();child.kill().unwrap();child.wait().unwrap();*host.stdin.lock().unwrap()=pipe;}
+fn install_broken_test_input(host:&Host){
+    // A killed child can leave transient inherited pipe readers in concurrent
+    // spawns. A read-only descriptor guarantees an actual OS write failure.
+    let input:std::os::fd::OwnedFd=std::fs::File::open("/dev/null").unwrap().into();
+    *host.stdin.lock().unwrap()=Some(ChildStdin::from(input));
+}
 
 #[cfg(test)]
 mod hosting_identity_tests {
