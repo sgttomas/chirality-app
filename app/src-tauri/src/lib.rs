@@ -12,6 +12,8 @@ pub mod attachments;
 pub mod canonical;
 pub mod catalog;
 pub mod decision_view;
+mod file_act_root;
+mod file_act_view;
 pub mod external_observation;
 pub mod external_trace;
 pub mod trace_receiving;
@@ -48,6 +50,7 @@ pub struct AppState {
     workspace: Option<PathBuf>,
     act: Arc<Mutex<Option<ActControl>>>,
     workflows: Mutex<runtime_session::WorkflowRootSession>,
+    file_acts: Mutex<file_act_root::FileActRoot>,
     decision_writer_status: Mutex<Value>,
     person_name: Mutex<Option<String>>,
     instructions_root: Mutex<Result<PathBuf, String>>,
@@ -761,6 +764,86 @@ fn decide(
     )
 }
 
+// Observer takes no file Root/offer/control lock. Every outer lock is fail-fast,
+// so a competing Root-held operation cannot invert native control ownership.
+fn file_act_observe(state:&AppState, home:&Arc<runtime_session::HomeSession>) -> Result<(Value,Value),String> {
+    let active=state.homes.try_lock().map_err(|_|"Home selection busy; review again")?.active();
+    if !Arc::ptr_eq(&active,home){return Err("Original file-act home changed; review again".into());}
+    let binding=state.home_bootstrap.try_lock().map_err(|_|"Home binding busy; review again")?;
+    match &*binding { Ok(set)=>set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?, Err(_) if home.class()==home_resources::HomeClass::Account=>{}, Err(e)=>return Err(e.clone()) }
+    drop(binding);
+    let name=state.person_name.try_lock().map_err(|_|"Actor setting busy; review again")?.clone();
+    let os=util::os_account();
+    let mut runtime=home.runtime.try_lock().map_err(|_|"Actor observation busy; review again")?;
+    let (generation,position)=runtime.cursor();
+    let observed=home.host.observe(generation,position);
+    let current=runtime.actor_context(&observed,name.as_deref(),os.as_deref());
+    let mut actor=act_control::person(current["displayName"].as_str(),current["osAccount"].as_str());
+    if let Some(account)=current["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
+    let workspace=state.workspace.as_ref().ok_or("No App workspace")?;
+    storage::check_path(workspace)?;
+    let context=json!({"observedHome":current,"modeHomeClass":home.class().as_str(),"workspace":attachments::native_path_identity(workspace)});
+    Ok((actor,context))
+}
+#[tauri::command(async)]
+fn file_act_select(app:tauri::AppHandle,state:State<'_,AppState>,kind:String,scope:String,purpose:String)->Result<Value,String>{
+    let kind=match kind.as_str(){"A4"=>act_control::FileActKind::Check,"A6"=>act_control::FileActKind::Approve,"A7"=>act_control::FileActKind::Rely,_=>return Err("Choose A4, A6 or A7".into())};
+    let home=state.homes.try_lock().map_err(|_|"Home selection busy")?.active();
+    let (_,context)=file_act_observe(&state,&home)?;
+    let selected=app.dialog().file().set_title("Select one App workspace file or saved output").blocking_pick_file();
+    let Some(selected)=selected else{return Ok(json!({"state":"selection dismissed; nothing captured"}));};
+    let path=selected.into_path().map_err(|_|"Native selection has no filesystem path")?;
+    if file_act_observe(&state,&home)?.1!=context{return Err("Actor or context changed during selection; select again".into());}
+    let mut control=state.act.try_lock().map_err(|_|"Act owner busy; select again")?;
+    state.file_acts.try_lock().map_err(|_|"File offer state busy; select again")?.compose(control.as_mut().ok_or("No App workspace")?,&path,kind,&scope,&purpose,home,context)
+}
+#[tauri::command(async)]
+fn file_act_confirm(app:tauri::AppHandle,state:State<'_,AppState>,reference:String)->Result<Value,String>{
+    file_act_confirm_original(&state,&reference,|control,offer,observe|act_control::confirm_file_native(&app,control,offer,observe))
+}
+fn file_act_confirm_original(state:&AppState,reference:&str,
+    confirm:impl FnOnce(&mut ActControl,&act_control::FileActOfferRef,&mut dyn FnMut()->Result<(Value,Value),String>)->Result<Option<Value>,String>
+)->Result<Value,String>{
+    let owner=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.get(&reference)?;
+    let mut owner=owner.try_lock().map_err(|_|"Original file operation pending")?;
+    if owner.attempted{return Err("Original attempt retained; continue its recording or review a new offer".into());}
+    let home=owner.home.clone();let original=owner.context.clone();
+    let mut control=state.act.try_lock().map_err(|_|"Act owner busy; no native attempt")?;
+    let control=control.as_mut().ok_or("Original act owner absent")?;
+    owner.attempted=true;
+    let result=confirm(control,&owner.offer,&mut ||{
+        let observed=file_act_observe(&state,&home)?;
+        if observed.1!=original{return Err("Actor or owning context changed since preview; review again".into());}
+        Ok(observed)
+    });
+    owner.status=match result{Ok(Some(value))=>value,Ok(None)=>json!({"state":"dismissed; nothing captured","recorded":false}),Err(error)=>json!({"state":"native attempt returned an error; capture/record standing not established by this result","error":error})};
+    Ok(owner.status.clone())
+}
+#[tauri::command(async)]
+fn file_act_continue(state:State<'_,AppState>,reference:String)->Result<Value,String>{
+    let owner=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.get(&reference)?;
+    let mut owner=owner.try_lock().map_err(|_|"Original file operation pending")?;
+    let mut control=state.act.try_lock().map_err(|_|"Act owner busy; original status retained")?;
+    // Recording the original capture must not replace its historical actor with today's.
+    let result=control.as_mut().ok_or("Original act owner absent")?.continue_file_act(&owner.offer)?;
+    owner.status=result.clone();Ok(result)
+}
+#[tauri::command]
+fn file_act_dismiss(state:State<'_,AppState>,reference:String)->Result<Value,String>{
+    let owner=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.get(&reference)?;
+    let mut owner=owner.try_lock().map_err(|_|"Original file operation pending")?;
+    if owner.attempted{return Err("Original native attempt retained; dismissal cannot erase it".into());}
+    state.act.try_lock().map_err(|_|"Act owner busy")?.as_mut().ok_or("Original act owner absent")?.dismiss_file_act(&owner.offer);
+    owner.attempted=true;owner.status=json!({"state":"dismissed; nothing captured","recorded":false});Ok(owner.status.clone())
+}
+#[tauri::command(async)]
+fn file_act_read(state:State<'_,AppState>)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No App workspace")?;
+    let mut view=file_act_view::read(root);
+    view["hotOffers"]=state.file_acts.try_lock().map_err(|_|"File offer state busy")?.snapshot();
+    Ok(view)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let workspace = std::env::var_os("CHIRALITY_WORKSPACE").map(PathBuf::from);
@@ -774,6 +857,7 @@ pub fn run() {
     let state = AppState {
         act: Arc::new(Mutex::new(workspace.as_ref().map(|w| ActControl::new(w)))),
         workflows: Mutex::new(runtime_session::WorkflowRootSession::default()),
+        file_acts: Mutex::new(file_act_root::FileActRoot::default()),
         decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
         workspace: workspace.clone(),
         person_name: Mutex::new(None),
@@ -852,6 +936,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
+            file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read,
             host_status,
             select_home,
             read_home_access,
@@ -902,18 +987,31 @@ pub fn run() {
 #[cfg(all(test,unix))]
 mod workflow_root_context_tests {
     use super::*;
-    fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
+    pub(super) fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
         let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(util::opaque_id("workflow-context-").unwrap());std::fs::create_dir(&root).unwrap();
         let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),Err("no supplier; offline registration allowed".into())).unwrap());
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{workspace:Some(root.clone()),act:control,workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
+        let state=AppState{workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
         let reference={let mut workflows=state.workflows.lock().unwrap();workflows.select_development_copy(package).unwrap();workflows.create_selected_draft("coordinated-knowledge-work").unwrap();workflows.begin_review(home.clone(),context.clone(),vec!["coordinated-knowledge-work".into()],false).unwrap();workflows.active_review.clone().unwrap()};
         (root,state,home,library,reference,context)
+    }
+    #[test]
+    fn file_act_actual_observer_checks_original_context_and_fails_fast_under_contention(){
+        let(root,state,home,_,_,_)=fixture();
+        let(actor,context)=file_act_observe(&state,&home).unwrap();
+        assert_eq!(actor["identityVerified"],false);assert_eq!(context["observedHome"]["hostState"],"absent");
+        // The actual confirmation owns act and original review, neither is taken by its observer.
+        let held=state.act.lock().unwrap();assert!(file_act_observe(&state,&home).is_ok());drop(held);
+        let held=state.homes.lock().unwrap();assert!(file_act_observe(&state,&home).is_err());drop(held);
+        let held=home.runtime.lock().unwrap();assert!(file_act_observe(&state,&home).is_err());drop(held);
+        let held=state.person_name.lock().unwrap();assert!(file_act_observe(&state,&home).is_err());drop(held);
+        *state.person_name.lock().unwrap()=Some("changed person".into());assert_ne!(file_act_observe(&state,&home).unwrap().1,context);
+        std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn workflow_root_actual_observe_preserves_offline_context_and_refuses_retarget(){
@@ -925,3 +1023,6 @@ mod workflow_root_context_tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[cfg(all(test,unix))]
+mod file_act_consumer_tests;

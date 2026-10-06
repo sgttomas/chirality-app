@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "--lib",
+    "connected_file_act",
+    "--",
+    "--test-threads=1"
+  ],
+  "cwd": "/private/tmp/chirality-file-act-root-in82xerc/app/src-tauri",
+  "exit_code": 0,
+  "seconds": 5.44356107711792,
+  "source_sha256": "9045075fb091a2ed8d6a730a83c62aaac2087fe04c7c761e5d2fdeb6aeb73e15",
+  "log_sha256": "e721945e0b310e6b82974c8e7eb6e02482fdf25c2e354617829e5102dec33fe8"
+}

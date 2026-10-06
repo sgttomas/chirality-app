@@ -1,0 +1,172 @@
+{
+  "sourceManifest": "386c79006dec8e1be77587aa048ed7d13942568f631291854c289e8c86c5da2f",
+  "checks": [
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "file_act_consumer_tests::",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 4 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in 2.97s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/0.log",
+      "sha256": "21b7e5e9ca8bf95bba967f286abe7a450f407eac2545f2892254170cf3f1644e"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "file_act_root::tests::",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 2 passed; 0 failed; 0 ignored; 0 measured; 236 filtered out; finished in 0.44s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/1.log",
+      "sha256": "6926b5c89bd40d791be9d40b987cca9dde4d24dc90c64b7bfd776f7388e5b291"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "file_act_view::tests::",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 2 passed; 0 failed; 0 ignored; 0 measured; 236 filtered out; finished in 0.00s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/2.log",
+      "sha256": "b044c4a36005d38039ac8947e8a4379c5acf2c5f052b3cc69912d2da7907cf14"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "workflow_root_context_tests::file_act_actual_observer",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 237 filtered out; finished in 0.25s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/3.log",
+      "sha256": "6f380212c3111662daa286583ab4c41d671e01460761af8d43c4dc33e4c211bd"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "file_act_definite_first_lock",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 237 filtered out; finished in 1.19s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/4.log",
+      "sha256": "e2fe12937bcad5e1d84a526786bd473f925b20acb5039d7dbc9522fa7ef9a90c"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "file_act_uncertain_publication_requires",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 237 filtered out; finished in 1.02s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/5.log",
+      "sha256": "1825fc027879f1e22d1bf6032dcaf08b8bbbc5e73392b248d88ecb71445bcb92"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "workflow_root_wrc1_",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 2 passed; 0 failed; 0 ignored; 0 measured; 236 filtered out; finished in 0.43s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/6.log",
+      "sha256": "ff2f15123b0bcc62060086ba1b6bdeaebbf00e9e9786d0489596c97f78d744e8"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/lib-test",
+        "synthetic_failed_capture_publication_retains",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 237 filtered out; finished in 1.26s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/7.log",
+      "sha256": "75d8d9b2a27cd44771fc64d4fdb3e87e181951f4cc96a3591a4c22a75d49c9fd"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/act-storage-test",
+        "fabricated_cold_capture",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.42s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/8.log",
+      "sha256": "7dfd64e8c664adb96299ff523cad6ae442c207e2ba725c887c1aa5e2d4de84f1"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/decide-flow-test",
+        "person_decides_a_package",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.91s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/9.log",
+      "sha256": "b6b1dd8cd7d50c26185ccff232934a0f5f59671b3dcbd6d022d38d9aeaebe534"
+    },
+    {
+      "command": [
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/record-relations-test",
+        "",
+        "--test-threads=1"
+      ],
+      "exit": 0,
+      "result": [
+        "ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s"
+      ],
+      "log": "/private/tmp/chirality-root-independent-97yswahi/10.log",
+      "sha256": "b86f8db8f1b86a1ec0441457560d330fbf870c6858f3dfb5bed3da6d13ecb7ca"
+    },
+    {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/panel-control.mjs",
+        "/private/tmp/chirality-file-act-root-in82xerc/pre-r1/FileActPanel.tsx",
+        "/private/tmp/chirality-root-independent-97yswahi/panel-before.mjs"
+      ],
+      "exit": 1,
+      "expected": 1,
+      "log": "/private/tmp/chirality-root-independent-97yswahi/panel-before.log",
+      "sha256": "9da523cd1e1bc33bb779bf1141430136b5de29a4384a84a30e206a2a071d4107"
+    },
+    {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/chirality-file-act-root-in82xerc/validation/panel-control.mjs",
+        "/private/tmp/chirality-file-act-root-in82xerc/app/src/FileActPanel.tsx",
+        "/private/tmp/chirality-root-independent-97yswahi/panel-after.mjs"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "/private/tmp/chirality-root-independent-97yswahi/panel-after.log",
+      "sha256": "9715cec609d90f0ed58ad2520df79a2030ddb8cf659defa53ab6dd97ddb6353d"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+error[E0599]: no function or associated item named `synthetic_file_native` found for struct `ActControl` in the current scope
+ --> /private/tmp/chirality-file-act-root-in82xerc/validation/ordinary-no-synthetic.rs:1:80
+  |
+1 | use chirality_app_v4_lib::act_control::ActControl; fn main(){let _=ActControl::synthetic_file_native;}
+  |                                                                                ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `ActControl`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0599`.

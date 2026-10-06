@@ -1,0 +1,18 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: continuing A must leave newly composed B operable
+
+true !== false
+
+    at file:///private/tmp/chirality-file-act-root-in82xerc/validation/panel-control.mjs:23:8
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual'
+}
+
+Node.js v24.5.0

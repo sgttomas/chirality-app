@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+    "records::tests::",
+    "--nocapture"
+  ],
+  "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+  "exit_code": 0,
+  "seconds": 0.18268799781799316,
+  "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+  "log_sha256": "6a6ac859bfe9aa551ead1dd7006d05af38253232afa7d7d7c3223f8e566cbe2e"
+}

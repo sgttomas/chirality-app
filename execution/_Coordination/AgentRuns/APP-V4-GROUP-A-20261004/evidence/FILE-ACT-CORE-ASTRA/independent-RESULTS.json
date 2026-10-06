@@ -1,0 +1,251 @@
+{
+  "source_manifest_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+  "source_unchanged": 250,
+  "independent_selected_pass": 16,
+  "results": [
+    {
+      "test": "act_control::file_act::tests::file_act_definite_first_lock_or_publication_failure_never_retries_into_an_act",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_definite_first_lock_or_publication_failure_never_retries_into_an_act",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.48s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/00.log",
+      "sha256": "b8963dce420fb563dbddbf33c9da78eb3a69760bdf8d3a2a79a4af8d3d95436b"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_uncertain_publication_requires_stored_matching_bytes_and_durability",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_uncertain_publication_requires_stored_matching_bytes_and_durability",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.46s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/01.log",
+      "sha256": "6d03e022148bff8d48894b704a1fd2ebc4dfdda4514b8700eaf3f140edf02cb0"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_fifo_refusals_have_bounded_subprocess_lifetime",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_fifo_refusals_have_bounded_subprocess_lifetime",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.18s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.18s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.42s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/02.log",
+      "sha256": "b7a1acb972201a953da1b02eedfb5467b3a7f7e5653fc03ca37fccf5b60f0805"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_decline_and_a16_retain_shared_admission_order_after_record_failure",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_decline_and_a16_retain_shared_admission_order_after_record_failure",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.54s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/03.log",
+      "sha256": "964de77f7c2fc0fc5ad4abdccfb21769bfe6fa0ffbc75267aef538b1251ceaf5"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_owner_change_and_restoration_keep_original_hot_capture",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_owner_change_and_restoration_keep_original_hot_capture",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.45s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/04.log",
+      "sha256": "709ce5fa934d95b6086d32d72e8c358a20144fc2a1c80a829441f15703415955"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_publication_stage_helper_does_not_change_legacy_create_json",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_publication_stage_helper_does_not_change_legacy_create_json",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.07s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/05.log",
+      "sha256": "c33f65ed38c2f0c9477103685db240214399d111a400c8792ab420766d20de35"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_all_kinds_preserve_kind_content_actor_and_decline_distinction",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_all_kinds_preserve_kind_content_actor_and_decline_distinction",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.85s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/06.log",
+      "sha256": "6e6a3ef3144312ccb38a8902b6c937edc8dda6d7b08fa2cdd228599e8fbdfe7b"
+    },
+    {
+      "test": "act_control::file_act::tests::file_act_failed_log_retains_capture_and_cold_files_cannot_supply_authority",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::file_act::tests::file_act_failed_log_retains_capture_and_cold_files_cannot_supply_authority",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.45s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/07.log",
+      "sha256": "ccfaad29f145d4831d1500c836bfe6b651c711763d5d41e0cbce9f54359d869e"
+    },
+    {
+      "test": "act_control::a15::tests::synthetic_failed_capture_publication_retains_original_pending_then_one_receipt",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::a15::tests::synthetic_failed_capture_publication_retains_original_pending_then_one_receipt",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.41s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/08.log",
+      "sha256": "5c818c4911510da8f01854a242bc6786d75107afa01b66365c3f5ec5125e242c"
+    },
+    {
+      "test": "act_control::a15::tests::synthetic_capture_lock_failure_retains_original_event_for_once_only_hot_retry",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::a15::tests::synthetic_capture_lock_failure_retains_original_event_for_once_only_hot_retry",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.41s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/09.log",
+      "sha256": "454bbadf629acadc1af3d3aaab854955a16c4cd2a371ade9dea7d287ed060a3e"
+    },
+    {
+      "test": "act_control::a15::tests::synthetic_single_receipt_durable_library_record_once_and_cold_cannot_transfer",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "--exact",
+        "act_control::a15::tests::synthetic_single_receipt_durable_library_record_once_and_cold_cannot_transfer",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 228 filtered out; finished in 0.42s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/10.log",
+      "sha256": "eeb7f0cfe366d21ca08e77b001f4da494c1c1f4836ee8f76b21c8031615ad6fa"
+    },
+    {
+      "test": "capture_store_failure_is_visible_without_record_or_relocation",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/act-storage-test",
+        "--exact",
+        "capture_store_failure_is_visible_without_record_or_relocation",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.37s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/11.log",
+      "sha256": "9d9d0c104bb1d265d2ef962f7764f136e9f702450dcb3e6c7ad613f5ce13393f"
+    },
+    {
+      "test": "hot_pending_batch_keeps_native_event_order_before_delay_limits",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/act-storage-test",
+        "--exact",
+        "hot_pending_batch_keeps_native_event_order_before_delay_limits",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.59s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/12.log",
+      "sha256": "7bb4136377ea9df81d9d240c4c1cf55861e85b7035c4d996c95b16e1dc7607fd"
+    },
+    {
+      "test": "fabricated_cold_capture_and_pending_files_never_create_native_act",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/act-storage-test",
+        "--exact",
+        "fabricated_cold_capture_and_pending_files_never_create_native_act",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.23s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/13.log",
+      "sha256": "905952568636a3a73a2ac42d78d3df89facf6e7190f54e7dbfc03ad947bcc323"
+    },
+    {
+      "test": "duplicate_and_disagreeing_discovered_capture_records_never_replay",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/act-storage-test",
+        "--exact",
+        "duplicate_and_disagreeing_discovered_capture_records_never_replay",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.69s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/14.log",
+      "sha256": "e337efc42b22dd54d09213bcc1b3dc06c7b1fdf15f23826cdc390a000b92bbc2"
+    },
+    {
+      "test": "person_decides_a_package_and_the_view_shows_it",
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/decide-flow-test",
+        "--exact",
+        "person_decides_a_package_and_the_view_shows_it",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.47s"
+      ],
+      "log": "/private/tmp/chirality-v5-independent-qppd1kdk/15.log",
+      "sha256": "94271e97171139e97f965c616d7b0e36dff04d40c851874ab9d5aec83316cf46"
+    }
+  ]
+}

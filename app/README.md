@@ -3,8 +3,9 @@
 Run `APP-V4-GROUP-A-20261004` repairs and extends the walking skeleton from
 `APP-V4-GRAPH-CLOSURE-20261004`. The current path hosts stock Codex 0.160.0,
 supplies reviewed v4 common/role guidance, receives native requests and activity,
-loads external observations, records decision packages, confirms A16 through the
-host-native control, and reads recorded decisions with their limits. Group A development remains active;
+loads external observations, records decision packages, and supplies native controls
+for A16 decisions, A15 workflow registration, and A4/A6/A7 App-file acts. Separate
+readers retain decision and file-act evidence limits. Group A development remains active;
 packaging, supplier qualification and the owner's stage gate are separate work.
 
 Tests use the maintained invented `tests/fixtures/FX-DP1` content. Native
@@ -66,6 +67,19 @@ performed an act.
 14. Selected examination JSON imports keep their complete declared basis and
     unverified standing independently. General record corrections preserve both
     entries and expose missing, conflicting or incomparable claim relationships.
+15. A person can select a saved workspace file and explicitly choose mark checked,
+    approve, or rely, with scope and purpose. The host freezes the bytes and
+    observes actor/context before native act, decline, or cancel. Definite capture
+    failure leaves no captured act; uncertain publication is held separately,
+    while a durable capture with a failed record remains retryable without
+    recapture. File-act reading is separate from decision packages and preserves
+    actor/recorder, cold-origin, current-content and professional-statement limits.
+    Request/output/workflow links open the standing facility only through a person;
+    they do not invent an arrival reference or settle a supplier request.
+16. Workflow selection, owner-held review, hot A15 capture and immutable library
+    registration are connected to prepared input and source-owned native page
+    comparison. Code and synthetic checks do not establish a native person's
+    registration, provider uptake or completed workflow execution.
 
 ## Modules
 
@@ -79,7 +93,8 @@ performed an act.
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
 | `src-tauri/src/storage.rs` | Selected project/run/writer and library paths, legacy discovery, atomic capture persistence and locking |
 | `src-tauri/src/recorder.rs` | Package byte snapshot and request/provenance-limit mapping |
-| `src-tauri/src/act_control.rs`, `canonical.rs` | A16 offer/native binding, capture, trusted retry/backlink recovery and the designated offer digest |
+| `src-tauri/src/act_control.rs`, `act_control_a15.rs`, `act_control_file.rs`, `file_act_native.rs`, `canonical.rs` | A16, hot A15 and App-file offer/native custody; capture versus publication uncertainty, ordered retry and original content binding |
+| `file_act_root.rs`, `file_act_view.rs`, `src/FileActPanel.tsx` | Original file-offer ownership, separate read-only act/decline comparison and per-offer controls; no cold native-origin upgrade |
 | `src-tauri/src/decision_view.rs`, `act_policy.rs`, `standing.rs` | Decision projection, A16 method-aware standing and provenance limits; recorded claims do not establish native act admission |
 | `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
@@ -189,8 +204,8 @@ The App routes configured account (`H-acct`) and explicitly prepared API-key (`H
 Project run logs use `.chirality/records/runs/<safe-run-key>/<safe-writer-key>.jsonl`;
 outside-run acts use `.chirality/records/acts/<safe-writer-key>.jsonl` with captures
 in `.chirality/captures/`. Library A15 allocation uses the library's
-`.chirality/records/acts.jsonl` and `.chirality/captures/`; the A15 product journey
-remains later Group A work. Storage keys are separate from governed identities.
+`.chirality/records/acts.jsonl` and `.chirality/captures/`; its native registration
+witness remains unfinished. Storage keys are separate from governed identities.
 Explicitly discovered legacy `records/coordination.rs.jsonl` stays intact.
 Unwritable or incomplete targets report limits without silent relocation.
 
@@ -202,7 +217,7 @@ tags through the existing pointer ledger; no competing ledger is opened.
 
 Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.
-Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, hot A15/registered-library transactions and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; genuine native page supply and the full registered workflow journey remain connecting work. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
+Native authenticity, real process-kill/fsync failure witnesses, durable history rebuild and cold role-source reconciliation, child role supply, native A15/registered-library and file-act witnesses, and remaining policy/standing/control journeys remain in the Group A graph. Per-home configuration/resource linking is implemented with observed ownership limits. CommonMark parsing and one closed, explicitly development-candidate workflow catalog are supplied; the production native-page supply path and hot registration transaction are implemented, while their actual native consumer witnesses remain separate. General file/arrival entry surfaces and complete file-act lapse-history evidence also remain unfinished. External dispatch and host qualification remain unsupplied. Native text-turn and interrupt controls use the selected native thread and
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.

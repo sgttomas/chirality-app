@@ -1,0 +1,17 @@
+{
+  "owner": "/root/group_a_execution_astra",
+  "receivingHead": "0329f8fe6b1530eb4f084587dc46c908ba2436ed",
+  "scope": {
+    "src-tauri/src/file_act_consumer_tests.rs": "07a1bf70e07aaf7d7e28fbc1ce528d6ccbc1885f51e87590ea100e50bfdb29db",
+    "src-tauri/src/file_act_native.rs": "0f13bb5c2a8aaa396a2622226edfe69ebc8204b7e22d445e340f5b010f854aa1",
+    "src-tauri/src/file_act_root.rs": "33afb4b1b00324d29f2382515ae9fed0ae02312ab0ad77287ee3bc55ced8e507",
+    "src-tauri/src/file_act_view.rs": "b3c0fda673079b4644fecf7d79b16922e706523215b9c56bc4354450dea07170",
+    "src-tauri/src/lib.rs": "aca501453e1897245fb3b53b37e7d28e5e330983594771c3d7816e935d7980cf",
+    "src/App.tsx": "e542116a6270783432e0d9724b4c6676888ca0c244492ab9140a360ac8b6a4cb",
+    "src/FileActPanel.tsx": "d3e9faa7c55c84ece5ca4da4f17ff45e44e69ea5a369cf0d23c9fbe02308d043"
+  },
+  "method": "strict preimage/postimage equality; bounded seven paths only, prior core preserved except separately reviewed native adapter",
+  "review": "V5-FILE-ACT-ROOT.md V5-ROOT-R1 READY",
+  "integrationChecks": "Actual combined maintained candidate file_act lib22 passed/0failed/1ignored, bounded FIFO worker exercised by parent tests; frontend typecheck/build0;12 source hashes unchanged throughout. Logs in validation/FILE_ACT_INTEGRATION. No Cargo/process/source hold.",
+  "limits": "native use, arrival links, cold trust and whole undertaking remain open"
+}

@@ -1,0 +1,7 @@
+
+running 2 tests
+test storage::tests::directory_sync_failure_never_reports_publication_durable ... ok
+test storage::tests::interrupted_temporary_write_never_exposes_partial_final_evidence ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 227 filtered out; finished in 0.04s
+

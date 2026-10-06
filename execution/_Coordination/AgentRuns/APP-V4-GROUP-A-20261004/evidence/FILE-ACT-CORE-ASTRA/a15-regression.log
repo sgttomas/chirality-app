@@ -1,0 +1,12 @@
+
+running 7 tests
+test act_control::a15::tests::synthetic_wrong_frozen_digest_captures_nothing ... ok
+test act_control::a15::tests::synthetic_changed_control_root_never_redirects_original_capture ... ok
+test act_control::a15::tests::synthetic_retained_old_view_rechecks_live_freshness_before_capture ... ok
+test act_control::a15::tests::synthetic_multi_preserves_requested_entry_order_and_full_tuple_refs ... ok
+test act_control::a15::tests::synthetic_single_receipt_durable_library_record_once_and_cold_cannot_transfer ... ok
+test act_control::a15::tests::synthetic_failed_capture_publication_retains_original_pending_then_one_receipt ... ok
+test act_control::a15::tests::synthetic_capture_lock_failure_retains_original_event_for_once_only_hot_retry ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 222 filtered out; finished in 0.57s
+

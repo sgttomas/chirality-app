@@ -3,6 +3,7 @@
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { FileActPanel } from "./FileActPanel";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -34,6 +35,7 @@ function NativeRequestCard({ request, answer }: { request: Json; answer: (r: Jso
   }
   return <article style={{ borderTop: "1px solid #ccc", padding: 8 }}>
     <h3>{method} · {JSON.stringify(request.requestIdentity)}</h3>
+    <a href="#file-acts">Open standing App-file act facility (no request answer or prefilled act)</a>
     <p>State: {request.state} · reply: {request.replyWriteResult} · acknowledgment: {request.acknowledgmentObservation?.status ?? "not-observed"}</p>
     {request.supplierResolution && <p>Supplier resolution: {JSON.stringify(request.supplierResolution)}</p>}
     {request.settlement && <p>Settlement origin: {JSON.stringify(request.settlement.origin)} · {request.settlement.kind}</p>}
@@ -265,7 +267,7 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
   const [message,setMessage]=useState("");
   const action=async(command:string,args:Record<string,unknown>)=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));}catch(e){setMessage(String(e));}finally{setBusy(false);}};
   const entries:Json[]=data?.reviews??[];
-  return <section><h2>Workflow selection and native registration</h2>
+  return <section><h2>Workflow selection and native registration</h2><a href="#file-acts">Review a workspace draft file for a separate standing act</a>
     <p>Development content, native registration, supplied text, model adoption and run standing remain separate observations.</p>
     <button disabled={busy} onClick={()=>action("workflow_select_development",{})}>Select exact development workflow holding copy…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"project"})}>Open project workflow library…</button>
@@ -509,6 +511,7 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
+      <FileActPanel command={(name,args)=>invoke(name,args)} />
 
       <WorkflowRootPanel data={host?.workflowRoot} host={host} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
       <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{...host?.homeResources,namespaceProtection:host?.nativeNamespaces,keyAdmission:host?.keyNamespaceAdmission}} generation={host?.generation} act={async (command,args) => { await invoke(command,args); await refresh(); }} />
@@ -582,6 +585,7 @@ export function App() {
             setMessage(`Native answer: ${JSON.stringify(result)}`);
           } finally { await refresh(); }
         }} />)}
+        <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
         <details><summary>Native plans, tools, goals, turns and descendants</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
         <details><summary>Raw native envelopes (including unknown fields)</summary><pre>{JSON.stringify(host?.journal, null, 2)}</pre></details>
       </section>

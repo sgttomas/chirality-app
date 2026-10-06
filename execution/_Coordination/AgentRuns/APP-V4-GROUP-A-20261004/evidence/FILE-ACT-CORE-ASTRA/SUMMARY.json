@@ -1,0 +1,197 @@
+{
+  "standing": "private exact-source verification, no integration/native witness",
+  "source_manifest_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+  "regular_sources_unchanged": 250,
+  "source_repairs": [],
+  "runs": {
+    "lib-compile": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "--no-run"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 7.374361038208008,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "6ef792f7cdc9ace9a6ea0660b3d618e8294483fb9afe7cb968f8ae1b7297503b"
+    },
+    "file-act-focused": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "act_control::file_act::tests::",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 1.8629508018493652,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "57c82dc042b70c29ad2d509c633a396ec5c442b432c21b3def06dfd33cfb0c89"
+    },
+    "a15-regression": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "act_control::a15::tests::",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.5727109909057617,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "ad9744ac3f1fef83f1e4be0756bf6c95885d20ac555fc514e908b31874156f2e"
+    },
+    "a16-persistence": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "act_control::persistence_tests::",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.9323868751525879,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "063318f6273104c478dcef2ff1aae8a9167fcfa56575bd3cb733251da160b397"
+    },
+    "records-regression": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "records::tests::",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.18268799781799316,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "6a6ac859bfe9aa551ead1dd7006d05af38253232afa7d7d7c3223f8e566cbe2e"
+    },
+    "storage-regression": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/lib-test",
+        "storage::tests::",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.04993629455566406,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "e8d46ca05c5b76cd643ea2be9ace42fcfb6c478fadece11dab4fd1e91b12f971"
+    },
+    "integration-compile": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--test",
+        "act_storage",
+        "--test",
+        "decide_flow",
+        "--no-run"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 9.66934609413147,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "48e75406a0c1dd778b5f969bc216b6fa3c499ce8602e49d7c44bd58c24161a42"
+    },
+    "act-storage-test": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/act-storage-test",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 2.969142198562622,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "3c452d307f402673d7ed6c399eb1762e1142095f6b9594ce6d1d25381a6433d0"
+    },
+    "decide-flow-test": {
+      "command": [
+        "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/decide-flow-test",
+        "--nocapture"
+      ],
+      "cwd": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.7841222286224365,
+      "source_sha256": "7a9872852fa256555991c97708391c92f46fd5b28b20579f9e4bca58cf9bc890",
+      "log_sha256": "e43044498807d5889f07dde473dd545783cfa7be4c75640dc39efc056ca8687f"
+    }
+  },
+  "distinct_top_level_tests_passed": 55,
+  "failed_tests": 0,
+  "fifo_subprocesses": {
+    "cases": 4,
+    "each_selected_tests": 1,
+    "each_passed": 1,
+    "worker_ignored_in_top_level": true
+  },
+  "ordinary_api_privacy": {
+    "rlib_sha256": "83c527415a4bfac36b24a68d36e184ae1ddbdcd0c2f57ad5adf0a21b6f2e654f",
+    "rlib_bytes": 141661176,
+    "results": [
+      {
+        "label": "privacy-positive",
+        "command": [
+          "rustc",
+          "--edition",
+          "2021",
+          "--crate-name",
+          "privacy_positive",
+          "--emit=metadata",
+          "--extern",
+          "chirality_app_v4_lib=/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/libchirality_app_v4_lib.rlib",
+          "-L",
+          "dependency=/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps",
+          "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/privacy-positive.rs",
+          "-o",
+          "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/privacy-positive.rmeta"
+        ],
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "label": "privacy-negative",
+        "command": [
+          "rustc",
+          "--edition",
+          "2021",
+          "--crate-name",
+          "privacy_negative",
+          "--emit=metadata",
+          "--extern",
+          "chirality_app_v4_lib=/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/libchirality_app_v4_lib.rlib",
+          "-L",
+          "dependency=/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps",
+          "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/privacy-negative.rs",
+          "-o",
+          "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/privacy-negative.rmeta"
+        ],
+        "exit_code": 1,
+        "log_sha256": "e1c65b1b081dbfc3eaca3a3d75c13803d6da7b7e5ea6a73f01e47dcf450ef55e"
+      }
+    ],
+    "standing": "external ordinary-build API positive compiles; three private imports denied as expected; no runtime executed"
+  },
+  "binaries": {
+    "lib-test": {
+      "sha256": "e9ba4d250333fcc80e44745164c2955027bcd0b3a3b8f99ff1529335425c8c1a",
+      "bytes": 35069032
+    },
+    "act-storage-test": {
+      "sha256": "6ee36555248080a75257581384f7b12d70a29a53219aaacf55617cada60dd27d",
+      "bytes": 18015040
+    },
+    "decide-flow-test": {
+      "sha256": "26bebf79fdaf62dc162a4cd9b3e1908c708a842c7cc3fd1d059e5e1f7f367c47",
+      "bytes": 17703392
+    },
+    "libchirality_app_v4_lib.rlib": {
+      "sha256": "83c527415a4bfac36b24a68d36e184ae1ddbdcd0c2f57ad5adf0a21b6f2e654f",
+      "bytes": 141661176
+    }
+  },
+  "resources": "all sessions completed; no process or Cargo lane held"
+}

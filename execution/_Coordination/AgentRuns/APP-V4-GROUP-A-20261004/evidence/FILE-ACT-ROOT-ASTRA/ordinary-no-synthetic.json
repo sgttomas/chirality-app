@@ -1,0 +1,20 @@
+{
+  "command": [
+    "rustc",
+    "--edition",
+    "2021",
+    "--crate-name",
+    "ordinary_no_synthetic",
+    "--emit=metadata",
+    "--extern",
+    "chirality_app_v4_lib=/private/tmp/chirality-file-act-root-in82xerc/validation/libchirality_app_v4_lib.rlib",
+    "-L",
+    "dependency=/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps",
+    "/private/tmp/chirality-file-act-root-in82xerc/validation/ordinary-no-synthetic.rs",
+    "-o",
+    "/private/tmp/chirality-file-act-root-in82xerc/validation/ordinary-no-synthetic.rmeta"
+  ],
+  "exit": 1,
+  "expected": 1,
+  "rlib": "49264e340a1c880d2a46ee66435a4311596a143d320e416e9ee5fd33f17d1cd6"
+}

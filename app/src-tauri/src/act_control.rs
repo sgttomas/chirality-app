@@ -19,6 +19,10 @@
 //! and HA-11; act class from DEL-04-01 ACT_AND_POLICY_CONTRACT.md §2.1 (A16,
 //! "person's act (V4-PM-04)").
 
+#[path = "act_control_file.rs"]
+mod file_act;
+pub(crate) use file_act::{FileActKind, FileActOfferRef, confirm_file_native};
+
 #[path = "act_control_a15.rs"]
 mod a15;
 pub(crate) use a15::{A15OfferRef, HotA15Receipt, HotA15Result};
@@ -102,6 +106,8 @@ pub struct ActControl {
     pub offers: HashMap<String, OfferSlot>,
     native_captures: HashMap<String, NativeCapture>,
     a15_offers: HashMap<String, a15::A15OfferSlot>,
+    file_offers: HashMap<String, file_act::FileActSlot>,
+    file_capture_roots: HashMap<String, PathBuf>,
 }
 
 /// Preserve the exact request bound when this offer was composed. Identical
@@ -159,6 +165,8 @@ impl ActControl {
             offers: HashMap::new(),
             native_captures: HashMap::new(),
             a15_offers: HashMap::new(),
+            file_offers: HashMap::new(),
+            file_capture_roots: HashMap::new(),
         }
     }
 
@@ -495,7 +503,9 @@ impl ActControl {
         for (_, id) in &ids {
             let native = self.native_captures.get_mut(id).unwrap();
             let original = native.capture.clone();
-            let result = if native.a15.as_ref().is_some_and(|a|!a.belongs_to(&self.workspace)) {
+            let result = if self.file_capture_roots.get(id).is_some_and(|root| root != &self.workspace) {
+                json!({"state":"AC-8 record pending","capture":original,"writeFailure":"File act original workspace changed; no write or relocation"})
+            } else if native.a15.as_ref().is_some_and(|a|!a.belongs_to(&self.workspace)) {
                 json!({"state":"AC-8 record pending","capture":original,"writeFailure":"A15 original library custody changed; no write or relocation"})
             } else if earlier_held && !native.written {
                 let error="older trusted native submission remains pending; captured facts retained in writer admission order";
@@ -526,6 +536,9 @@ impl ActControl {
                 } else {
                     OfferState::RecordPending
                 };
+            }
+            if let Some(slot) = original["offerId"].as_str().and_then(|id| self.file_offers.get_mut(id)) {
+                slot.set_recording_state(result["state"] == "AC-7 recorded");
             }
             results.push(result);
         }
@@ -635,7 +648,8 @@ impl ActControl {
     }
 }
 
-fn act_body(capture: &Value) -> Value {
+pub(crate) fn act_body(capture: &Value) -> Value {
+    if matches!(capture["actKind"].as_str(),Some("A4"|"A6"|"A7")) { return file_act::body(capture); }
     if capture["actKind"] == "A15" { return a15::a15_body(capture); }
     json!({
         "actKind":"A16", "actClass":{"value":"person's act (V4-PM-04)"},
@@ -716,7 +730,7 @@ fn recover_capture(
     let matches: Vec<_> = entries
         .iter()
         .filter(|e| {
-            e["kind"] == "human_act"
+            matches!(e["kind"].as_str(),Some("human_act" | "act_declined"))
                 && e["body"]["captureEvidence"]
                     .as_array()
                     .is_some_and(|refs| refs.iter().any(|r| r["ref"] == id))
@@ -730,7 +744,7 @@ fn recover_capture(
     if matches.len() > 1
         || matches
             .first()
-            .is_some_and(|e| e["body"] != body || expected.is_some_and(|rid| e["recordId"] != rid))
+            .is_some_and(|e| e["kind"] != records::capture_record_kind(original).unwrap_or("invalid") || e["body"] != body || expected.is_some_and(|rid| e["recordId"] != rid))
     {
         return Err("capture/record disagreement or duplicate; no replay".into());
     }

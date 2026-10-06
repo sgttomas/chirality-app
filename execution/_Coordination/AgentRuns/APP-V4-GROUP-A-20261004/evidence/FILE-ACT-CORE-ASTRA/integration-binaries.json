@@ -1,0 +1,12 @@
+[
+  {
+    "path": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/act-storage-test",
+    "sha256": "6ee36555248080a75257581384f7b12d70a29a53219aaacf55617cada60dd27d",
+    "bytes": 18015040
+  },
+  {
+    "path": "/private/tmp/chirality-file-act-core-r1-qjq4v6uf/validation/decide-flow-test",
+    "sha256": "26bebf79fdaf62dc162a4cd9b3e1908c708a842c7cc3fd1d059e5e1f7f367c47",
+    "bytes": 17703392
+  }
+]

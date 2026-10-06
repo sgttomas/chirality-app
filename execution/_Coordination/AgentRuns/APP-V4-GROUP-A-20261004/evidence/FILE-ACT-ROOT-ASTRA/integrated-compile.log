@@ -1,0 +1,308 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/private/tmp/chirality-file-act-root-in82xerc/app/src-tauri)
+warning: fields `original_capture`, `durable_record`, and `original_offer` are never read
+   --> src/act_control_a15.rs:212:5
+    |
+211 | struct A15NativeWitness {
+    |        ---------------- fields in this struct
+212 |     original_capture: Value,
+    |     ^^^^^^^^^^^^^^^^
+213 |     durable_record: Value,
+    |     ^^^^^^^^^^^^^^
+214 |     original_offer: Value,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `witness` is never read
+   --> src/act_control_a15.rs:221:5
+    |
+217 | pub(crate) struct HotA15Receipt {
+    |                   ------------- field in this struct
+...
+221 |     witness: std::sync::Arc<A15NativeWitness>,
+    |     ^^^^^^^
+
+warning: field `source` is never read
+   --> src/hosting.rs:224:5
+    |
+223 | pub(crate) struct PreparedNativeTurnStart<'a> {
+    |                   ----------------------- field in this struct
+224 |     source:&'a SourceRequest,
+    |     ^^^^^^
+
+warning: method `source` is never used
+   --> src/hosting.rs:230:19
+    |
+229 | impl PreparedNativeTurnStart<'_> {
+    | -------------------------------- method in this implementation
+230 |     pub(crate) fn source(&self)->&SourceRequest {self.source}
+    |                   ^^^^^^
+
+warning: methods `source_request_id` and `source_request_ref` are never used
+   --> src/hosting.rs:247:19
+    |
+244 | impl AcceptedNativeItemPage<'_> {
+    | ------------------------------- methods in this implementation
+...
+247 |     pub(crate) fn source_request_id(&self)->&Value {self.source.dispatch.source.request_id()}
+    |                   ^^^^^^^^^^^^^^^^^
+248 |     pub(crate) fn source_request_ref(&self)->&str {self.source.dispatch.source.request_ref()}
+    |                   ^^^^^^^^^^^^^^^^^^
+
+warning: method `query` is never used
+   --> src/hosting.rs:272:19
+    |
+271 | impl NativeItemCoverageSeal {
+    | --------------------------- method in this implementation
+272 |     pub(crate) fn query(&self)->&HistoryQuery {self.check.last_query()}
+    |                   ^^^^^
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1134:19
+     |
+ 391 | impl Host {
+     | --------- method in this implementation
+...
+1134 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: field `draft_key` is never read
+   --> src/workflow_workspace.rs:231:9
+    |
+227 | pub struct Review {
+    |            ------ field in this struct
+...
+231 |     pub draft_key: String,
+    |         ^^^^^^^^^
+    |
+    = note: `Review` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `is_current` is never used
+   --> src/workflow_workspace.rs:315:12
+    |
+235 | impl Review {
+    | ----------- method in this implementation
+...
+315 |     pub fn is_current(&self, live: &Snapshot, latest: Option<&WorkflowIdentity>) -> bool {
+    |            ^^^^^^^^^^
+
+warning: struct `RegistrationAdapterClaim` is never constructed
+   --> src/workflow_workspace.rs:325:12
+    |
+325 | pub struct RegistrationAdapterClaim {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RegistrationClaimMatch` is never constructed
+   --> src/workflow_workspace.rs:333:12
+    |
+333 | pub struct RegistrationClaimMatch {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `compare`, `identity`, `snapshot`, `claimed_act_ref`, `selection_eligible`, and `evidence` are never used
+   --> src/workflow_workspace.rs:339:12
+    |
+338 | impl RegistrationClaimMatch {
+    | --------------------------- associated items in this implementation
+339 |     pub fn compare(
+    |            ^^^^^^^
+...
+367 |     pub fn identity(&self) -> &WorkflowIdentity {
+    |            ^^^^^^^^
+...
+370 |     pub fn snapshot(&self) -> &Snapshot {
+    |            ^^^^^^^^
+...
+373 |     pub fn claimed_act_ref(&self) -> &str {
+    |            ^^^^^^^^^^^^^^^
+...
+376 |     pub fn selection_eligible(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+379 |     pub fn evidence(&self) -> serde_json::Value {
+    |            ^^^^^^^^
+
+warning: method `run_turn_params` is never used
+   --> src/workflow_workspace.rs:512:12
+    |
+433 | impl Selection {
+    | -------------- method in this implementation
+...
+512 |     pub fn run_turn_params(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `collisions` is never used
+   --> src/workflow_workspace.rs:532:8
+    |
+532 | pub fn collisions<'a>(name: &str, entries: &'a [WorkflowIdentity]) -> Vec<&'a WorkflowIdentity> {
+    |        ^^^^^^^^^^
+
+warning: variants `ByPerson`, `Completed`, and `ToStart` are never constructed
+   --> src/workflow_workspace.rs:705:5
+    |
+704 | pub enum RunEndReason {
+    |          ------------ variants in this enum
+705 |     ByPerson,
+    |     ^^^^^^^^
+706 |     Completed,
+    |     ^^^^^^^^^
+707 |     ToStart(String),
+    |     ^^^^^^^
+    |
+    = note: `RunEndReason` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: fields `admission` and `workflow` are never read
+   --> src/workflow_workspace.rs:731:5
+    |
+730 | pub struct PreparedRunText {
+    |            --------------- fields in this struct
+731 |     admission: SelectionAdmission,
+    |     ^^^^^^^^^
+732 |     scope: RunScope,
+733 |     workflow: WorkflowIdentity,
+    |     ^^^^^^^^
+    |
+    = note: `PreparedRunText` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: methods `admission`, `end_notice`, `selected_body`, and `compare_observed_text` are never used
+   --> src/workflow_workspace.rs:848:12
+    |
+762 | impl PreparedRunText {
+    | -------------------- methods in this implementation
+...
+848 |     pub fn admission(&self) -> &SelectionAdmission {
+    |            ^^^^^^^^^
+...
+871 |     pub fn end_notice(&self, end: &OwnerRunEnd) -> Result<(String, serde_json::Value), String> {
+    |            ^^^^^^^^^^
+...
+896 |     fn selected_body<'a>(&self, observed: &'a str) -> Option<&'a str> {
+    |        ^^^^^^^^^^^^^
+...
+927 |     pub fn compare_observed_text(
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `TextComparison` is never constructed
+   --> src/workflow_workspace.rs:962:12
+    |
+962 | pub struct TextComparison {
+    |            ^^^^^^^^^^^^^^
+
+warning: methods `standing` and `select_embedded` are never used
+  --> src/workflow_catalog.rs:55:12
+   |
+24 | impl DevelopmentCatalog {
+   | ----------------------- methods in this implementation
+...
+55 |     pub fn standing(&self) -> &'static str {
+   |            ^^^^^^^^
+...
+60 |     pub fn select_embedded(&self) -> Selection {
+   |            ^^^^^^^^^^^^^^^
+
+warning: methods `package_path` and `standing` are never used
+   --> src/workflow_catalog.rs:98:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- methods in this implementation
+...
+ 98 |     pub fn package_path(&self) -> &Path {
+    |            ^^^^^^^^^^^^
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:458:19
+    |
+458 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+458 -     RepairPending(String),
+458 +     RepairPending(()),
+    |
+
+warning: enum `Outcome` is never used
+ --> src/execution_compatibility.rs:8:10
+  |
+8 | pub enum Outcome {
+  |          ^^^^^^^
+
+warning: struct `Operation` is never constructed
+  --> src/execution_compatibility.rs:18:12
+   |
+18 | pub struct Operation {
+   |            ^^^^^^^^^
+
+warning: struct `Environment` is never constructed
+  --> src/execution_compatibility.rs:24:12
+   |
+24 | pub struct Environment {
+   |            ^^^^^^^^^^^
+
+warning: struct `ToolResult` is never constructed
+  --> src/execution_compatibility.rs:31:12
+   |
+31 | pub struct ToolResult {
+   |            ^^^^^^^^^^
+
+warning: enum `Check` is never used
+  --> src/execution_compatibility.rs:39:10
+   |
+39 | pub enum Check {
+   |          ^^^^^
+
+warning: struct `Compatibility` is never constructed
+  --> src/execution_compatibility.rs:45:12
+   |
+45 | pub struct Compatibility {
+   |            ^^^^^^^^^^^^^
+
+warning: associated functions `check_for_role` and `check` are never used
+   --> src/execution_compatibility.rs:52:12
+    |
+ 51 | impl Compatibility {
+    | ------------------ associated functions in this implementation
+ 52 |     pub fn check_for_role(
+    |            ^^^^^^^^^^^^^^
+...
+108 |     pub fn check(declaration: &Declaration, env: &Environment) -> Self {
+    |            ^^^^^
+
+warning: function `host_presence` is never used
+   --> src/execution_compatibility.rs:172:4
+    |
+172 | fn host_presence(v: &Value, e: &Environment) -> (Outcome, String) {
+    |    ^^^^^^^^^^^^^
+
+warning: function `harness_presence` is never used
+   --> src/execution_compatibility.rs:220:4
+    |
+220 | fn harness_presence(name: &str, e: &Environment) -> (Outcome, String) {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (lib) generated 31 warnings
+warning: function `evidence_output` is never used
+  --> tests/common/mod.rs:52:8
+   |
+52 | pub fn evidence_output() -> PathBuf {
+   |        ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `chirality-app-v4` (test "act_storage") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.66s
+  Executable tests/act_storage.rs (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps/act_storage-34adf9b64c5ece6b)
+  Executable tests/decide_flow.rs (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps/decide_flow-3397c4cc2cd15fd5)

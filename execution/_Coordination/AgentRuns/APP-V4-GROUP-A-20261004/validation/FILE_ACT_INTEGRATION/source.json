@@ -1,0 +1,14 @@
+{
+  "src-tauri/src/act_control.rs": "a1792a95bd45506d98cc4b356a307a239e672d59ba86957686483f742052d696",
+  "src-tauri/src/act_control_file.rs": "8873a813fbf6f10c7e1855c67c30a8e521efd76b741d80cbdc31702f0ac2a804",
+  "src-tauri/src/file_act_native.rs": "0f13bb5c2a8aaa396a2622226edfe69ebc8204b7e22d445e340f5b010f854aa1",
+  "src-tauri/src/file_act_tests.rs": "75e6076fecfefc3c6a99735aae34d1a75baeb572366457cd06a4ea61442b90b5",
+  "src-tauri/src/records.rs": "ea498b90be82391446c97a9708b86fecab45d266eb3487f674c6803fde4284ea",
+  "src-tauri/src/storage.rs": "39cd09a746e7cde8730b9956d748bbabfe39c6b67dbafe44b992e254d1634e93",
+  "src-tauri/src/file_act_root.rs": "33afb4b1b00324d29f2382515ae9fed0ae02312ab0ad77287ee3bc55ced8e507",
+  "src-tauri/src/file_act_view.rs": "b3c0fda673079b4644fecf7d79b16922e706523215b9c56bc4354450dea07170",
+  "src-tauri/src/file_act_consumer_tests.rs": "07a1bf70e07aaf7d7e28fbc1ce528d6ccbc1885f51e87590ea100e50bfdb29db",
+  "src-tauri/src/lib.rs": "aca501453e1897245fb3b53b37e7d28e5e330983594771c3d7816e935d7980cf",
+  "src/App.tsx": "e542116a6270783432e0d9724b4c6676888ca0c244492ab9140a360ac8b6a4cb",
+  "src/FileActPanel.tsx": "d3e9faa7c55c84ece5ca4da4f17ff45e44e69ea5a369cf0d23c9fbe02308d043"
+}

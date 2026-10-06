@@ -211,11 +211,23 @@ pub(crate) fn note_capture_submission_failure(
     pending["writeFailure"] = json!(error);
     persist_capture_submission(root, pending)
 }
+/// Kind is derived from the original schema-validated capture, never a caller label.
+pub(crate) fn capture_record_kind(capture: &Value) -> Result<&'static str, String> {
+    crate::schema_validation::validate_capture(capture)?;
+    match capture["choice"].as_str() {
+        Some("act") => Ok("human_act"),
+        Some("decline") if matches!(capture["actKind"].as_str(), Some("A4" | "A6" | "A7")) => Ok("act_declined"),
+        _ => Err("Unsupported capture choice/kind".into()),
+    }
+}
 pub(crate) fn append_capture_submission(
     root: &Path,
     pending: &Value,
     body: Value,
 ) -> Result<Value, String> {
+    if body != crate::act_control::act_body(&pending["capture"]) {
+        return Err("Record body differs from original capture projection".into());
+    }
     let log = pending["log"].as_str().ok_or("pending log absent")?;
     let rid = pending["recordId"]
         .as_str()
@@ -225,7 +237,7 @@ pub(crate) fn append_capture_submission(
         .ok_or("pending original observedAt absent")?;
     append_reserved(
         &root.join(log),
-        "human_act",
+        capture_record_kind(&pending["capture"])?,
         &APP_INTERFACE,
         body,
         rid.into(),

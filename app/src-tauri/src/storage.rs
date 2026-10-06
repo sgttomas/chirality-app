@@ -133,10 +133,11 @@ pub fn sync_publication(path: &Path) -> Result<(), String> {
     }
     Ok(())
 }
-fn publish_json(
+fn publish_json_observed(
     path: &Path,
     value: &Value,
     replace: bool,
+    attempted_publication: &mut bool,
     write: impl FnOnce(&mut File, &[u8]) -> Result<(), String>,
 ) -> Result<(), String> {
     check_path(path)?;
@@ -158,6 +159,8 @@ fn publish_json(
         write(&mut file, &bytes)?;
         file.sync_all()
             .map_err(|e| format!("temporary evidence sync: {e}"))?;
+        // A syscall attempted publication: its failure is conservatively uncertain.
+        *attempted_publication = true;
         // hard_link publishes complete bytes atomically with create-new semantics.
         if replace {
             std::fs::rename(&temp, path).map_err(|e| format!("annotation publication: {e}"))?;
@@ -173,6 +176,32 @@ fn publish_json(
         let _ = sync_dir(parent);
     }
     result
+}
+fn publish_json(
+    path: &Path,
+    value: &Value,
+    replace: bool,
+    write: impl FnOnce(&mut File, &[u8]) -> Result<(), String>,
+) -> Result<(), String> {
+    publish_json_observed(path, value, replace, &mut false, write)
+}
+/// Capture-specific stage evidence; not an origin/admission proof.
+pub(crate) enum CapturePublicationFailure {
+    DefinitelyNotPublished(String),
+    PublicationUncertain(String),
+}
+#[cfg(test)]
+thread_local! { static FAIL_CAPTURE_WRITE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+#[cfg(test)]
+pub(crate) fn fail_capture_write_for_test(fail: bool) { FAIL_CAPTURE_WRITE.with(|v|v.set(fail)); }
+pub(crate) fn create_capture_json(path: &Path, value: &Value) -> Result<(), CapturePublicationFailure> {
+    let mut attempted = false;
+    let result = publish_json_observed(path, value, false, &mut attempted, |file, bytes| {
+        #[cfg(test)]
+        if FAIL_CAPTURE_WRITE.with(|v|v.get()) { return Err("temporary evidence write: injected prepublication failure".into()); }
+        file.write_all(bytes).map_err(|e|format!("temporary evidence write: {e}"))
+    });
+    result.map_err(|error| if attempted { CapturePublicationFailure::PublicationUncertain(error) } else { CapturePublicationFailure::DefinitelyNotPublished(error) })
 }
 pub fn create_json(path: &Path, value: &Value) -> Result<(), String> {
     publish_json(path, value, false, |file, bytes| {

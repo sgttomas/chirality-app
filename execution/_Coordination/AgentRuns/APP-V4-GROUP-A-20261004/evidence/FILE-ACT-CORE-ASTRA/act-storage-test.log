@@ -1,0 +1,29 @@
+
+running 24 tests
+test capture_store_failure_is_visible_without_record_or_relocation ... ok
+test fabricated_cold_capture_and_pending_files_never_create_native_act ... ok
+test cold_capture_without_writer_submission_is_held_without_mint_or_reissue ... ok
+test frozen_native_choice_cancel_and_script_refuse_without_capture ... ok
+test historical_request_observer_requires_registered_origin_and_exact_file_reference ... ok
+test crash_after_append_reconciles_backlink_once_without_duplicate ... ok
+test incomplete_registered_legacy_history_refuses_discovery_without_rewriting_or_reissuing ... ok
+test backlink_failure_stays_recorded_link_pending_then_recovers_without_append ... ok
+test legacy_and_library_history_remain_in_place_and_opaque ... ok
+test incomplete_foreign_log_blocks_recovery_and_backlink_even_after_local_append ... ok
+test legacy_request_discovery_never_coerces_unknown_methods_or_malformed_legacy_values ... ok
+test fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush ... ok
+test malformed_packages_duplicate_alternatives_and_digest_changes_refuse ... ok
+test duplicate_and_disagreeing_discovered_capture_records_never_replay ... ok
+test observed_buffer_hash_and_fields_agree_after_controlled_file_replacement ... ok
+test run_and_outside_run_logs_keep_identity_and_do_not_duplicate ... ok
+test unverified_cold_files_neither_grant_append_authority_nor_hold_unrelated_refresh ... ok
+test hot_pending_batch_keeps_native_event_order_before_delay_limits ... ok
+test refresh_flushes_pending_native_admission_before_new_recorder_input ... ok
+test rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id ... ok
+test older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_latest ... ok
+test scope_absence_and_requester_limit_are_source_faithful ... ok
+test concurrent_append_sequences_and_cross_log_ids_are_unique ... ok
+test writer_sequence_gaps_duplicates_and_reordering_hold_append_and_backlink ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.39s
+

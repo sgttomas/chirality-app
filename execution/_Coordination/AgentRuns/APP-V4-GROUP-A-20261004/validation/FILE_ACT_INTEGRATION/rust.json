@@ -1,0 +1,16 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "--lib",
+    "file_act",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri",
+  "exitCode": 0,
+  "seconds": 10.77,
+  "logSha256": "72a92452a5abb7937ccd65dcff168a552995b95cb7bf386e3ed654b6dc9c8acd"
+}
