@@ -38,5 +38,10 @@
     "resource": "workflow-declaration.invalid.example.json",
     "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/workflow-declaration.invalid.example.json",
     "sha256": "16cf6486474570430d63de4e01a80c6dbe76237c72228c86c5462d5bc1d229f2"
+  },
+  {
+    "resource": "workflow-record-envelope.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workflow-record-envelope.schema.json",
+    "sha256": "be51751cd1eb833630ef6a0763f26872cba9745d9ed8815184c037b4d83565c7"
   }
 ]

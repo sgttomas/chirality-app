@@ -1,0 +1,24 @@
+{
+  "baseline": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app",
+  "baselineManifestSha256": "f6c9019dd9846a122a109f715f7b77a4789ac6532b237fc4c715c318b180e93a",
+  "sourceManifestSha256": "5dc6e30bc4757ce5e3168af94b81c8325e0c3f570bbac90f73ff4dccd96a1e44",
+  "patchSha256": "96c1373cf42e0a9f6c28023b4382d10adebdbf86eb7ebcf7900dbfdfecd5e714",
+  "changed": {
+    "src-tauri/src/hosting.rs": "2e9273784e6acc96b3898ec5981dee0f00689757aadabe3c8d771933066021d8",
+    "src-tauri/src/lib.rs": "7718c9c0b312343e31a67635189b9f9ddab3c6dfd364f2fe15a5dc02ebdb9939",
+    "src-tauri/src/recovery_root_tests.rs": "cf80bf2629ebac12dd9255f10db0e2fd14ac39507626baee8de0d7f94a3723f6",
+    "src-tauri/src/recovery_root_view.rs": "5153a23003df25a2bb514b4f89153d08124d3e09c36c4c51c992c6913e482719",
+    "src/App.tsx": "af88bb05e53c17742dea47ef525d71826f934be466039858d53aad403ea3e70b",
+    "src/RecoveryCustodyPanel.tsx": "0e18949c9689d19ff84d04bd156874ff0ed854a727effbedd9b5f5efa4290557"
+  },
+  "unchangedOriginalFiles": 261,
+  "coreException": "hosting.rs unchanged reviewed prefix plus cfg(test) module inclusion only",
+  "checks": {
+    "RustParser": "passed; not type checked",
+    "TypeScriptNoEmit": "passed",
+    "Vite": "passed 32 modules 379ms",
+    "componentControls": "3 passed, synthetic scheduling/rendering",
+    "Cargo": "not run; lane not granted",
+    "RustTests": "4 source-connected tests written, unexecuted"
+  }
+}

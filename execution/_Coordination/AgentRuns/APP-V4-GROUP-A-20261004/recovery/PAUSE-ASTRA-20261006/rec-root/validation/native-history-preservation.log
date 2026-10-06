@@ -1,0 +1,86 @@
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2910:13
+     |
+2910 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1166:19
+     |
+ 394 | impl Host {
+     | --------- method in this implementation
+...
+1166 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: variant `ByPerson` is never constructed
+   --> src/workflow_workspace.rs:705:5
+    |
+704 | pub enum RunEndReason {
+    |          ------------ variant in this enum
+705 |     ByPerson,
+    |     ^^^^^^^^
+    |
+    = note: `RunEndReason` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:458:19
+    |
+458 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+458 -     RepairPending(String),
+458 +     RepairPending(()),
+    |
+
+warning: `chirality-app-v4` (lib test) generated 7 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running unittests src/lib.rs (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 7 tests
+test hosting::conversation_transport_tests::history_bridge_actual_rpc_receipt_before_wait_timeout_clone_and_late_correlation ... ok
+test hosting::conversation_transport_tests::history_bridge_continue_actual_receive_admit_once_and_text_control ... ok
+test hosting::conversation_transport_tests::history_bridge_failed_write_foreign_latest_revision_and_closed_refuse_admission ... ok
+test hosting::conversation_transport_tests::history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup ... ok
+test hosting::conversation_transport_tests::history_bridge_joined_session_consumes_genuine_history_and_frozen_role_start_receipts ... ok
+test hosting::conversation_transport_tests::history_bridge_notloaded_direct_false_malformed_and_native_error_keep_raw_no_activation ... ok
+test hosting::conversation_transport_tests::history_bridge_start_mixed_result_error_envelope_never_admits_and_preserves_raw ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 251 filtered out; finished in 1.50s
+

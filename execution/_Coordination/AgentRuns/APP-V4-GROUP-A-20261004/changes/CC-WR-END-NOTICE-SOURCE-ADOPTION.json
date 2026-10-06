@@ -1,0 +1,11 @@
+{
+  "owner": "/root/group_a_execution_astra",
+  "standing": "Technical owning-source clarification adopted after affected independent backcheck; code repairpending",
+  "basis": "CC-WR-RS-SOURCE-ADOPTION.json plus actualproducer endnotice missingworkflowfields",
+  "patchSha256": "ea56c20cdba35013a8a48689d4b4099c19781d8ed1749c27e0ed2367af49b5df",
+  "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md",
+  "sourceSha256": "094602acb5e1ba8b68bffc7475da8a80557749d134eddb60c8c4d4a676019656",
+  "review": "V6-WR-RS-PUBLICATION-SOURCE.md endnotice affectedpreservationbackcheck READY",
+  "scope": "explicit endnotice\u2192sameproject/run/conversation originalstart\u2192selection; limitedpurpose exception; expected_workflow method/value agreement retained whereapplicable; no endbodywidening or inventedtuple",
+  "pending": "publisher/resolver and historicalRS correspondence repaired actualproducer tests; liveRootcheck/publication stillunsupplied"
+}

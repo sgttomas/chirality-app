@@ -292,6 +292,9 @@ impl RecoveryLedger {
         use std::os::unix::fs::MetadataExt;binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;let fd=file.metadata().map_err(|e|e.to_string())?;let named=std::fs::symlink_metadata(path).map_err(|e|e.to_string())?;
         if !fd.is_file()||fd.nlink()!=1||!named.is_file()||named.nlink()!=1||fd.dev()!=named.dev()||fd.ino()!=named.ino(){return Err("REC owning regular leaf/descriptor association is redirected or hard-aliased".into());}Ok(())
     }
+    pub(crate) fn validate_pointer_entry(entry:&Value)->Result<(),String>{
+        validator()?.validate(entry).map_err(|e|format!("execution pointer schema refused: {e}"))
+    }
     pub fn append(&mut self, entry: Value) -> Result<(), String> {
         if let Some(binding)=&self.namespaces{self.preflight_namespaces(binding)?;}
         validator()?
@@ -943,5 +946,69 @@ mod reviewed_later_error_adoption_tests {
         ledger.request_summary(&genuine).unwrap();
         assert_eq!(rows(&ledger, 1), vec!["RQ-01", "RQ-03", "RQ-09"]);
         std::fs::remove_file(path).unwrap();
+    }
+}
+
+/// Read-only custody projection issued by the owning Host. There is deliberately
+/// no Deserialize/JSON constructor or conversion to a live source capability.
+#[derive(Clone, Debug)]
+pub struct RecoveryCustodyView { document: Value }
+impl RecoveryCustodyView {
+    pub fn snapshot(&self)->Value {self.document.clone()}
+    pub(crate) fn from_owner(session:&str,ledger:Option<&Value>,live:Value,pending:usize,error:Option<&str>)->Self {
+        let rows=ledger.and_then(|l|l["entries"].as_array()).cloned().unwrap_or_default();
+        let mut limits=Vec::<String>::new();
+        if ledger.is_none(){limits.push("App history unavailable; no cold execution custody established".into());}
+        if pending>0{limits.push("Captured pointer observations remain unpersisted; restart coverage is incomplete".into());}
+        if let Some(error)=error{limits.push(error.into());}
+        let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
+        let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);
+        let prior=current.and_then(|r|r["previousSession"].as_str());
+        let end=prior.and_then(|s|rows.iter().rev().find(|r|r["kind"]=="session_ended"&&r["session"]==s));
+        // Delayed old source appends cannot eclipse a later App session or a
+        // later generation of the same physical home. Equal-thread references
+        // in different home namespaces are never merged.
+        let mut latest=std::collections::BTreeMap::<(String,String,String),(usize,u64,usize,Value)>::new();
+        let mut metadata=std::collections::BTreeMap::<(String,String,String),(usize,usize,Value)>::new();
+        for (position,row) in rows.iter().enumerate().filter(|(_,r)|r["kind"]=="conversation_index") {
+            let Some(reference)=row["lastLoadedGeneration"].as_str() else{continue;};
+            let Ok(g)=generation_from_ref(reference) else{limits.push("Historical execution row lacks canonical full generation; retained in ledger, not joined".into());continue;};
+            let Some(rank)=starts.iter().find(|(_,s)|s["session"]==g["appSession"]).map(|(n,_)|*n) else{limits.push("Historical execution source session start unavailable; not joined".into());continue;};
+            let Some(append_rank)=starts.iter().find(|(_,s)|s["session"]==row["session"]).map(|(n,_)|*n) else{limits.push("Historical metadata append session start unavailable; not joined".into());continue;};
+            let (Some(home),Some(thread),Some(physical))=(row["home"].as_str(),row["threadId"].as_str(),g["home"].as_str()) else{continue;};
+            let key=(home.to_string(),physical.to_string(),thread.to_string());
+            if metadata.get(&key).is_none_or(|(a,b,_)|(append_rank,position)>(*a,*b)){metadata.insert(key.clone(),(append_rank,position,row.clone()));}
+            let order=(rank,g["spawnCounter"].as_u64().unwrap(),position);
+            if latest.get(&key).is_none_or(|(a,b,c,_)|order>(*a,*b,*c)) {latest.insert(key,(order.0,order.1,order.2,row.clone()));}
+        }
+        let mut historical=Vec::new();let mut events=Vec::new();
+        for (key,(_,_,_,row)) in latest {
+            let thread=&key.2;
+            let execution=&row["lastObservedExecution"];
+            let source=generation_from_ref(row["lastLoadedGeneration"].as_str().unwrap()).unwrap();
+            let is_prior=prior.is_some_and(|p|source["appSession"]==p);
+            let live_turn=execution["liveTurn"].as_str().filter(|s|!s.is_empty());
+            if is_prior&&matches!(execution["state"].as_str(),Some("turn-live"|"interrupt-pending"|"observation-lost")) {
+                if let Some(turn)=live_turn {
+                    // A clean session end does not prove a live turn survived to
+                    // quit. Only a captured app-quit loss supplies that reading.
+                    let prior_end=match end {
+                        None=>Some("ended-without-record"),
+                        Some(e) if e["how"]=="system-terminated"=>Some("system-terminated"),
+                        Some(_) if execution["lostCause"]=="app-quit"=>Some("quit-with-live-work"),
+                        _=>None,
+                    };
+                    if let (Some(prior_end),Some(current))=(prior_end,current) {
+                        events.push(json!({"kind":"app_restart_interruption","eventId":format!("cev:restart:{}:{}:{}",session,row["lastLoadedGeneration"].as_str().unwrap(),thread),"appSession":session,"at":current["at"],"standing":"App-observed","threadId":thread,"home":row["home"],"priorSession":source["appSession"],"priorSessionEnd":prior_end,"liveTurnsAtEnd":[{"threadId":thread,"turnId":turn}]}));
+                    } else {limits.push(format!("{thread}: prior loss/live observation retained; live work at clean App end is not established"));}
+                }
+            }
+            let associations=execution["openItems"].as_array().into_iter().flatten().map(|item| {
+                let turn=item["turnId"].as_str().filter(|s|!s.is_empty());
+                json!({"generation":source,"home":row["home"],"threadId":thread,"turnId":turn,"itemId":item["itemId"],"itemType":item["itemType"],"correlation":if turn.is_some(){"known persisted association"}else{"unknown; historical row supplies no per-item turn"},"fullTuple":turn.map(|turn|json!({"generation":source,"home":row["home"],"threadId":thread,"turnId":turn,"itemId":item["itemId"]})),"standing":"Historical App pointer; not current liveness, recovered native content or operation authority"})
+            }).collect::<Vec<_>>();
+            historical.push(json!({"index":row,"metadataIndex":metadata.get(&key).map(|(_,_,r)|r),"executionGeneration":source,"standing":"Last persisted App execution pointer observation; metadataIndex preserves latest append provenance separately; neither is current Codex state or live authority","openItemAssociations":associations,"openItemCorrelation":"Per-item known/unknown from persisted turnId only; never backfilled from liveTurn, selection, tags or native history.","nativeHistory":"read separately from Codex; not supplied by this projection"}));
+        }
+        Self{document:json!({"live":live,"restartEvents":events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
     }
 }

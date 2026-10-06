@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileActPanel } from "./FileActPanel";
+import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -555,6 +556,10 @@ export function App() {
         try { await invoke(command, args); } finally { setHost(await invoke("host_status")); }
       }} />
 
+      <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])}
+        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null}
+        nativeHistoryGeneration={host?.nativeHistory?.generation ?? null}
+        read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} />
       <HistoryPanel host={host} refresh={refresh} />
 
       <ConversationPanel host={host} send={async (generation, threadId, text) => {

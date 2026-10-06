@@ -1,0 +1,55 @@
+{
+  "cwd": "/private/tmp/rs-supply-current-tests/app/src-tauri",
+  "environment": {
+    "CARGO_HOME": "/tmp/chirality-app-v4-group-a-cargo-home",
+    "CARGO_TARGET_DIR": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target",
+    "CARGO_NET_OFFLINE": "true",
+    "CHIRALITY_SKIP_CODEX": "1"
+  },
+  "commands": [
+    {
+      "command": "cargo test --offline --locked --lib --no-run",
+      "exit": 0,
+      "log": "cargo-no-run.log"
+    },
+    {
+      "command": "/private/tmp/rs-supply-current-tests/frozen-current-tests --exact records::supply::tests::actual_end_notice_resolves_original_source_and_preserves_end_content --nocapture",
+      "exit": 0,
+      "passed": 1,
+      "log": "current-end-notice.log"
+    },
+    {
+      "command": "/private/tmp/rs-supply-current-tests/frozen-current-tests --exact records::supply::tests::actual_end_publisher_resolves_source_and_cold_reads --nocapture",
+      "exit": 0,
+      "passed": 1,
+      "log": "current-end-publisher.log"
+    }
+  ],
+  "sourceHashesBeforeAndAfter": {
+    "src-tauri/resources/policy_standing/a16/basis.json": "6ecaf8f9c01f0dd2b201ffb2c82804c272eb002d9c812985e6c3f7127270f3b5",
+    "src-tauri/resources/policy_standing/basis.json": "621ec4f33686e710f2098df804e0d752137932dc4d232b990fad5b3c07787267",
+    "src-tauri/schemas/RS_RECORD.schema.json": "84200fd0ad045c11ce82ca5531ea461388304c46c1ea49d30263de5d6fa0f72a",
+    "src-tauri/schemas/fixtures/native-supply.example.jsonl": "8a81934c24af7ad5eb93dd7cc2c7834c6182f4cf78aaadd2a3b042cc44564c55",
+    "src-tauri/schemas/fixtures/native-supply.invalid.json": "c7417a8005e4549c384b3735308b64f76e10c59118602cb43781d801ad3776a4",
+    "src-tauri/schemas/manifest.json": "1559ff71049ce484f5917c804d3ae9e2dde239e6032bb4f531a553ba5c804d0d",
+    "src-tauri/src/record_supply.rs": "85d11afed490bde994c9f139d69949055237edb4590afe7b23654283526ebcba",
+    "src-tauri/src/record_supply_tests.rs": "23e5349f1de27a375b82564898f910ebffc3efc299e4765917a0005ee607fc90",
+    "src-tauri/src/records.rs": "fb40cb2fb53fdb8ee6eb302cb6e22cf6978db52e946c3faa1b26e40965a92b19",
+    "src-tauri/src/workflow_workspace.rs": "f9233532b782398acf0de5a7a20fceed3cc82bb7f1fefb84016edc976865e189",
+    "src-tauri/src/workflow_record_store.rs": "d9ceb27df3b11fc123b2a219269d97c938ae8654062888ccc533b8f97f4e378e",
+    "src-tauri/src/workflow_record_store_tests.rs": "c945d7e61f85232ef550985e2ffb71587cb515e3fc5d3ff39275c7baab5315af",
+    "src-tauri/resources/workflow_role/workflow-record-envelope.schema.json": "be51751cd1eb833630ef6a0763f26872cba9745d9ed8815184c037b4d83565c7",
+    "src-tauri/resources/workflow_role/SOURCE_MAP.json": "1e4eb8c16869c36c9d5cbf6487e94f833643f8fbf057c9f4c1e66d7a324189ed"
+  },
+  "historicalModuleAbsent": true,
+  "executable": {
+    "path": "/private/tmp/rs-supply-current-tests/frozen-current-tests",
+    "sha256": "b89608d92752c44f55808d0c172b5fac3895372e67d86645cc437de2c3298bd6"
+  },
+  "logs": {
+    "cargo-no-run.log": "44ec1cda714f48b703da4d991d0c7f710406a3e96b5505c8d4fd1d9fbf936e50",
+    "current-end-notice.log": "1e1b0c428fd519fa88706bc269d82bc0650b48a2976d7b5c700456dc01020dd6",
+    "current-end-publisher.log": "c98f828a7e7c69464ec8d22979c8a1ead57b0e941927ee0ff8527c572c7d8b84"
+  },
+  "scope": "Only no-run compile + two affected current end-notice tests. Prior 70-test review retained for unchanged production; no full rerun or live-native proof."
+}

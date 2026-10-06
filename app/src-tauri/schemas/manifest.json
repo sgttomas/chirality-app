@@ -3,7 +3,7 @@
     {
       "file": "RS_RECORD.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.schema.json",
-      "sha256": "c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6",
+      "sha256": "84200fd0ad045c11ce82ca5531ea461388304c46c1ea49d30263de5d6fa0f72a",
       "id": "urn:chirality:app-v4:del-04-03:rs-record:0.1"
     },
     {

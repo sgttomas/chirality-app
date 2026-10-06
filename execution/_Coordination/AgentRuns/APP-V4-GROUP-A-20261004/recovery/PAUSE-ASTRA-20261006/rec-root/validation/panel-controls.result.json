@@ -1,0 +1,9 @@
+{
+  "passed": 3,
+  "controls": [
+    "render causes no read",
+    "foreign-home result refused",
+    "live/pending/persisted/legacy/native history labels retain provenance"
+  ],
+  "source": "/private/tmp/chirality-recovery-root-01hhku68/app/src/RecoveryCustodyPanel.tsx"
+}

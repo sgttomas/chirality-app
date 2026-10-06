@@ -1,0 +1,27 @@
+{
+  "standing": "Named technical source adoption for implementation under Parent release; not human gate acceptance or completed production",
+  "owner": "/root/group_a_execution_astra WORKING_ITEMS",
+  "branch": "codex/app-v4-group-a-record-publication",
+  "basisHead": "9c4efb124a137b4082dd7009b1d53e50fcff8831",
+  "authority": "Parent explicitly released reviewed WR/RS owning-source adoption after concrete source fit and independent review; no new human reservation found",
+  "sourceReview": "reviews/V6-WR-RS-PUBLICATION-SOURCE.md",
+  "patches": [
+    "changes/CC-WR-RECORD-PUBLICATION-ASTRA.patch",
+    "changes/proposed-rs-supply/RS-SUPPLY.patch"
+  ],
+  "applied": "git apply --check then bounded patches only; no Git commit",
+  "sourceSha256": {
+    "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md": "52d2207141e95d163c2ed8a5cfb6c160b9ced2a1faab61845c46132640088ba9",
+    "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workflow-record-envelope.schema.json": "be51751cd1eb833630ef6a0763f26872cba9745d9ed8815184c037b4d83565c7",
+    "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md": "324ccd5f64093725f1e5ebb525c9ca13888e4036077bf320c75fa39b2810f4f1",
+    "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.schema.json": "84200fd0ad045c11ce82ca5531ea461388304c46c1ea49d30263de5d6fa0f72a"
+  },
+  "pending": [
+    "bundled consumer/schema/source-map propagation",
+    "publisher/resolver and RS historical correspondence implementation review",
+    "genuine completed-check producer and before-send/RS publication Root join",
+    "affected downstream source notice",
+    "EXEC lifecycle separate"
+  ],
+  "limits": "No native transcript/generated-prompt store; no raw JSON/cold history to live authority; native UUID distinct from legacy ordinal; no unknown-project fallback"
+}

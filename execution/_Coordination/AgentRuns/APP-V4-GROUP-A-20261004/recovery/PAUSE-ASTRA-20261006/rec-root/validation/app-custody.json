@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "--lib",
+    "app_custody",
+    "--",
+    "--test-threads=1"
+  ],
+  "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+  "exit_code": 0,
+  "seconds": 1.2594759464263916,
+  "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+  "log_sha256": "8271a17bedafda5ec9c5b74f1a3b1489691df32039cc31a0c2ca6b2027f48f2a"
+}

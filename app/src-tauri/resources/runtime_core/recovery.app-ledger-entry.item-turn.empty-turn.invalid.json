@@ -1,0 +1,27 @@
+{
+  "kind": "conversation_index",
+  "session": "sess-1",
+  "at": "2026-10-05T00:00:00Z",
+  "threadId": "thread-A",
+  "home": "H-acct",
+  "project": "project-P",
+  "tags": [],
+  "lastLoadedGeneration": "gen:v1:s:736573732d31:h:482d61636374:n:1",
+  "lastObservedExecution": {
+    "state": "observation-lost",
+    "at": "2026-10-05T00:00:00Z",
+    "lostCause": "supplier-exit",
+    "openItems": [
+      {
+        "turnId": "",
+        "itemId": "same-item",
+        "itemType": "mcpToolCall"
+      },
+      {
+        "turnId": "turn-B",
+        "itemId": "same-item",
+        "itemType": "mcpToolCall"
+      }
+    ]
+  }
+}

@@ -27,6 +27,7 @@ pub mod receiving;
 pub mod recorder;
 pub mod records;
 pub mod recovery;
+mod recovery_root_view;
 pub mod role_supply;
 pub mod runtime_session;
 pub(crate) mod workflow_declaration;
@@ -98,6 +99,20 @@ pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, S
         .map(|v| v == "1")
         .unwrap_or(false);
     Ok(cfg)
+}
+
+/// Person-requested metadata read. No Root guard spans Host/queue observation,
+/// no ledger flush, and no supplier/native History operation is requested.
+#[tauri::command(async)]
+fn read_recovery_custody(state: State<'_, AppState>, mode_home_class: String, generation: Value) -> Result<Value,String> {
+    read_recovery_custody_from_root(&state.homes, &mode_home_class, &generation)
+}
+fn read_recovery_custody_from_root(homes:&Mutex<runtime_session::HomeRouter>,mode_home_class:&str,generation:&Value)->Result<Value,String>{
+    let home=homes.try_lock().map_err(|_|"Home selection busy; recovery read not performed")?.active();
+    let view=recovery_root_view::read(&home,mode_home_class,generation)?;
+    let active=homes.try_lock().map_err(|_|"Home selection busy after read; refresh recovery source")?.active();
+    if !Arc::ptr_eq(&home,&active){return Err("Active recovery home changed while reading; original snapshot not reassigned".into());}
+    Ok(view)
 }
 
 #[tauri::command]
@@ -937,6 +952,7 @@ pub fn run() {
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
             file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read,
+            read_recovery_custody,
             host_status,
             select_home,
             read_home_access,

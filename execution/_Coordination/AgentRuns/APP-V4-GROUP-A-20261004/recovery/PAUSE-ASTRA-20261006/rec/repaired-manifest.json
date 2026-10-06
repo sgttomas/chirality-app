@@ -1,0 +1,127 @@
+{
+  "standing": "private repaired code checked; independent backcheck and RC1 schema-fit disposition pending",
+  "files": {
+    "src-tauri/src/hosting.rs": "45bd26eb798db9df04a639213de7702bedad4ef89c962d521b146ab92cc2406f",
+    "src-tauri/src/recovery.rs": "47b271401eccc1775ee3137c0b9d4faa31e163356d1ff63d49713b1825842c6f",
+    "src-tauri/src/execution_custody.rs": "457b46849f2bd6aa21c10252799f5998e8936b2a710fca0775dc9a70aaf275fa",
+    "src-tauri/src/execution_custody_tests.rs": "52f2cd75128143393d71f2336ba8d1fd78c1df308ec2e5f31464baf2b4a1e855",
+    "src-tauri/resources/runtime_core/recovery.custody-event.schema.json": "033398508abc813e90aee0a074a18cb91bd59be88b6991111504ae5662653773"
+  },
+  "patch_sha256": "2cdc85c9a64697ae0819807a32e66aa0ebba3a1a53caa35988a3fe5e0fe8b885",
+  "test_binary": {
+    "path": "/tmp/chirality-rec-custody-astra.bo0pfG/checked-lib-tests",
+    "sha256": "96f0ce63c28ffdb3c8daa3a1f0c64ff07c2ae88cc9535a60f969d71310223c50"
+  },
+  "commands": {
+    "cargo_prefix": "CARGO_HOME=/tmp/chirality-app-v4-group-a-cargo-home CARGO_TARGET_DIR=/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target CHIRALITY_SKIP_CODEX=1 cargo test --offline --locked --manifest-path /tmp/chirality-rec-custody-astra.bo0pfG/app/src-tauri/Cargo.toml --lib",
+    "runs": [
+      {
+        "filter": "execution_custody_tests",
+        "log": "original-compile-controls.log",
+        "exit": 101
+      },
+      {
+        "filter": "recovery_custody_rc2",
+        "log": "original-rc2.log",
+        "exit": 101
+      },
+      {
+        "filter": "execution_custody_tests",
+        "log": "repair-controls.log",
+        "exit": 0
+      },
+      {
+        "filter": "recovery_custody_rc2",
+        "log": "repair-rc2.log",
+        "exit": 0
+      },
+      {
+        "filter": "execution_custody_tests",
+        "log": "expanded-controls.log",
+        "exit": 0
+      }
+    ]
+  },
+  "toolchain": {
+    "rustc": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+    "cargo": "cargo 1.92.0 (344c4567c 2025-10-21)"
+  },
+  "logs": {
+    "affected-native_items__.log": {
+      "sha256": "8d177d3d0325c931dd57452d3edc6adf59882ddebc8c7263c592dde1b89e7ab7",
+      "result": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 245 filtered out; finished in 0.01s"
+      ]
+    },
+    "affected-explicit_context.log": {
+      "sha256": "f718f58d718fff8ddc5dc367bb0c69dff8262df2511e4d436e89a7120b706793",
+      "result": [
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 247 filtered out; finished in 0.49s"
+      ]
+    },
+    "affected-exact_completed_then_started_repro.log": {
+      "sha256": "5b99555920f095e080f443cb0931cf397093692463dbc42f63d16261b5ad442d",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 249 filtered out; finished in 0.00s"
+      ]
+    },
+    "repair-rc2.log": {
+      "sha256": "f2889f4bfe9d77c88ef5aa58c18ae9074ba069b5199b1463dcf636fe6d94f22b",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 246 filtered out; finished in 0.12s"
+      ]
+    },
+    "affected-recovery_custody_rc2.log": {
+      "sha256": "be0fad0ac195b50e4259ede4ee76b4ed3e65bdb06d42e5a3e0485206310eb117",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 249 filtered out; finished in 0.14s"
+      ]
+    },
+    "affected-recovery__.log": {
+      "sha256": "a099e62a89ca05cf54003206b06a9a1f431f727ab8ab06854a92bb1f6125fcaf",
+      "result": [
+        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 240 filtered out; finished in 0.26s"
+      ]
+    },
+    "affected-app_custody.log": {
+      "sha256": "bc53599aee811ba645d94c297ce2d6112fa95ad79a5da9eb3eb9ded171e626c3",
+      "result": [
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 243 filtered out; finished in 1.03s"
+      ]
+    },
+    "repair-controls.log": {
+      "sha256": "573792890cb76c9399a0a9c923474f03befbc16e47d982d450c08789f1678378",
+      "result": [
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 239 filtered out; finished in 0.22s"
+      ]
+    },
+    "original-compile-controls.log": {
+      "sha256": "5a9493845e20707544753a7183997425ffb48a9f32ebeda5580fcde6bcc34a6e",
+      "result": [
+        "test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 239 filtered out; finished in 0.20s"
+      ]
+    },
+    "expanded-controls.log": {
+      "sha256": "893399de41e07ac1a8c887f1bcbebae7b77b59d60d59f2d924e046838781df78",
+      "result": [
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 239 filtered out; finished in 3.21s"
+      ]
+    },
+    "affected-prepared_turn_finish_preserves_prior_terminal.log": {
+      "sha256": "42eba62c85488b436acedc32b47d7f0471fb3b0070bc28ef141227f4fe4a2521",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 249 filtered out; finished in 0.16s"
+      ]
+    },
+    "original-rc2.log": {
+      "sha256": "3194dd7e65392cb5203f484f00a053ae8226ea02122f9b20f96a29404533875b",
+      "result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 246 filtered out; finished in 0.12s"
+      ]
+    }
+  },
+  "maintained_unchanged": {
+    "src-tauri/src/hosting.rs": true,
+    "src-tauri/src/recovery.rs": true
+  }
+}

@@ -2,6 +2,8 @@
 
 ## Intent and selected route
 
+**OWNER-REQUESTED GRACEFUL PAUSE.** Sole current recovery entry is [PAUSE_HANDOFF_ASTRA_20261006.md](../../AgentRuns/APP-V4-GROUP-A-20261004/PAUSE_HANDOFF_ASTRA_20261006.md). No active child/process/Cargo/source hold; no further execution until owner resume. Current branch is `codex/app-v4-group-a-record-publication` at PR1099 merge `c1571f7febcb4b710c8aa5633f1f5c4460c3faf3` before Parent's final pause checkpoint. Reviewed REC core/Root, WR/RS bounded publisher/historical receiver and compatibility core are integrated as uncommitted WIP; the combined current source has **not** been compiled. The handoff supersedes older present-tense rows below and preserves all residual obligations. Parent owns final checkpoint/push and actual native UI evidence.
+
 - Stable run: `APP-V4-GROUP-A-20261004`; current branch `codex/app-v4-group-a-file-acts`, receiving merge `0329f8fe6b1530eb4f084587dc46c908ba2436ed`; PR1098 merged normally after nine successful checks/four inapplicable skips. Its tested workflow checkpoint is `832ec9de93f9d2f28bf536a323bef2d93e06d9f7`. Parent completed identical-tree ancestry integration; reviewed successor checkpoint work is released.
 - Owner steering: resolve CI-1…CI-9 by named reviewed change control with affected design owners first; replace macOS temp paths; then grow walking skeleton into tested Group A code toward 90%. Owner assesses gate.
 - Methods: `chirality-root:bundled:workflow:coordinated-knowledge-work` and `chirality-root:bundled:workflow:construct-local-work-graph`.

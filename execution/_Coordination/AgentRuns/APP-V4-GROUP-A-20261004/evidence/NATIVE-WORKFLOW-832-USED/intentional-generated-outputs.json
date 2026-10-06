@@ -1,0 +1,22 @@
+{
+  "src-tauri/gen/schemas/acl-manifests.json": {
+    "bytes": 68210,
+    "mode": "0o644",
+    "sha256": "d3eace193b1e453756736eaf27bb156df62c7a41b2fe101403ee92ef93e69699"
+  },
+  "src-tauri/gen/schemas/capabilities.json": {
+    "bytes": 302,
+    "mode": "0o644",
+    "sha256": "fad46b4b0d515393eb52be8ec964e77284351a0af60c212f19fba345c40ee2c1"
+  },
+  "src-tauri/gen/schemas/desktop-schema.json": {
+    "bytes": 120083,
+    "mode": "0o644",
+    "sha256": "2a16f62c90a059a1b67e4501216bb3476f402087e99ba659dd38c9d0521f3b07"
+  },
+  "src-tauri/gen/schemas/macOS-schema.json": {
+    "bytes": 120083,
+    "mode": "0o644",
+    "sha256": "2a16f62c90a059a1b67e4501216bb3476f402087e99ba659dd38c9d0521f3b07"
+  }
+}

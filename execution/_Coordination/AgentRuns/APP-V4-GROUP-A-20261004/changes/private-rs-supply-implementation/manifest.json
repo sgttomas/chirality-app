@@ -1,0 +1,52 @@
+{
+  "baseline": "b44f6bfc1aa435d1160cc2701db46a54bd958a3c",
+  "baselineManifestSha256": "15b41e231da149ae225445f77555762fdc9dbfbe443b41442a0fb5d661ea7bbd",
+  "privateApp": "/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-rs-supply-o9jokxgg/app",
+  "files": [
+    {
+      "path": "src-tauri/resources/policy_standing/a16/basis.json",
+      "before": "5fedd403e4b828e154253841ea1986e02ddd3fa5c618ab00df3462c5c436649e",
+      "after": "6ecaf8f9c01f0dd2b201ffb2c82804c272eb002d9c812985e6c3f7127270f3b5"
+    },
+    {
+      "path": "src-tauri/resources/policy_standing/basis.json",
+      "before": "cc5977c9394a2840fbe2c6fcd26cfc5230a080d6ae3990fe579e343d05f59282",
+      "after": "621ec4f33686e710f2098df804e0d752137932dc4d232b990fad5b3c07787267"
+    },
+    {
+      "path": "src-tauri/schemas/RS_RECORD.schema.json",
+      "before": "c94dbd441388f52de4dbce5b79859abf2a07223bf236f209eedcb6aee548e3e6",
+      "after": "84200fd0ad045c11ce82ca5531ea461388304c46c1ea49d30263de5d6fa0f72a"
+    },
+    {
+      "path": "src-tauri/schemas/fixtures/native-supply.example.jsonl",
+      "before": null,
+      "after": "8a81934c24af7ad5eb93dd7cc2c7834c6182f4cf78aaadd2a3b042cc44564c55"
+    },
+    {
+      "path": "src-tauri/schemas/fixtures/native-supply.invalid.json",
+      "before": null,
+      "after": "c7417a8005e4549c384b3735308b64f76e10c59118602cb43781d801ad3776a4"
+    },
+    {
+      "path": "src-tauri/schemas/manifest.json",
+      "before": "7c11acfe9f4088b1c4703970341df82ebe2fc23c9938458b8f636af623d2ead5",
+      "after": "1559ff71049ce484f5917c804d3ae9e2dde239e6032bb4f531a553ba5c804d0d"
+    },
+    {
+      "path": "src-tauri/src/record_supply.rs",
+      "before": null,
+      "after": "a8c05a76574f32a555b95191f52ef2cd937bdd3b2b5cd2c751b3c125bb3523ad"
+    },
+    {
+      "path": "src-tauri/src/record_supply_tests.rs",
+      "before": null,
+      "after": "ce8770044d5c8ee16f9122028393a4500471e403eef6acc0b4107a5a7166077f"
+    },
+    {
+      "path": "src-tauri/src/records.rs",
+      "before": "ea498b90be82391446c97a9708b86fecab45d266eb3487f674c6803fde4284ea",
+      "after": "fb40cb2fb53fdb8ee6eb302cb6e22cf6978db52e946c3faa1b26e40965a92b19"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+--- projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.schema.json
++++ projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.schema.json
+@@ -2089,6 +2089,7 @@
+             "verified",
+             "text differs, workflow bytes equal",
+             "text differs, workflow bytes differ",
++            "incomparable",
+             "not found",
+             "unreadable",
+             "not checked"
+@@ -2096,6 +2097,11 @@
+         },
+         "supplyCheckRecord": {
+           "$ref": "#/$defs/evidenceRef"
++        },
++        "nativeTurn": {
++          "type": "string",
++          "minLength": 1,
++          "description": "CC-RS-WR-SUPPLY-FIT: opaque native turn identity, paired with thread and resolved WR supply_check. Never an integer ordinal or a conversion of turn."
+         }
+       },
+       "allOf": [
+@@ -2133,11 +2139,60 @@
+             },
+             {
+               "required": [
+-                "turn",
+                 "supplyCheck"
++              ],
++              "oneOf": [
++                {
++                  "required": [
++                    "turn"
++                  ],
++                  "not": {
++                    "required": [
++                      "nativeTurn"
++                    ]
++                  }
++                },
++                {
++                  "required": [
++                    "nativeTurn",
++                    "thread",
++                    "supplyCheckRecord",
++                    "adoption"
++                  ],
++                  "not": {
++                    "required": [
++                      "turn"
++                    ]
++                  }
++                }
+               ]
+             }
+           ]
++        },
++        {
++          "if": {
++            "required": [
++              "nativeTurn"
++            ]
++          },
++          "then": {
++            "properties": {
++              "supplyForm": {
++                "enum": [
++                  "workflow run start (turn text)",
++                  "workflow run end notice (turn text)"
++                ]
++              },
++              "thread": {
++                "minLength": 1
++              },
++              "supplyCheck": {
++                "not": {
++                  "const": "not checked"
++                }
++              }
++            }
++          }
+         }
+       ]
+     },
+--- projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md
++++ projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md
+@@ -323,7 +323,7 @@
+ |---|---|---|---|---|
+ | R1 | Run identity | Stable identity of this run, distinct from conversation, proposal and operation identities; **who started it** (EXEC RE-5); **continues ⟨run⟩** where this run continues an ended one — **addition** (R4-4); **run not started — no model selected** (host-loop runs only): V4-HOST-01 gives the person options with no default, so a host loop with no model selected cannot start a turn; the run is recorded as not started with that cause, and its evidence is the loop's own configuration state at start (LOOP-v0.9 §3.1 F-2 (a); §5.2 MS-02, "observed absence"). No destination exists to refuse, so no R15 entry (no `boundary_refusal`) is written for it — **addition** (R15-1, DERIVED; its representation, §13.3, PROPOSED); **follows ‹run› in this conversation** (R19-2; §3; v0.9) — **addition**, PROPOSED | Record writer | Required; *continues*, *not started* and *follows* absent unless recorded |
+ | R2 | Workflow identity as observed | {kind, origin (*project* · *user* · *bundled* · *host*), source root (required), name, revision} + derived-from (DEL-02-01/WD-v0.8 §6.1; R14-3); promised vs observed separate. Trace links as separate facts (EXEC §6.1): *listed*, *selected*, *resolved* with **revision verification** outcome (recomputed content identity equals the revision, or "revision not verified"); holding library at listed/selected/resolved, never in identity equality (EXEC §6.2, confirmed). **Transfer links** — exported, relayed, received, adapted — with transfer identity and **carriage-manifest reference**, each marked original or revised identity — **addition** (R4-11) | DEL-02-01 §6.1; DEL-02-03 §6 | "revision not verified", "relay not evidenced", "receipt not observed" stay explicit; a revised identity never inherits a link of the original |
+-| R3 | Supplied guidance identity and limits — **addition** (R-10; R2-20) | Per thread and turn, source identity and content identity (with method) of each guidance input supplied; "supplied ≠ adopted". **App runs (v0.9; R19-1, R19-7):** two forms, each citing its supplier's own record by reference (§9, evidence kind *supply record*), never embedding it: (a) **role guidance** (product guidance + the conversation's role, or no role) supplied at conversation start, or inherited at a same-role fork — DEL-02-04's supply record (ROLE-v0.2 §6.1; triggers start and fork, outcome *inherited* for a fork); its **limits** are ROLE's limit account (ROLE §6.2), by reference, and each observation that a stated limit was not kept (ROLE §6.3 DL-1, e.g. L-TASK-1, a task agent delegating) is a `role_limit_observation` entry with its standing as handed (*stated-not-enforced* · *enforced-by-supplier* · *unknown*; C-08); (b) **the workflow** supplied per run as a text element of the turn that starts the run, carrying the registered revision's exact bytes framed by App-written lines, and (c) **the run-end line** the App writes on the person's next turn when a run ended and none starts with that turn (R20-3) — each citing DEL-02-02's `run_text` record (WR-v0.2 §16.2; R19-7), with the text's content identity and the state of DEL-02-02's `supply_check` against what Codex's history returns for that turn (read with `thread/items/list`, WR-v0.2 §16.6 SC-3; R21-4) (*verified* · *text differs, workflow bytes equal* · *text differs, workflow bytes differ* · *not found* · *unreadable*; WR §16.6), or *not checked*. The run's supply reading is WR's (§16.6 SC-4; R20-11 (3)): *supplied* only when the state is *verified*; every other state, *unreadable* included, reads *supplied — not verified* (for *unreadable*: the App observed its own send; Codex's copy could not be read). The run-end line is written in the ended run's log, after its `run_ended`. Adoption is always *unknown*: Codex 0.158.0 accepted and ignored `developerInstructions` on `thread/resume` (OBS-2 O-5; observed), an instance of supplied ≠ adopted. HOSTING §8.2's carried identity must equal the supplier's composed identity (ROLE VC-R12) | DEL-02-04 (role, ROLE-v0.2 §6); DEL-02-02 (workflow per run, WR-v0.2); DEL-01-01 HOSTING §8.2 (identity carried at the boundary); host loop (relay) | *unknown* where not recordable; a turn text not checked says *not checked* |
++| R3 | Supplied guidance identity and limits — **addition** (R-10; R2-20) | Per thread and turn, source identity and content identity (with method) of each guidance input supplied; "supplied ≠ adopted". **App runs (v0.9; R19-1, R19-7):** two forms, each citing its supplier's own record by reference (§9, evidence kind *supply record*), never embedding it: (a) **role guidance** (product guidance + the conversation's role, or no role) supplied at conversation start, or inherited at a same-role fork — DEL-02-04's supply record (ROLE-v0.2 §6.1; triggers start and fork, outcome *inherited* for a fork); its **limits** are ROLE's limit account (ROLE §6.2), by reference, and each observation that a stated limit was not kept (ROLE §6.3 DL-1, e.g. L-TASK-1, a task agent delegating) is a `role_limit_observation` entry with its standing as handed (*stated-not-enforced* · *enforced-by-supplier* · *unknown*; C-08); (b) **the workflow** supplied per run as a text element of the turn that starts the run, carrying the registered revision's exact bytes framed by App-written lines, and (c) **the run-end line** the App writes on the person's next turn when a run ended and none starts with that turn (R20-3) — each citing DEL-02-02's `run_text` record (WR-v0.2 §16.2; R19-7), with the text's content identity and the state of DEL-02-02's `supply_check` against what Codex's history returns for that turn (read with `thread/items/list`, WR-v0.2 §16.6 SC-3; R21-4) (*verified* · *text differs, workflow bytes equal* · *text differs, workflow bytes differ* · *incomparable* · *not found* · *unreadable*; WR §16.6), or *not checked*. The run's supply reading is WR's (§16.6 SC-4; R20-11 (3)): *supplied* only when the state is *verified*; every other state, *unreadable* included, reads *supplied — not verified* (for *unreadable*: the App observed its own send; Codex's copy could not be read). The run-end line is written in the ended run's log, after its `run_ended`. Adoption is always *unknown*: Codex 0.158.0 accepted and ignored `developerInstructions` on `thread/resume` (OBS-2 O-5; observed), an instance of supplied ≠ adopted. HOSTING §8.2's carried identity must equal the supplier's composed identity (ROLE VC-R12) | DEL-02-04 (role, ROLE-v0.2 §6); DEL-02-02 (workflow per run, WR-v0.2); DEL-01-01 HOSTING §8.2 (identity carried at the boundary); host loop (relay) | *unknown* where not recordable; a turn text not checked says *not checked* |
+ | R4 | Conversation reference | Reference to the harness conversation/session | Harness | Reference only — operational, not authority |
+ | R5 | Model used and **model destination** | Model identity and serving endpoint class as observed, separate from configured. **Destination** (ScopeOfWork REQ-002: "model used with its observed destination per turn"; the reading was confirmed by the owner, OWNER_ITEMS O-10; R4-1, R5-4): recorded **per turn** where the supplier reports it (HOSTING §8.3) — the **requested** provider/model and the supplier-reported **effective** one kept separate, each **re-route** recorded with its turn, destination class (local model server / user-chosen cloud) from the person's provider configuration (DEL-01-05 maps its access entry kinds onto these classes — ChatGPT account and API key: user-chosen cloud; local provider: local model server — and never infers a class from an address; ACCESS-v0.2 §2, I-4); a turn not observed is *unknown*; a turn's effective value is recorded only from a supplier report that names that turn, and a report that names only the thread is recorded with scope *thread*, beside the turns (HOSTING U-27 adopted; V18-1 m-13). The **run-level value is the set** of destinations observed, never a single inferred value. A model switch or re-route starts no new run and affects no disposition. Covers host content read over the external channel. Information only — never a gate, never a permission | DEL-01-01 HOSTING §8.3; DEL-05-01; DEL-03-03 | "Requested X; effective unknown" and unobserved turns are valid |
+ | R5a | Seat role meaning — **addition** (R-7) | The role meaning in force for the acting seat. **App runs (v0.9):** the conversation's start role, fixed for the conversation's life (DECISION-L L-2), from the selection in DEL-02-04's supply record (ROLE-v0.2 §6.1), or *no role* (R17-9); a same-role fork has its source's role (R19-8); every run chained in the conversation has the same role | DEL-02-04 (App; ROLE-v0.2 §6.1); DEL-05-01 / DEL-02-01 (host) | *unknown* where not determinable |
+@@ -1320,6 +1320,64 @@
+   the person's act (A16, or the named kind) is captured at that kind's
+   surface and cites the request (§6.1 Relations; HA-11).
+ 
++### 13.6a Native workflow supply receiving (CC-RS-WR-SUPPLY-FIT)
++
++This bounded technical revision adds `incomparable` and a native coordinate to
++R3 workflow start/end-notice forms only. It preserves RS format 0.1 and the
++existing positive-integer `turn` namespace. For these forms exactly one of
++`turn` or `nativeTurn` is present. `nativeTurn` is the opaque supplier turn
++identity paired with nonempty `thread`; it is never parsed, hashed, counted,
++or equated to an ordinal. Historical numeric records retain their bytes and
++meaning. No numeric producer or mapping is established by this change.
++
++The native form requires `supplyCheckRecord`, `supplyRecord`, `supplyCheck` and
++`adoption: "unknown"`. A native receiving operation resolves both WR references
++in the explicitly opened owning project through WR's immutable publication
++resolver. Both references are evidence kind `supply record`; each ref is
++`wr-record:v1:<lower-case UUID>` and each `resolutionAtWrite` records its actual
++resolution. New native R3 publication requires both to resolve. JSON shape
++validation is a prerequisite, never evidence that native supply occurred.
++
++Publishing run_text before send establishes preparation only. A queued or failed
++send, client message ID, or written frame alone does not establish supplied
++text or a native turn. Until source-bound native turn and actual send/check
++evidence exist, retain the prepared record and report R3 pending/unavailable;
++never manufacture nativeTurn from client_user_message_id.
++
++The receiving operation verifies the RS runId, thread, purpose and composed
++text method/value against the resolved WR run_text and supply_check; maps
++purpose exactly to start/end-notice supplyForm; preserves the workflow's full
++source identity through run_text; and requires nativeTurn equal the exact
++WR check.turn. A known native request turn remains that coordinate even when
++its check is not found/unreadable; if no source-bound turn is available,
++retain WR evidence and report R3 unavailable rather than invent a coordinate.
++The RS content is the composed text identity, not the workflow package digest.
++Client message/item/source-receipt references stay in WR's evidence account;
++RS does not copy a native transcript, generated prompt, or WR body.
++
++Copy WR's state exactly, including incomparable. Incomparable reads
++"supplied — not verified, incomparable methods"; it is neither mismatch,
++unreadable nor not checked. Equal value strings under different methods do
++not establish equality. All other non-verified states remain supplied — not
++verified; verified establishes supply only. Adoption stays unknown.
++
++On later reads an unresolved or conflicting reference produces an explicit
++reference/evidence limit; retain the recorded observation without upgrading
++its standing. Deserializing a historical claim or source receipt does not
++recreate live native-owner witness authority. Rereading native history creates
++a new WR check and a new R3 observation; retrying the publication of the same
++pending check preserves that check's identity and does not resend the turn.
++
++This is an in-place proposed-schema revision, as earlier format-0.1 changes,
++not forward compatibility. Design and bundled consumers must adopt the exact
++reviewed schema together before emitting nativeTurn/incomparable. An older
++strict reader rejects these records as unsupported/invalid with an incomplete
++record limit, retaining original bytes; it must not remove fields or relabel
++states. No automatic migration, inferred ordinal, model_turn or EXEC change
++is authorized. VC-40 additionally covers native start/end notice, every WR
++state, immutable reference joins, cold resolution and refusal of guessed
++coordinates or mismatched source/run/thread/purpose/text identities.
++
+ ### 13.7 Selected Group A App allocation (CC-P-R)
+ 
+ The owner separately answered “Approve App-local storage (recommended)” and

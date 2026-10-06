@@ -68,7 +68,9 @@ impl Compatibility {
                         })
                     })
                 {
-                    result.result = Check::NotEstablished;
+                    if result.result != Check::Unsupported {
+                        result.result = Check::NotEstablished;
+                    }
                     result
                         .findings
                         .push("compatible roles not established".into());
@@ -80,7 +82,9 @@ impl Compatibility {
                     ));
                 }
             } else {
-                result.result = Check::NotEstablished;
+                if result.result != Check::Unsupported {
+                    result.result = Check::NotEstablished;
+                }
                 result
                     .findings
                     .push("compatible roles not established".into());
@@ -298,3 +302,6 @@ fn harness_presence(name: &str, e: &Environment) -> (Outcome, String) {
         ),
     }
 }
+
+#[path = "compatibility_report.rs"]
+pub(crate) mod report;

@@ -2089,6 +2089,7 @@
             "verified",
             "text differs, workflow bytes equal",
             "text differs, workflow bytes differ",
+            "incomparable",
             "not found",
             "unreadable",
             "not checked"
@@ -2096,6 +2097,11 @@
         },
         "supplyCheckRecord": {
           "$ref": "#/$defs/evidenceRef"
+        },
+        "nativeTurn": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CC-RS-WR-SUPPLY-FIT: opaque native turn identity, paired with thread and resolved WR supply_check. Never an integer ordinal or a conversion of turn."
         }
       },
       "allOf": [
@@ -2133,11 +2139,60 @@
             },
             {
               "required": [
-                "turn",
                 "supplyCheck"
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "turn"
+                  ],
+                  "not": {
+                    "required": [
+                      "nativeTurn"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "nativeTurn",
+                    "thread",
+                    "supplyCheckRecord",
+                    "adoption"
+                  ],
+                  "not": {
+                    "required": [
+                      "turn"
+                    ]
+                  }
+                }
               ]
             }
           ]
+        },
+        {
+          "if": {
+            "required": [
+              "nativeTurn"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supplyForm": {
+                "enum": [
+                  "workflow run start (turn text)",
+                  "workflow run end notice (turn text)"
+                ]
+              },
+              "thread": {
+                "minLength": 1
+              },
+              "supplyCheck": {
+                "not": {
+                  "const": "not checked"
+                }
+              }
+            }
+          }
         }
       ]
     },

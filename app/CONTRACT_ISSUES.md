@@ -241,3 +241,36 @@ consumer/native/qualification work. CI-10 custody and CI-11 native supplier rece
 - **Found:** 2026-10-05 through Parent's isolated stock 0.160.0 probe, [carrier and collision evidence](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/probes/ROLE_0160_THREAD_CARRIER_AND_COLLISION.json). Per-thread agent definitions appear only in that thread, but a same-name definition shadows a synthetic standalone user agent. `config/read` reports `agents:null` without those origins. The complete published package repeats the result; no child or real model was executed.
 - **Contract fit:** ROLE CR2's `config/read` route cannot establish complete collision exclusion from this response. ACCESS/HOST's current M-A boundary explicitly shares `config.toml`, `AGENTS.md` and `skills`, with other home files not linked; native `agents/` definitions are not covered. [CC-ROLE-ACCESS-0160-FIT](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-ROLE-ACCESS-0160-FIT.md) preserves both clauses and the required discovery, namespace-protection and receiving consequences.
 - **Standing:** open named source/Design fit, with no fourth target, process-wide fallback, user-configuration edit or governance change adopted. Current child supply remains not supplied. Complete discovery/collision exclusion, additive child content/base preservation and actual child association require their own inputs; ordinary workflow and native operations continue.
+
+## CI-16 WR supplier records and RS native supply receiving
+
+WR's run-text/supply check pipeline previously returned preparation and comparison
+values without immutable supplier publication or an R3 receiving path. Existing
+R3 required a numeric turn and omitted WR's adopted incomparable state.
+
+Named WR/RS owning-source changes are technically adopted under the coordinated
+Group A implementation authority after independent V6 source review. WR §16.8
+now specifies explicit project-local immutable supplier envelopes and resolution;
+RS preserves legacy integer coordinates and adds an exclusive opaque native-turn
+form with faithful incomparable standing and adoption unknown. Source adoption
+and exact hashes are in `CC-WR-RS-SOURCE-ADOPTION.json` in the Group A run.
+
+Consumer propagation, actual publication and the source-bound Root/R3 join remain
+in progress. Historical envelopes cannot mint native check authority. Unknown
+project has no fallback; pending record publication never resends a turn. The
+successful exact832 native text witness remains delivery evidence only. EXEC
+open/end/chain ownership and full lifecycle records are separate unfinished work.
+
+## CI-17 Per-item native turn custody across restart
+
+The reviewed recovery core exposed a source fit: ledger0.2 openItems could retain
+item IDs/types but not their known native turn associations. Live-turn inference
+or a cold-correlation disclaimer cannot fulfill the required pointer custody.
+
+CC-REC-ITEM-TURN-CUSTODY is technically adopted after independent V6-S1 review.
+Ledger schema0.3 adds an optional opaque actual turnId; exact0.2 bytes remain
+available, legacy absence stays unknown, and older readers reject the new rows.
+No native content, new recorder, liveTurn inference or automatic resume is added.
+Consumer propagation and actual cold-tuple tests remain pending; RC1-COLD is not
+closed by source adoption. Exact source pins and remaining work are in the Group A
+run's CC-REC-ITEM-TURN-SOURCE-ADOPTION.json.

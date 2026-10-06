@@ -8,6 +8,10 @@
 //! - W-0 repair remains unimplemented: a partial final line is refused.
 //! - AAC pending recovery supplies its originally reserved ID for a bounded W-2 late write.
 
+/// Historical WR supply correspondence; not a live observation or append capability.
+#[path = "record_supply.rs"]
+pub mod supply;
+
 use crate::util::now_rfc3339;
 use serde_json::{json, Value};
 use std::fs::OpenOptions;

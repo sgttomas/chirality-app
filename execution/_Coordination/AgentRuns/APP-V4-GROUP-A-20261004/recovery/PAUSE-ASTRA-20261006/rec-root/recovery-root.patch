@@ -1,0 +1,444 @@
+--- a/src-tauri/src/hosting.rs
++++ b/src-tauri/src/hosting.rs
+@@ -2967,3 +2967,7 @@
+ #[cfg(test)]
+ #[path = "execution_custody_tests.rs"]
+ mod execution_custody_tests;
++
++#[cfg(test)]
++#[path = "recovery_root_tests.rs"]
++mod recovery_root_tests;
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -27,6 +27,7 @@
+ pub mod recorder;
+ pub mod records;
+ pub mod recovery;
++mod recovery_root_view;
+ pub mod role_supply;
+ pub mod runtime_session;
+ pub(crate) mod workflow_declaration;
+@@ -98,6 +99,20 @@
+         .map(|v| v == "1")
+         .unwrap_or(false);
+     Ok(cfg)
++}
++
++/// Person-requested metadata read. No Root guard spans Host/queue observation,
++/// no ledger flush, and no supplier/native History operation is requested.
++#[tauri::command(async)]
++fn read_recovery_custody(state: State<'_, AppState>, mode_home_class: String, generation: Value) -> Result<Value,String> {
++    read_recovery_custody_from_root(&state.homes, &mode_home_class, &generation)
++}
++fn read_recovery_custody_from_root(homes:&Mutex<runtime_session::HomeRouter>,mode_home_class:&str,generation:&Value)->Result<Value,String>{
++    let home=homes.try_lock().map_err(|_|"Home selection busy; recovery read not performed")?.active();
++    let view=recovery_root_view::read(&home,mode_home_class,generation)?;
++    let active=homes.try_lock().map_err(|_|"Home selection busy after read; refresh recovery source")?.active();
++    if !Arc::ptr_eq(&home,&active){return Err("Active recovery home changed while reading; original snapshot not reassigned".into());}
++    Ok(view)
+ }
+ 
+ #[tauri::command]
+@@ -937,6 +952,7 @@
+         // event touches the child.
+         .invoke_handler(tauri::generate_handler![
+             file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read,
++            read_recovery_custody,
+             host_status,
+             select_home,
+             read_home_access,
+--- /dev/null
++++ b/src-tauri/src/recovery_root_tests.rs
+@@ -0,0 +1,255 @@
++//! Source-connected synthetic Root consumer checks. No supplier/native process.
++use super::*;
++use crate::{
++    home_resources::HomeClass,
++    runtime_session::{HomeRouter, HomeSession},
++};
++struct Fixture {
++    root: PathBuf,
++    host: Arc<Host>,
++    home: Arc<HomeSession>,
++    router: Mutex<HomeRouter>,
++    generation: Value,
++}
++impl Fixture {
++    fn new(index: bool) -> Self {
++        let root = std::env::temp_dir().join(opaque_id("recovery-root-").unwrap());
++        std::fs::create_dir(&root).unwrap();
++        let host = Arc::new(Host::new());
++        host.configure_recovery(root.join("ledger.jsonl")).unwrap();
++        let generation = {
++            let mut i = host.inner.0.lock().unwrap();
++            let g = json!({"appSession":i.app_session,"home":"synthetic-original-home","spawnCounter":1});
++            i.generation = g.clone();
++            i.home = "synthetic-original-home".into();
++            i.spawn_counter = 1;
++            i.state = "ready".into();
++            i.threads
++                .push(json!({"generation":g,"threadId":"same-thread"}));
++            g
++        };
++        if index {
++            host.observe_conversation_project(
++                &generation,
++                "same-thread",
++                Some("H-acct"),
++                &crate::recovery::ExplicitAppProjectContext::known(
++                    "original-project",
++                    crate::recovery::AppProjectSource::ConfiguredDirectory,
++                )
++                .unwrap(),
++            )
++            .unwrap();
++        }
++        let home = Arc::new(
++            HomeSession::new(
++                HomeClass::Account,
++                host.clone(),
++                Err("offline synthetic host".into()),
++            )
++            .unwrap(),
++        );
++        let router = Mutex::new(HomeRouter::new(home.clone()).unwrap());
++        Self {
++            root,
++            host,
++            home,
++            router,
++            generation,
++        }
++    }
++    fn item(&self, turn: &str) {
++        self.host.on_line(&serde_json::to_vec(&json!({"method":"item/started","params":{"threadId":"same-thread","turnId":turn,"item":{"id":"same-item","type":"reasoning","text":"NATIVE_PAYLOAD_NOT_IN_LEDGER"}}})).unwrap(),&self.generation);
++    }
++    fn read(&self) -> Value {
++        crate::read_recovery_custody_from_root(
++            &self.router,
++            HomeClass::Account.as_str(),
++            &self.generation,
++        )
++        .unwrap()
++    }
++}
++impl Drop for Fixture {
++    fn drop(&mut self) {
++        let _ = std::fs::remove_dir_all(&self.root);
++    }
++}
++#[test]
++fn recovery_root_actual_source_queue_durable_reopen_remains_pointer_only() {
++    let f = Fixture::new(true);
++    let writer = f.host.recovery_writer.lock().unwrap();
++    f.item("turn-A");
++    f.item("turn-B");
++    let bytes = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
++    let view = f.read();
++    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), bytes);
++    assert_eq!(view["source"]["generation"], f.generation);
++    assert!(view["custody"]["pendingPointerFacts"].as_u64().unwrap() > 0);
++    assert_eq!(
++        view["custody"]["historicalConversations"][0]["index"]["lastObservedExecution"]["state"],
++        "indexed"
++    );
++    assert_eq!(
++        view["custody"]["live"]["observations"][0]["openItems"]
++            .as_array()
++            .unwrap()
++            .len(),
++        2
++    );
++    assert!(view["custody"]["live"]["observations"][0]["liveTurn"].is_null());
++    drop(writer);
++    f.host.flush_recovery_observations();
++    let view = f.read();
++    assert_eq!(view["custody"]["pendingPointerFacts"], 0);
++    let associations = view["custody"]["historicalConversations"][0]["openItemAssociations"]
++        .as_array()
++        .unwrap();
++    assert_eq!(associations.len(), 2);
++    assert_eq!(associations[0]["turnId"], "turn-A");
++    assert_eq!(associations[1]["turnId"], "turn-B");
++    assert_eq!(associations[0]["generation"], f.generation);
++    Host::close_generation(&mut f.host.inner.0.lock().unwrap());
++    f.host.flush_recovery_observations();
++    let next = Arc::new(Host::new());
++    next.configure_recovery(f.root.join("ledger.jsonl"))
++        .unwrap();
++    let home = Arc::new(
++        HomeSession::new(HomeClass::Account, next.clone(), Err("no supplier".into())).unwrap(),
++    );
++    let router = Mutex::new(HomeRouter::new(home).unwrap());
++    let bytes = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
++    let reopened =
++        crate::read_recovery_custody_from_root(&router, HomeClass::Account.as_str(), &Value::Null)
++            .unwrap();
++    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), bytes);
++    assert_eq!(reopened["source"]["generation"], Value::Null);
++    assert_eq!(
++        reopened["custody"]["historicalConversations"][0]["executionGeneration"],
++        f.generation
++    );
++    assert_eq!(
++        reopened["custody"]["historicalConversations"][0]["openItemAssociations"],
++        json!(associations)
++    );
++    assert_eq!(reopened["custody"]["restartEvents"], json!([]));
++    assert_eq!(reopened["custody"]["automaticResume"], false);
++    assert_eq!(next.snapshot()["clientRequests"], json!([]));
++    assert!(!String::from_utf8(bytes).unwrap().contains("NATIVE_PAYLOAD"));
++}
++#[test]
++fn recovery_root_missing_project_index_stays_memory_only_and_read_never_flushes() {
++    let f = Fixture::new(false);
++    f.item("known-source-turn");
++    Host::close_generation(&mut f.host.inner.0.lock().unwrap());
++    f.host.flush_recovery_observations();
++    let bytes = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
++    let view = f.read();
++    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), bytes);
++    assert_eq!(
++        view["custody"]["live"]["observations"][0]["indexKnown"],
++        false
++    );
++    assert!(!view["custody"]["live"]["limits"]
++        .as_array()
++        .unwrap()
++        .is_empty());
++    assert_eq!(view["custody"]["historicalConversations"], json!([]));
++    assert_eq!(view["custody"]["restartEvents"], json!([]));
++}
++#[test]
++fn recovery_root_foreign_home_generation_and_busy_root_cannot_retarget() {
++    let f = Fixture::new(true);
++    let other = Fixture::new(true);
++    f.item("original-turn");
++    other.item("foreign-turn");
++    assert!(crate::read_recovery_custody_from_root(
++        &f.router,
++        HomeClass::ApiKey.as_str(),
++        &f.generation
++    )
++    .is_err());
++    assert!(crate::read_recovery_custody_from_root(
++        &f.router,
++        HomeClass::Account.as_str(),
++        &other.generation
++    )
++    .is_err());
++    let mut later = f.generation.clone();
++    later["spawnCounter"] = json!(2);
++    assert!(
++        crate::read_recovery_custody_from_root(&f.router, HomeClass::Account.as_str(), &later)
++            .is_err()
++    );
++    let guard = f.router.lock().unwrap();
++    assert!(crate::read_recovery_custody_from_root(
++        &f.router,
++        HomeClass::Account.as_str(),
++        &f.generation
++    )
++    .is_err());
++    drop(guard);
++    assert_eq!(
++        f.read()["custody"]["historicalConversations"][0]["openItemAssociations"][0]["turnId"],
++        "original-turn"
++    );
++    // The consumer does not acquire the writer, history, runtime or ledger locks.
++    let writer = f.host.recovery_writer.lock().unwrap();
++    let history = f.home.history.lock().unwrap();
++    let runtime = f.home.runtime.lock().unwrap();
++    let ledger = f.host.inner.0.lock().unwrap().recovery.clone().unwrap();
++    let ledger_guard = ledger.lock().unwrap();
++    let before = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
++    let view = f.read();
++    assert_eq!(view["source"]["generation"], f.generation);
++    assert_eq!(std::fs::read(f.root.join("ledger.jsonl")).unwrap(), before);
++    drop(ledger_guard);
++    drop(runtime);
++    drop(history);
++    drop(writer);
++}
++#[test]
++fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() {
++    let f = Fixture::new(true);
++    f.item("known-turn");
++    let mut ledger = RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();
++    let mut row = ledger.snapshot()["entries"]
++        .as_array()
++        .unwrap()
++        .iter()
++        .rev()
++        .find(|r| r["kind"] == "conversation_index")
++        .unwrap()
++        .clone();
++    row["lastObservedExecution"]["openItems"]
++        .as_array_mut()
++        .unwrap()
++        .push(json!({"itemId":"legacy-item","itemType":"reasoning"}));
++    row["lastObservedExecution"]["liveTurn"] = json!("not-a-legacy-association");
++    ledger.append(row.clone()).unwrap();
++    let prefix = std::fs::read(f.root.join("ledger.jsonl")).unwrap();
++    let next = Arc::new(Host::new());
++    next.configure_recovery(f.root.join("ledger.jsonl"))
++        .unwrap();
++    let next_session = next.shared_recovery_observation()["appSession"].clone();
++    // Actual legacy metadata row append retains original execution generation.
++    let mut new_ledger = RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();
++    row["session"] = next_session.clone();
++    row["tags"] = json!([{"owner":"synthetic-receiver","value":"later-metadata","seq":1}]);
++    new_ledger.append(row).unwrap();
++    next.inner.0.lock().unwrap().recovery_snapshot = Some(new_ledger.snapshot());
++    let home = HomeSession::new(HomeClass::Account, next.clone(), Err("offline".into())).unwrap();
++    let view =
++        crate::recovery_root_view::read(&home, HomeClass::Account.as_str(), &Value::Null).unwrap();
++    let historical = &view["custody"]["historicalConversations"][0];
++    assert_eq!(historical["executionGeneration"], f.generation);
++    assert_eq!(historical["metadataIndex"]["session"], next_session);
++    let items = historical["openItemAssociations"].as_array().unwrap();
++    let old = items.iter().find(|i| i["itemId"] == "legacy-item").unwrap();
++    assert!(old["turnId"].is_null());
++    assert!(old["fullTuple"].is_null());
++    assert!(old["correlation"].as_str().unwrap().contains("unknown"));
++    assert!(std::fs::read(f.root.join("ledger.jsonl"))
++        .unwrap()
++        .starts_with(&prefix));
++}
+--- /dev/null
++++ b/src-tauri/src/recovery_root_view.rs
+@@ -0,0 +1,39 @@
++//! Read-only Root consumer of Host-owned recovery metadata. This is no admission
++//! route, ledger writer or native History client.
++use crate::runtime_session::HomeSession;
++use serde_json::{json, Value};
++
++pub(crate) fn read(
++    home: &HomeSession,
++    expected_class: &str,
++    expected_generation: &Value,
++) -> Result<Value, String> {
++    if home.class().as_str() != expected_class {
++        return Err("Recovery source home selection changed; refresh the selected source".into());
++    }
++    let before = home.host.snapshot()["generation"].clone();
++    if before != *expected_generation {
++        return Err("Recovery source generation changed; refresh the selected source".into());
++    }
++    // Null means no supplier generation was observed. It is retained as null,
++    // so recovery metadata remains readable before starting any supplier.
++    if !before.is_null() {
++        crate::recovery::generation_ref(&before)?;
++    }
++    let session = home.host.shared_recovery_observation()["appSession"].clone();
++    let custody = home.host.recovery_custody().snapshot();
++    if home.host.snapshot()["generation"] != before
++        || home.host.shared_recovery_observation()["appSession"] != session
++    {
++        return Err("Recovery source changed while reading; no mixed-source view returned".into());
++    }
++    Ok(json!({
++        "source": {"modeHomeClass": home.class().as_str(), "generation": before, "appSession": session},
++        "readAt": crate::util::now_rfc3339(),
++        "custody": custody,
++        "readStanding": "Explicit read of this Host's cached App metadata; not a durable flush, native history fetch, current execution proof or automatic resume",
++        "historicalScope": "Persisted App ledger rows retain their own original home and executionGeneration; they are not reassigned to the selected home",
++        "nativeHistory": "Read separately through the existing native History controls; no pointer row becomes an operational conversation",
++        "compatibility": "Ledger 0.3 preserves known item-to-turn pointers; legacy absent turnId remains unknown. Older 0.2 readers reject new correlated rows; preserve the ledger on rollback, do not strip pointers."
++    }))
++}
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -4,6 +4,7 @@
+ import { useCallback, useEffect, useState } from "react";
+ import { invoke } from "@tauri-apps/api/core";
+ import { FileActPanel } from "./FileActPanel";
++import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
+ 
+ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+ 
+@@ -555,6 +556,10 @@
+         try { await invoke(command, args); } finally { setHost(await invoke("host_status")); }
+       }} />
+ 
++      <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])}
++        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null}
++        nativeHistoryGeneration={host?.nativeHistory?.generation ?? null}
++        read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} />
+       <HistoryPanel host={host} refresh={refresh} />
+ 
+       <ConversationPanel host={host} send={async (generation, threadId, text) => {
+--- /dev/null
++++ b/src/RecoveryCustodyPanel.tsx
+@@ -0,0 +1,71 @@
++import { useState } from "react";
++type Json = any;
++const text = (value: Json) => value == null ? "not established" : typeof value === "string" ? value : JSON.stringify(value);
++const detail = (value: Json) => <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(value, null, 2)}</pre>;
++
++export function RecoveryCustodyDetails({ data }: { data: Json }) {
++  const custody = data.custody;
++  return <>
++    <p>Read at {data.readAt}. Source home: {data.source.modeHomeClass}; App session: {text(data.source.appSession)}; generation: {text(data.source.generation)}.</p>
++    <p>{data.readStanding}</p><p>{custody.standing}</p>
++    <p>Automatic resume: {custody.automaticResume === false ? "off; no resume was requested" : "not established"}.</p>
++    <h3>Pending persistence</h3>
++    <p>Unpersisted pointer facts in this Host's queue: {text(custody.pendingPointerFacts)}. Live observations are not proof of durable recording.</p>
++    {(custody.limits ?? []).map((limit: string, i: number) => <p role="status" key={i}>{limit}</p>)}
++    <h3>Live and retained in-memory pointer observations</h3>
++    <p>These are the App's observations, including loss of observation. They do not establish that a turn is currently running.</p>
++    {(custody.live?.limits ?? []).map((limit: string, i: number) => <p key={i}>{limit}</p>)}
++    {(custody.live?.observations ?? []).map((row: Json, i: number) => <article key={i}>
++      <p>Thread {row.threadId}; source generation {text(row.generation)}; observed state {row.state}.</p>
++      <p>Observed live-turn pointer: {text(row.liveTurn)}. Index: {row.indexKnown ? "known to the source" : "not known; memory-only observation, cold lookup unavailable"}.</p>
++      <p>{row.standing}</p>
++      <details><summary>Original open item pointers</summary>{detail(row.openItems)}</details>
++    </article>)}
++    <h3>Loss events observed in this App process</h3>
++    <p>A source event is separate from whether its pointer facts reached durable storage.</p>
++    {(custody.live?.events ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: {event.cause} · {text(event.generation)}</summary>{detail(event)}</details>)}
++    <h3>Restart observations derived from persisted prior-session facts</h3>
++    {(custody.restartEvents ?? []).length === 0 && <p>No restart interruption is established by the available persisted facts.</p>}
++    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
++    <h3>Persisted conversation pointer history</h3>
++    <p>{data.historicalScope}</p>
++    {(custody.historicalConversations ?? []).map((row: Json, i: number) => <article key={i}>
++      <h4>Home {row.index.home} · thread {row.index.threadId}</h4>
++      <p>{row.standing}</p>
++      <p>Execution source generation: {text(row.executionGeneration)}. Last observed state: {text(row.index.lastObservedExecution?.state)}; live-turn pointer: {text(row.index.lastObservedExecution?.liveTurn)}.</p>
++      <p>Execution index project: {text(row.index.project)}; observation session: {text(row.index.session)}. Latest metadata append session: {text(row.metadataIndex?.session)}; metadata project: {text(row.metadataIndex?.project)}.</p>
++      <p>{row.openItemCorrelation}</p>
++      {(row.openItemAssociations ?? []).map((item: Json, j: number) => <div key={j}>
++        <p>Item {item.itemId} ({item.itemType}); turn {item.turnId == null ? "unknown — absent from this historical row" : item.turnId}; {item.correlation}.</p>
++        <p>{item.standing}</p>
++        <details><summary>Original item association and full tuple</summary>{detail(item)}</details>
++      </div>)}
++      <details><summary>Execution index and latest metadata index (separate originals)</summary>{detail({ executionGeneration: row.executionGeneration, index: row.index, metadataIndex: row.metadataIndex })}</details>
++      <p>Native history: {row.nativeHistory}</p>
++    </article>)}
++    <p>{data.nativeHistory}</p><p>{data.compatibility}</p>
++  </>;
++}
++
++export function RecoveryCustodyPanel({ modeHomeClass, generation, nativeHistoryGeneration, read }: { modeHomeClass?: string; generation: Json; nativeHistoryGeneration: Json; read: () => Promise<Json> }) {
++  const [data, setData] = useState<Json>(null);
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState("");
++  const refresh = async () => {
++    setBusy(true); setError("");
++    try {
++      const result = await read();
++      if (result.source.modeHomeClass !== modeHomeClass || JSON.stringify(result.source.generation) !== JSON.stringify(generation)) throw new Error("Recovery result belongs to a different source; refresh the selected home.");
++      setData(result);
++    } catch (e) { setError(String(e)); }
++    finally { setBusy(false); }
++  };
++  return <section aria-labelledby="recovery-custody-heading">
++    <h2 id="recovery-custody-heading">App recovery pointer observations</h2>
++    <p>Selected home: {modeHomeClass ?? "not established"}. Source generation: {text(generation)}. Native History's separately selected generation: {text(nativeHistoryGeneration)}.</p>
++    <button disabled={busy || !modeHomeClass} onClick={refresh}>Read recovery metadata for this home</button>
++    <p>This explicit read does not flush pending facts, contact Codex, resume a conversation, or record a human act or external operation. Use the existing Native History controls separately.</p>
++    {error && <p role="alert">{error}</p>}
++    {data ? <RecoveryCustodyDetails data={data} /> : <p>Not read for this selection. Missing data is not evidence of completed work.</p>}
++  </section>;
++}

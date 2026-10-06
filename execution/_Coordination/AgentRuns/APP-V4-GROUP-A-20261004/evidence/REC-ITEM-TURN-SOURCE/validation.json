@@ -1,0 +1,60 @@
+{
+  "engine": "jsonschema 4.26.0",
+  "results": [
+    {
+      "example": "recovery.app-ledger-entry.item-turn.item-only.valid.json",
+      "newValid": true,
+      "oldValid": false
+    },
+    {
+      "example": "recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json",
+      "newValid": true,
+      "oldValid": true
+    },
+    {
+      "example": "recovery.app-ledger-entry.item-turn.competing-turns.valid.json",
+      "newValid": true,
+      "oldValid": false
+    },
+    {
+      "example": "recovery.app-ledger-entry.item-turn.empty-turn.invalid.json",
+      "newValid": false,
+      "oldValid": false
+    },
+    {
+      "example": "recovery.app-ledger-entry.item-turn.null-turn.invalid.json",
+      "newValid": false,
+      "oldValid": false
+    },
+    {
+      "example": "recovery.app-ledger-entry.item-turn.payload.invalid.json",
+      "newValid": false,
+      "oldValid": false
+    },
+    {
+      "existingExample": "recovery.custody-event.example.valid.json",
+      "valid": true
+    },
+    {
+      "existingExample": "recovery.stop-request.example.invalid.json",
+      "valid": false
+    },
+    {
+      "existingExample": "recovery.custody-event.example.invalid.json",
+      "valid": false
+    },
+    {
+      "existingExample": "recovery.app-ledger-entry.example.valid.json",
+      "valid": true
+    },
+    {
+      "existingExample": "recovery.app-ledger-entry.example.invalid.json",
+      "valid": false
+    },
+    {
+      "existingExample": "recovery.stop-request.example.valid.json",
+      "valid": true
+    }
+  ],
+  "scope": "Offline schema examples only; no product execution"
+}

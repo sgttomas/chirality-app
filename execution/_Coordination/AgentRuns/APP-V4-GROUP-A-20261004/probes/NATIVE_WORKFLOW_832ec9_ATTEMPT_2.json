@@ -1,0 +1,123 @@
+{
+  "candidate": "832ec9de93f9d2f28bf536a323bef2d93e06d9f7",
+  "standing": "PASS bounded actual App-backend prepared-send/native-page comparison; owned HTTP400 failed turn",
+  "sourceArtifactSha256": "582ed82be49823dab078736a31af89fc7f5cdb32bf80fa47e77a1b3b1ab2a74b",
+  "compiledBindingSha256": "a68848f47fa463aee8c33ddf4ff1489090de4363b4d2ae8b7468afbf306c7d1b",
+  "launcherSha256": "8651b50db2385dc43b2404275cba79d248e305599294b2682f0c99eb6084cb21",
+  "selectionIdentity": {
+    "kind": "workflow",
+    "name": "coordinated-knowledge-work",
+    "origin": "bundled",
+    "revision": "1b1733864cd89fd6d8ca74bf3e2084ff1105c1fc7d76537eefb42e2ae9a41e83",
+    "revision_method": "chirality.app.workflow-package.sha256/v1",
+    "source_root": "chirality-root"
+  },
+  "selectionStanding": "App-v4 development build candidate; not a published release",
+  "sourceGeneration": {
+    "appSession": "app-session:fd163ef2-36a7-4ac5-a0cd-53d519ee33ab",
+    "home": "app-home:a29ad53d4a308ce4af48b1d0d5de79d8a39d501a8d5501823319a62036857b99",
+    "spawnCounter": 1
+  },
+  "thread": "01a10edd-8aad-7171-ba9d-0686be5d12dd",
+  "turn": "01a10edd-8aeb-72d0-9ccd-875005df8074",
+  "nativeItem": "01a10edd-8afd-77a3-ae7f-8ff8239126ea",
+  "locatedBy": "client_user_message_id",
+  "expectedText": {
+    "method": "chirality.app.exact-bytes.sha256/v1",
+    "value": "b3d2a90efa50c128b0d252e023bce0e6068e4965632226f5429d5211f3f365bc"
+  },
+  "observedText": {
+    "method": "chirality.app.exact-bytes.sha256/v1",
+    "value": "b3d2a90efa50c128b0d252e023bce0e6068e4965632226f5429d5211f3f365bc"
+  },
+  "nativePageCount": 1,
+  "nativeSourceReceipts": [
+    {
+      "receiptPosition": 15,
+      "requestIdentity": 6,
+      "sourceRef": "host-request068b993d-c69d-4f0e-bedf-f265e7031af5:client:6"
+    }
+  ],
+  "sourceState": "genuine current native pages checked; text comparison below",
+  "comparisonState": "equal_claimed_text",
+  "nativeTurnStatus": "failed",
+  "http400CauseEstablished": true,
+  "providerObservations": [
+    {
+      "bytes": 78206,
+      "marker": "parent_fixture_f058acc2bb644f84a58cf2fc9e955060",
+      "method": "POST",
+      "path": "/v1/responses",
+      "requestSha256": "1e16ffbf9eaaeaf307d0228c451157ec76fe87385aa8e7ff4f8d89b9e2122aec",
+      "responseSent": true,
+      "status": 400
+    }
+  ],
+  "developmentStart": {
+    "allowUnverifiedDev": true,
+    "qualifiedDistribution": false,
+    "supplierStanding": "unverified-development",
+    "transition": "LT-24"
+  },
+  "actualModelUsed": false,
+  "childAgentSpawned": false,
+  "credentialsUsed": false,
+  "nativeUiUsed": false,
+  "nativeA15": "not performed",
+  "modelAdoption": "unknown",
+  "runStanding": "no active/completed workflow execution inferred",
+  "cleanup": {
+    "clean": true,
+    "descendantReaping": "Host/harness reaps its children while alive; orphan reaping belongs to OS, not claimed by launcher",
+    "errors": [],
+    "events": [
+      {
+        "pid": 50368,
+        "result": "absent; retired, never signal again",
+        "signal": 15
+      },
+      {
+        "pid": 50369,
+        "result": "absent; retired, never signal again",
+        "signal": 15
+      }
+    ],
+    "harnessPid": 50367,
+    "harnessReaped": true,
+    "ownedGroups": [
+      {
+        "pgid": 50368,
+        "pid": 50368,
+        "registeredBeforeExec": true,
+        "retired": true,
+        "stage": 1
+      },
+      {
+        "pgid": 50369,
+        "pid": 50369,
+        "registeredBeforeExec": true,
+        "retired": true,
+        "stage": 2
+      }
+    ],
+    "ownershipChannelClosed": true
+  },
+  "evidenceRoot": "/private/tmp/chirality-workflow-native-witness-832ec9-run2",
+  "limits": [
+    "Actual production backend selection/preparation/scoped send/page APIs are exercised; no Tauri IPC, file picker or native dialog is exercised.",
+    "Copied spawn instrumentation registers owned groups for bounded cleanup; uninstrumented process-lifecycle qualification is not inferred.",
+    "A genuine current native-page check and equal text are distinct from model uptake, successful workflow execution, human capture and registration.",
+    "Canonical WR/RS run/supply publication and lifecycle remain separate unfinished receiving obligations.",
+    "This witness binds832ec9 only; later file-act code has separate validation.",
+    "Run1 LT24 refusal remains preserved; explicit development allowance does not make the distribution qualified."
+  ],
+  "rawSha256": {
+    "launcher-result.json": "0748eb850303610e0a909eb8a11098559280e071b7cda59ec918a194e13007b3",
+    "witness-result.json": "f1342a3e5a96158c65eceeba46c02f24289a761112a331ad3c3f7a57c4b42777",
+    "test-output.log": "e27146eb55a83ce2add729890bdf2c36f81dae47cc1f545e1244bd6df7c8edbe",
+    "cleanup.json": "fccd9e000f6d2840fc07e4e75e102e15ef09d79cd9323d37f89839c895378268",
+    "launch-binding.json": "31f298ee0f3fd4d2e44c606cad2f2dfbbdfe6bca8caf8fd91e75130783705416",
+    "home-creation.json": "90dcd52b54c54f53465790699cbf4347625064dbca973e89704738dc6f54d51f",
+    "provider-observations.jsonl": "966a2e8fe1d49b224aa93d1fcbc203b7c8f08e1af7db106ea90d15ad9f00fae0"
+  }
+}

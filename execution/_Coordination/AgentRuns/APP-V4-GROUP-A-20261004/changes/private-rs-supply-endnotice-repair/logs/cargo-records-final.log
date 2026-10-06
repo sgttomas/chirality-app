@@ -1,0 +1,102 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/private/tmp/rs-supply-endnotice-repair/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2857:13
+     |
+2857 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1134:19
+     |
+ 391 | impl Host {
+     | --------- method in this implementation
+...
+1134 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:458:19
+    |
+458 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+458 -     RepairPending(String),
+458 +     RepairPending(()),
+    |
+
+warning: field `selection` is never read
+   --> src/workflow_record_store.rs:387:5
+    |
+385 | pub struct PublishedRunText {
+    |            ---------------- field in this struct
+386 |     prepared: PreparedRunText,
+387 |     selection: ResolvedRecord,
+    |     ^^^^^^^^^
+    |
+    = note: `PublishedRunText` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `selection_record` is never used
+   --> src/workflow_record_store.rs:455:12
+    |
+448 | impl PublishedRunText {
+    | --------------------- method in this implementation
+...
+455 |     pub fn selection_record(&self) -> &ResolvedRecord {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (lib test) generated 8 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.79s
+     Running unittests src/lib.rs (/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 12 tests
+test records::supply::tests::a_missing_turn_never_falls_back_to_client_id_or_number ... ok
+test records::supply::tests::equal_value_under_different_method_is_not_verified ... ok
+test records::supply::tests::exact_start_identity_is_not_shortened_or_reinterpreted ... ok
+test records::supply::tests::resolved_claim_joins_reject_wrong_scope_basis_and_content ... ok
+test records::supply::tests::six_states_are_preserved_with_unknown_adoption_and_history_limit ... ok
+test records::tests::unavailable_validation_refuses_without_creating_a_log ... ok
+test records::tests::entropy_failure_refuses_without_log_or_sequence ... ok
+test records::supply::tests::full_reviewed_native_fixture_and_exclusive_coordinate_negatives_validate ... ok
+test records::supply::tests::end_notice_rejects_wrong_original_scope_missing_link_and_cross_project ... ok
+test records::supply::tests::actual_end_notice_resolves_original_source_and_preserves_end_content ... ok
+test records::supply::tests::actual_end_publisher_original_receiver_fails_and_repaired_receiver_cold_reads ... ok
+test records::supply::tests::actual_start_cold_reader_rejects_rs_turn_purpose_method_and_state_drift ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 244 filtered out; finished in 0.86s
+

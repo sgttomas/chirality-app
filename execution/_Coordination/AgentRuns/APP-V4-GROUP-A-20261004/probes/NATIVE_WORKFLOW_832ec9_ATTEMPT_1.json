@@ -1,0 +1,100 @@
+{
+  "candidate": "832ec9de93f9d2f28bf536a323bef2d93e06d9f7",
+  "standing": "FAILED precondition; workflow receiving not exercised",
+  "exitCode": 101,
+  "failure": "Host refused unverifiable development distribution because fixture omitted the explicit development allowance. Main checksum did not grant full distribution qualification.",
+  "guardScope": "Only supplier --version probe started; app-server stage2 not launched. No provider contact, actual model, authentication, native UI or human act occurred.",
+  "savedEvidence": "/private/tmp/chirality-workflow-native-witness-832ec9-run1",
+  "invocation": {
+    "candidate": "832ec9de93f9d2f28bf536a323bef2d93e06d9f7",
+    "compiledBindingSha256": "4ff42e8c6c30e3ad5fdde7869d78a8a534441b77be8315aa93b4082c27639e9c",
+    "executableSha256": "d9a02ece0f053805f5a2bde7732965af24484784a279d407804f82d5c2c0067a",
+    "fixtureSha256": "55259658b63ac4040533eb740480d5886583d11ddb258143285a6d240fe1f735",
+    "holdingManifest": {
+      "REVIEW-NOTES.md": {
+        "bytes": 13778,
+        "mode": "0o644",
+        "sha256": "4ab54fd3e222382561b075741ed3b7e281e5f11003f12bd1304ffa3c747d81ab"
+      },
+      "WORKFLOW.md": {
+        "bytes": 16030,
+        "mode": "0o644",
+        "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+      }
+    },
+    "homeCreation": [
+      {
+        "command": [
+          "/usr/bin/mktemp",
+          "-d",
+          "/private/tmp/chirality-parent-stock-wf-04hi5b44/codex-home-mktemp.XXXXXX"
+        ],
+        "createdBy": "mktemp -d",
+        "device": 16777233,
+        "inode": 252845740,
+        "mode": "0o700",
+        "movedFrom": "/private/tmp/chirality-parent-stock-wf-04hi5b44/codex-home-mktemp.Dxk0PB",
+        "returncode": 0,
+        "sameFilesystemMove": true,
+        "stderr": "",
+        "stdout": "/private/tmp/chirality-parent-stock-wf-04hi5b44/codex-home-mktemp.Dxk0PB\n",
+        "usedAt": "/private/tmp/chirality-parent-stock-wf-04hi5b44/codex-home"
+      },
+      {
+        "command": [
+          "/usr/bin/mktemp",
+          "-d",
+          "/private/tmp/chirality-parent-stock-wf-04hi5b44/probe-home-mktemp.XXXXXX"
+        ],
+        "createdBy": "mktemp -d",
+        "device": 16777233,
+        "inode": 252845742,
+        "mode": "0o700",
+        "movedFrom": "/private/tmp/chirality-parent-stock-wf-04hi5b44/probe-home-mktemp.zw9nbj",
+        "returncode": 0,
+        "sameFilesystemMove": true,
+        "stderr": "",
+        "stdout": "/private/tmp/chirality-parent-stock-wf-04hi5b44/probe-home-mktemp.zw9nbj\n",
+        "usedAt": "/private/tmp/chirality-parent-stock-wf-04hi5b44/probe-home"
+      }
+    ],
+    "id": "421d3cdc-18de-49e6-b3b7-f7804fd1e735",
+    "launcherSha256": "d23f869af818acda66579054caa804156a4fa1208dc9b7daf2ca4fe6966eca44",
+    "providerMarker": "parent_fixture_8d64f3b47fe147a58d089d4c8d65a27d",
+    "root": "/private/tmp/chirality-parent-stock-wf-04hi5b44",
+    "supplierManifestSha256": "04898a5adac06aecba185c2e313b4758292c2c20c24e3da441da2b6fd617791e",
+    "test": "runtime_session::parent_stock_workflow_witness::parent_only_stock_workflow_roundtrip"
+  },
+  "cleanup": {
+    "clean": true,
+    "descendantReaping": "Host/harness reaps its children while alive; orphan reaping belongs to OS, not claimed by launcher",
+    "errors": [],
+    "events": [
+      {
+        "pid": 47823,
+        "result": "absent; retired, never signal again",
+        "signal": 15
+      }
+    ],
+    "harnessPid": 47822,
+    "harnessReaped": true,
+    "ownedGroups": [
+      {
+        "pgid": 47823,
+        "pid": 47823,
+        "registeredBeforeExec": true,
+        "retired": true,
+        "stage": 1
+      }
+    ],
+    "ownershipChannelClosed": true
+  },
+  "rawSha256": {
+    "test-output.log": "6abb8a31e6ea98455f62b1187a0fb6d57bd827a83a87b3bafbe6da3c1863417b",
+    "launcher-result.json": "6bd4f43606e3c501dd675862771c0ed3b75fa64fabf266c305ee1a33c04020e9",
+    "cleanup.json": "1c5a515672bbb624a5d246e7e37102608ff41dc9464da16d5c942ffeb33903f5",
+    "launch-binding.json": "3332ff605231da5dd732ae4e24b0eb057a2330136bc9c861e9cda623ed359233",
+    "home-creation.json": "813a4408f18c8995640315977177feb97a84543b4e83a11c95be9a8196f47e8e"
+  },
+  "disposition": "Original fixture owner identified missing existing LT24 opt-in. Host production verification is unchanged; explicit bounded development allowance and source/artifact review are required before another attempt."
+}

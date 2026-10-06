@@ -1,0 +1,254 @@
+{
+  "candidate": "/private/tmp/chirality-recovery-root-01hhku68/app",
+  "checkedSource": "/private/tmp/chirality-recovery-root-01hhku68/checked/app",
+  "sourceManifestSha256": "5dc6e30bc4757ce5e3168af94b81c8325e0c3f570bbac90f73ff4dccd96a1e44",
+  "patchSha256": "96c1373cf42e0a9f6c28023b4382d10adebdbf86eb7ebcf7900dbfdfecd5e714",
+  "sourceUnchangedFromPreparation": true,
+  "executable": "/private/tmp/chirality-recovery-root-01hhku68/validation/checked-lib-tests",
+  "executableSha256": "203574e3c1d236d5b463d59fcfb5be2a78069ada9cf65ee5b99caa847f80b74e",
+  "distinctPasses": 56,
+  "checks": [
+    {
+      "label": "first-connected",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "recovery_root_tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 7.795238256454468,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "8fa12a3f59fd14b57a478923fa84d7fc6d336b08eba9c721cedbc4dcc614f03e",
+      "passes": 4,
+      "names": [
+        "hosting::recovery_root_tests::recovery_root_actual_source_queue_durable_reopen_remains_pointer_only",
+        "hosting::recovery_root_tests::recovery_root_foreign_home_generation_and_busy_root_cannot_retarget",
+        "hosting::recovery_root_tests::recovery_root_missing_project_index_stays_memory_only_and_read_never_flushes",
+        "hosting::recovery_root_tests::recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source"
+      ]
+    },
+    {
+      "label": "custody-core",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "execution_custody_tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 3.8423879146575928,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "5109d4fc42c9333b86fbe515937693febe37e9412d604e6e2fe92ad3843247a1",
+      "passes": 15,
+      "names": [
+        "hosting::execution_custody_tests::append_failure_keeps_original_execution_rows_for_later_flush",
+        "hosting::execution_custody_tests::cold03_exact_adopted_schema_examples_and_old_reader_boundary",
+        "hosting::execution_custody_tests::cold03_item_completion_and_terminal_settle_only_matching_turn_tuples",
+        "hosting::execution_custody_tests::cold03_item_only_competing_turns_and_same_labels_retain_exact_associations",
+        "hosting::execution_custody_tests::cold03_legacy_unknown_stays_unknown_beside_live_turn_without_migration",
+        "hosting::execution_custody_tests::delayed_older_generation_row_cannot_replace_newer_cold_observation",
+        "hosting::execution_custody_tests::missing_index_stays_hot_only_and_status_has_no_write_effect",
+        "hosting::execution_custody_tests::queued_facts_stay_distinct_and_context_tags_survive",
+        "hosting::execution_custody_tests::rc1_item_only_and_competing_turn_pointers_survive_reopen_without_live_inference",
+        "hosting::execution_custody_tests::rc3_terminal_method_with_active_status_never_revives_custody",
+        "hosting::execution_custody_tests::separate_home_equal_labels_and_fork_provenance_remain_separate",
+        "hosting::execution_custody_tests::source_quit_loss_and_clean_end_require_actual_live_pointer",
+        "hosting::execution_custody_tests::source_to_durable_loss_and_restart_without_ui_poll",
+        "hosting::execution_custody_tests::terminal_completion_and_foreign_receipts_do_not_revive_custody",
+        "hosting::execution_custody_tests::unavailable_and_legacy_generation_projection_retains_limits_without_actions"
+      ]
+    },
+    {
+      "label": "app-custody",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "app_custody",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 1.2594759464263916,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "8271a17bedafda5ec9c5b74f1a3b1489691df32039cc31a0c2ca6b2027f48f2a",
+      "passes": 7,
+      "names": [
+        "hosting::conversation_transport_tests::app_custody_context_refresh_preserves_both_home_indexes_and_shared_hot_claims",
+        "hosting::conversation_transport_tests::app_custody_named_cr7_environment_removal_uses_only_explicit_canaries",
+        "hosting::conversation_transport_tests::app_custody_one_session_shared_actual_ledger_equal_request_ids_and_recreated_counter",
+        "hosting::conversation_transport_tests::app_custody_retired_host_queue_survives_actual_drop_recreation_flush_and_end",
+        "hosting::conversation_transport_tests::app_custody_retired_queue_io_failure_keeps_actual_facts_and_error_without_end_replay",
+        "hosting::conversation_transport_tests::app_custody_shared_paused_writer_retains_source_order_and_actual_stop",
+        "hosting::conversation_transport_tests::app_custody_unavailable_original_ledger_no_relocation_and_no_json_session_adoption"
+      ]
+    },
+    {
+      "label": "metadata-writer",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "recovery_custody_rc2",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.32312583923339844,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "9a6aee33f3eee8578357d7f80cf0582c0697b368e2bf56fef26366201c15b88f",
+      "passes": 1,
+      "names": [
+        "hosting::conversation_transport_tests::recovery_custody_rc2_cross_session_actual_tag_writer_keeps_new_metadata"
+      ]
+    },
+    {
+      "label": "recovery-ledger",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "recovery::",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 0.46880578994750977,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "b7dd82ae8cccdea1de0da468b4a0a51d20dcc783dc6883516eb3e10e6759b3c9",
+      "passes": 10,
+      "names": [
+        "recovery::connected_transition_repair_tests::actual_reducer_error_settlement_ack_and_closure_map_to_distinct_rows",
+        "recovery::framing_repair_tests::complete_unclosed_and_torn_tail_are_rejected_without_modifying_bytes",
+        "recovery::generation_tests::no_spawn_has_no_generation_required_ledger_event",
+        "recovery::generation_tests::tagged_generation_roundtrips_and_distinguishes_unicode_home_and_session",
+        "recovery::reviewed_later_error_adoption_tests::actual_later_error_write_ack_failure_and_closure_adopt_rt14_rt15",
+        "recovery::reviewed_later_error_adoption_tests::receipt_errors_remain_rq08_and_refused_later_errors_create_no_summary",
+        "recovery::reviewed_later_error_adoption_tests::receiving_guard_rejects_foreign_post_close_and_failed_write_ack_shapes",
+        "recovery::tests::malformed_or_payload_bearing_ledger_fails_closed_without_write",
+        "recovery::tests::relaunch_keeps_full_generation_and_never_payload_or_answer",
+        "recovery::transition_repair_tests::receipt_errors_and_observed_ack_use_their_adopted_custody_rows"
+      ]
+    },
+    {
+      "label": "workflow-root",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "workflow_root",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 2.307568073272705,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "cde1d4d4b44af37f4c8404f5e22251f1c0955f5703dfc5462e980ed2eeb6ad47",
+      "passes": 8,
+      "names": [
+        "runtime_session::workflow_root_tests::workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages",
+        "runtime_session::workflow_root_tests::workflow_root_closed_selection_real_review_hot_receipt_and_transaction",
+        "runtime_session::workflow_root_tests::workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend",
+        "runtime_session::workflow_root_tests::workflow_root_whole_selected_copy_changes_and_library_alias_are_refused",
+        "runtime_session::workflow_root_tests::workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root",
+        "runtime_session::workflow_root_tests::workflow_root_wrc1_busy_review_selection_refuses_without_global_wait",
+        "workflow_root_context_tests::file_act_actual_observer_checks_original_context_and_fails_fast_under_contention",
+        "workflow_root_context_tests::workflow_root_actual_observe_preserves_offline_context_and_refuses_retarget"
+      ]
+    },
+    {
+      "label": "file-act-consumer",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "file_act_consumer_tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 1.3593990802764893,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "7d950a24c791064ed3f8200de859e20dfbd6fe2f32c0879bdcecde4da38e2e8b",
+      "passes": 4,
+      "names": [
+        "file_act_consumer_tests::connected_file_act_all_kinds_and_declines_read_original_capture_without_writes",
+        "file_act_consumer_tests::connected_file_act_dismiss_and_stale_actor_content_root_create_no_act",
+        "file_act_consumer_tests::connected_file_act_reader_does_not_upgrade_missing_or_mismatched_capture",
+        "file_act_consumer_tests::connected_file_act_uncertain_and_record_pending_keep_original_continuation"
+      ]
+    },
+    {
+      "label": "native-history-preservation",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "history_bridge",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/private/tmp/chirality-recovery-root-01hhku68/app/src-tauri",
+      "exit_code": 0,
+      "seconds": 1.712357997894287,
+      "source_sha256": "2bd361e4bd23d9e183402aa8b68e13bf2bcedff29c311895135e26d194123c88",
+      "log_sha256": "96f286e4b620c48fdec639a1202a0da116714158fed713ea57c270bc80a859e6",
+      "passes": 7,
+      "names": [
+        "hosting::conversation_transport_tests::history_bridge_actual_rpc_receipt_before_wait_timeout_clone_and_late_correlation",
+        "hosting::conversation_transport_tests::history_bridge_continue_actual_receive_admit_once_and_text_control",
+        "hosting::conversation_transport_tests::history_bridge_failed_write_foreign_latest_revision_and_closed_refuse_admission",
+        "hosting::conversation_transport_tests::history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup",
+        "hosting::conversation_transport_tests::history_bridge_joined_session_consumes_genuine_history_and_frozen_role_start_receipts",
+        "hosting::conversation_transport_tests::history_bridge_notloaded_direct_false_malformed_and_native_error_keep_raw_no_activation",
+        "hosting::conversation_transport_tests::history_bridge_start_mixed_result_error_envelope_never_admits_and_preserves_raw"
+      ]
+    }
+  ],
+  "versions": {
+    "rustc": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+    "cargo": "cargo 1.92.0 (344c4567c 2025-10-21)",
+    "node": "v24.5.0"
+  },
+  "explicitEnvironment": {
+    "CARGO_HOME": "/tmp/chirality-app-v4-group-a-cargo-home",
+    "CARGO_TARGET_DIR": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/app/src-tauri/target",
+    "CARGO_NET_OFFLINE": "true",
+    "CHIRALITY_SKIP_CODEX": "1"
+  },
+  "removedEnvironment": [
+    "CHIRALITY_CODEX_BIN",
+    "CHIRALITY_CODEX_HOME",
+    "CHIRALITY_CODEX_EXPECTED_SHA256",
+    "CHIRALITY_WORKSPACE"
+  ],
+  "limits": "Synthetic own-code controls only; no supplier/native UI/auth/model/network execution; no lifecycle or release acceptance."
+}

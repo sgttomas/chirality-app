@@ -1,0 +1,1046 @@
+--- a/src-tauri/src/hosting.rs
++++ b/src-tauri/src/hosting.rs
+@@ -22,6 +22,8 @@
+ //! Still outstanding: automatic restart rules (§4.4), native recovery reads,
+ //! quit/relaunch integration and the per-home configuration link.
+ 
++#[path = "execution_custody.rs"]
++mod execution_custody;
+ #[path = "attachment_custody.rs"]
+ pub mod attachment_custody;
+ use attachment_custody::AttachmentCustody;
+@@ -168,6 +170,7 @@
+     stop_record: Option<Value>,
+     threads: Vec<Value>,
+     conversation_turns: Vec<Value>,
++    execution_custody: execution_custody::ExecutionCustody,
+     turn_request_threads: HashMap<String, (Value, String, u64)>,
+     interrupt_requests: Vec<Value>,
+     stderr_bytes: u64,
+@@ -523,6 +526,26 @@
+         }).cloned().collect();
+         json!({"snapshot":snapshot,"generation":i.generation,"position":i.receipt_position,"gap":gap,"frames":frames})
+     }
++    /// Read-only App metadata, never admission to native/act/dispatch authority.
++    pub fn recovery_custody(&self) -> crate::recovery::RecoveryCustodyView {
++        let i=self.inner.0.lock().unwrap();
++        let pending=i.pending_recovery.facts.lock().unwrap().len();
++        crate::recovery::RecoveryCustodyView::from_owner(
++            &i.app_session, i.recovery_snapshot.as_ref(), i.execution_custody.snapshot(),
++            pending,
++            i.recovery_initialization_error.as_deref().or(i.recovery_error.as_deref()))
++    }
++    fn persist_execution(i:&mut Inner) {
++        let mut history=i.recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array()).cloned().unwrap_or_default();
++        history.extend(i.pending_recovery.facts.lock().unwrap().iter().cloned());
++        for row in i.execution_custody.rows(&i.generation,&history) {
++            match RecoveryLedger::validate_pointer_entry(&row) {
++                Ok(()) if i.recovery.is_some()=>i.pending_recovery.facts.lock().unwrap().push_back(row),
++                Ok(())=>i.recovery_error=Some("execution pointer observation is memory-only; App ledger unavailable".into()),
++                Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":i.generation,"limit":error,"standing":"execution pointer projection refused; no native payload copied"}));}
++            }
++        }
++    }
+     fn persist_requests(i:&mut Inner){
+         if i.recovery.is_none(){return;}
+         for request in i.server_requests.entries(){let mut history=i.recovery_snapshot.as_ref().and_then(|s|s["entries"].as_array()).cloned().unwrap_or_default();history.extend(i.pending_recovery.facts.lock().unwrap().iter().cloned());match RecoveryLedger::request_summary_entry(&request,&history){Ok(Some(entry))=>i.pending_recovery.facts.lock().unwrap().push_back(entry),Ok(None)=>{},Err(error)=>{i.recovery_error=Some(error.clone());i.recovery_projection_errors.push(json!({"generation":request["generation"],"requestIdentity":request["requestId"],"method":request["method"],"limit":error,"standing":"pointer projection unavailable; original request source retained"}));}}}
+@@ -564,12 +587,18 @@
+         let _writer=self.recovery_writer.lock().unwrap();self.drain_recovery_owned();self.refresh_recovery_observation();
+         let(ledger,rows)={let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;(i.recovery.clone(),Self::context_rows(i.recovery_snapshot.as_ref()))};
+         let existing=home.and_then(|h|rows.iter().rev().find(|e|e["home"]==h&&e["threadId"]==thread)).cloned();
+-        if let Some(index)=existing{return Ok(json!({"indexSnapshot":index,"projectContext":context.view(),"standing":"historical App index retained; current reference does not transfer/backfill it"}));}
++        if let Some(index)=existing{
++            let mut i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,home)?;
++            i.execution_custody.bind(generation,thread,&index);Self::persist_execution(&mut i);drop(i);self.drain_recovery_owned();
++            return Ok(json!({"indexSnapshot":index,"projectContext":context.view(),"standing":"historical App index retained; current reference does not transfer/backfill it"}));}
+         let(Some(home),Some(project),Some(ledger))=(home,context.reference(),ledger)else{return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":"known owning home/project/index ledger absent: no project-bearing row; hot-only/cold lookup unavailable"}));};
+         let at=now_rfc3339();let entry=json!({"kind":"conversation_index","session":generation["appSession"],"at":at,"threadId":thread,"home":home,"project":project,"tags":[],"lastObservedExecution":{"state":"indexed","at":at},"lastLoadedGeneration":crate::recovery::generation_ref(generation)?});
+         {let i=self.inner.0.lock().unwrap();Self::context_scope(&i,generation,thread,Some(home))?;}
+         let(result,snapshot)={let mut ledger=ledger.lock().unwrap();let result=ledger.append(entry.clone());(result,ledger.snapshot())};let mut i=self.inner.0.lock().unwrap();i.recovery_snapshot=Some(snapshot);if let Err(error)=result{i.recovery_error=Some(error.clone());return Ok(json!({"indexSnapshot":null,"projectContext":context.view(),"limit":format!("CURRENT index append unavailable: {error}; no durable association claimed")}));}
+-        let changed=i.generation!=*generation||i.server_requests.is_closed(generation);Ok(json!({"indexSnapshot":entry,"projectContext":context.view(),"standing":"CURRENT App admission observation indexed; not earlier-history/native provenance","scopeChangedDuringIO":changed}))
++        let changed=i.generation!=*generation||i.server_requests.is_closed(generation);
++        if !changed {i.execution_custody.bind(generation,thread,&entry);Self::persist_execution(&mut i);}
++        drop(i);self.drain_recovery_owned();
++        Ok(json!({"indexSnapshot":entry,"projectContext":context.view(),"standing":"CURRENT App admission observation indexed; not earlier-history/native provenance","scopeChangedDuringIO":changed}))
+     }
+     /// Owning NIR interpretation of existing REC opaque tags. Real prepared
+     /// submission/native namespace remains the private Host source authority.
+@@ -869,6 +898,9 @@
+             }
+         }
+         let generation = i.generation.clone();
++        let cause=if i.stop_record.is_some() {if i.stop_record.as_ref().is_some_and(|s|s["reason"]=="App quit") {"app-quit"} else {"supplier-stop"}} else {"supplier-exit"};
++        i.execution_custody.close(&generation,cause,&i.server_requests.entries(),&now_rfc3339());
++        Self::persist_execution(i);
+         Self::oauth_lost(i,&generation);
+         let ended = i.server_requests.close(&generation);
+         Self::persist_requests(i);
+@@ -1603,6 +1635,8 @@
+         } else {
+             i.conversation_turns.push(json!({"generation":generation,"threadId":thread,"turnId":native["id"],"nativeTurn":native,"source":source,"receiptPosition":position,"terminalEventObserved":source=="turn/completed","observationEnded":false}));
+         }
++        i.execution_custody.turn(generation,thread,native,&now_rfc3339());
++        Self::persist_execution(i);
+     }
+ 
+     fn check_conversation_request(i: &Inner, method: &str, params: &Value) -> Result<(), String> { Self::check_conversation_request_excluding(i,method,params,None) }
+@@ -1728,6 +1762,10 @@
+             if let Some(thread) = frame["params"]["threadId"].as_str() {
+                 Self::remember_turn(&mut i, &gen, thread, &frame["params"]["turn"], frame["method"].as_str().unwrap(), pos);
+             }
++        }
++        if class == "notification" && matches!(frame["method"].as_str(),Some("item/started"|"item/completed")) {
++            i.execution_custody.item(&gen,&frame["params"],frame["method"]=="item/completed",&now_rfc3339());
++            Self::persist_execution(&mut i);
+         }
+         if class == "malformed" {
+             i.malformed += 1;
+@@ -1758,6 +1796,7 @@
+                 let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
+                 drop(i);
+                 if let Some(source) = attachment_source { let _ = self.persist_attachment_observation(&source); }
++                self.flush_recovery_observations();
+                 return;
+             }
+             // Uncorrelated response: surfaced, never dropped (§5).
+@@ -2910,3 +2949,7 @@
+     }
+ 
+ }
++
++#[cfg(test)]
++#[path = "execution_custody_tests.rs"]
++mod execution_custody_tests;
+--- a/src-tauri/src/recovery.rs
++++ b/src-tauri/src/recovery.rs
+@@ -291,6 +291,9 @@
+     fn guard_descriptor(path:&std::path::Path,binding:&Arc<NativeNamespaceBindings>,file:&File)->Result<(),String>{
+         use std::os::unix::fs::MetadataExt;binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;let fd=file.metadata().map_err(|e|e.to_string())?;let named=std::fs::symlink_metadata(path).map_err(|e|e.to_string())?;
+         if !fd.is_file()||fd.nlink()!=1||!named.is_file()||named.nlink()!=1||fd.dev()!=named.dev()||fd.ino()!=named.ino(){return Err("REC owning regular leaf/descriptor association is redirected or hard-aliased".into());}Ok(())
++    }
++    pub(crate) fn validate_pointer_entry(entry:&Value)->Result<(),String>{
++        validator()?.validate(entry).map_err(|e|format!("execution pointer schema refused: {e}"))
+     }
+     pub fn append(&mut self, entry: Value) -> Result<(), String> {
+         if let Some(binding)=&self.namespaces{self.preflight_namespaces(binding)?;}
+@@ -945,3 +948,59 @@
+         std::fs::remove_file(path).unwrap();
+     }
+ }
++
++/// Read-only custody projection issued by the owning Host. There is deliberately
++/// no Deserialize/JSON constructor or conversion to a live source capability.
++#[derive(Clone, Debug)]
++pub struct RecoveryCustodyView { document: Value }
++impl RecoveryCustodyView {
++    pub fn snapshot(&self)->Value {self.document.clone()}
++    pub(crate) fn from_owner(session:&str,ledger:Option<&Value>,live:Value,pending:usize,error:Option<&str>)->Self {
++        let rows=ledger.and_then(|l|l["entries"].as_array()).cloned().unwrap_or_default();
++        let mut limits=Vec::<String>::new();
++        if ledger.is_none(){limits.push("App history unavailable; no cold execution custody established".into());}
++        if pending>0{limits.push("Captured pointer observations remain unpersisted; restart coverage is incomplete".into());}
++        if let Some(error)=error{limits.push(error.into());}
++        let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
++        let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);
++        let prior=current.and_then(|r|r["previousSession"].as_str());
++        let end=prior.and_then(|s|rows.iter().rev().find(|r|r["kind"]=="session_ended"&&r["session"]==s));
++        // Delayed old source appends cannot eclipse a later App session or a
++        // later generation of the same physical home. Equal-thread references
++        // in different home namespaces are never merged.
++        let mut latest=std::collections::BTreeMap::<(String,String,String),(usize,u64,usize,Value)>::new();
++        for (position,row) in rows.iter().enumerate().filter(|(_,r)|r["kind"]=="conversation_index") {
++            let Some(reference)=row["lastLoadedGeneration"].as_str() else{continue;};
++            let Ok(g)=generation_from_ref(reference) else{limits.push("Historical execution row lacks canonical full generation; retained in ledger, not joined".into());continue;};
++            if g["appSession"]!=row["session"] {limits.push("Historical execution row session/generation mismatch; not joined".into());continue;}
++            let Some(rank)=starts.iter().find(|(_,s)|s["session"]==row["session"]).map(|(n,_)|*n) else{limits.push("Historical execution row session start unavailable; not joined".into());continue;};
++            let (Some(home),Some(thread),Some(physical))=(row["home"].as_str(),row["threadId"].as_str(),g["home"].as_str()) else{continue;};
++            let key=(home.to_string(),physical.to_string(),thread.to_string());
++            let order=(rank,g["spawnCounter"].as_u64().unwrap(),position);
++            if latest.get(&key).is_none_or(|(a,b,c,_)|order>(*a,*b,*c)) {latest.insert(key,(order.0,order.1,order.2,row.clone()));}
++        }
++        let mut historical=Vec::new();let mut events=Vec::new();
++        for ((_,_,thread),(_,_,_,row)) in latest {
++            let execution=&row["lastObservedExecution"];
++            let is_prior=prior.is_some_and(|p|row["session"]==p);
++            let live_turn=execution["liveTurn"].as_str().filter(|s|!s.is_empty());
++            if is_prior&&matches!(execution["state"].as_str(),Some("turn-live"|"interrupt-pending"|"observation-lost")) {
++                if let Some(turn)=live_turn {
++                    // A clean session end does not prove a live turn survived to
++                    // quit. Only a captured app-quit loss supplies that reading.
++                    let prior_end=match end {
++                        None=>Some("ended-without-record"),
++                        Some(e) if e["how"]=="system-terminated"=>Some("system-terminated"),
++                        Some(_) if execution["lostCause"]=="app-quit"=>Some("quit-with-live-work"),
++                        _=>None,
++                    };
++                    if let (Some(prior_end),Some(current))=(prior_end,current) {
++                        events.push(json!({"kind":"app_restart_interruption","eventId":format!("cev:restart:{}:{}:{}",session,row["lastLoadedGeneration"].as_str().unwrap(),thread),"appSession":session,"at":current["at"],"standing":"App-observed","threadId":thread,"home":row["home"],"priorSession":row["session"],"priorSessionEnd":prior_end,"liveTurnsAtEnd":[{"threadId":thread,"turnId":turn}]}));
++                    } else {limits.push(format!("{thread}: prior loss/live observation retained; live work at clean App end is not established"));}
++                }
++            }
++            historical.push(json!({"index":row,"standing":"Last persisted App pointer observation; not current Codex state or live authority","nativeHistory":"read separately from Codex; not supplied by this projection"}));
++        }
++        Self{document:json!({"live":live,"restartEvents":events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
++    }
++}
+--- a/src-tauri/src/execution_custody.rs
++++ b/src-tauri/src/execution_custody.rs
+@@ -0,0 +1,116 @@
++//! Pointer-only execution custody owned by Host's admitted source path.
++//! No native payload, external-operation inference or live capability is retained.
++use serde_json::{json, Value};
++use std::collections::{BTreeMap, BTreeSet};
++use crate::recovery::generation_ref;
++
++#[derive(Default)]
++struct Conversation {
++    binding: Option<Value>,
++    turn: Option<String>,
++    terminal: BTreeSet<String>,
++    open: BTreeMap<(String, String), String>,
++    completed: BTreeSet<(String, String)>,
++    state: &'static str,
++    at: String,
++    cause: Option<&'static str>,
++}
++#[derive(Default)]
++pub(super) struct ExecutionCustody {
++    conversations: BTreeMap<(String, String), Conversation>,
++    closed: BTreeSet<String>,
++    events: Vec<Value>,
++    limits: Vec<String>,
++}
++impl ExecutionCustody {
++    fn conversation(&mut self, generation: &Value, thread: &str) -> Option<&mut Conversation> {
++        let key = generation_ref(generation).ok()?;
++        if thread.is_empty() || self.closed.contains(&key) { return None; }
++        Some(self.conversations.entry((key,thread.into())).or_insert_with(|| Conversation {state:"loaded-idle", ..Default::default()}))
++    }
++    /// Called only after the owning Host has admitted the actual context/index.
++    pub(super) fn bind(&mut self, generation:&Value, thread:&str, index:&Value) {
++        if let Some(row)=self.conversation(generation,thread) {row.binding=Some(index.clone());}
++    }
++    pub(super) fn turn(&mut self, generation:&Value, thread:&str, native:&Value, at:&str) {
++        let Some(id)=native["id"].as_str().filter(|s|!s.is_empty()) else{return;};
++        let Some(status)=native["status"].as_str() else{return;};
++        if !matches!(status,"inProgress"|"completed"|"interrupted"|"failed") {return;}
++        let Some(row)=self.conversation(generation,thread) else{return;};
++        if row.terminal.contains(id) {return;}
++        if status=="inProgress" {
++            // Native turn lifecycle, not a model/renderer-selected target.
++            row.turn=Some(id.into());row.state="turn-live";
++        } else {
++            row.terminal.insert(id.into());
++            row.open.retain(|(turn,_),_|turn!=id);
++            if row.turn.as_deref()==Some(id) {row.turn=None;row.state="loaded-idle";}
++        }
++        row.at=at.into();
++    }
++    pub(super) fn item(&mut self,generation:&Value,params:&Value,completed:bool,at:&str) {
++        let (Some(thread),Some(turn),Some(id),Some(kind))=(params["threadId"].as_str(),params["turnId"].as_str(),params["item"]["id"].as_str(),params["item"]["type"].as_str()) else{return;};
++        if [thread,turn,id,kind].iter().any(|s|s.is_empty()) {return;}
++        let Some(row)=self.conversation(generation,thread) else{return;};
++        if row.terminal.contains(turn) {return;}
++        let key=(turn.to_string(),id.to_string());
++        if completed {row.open.remove(&key);row.completed.insert(key);}
++        else if !row.completed.contains(&key) {row.open.insert(key,kind.into());}
++        row.at=at.into();
++    }
++    /// Reconcile with the current owning index so concurrent tag additions survive.
++    pub(super) fn rows(&mut self,generation:&Value,history:&[Value])->Vec<Value> {
++        let Ok(g)=generation_ref(generation) else{return Vec::new();};
++        let mut result=Vec::new();
++        for ((key,thread),row) in self.conversations.iter_mut().filter(|((key,_),_)|key==&g) {
++            let Some(binding)=&row.binding else{continue;};
++            let Some(base)=history.iter().rev().find(|e|e["kind"]=="conversation_index"&&e["threadId"]==*thread&&e["home"]==binding["home"]) else{continue;};
++            if row.at.is_empty(){continue;}
++            let mut execution=json!({"state":row.state,"at":row.at});
++            if let Some(turn)=&row.turn {
++                execution["liveTurn"]=json!(turn);
++                execution["openItems"]=json!(row.open.iter().filter(|((t,_),_)|t==turn).map(|((_,id),kind)|json!({"itemId":id,"itemType":kind})).collect::<Vec<_>>());
++            }
++            if let Some(cause)=row.cause {execution["lostCause"]=json!(cause);}
++            // Timestamp alone never creates another durable observation.
++            let mut old=base["lastObservedExecution"].clone();let mut new=execution.clone();
++            old.as_object_mut().map(|o|o.remove("at"));new.as_object_mut().map(|o|o.remove("at"));
++            if old==new&&base["lastLoadedGeneration"]==*key {continue;}
++            let mut entry=base.clone();entry["session"]=generation["appSession"].clone();entry["at"]=json!(row.at);
++            entry["lastLoadedGeneration"]=json!(key);entry["lastObservedExecution"]=execution;
++            result.push(entry);
++        }
++        result
++    }
++    pub(super) fn close(&mut self,generation:&Value,cause:&'static str,requests:&[Value],at:&str) {
++        let Ok(g)=generation_ref(generation) else{return;};
++        if !self.closed.insert(g.clone()){return;}
++        let mut homes:BTreeMap<String,Vec<String>>=BTreeMap::new();
++        for ((key,thread),row) in self.conversations.iter_mut().filter(|((key,_),_)|key==&g) {
++            let _=key;
++            row.state="observation-lost";row.cause=Some(cause);row.at=at.into();
++            if let Some(home)=row.binding.as_ref().and_then(|b|b["home"].as_str()) {homes.entry(home.into()).or_default().push(thread.clone());}
++            else {self.limits.push(format!("{g} thread {thread}: owning App index/home absent; loss references are memory-only, cold lookup unavailable"));}
++        }
++        for (home,threads) in homes {
++            let mut turns=Vec::new();let mut items=Vec::new();
++            for thread in &threads {
++                let row=&self.conversations[&(g.clone(),thread.clone())];
++                if let Some(turn)=&row.turn {turns.push(json!({"threadId":thread,"turnId":turn}));}
++                for ((turn,id),kind) in &row.open {
++                    items.push(json!({"threadId":thread,"turnId":turn,"itemId":id,"itemType":kind,"lastObservedStatus":"inProgress"}));
++                }
++            }
++            let outstanding=requests.iter().filter(|r|r["generation"]==*generation&&r["state"]=="outstanding"&&r["nativeParameters"]["threadId"].as_str().is_some_and(|t|threads.iter().any(|s|s==t))).filter_map(|r|{
++                let method=r["method"].as_str()?;let id=r.get("requestId")?;
++                let mut subject=json!({"threadId":r["nativeParameters"]["threadId"]});
++                for k in ["turnId","itemId"] {if let Some(v)=r["nativeParameters"][k].as_str().filter(|s|!s.is_empty()){subject[k]=json!(v);}}
++                Some(json!({"generation":g,"requestIdentity":id.to_string(),"method":method,"subject":subject}))
++            }).collect::<Vec<_>>();
++            self.events.push(json!({"kind":"observation_lost","eventId":format!("cev:{}:{}",g,home),"appSession":generation["appSession"],"at":at,"standing":"App-observed","home":home,"generation":g,"cause":cause,"conversations":threads,"liveTurns":turns,"inFlightItems":items,"outstandingEntries":outstanding}));
++        }
++    }
++    pub(super) fn snapshot(&self)->Value {
++        json!({"events":self.events,"limits":self.limits,"observations":self.conversations.iter().map(|((generation,thread),row)|json!({"generation":generation,"threadId":thread,"state":row.state,"liveTurn":row.turn,"openItems":row.open.iter().map(|((turn,id),kind)|json!({"turnId":turn,"itemId":id,"itemType":kind})).collect::<Vec<_>>(),"indexKnown":row.binding.is_some(),"standing":"App-observed pointer state; persistence is reported separately"})).collect::<Vec<_>>()})
++    }
++}
+--- a/src-tauri/src/execution_custody_tests.rs
++++ b/src-tauri/src/execution_custody_tests.rs
+@@ -0,0 +1,72 @@
++//! Synthetic native-source controls; no supplier/process/model execution.
++use super::*;
++use crate::recovery::{ExplicitAppProjectContext, AppProjectSource};
++struct Fixture {host:Host, root:PathBuf, g:Value}
++impl Fixture {
++    fn new()->Self {
++        let root=std::env::temp_dir().join(opaque_id("rec-custody-").unwrap());std::fs::create_dir(&root).unwrap();
++        let host=Host::new();host.configure_recovery(root.join("ledger.jsonl")).unwrap();
++        let g={let mut i=host.inner.0.lock().unwrap();let g=json!({"appSession":i.app_session,"home":"owned-physical-home","spawnCounter":1});i.generation=g.clone();i.home="owned-physical-home".into();i.spawn_counter=1;i.state="ready".into();i.threads.push(json!({"generation":g,"threadId":"t"}));g};
++        Self{host,root,g}
++    }
++    fn index(&self){self.host.observe_conversation_project(&self.g,"t",Some("H-acct"),&ExplicitAppProjectContext::known("P",AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();}
++    fn frame(&self,method:&str,params:Value){self.host.on_line(&serde_json::to_vec(&json!({"method":method,"params":params})).unwrap(),&self.g);}
++    fn turn(&self,status:&str){self.frame(if status=="inProgress"{"turn/started"}else{"turn/completed"},json!({"threadId":"t","turn":{"id":"u","status":status,"items":[]}}));}
++    fn item(&self,method:&str,id:&str){self.frame(method,json!({"threadId":"t","turnId":"u","item":{"id":id,"type":"commandExecution","status":"inProgress","command":"NEVER_PERSIST_THIS","output":"NEVER_COPY_OUTPUT"}}));}
++    fn close(&self){Host::close_generation(&mut self.host.inner.0.lock().unwrap());self.host.flush_recovery_observations();}
++    fn rows(&self)->Vec<Value>{self.host.snapshot()["recovery"]["entries"].as_array().unwrap().clone()}
++}
++impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
++fn validate_event(event:&Value){let schema:Value=serde_json::from_str(include_str!("../resources/runtime_core/recovery.custody-event.schema.json")).unwrap();jsonschema::options().offline().build(&schema).unwrap().validate(event).unwrap();}
++#[test]
++fn source_to_durable_loss_and_restart_without_ui_poll(){
++    let f=Fixture::new();f.index();f.turn("inProgress");f.item("item/started","i");
++    f.close();let view=f.host.recovery_custody().snapshot();let event=&view["live"]["events"][0];validate_event(event);
++    assert_eq!(event["inFlightItems"][0]["itemId"],"i");assert_eq!(event["cause"],"supplier-exit");
++    let rows=f.rows();let index=rows.iter().rev().find(|r|r["kind"]=="conversation_index").unwrap();
++    assert_eq!(index["lastObservedExecution"]["state"],"observation-lost");assert_eq!(index["lastObservedExecution"]["openItems"][0]["itemId"],"i");
++    let bytes=std::fs::read_to_string(f.root.join("ledger.jsonl")).unwrap();assert!(!bytes.contains("NEVER_"));
++    let mut reopened=RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();reopened.start_session("new-app-session","candidate").unwrap();
++    let restored=crate::recovery::RecoveryCustodyView::from_owner("new-app-session",Some(&reopened.snapshot()),json!({}),0,None).snapshot();
++    validate_event(&restored["restartEvents"][0]);assert_eq!(restored["restartEvents"][0]["priorSessionEnd"],"ended-without-record");assert_eq!(restored["automaticResume"],false);
++    assert_eq!(f.host.snapshot()["clientRequests"],json!([]));
++    let before=f.rows();f.close();let again=f.host.recovery_custody().snapshot();assert_eq!(f.rows(),before);assert_eq!(again["live"]["events"].as_array().unwrap().len(),1);
++}
++#[test]
++fn terminal_completion_and_foreign_receipts_do_not_revive_custody(){
++    let f=Fixture::new();f.index();f.turn("inProgress");f.item("item/started","i");f.item("item/completed","i");f.item("item/started","i");
++    f.turn("completed");f.turn("inProgress");f.item("item/started","late");
++    let foreign=json!({"appSession":f.g["appSession"],"home":"other","spawnCounter":1});
++    f.host.on_line(&serde_json::to_vec(&json!({"method":"item/started","params":{"threadId":"t","turnId":"u","item":{"id":"foreign","type":"reasoning"}}})).unwrap(),&foreign);
++    f.close();let view=f.host.recovery_custody().snapshot();let event=&view["live"]["events"][0];validate_event(event);assert_eq!(event["liveTurns"],json!([]));assert_eq!(event["inFlightItems"],json!([]));
++    let mut reopened=RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();reopened.start_session("next","c").unwrap();assert_eq!(crate::recovery::RecoveryCustodyView::from_owner("next",Some(&reopened.snapshot()),json!({}),0,None).snapshot()["restartEvents"],json!([]));
++}
++#[test]
++fn missing_index_stays_hot_only_and_status_has_no_write_effect(){
++    let f=Fixture::new();f.turn("inProgress");f.item("item/started","i");let before=f.rows();let _=f.host.recovery_custody();assert_eq!(f.rows(),before);
++    f.close();assert!(f.rows().iter().all(|r|r["kind"]!="conversation_index"));let view=f.host.recovery_custody().snapshot();assert_eq!(view["live"]["events"],json!([]));assert!(!view["live"]["limits"].as_array().unwrap().is_empty());assert_eq!(view["live"]["observations"][0]["openItems"][0]["itemId"],"i");
++}
++#[test]
++fn queued_facts_stay_distinct_and_context_tags_survive(){
++    let f=Fixture::new();f.index();
++    // Emulate a legitimate prior owning tag append using the actual ledger.
++    {let mut i=f.host.inner.0.lock().unwrap();let ledger=i.recovery.as_ref().unwrap().clone();let mut l=ledger.lock().unwrap();let mut row=l.snapshot()["entries"].as_array().unwrap().iter().rev().find(|r|r["kind"]=="conversation_index").unwrap().clone();row["tags"]=json!([{"owner":"receiver","value":"opaque","seq":1}]);l.append(row).unwrap();i.recovery_snapshot=Some(l.snapshot());}
++    f.host.observe_conversation_project(&f.g,"t",Some("H-acct"),&ExplicitAppProjectContext::known("Q",AppProjectSource::OpenedDirectory).unwrap()).unwrap();
++    let writer=f.host.recovery_writer.lock().unwrap();f.turn("inProgress");f.item("item/started","i");
++    let view=f.host.recovery_custody().snapshot();assert!(view["pendingPointerFacts"].as_u64().unwrap()>0);assert_eq!(view["historicalConversations"][0]["index"]["lastObservedExecution"]["state"],"indexed");
++    let before=f.rows();let _=f.host.recovery_custody();assert_eq!(f.rows(),before);drop(writer);f.host.flush_recovery_observations();
++    let rows=f.rows();let last=rows.iter().rev().find(|r|r["kind"]=="conversation_index").unwrap();assert_eq!(last["project"],"P");assert_eq!(last["tags"][0]["value"],"opaque");assert_eq!(last["lastObservedExecution"]["state"],"turn-live");
++}
++#[test]
++fn append_failure_keeps_original_execution_rows_for_later_flush(){
++    let f=Fixture::new();f.index();let path=f.root.join("ledger.jsonl");let backup=f.root.join("original");std::fs::rename(&path,&backup).unwrap();std::fs::create_dir(&path).unwrap();
++    f.turn("inProgress");f.item("item/started","i");f.close();let pending=f.host.snapshot()["recoveryPendingObservations"].clone();assert!(!pending.as_array().unwrap().is_empty());assert!(!f.host.recovery_custody().snapshot()["limits"].as_array().unwrap().is_empty());
++    std::fs::remove_dir(&path).unwrap();std::fs::rename(&backup,&path).unwrap();f.host.flush_recovery_observations();let rows=f.rows();for row in pending.as_array().unwrap(){assert_eq!(rows.iter().filter(|r|*r==row).count(),1);}assert_eq!(f.host.recovery_custody().snapshot()["pendingPointerFacts"],0);
++}
++#[test]
++fn delayed_older_generation_row_cannot_replace_newer_cold_observation(){
++    let f=Fixture::new();f.index();f.turn("inProgress");f.item("item/started","i");let old=f.rows().iter().rev().find(|r|r["kind"]=="conversation_index").unwrap().clone();
++    let mut current=old.clone();let next=json!({"appSession":f.g["appSession"],"home":f.g["home"],"spawnCounter":2});current["lastLoadedGeneration"]=json!(crate::recovery::generation_ref(&next).unwrap());current["lastObservedExecution"]=json!({"state":"loaded-idle","at":"new"});
++    let mut ledger=RecoveryLedger::open(f.root.join("ledger.jsonl")).unwrap();ledger.append(current).unwrap();ledger.append(old).unwrap();ledger.start_session("new","c").unwrap();
++    let view=crate::recovery::RecoveryCustodyView::from_owner("new",Some(&ledger.snapshot()),json!({}),0,None).snapshot();assert_eq!(view["historicalConversations"][0]["index"]["lastObservedExecution"]["state"],"loaded-idle");assert_eq!(view["restartEvents"],json!([]));
++}
+--- a/src-tauri/resources/runtime_core/recovery.custody-event.schema.json
++++ b/src-tauri/resources/runtime_core/recovery.custody-event.schema.json
+@@ -0,0 +1,664 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "urn:chirality:app-v4:del-01-02:custody-event:0.2",
++  "title": "DEL-01-02 custody event — observation and recovery facts offered to receivers (PROPOSED)",
++  "description": "EXECUTION_AND_RECOVERY.md §4 and §9. DEL-01-02's own format, offered to DEL-01-04, DEL-01-03, DEL-04-03 (DEP-01-02-020), DEL-02-03 and DEL-03-03. DEL-01-02 writes no entry in DEL-04-03's record format (R17-10); the receiving writer maps these facts (§9 table). No kind here is a human act, an approval or a run end.",
++  "oneOf": [
++    {
++      "$ref": "#/$defs/observation_lost"
++    },
++    {
++      "$ref": "#/$defs/observation_recovered"
++    },
++    {
++      "$ref": "#/$defs/turn_outcome"
++    },
++    {
++      "$ref": "#/$defs/request_ended_unanswered"
++    },
++    {
++      "$ref": "#/$defs/acknowledgment_not_observed"
++    },
++    {
++      "$ref": "#/$defs/app_restart_interruption"
++    }
++  ],
++  "$defs": {
++    "observation_lost": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "kind",
++        "eventId",
++        "appSession",
++        "at",
++        "standing",
++        "home",
++        "generation",
++        "cause",
++        "conversations",
++        "liveTurns",
++        "inFlightItems",
++        "outstandingEntries"
++      ],
++      "properties": {
++        "kind": {
++          "const": "observation_lost"
++        },
++        "eventId": {
++          "type": "string",
++          "pattern": "^cev:.+"
++        },
++        "appSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "at": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "standing": {
++          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
++          "const": "App-observed"
++        },
++        "home": {
++          "$ref": "#/$defs/home"
++        },
++        "generation": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "cause": {
++          "description": "Only an end of the supplier generation is an observation loss. Closing, hiding or reloading a window is not (R17-3; §2 DEF-1).",
++          "enum": [
++            "supplier-exit",
++            "supplier-stop",
++            "app-quit",
++            "system-termination"
++          ]
++        },
++        "conversations": {
++          "type": "array",
++          "minItems": 1,
++          "items": {
++            "type": "string",
++            "minLength": 1
++          }
++        },
++        "liveTurns": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/turnRef"
++          }
++        },
++        "inFlightItems": {
++          "description": "Items started and not completed at the loss (ADAPTER PI-6 input).",
++          "type": "array",
++          "items": {
++            "type": "object",
++            "required": [
++              "threadId",
++              "turnId",
++              "itemId",
++              "itemType",
++              "lastObservedStatus"
++            ],
++            "additionalProperties": false,
++            "properties": {
++              "threadId": {
++                "type": "string",
++                "minLength": 1
++              },
++              "turnId": {
++                "type": "string",
++                "minLength": 1
++              },
++              "itemId": {
++                "type": "string",
++                "minLength": 1
++              },
++              "itemType": {
++                "type": "string",
++                "minLength": 1
++              },
++              "lastObservedStatus": {
++                "enum": [
++                  "inProgress"
++                ]
++              }
++            }
++          }
++        },
++        "outstandingEntries": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/entryRef"
++          }
++        }
++      }
++    },
++    "observation_recovered": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "kind",
++        "eventId",
++        "appSession",
++        "at",
++        "standing",
++        "threadId",
++        "home",
++        "generation",
++        "via",
++        "priorEvents",
++        "turns"
++      ],
++      "properties": {
++        "kind": {
++          "const": "observation_recovered"
++        },
++        "eventId": {
++          "type": "string",
++          "pattern": "^cev:.+"
++        },
++        "appSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "at": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "standing": {
++          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
++          "const": "App-observed"
++        },
++        "threadId": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "home": {
++          "$ref": "#/$defs/home"
++        },
++        "generation": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "via": {
++          "enum": [
++            "thread/read",
++            "thread/resume"
++          ]
++        },
++        "priorEvents": {
++          "enum": [
++            "accessible",
++            "unavailable"
++          ]
++        },
++        "unavailableReason": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "turns": {
++          "type": "array",
++          "items": {
++            "type": "object",
++            "required": [
++              "turnId",
++              "supplierStatus",
++              "appReading"
++            ],
++            "additionalProperties": false,
++            "properties": {
++              "turnId": {
++                "type": "string",
++                "minLength": 1
++              },
++              "supplierStatus": {
++                "enum": [
++                  "interrupted",
++                  "completed",
++                  "failed",
++                  "inProgress",
++                  "absent"
++                ]
++              },
++              "appReading": {
++                "type": "string",
++                "minLength": 1
++              },
++              "historyNote": {
++                "description": "G-5 (R18-7): on a graceful stop with a live turn Codex 0.158.0 writes into history that the user interrupted the turn on purpose (OBS-2 §5.2). Stated from the App's own record of the stop; the App does not parse history text.",
++                "const": "graceful-stop abort note (Codex 0.158.0, observed OBS-2)"
++              }
++            }
++          }
++        }
++      },
++      "if": {
++        "properties": {
++          "priorEvents": {
++            "const": "unavailable"
++          }
++        }
++      },
++      "then": {
++        "required": [
++          "unavailableReason"
++        ]
++      }
++    },
++    "turn_outcome": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "kind",
++        "eventId",
++        "appSession",
++        "at",
++        "standing",
++        "threadId",
++        "turnId",
++        "outcome",
++        "source"
++      ],
++      "properties": {
++        "kind": {
++          "const": "turn_outcome"
++        },
++        "eventId": {
++          "type": "string",
++          "pattern": "^cev:.+"
++        },
++        "appSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "at": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "standing": {
++          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
++          "const": "App-observed"
++        },
++        "threadId": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "turnId": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "outcome": {
++          "enum": [
++            "completed",
++            "interrupted",
++            "failed",
++            "unknown"
++          ]
++        },
++        "source": {
++          "enum": [
++            "observed",
++            "recovered-from-supplier",
++            "not-observed"
++          ]
++        },
++        "cause": {
++          "description": "cancel-answer (C-13): no stop request; the person's cancel answer to a tool-permission request in this turn, after which Codex declined the item and interrupted the turn (observed OBS-2 §5.1).",
++          "enum": [
++            "person-interrupt",
++            "quit",
++            "codex-stop",
++            "cancel-answer"
++          ]
++        },
++        "stopRequest": {
++          "type": "string",
++          "pattern": "^stop:.+"
++        },
++        "causeRequest": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "itemsNotCompleted": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/notCompleted"
++          }
++        },
++        "descendantsActive": {
++          "type": "array",
++          "items": {
++            "$ref": "#/$defs/descendant"
++          }
++        }
++      },
++      "allOf": [
++        {
++          "if": {
++            "properties": {
++              "outcome": {
++                "const": "unknown"
++              }
++            }
++          },
++          "then": {
++            "properties": {
++              "source": {
++                "const": "not-observed"
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "properties": {
++              "source": {
++                "const": "not-observed"
++              }
++            }
++          },
++          "then": {
++            "properties": {
++              "outcome": {
++                "const": "unknown"
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "properties": {
++              "cause": {
++                "const": "cancel-answer"
++              }
++            },
++            "required": [
++              "cause"
++            ]
++          },
++          "then": {
++            "required": [
++              "causeRequest"
++            ],
++            "not": {
++              "required": [
++                "stopRequest"
++              ]
++            },
++            "properties": {
++              "outcome": {
++                "const": "interrupted"
++              }
++            }
++          }
++        }
++      ]
++    },
++    "request_ended_unanswered": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "kind",
++        "eventId",
++        "appSession",
++        "at",
++        "standing",
++        "entry",
++        "context"
++      ],
++      "properties": {
++        "kind": {
++          "const": "request_ended_unanswered"
++        },
++        "eventId": {
++          "type": "string",
++          "pattern": "^cev:.+"
++        },
++        "appSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "at": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "standing": {
++          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
++          "const": "App-observed"
++        },
++        "entry": {
++          "$ref": "#/$defs/entryRef"
++        },
++        "context": {
++          "$ref": "#/$defs/lossContext"
++        }
++      }
++    },
++    "acknowledgment_not_observed": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "kind",
++        "eventId",
++        "appSession",
++        "at",
++        "standing",
++        "entry",
++        "settlementOrigin",
++        "context"
++      ],
++      "properties": {
++        "kind": {
++          "const": "acknowledgment_not_observed"
++        },
++        "eventId": {
++          "type": "string",
++          "pattern": "^cev:.+"
++        },
++        "appSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "at": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "standing": {
++          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
++          "const": "App-observed"
++        },
++        "entry": {
++          "$ref": "#/$defs/entryRef"
++        },
++        "settlementOrigin": {
++          "type": "string",
++          "pattern": "^(person-via-interaction|app-explicit-error|app-rule:.+)$"
++        },
++        "context": {
++          "$ref": "#/$defs/lossContext"
++        }
++      }
++    },
++    "app_restart_interruption": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "kind",
++        "eventId",
++        "appSession",
++        "at",
++        "standing",
++        "threadId",
++        "home",
++        "priorSession",
++        "priorSessionEnd",
++        "liveTurnsAtEnd"
++      ],
++      "properties": {
++        "kind": {
++          "const": "app_restart_interruption"
++        },
++        "eventId": {
++          "type": "string",
++          "pattern": "^cev:.+"
++        },
++        "appSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "at": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "standing": {
++          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
++          "const": "App-observed"
++        },
++        "threadId": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "home": {
++          "$ref": "#/$defs/home"
++        },
++        "priorSession": {
++          "$ref": "#/$defs/nonempty"
++        },
++        "priorSessionEnd": {
++          "enum": [
++            "quit-with-live-work",
++            "ended-without-record",
++            "system-terminated"
++          ]
++        },
++        "liveTurnsAtEnd": {
++          "type": "array",
++          "minItems": 1,
++          "items": {
++            "$ref": "#/$defs/turnRef"
++          }
++        }
++      }
++    },
++    "nonempty": {
++      "type": "string",
++      "minLength": 1
++    },
++    "turnRef": {
++      "type": "object",
++      "required": [
++        "threadId",
++        "turnId"
++      ],
++      "additionalProperties": false,
++      "properties": {
++        "threadId": {
++          "type": "string",
++          "minLength": 1
++        },
++        "turnId": {
++          "type": "string",
++          "minLength": 1
++        }
++      }
++    },
++    "subject": {
++      "description": "Supplier references carried as data (HOSTING §6.1 subject references); never payload content.",
++      "type": "object",
++      "required": [
++        "threadId"
++      ],
++      "additionalProperties": false,
++      "properties": {
++        "threadId": {
++          "type": "string",
++          "minLength": 1
++        },
++        "turnId": {
++          "type": "string",
++          "minLength": 1
++        },
++        "itemId": {
++          "type": "string",
++          "minLength": 1
++        }
++      }
++    },
++    "entryRef": {
++      "description": "A register entry by reference: generation, identity, method and subject only. Native parameters are never carried (R17-4).",
++      "type": "object",
++      "required": [
++        "generation",
++        "requestIdentity",
++        "method"
++      ],
++      "additionalProperties": false,
++      "properties": {
++        "generation": {
++          "type": "string",
++          "minLength": 1
++        },
++        "requestIdentity": {
++          "type": "string",
++          "minLength": 1
++        },
++        "method": {
++          "type": "string",
++          "minLength": 1
++        },
++        "subject": {
++          "$ref": "#/$defs/subject"
++        }
++      }
++    },
++    "descendant": {
++      "type": "object",
++      "required": [
++        "kind",
++        "ref",
++        "observedStatus"
++      ],
++      "additionalProperties": false,
++      "properties": {
++        "kind": {
++          "enum": [
++            "child-thread",
++            "background-terminal",
++            "process"
++          ]
++        },
++        "ref": {
++          "type": "string",
++          "minLength": 1
++        },
++        "observedStatus": {
++          "enum": [
++            "active",
++            "ended",
++            "unknown"
++          ]
++        }
++      }
++    },
++    "lossContext": {
++      "enum": [
++        "supplier-exit",
++        "supplier-stop",
++        "app-quit",
++        "system-termination",
++        "app-ended-without-record"
++      ]
++    },
++    "home": {
++      "description": "The App-owned Codex home (DECISION-L L-1): H-acct, or H-key for API-key conversations.",
++      "type": "string",
++      "pattern": "^H-[a-z]+$"
++    },
++    "notCompleted": {
++      "description": "G-4 (R18-7): an item opened in the turn and never completed, settled at turn end.",
++      "type": "object",
++      "required": [
++        "itemId",
++        "itemType"
++      ],
++      "additionalProperties": false,
++      "properties": {
++        "itemId": {
++          "type": "string",
++          "minLength": 1
++        },
++        "itemType": {
++          "type": "string",
++          "minLength": 1
++        },
++        "settled": {
++          "const": "not completed (turn ended)"
++        }
++      }
++    }
++  }
++}

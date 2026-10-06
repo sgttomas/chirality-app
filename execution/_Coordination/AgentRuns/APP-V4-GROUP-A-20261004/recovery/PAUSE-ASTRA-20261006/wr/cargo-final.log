@@ -1,0 +1,48 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/private/tmp/wr-publication-astra/app/src-tauri)
+error[E0432]: unresolved imports `super::super::super::OwnerRunEnd`, `super::super::super::PreparedRunText`, `super::super::super::RegisteredRevision`, `super::super::super::RunEndReason`, `super::super::super::RunScope`, `super::super::super::Snapshot`
+   --> src/workflow_record_store_tests.rs:157:9
+    |
+157 |         OwnerRunEnd, PreparedRunText, RegisteredRevision, RunEndReason, RunScope, Snapshot,
+    |         ^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^  ^^^^^^^^ no `Snapshot` in the root
+    |         |            |                |                   |             |
+    |         |            |                |                   |             no `RunScope` in the root
+    |         |            |                |                   no `RunEndReason` in the root
+    |         |            |                no `RegisteredRevision` in the root
+    |         |            no `PreparedRunText` in the root
+    |         no `OwnerRunEnd` in the root
+    |
+    = help: consider importing this struct instead:
+            crate::workflow_workspace::OwnerRunEnd
+    = help: consider importing this struct instead:
+            crate::workflow_workspace::PreparedRunText
+    = help: consider importing one of these items instead:
+            crate::workflow_workspace::RegisteredRevision
+            crate::workflow_workspace::SelectionAdmission::RegisteredRevision
+    = help: consider importing this enum instead:
+            crate::workflow_workspace::RunEndReason
+    = help: consider importing this struct instead:
+            crate::workflow_workspace::RunScope
+    = help: consider importing this struct instead:
+            crate::workflow_workspace::Snapshot
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2857:13
+     |
+2857 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0432`.
+warning: `chirality-app-v4` (lib test) generated 2 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 1 previous error; 2 warnings emitted

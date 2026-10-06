@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.2",
+  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.3",
   "title": "DEL-01-02 App ledger entry — what the App keeps across relaunch (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §7. Append-only, one entry per line (as RS S-A); location and technology unselected (TBD-002). Pointers and App-observed facts only: no message, item, plan, command text, tool output or request payload is kept; those are read back from Codex (ARCHITECTURE §3; R17-4).",
   "oneOf": [
@@ -311,6 +311,11 @@
                     "minLength": 1
                   },
                   "itemType": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "turnId": {
+                    "description": "CC-REC-ITEM-TURN-CUSTODY: actual observed opaque native turn reference. Absent means unknown; never infer from liveTurn. Scope is enclosing thread/home/lastLoadedGeneration.",
                     "type": "string",
                     "minLength": 1
                   }

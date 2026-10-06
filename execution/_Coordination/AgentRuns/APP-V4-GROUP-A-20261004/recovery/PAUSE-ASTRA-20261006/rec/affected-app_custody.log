@@ -1,0 +1,12 @@
+
+running 7 tests
+test hosting::conversation_transport_tests::app_custody_context_refresh_preserves_both_home_indexes_and_shared_hot_claims ... ok
+test hosting::conversation_transport_tests::app_custody_named_cr7_environment_removal_uses_only_explicit_canaries ... ok
+test hosting::conversation_transport_tests::app_custody_one_session_shared_actual_ledger_equal_request_ids_and_recreated_counter ... ok
+test hosting::conversation_transport_tests::app_custody_retired_host_queue_survives_actual_drop_recreation_flush_and_end ... ok
+test hosting::conversation_transport_tests::app_custody_retired_queue_io_failure_keeps_actual_facts_and_error_without_end_replay ... ok
+test hosting::conversation_transport_tests::app_custody_shared_paused_writer_retains_source_order_and_actual_stop ... ok
+test hosting::conversation_transport_tests::app_custody_unavailable_original_ledger_no_relocation_and_no_json_session_adoption ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 243 filtered out; finished in 1.03s
+

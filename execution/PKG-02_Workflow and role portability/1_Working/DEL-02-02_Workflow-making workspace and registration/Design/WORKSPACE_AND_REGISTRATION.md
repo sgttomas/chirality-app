@@ -595,3 +595,113 @@ The run-start text is, in this order, each line ended by a line feed:
 ### CC-WR-TEXT-METHOD-ADOPTION receiving boundary
 
 Bounded 2026-10-05 source adoption; historical fixture identities remain intact. Receiver fields remain `run_text.text_identity`, `run_text.workflow_file.content`, and `supply_check.expected_text/expected_workflow/observed_text`, each `{method,value}`; `supply_check.state` adds `incomparable`. WR package identity/ID-2/RB-1…RB-4 and native supply/registration evidence remain independent. Product I2 must separately adopt the reviewed schema/semantics. No human gate, authentication, act, registration or model adoption is inferred.
+
+### 16.8 Immutable App supplier publication (CC-WR-RECORD-PUBLICATION)
+
+This bounded App allocation completes §8 and SC-1/SC-5 under RS §13.7's
+App-local Rust/project ownership. It does not allocate an external host service.
+
+**WP-1 Location and identity.** The Rust WR publisher writes one immutable UTF-8
+JSON envelope per selection_record, run_text or supply_check at the explicitly
+opened owning project's `.chirality/records/workflow/<record-key>.json`.
+`record-key` is a newly minted lowercase UUID; the reference is exactly
+`wr-record:v1:<record-key>`. It is a supplier record identity, separate from
+body selection/check/run identities and every native identifier. The filename
+is only its safe mapping. No source-root, library, cwd or user-data inference
+can establish the owning project. Unknown or unwritable project means recording
+unavailable, visibly pending/missing; there is no fallback store.
+
+**WP-2 Envelope.** `workflow-record-envelope.schema.json` defines the versioned
+container. `record_id`, `writer`, `observed_at`, typed `body`, `basis_records`
+and `source_references` are immutable. `observed_at` is the producer's original
+observation/preparation time, not retry time. Body run/conversation and all
+source-qualified workflow identities remain unchanged. Selection may precede
+run opening; publication never creates a run. A run-start run_text cites exactly its
+published selection in basis_records. A run-end-notice run_text cites exactly
+the original published run-start run_text for the same run and conversation;
+that start must resolve through its original selection. Its different purpose
+is the explicit start-to-end source relation, not a disagreement. The end-notice
+body remains unchanged: no workflow tuple or source bytes are copied into it.
+A supply_check cites exactly its published run_text, matching that text's
+purpose, run, conversation and expected text identity. When that run_text is a
+run start and the check carries expected_workflow, its method and value must
+equal the run-start workflow_file.content method and value; never compare only
+digest characters or substitute the whole-package revision. This adds no
+workflow_file or expected_workflow requirement to a genuine end notice or its
+check. Selection has no WR basis.
+For start-to-selection compare conversation, selection identifier, workflow
+identity and holding library; for end-to-start compare conversation and run,
+and require the basis purpose to be run start. Resolve every link through the
+same explicit owning-project handle. Only the cited original start supplies
+the end notice's workflow source identity to RS; the end text's own identity
+remains the R3 content identity. Missing, wrong-scope or unresolvable original
+start leaves source receiving incomplete, never repaired by parsing framing or
+copying a tuple from another run. No duplicate coordinate fields in the
+envelope supersede those bodies.
+
+**WP-3 Content boundary.** Existing WR bodies retain their meaning: run_text is
+App-composed guidance metadata and framing, with source bytes linked in the
+immutable revision store, not copied into a new cache. The exact composed text
+is recomputed and checked against text_identity/text_bytes before send. This
+allocation stores neither Codex transcript/items/pages nor generated supplier
+prompts, user messages, model output, credentials or native response bodies.
+supply_check preserves opaque native turn/client/item identities, comparison
+identities, read time and limits. source_references are opaque references to
+actual source observations/receipts; references do not imply their source is
+still available. Do not manufacture a durable receipt from an in-memory token.
+The published check remains a historical observation when a source reference
+later becomes unresolvable; fresh verification requires a new native read/check.
+
+**WP-4 Publish and resolve.** Validate the envelope and body using locally
+registered WR/WD schemas; check WP-2 relations. Serialize once, create a staging
+file in the same owning directory, write and sync it, publish without replacing
+an existing destination, and sync the directory before returning `published`.
+Staging files are never resolvable records. If an identity already exists,
+byte-identical serialized bytes are an idempotent retry; different bytes are
+an identity collision, never overwrite. Retain the original serialized bytes
+for retry. After an uncertain publication result, resolve that same identity
+and verify bytes/durability before declaring success; never mint a replacement
+identity just to hide a failed attempt. The resolver accepts an explicit owning
+project handle and reference, parses only the UUID mapping, enforces containment
+and refuses symlink escapes, validates the complete file and exact record_id,
+and returns resolved/missing/unreadable/invalid/conflicting status. Historical
+unknown envelope versions are preserved and reported unsupported, never coerced.
+No recursive search of other projects or libraries is permitted.
+
+**WP-5 Ordering and failure.** Publish selection then run_text before invoking
+the sender (SC-1). Failed required pre-send publication leaves this prepared
+workflow submission unsent and visibly pending; it neither ends the run nor
+pauses unrelated work or adds a human permission gate. A retry only publishes
+the same pending original records; dispatch remains a separate once-only step
+under the existing native submission/client correlation owner. After dispatch,
+check or RS write failure must never cause resend. Each reread creates a new
+check identity (SC-6); retrying a check's publication preserves its original
+identity, bytes and read_at. R3 is recorded only after its supplier references
+resolve. WR publication and RS append are separate commits: a published WR
+object without R3 is visible missing-in-record, not a supplied-guidance entry.
+Retained RS entries follow W-0…W-2 in original order/time with failure evidence.
+A stopped writer loses unpersisted pending observations; a later run cannot
+back-fill them or reconstruct them from guesses. Restart may resolve existing
+objects and original pending custody only; it does not infer delivery, run end,
+adoption or permission to resend.
+
+**WP-6 Lifetime and handoff.** WR records live with the owning project and are
+not garbage-collected or rewritten by this allocation. Moving the whole project
+preserves references through the explicit new project handle; copying a record
+alone establishes no new provenance. Revision-store/source reference loss is
+reported separately and never repaired by native transcript mirroring. The WR
+publisher returns the durable reference and resolution status to EXEC/Root and
+RS; RS R3 uses supplyRecord for run_text and supplyCheckRecord for the immutable
+check. The RS receiver owns nativeTurn/incomparable admission. Native UUIDs stay
+opaque; no ordinal is fabricated. Publication gives no A15, registered, run-open,
+run-end, model-adoption or product-qualification standing. Selected-development
+evidence cannot be laundered into a registered selection_record.
+
+**WP-7 Required receiving checks.** Before implementation is claimed, exercise
+process-loss reopen; selection→run_text→send ordering; unknown-project refusal;
+no-replace collision and byte-identical retry; torn/staging/sync failures;
+wrong-project, escaping and unsupported references; two rereads versus one
+publication retry; post-send check/R3 failure without resend; source-store loss;
+and native thread/turn/item/client and content correlation for every check state.
+Preserve the existing source-owned native-page comparison path. Lifecycle
+opening/ending/chaining remains EXEC-owned and separately examined.

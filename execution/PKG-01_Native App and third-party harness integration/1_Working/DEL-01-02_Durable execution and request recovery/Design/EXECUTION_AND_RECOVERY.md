@@ -767,6 +767,54 @@ No human decision actor, grant, acceptance or default owner is inferred from
 project context. Prototype input strings are scripted source claims, not a
 production private capability or proof of native origin.
 
+### 7.2 Item-to-turn pointer custody (CC-REC-ITEM-TURN-CUSTODY)
+
+Ledger schema 0.3 extends only each `lastObservedExecution.openItems` object
+with optional nonempty opaque `turnId`. Required `itemId`/`itemType`, enclosing
+thread/home/full `lastLoadedGeneration`, project, tags and all other contracts
+remain unchanged. New source-owned observations MUST retain each actual known
+turnId; unknown historical association remains absent. Absence means unknown,
+including on legacy 0.2 rows: never infer it from liveTurn, native ID spelling,
+receiver tags, current selection or a history lookup. Each known open tuple is
+identified by `(turnId,itemId)` within that enclosing scope. Competing turns
+and repeated item labels in distinct turns remain distinct. An item start alone
+does not establish liveTurn. Completion removes only the matching known tuple;
+a turn terminal observation settles only that turn's tuples under G-4.
+
+Freeze the complete observed pointer snapshot into the existing immutable queue
+before loss closes the source register; append it through the sole ledger writer.
+Retain pending/error standing until actual durable publication succeeds. Restart
+reads the persisted original association and its observation provenance, with
+known/unknown correlation per item. It does not invent a current live turn, replay
+a historical observation_lost as a new event, or fill missing custody references.
+Existing custody schema 0.2 is unchanged: hot observation_lost.inFlightItems has
+its actual thread/turn/item/type references; app_restart_interruption keeps its
+existing conversation/live-work contract and has no item array. Cold pointer
+history supplies known item associations separately, beside native history.
+Item-only evidence cannot manufacture restart live-work. Missing generation or
+correlation limits remain explicit and cannot become a valid full custody tuple.
+
+**Version and older-reader boundary.** The existing contract versions schemas
+by `$id`, not by a record field or ledger header. Preserve the exact 0.2 schema
+as `recovery.app-ledger-entry.v0.2.schema.json`; the current schema file receives
+the distinct `…:app-ledger-entry:0.3` identity. 0.3 accepts old 0.2 rows unchanged
+and new known references; mixed old/new rows use that reader. No historical row
+is rewritten, migrated, deleted or backfilled, and no record version/header,
+ledger kind, sidecar, tag convention or second recorder is introduced. Schema
+optionality is new-reader/old-row compatibility only. A 0.2 reader rejects rows
+carrying turnId because its item shape is closed. It must report that limitation;
+it cannot claim complete recovery from its readable subset. Writing 0.3 pointers
+requires coordinated REC writer/validator/reader and Root consumer adoption;
+returning an older writer to that ledger is unsupported. Preserve the file on
+rollback; do not strip turnId to make old validation pass. This named boundary
+must accompany the candidate and any downgrade instructions. No automatic
+version negotiation or downgrade enforcement is claimed by the schema alone.
+
+This change retains observed references only. It supplies no native-item-to-
+proposal mapping, workflow/run authority, external PI-6 dispatch association,
+human act, acceptance or automatic resume. Independent named source review and
+affected implementation/consumer checks precede adoption and RC1-COLD closure.
+
 ## 8. Formats and the evidence handoff
 
 ### 8.1 Formats (PROPOSED; R17-1; validated by the prototype, C-09)
@@ -775,7 +823,7 @@ production private capability or proof of native origin.
 |---|---|---|---|
 | `recovery.stop-request.schema.json` | `urn:chirality:app-v4:del-01-02:stop-request:0.2` | One stop-request record (§3.4); v0.2 adds `home`, cause *codex-stop* with its labels, `itemsNotCompleted` | `…example.valid.json`: a person's interrupt in H-acct, settled *interrupted*, one item completed after the request, one reasoning item not completed, one child still active. `…example.invalid.json`: *settled* with outcome source *not-observed* (a settled outcome must be observed) |
 | `recovery.custody-event.schema.json` | `urn:chirality:app-v4:del-01-02:custody-event:0.2` | The custody facts offered to receivers: `observation_lost`, `observation_recovered`, `turn_outcome`, `request_ended_unanswered`, `acknowledgment_not_observed`, `app_restart_interruption`. Every event has standing `App-observed`. v0.2 adds `home`; `turn_outcome` causes *codex-stop* and *cancel-answer* (with `causeRequest`, never with a stop request) and `itemsNotCompleted`; `historyNote` on a recovered turn (G-5) | Valid: an `observation_lost` after a supplier exit with a live turn, an in-flight MCP call and an outstanding approval. Invalid: an `observation_lost` with cause `window-closed` (observer loss is not observation loss, DEF-1) |
-| `recovery.app-ledger-entry.schema.json` | `urn:chirality:app-v4:del-01-02:app-ledger-entry:0.2` | The App ledger (§7); v0.2 adds `home`, `forkedFrom`, ordered tags (`seq`), `openItems`, `abortNoteExpected`, and the kind `codex_stop` | Valid: a `register_entry_summary` ended unanswered at a supplier exit. Invalid: a summary carrying the request's native parameters (a command line): content is never copied |
+| `recovery.app-ledger-entry.schema.json` | `urn:chirality:app-v4:del-01-02:app-ledger-entry:0.3` | The App ledger (§7); v0.2 adds `home`, `forkedFrom`, ordered tags (`seq`), `openItems`, `abortNoteExpected`, and the kind `codex_stop` | Valid: a `register_entry_summary` ended unanswered at a supplier exit. Invalid: a summary carrying the request's native parameters (a command line): content is never copied |
 
 No kind in these formats is a human act, an approval, an acceptance, a run
 end or an operation outcome; the schemas have no place for one (C-08 checks

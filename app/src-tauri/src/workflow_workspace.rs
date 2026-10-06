@@ -976,3 +976,7 @@ mod workflow_receiving_tests;
 #[cfg(test)]
 #[path = "workflow_catalog_tests.rs"]
 mod workflow_catalog_tests;
+
+/// Immutable WR evidence publication; resolved JSON confers no live authority.
+#[path = "workflow_record_store.rs"]
+pub mod publication;
