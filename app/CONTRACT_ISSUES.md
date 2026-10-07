@@ -404,3 +404,66 @@ owner or the owner. No Design file was changed.
   only on the person's explicit end (AE-7). The identity itself stays
   App-minted until the EXEC owner supplies or adopts one; a later EXEC identity
   must not relabel runs already recorded under this id.
+- **(c) No end notice after relaunch (J3).** TX-5 and SQ-END require the
+  end notice on the person's next turn after a run ends with no successor.
+  After relaunch, the person can end a run that the record shows open and
+  interrupted (`end_recorded_run`; `run_ended`, *the person*). But the notice is
+  composed only from the typed `PreparedRunText` that the run's own process
+  held. `PreparedEndPublication` deliberately refuses cold evidence ("cold
+  evidence does not create a lifecycle event or a new sendable notice"). So no
+  notice is sent for such an end, and the panel says so. For the WR owner:
+  either permit composing the notice from the resolved run-start `run_text`
+  (name, revision, run) plus the recorded end, or rule that an end after
+  relaunch carries no notice.
+- **(d) REC run tag and restart limit (J3).** EXEC A-2 and §2.7 have the run
+  starter tag the conversation with the run reference through REC
+  `tag / look up / tags of` (RECOVERY §4.1). On relaunch, RS writes the
+  "App-restart interruption" `evidence_limit` on the run that was current. The
+  ledger's tag write is owned by the Host (`hosting.rs`), which supplies only
+  the NIR submission-context tag. J3's fence did not include a run-tag write or
+  a startup RS writer. The App therefore stores no run tag. The record writes
+  no restart limit, and records no automatic RE-4 "interruption not
+  recovered" run-owner end. Reopen instead finds runs and conversations from
+  the project's own RS `run_opened.conversationRef`, and shows the REC
+  `app_restart_interruption` facts that name each conversation. Needed: the
+  Host or REC owner adds a run-tag owner and lookup, and a startup writer for
+  the restart limit.
+- **(e) Start not confirmed, and liveness (J3).** EXEC A-3 says a turn that is
+  not started leaves the run not opened. A refused or unknown start therefore
+  records no `run_opened`, and is not live. A new start in the conversation is
+  allowed. When the outcome was unknown and Codex did start the turn, its text
+  sits in history with no run record (see (a)). After "End ‹A› and start ‹B›",
+  if B's start is not confirmed, A has ended with "ended to start ‹B›", and
+  `end_notice` refuses that cause. Neither B's chain line nor an end notice
+  is then known to have reached the model. For the WR and EXEC owners: decide
+  whether a notice follows in that case.
+- **(f) Predecessor across relaunch (J3).** CH-2 and RE-7: a later run cites
+  the run before it (`follows`, `prior_run`, chain line). The chain is composed
+  only from an `OwnerRunEnd` held by this process, the typed owner callback.
+  A predecessor ended in an earlier process gives the next run no chain line,
+  `follows` or `prior_run`. Needed: a ruling on whether a recorded `run_ended`
+  may supply the owner end for chaining.
+- **(g) Compatibility wiring (J3, with CI-19).**
+  - Root evaluates CK-1 when a selection is prepared for a run in a
+    conversation, and CK-2 immediately before the start turn. Both are made
+    from the run's own selection, holding library, home, generation and
+    conversation. The result is shown and never gates a start.
+  - With no environment collector, the inventory is unobserved, so
+    publication is refused and no R14 is written.
+  - Even a published report has no App store: WR envelopes admit only WR
+    bodies, and RS has no report location. Root would therefore still write no
+    R14 (CI-19 (d)).
+  - `RoleBinding` exposes home and thread but no generation. The
+    same-conversation obligation is met by looking up the binding for the
+    run's own home and thread after the run's generation is checked as
+    current. A missing binding stays `Unknown`.
+  - No catalog edition is ever observed, so CK-3 is never evaluated.
+- **(h) `run_ended.waitingArrivals` (J3).** The App has no checkpoint recorder
+  (EXEC §2.4). `run_ended` writes `waitingArrivals: []`, meaning only that the
+  App recorded no arrivals. It is not evidence that none were reached.
+- **(i) Notice dispatch is counted once (J3).** TX-5 says "once". The notice
+  counts as consumed when its turn is dispatched, whatever the outcome. If
+  Codex refuses it, or the outcome is unknown, it is not resent, and the
+  model may not have received it. The panel shows the outcome. A *native* fork
+  is not observed by the App, which has no `thread/fork` route. A run belongs to
+  its (home, thread), so any other thread, a fork included, has no live run.
