@@ -1348,6 +1348,19 @@ impl Host {
         if e.response.as_ref().unwrap()["result"]!=*observed.page(){return Err("native item final accepted data differs from actual source".into());}
         Ok(NativeItemCoverageSeal{check})
     }
+    /// V9 F-3: every given page equals, in order, the result this Host retained
+    /// for the corresponding sealed source request. Count alone is not a binding.
+    pub(crate) fn native_coverage_pages_match(&self,seal:&NativeItemCoverageSeal,pages:&[Value])->Result<(),String>{
+        if pages.len()!=seal.check.sources.len(){return Err("checked pages differ from the sealed native coverage (count)".into());}
+        let i=self.inner.0.lock().unwrap();
+        for (pin,page) in seal.check.sources.iter().zip(pages){
+            let request=&pin.dispatch.source;
+            let e=i.source_requests.get(&request.request_id().to_string()).ok_or("sealed native page source record unavailable")?;
+            if e.request.request_ref!=request.request_ref||e.request.frame!=request.frame||e.response_position!=Some(pin.receipt_position){return Err("sealed native page source association changed".into());}
+            if e.response.as_ref().and_then(|r|r.get("result"))!=Some(page){return Err("checked page differs from the Host's retained native response".into());}
+        }
+        Ok(())
+    }
 
     pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
         self.check_source(&dispatch.source)?;
@@ -2896,6 +2909,21 @@ mod conversation_transport_tests {
         // Other logical streams remain independent of this accepted item stream.
         let goal=h.read_goal().unwrap();h.receive(&goal,"conversation-home",&g(),&json!({"goal":null})).unwrap();
         let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&next).unwrap()).unwrap();assert_eq!(seal.page_count(),2);assert_eq!(seal.query(),&next);
+    }
+    // V9 F-3: pages bind to the sealed traversal by the Host's retained results, in order.
+    #[test]
+    fn native_coverage_pages_match_only_the_retained_results_in_order(){
+        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(json!("opaque-next"));let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let mut check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
+        let next=h.items_page("turn",check.next_cursor(),Direction::Asc).unwrap();
+        let d=f.host.dispatch_next_native_items_supply_page(&mut check,&next).unwrap();let tail=json!({"data":[],"nextCursor":null});f.reply(&d,&tail);h.receive(&next,"conversation-home",&g(),&tail).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&next).unwrap()).unwrap();f.host.accept_next_native_items_supply_page(&mut check,&page).unwrap();drop(page);
+        let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&next).unwrap()).unwrap();
+        f.host.native_coverage_pages_match(&seal,&[raw.clone(),tail.clone()]).unwrap();
+        assert!(f.host.native_coverage_pages_match(&seal,&[tail.clone(),raw.clone()]).is_err(),"order");
+        assert!(f.host.native_coverage_pages_match(&seal,std::slice::from_ref(&raw)).is_err(),"count");
+        let mut altered=raw.clone();altered["data"][0]["item"]["content"][0]["text"]=json!("substituted");
+        assert!(f.host.native_coverage_pages_match(&seal,&[altered,tail]).is_err(),"bytes");
     }
     #[test]
     fn native_page_mint_omitted_cursor_unknown_and_desc_does_not_seed_supply_check(){

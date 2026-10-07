@@ -4950,7 +4950,7 @@ impl WorkflowRun {
                 );
                 let display = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":generation,"thread":thread,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
                 let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::from_native_coverage(
-                    seal, &pages, published, &turn, &client_id, &check, &read_at,
+                    &self.home.host, seal, &pages, published, &turn, &client_id, &check, &read_at,
                 )?;
                 (completed, display)
             }
@@ -5427,6 +5427,21 @@ for line in sys.stdin:
         let second=run.check_native_supply().unwrap()["check"].clone();
         assert_eq!(second["published"],true);assert_eq!(second["r3"]["state"],"pending write; missing in record","the later R3 waits for the earlier one");
         assert!(peer.fixture.rs_entries().iter().all(|e|!(e["runId"]==reference.as_str()&&e["kind"]=="supplied_guidance")),"nothing appended ahead of the earlier pending R3");
+    }
+    // V9 F-3: the pages used to mint a check must be the Host's custody pages of the sealed
+    // traversal, byte for byte; count alone is not a binding.
+    #[test]
+    fn workflow_root_check_minting_binds_pages_to_host_custody(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("items-mode","paged");
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let published=run.published.take().unwrap();let turn=run.turn_id.clone().unwrap();let generation=run.prepared().scope().generation.clone();
+        let mint=|pages:&dyn Fn(Vec<Value>)->Vec<Value>|{let mut issued=Vec::new();let(seal,genuine)=run.read_native_items(&generation,"thread",&turn,&mut issued).unwrap();
+            crate::workflow_workspace::publication::CompletedSupplyCheck::from_native_coverage(&run.home.host,seal,&pages(genuine),&published,&turn,&run.client_id,"check-F3","read-F3")};
+        assert!(mint(&|p|p).is_ok(),"genuine custody pages mint");
+        assert!(mint(&|mut p|{p[1]["data"][0]["item"]["content"][0]["text"]=json!("substituted text of the same page count");p}).is_err(),"same count, other bytes: refused");
+        assert!(mint(&|mut p|{p.swap(0,1);p}).is_err(),"reordered pages: refused");
+        assert!(mint(&|mut p|{p.pop();p}).is_err(),"fewer pages: refused");
     }
     // Outcome 5: a later process resolves every published record from the project alone.
     #[test]

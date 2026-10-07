@@ -349,9 +349,10 @@ impl ResolvedRecord {
     }
 }
 /// Minted only at the genuine native comparison boundary: a consumed Host
-/// coverage seal plus the pages of that traversal, or (for *unreadable*) the
-/// Host-issued item dispatches. No public constructor, Deserialize or Clone;
-/// JSON or a cold record cannot mint one.
+/// coverage seal plus pages the issuing Host confirms are its retained results
+/// for that traversal; for *unreadable*, the Host-issued item dispatches; for a
+/// refused start, the Host's typed refusal. No public constructor, Deserialize
+/// or Clone; JSON or a cold record cannot mint one.
 #[derive(Debug)]
 pub struct CompletedSupplyCheck {
     body: Value,
@@ -361,9 +362,11 @@ const CHECK_LIMIT: &str = "one source-bound native item traversal checked at its
 const SUPPLY_LIMIT: &str = "supplied is not adopted: model uptake unknown; no run opening, run end, A15 or completion inferred";
 impl CompletedSupplyCheck {
     /// SC-3/SC-4 at the genuine boundary. The seal is consumed: one traversal
-    /// mints at most one check. The caller supplies the accepted pages of that
-    /// same traversal, in order; their count must equal the sealed coverage.
+    /// mints at most one check. The pages must equal, byte for byte and in order,
+    /// the results the issuing Host retained for the sealed source requests
+    /// (V9 F-3: `Host::native_coverage_pages_match`), not merely their count.
     pub(crate) fn from_native_coverage(
+        host: &crate::hosting::Host,
         seal: crate::hosting::NativeItemCoverageSeal,
         pages: &[Value],
         published: &dyn PublishedText,
@@ -380,9 +383,10 @@ impl CompletedSupplyCheck {
         {
             return Err("native coverage belongs to another thread/turn".into());
         }
-        if pages.is_empty() || pages.len() != seal.page_count() {
+        if pages.is_empty() {
             return Err("checked pages differ from the sealed native coverage".into());
         }
+        host.native_coverage_pages_match(&seal, pages)?;
         let mut index = 0;
         let located = super::locate_turn_text(turn, client_id, |_| {
             let page = pages.get(index).cloned().ok_or("no sealed native page")?;
