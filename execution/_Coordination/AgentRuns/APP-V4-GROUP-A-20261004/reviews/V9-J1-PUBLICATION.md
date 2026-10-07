@@ -431,3 +431,188 @@ candidate becomes READY when both of these hold:
 
 F-3, F-4 and F-5 should be repaired or listed as known limits. F-6…F-10 need
 no change before integration.
+
+## Repair confirmation
+
+2026-10-07. Same reviewer, same rules. My only write is this appended section.
+I made no commits and used no network, credentials, `~/.codex`, model calls or
+UI.
+
+### What was checked
+
+- **Repair head:** `152eeac3df1e2df8c9dfc8b82900c42062c93759`.
+- **Repair commits:** `807284e44e` (F-1), `c710820ade` (F-2), `626a26d92e`
+  (F-3), `99ee966a25` (F-4), `7bd20b9255` (F-5) and `152eeac3df` (F-7, CI-20
+  text).
+- **Repair range:** I isolated the repairs with
+  `git diff bd1b9fbc8a 152eeac3df`, where `bd1b9fbc8a` is the WIP J3 lifecycle
+  commit.
+- **Merge commit:** `75306094ed`, the J2 merge, was reviewed as V8 and is not
+  re-reviewed here.
+- **J3:** the WIP J3 commit is out of scope, except where a repair depends on
+  it.
+- **Write fence:** `numstat` for the repair range touches only
+  `CONTRACT_ISSUES.md` (+34/-0), `hosting.rs` (+70/-0), `runtime_session.rs`
+  (+158/-18), `workflow_record_store.rs` (+101/-25) and
+  `workflow_record_store_tests.rs` (+35/-0). That is within J1's fence as
+  extended.
+- **Repaired file hashes (SHA-256) at `152eeac3df`:**
+
+| File | SHA-256 |
+|---|---|
+| `hosting.rs` | `108d63fa18975ec38ecf488938ec86c8e4a19a2abc7fde9c19879a1b2639331a` |
+| `runtime_session.rs` | `19b7bda70ef4aceb18618d09cd3e9b7fc2e969a81fbf94ebc6b3a86b75bf43d8` |
+| `workflow_record_store.rs` | `a463030ced3e1cb40da71de7d34ac101ef540c19ea55db38047a1513692d125a` |
+| `workflow_record_store_tests.rs` | `b530df65cb7a1461c8a03f3d5cf7d95e5a6adac2e2233c36a7d3b04a036b2751` |
+| `CONTRACT_ISSUES.md` | `3498d66fdf407342501eb5c7e6e6d8ea107a8db1ffbbd22158098e08c09ccf9b` |
+
+### Full suite at `152eeac3df`
+
+I ran the brief's full command on a fresh `git archive` copy at
+`$TMPDIR/j1-review2/` (cargo with `--no-fail-fast`). The log's SHA-256 is
+`a1062c35fc9dd81f873f4f0da61da6649499311892d1b7fa3b12499b0c12be5b`.
+
+- `npm run build`: passed.
+- `cargo test`: 44 result lines, **638 passed, 2 failed, 3 ignored**.
+- `npm test`: 3/3 passed.
+
+The **only two failures** are:
+
+| Test | Cause |
+|---|---|
+| `workflow_root_post_send_record_failures_retry_without_resend` | At `runtime_session.rs:5368`, `std::fs::write(.chirality/records/runs)` fails with EISDIR because J3 now creates the runs directory |
+| `workflow_root_fresh_process_resolves_records_without_run_claims` | At `:5482`, it asserts there is no `run_opened`, but J3 now writes one |
+
+They are caused by the WIP, not the repairs. I swapped the four changed source
+files back to their `bd1b9fbc8a` versions in the same copy. Both tests then fail
+identically (same panics at `:5293` and `:5342`), and they are the only
+failures in the filtered J1 suites there. With the files restored to
+`152eeac3df`, `diff -r` against a fresh archive shows `src-tauri/src` is
+identical.
+
+**Credential-RPC tests:** I saw no failure. All 9 `credential_rpc` test lines in
+the full run are `ok`. That is one run only, so this neither confirms nor rules
+out J1's report of load sensitivity.
+
+### Per finding
+
+**F-1 is repaired, conforming to HELP_HUMAN's ruling.**
+- New `Host::prepared_turn_refusal(&SourceRequest) -> Option<NativeTurnRefusal>`
+  (`hosting.rs`). It is purely additive. `NativeTurnRefusal` is `pub(crate)`,
+  with private fields and no Clone or Serde.
+- It returns `Some` only when all of these hold:
+  - the method is `turn/start`;
+  - the retained request matches `request_ref`, `frame` and `generation`;
+  - the frame was fully written, no write attempt is in progress, and there was
+    no write error;
+  - a response exists with the same `id`, no `method`, no `result`, and an
+    `error`.
+- A missing response, a timeout or a write failure returns `None`.
+- `CompletedSupplyCheck::not_found_after_refusal` consumes the refusal. It checks
+  the conversation and client id against the published `run_text`, and the
+  prepared record against that `run_text`. It mints `not found` with no `turn`,
+  `item` or `observed_text`, and it validates the result against the WR schema.
+  Its `source_references` are that request's receipt.
+- R3 becomes `Unavailable`, because `prepare_live` refuses when no turn is
+  present. That matches RS §13.6a.
+- An unknown outcome mints nothing, shows "outcome unknown (CI-20)", and is
+  never resent. CI-20(a) states the gap and the proposal accurately against WR
+  §16.4 and RN-4.
+- **Tests:**
+  - `workflow_root_refused_send_records_not_found_check_and_keeps_r3_unavailable`
+    checks 3 WR files, the body's shape, and the source receipt equal to the
+    run's request.
+  - `workflow_root_unknown_send_outcome_mints_no_check_and_never_resends` uses
+    a peer exit and expects 2 WR files and no check.
+  - The Host unit test covers an error, a result and no response.
+- **Mutations:**
+  - M6a: `prepared_turn_refusal` returns a refusal when there is no response.
+    Caught by the Host test and by the unknown-outcome Root test.
+  - M6b: the refusal is always dropped. Caught by the refused-start Root test.
+
+**F-2 is repaired.**
+- `advance_checks` walks the run's slots in order and lets a slot write its R3
+  only while every earlier slot is settled (published, and R3 recorded or
+  unavailable). Both `check_native_supply` and `record_refused_start` push the
+  new slot and then call `advance_checks`.
+- **Tests:**
+  - `…recovered_writer_appends_pending_r3_in_observation_order` checks that the
+    earlier R3 is written at the next check without a manual retry, and that
+    the log runs in `seq` order: earlier R3, then its W-2 limit, then the later
+    R3.
+  - `…unwritable_earlier_r3_holds_later_r3_pending` checks that nothing is
+    appended ahead of a stuck earlier entry.
+- **Mutations:**
+  - M7 drops the `ready &= settled()` gate. Caught.
+  - M8 restores the V9 behaviour (advance only the new slot). Caught by both new
+    tests.
+- **Consequence (by design):** a permanently unwritable earlier R3 now holds
+  every later R3 of that run pending, visibly. This is consistent with W-2.
+
+**F-3 is repaired.**
+- New `Host::native_coverage_pages_match(&seal, &pages)` (`hosting.rs`). It is
+  purely additive. It checks four things in order: the count; that each sealed
+  source's retained request still exists; that the `request_ref`, frame and
+  `response_position` are unchanged; and that each page equals the Host's
+  retained `response.result`.
+- `from_native_coverage` now takes `&Host` and calls it before locating. The
+  doc comment states the binding accurately.
+- **Mutations:**
+  - V9's M5 (drop the call) is now caught by
+    `workflow_root_check_minting_binds_pages_to_host_custody`. That test covers
+    a page with the same count but other bytes, reordered pages, and fewer
+    pages.
+  - M5b (drop only the byte comparison) is caught by that test and by the Host
+    unit test `native_coverage_pages_match_only_the_retained_results_in_order`.
+
+**F-4 is repaired.** The new test `workflow_root_each_reread_has_a_new_check_identity`
+asserts that the body `check` and the envelope id are both unique across three
+rereads. V9's M3 is now caught.
+
+**F-5 is repaired.**
+- `list_references` uses `plain_dir_at` (`openat` with
+  `O_NOFOLLOW|O_DIRECTORY`). Only ENOENT counts as absent. A symlink, whether
+  dangling or not, or a non-directory, is an error.
+- Names come from `dir_names`, which calls `fdopendir` on a `dup` of the pinned
+  descriptor and then `closedir`, so nothing leaks.
+- **Test:** `listing_refuses_symlinks_and_follows_the_pinned_project`. It covers
+  an absent store, dangling `.chirality` and `workflow` symlinks, a symlinked
+  `workflow` pointing outside, and a project path replaced after open (the
+  names still come from the pinned directory).
+- **Mutation:** M9 (any open error counts as absent) is caught by that test.
+
+**F-7 is recorded.** CI-20(b) records the interim App-minted
+`run:workflow:<uuid>` and the RS R1 consequence, and asks that a later EXEC
+identity never relabel recorded runs. Its statement that J3 writes `run_opened`
+and `run_ended` is J3's to substantiate.
+
+**F-6, F-8, F-9 and F-10** are unchanged NOTEs, as I allowed. **CI-18** is
+unchanged.
+
+### New observation, for the J3 review
+
+- **R-1 NOTE: `PublishedText` is not sealed.** `workflow_record_store.rs:527`
+  makes it a public, unsealed trait, introduced in `bd1b9fbc8a`. The
+  check-minting constructors, including the repaired `from_native_coverage` and
+  the new `not_found_after_refusal`, now take `&dyn PublishedText` where J1 at
+  `8a785ac4e3` took the concrete `&PublishedRunText`.
+- **Consequence:** in-crate code could implement the trait over a
+  `ResolvedRecord` from a cold read. Today only `PublishedRunText` and
+  `PublishedEndNotice` implement it, so nothing is exploitable now.
+- **Fix:** seal the trait, for example with a private supertrait, when J3 is
+  reviewed.
+- This does not bear on J1's repairs.
+
+### Updated verdict (J1 scope)
+
+**READY.**
+- F-1…F-5 are repaired, and each repair is pinned by a test that kills the
+  matching mutation.
+- F-7 is recorded in CI-20(b), and F-1's remaining unknown-outcome case is
+  recorded in CI-20(a) under HELP_HUMAN's ruling.
+- The `hosting.rs` additions are additive and correct.
+
+The current head does not yet pass the full suite, so integration still needs a
+clean run of the actual merge candidate: J3's next commit, which repairs the two
+WIP-superseded fixtures, must land first, or they must be repaired another way,
+before the merge gate's required CI can pass.
