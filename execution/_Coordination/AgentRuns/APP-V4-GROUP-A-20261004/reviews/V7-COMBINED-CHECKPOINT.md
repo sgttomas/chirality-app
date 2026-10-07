@@ -268,3 +268,42 @@ passes, 0 failures. The records do not claim native Cancel, a native
 qualification, the 90% gate or a release. F3, F4, F6 and F7 are cheap record
 corrections, and I recommend adding them to the same PR. They are not
 preconditions for merge.
+
+## Repair confirmation — 2026-10-07
+
+Same reviewer. Read-only check of repair commit `3858932890` and merge
+`9b83f23f3a` (PR 1110 head). This append is my only write.
+
+**Scope.** `git diff 3d0db214cb 9b83f23f3a -- projects/chirality-app-v4`
+touches seven files: `app/CONTRACT_ISSUES.md`, `DISPATCH.md`,
+`OWNER_DECISIONS.md`, `PAUSE_HANDOFF_ASTRA_20261006.md`,
+`validation/COMBINED_e524c087.md`, `WORK_GRAPH.md` and this review. No other App
+v4 file changed. The only App path is the contract-issue log, so no code,
+schema, resource or test changed. `git diff 3858932890 9b83f23f3a --
+projects/chirality-app-v4` is empty. The committed copy of this review
+(sha256 `42373e62…6549`) is byte-identical to what I wrote.
+
+| Finding | Repair | Status |
+|---|---|---|
+| F3 | CI-17 now records cold03 tests, RC1-COLD repaired for the core scope and Root consumer integrated. It keeps native quit/relaunch and PI-6 open. | Resolved |
+| F4 | Now reads "50 warnings". | Resolved |
+| F5 | Now reads "272 tracked files, plus 4 gitignored `src-tauri/gen/schemas` build outputs". | Resolved |
+| F6 | A dated "Superseded machine-local facts" section marks the private trees, executables, Cargo home and settings, and the `.codex/worktrees/077c` target as gone. It points to the current records. | Resolved |
+| F7 | Exact steer words with custody, plus the gate act. I confirmed "I am accepting the 60% gate cleared." verbatim at `APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md:83`. I cannot see the init prompt, so I cannot check the steer quote against its source. | Resolved |
+| F8 | Now lists Piping, `tools/validation`, `docs/governance_harness` and `exports/`, with no shared paths. This matches my check. | Resolved |
+| F12 | `DISPATCH.md` reviewed: see below. | Resolved, with one NOTE |
+
+**DISPATCH.md, F12.** The added section states the mechanism, agent type,
+constraints and write scopes. Both
+`claude/app-v4-j1-publication` and `claude/app-v4-j2-compatibility` exist
+locally at `3d0db214cb`, so the base correction holds.
+
+- **R1 (NOTE).** The correction names J1's worktree as
+  `.claude/worktrees/app-v4-j1-publication`, but `git worktree list` shows the
+  J1 branch checked out at `.claude/worktrees/agent-a30b47a03f09fe083`. The
+  J2 branch is at `.claude/worktrees/agent-af2ce0ad2cee92fc1`. Record the
+  actual paths, or drop them.
+
+F1, F2 and F9–F11 were NOTEs and stand as written.
+
+**Updated verdict: MERGE** at `9b83f23f3a`.

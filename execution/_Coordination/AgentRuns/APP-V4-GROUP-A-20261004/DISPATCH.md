@@ -68,6 +68,13 @@ separately, to a fresh reviewer, at the returned commit.
 
 Correction (2026-10-07): the harness built the isolated worktrees from
 main, not from `3d0db214cb`. J1 stopped at its entry check, as briefed, and
-did no work. HELP_HUMAN then authorized J1 to create its own worktree
-`.claude/worktrees/app-v4-j1-publication` on `claude/app-v4-j1-publication`
-from `3d0db214cb`. J2 received the same base correction.
+did no work. A manually added J1 worktree could not be written from the
+child session, so HELP_HUMAN removed it unused. J1 was redispatched into a
+fresh harness worktree, where it switched to `claude/app-v4-j1-publication`
+at `3d0db214cb`. J2 received the same base correction. Both children work in
+harness-created worktrees under `.claude/worktrees/agent-*`.
+
+The first J1 instance's read-only finding was verified by HELP_HUMAN against
+the WR source, and the redispatch carries it: WR TT-1 (SETTLED) and TX-1
+admit only LS-1/LS-5/LS-6/LS-8 revisions to runs, so a development-catalog
+selection cannot be run. J1 logs CI-18.
