@@ -393,3 +393,14 @@ owner or the owner. No Design file was changed.
   of the turn when an identity becomes known), or rule that an unknown start
   leaves no `supply_check`. A start that fails before any frame is written has
   no Host receipt and is treated the same way.
+- **(b) App-minted run identity (V9 F-7).** WR §16.1–16.2 make the run identity
+  DEL-02-03's (EXEC). No EXEC producer exists, so Root mints an App-local opaque
+  `run:workflow:<uuid>`, chosen to satisfy RS `$defs/runId`
+  (`^run:[A-Za-z0-9._:/-]+$`). At J1 (`8a785ac4e3`), R3 `supplied_guidance`
+  entries were written under that id with no `run_opened`, although RS R1
+  marks the run identity record Required. This is interim. J3 closes the
+  missing record: the App writer records `run_opened` (with `follows` for a
+  sequential run) when the start turn is observed (EXEC A-2), and `run_ended`
+  only on the person's explicit end (AE-7). The identity itself stays
+  App-minted until the EXEC owner supplies or adopts one; a later EXEC identity
+  must not relabel runs already recorded under this id.
