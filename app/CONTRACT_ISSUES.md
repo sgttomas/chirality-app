@@ -446,6 +446,15 @@ owner or the owner. No Design file was changed.
     end-notice pattern admits only that cause or *completed*). Its end
     notice is pending for the next ordinary turn. A B that was never sent is
     withdrawn.
+  - **Every outcome releases A's end (V10 R-2).** The start call that claims
+    B's hold owns A's held end and writes it on every outcome, including a
+    failure before any send (for example another run of the conversation is
+    busy, or B's publication fails). A being busy does not stop B's start; A's
+    end is written once A is free, before B's `run_opened`.
+  - **In-memory window.** Between the person's confirmed step and the start's
+    outcome (one command, normally moments), A's end exists only in this
+    process. If the process is lost in that window, A reopens as *open;
+    interrupted* and the person ends it again (`end_recorded_run`).
   - **Residual.** When B's outcome is unknown, B's chain line ("ended to start
     ‹B›") may have reached the model while the record says "ended by the
     person", and the notice follows as well. For the WR and EXEC owners: name
