@@ -46,3 +46,28 @@ Successor production branch: Root switched clean checkout to codex/app-v4-group-
 2026-10-05 continued native descendant turns (same explicit gpt-6.1-sol/medium TASK instances, no descendants): runtime_core_production froze generation-race repair after four offline tests, then read-only native userVerification prerequisites; hosting_contract_review checks the affected Host and vertical RuntimeSession/UI seams; p0_integration_review independently backchecked policy successor READY; runtime_integration repairs native partial/forms/context and seeds independently reviewed v4 guidance; design_hosting_access executes bounded CC-H-RT-LATE source join; catalog_adapter_production implements disjoint external_observation.rs and tests for person-supplied read-only host observations. Shared lib/UI remains runtime_integration sole-owned during that unit. Cargo is serialized, metadata/archive holds unchanged.
 
 2026-10-05 shared freeze correction: manager released I4 after passing reviewer checks but before final I1 report. Reviewer rejected changed lib/session seals. Writer preserved I4 partial work at /var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/i4-integration-preserved-uq76e5xj/app and restored exact I1 lib b92010c8…, session 77114507…, App 9501bb82… and tests 18ed6496…. Existing passing review is preserved; shared writes stay paused until actual final reviewer return. No work discarded or extra approval layer introduced.
+
+## Resume dispatches — 2026-10-07 (Claude Code)
+
+Mechanism: Claude Code host-native subagents launched with the Agent tool by
+HELP_HUMAN (Claude Opus 5.5). Agent type `type2-opus-high` (Opus 5.5, high
+effort), per the owner's model answer. Each runs in its own temporary Git
+worktree created from `3d0db214cb`, and commits only to a local branch;
+HELP_HUMAN integrates. These children cannot dispatch further agents. Briefs
+state purpose, basis, write boundary, constraints and return; they are
+retained in the session transcript. Write scopes are disjoint.
+
+| Node | Branch | Write scope | Status |
+|---|---|---|---|
+| J1 publication and supply-check path | `claude/app-v4-j1-publication` | WR store/workspace, record_supply, records; sole Root receiver (`runtime_session.rs`, `lib.rs`, `App.tsx`); CONTRACT_ISSUES append | Dispatched |
+| J2 compatibility advisory report | `claude/app-v4-j2-compatibility` | `execution_compatibility.rs`, `compatibility_report.rs`, their tests; CONTRACT_ISSUES append | Dispatched |
+
+Neither child may use the network, credentials, `~/.codex`, real model
+turns or native UI. Independent review of each return is dispatched
+separately, to a fresh reviewer, at the returned commit.
+
+Correction (2026-10-07): the harness built the isolated worktrees from
+main, not from `3d0db214cb`. J1 stopped at its entry check, as briefed, and
+did no work. HELP_HUMAN then authorized J1 to create its own worktree
+`.claude/worktrees/app-v4-j1-publication` on `claude/app-v4-j1-publication`
+from `3d0db214cb`. J2 received the same base correction.
