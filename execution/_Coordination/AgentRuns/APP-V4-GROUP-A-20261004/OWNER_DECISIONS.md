@@ -97,3 +97,45 @@ Parent HELP_HUMAN `/root` supplied the direct owner's exact wording in the activ
 > With this order you are directed to use `gpt-6-astra` models on `low` reasoning level for all subagents until further notice.  You may let current subagents finish their task or hand off gracefully to a successor.  Instruct and manage your Type 1 agents and any Type 2 you spawned directly, but let the Type 1 agents manage their Type 2 agents through this transition.
 
 Operational implementation (manager disposition, not additional owner words): no new or expanded sol/medium assignments after receipt; current Core diagnosis and Root private-witness workers hand off at safe boundaries. Parent actually spawned astra/low successor `/root/group_a_execution_astra` in read-only transition preparation. `MANAGER_ASTRA_HANDOFF.md` supplies the single-manager transfer entry; Parent releases that successor after the outgoing manager's final return. Historical model/parentage attributions and code/test evidence remain unchanged. Isolated1/0 rerun of the failed archive oracle is not defect resolution; publication remains held.
+
+## Resume in Claude Code — 2026-10-07
+
+The owner resumed the undertaking through a new HELP_HUMAN init prompt in a
+Claude Code session (Claude Opus 5.5). The steer names this run, its graph
+and the pause handoff, and says the human has passed the 60% gate. The
+outgoing Codex sessions and their descendants have stopped; none of their
+identities, reservations or `/tmp` resources transfer.
+
+The machine restarted after the pause and `/tmp` was cleared. That removed
+the isolated Cargo home, the approved crate staging, and the private source
+trees and test executables named in the pause handoff. The in-tree retained
+copies (`recovery/PAUSE-ASTRA-20261006/`, `evidence/`) are unaffected.
+
+The owner answered three prepared questions in this session's chat. Custody:
+structured answers to HELP_HUMAN's questions in the active Claude Code chat.
+
+1. **Re-download of the approved crate archives.** Asked: may HELP_HUMAN
+   re-download the same 31 archives (29 files, 3,223,082 bytes, plus
+   pulldown-cmark 0.13.4 and unicase 2.9.0, 179,411 bytes) from
+   static.crates.io, verifying each recorded sha256, into an isolated Cargo
+   home outside `/tmp`? Answer: **"Approve re-download (Recommended)"**.
+2. **Model assignments.** Asked which model new Type 1 managers and Type 2
+   executors use now that the run is in Claude Code, given the last
+   directive was gpt-6-astra/low (a Codex setting). Answer: **"Opus 5.5,
+   high effort (Recommended)"**. This supersedes the astra/low directive for
+   this session's delegation. Historical model attributions stay unchanged.
+3. **Sparse-index metadata.** Offline resolution also needed crates.io
+   index files that only the lost home held. Asked: may HELP_HUMAN download
+   19 named files from https://index.crates.io (1,183,319 bytes) into the
+   isolated home only? Answer: **"Approve the 19 index files
+   (Recommended)"**. A follow-up found 8 stale cached entries for approved
+   crates (data-encoding, fancy-regex, num-bigint, num-integer, num-iter,
+   regex-automata, zerocopy, zerocopy-derive; 607,475 bytes). Asked
+   separately. Answer: **"Approve the 8 files (Recommended)"**.
+
+Effect: exact retrieval only; no other packages, toolchains or supplier
+binaries were downloaded. The isolated home is machine-local at
+`~/Library/Caches/chirality-dev/cargo-home-group-a`; the global Cargo
+cache and configuration are untouched. Retrieval evidence is in
+`dependencies/RESTORE_20261007.md`. None of these answers approves code,
+qualifies a supplier, or bears on the 90% gate.
