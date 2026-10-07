@@ -521,10 +521,24 @@ enum Observation<'a> {
     Located(super::LocatedTurnText),
     ReadFailed(&'a str),
 }
+/// Sealing module: `Sealed` is private to this module, so no type outside it
+/// can implement `PublishedText`, and crate code cannot wrap a cold-read
+/// `ResolvedRecord` or JSON into something the check constructors accept.
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for super::PublishedRunText {}
+    impl Sealed for super::PublishedEndNotice {}
+}
 /// A text this process composed and published before sending: its immutable
-/// run_text record and the typed composed text. Implemented only by the two
-/// typed publication results below; a resolved JSON record alone is neither.
-pub trait PublishedText {
+/// run_text record and the typed composed text. Sealed (V9 J3 note): only
+/// `PublishedRunText` and `PublishedEndNotice`, whose only constructors are their
+/// typed publications, implement it; a resolved JSON record alone is neither.
+///
+/// Compile-time note: implementing this trait for a type anywhere outside this file
+/// fails with E0277 (`X: sealed::Sealed` not satisfied) and `sealed::Sealed` is
+/// not nameable there. The test `published_text_is_sealed_to_two_types` guards
+/// that this file implements it for exactly the two typed results.
+pub trait PublishedText: sealed::Sealed {
     fn run_text_record(&self) -> &ResolvedRecord;
     fn prepared(&self) -> &PreparedRunText;
 }

@@ -430,6 +430,20 @@ fn listing_refuses_symlinks_and_follows_the_pinned_project() {
     std::fs::remove_dir_all(&f.0).unwrap();
     std::fs::rename(&moved, &f.0).unwrap();
 }
+// V9 J3 note: PublishedText is sealed. Outside this module no type can name
+// sealed::Sealed, so only the impls in this file exist; this guard fails if the
+// module grows another implementor or loses the seal.
+#[test]
+fn published_text_is_sealed_to_two_types() {
+    let source = include_str!("workflow_record_store.rs");
+    let count = |needle: &str| source.matches(needle).count();
+    assert_eq!(count("pub trait PublishedText: sealed::Sealed {"), 1);
+    assert_eq!(count("    impl Sealed for super::"), 2);
+    assert_eq!(count("impl PublishedText for "), 2);
+    assert_eq!(count("impl PublishedText for PublishedRunText {"), 1);
+    assert_eq!(count("impl PublishedText for PublishedEndNotice {"), 1);
+    assert_eq!(count("pub trait Sealed {}"), 1, "Sealed stays inside the private module");
+}
 fn located(item: Option<&str>, by_client: bool, text: &str) -> Observation<'static> {
     Observation::Located(crate::workflow_workspace::LocatedTurnText::Text {
         item: item.map(String::from),
