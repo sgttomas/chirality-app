@@ -261,6 +261,10 @@ impl PreparedReport {
             requirements,
         })
     }
+    /// Identity of this evaluation only; never an EXEC report or R14 reference.
+    pub fn id(&self) -> &str {
+        &self.id
+    }
     pub fn result(&self) -> &Check {
         &self.check.result
     }
@@ -340,6 +344,14 @@ pub struct ModelDestination {
 /// One call per occasion: [`evaluate`]. Root passes, all from the same home,
 /// full generation and conversation:
 ///
+/// **Same-conversation obligation (V6 item 1).** This API cannot check it:
+/// `RoleInForce` carries no home or thread, and `Selection` carries no
+/// conversation. Before calling, J1 must verify that the role binding, the
+/// workflow selection and the holding library belong to the same home, full
+/// generation and conversation as `basis`. On any mismatch, pass
+/// `RoleInForce::Unknown` (for the role) or make no evaluation; never pair
+/// facts from different conversations.
+///
 /// - `selection`: the exact current `workflow_workspace::Selection` held for
 ///   the conversation (`WorkflowRootSession`'s selected state or the run's
 ///   selection). Its snapshot's declaration is what is checked.
@@ -357,7 +369,13 @@ pub struct ModelDestination {
 ///   inventory came from, and the catalog edition when one is known.
 /// - `occasion`: CK-1 on selection, CK-2 immediately before the run's first
 ///   action (a new evaluation, never a reused CK-1), CK-3 when a new edition is
-///   observed, naming the earlier report and its edition.
+///   observed. For CK-3, `earlier_report` is the earlier report's
+///   `PublishedReport::id()` when it was published; when it was not, it is the
+///   earlier `PreparedReport::id()`, which names that evaluation only and is
+///   never written as an R14 report reference. `earlier_edition` is the
+///   edition that evaluation used. If the earlier evaluation had no known
+///   edition, a change cannot be established: evaluate CK-1 or CK-2 afresh
+///   (`evaluate` refuses such a CK-3).
 /// - `evaluated_at`: the evaluation time Root observes.
 /// - `inventory`: host identity, catalog coverage, channel state and harness
 ///   signals, with their origin. Pass `Unobserved`/`None` for anything not
@@ -367,7 +385,8 @@ pub struct ModelDestination {
 /// Result and use:
 ///
 /// - `Err` only when no evaluation can be made (absent basis, unreadable
-///   selection, or a CK-3 without a new edition). It never refuses a start.
+///   selection, or a CK-3 without an earlier reference, a known earlier edition
+///   and a new edition). It never refuses a start.
 /// - `Evaluation::view(current_basis)` is the display value for the workflow
 ///   panel: qualified statement, rows with purpose/fallback/reason, occasion,
 ///   currency, inventory origin and publication state. Keep each evaluation
@@ -378,6 +397,14 @@ pub struct ModelDestination {
 ///   with the stored bytes read back gives the R14 `compatibility_report_ref`
 ///   body for the RS writer (`resolutionAtWrite` is `resolved` only when those
 ///   bytes are this report).
+/// - **When publication is refused** (`published` is `Err`, the normal case
+///   until an environment collector supplies host, edition, catalog and
+///   channel facts), there is no report and no R14 body. J1 writes no
+///   `compatibility_report_ref` from that evaluation and never puts the
+///   preparation id in one. The run's R14 then stays "no report evaluated", as
+///   RS R14 states; whether RS writes that absence as an entry is RS's own
+///   representation (its body still requires a report reference; see CI-19).
+///   J1 shows the advisory view, including `publication.factsNotSupplied`.
 /// - The report is advisory. The person may start whatever it says (CC-3,
 ///   SL-7). Nothing here reads, edits or vetoes the user's Codex configuration.
 pub struct Request<'a> {
@@ -409,13 +436,16 @@ impl PublishedReport {
     }
     /// RS R14 `compatibility_report_ref` body for the RS writer. `stored` is the
     /// report's bytes as read back from where Root stored them: equal content
-    /// gives `resolved`; `None` gives `not supplied`; other bytes are refused.
+    /// gives `resolved`; `None` gives `not supplied`; other bytes are refused,
+    /// including bytes with a duplicate key at any depth (never last-wins).
     /// A preparation never has an R14 body.
     pub fn r14_body(&self, stored: Option<&[u8]>) -> Result<Value, String> {
         let resolution = match stored {
             None => "not supplied",
             Some(bytes) => {
-                let read: Value = serde_json::from_slice(bytes)
+                let text = std::str::from_utf8(bytes)
+                    .map_err(|_| "stored report unreadable: not UTF-8".to_string())?;
+                let read = crate::workflow_declaration::parse_unique(text)
                     .map_err(|e| format!("stored report unreadable: {e}"))?;
                 if read != self.body {
                     return Err(
@@ -686,6 +716,13 @@ fn checkpoint_row(element: &crate::workflow_declaration::Element) -> Result<Valu
             _ => return Err("held-actions form not established".into()),
         },
     };
+    // FB-19: an unrecognized `governed` value is preserved and reported, never
+    // assumed to be "not governed"; the report row cannot carry it.
+    let governed = match v.get("governed") {
+        None => false,
+        Some(g) if g == "yes" => true,
+        Some(g) => return Err(format!("governed value {g} not recognized (FB-19)")),
+    };
     let status = match element.reading {
         Reading::Recognized => "valid",
         Reading::Invalid => "invalid",
@@ -697,7 +734,7 @@ fn checkpoint_row(element: &crate::workflow_declaration::Element) -> Result<Valu
         "reached_when_kind": kind,
         "subject_class": subject,
         "held_actions": held,
-        "governed": v["governed"] == "yes",
+        "governed": governed,
         "declaration_status": status,
         "phase_reading": "guidance",
     }))
@@ -919,9 +956,10 @@ fn publish(
         .into_iter()
         .map(|kind| serde_json::json!({"reason_kind":kind,"checkpoints":[]}))
         .collect();
+    // CR-11: required references only; an optional one shows its outcome and fallback.
     let runtime_holds: Vec<Value> = requirements
         .iter()
-        .filter(|r| r["outcome"] == "present_currently_unavailable")
+        .filter(|r| r["necessity"] == "required" && r["outcome"] == "present_currently_unavailable")
         .map(|r| serde_json::json!({"reference":r["reference"],"reason":r["reason"],"evaluated_basis":observation}))
         .collect();
     // A report is never relabelled; currency is a view (CC-1), so no not_current here.
@@ -963,10 +1001,13 @@ pub fn evaluate(request: Request<'_>) -> Result<Evaluation, String> {
     } = &request.occasion
     {
         match nonempty(request.basis.catalog_edition.as_deref()) {
-            Some(edition) if edition != earlier_edition && !earlier_report.is_empty() => {}
+            Some(edition)
+                if nonempty(Some(earlier_report)).is_some()
+                    && nonempty(Some(earlier_edition)).is_some()
+                    && edition != earlier_edition => {}
             _ => {
                 return Err(
-                    "CK-3 requires the earlier report and a new catalog edition different from its edition"
+                    "CK-3 requires the earlier evaluation's reference, its known edition and a new, different catalog edition; otherwise evaluate CK-1 or CK-2 afresh"
                         .into(),
                 )
             }

@@ -907,6 +907,282 @@ fn j2_inventory_origin_sets_standing_and_never_claims_actual_host() {
     assert_ne!(published(&other).body()["evidence_standing"], "actual_host");
 }
 
+// ---- V8 repairs (F-1…F-4) ----
+
+fn publish_wd(value: Value, catalog: CatalogCoverage) -> Evaluation {
+    let selection = selection_of(value);
+    evaluate(request(
+        &selection,
+        no_role(),
+        full_basis("e1"),
+        Occasion::Selection,
+        inventory(catalog, Some(true)),
+    ))
+    .unwrap()
+}
+fn read_ok() -> CatalogCoverage {
+    CatalogCoverage::Complete(BTreeMap::from([(
+        "example.read".into(),
+        op("1", Some(true), None),
+    )]))
+}
+
+#[test]
+fn v8_f1_runtime_holds_list_required_references_only() {
+    let evaluation = publish_wd(
+        wd(
+            vec![
+                host_tool("need", "op.need", "required"),
+                host_tool("nice", "op.nice", "optional"),
+            ],
+            Value::Null,
+            vec![],
+        ),
+        CatalogCoverage::Complete(BTreeMap::from([
+            ("op.need".into(), op("1", Some(true), Some(false))),
+            ("op.nice".into(), op("1", Some(true), Some(false))),
+        ])),
+    );
+    let body = published(&evaluation).body();
+    assert_design_valid(body);
+    assert_eq!(
+        body["requirements"][1]["outcome"],
+        "present_currently_unavailable"
+    );
+    let holds: Vec<&str> = body["runtime_holds"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|h| h["reference"].as_str().unwrap())
+        .collect();
+    assert_eq!(holds, ["need"], "CR-11: required references only");
+}
+
+#[test]
+fn v8_f2_duplicate_key_stored_bytes_never_resolve() {
+    let evaluation = publish_wd(
+        wd(
+            vec![host_tool("read", "example.read", "required")],
+            Value::Null,
+            vec![],
+        ),
+        read_ok(),
+    );
+    let report = published(&evaluation);
+    assert_eq!(report.body()["check_result"], "passes");
+    let text = serde_json::to_string(report.body()).unwrap();
+    // A duplicate key placed before and after the real one: a last-wins reader
+    // would see this report, whichever copy it keeps.
+    let first = format!("{{\"check_result\":\"does_not_pass\",{}", &text[1..]);
+    let last = format!(
+        "{},\"check_result\":\"does_not_pass\"}}",
+        &text[..text.len() - 1]
+    );
+    for tampered in [first, last] {
+        assert!(report.r14_body(Some(tampered.as_bytes())).is_err());
+    }
+    assert_eq!(
+        report.r14_body(Some(text.as_bytes())).unwrap()["report"]["resolutionAtWrite"],
+        "resolved"
+    );
+}
+
+#[test]
+fn v8_f3_unrecognized_governed_value_refuses_publication() {
+    let mut cp = checkpoint();
+    cp["governed"] = json!("no");
+    let evaluation = publish_wd(
+        wd(
+            vec![host_tool("read", "example.read", "required")],
+            Value::Null,
+            vec![cp],
+        ),
+        read_ok(),
+    );
+    // Phase 1: the checkpoint does not change the check (PH-3).
+    assert_eq!(evaluation.prepared.result(), &Check::Compatible);
+    let reason = refusal(&evaluation);
+    assert!(reason.contains("checkpoint element 0 not representable"));
+    assert!(reason.contains("governed"), "{reason}");
+    // The recognized value is still published as declared.
+    let mut cp = checkpoint();
+    cp["governed"] = json!("yes");
+    let evaluation = publish_wd(
+        wd(
+            vec![host_tool("read", "example.read", "required")],
+            Value::Null,
+            vec![cp],
+        ),
+        read_ok(),
+    );
+    assert_eq!(
+        published(&evaluation).body()["checkpoints"][0]["governed"],
+        true
+    );
+}
+
+#[test]
+fn v8_f4_declared_part_status_values() {
+    let status = |evaluation: &Evaluation| {
+        let body = published(evaluation).body().clone();
+        assert_design_valid(&body);
+        (
+            body["declared_part_status"].as_str().unwrap().to_owned(),
+            body["check_result"].as_str().unwrap().to_owned(),
+        )
+    };
+    let declared = publish_wd(
+        wd(
+            vec![host_tool("read", "example.read", "required")],
+            Value::Null,
+            vec![],
+        ),
+        read_ok(),
+    );
+    assert_eq!(status(&declared), ("declared".into(), "passes".into()));
+    // No declared part at all (PS-4).
+    let snapshot = crate::workflow_workspace::Snapshot::from_files(BTreeMap::from([(
+        "WORKFLOW.md".to_string(),
+        b"# Prose only\n".to_vec(),
+    )]))
+    .unwrap();
+    let identity = snapshot
+        .identity("bundled", "synthetic-bundled-root", "prose-only", None)
+        .unwrap();
+    let prose = Selection::synthetic_shipped(snapshot, identity).unwrap();
+    let undeclared = evaluate(request(
+        &prose,
+        no_role(),
+        full_basis("e1"),
+        Occasion::Selection,
+        inventory(read_ok(), Some(true)),
+    ))
+    .unwrap();
+    assert_eq!(
+        status(&undeclared),
+        ("undeclared".into(), "not_established".into())
+    );
+    assert!(published(&undeclared).body()["limitations"]
+        .to_string()
+        .contains("requirements undeclared"));
+    // Declared part present, required-tool category omitted.
+    let mut omitted = wd(vec![], Value::Null, vec![]);
+    omitted.as_object_mut().unwrap().remove("required_tools");
+    assert_eq!(
+        status(&publish_wd(omitted, read_ok())),
+        ("undeclared".into(), "not_established".into())
+    );
+    // Category present but not an array.
+    let mut malformed = wd(vec![], Value::Null, vec![]);
+    malformed["required_tools"] = json!("none");
+    assert_eq!(
+        status(&publish_wd(malformed, read_ok())),
+        ("not_established".into(), "not_established".into())
+    );
+    // Newer contract version: the whole declared part is not established.
+    let mut newer = wd(vec![], Value::Null, vec![]);
+    newer["declaration_contract_version"] = json!("WD-v0.9");
+    assert_eq!(
+        status(&publish_wd(newer, read_ok())),
+        ("not_established".into(), "not_established".into())
+    );
+    // A representable but unrecognized element (optional without its fallback).
+    let mut tool = host_tool("extra", "example.read", "optional");
+    tool.as_object_mut().unwrap().remove("fallback");
+    assert_eq!(
+        status(&publish_wd(wd(vec![tool], Value::Null, vec![]), read_ok())),
+        ("not_established".into(), "not_established".into())
+    );
+}
+
+#[test]
+fn v8_f4_partial_catalog_is_readable_and_fallback_is_in_purpose() {
+    let evaluation = publish_wd(
+        wd(
+            vec![host_tool("nice", "example.read", "optional")],
+            Value::Null,
+            vec![],
+        ),
+        CatalogCoverage::Partial(BTreeMap::from([(
+            "example.read".into(),
+            op("1", Some(true), None),
+        )])),
+    );
+    let body = published(&evaluation).body();
+    assert_design_valid(body);
+    assert_eq!(body["host"]["catalog_readable"], true);
+    assert_eq!(
+        body["requirements"][0]["purpose"],
+        "use nice (fallback: continue without nice)"
+    );
+}
+
+#[test]
+fn v8_f4_checkpoint_declaration_status_other_than_valid() {
+    // FB-13: before_dispatch naming no usable required tool -> invalid.
+    let mut invalid = checkpoint();
+    invalid["reached_when"]["tool"] = json!("absent");
+    // A schema-required field missing -> not established, still representable.
+    let mut unestablished = checkpoint();
+    unestablished["name"] = json!("cp-two");
+    unestablished.as_object_mut().unwrap().remove("position");
+    let evaluation = publish_wd(
+        wd(
+            vec![host_tool("read", "example.read", "required")],
+            Value::Null,
+            vec![invalid, unestablished],
+        ),
+        read_ok(),
+    );
+    let body = published(&evaluation).body();
+    assert_design_valid(body);
+    assert_eq!(body["checkpoints"][0]["declaration_status"], "invalid");
+    assert_eq!(
+        body["checkpoints"][1]["declaration_status"],
+        "not_established"
+    );
+    // PH-3: invalid checkpoints leave the Phase-1 check unchanged.
+    assert_eq!(body["check_result"], "passes");
+}
+
+#[test]
+fn v8_f4_ck3_requires_earlier_report_and_known_earlier_edition() {
+    let selection = selection_of(wd(
+        vec![host_tool("read", "example.read", "required")],
+        Value::Null,
+        vec![],
+    ));
+    let run = |earlier_report: &str, earlier_edition: &str| {
+        evaluate(request(
+            &selection,
+            no_role(),
+            full_basis("e2"),
+            Occasion::EditionChange {
+                earlier_report: earlier_report.into(),
+                earlier_edition: earlier_edition.into(),
+            },
+            inventory(read_ok(), Some(true)),
+        ))
+    };
+    assert!(run("compatibility-report:earlier", "e1").is_ok());
+    // An unpublished earlier evaluation is named by its preparation id.
+    let unpublished = evaluate(request(
+        &selection,
+        no_role(),
+        full_basis("e1"),
+        Occasion::Selection,
+        inventory(CatalogCoverage::Unobserved, Some(true)),
+    ))
+    .unwrap();
+    assert!(unpublished.published.is_err());
+    assert!(run(unpublished.prepared.id(), "e1").is_ok());
+    assert!(run("", "e1").is_err(), "empty earlier report");
+    assert!(
+        run("compatibility-report:earlier", "").is_err(),
+        "unknown earlier edition"
+    );
+}
+
 #[test]
 fn j2_embedded_schema_is_design_bytes_and_design_examples_classify() {
     assert_eq!(REPORT_SCHEMA, DESIGN_SCHEMA);
