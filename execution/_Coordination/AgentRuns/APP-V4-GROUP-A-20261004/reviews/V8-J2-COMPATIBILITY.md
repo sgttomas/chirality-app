@@ -290,3 +290,116 @@ meets each brief requirement:
 - the seam is documented.
 
 F-1 to F-6 are carried as repairs: a small code change for F-1, F-2 and F-3, added tests for F-4, seam text for F-5, and CI text for F-6. They may be made before or after integration. They do not change the result for any case the brief names.
+
+## Repair confirmation
+
+2026-10-07. The same reviewer, at the coordinator's request. I worked read-only
+on J2's worktree and wrote nothing except this appended section.
+
+### Candidate
+
+- Commit `00eb79ca5efeb03b9a370d9c25ab0806ad0ebc97` on
+  `claude/app-v4-j2-compatibility`. Its parent is `e37045c123`.
+- Changes from `e37045c123`, from `git diff --numstat`:
+  - `compatibility_report.rs`: +49 / -8.
+  - `compatibility_report_tests.rs`: +276 / -0. No test was deleted or edited; the new `v8_*` tests are inserted before the last `j2_` test.
+  - `CONTRACT_ISSUES.md`: +30 / -15.
+- `execution_compatibility.rs` and everything under `execution/` are unchanged.
+  The Design is therefore the same basis as before.
+- SHA-256 at `00eb79ca5e`:
+  - `compatibility_report.rs`: `f39632025ac1c43b2d2f918f6144877d71d3f8f05af2b2f2f138d4820ccf1f79`
+  - `compatibility_report_tests.rs`: `1b088e6cf7617048d757652b4c1319de435db92f3a1ce5715dfc8e7b11b0856a`
+  - `execution_compatibility.rs`: `73fe9cce5f059661fbc59c9e879618f2f3f8fa9bc5c9b5d02b0e8ecea144cf4b`
+  - `CONTRACT_ISSUES.md`: `c128aa3510f802eb2a0b8ec3cb7d49c22cb5c392c6de861e4e7cc178960e47d1`
+
+### Method
+
+1. I made a fresh copy with `git archive 00eb79ca5e projects/chirality-app-v4`
+   into `$TMPDIR/j2-r2`.
+2. In that copy I ran `npm install --offline` and then
+   `cargo test --offline --locked` with the brief's environment. The run exited 0.
+   - It reported 618 passed, 0 failed and 3 ignored across 44 result lines.
+   - Four of those lines are the nested `file_act_fifo_worker` subprocess runs. Without them there are **614 top-level passes, 0 failures and 3 ignored**, which matches J2's report.
+   - The report module ran 26 tests: the 7 original, 12 `j2_*` and 7 `v8_*`. All passed.
+3. I read the full source diff, the CI diff and the new tests. I also read
+   `workflow_declaration::parse_unique`, which refuses a duplicate key at every
+   depth and does not keep the last value.
+4. I ran 11 mutations against `00eb79ca5e`, one at a time. They were my earlier
+   M8, M14, M16, M21, M24, M25 and M27, rewritten for the new text; a reversal of
+   each F-1, F-2 and F-3 repair; and X1, which lets CK-3 accept an unknown
+   earlier edition.
+5. After each mutation I restored the files and compared them with `git show`
+   using `cmp`.
+
+### Mutation results at `00eb79ca5e`
+
+Every mutation now makes a test fail. All seven that survived at `e37045c123` are now caught.
+
+| ID | Mutation | Failing test |
+|---|---|---|
+| M8 | `declared` is published as `declared_empty` | `v8_f4_declared_part_status_values` |
+| M14 | A checkpoint whose declaration is not established is published as `valid` | `v8_f4_checkpoint_declaration_status_other_than_valid` |
+| M16 | A partial catalog is published as unreadable | `v8_f4_partial_catalog_is_readable_and_fallback_is_in_purpose` |
+| M21 | CK-3 accepts an empty earlier report | `v8_f4_ck3_requires_earlier_report_and_known_earlier_edition` |
+| M24 | `undeclared` is published as `declared_empty` | `v8_f4_declared_part_status_values` |
+| M25 | A category that is not established is published as `declared` | `v8_f4_declared_part_status_values` |
+| M27 | The fallback is dropped from the purpose line | `v8_f4_partial_catalog_is_readable_and_fallback_is_in_purpose` |
+| F1r | An optional reference that is present but currently unavailable is listed in `runtime_holds` again | `v8_f1_runtime_holds_list_required_references_only` |
+| F2r | Stored bytes are read with last-wins `serde_json::from_str` | `v8_f2_duplicate_key_stored_bytes_never_resolve` |
+| F3r | An unrecognized `governed` value is published as `false` | `v8_f3_unrecognized_governed_value_refuses_publication` |
+| X1 | CK-3 accepts an unknown earlier edition | `v8_f4_ck3_requires_earlier_report_and_known_earlier_edition` |
+
+### Findings checked
+
+- **F-1: repaired.**
+  - **Code:** `runtime_holds` now filters on `necessity == "required"` as well as the outcome, which matches CR-11.
+  - **Tests:** the new test shows that an optional reference still carries its own outcome row, but is not listed as a hold.
+- **F-2: repaired.**
+  - **Code:** `r14_body` now requires UTF-8 and parses with `parse_unique`.
+  - **Tests:** a duplicate key placed before or after the real key is refused, and the clean bytes still resolve.
+  - **Behaviour kept:** semantic JSON equality is still the resolution rule. Re-serialized bytes therefore resolve, which matches the seam's intent.
+- **F-3: repaired.**
+  - **Code:** an unrecognized `governed` value now refuses publication, naming FB-19. Absent gives `false`, and `"yes"` gives `true`.
+  - **Phase 1:** the check is unchanged, as PH-3 requires.
+  - **CI:** CI-19 (a) now includes `governed`.
+- **F-4: repaired.** The seven added assertions are the ones that kill M8, M14, M16, M21, M24, M25 and M27 above.
+- **F-5: repaired.** The seam doc now states three things:
+  - the same-conversation obligation, which the API cannot check;
+  - what the CK-3 `earlier_report` should be when the earlier report was or was not published;
+  - that a refused publication produces no `compatibility_report_ref` and never a preparation ID.
+
+  There is one small change to the API: the new `PreparedReport::id()` getter is public, with a doc comment that forbids using it as a report or R14 reference. I accept this, because the seam needs a way to name an unpublished earlier evaluation.
+- **F-6: repaired.**
+  - CI-19 (a) now separates the two cases. An unrepresentable required-tool element makes the check *not established*. An unrepresentable checkpoint leaves the Phase-1 check unchanged, so it may still pass.
+  - CI-19 (c) now names all four required host and surface facts.
+- **F-7: done.** J2 renumbered the entry CI-19 itself. Source line `compatibility_report.rs:406` now cites CI-19, so it must keep that number at integration.
+- **F-8: recorded.** It is logged as CI-19 (e) for the Design owner. There is no code change.
+- **F-9:** no change. None is needed.
+
+### The two calls J2 made
+
+**CK-3 refuses an unknown earlier edition: endorsed.**
+- **Basis:** EXEC §3.1 and CC-1 bind a report to its catalog edition. CK-3 marks the earlier report *not current* against a *new* edition.
+- **Why the refusal is right:** if the earlier evaluation had no known edition, two things follow.
+  - No change can be established. Writing CK-3 would assert an edition change that nobody observed.
+  - That earlier evaluation could not have been published, because publication requires an edition.
+- **Effect:** the seam tells Root to evaluate CK-1 or CK-2 afresh instead. The refusal is an `Err` from `evaluate`, not a start gate.
+- **Wording (NOTE, no change needed):** the seam says `earlier_edition` is "the edition that evaluation used". That correctly stops Root from substituting the old edition named by a host's edition-change event.
+
+**No R14 entry when publication is refused: endorsed, and correctly escalated.**
+- **What RS says:**
+  - RS R14 references "each required-tool compatibility report evaluated for the run".
+  - It keeps "no report evaluated" explicit.
+  - However, `compatibilityReportRef` requires an `evidenceRef` whose `ref` is non-empty, even with `passResult: "no report evaluated"`.
+- **What that means:** when no report exists, R14 cannot be filled truthfully.
+  - Filling it with the preparation ID is forbidden by V6 item 5.
+  - Filling it with any other value would be a fabrication.
+- **Why it is right:** writing nothing invents no fact, and leaves RS's own representation of the absence to the RS owner. CI-19 (d) raises exactly that question.
+- **Wording (NOTE, no change needed):** the seam phrase "R14 then stays 'no report evaluated'" is a reading of an absent entry, not an explicit RS entry. Until RS answers CI-19 (d), the "stays explicit" clause of RS R14 is not yet met.
+
+### Updated verdict
+
+**READY** for integration at `00eb79ca5e`.
+- F-1 to F-6 are repaired and covered by tests.
+- No new finding above NOTE.
+- Two Design questions remain open and are logged in CI-19 (d) and (e): how RS writes the absence of a report, and the tension between strict reading of the tightening and PS-5.

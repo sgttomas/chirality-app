@@ -1,0 +1,117 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-af2ce0ad2cee92fc1/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2910:13
+     |
+2910 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1166:19
+     |
+ 394 | impl Host {
+     | --------- method in this implementation
+...
+1166 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:458:19
+    |
+458 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+458 -     RepairPending(String),
+458 +     RepairPending(()),
+    |
+
+warning: field `selection` is never read
+   --> src/workflow_record_store.rs:387:5
+    |
+385 | pub struct PublishedRunText {
+    |            ---------------- field in this struct
+386 |     prepared: PreparedRunText,
+387 |     selection: ResolvedRecord,
+    |     ^^^^^^^^^
+    |
+    = note: `PublishedRunText` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `selection_record` is never used
+   --> src/workflow_record_store.rs:455:12
+    |
+448 | impl PublishedRunText {
+    | --------------------- method in this implementation
+...
+455 |     pub fn selection_record(&self) -> &ResolvedRecord {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (lib test) generated 8 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.80s
+     Running unittests src/lib.rs (target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 26 tests
+test execution_compatibility::report::tests::current_pin_does_not_borrow_old_presence_account ... ok
+test execution_compatibility::report::tests::explicit_no_role_and_unknown_original_are_distinct ... ok
+test execution_compatibility::report::tests::currency_is_view_only_and_not_a_start_gate_or_receipt ... ok
+test execution_compatibility::report::tests::j2_embedded_schema_is_design_bytes_and_design_examples_classify ... ok
+test execution_compatibility::report::tests::j2_ck2_known_missing_does_not_pass_and_stays_advisory ... ok
+test execution_compatibility::report::tests::j2_ck1_passes_with_complete_schema_valid_report ... ok
+test execution_compatibility::report::tests::j2_ck3_edition_change_is_a_new_report_and_earlier_is_not_current ... ok
+test execution_compatibility::report::tests::j2_inventory_origin_sets_standing_and_never_claims_actual_host ... ok
+test execution_compatibility::report::tests::j2_current_pin_does_not_borrow_0158_account_in_published_report ... ok
+test execution_compatibility::report::tests::j2_unrecognized_optional_required_tool_element_is_never_a_pass ... ok
+test execution_compatibility::report::tests::original_negative_known_tool_failure_survives_unknown_role_declaration ... ok
+test execution_compatibility::report::tests::partial_absence_is_unknown_complete_absence_is_missing ... ok
+test execution_compatibility::report::tests::unknown_channel_is_not_disabled_and_optional_does_not_block ... ok
+test execution_compatibility::report::tests::unknown_role_does_not_erase_known_missing ... ok
+test execution_compatibility::report::tests::j2_published_rows_cover_each_requirement_outcome ... ok
+test execution_compatibility::report::tests::v8_f1_runtime_holds_list_required_references_only ... ok
+test execution_compatibility::report::tests::v8_f3_unrecognized_governed_value_refuses_publication ... ok
+test execution_compatibility::report::tests::j2_unknown_inventory_is_never_missing ... ok
+test execution_compatibility::report::tests::j2_known_no_role_is_not_unknown_in_published_report ... ok
+test execution_compatibility::report::tests::v8_f4_checkpoint_declaration_status_other_than_valid ... ok
+test execution_compatibility::report::tests::j2_publication_refused_without_required_supplied_facts ... ok
+test execution_compatibility::report::tests::v8_f4_partial_catalog_is_readable_and_fallback_is_in_purpose ... ok
+test execution_compatibility::report::tests::v8_f4_ck3_requires_earlier_report_and_known_earlier_edition ... ok
+test execution_compatibility::report::tests::v8_f4_declared_part_status_values ... ok
+test execution_compatibility::report::tests::v8_f2_duplicate_key_stored_bytes_never_resolve ... ok
+test execution_compatibility::report::tests::j2_r14_receipt_only_from_published_report_with_checked_resolution ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.39s
+
+exit=0
