@@ -4152,11 +4152,14 @@ impl WorkflowRootSession {
         }
         let reading = crate::records::supply::read_project_runs(records, &[]);
         if let Some(cold) = reading
-            .live_in(thread)
+            .possibly_live_in(thread)
             .into_iter()
             .find(|r| !hot.contains(&r.run))
         {
-            return Err(format!("A workflow run recorded in this conversation is still open (interrupted, no run_ended): {}. End it first (RE-4, RE-7). Nothing prepared", cold.run));
+            return Err(match &cold.lifecycle {
+                crate::records::supply::RecordedLifecycle::Unknown(reason) => format!("A workflow run recorded in this conversation is in an unknown state ({}: {reason}; record limits: {:?}); it may still be live, so no second run is started (RE-7). Repair the record, then End it with \"End this interrupted run\". Nothing prepared", cold.run, reading.limits),
+                _ => format!("A workflow run recorded in this conversation is still open (interrupted, no run_ended): {}. End it first with \"End this interrupted run\" (RE-4, RE-7). Nothing prepared", cold.run),
+            });
         }
         Ok(prior)
     }
@@ -4276,8 +4279,8 @@ impl WorkflowRootSession {
         }
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
         let reading = crate::records::supply::read_project_runs(&records, &[]);
-        if !reading.live_in(thread).iter().any(|r| r.run == run) {
-            return Err("The record does not show this run open in this conversation; nothing recorded".into());
+        if !reading.possibly_live_in(thread).iter().any(|r| r.run == run) {
+            return Err("The record does not show this run open, or in an unknown state, in this conversation; nothing recorded".into());
         }
         let cause = if completed { "completed" } else { "ended by the person" };
         let mut entry = crate::records::supply::PendingRunEntry::new(
@@ -5942,6 +5945,21 @@ for line in sys.stdin:
         peer.set_mode("turn-mode","");
         let notice=send_with_pending_notice(&root,&peer.generation,"thread","next").expect("A's end notice is pending").unwrap();assert_eq!(notice["state"],"end notice and the person's text sent once");
         assert!(last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().contains("ended by the person). No workflow is in force."));
+    }
+    // V10 G-3, RE-7: a recorded run whose lifecycle is unknown (incomplete record) may still be
+    // live, so a new start in its conversation is refused with the reason and the end route.
+    #[test]
+    fn v10_g3_unknown_recorded_run_blocks_a_new_start(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let refused=fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
+        assert!(refused.as_ref().is_err_and(|e|e.contains("unknown")&&e.contains(&a)&&e.contains("End")),"{refused:?}");
+        // The end route: it names the incomplete record while the record stays incomplete...
+        let blocked=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false);assert!(blocked.as_ref().is_err_and(|e|e.contains("incomplete")),"{blocked:?}");
+        // ...and, once the record is complete, the person's explicit end permits a new start.
+        std::fs::remove_dir_all(&torn).unwrap();fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap();
+        assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).is_ok());
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){

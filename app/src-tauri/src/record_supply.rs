@@ -253,6 +253,21 @@ impl RunsReading {
             })
             .collect()
     }
+    /// V10 G-3: runs that may be live in a conversation, for the CH-1 gate:
+    /// open-interrupted, or unknown (an incomplete or conflicting record cannot
+    /// exclude a live run). Display keeps the two states distinct.
+    pub fn possibly_live_in(&self, conversation: &str) -> Vec<&RecordedRun> {
+        self.runs
+            .iter()
+            .filter(|r| {
+                r.conversation.as_deref() == Some(conversation)
+                    && matches!(
+                        r.lifecycle,
+                        RecordedLifecycle::OpenInterrupted | RecordedLifecycle::Unknown(_)
+                    )
+            })
+            .collect()
+    }
     pub fn view(&self) -> Value {
         json!({"runs":self.runs.iter().map(|r|{
             let (state,detail)=match &r.lifecycle{
