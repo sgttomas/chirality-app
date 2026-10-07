@@ -274,3 +274,50 @@ No native content, new recorder, liveTurn inference or automatic resume is added
 Consumer propagation and actual cold-tuple tests remain pending; RC1-COLD is not
 closed by source adoption. Exact source pins and remaining work are in the Group A
 run's CC-REC-ITEM-TURN-SOURCE-ADOPTION.json.
+
+## CI-18 Development workflow selections were composed and sent as runs
+
+- **Found:** 2026-10-07 during J1 publication work (run APP-V4-GROUP-A-20261004;
+  TASK dispatched by HELP_HUMAN). The prior J1 reading was checked by HELP_HUMAN
+  against the WR text and rechecked here.
+- **Conflicting texts.** WR Design (`DEL-02-02 …/Design/WORKSPACE_AND_REGISTRATION.md`,
+  accepted, governs):
+  - TT-1 (SETTLED): "Only registered revisions (and bundled or host-listed
+    workflows, LS-5, LS-6) are selectable for a run."
+  - TX-1: "Only a selected revision with standing LS-1, LS-5, LS-6 or LS-8 is
+    composed."
+  - WP-6: "Selected-development evidence cannot be laundered into a registered
+    selection_record."
+
+  Run record `changes/I2-DEVELOPMENT-CATALOG.md` (affected receivers): "explicit
+  per-run selection only, supply via existing WR run-start text after its usual
+  checks." The built-in catalog's `coordinated-knowledge-work` has standing
+  "App-v4 development build candidate; not a published release", which is none of
+  LS-1, LS-5, LS-6 or LS-8. Root `prepare_run`/`send` nevertheless composed and sent
+  development selections.
+- **Correction (code only; no Design change).** A development selection may still
+  be admitted, selected and shown with its development standing. Root
+  `prepare_run` refuses to prepare, record or send a run from it, naming TT-1/TX-1;
+  the panel shows the refusal and disables preparation. No standing is invented.
+  The ordinary journey runs a hot registered revision (development copy → draft →
+  review → A15 → registered selection → run). `PreparedRunPublication` already
+  refused development admission for a `selection_record`. The library-level
+  `PreparedRunText::start` composer still accepts any admitted `Selection`, because
+  a maintained catalog test asserts development provenance through composition;
+  production reaches it only after the Root refusal.
+- **Tests moved, assertions unchanged:**
+  `workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages` and
+  `workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend` now use
+  a registered selection. The new test
+  `workflow_root_development_selection_run_is_refused_tt1_tx1` shows the refusal,
+  with no run, no WR record and no `turn/start`.
+- **Alternative for the design owner and the owner:** if development runs are
+  wanted, a named, reviewed WR Design change could add an explicit development
+  standing (for example an LS-9 "development build candidate") with its own
+  selection_record standing value, TX-1 composition rule, framing and limits, and
+  RS R3 consequences. Until then the accepted Design governs.
+- **Consequence:** the earlier exact832ec9 native workflow witness
+  (`probes/NATIVE_WORKFLOW_832ec9_ATTEMPT_2.json`) ran the development selection
+  `coordinated-knowledge-work`. It remains valid historical delivery evidence for
+  those bytes, but it is not evidence of a conforming registered workflow run, and
+  it cannot be reused as such. A registered-selection native witness is still needed.
