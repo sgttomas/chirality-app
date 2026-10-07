@@ -460,6 +460,13 @@ owner or the owner. No Design file was changed.
     person", and the notice follows as well. For the WR and EXEC owners: name
     the cause for an end whose successor did not start, or allow "ended to
     start ‹B›" in the end notice.
+  - **B's own records after a definite refusal (V10 review).** B's
+    `selection_record` and `run_text` are published before its send. They
+    keep `prior_run.ended` and the chain line "ended to start ‹B›", while A's
+    `run_ended` says "ended by the person". They are the records of a run
+    that never opened: B has no `run_opened`, so they make no RS lifecycle
+    claim, and immutable records are not rewritten (WP-1). A reader must
+    take A's ending from A's `run_ended`, not from B's records.
 - **(f) Predecessor across relaunch (J3).** CH-2 and RE-7: a later run cites
   the run before it (`follows`, `prior_run`, chain line). The chain is composed
   only from an `OwnerRunEnd` held by this process, the typed owner callback.
@@ -498,3 +505,25 @@ owner or the owner. No Design file was changed.
     it. The panel shows the outcome. A *native* fork
   is not observed by the App, which has no `thread/fork` route. A run belongs to
   its (home, thread), so any other thread, a fork included, has no live run.
+- **(j) An earlier record that can never be written holds `run_ended` (V10
+  R-3).** RS W-2 has a run's log written in observation order.
+  `flush_records` stops at the first record that cannot be written and holds
+  every later one; each gets its "record write failed" limit when it is
+  written late. W-2 gives no way past a record that can *never* be written,
+  for example an R3 whose reserved record identity conflicts with an existing
+  entry.
+  - **Behaviour.** The person's later `run_ended` stays held. In this process
+    the view says it is "held behind an earlier unwritten record of this run
+    (W-2)", and
+    the run is ended. After a relaunch the record has no `run_ended`, so the
+    run reads *open; interrupted* although the person ended it (review probe
+    P4). The person can end it again from the record (`end_recorded_run`).
+  - **Options for the RS owner.**
+    1. Keep strict order, as now. The person's end is lost on relaunch, and
+       the person ends the run again.
+    2. Define a terminal *not writable* state for such an entry. Record an
+       `evidence_limit` naming the record and why it can never be written,
+       then let later entries proceed.
+    3. Let lifecycle entries (`run_ended`) pass a stuck R3, with a limit
+       naming the R3 they passed.
+  - No code change was made for this item.
