@@ -395,6 +395,41 @@ fn actual_end_notice_requires_original_start_and_preserves_optional_workflow_com
     std::fs::remove_file(start_path).unwrap();
     assert!(f.store().resolve(reopened.reference()).is_err());
 }
+// V9 F-5: listing enumerates the pinned project descriptor and reports a symlinked
+// (including dangling) `.chirality`, `records` or `workflow` explicitly, never as "no records".
+#[test]
+fn listing_refuses_symlinks_and_follows_the_pinned_project() {
+    let f = Fixture::new();
+    let p = f.store();
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "absent store: no records");
+    std::os::unix::fs::symlink(f.0.join("nowhere"), f.0.join(".chirality")).unwrap();
+    assert!(p.list_references().is_err(), "dangling .chirality symlink is not 'no records'");
+    std::fs::remove_file(f.0.join(".chirality")).unwrap();
+    std::fs::create_dir_all(f.0.join(".chirality/records")).unwrap();
+    std::os::unix::fs::symlink(f.0.join("nowhere"), f.0.join(".chirality/records/workflow")).unwrap();
+    assert!(p.list_references().is_err(), "dangling workflow symlink is not 'no records'");
+    std::fs::remove_file(f.0.join(".chirality/records/workflow")).unwrap();
+    let outside = Fixture::new();
+    std::fs::create_dir(outside.0.join("workflow")).unwrap();
+    std::os::unix::fs::symlink(outside.0.join("workflow"), f.0.join(".chirality/records/workflow")).unwrap();
+    assert!(p.list_references().is_err(), "symlinked workflow directory refused");
+    std::fs::remove_file(f.0.join(".chirality/records/workflow")).unwrap();
+    let a = pending(&p);
+    p.publish(&a).unwrap();
+    assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
+    // The path is replaced after open: names still come from the pinned directory.
+    let moved = f.0.with_extension("moved");
+    std::fs::rename(&f.0, &moved).unwrap();
+    std::fs::create_dir_all(f.0.join(".chirality/records/workflow")).unwrap();
+    std::fs::write(
+        f.0.join(".chirality/records/workflow/00000000-0000-4000-8000-000000000000.json"),
+        b"{}",
+    )
+    .unwrap();
+    assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
+    std::fs::remove_dir_all(&f.0).unwrap();
+    std::fs::rename(&moved, &f.0).unwrap();
+}
 fn located(item: Option<&str>, by_client: bool, text: &str) -> Observation<'static> {
     Observation::Located(crate::workflow_workspace::LocatedTurnText::Text {
         item: item.map(String::from),

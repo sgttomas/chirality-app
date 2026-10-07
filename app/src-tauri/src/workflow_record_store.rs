@@ -81,6 +81,50 @@ fn child(dir: &File, leaf: &str, create: bool) -> Result<File, String> {
     }
     Ok(f)
 }
+/// Opens `leaf` under `dir` as a plain directory without following symlinks.
+/// Ok(None) only when the entry is absent; a symlink or other entry is an error.
+fn plain_dir_at(dir: &File, leaf: &str) -> Result<Option<File>, String> {
+    match open_at(dir, leaf, libc::O_RDONLY | libc::O_DIRECTORY) {
+        Ok(f) => Ok(Some(f)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            // ENOENT from openat with O_NOFOLLOW means the name itself is absent
+            // (a dangling symlink reports ELOOP or ENOTDIR, not ENOENT).
+            Ok(None)
+        }
+        Err(e) => Err(format!(
+            "WR record path entry '{leaf}' is not a plain directory (symlink or other): {e}"
+        )),
+    }
+}
+/// Names in a directory, read through a duplicate of its pinned descriptor.
+fn dir_names(dir: &File) -> Result<Vec<String>, String> {
+    let fd = unsafe { libc::dup(dir.as_raw_fd()) };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+    let stream = unsafe { libc::fdopendir(fd) };
+    if stream.is_null() {
+        let e = std::io::Error::last_os_error();
+        unsafe { libc::close(fd) };
+        return Err(e.to_string());
+    }
+    unsafe { libc::rewinddir(stream) };
+    let mut names = Vec::new();
+    loop {
+        let entry = unsafe { libc::readdir(stream) };
+        if entry.is_null() {
+            break;
+        }
+        let name = unsafe { std::ffi::CStr::from_ptr((*entry).d_name.as_ptr()) };
+        if let Ok(name) = name.to_str() {
+            if name != "." && name != ".." {
+                names.push(name.to_owned());
+            }
+        }
+    }
+    unsafe { libc::closedir(stream) };
+    Ok(names)
+}
 fn validate(envelope: &Value) -> Result<(), String> {
     let wr: Value = serde_json::from_str(include_str!(
         "../resources/workflow_role/workspace-registration.schema.json"
@@ -144,29 +188,22 @@ impl ProjectRecords {
     }
     /// References of this project's own published WR records (non-recursive;
     /// no other project or library is searched). Staging files are excluded.
+    /// V9 F-5: every step is relative to the pinned project descriptor and never
+    /// follows a symlink. An absent store is "no records"; a symlinked (even
+    /// dangling) or otherwise non-plain `.chirality`, `records` or `workflow`
+    /// entry is reported as an error, never as "no records".
     pub fn list_references(&self) -> Result<Vec<String>, String> {
-        let a = match child(&self.directory, ".chirality", false) {
-            Ok(a) => a,
-            Err(_) if !self.root.join(".chirality").exists() => return Ok(vec![]),
-            Err(e) => return Err(e),
+        let Some(a) = plain_dir_at(&self.directory, ".chirality")? else {
+            return Ok(vec![]);
         };
-        let b = match child(&a, "records", false) {
-            Ok(b) => b,
-            Err(_) if !self.root.join(".chirality/records").exists() => return Ok(vec![]),
-            Err(e) => return Err(e),
+        let Some(b) = plain_dir_at(&a, "records")? else {
+            return Ok(vec![]);
         };
-        if child(&b, "workflow", false).is_err() {
-            if !self.root.join(".chirality/records/workflow").exists() {
-                return Ok(vec![]);
-            }
-            return Err("WR record directory unreadable or not a plain directory".into());
-        }
+        let Some(dir) = plain_dir_at(&b, "workflow")? else {
+            return Ok(vec![]);
+        };
         let mut references = Vec::new();
-        for entry in std::fs::read_dir(self.root.join(".chirality/records/workflow"))
-            .map_err(|e| e.to_string())?
-        {
-            let name = entry.map_err(|e| e.to_string())?.file_name();
-            let Some(name) = name.to_str() else { continue };
+        for name in dir_names(&dir)? {
             if let Some(stem) = name.strip_suffix(".json") {
                 let reference = format!("{PREFIX}{stem}");
                 if key(&reference).is_ok() {
