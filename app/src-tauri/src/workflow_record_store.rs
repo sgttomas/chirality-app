@@ -440,9 +440,6 @@ impl CompletedSupplyCheck {
             .collect();
         Ok(Self { body, sources })
     }
-    pub fn body(&self) -> &Value {
-        &self.body
-    }
 }
 enum Observation<'a> {
     Located(super::LocatedTurnText),
@@ -622,6 +619,7 @@ impl PendingSupplyCheck {
     pub fn body(&self) -> &Value {
         &self.record.envelope["body"]
     }
+    #[cfg(test)]
     pub fn bytes(&self) -> &[u8] {
         &self.record.bytes
     }
