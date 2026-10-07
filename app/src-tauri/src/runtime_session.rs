@@ -5443,6 +5443,19 @@ for line in sys.stdin:
         assert!(mint(&|mut p|{p.swap(0,1);p}).is_err(),"reordered pages: refused");
         assert!(mint(&|mut p|{p.pop();p}).is_err(),"fewer pages: refused");
     }
+    // V9 F-4, WR §16.4/SC-6: "a check is never relabelled; a later read is a new check" —
+    // each reread has its own body `check` identity, not only its own envelope id.
+    #[test]
+    fn workflow_root_each_reread_has_a_new_check_identity(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let mut bodies=std::collections::BTreeSet::new();let mut envelopes=std::collections::BTreeSet::new();
+        for _ in 0..3{let check=run.check_native_supply().unwrap()["check"].clone();let record=project.resolve(check["reference"].as_str().unwrap()).unwrap();
+            assert!(bodies.insert(record.body()["check"].as_str().unwrap().to_owned()),"reread reused a check identity: {}",record.body()["check"]);
+            assert!(envelopes.insert(record.reference().to_owned()));assert_eq!(check["check"],record.body()["check"]);}
+    }
     // Outcome 5: a later process resolves every published record from the project alone.
     #[test]
     fn workflow_root_fresh_process_resolves_records_without_run_claims(){
