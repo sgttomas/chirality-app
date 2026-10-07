@@ -361,3 +361,213 @@ The candidate becomes READY when:
 - G-3 to G-5 are repaired or listed as known limits.
 
 G-6 to G-8 need no change before integration.
+
+## Repair confirmation
+
+2026-10-07. Same reviewer, same rules. My only write is this appended section.
+I made no commits and used no network, credentials, `~/.codex`, model calls or
+UI.
+
+### What was checked
+
+- **Repair head:** `1dad2331e8a63bc78055e2f6af66d9b233f56195`.
+- **Repair commits:** `af7a5725e0` (G-1), `9a3dd4029d` (G-2), `47968f999a`
+  (G-3), `555c570241` (G-4), `47e7a6eb9b` (G-5) and `1dad2331e8` (G-7).
+- **Repair range** `4dd5f5a402..1dad2331e8` (`numstat`):
+  `CONTRACT_ISSUES.md` +31/-9, `lib.rs` +12/-3, `record_supply.rs` +20/-0,
+  `runtime_session.rs` +481/-60, `workflow_workspace.rs` +10/-0, `App.tsx`
+  +4/-1.
+- **Copy:** a fresh `git archive 1dad2331e8` at `$TMPDIR/j3r/`. After my
+  mutations and probes were reverted, `diff -r` shows `src-tauri/src`
+  identical to the candidate.
+- **SHA-256 at `1dad2331e8`:**
+
+| File | SHA-256 |
+|---|---|
+| `runtime_session.rs` | `8bfb523adfe0afdf5db278e9e8a59a01a6a03aade49254421a08e64727f6d15d` |
+| `record_supply.rs` | `26de513ea913a4205894a3c66237377cf403f79f8822ddc4831397753f58bfe2` |
+| `workflow_workspace.rs` | `1ad027a1094e2e9dbca579033bc5b438dbdca4f28e2efb8029d10d38453064eb` |
+| `lib.rs` | `118fa4c9ee06a88e63df9bdf4ce936a7d0ee0e69bd91152a6a040403579d04fb` |
+| `App.tsx` | `ade3ba023352f8842c2a81ee9518fbb232909282791177f27ca3853a4c6e46eb` |
+| `CONTRACT_ISSUES.md` | `c85723f9928f15509ef3ed22ffaf8fd9331f6bed6ec185e39e5d4ce988091289` |
+
+### Full suite
+
+I ran the brief's full command with cargo `--no-fail-fast`. The log's SHA-256
+is `211f70dd5029c6711be5562a9dd95a2baeb6acc9aaae29ae22feef9b468f9c30`.
+
+- `npm run build`: passed.
+- `cargo test`: 44 result lines, **663 passed (659 top-level plus 4 nested), 0
+  failed, 3 ignored**. This matches J3's report.
+- `npm test`: 3/3 passed.
+- All `credential_rpc` tests passed.
+
+### Mutations rerun
+
+Each mutation ran against the `workflow_root`, `publication`, `supply`, `j3_`,
+`v10_`, `native_coverage` and `prepared_turn` filters, and the original bytes
+were restored after each.
+
+| ID | Mutation | Result |
+|---|---|---|
+| JM1 | Cold check disabled (`possibly_live_in`) | **Caught**: `j3_vc_e_17_…` and `v10_g3_…` |
+| JM2 | Hot open run not refused | **Caught**: 4 tests |
+| JM3 | No supersede | **Caught** |
+| JM4 | Order by kind instead of observation time (`flush_records` takes the first candidate) | **Caught**: `v10_g4_late_records_follow_observation_order_across_kinds`. The V10 survivor is now caught |
+| JM4b | Held R3 gets no W-2 limit (`hold` removed) | **Caught**: the same test |
+| JM5 | Incomplete record read as open | **Caught**: 2 tests |
+| JM6 | Advisory gates the start | **Caught** |
+| G1M2 | Notice not re-scoped (`with_generation` → `clone`) | **Caught**: `v10_g1_pending_notice_survives_…` |
+| G2M | Fallback keeps "ended to start" | **Caught**: `v10_g2_…falls_back_…` |
+| G1M | Accept a source with **no** observed write attempt (drop the `actualWriteAttemptObserved` gate at `runtime_session.rs:5127`) | **Survives**: 90/90 (R-1) |
+
+### Probes rerun, plus new ones
+
+These were temporary and have been removed.
+
+| Probe | What it does | Result |
+|---|---|---|
+| P1 | V10 G-1 sequence | The notice's record failed, Codex was relaunched, and the next turn sent it: `turn/start` frames went 1 → 2, the view reads "sent once …", and a third send returns `None`. **G-1 repaired.** |
+| P2 | V10 G-2 sequence | `Err("revision not verified; the live run was not ended")`. A is `Open` with no `run_ended`. **G-2 repaired.** |
+| P3 | `skip_end_notice` right after `end_run`, with no record failure | Accepted. It records `evidence_limit` "record write failed", with detail "its record could not be written …" (R-4). |
+| P4 | A permanently unwritable earlier R3 (reserved-id conflict), then `end_run` and `retry_records` | `run_ended` is never written; it is held "behind an earlier unwritten record (W-2)" (R-3). |
+| P5 | A is busy when B's start runs | `start_workflow_run` returns `Err("Another run operation is pending …")` before sending. A's end stays held in memory: no `run_ended`, no pending notice, and the next ordinary turn carries none. Retrying B's start succeeds, and A then gets "ended to start …" (R-2). |
+
+### Per finding
+
+**G-1 is repaired.**
+- The notice is marked `Sent` only when the Host returned a source whose
+  evidence shows `actualWriteAttemptObserved`. Otherwise it stays pending.
+- **Re-scoping cannot redirect a notice.** `with_generation`
+  (`workflow_workspace.rs:952`) keeps the composed text, record and
+  conversation, rejects a generation from another home, and replaces only
+  `scope.generation`.
+  - `turn_params` takes `threadId` from the unchanged `scope.conversation`.
+  - `send_end_notice` first checks `current_conversation(generation, scope.conversation)`.
+  - `pending_notice_for` is keyed by (home of the caller's generation, thread),
+    and the Host rechecks the prepared generation and home.
+
+  So a notice cannot move to another home or conversation.
+- **CI-20 (i)** now matches the code. A write that was attempted and then
+  failed still counts as consumed, which is consistent with "observed a write
+  attempt".
+- **Residual:** see R-1.
+
+**G-2 is repaired.**
+- B is now prepared first. CH-1 is waived for exactly A, and the chain uses A's
+  prospective end. A preparation failure leaves A untouched (P2 and the new
+  test).
+- A's end is held unwritten until B's outcome is known. If B opens, A's
+  `run_ended` ("ended to start ‹B›") is written before B's `run_opened`.
+- **The fallback is truthful.** If B does not open, A's never-written entry
+  becomes "ended by the person". That is true: the person ended it, and WR's
+  notice pattern admits no other cause. A gets a pending notice, and a B that
+  was never sent is withdrawn.
+- **The CI-20 (e) residual is truthful and complete for an unknown outcome.**
+  B's chain line may have reached the model while A's record says "ended by the
+  person", and the notice follows too.
+- **One small omission in (e):** with a definite refusal, B's own published
+  `selection_record` (`prior_run.ended`) and `run_text` chain line still say
+  "ended to start ‹B›" while A's `run_ended` says otherwise. These are the
+  records of a run that was never opened, so they make no false RS claim.
+  Naming them in (e) would help readers.
+- **Residual:** see R-2.
+
+**G-3 is repaired.** `possibly_live_in` includes `Unknown` runs. The refusal
+names the reason and the record limits, and offers the end route.
+`end_recorded_run` accepts an `Unknown` run, but only once the record set is
+complete (the writer refuses an incomplete set). The new test passes, and JM1
+and JM5 are caught.
+
+**G-4 is repaired.** `flush_records` writes lifecycle entries and both kinds of
+R3 in observation order (ties go to the lifecycle entry), and stops at the
+first failure. Everything behind that point is marked held, so each late item
+gets its W-2 limit. Both defects J3 reported are pinned by tests (JM4 and JM4b
+are caught). **Residual:** see R-3.
+
+**G-5 is repaired.**
+- Pending-notice state is read from per-run atomic flags. A busy run with no
+  pending notice no longer blocks ordinary text (test).
+- The flag is synced at every notice transition: `end_run`,
+  `release_held_end`, `send_end_notice`, `skip_end_notice` and supersede.
+  `AwaitingTurn` → `Prepared` changes no flag.
+- When the record cannot be written, the person is told why and offered "Retry
+  the end-notice record" (it publishes without sending) or "Send without the
+  end notice".
+- **The skip path never presents the notice as supplied:**
+  - the state reads "not supplied …";
+  - there is no `Sent` state, no R3 and no `supplyForm` end-notice entry (test
+    and P3);
+  - the next ordinary turn carries no notice.
+- **Residual:** see R-4.
+
+**G-7 is repaired.** `workflow_end_recorded` no longer accepts `completed`, and
+`end_recorded_run(…, true)` is refused (FN-2). A null conversation gets a clear
+error.
+
+**G-6 and G-8** remain NOTEs, as allowed.
+
+### Residual findings
+
+#### R-1 MINOR: the "no write attempt" branch of G-1 is untested
+
+- **Where:** `runtime_session.rs:5127`.
+- **Evidence:** G1M survives. The `NOTICE_REFUSED_BEFORE_WRITE` test seam
+  simulates only an `Err` from the Host. Nothing exercises the Host returning
+  `Ok(source)` with `actualWriteAttemptObserved == false`, for example when the
+  generation closes before the write.
+- **Fix:** add a test, for example by closing the generation between begin and
+  write as the Host's own tests do (`hosting.rs:2472`).
+
+#### R-2 MINOR: A's held end stays in memory if B's start fails before its send
+
+- **Where:** `start_workflow_run` (`runtime_session.rs:4319-4350`); the
+  try-lock of other runs happens before `predecessor` is released.
+- **Evidence (P5):**
+  - while A is busy, B's start fails early, and nothing releases A's held end;
+  - A shows *ended* in the process, but its `run_ended` is unwritten and no
+    notice is pending, so the next ordinary turn carries none;
+  - a retry of B's start completes the step correctly;
+  - if the process ends first, the confirmed end is lost, and A reopens as
+    *open; interrupted*.
+- **Fix:** on any early `start_workflow_run` failure for a held successor,
+  either release A's end as a plain end with a pending notice, or keep the
+  successor clearly "ready to retry", and record the held state's in-memory
+  limit in CI-20 (e).
+
+#### R-3 MINOR: a permanently unwritable earlier record holds `run_ended` indefinitely
+
+- **Where:** `flush_records` (`runtime_session.rs:4673`).
+- **Evidence (P4):** an R3 whose reserved identity conflicts can never be
+  written, so the person's later `run_ended` stays held. After a relaunch the
+  run reads *open; interrupted* although the person ended it.
+- W-2 orders pending entries but gives no escape for an entry that can never be
+  written. The view does show "held behind an earlier unwritten record (W-2)".
+- **Fix:** record this in CI-20, or define a terminal "not writable" state for
+  such an entry (with its limit) so later records can proceed.
+
+#### R-4 MINOR: "Send without the end notice" can record a write failure that did not happen
+
+- **Where:**
+  - `skip_end_notice` (`runtime_session.rs:5057`);
+  - the panel, which shows the button whenever the notice is pending.
+- **Evidence (P3):** right after "End run", before any send or publication
+  attempt, skip is accepted. It writes `evidence_limit` "record write failed",
+  with detail "its record could not be written and the person chose to send
+  without it".
+- **Consequence:** the durable record states a failure that did not occur. The
+  fact that the notice was not supplied is still true.
+- **Fix:** allow skip only after a recorded publication failure of this notice,
+  and show the button only then. Or word the limit by its actual cause.
+
+### Updated verdict (J3 scope)
+
+**READY.**
+- G-1 and G-2 are repaired with tests, and their probes now pass.
+- G-3, G-4, G-5 and G-7 are repaired with tests.
+- CI-20 (e) and (i) are corrected and truthful.
+- The suite matches the reported count, and every V10 mutation is now caught.
+
+R-1 to R-4 are MINOR. None sends wrongly or presents the notice as supplied.
+They should be repaired or recorded in CI-20. R-4, a durable statement of a
+failure that did not happen, is the one to fix first.
