@@ -4283,6 +4283,11 @@ impl WorkflowRootSession {
         if self.runs.contains_key(run) {
             return Err("This run is held by this process; end it from its run".into());
         }
+        if completed {
+            // V10 G-7 (FN-2): *completed* needs the agent's finished report observed
+            // for the run in force; a reopened run has none in this process.
+            return Err("A reopened run can be ended only as the person's plain end: no finished report was observed for it in this process (FN-2); nothing recorded".into());
+        }
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
         let reading = crate::records::supply::read_project_runs(&records, &[]);
         if !reading.possibly_live_in(thread).iter().any(|r| r.run == run) {
@@ -6154,6 +6159,16 @@ for line in sys.stdin:
         root.lock().unwrap().runs[&a].lock().unwrap().retry_records().unwrap();
         assert_eq!(peer.fixture.wr_files().len(),wr_before+1,"notice record published");assert_eq!(peer.turn_starts(),starts,"retry never sends");
         assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 G-7 (FN-2): a reopened run has no finished report in this process, so it cannot be
+    // ended as *completed*; only the person's plain end applies.
+    #[test]
+    fn v10_g7_reopened_run_cannot_be_ended_as_completed(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+        assert!(fresh.end_recorded_run(&peer.fixture.root,&a,"thread",true).is_err());
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"),"nothing written");
+        assert_eq!(fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap()["cause"],"ended by the person");
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){

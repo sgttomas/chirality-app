@@ -746,9 +746,11 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]
-fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:String,completed:bool)->Result<Value,String>{
+fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option<String>)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing recorded and no fallback")?;
-    state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread_id,completed)
+    let thread=thread_id.ok_or("The record names no conversation for this run; it cannot be ended from here")?;
+    // V10 G-7: a reopened run is ended only as the person's plain end (no completed).
+    state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false)
 }
 /// REC `app_restart_interruption` facts, wherever the recovery projection carries them.
 fn restart_events(value:&Value)->Vec<Value>{
