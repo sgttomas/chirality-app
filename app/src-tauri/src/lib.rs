@@ -682,7 +682,20 @@ fn workflow_continue_registration(state:State<'_,AppState>,review_ref:String)->R
 #[tauri::command]
 fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    let mut root=state.workflows.lock().unwrap();let reference=root.prepare_run(home,&generation,&thread_id,person_text)?;Ok(json!({"reference":reference,"state":"original closed selection prepared; not sent"}))
+    // WR WP-1: the explicit App project owns WR records; None is refused with no fallback.
+    let mut root=state.workflows.lock().unwrap();let reference=root.prepare_run(home,&generation,&thread_id,person_text,state.workspace.as_deref())?;Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
+}
+#[tauri::command(async)]
+fn workflow_retry_records(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
+    let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual prepared original run unavailable")?;
+    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;run.retry_records()
+}
+/// Durable reading of the explicit project's WR records and R3 entries; writes nothing.
+#[tauri::command(async)]
+fn workflow_read_records(state:State<'_,AppState>)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); no WR records to read and no fallback")?;
+    let project=workflow_workspace::publication::ProjectRecords::open(root)?;
+    Ok(records::supply::read_project_supply(&project))
 }
 #[tauri::command(async)]
 fn workflow_send_run(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
@@ -977,7 +990,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,
+            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,
             decision_view,
             continue_decision_recording,
             compose_offer,

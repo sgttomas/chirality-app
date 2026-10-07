@@ -3798,6 +3798,18 @@ struct WorkflowSelectionState {
     reference: String,
     selection: crate::workflow_workspace::Selection,
     package: std::path::PathBuf,
+    /// The person's original selection time (WR selection_record.selected_at).
+    selected_at: String,
+}
+/// WR TT-1 (SETTLED) and TX-1: only registered (LS-1), bundled (LS-5), host-listed
+/// (LS-6) or shipped-held (LS-8) revisions are composed and run. The App holds no
+/// bundled/host/shipped capability yet, so only an actual hot registered revision
+/// runs here. Development evidence is never laundered into a selection (WP-6; CI-18).
+fn run_admission(selection: &crate::workflow_workspace::Selection) -> Result<(), String> {
+    match selection.admission() {
+        crate::workflow_workspace::SelectionAdmission::RegisteredRevision => Ok(()),
+        other => Err(format!("Selected workflow is not runnable ({}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (CONTRACT_ISSUES CI-18).", other.standing())),
+    }
 }
 pub(crate) struct WorkflowRootSession {
     selected: Option<WorkflowSelectionState>,
@@ -3822,11 +3834,11 @@ impl Default for WorkflowRootSession {
 }
 impl WorkflowRootSession {
     pub fn snapshot(&self) -> Value {
-        json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err()})),
+        json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err()})),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
-            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>json!({"reference":id,"runText":run.prepared.record(),"source":run.source.as_ref().map(|s|s.evidence()),"turn":run.turn_id,"status":run.status,"supply":run.supply}),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
-            "limit":"closed development/actual hot registrations only; no cold file authority, compatibility or model adoption claim"})
+            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
+            "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); no cold file authority, compatibility, active-run or model adoption claim"})
     }
     pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
@@ -3836,6 +3848,7 @@ impl WorkflowRootSession {
             reference: crate::util::opaque_id("workflow-selection:")?,
             selection: held.selection().clone(),
             package: path,
+            selected_at: crate::util::now_rfc3339(),
         });
         Ok(self.snapshot())
     }
@@ -3913,6 +3926,7 @@ impl WorkflowRootSession {
             reference: crate::util::opaque_id("workflow-selection:")?,
             selection,
             package: path,
+            selected_at: crate::util::now_rfc3339(),
         });
         drop(review);
         Ok(self.snapshot())
@@ -3979,20 +3993,33 @@ impl WorkflowRootSession {
         self.active_review = Some(reference);
         Ok(self.snapshot())
     }
+    /// Prepares one run's WR records for the explicit App project. Nothing is
+    /// recorded or sent here: publication happens before dispatch in `send`.
     pub fn prepare_run(
         &mut self,
         home: std::sync::Arc<HomeSession>,
         generation: &Value,
         thread: &str,
         person_text: String,
+        project: Option<&std::path::Path>,
     ) -> Result<String, String> {
         current_conversation(&home.host.snapshot(), generation, thread)?;
         let selected = self
             .selected
             .as_ref()
             .ok_or("No actual closed workflow selection")?;
+        run_admission(&selected.selection)?;
+        // WP-1: only the explicitly opened App project owns WR records; no
+        // source-root, library, cwd or user-data fallback.
+        let project_root = project
+            .ok_or("No explicit App project (CHIRALITY_WORKSPACE): WR recording unavailable, so the workflow run is not prepared or sent; no fallback store")?
+            .to_path_buf();
+        let records = crate::workflow_workspace::publication::ProjectRecords::open(&project_root)
+            .map_err(|e| format!("Explicit App project not openable for WR records ({e}); nothing prepared or sent; no fallback store"))?;
         selected.selection.verify_store(&selected.package)?;
-        let run = crate::util::opaque_id("workflow-run:")?;
+        // App-local opaque run reference until EXEC supplies its lifecycle identity;
+        // the `run:` form is RS $defs/runId, so R3 can be recorded under it.
+        let run = crate::util::opaque_id("run:workflow:")?;
         let scope = crate::workflow_workspace::RunScope {
             run: run.clone(),
             conversation: thread.into(),
@@ -4018,14 +4045,84 @@ impl WorkflowRootSession {
             "selected native workflow holding copy",
             None,
         )?;
+        let publication = crate::workflow_workspace::publication::PreparedRunPublication::new(
+            &records,
+            &selected.selection,
+            prepared,
+            WR_WRITER,
+            &selected.selected_at,
+            &crate::util::now_rfc3339(),
+        )?;
         let client_id = crate::util::opaque_id("workflow-message:")?;
-        self.runs.insert(run.clone(),std::sync::Arc::new(std::sync::Mutex::new(WorkflowRun{home,prepared,person_text,client_id,source:None,attempted:false,turn_id:None,status:json!({"state":"prepared; not sent","adoption":"unknown","runStanding":"no active run inferred from text preparation"}),supply:Value::Null})));
+        self.runs.insert(run.clone(),std::sync::Arc::new(std::sync::Mutex::new(WorkflowRun{home,project:records,project_root,publication,published:None,publication_failure:None,person_text,client_id,source:None,attempted:false,turn_id:None,status:json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"no active run inferred from text preparation"}),supply:Value::Null,checks:Vec::new()})));
         Ok(run)
+    }
+}
+/// Supplier writer label carried in WR envelopes.
+const WR_WRITER: &str = "app-writer:local";
+/// One native read's check: original pending record, its publication and its R3.
+struct WorkflowCheckSlot {
+    pending: crate::workflow_workspace::publication::PendingSupplyCheck,
+    published: Option<crate::workflow_workspace::publication::PublishedSupplyCheck>,
+    publication_failure: Option<String>,
+    r3: WorkflowR3,
+}
+enum WorkflowR3 {
+    /// The check is not yet published; R3 needs resolvable supplier records.
+    AwaitingCheck,
+    /// R3 could not be prepared from the resolved joins (no entry possible).
+    Unavailable(String),
+    Pending(crate::records::supply::PendingSuppliedGuidance),
+    Recorded(Value),
+}
+impl WorkflowCheckSlot {
+    /// Publish the original check bytes if needed, then prepare/append R3.
+    /// Never re-reads native history and never sends.
+    fn advance(&mut self, project: &crate::workflow_workspace::publication::ProjectRecords) {
+        if self.published.is_none() {
+            match self.pending.publish(project) {
+                Ok(p) => {
+                    self.published = Some(p);
+                    self.publication_failure = None;
+                }
+                Err(e) => {
+                    self.publication_failure = Some(e);
+                    return;
+                }
+            }
+        }
+        let published = self.published.as_ref().unwrap();
+        if matches!(self.r3, WorkflowR3::AwaitingCheck) {
+            self.r3 = match crate::records::supply::prepare_live(project, published) {
+                Ok(p) => WorkflowR3::Pending(p),
+                Err(e) => WorkflowR3::Unavailable(e.to_string()),
+            };
+        }
+        if let WorkflowR3::Pending(pending) = &mut self.r3 {
+            if let Ok(entry) = crate::records::supply::append_live(project, published, pending) {
+                self.r3 = WorkflowR3::Recorded(entry);
+            }
+        }
+    }
+    fn view(&self) -> Value {
+        let body = self.pending.body();
+        let r3 = match &self.r3 {
+            WorkflowR3::AwaitingCheck => json!({"state":"not recorded; awaits the published check"}),
+            WorkflowR3::Unavailable(e) => json!({"state":"unavailable","limit":e}),
+            WorkflowR3::Pending(p) => json!({"state":"pending write; missing in record","recordId":p.record_id(),"limit":p.failure(),"retry":"retry writes the same identity and observation time"}),
+            WorkflowR3::Recorded(entry) => json!({"state":"recorded","recordId":entry["recordId"],"observedAt":entry["observedAt"],"writtenAt":entry["writtenAt"],"supplyCheck":entry["body"]["supplyCheck"],"adoption":entry["body"]["adoption"]}),
+        };
+        json!({"reference":self.pending.reference(),"check":body["check"],"state":body["state"],"supplyReading":if body["state"]=="verified"{"supplied"}else{"supplied — not verified"},"readAt":body["read_at"],"turn":body["turn"],"locatedBy":body["located_by"],
+            "published":self.published.is_some(),"publicationLimit":self.publication_failure,"r3":r3,"adoption":"unknown"})
     }
 }
 pub(crate) struct WorkflowRun {
     pub home: std::sync::Arc<HomeSession>,
-    pub prepared: crate::workflow_workspace::PreparedRunText,
+    project: crate::workflow_workspace::publication::ProjectRecords,
+    project_root: std::path::PathBuf,
+    publication: crate::workflow_workspace::publication::PreparedRunPublication,
+    published: Option<crate::workflow_workspace::publication::PublishedRunText>,
+    publication_failure: Option<Value>,
     pub person_text: String,
     pub client_id: String,
     pub source: Option<crate::hosting::SourceRequest>,
@@ -4033,6 +4130,7 @@ pub(crate) struct WorkflowRun {
     pub turn_id: Option<String>,
     pub status: Value,
     pub supply: Value,
+    checks: Vec<WorkflowCheckSlot>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -4085,48 +4183,198 @@ impl WorkflowReviewContext {
     }
 }
 impl WorkflowRun {
+    pub fn prepared(&self) -> &crate::workflow_workspace::PreparedRunText {
+        self.publication.prepared()
+    }
+    fn record_state(&self, reference: &str) -> Value {
+        match self.project.resolve(reference) {
+            Ok(_) => json!({"reference":reference,"state":"recorded (resolves)"}),
+            Err(crate::workflow_workspace::publication::ResolutionError::Missing) => {
+                json!({"reference":reference,"state":"not recorded"})
+            }
+            Err(e) => json!({"reference":reference,"state":"not confirmed","limit":format!("{e:?}")}),
+        }
+    }
+    pub fn view(&self, reference: &str) -> Value {
+        let publication = match &self.published {
+            Some(p) => json!({"state":"selection and run_text recorded before send","selection":p.selection_record().reference(),"runText":p.run_text_record().reference()}),
+            None => json!({"state":"pending; not recorded","selection":self.publication.selection_reference(),"runText":self.publication.run_text_reference(),"lastFailure":self.publication_failure}),
+        };
+        json!({"reference":reference,"runText":self.prepared().record(),"project":crate::attachments::native_path_identity(&self.project_root),"publication":publication,
+            "source":self.source.as_ref().map(|s|s.evidence()),"turn":self.turn_id,"status":self.status,"supply":self.supply,
+            "checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records(),
+            "adoption":"unknown","runStanding":"no active, ended or completed run inferred; EXEC lifecycle is separate"})
+    }
+    pub fn has_pending_records(&self) -> bool {
+        self.published.is_none()
+            || self.checks.iter().any(|c| {
+                c.published.is_none() || matches!(c.r3, WorkflowR3::Pending(_) | WorkflowR3::AwaitingCheck)
+            })
+    }
+    /// WP-5 pre-send publication of the original selection and run_text. On
+    /// failure nothing is sent and the original pending bytes are kept.
+    fn publish_pre_send(&mut self) -> Result<(), String> {
+        if self.published.is_some() {
+            return Ok(());
+        }
+        match self.publication.publish(&self.project) {
+            Ok(published) => {
+                self.published = Some(published);
+                self.publication_failure = None;
+                Ok(())
+            }
+            Err(error) => {
+                let recorded = json!({"selection":self.record_state(self.publication.selection_reference()),"runText":self.record_state(self.publication.run_text_reference())});
+                self.publication_failure = Some(json!({"limit":error,"recorded":recorded}));
+                self.status = json!({"state":"WR pre-send publication failed; nothing sent","sent":false,"supplied":"not supplied","recorded":recorded,"limit":error,"retry":"Retry publishes the same original records; sending stays a separate once-only step","adoption":"unknown","runStanding":"no active run inferred"});
+                Err(format!("WR selection/run_text not durably recorded; nothing sent: {error}"))
+            }
+        }
+    }
     pub fn send(&mut self) -> Result<Value, String> {
         if self.attempted {
             return Err("Original workflow source attempt retained; no resend".into());
         }
         current_conversation(
             &self.home.host.snapshot(),
-            &self.prepared.scope().generation,
-            &self.prepared.scope().conversation,
+            &self.prepared().scope().generation,
+            &self.prepared().scope().conversation,
         )?;
+        self.publish_pre_send()?;
+        let (selection_ref, text_ref) = {
+            let published = self.published.as_ref().unwrap();
+            // WP-3: the exact composed text is rechecked against the published identity.
+            let body = published.run_text_record().body();
+            let text = published.prepared().text();
+            if body["text_identity"] != crate::role_supply::content(text.as_bytes())
+                || body["text_bytes"] != text.len()
+                || published.prepared().record() != body
+            {
+                return Err("Composed text differs from the published run_text; nothing sent".into());
+            }
+            (
+                published.selection_record().reference().to_owned(),
+                published.run_text_record().reference().to_owned(),
+            )
+        };
+        let records = json!({"selection":selection_ref,"runText":text_ref});
         self.attempted = true;
-        let source = self.home.host.turn_start_prepared_run_text(
-            &self.prepared.scope().generation,
-            &self.prepared,
+        let prepared = self.publication.prepared().clone();
+        let source = match self.home.host.turn_start_prepared_run_text(
+            &prepared.scope().generation,
+            &prepared,
             &self.person_text,
             &self.client_id,
-        )?;
+        ) {
+            Ok(source) => source,
+            Err(error) => {
+                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                return Err(error);
+            }
+        };
         self.source = Some(source.clone());
         match self.home.host.turn_start_prepared_finish(
             &source,
-            &self.prepared,
+            &prepared,
             &self.person_text,
             &self.client_id,
             std::time::Duration::from_secs(20),
         ) {
             Ok(native) => {
                 self.turn_id = Some(native.turn_id().to_owned());
-                self.status = json!({"state":"native workflow-text turn observed","replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"adoption":"unknown","runStanding":"native input/turn observations are separate from workflow execution/adoption/run end"});
+                self.status = json!({"state":"native workflow-text turn observed","records":records,"replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"supplied":"not yet checked","adoption":"unknown","runStanding":"native input/turn observations are separate from workflow execution/adoption/run end"});
             }
             Err(error) => {
-                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","limit":error,"automaticRetry":false,"adoption":"unknown"});
+                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","records":records,"limit":error,"automaticRetry":false,"supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err("Original native workflow source outcome unavailable; inspect retained source, no resend".into());
             }
         }
         Ok(self.status.clone())
     }
+    /// Retries only pending original records (WP-5): pre-send publication, check
+    /// publication and R3 late writes. Never sends and never re-reads native data.
+    pub fn retry_records(&mut self) -> Result<Value, String> {
+        if self.published.is_none() {
+            self.publish_pre_send()?;
+            if !self.attempted {
+                self.status = json!({"state":"selection and run_text recorded; not sent","sent":false,"supplied":"not supplied","next":"Send remains a separate once-only step","adoption":"unknown","runStanding":"no active run inferred"});
+            }
+        }
+        for slot in &mut self.checks {
+            slot.advance(&self.project);
+        }
+        Ok(json!({"status":self.status,"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records()}))
+    }
+    /// SC-3..SC-6: one genuine native read, minted into a new immutable check,
+    /// published and recorded as R3. Each call is a new check (SC-6).
     pub fn check_native_supply(&mut self) -> Result<Value, String> {
+        if self.published.is_none() {
+            return Err("No published run_text; nothing was sent or checked".into());
+        }
         let turn = self
             .turn_id
             .clone()
             .ok_or("Original native turn identity not received; no page guess")?;
-        let generation = self.prepared.scope().generation.clone();
-        let thread = self.prepared.scope().conversation.clone();
+        let mut issued = Vec::new();
+        let outcome = self.read_native_items(&turn, &mut issued);
+        let read_at = crate::util::now_rfc3339();
+        let check = crate::util::opaque_id("workflow-check:")?;
+        let published = self.published.as_ref().unwrap();
+        let (completed, display) = match outcome {
+            Ok((seal, pages)) => {
+                let mut index = 0;
+                let comparison = crate::workflow_workspace::compare_untrusted_pages(
+                    self.publication.prepared().text(),
+                    &turn,
+                    &self.client_id,
+                    |_| {
+                        let page = pages.get(index).cloned().ok_or("No checked native page")?;
+                        index += 1;
+                        Ok(page)
+                    },
+                );
+                let display = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":self.prepared().scope().generation,"thread":self.prepared().scope().conversation,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
+                let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::from_native_coverage(
+                    seal, &pages, published, &turn, &self.client_id, &check, &read_at,
+                )?;
+                (completed, display)
+            }
+            Err(error) if !issued.is_empty() => {
+                let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::unreadable_after_dispatch(
+                    &issued, published, &turn, &self.client_id, &check, &read_at, &error,
+                )?;
+                (completed, json!({"state":"native item read failed after dispatch; recorded as unreadable","limit":error,"turn":turn,"adoption":"unknown","runStanding":"no active/completed workflow run inferred"}))
+            }
+            Err(error) => return Err(error),
+        };
+        let pending = crate::workflow_workspace::publication::PendingSupplyCheck::new(
+            &self.project,
+            completed,
+            published,
+            WR_WRITER,
+        )?;
+        let mut slot = WorkflowCheckSlot {
+            pending,
+            published: None,
+            publication_failure: None,
+            r3: WorkflowR3::AwaitingCheck,
+        };
+        slot.advance(&self.project);
+        let mut supply = display;
+        supply["check"] = slot.view();
+        self.checks.push(slot);
+        self.supply = supply;
+        Ok(self.supply.clone())
+    }
+    /// The existing source-owned traversal. Every Host-issued dispatch is kept so
+    /// a later failure can still be recorded as *unreadable* against it.
+    fn read_native_items(
+        &self,
+        turn: &str,
+        issued: &mut Vec<crate::hosting::HistoryDispatch>,
+    ) -> Result<(crate::hosting::NativeItemCoverageSeal, Vec<Value>), String> {
+        let generation = self.prepared().scope().generation.clone();
+        let thread = self.prepared().scope().conversation.clone();
         current_conversation(&self.home.host.snapshot(), &generation, &thread)?;
         let query = {
             let mut receiver = self.home.history.lock().unwrap();
@@ -4137,7 +4385,7 @@ impl WorkflowRun {
             if h.selected_thread() != Some(thread.as_str()) {
                 return Err("Select this original conversation in native History and load its turns before checking supply".into());
             }
-            h.items_page(&turn, None, crate::native_history::Direction::Asc)?
+            h.items_page(turn, None, crate::native_history::Direction::Asc)?
         };
         let mut query = query;
         let mut check = None;
@@ -4150,6 +4398,7 @@ impl WorkflowRun {
                     .host
                     .dispatch_next_native_items_supply_page(check, &query)?,
             };
+            issued.push(dispatch.clone());
             self.home
                 .history
                 .lock()
@@ -4180,26 +4429,14 @@ impl WorkflowRun {
             drop(accepted);
             let next = check.as_ref().unwrap().next_cursor().map(str::to_owned);
             if let Some(next) = next {
-                query = h.items_page(&turn, Some(&next), crate::native_history::Direction::Asc)?;
+                query = h.items_page(turn, Some(&next), crate::native_history::Direction::Asc)?;
                 continue;
             }
             let seal = self.home.host.finish_native_items_supply_check(
                 check.take().unwrap(),
                 h.accepted_items_observation(&query)?,
             )?;
-            let mut index = 0;
-            let comparison = crate::workflow_workspace::compare_untrusted_pages(
-                self.prepared.text(),
-                &turn,
-                &self.client_id,
-                |_| {
-                    let page = pages.get(index).cloned().ok_or("No checked native page")?;
-                    index += 1;
-                    Ok(page)
-                },
-            );
-            self.supply = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":generation,"thread":thread,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
-            return Ok(self.supply.clone());
+            return Ok((seal, pages));
         }
     }
 }
@@ -4218,6 +4455,29 @@ mod workflow_root_tests {
             Self{root,package}
         }
         fn selected(&self)->WorkflowRootSession{let mut root=WorkflowRootSession::default();root.select_development_copy(self.package.clone()).unwrap();root}
+        /// The ordinary journey (TT-1): development copy -> draft -> review -> A15 -> hot registered selection.
+        fn registered(&self)->WorkflowRootSession{
+            let mut root=self.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&self.root))));
+            root.open_library(self.root.clone(),"project",Some(&self.root),control.clone()).unwrap();
+            root.create_selected_draft("coordinated-knowledge-work").unwrap();
+            let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("supplier intentionally unavailable".into())).unwrap());
+            root.begin_review(home,json!({"hostState":"absent","identityVerified":false}),vec!["coordinated-knowledge-work".into()],false).unwrap();
+            let reference=root.active_review.clone().unwrap();
+            let revision={let review=root.reviews[&reference].clone();let mut review=review.lock().unwrap();
+                let library=review.library.clone();let offer=review.offer.as_ref().unwrap();let current=review.review.as_ref().unwrap().current().unwrap();
+                let actor=crate::act_control::person(Some("synthetic native fixture"),Some("fixture OS"));let context=json!({"library":library.reference,"home":"explicit absent/unknown fixture source","identityVerified":false});
+                let mut owner_guard=control.lock().unwrap();let owner=owner_guard.as_mut().unwrap();
+                owner.a15_confirmation_text(offer,&current,&actor,&context).unwrap();owner.present_a15(offer).unwrap();
+                let event=crate::a15_native::ConfirmedA15Event::synthetic_for_test(offer.id().into(),owner.frozen_a15_offer_digest(offer).unwrap().clone(),actor,context);
+                let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(current);drop(owner_guard);
+                review.attempted_native=true;review.accept_result(result).unwrap();
+                review.registered.values().next().unwrap().identity().revision.clone()};
+            root.select_hot_registered_copy(&reference,&revision,self.root.join(".chirality/workflows/coordinated-knowledge-work")).unwrap();
+            assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
+            root
+        }
+        fn wr_files(&self)->Vec<String>{let mut v:Vec<String>=std::fs::read_dir(self.root.join(".chirality/records/workflow")).map(|d|d.filter_map(|e|e.ok()).map(|e|e.file_name().to_string_lossy().into_owned()).filter(|n|n.ends_with(".json")&&!n.starts_with('.')).collect()).unwrap_or_default();v.sort();v}
+        fn rs_entries(&self)->Vec<Value>{let(entries,limits)=crate::storage::read_all(&self.root);assert!(limits.is_empty(),"{limits:?}");entries}
     }
     impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
     #[test]
@@ -4268,6 +4528,11 @@ def emit(v):print(json.dumps(v),flush=True)
 def thread():return {'id':'thread','cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
 def turn():return {'id':'turn','status':'failed','items':[],'error':None,'itemsView':'summary'}
 text='';client=''
+def mode(name):
+ return open(name).read().strip() if os.path.exists(name) else ''
+def wr():
+ d='.chirality/records/workflow'
+ return sorted(n for n in os.listdir(d) if n.endswith('.json') and not n.startswith('.')) if os.path.isdir(d) else []
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
@@ -4275,10 +4540,24 @@ for line in sys.stdin:
  if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
  elif method=='thread/start':result={'thread':thread(),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
  elif method=='turn/start':
+  # Publish-before-send witness: the WR records the peer can see when the turn arrives.
+  with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
+  if mode('turn-mode')=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture refused turn/start'}});continue
   text=f['params']['input'][0]['text'];client=f['params']['clientUserMessageId'];result={'turn':turn()}
  elif method=='thread/list':result={'data':[thread()],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
- elif method=='thread/items/list':result={'data':[{'turnId':'turn','item':{'type':'userMessage','id':'message','clientId':client,'content':[{'type':'text','text':text}]}}],'nextCursor':None}
+ elif method=='thread/items/list':
+  m=mode('items-mode');seen=text;cid=client
+  if m=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable items'}});continue
+  if m=='framing':seen=text.replace('[Chirality] Workflow run start:','[Chirality] Workflow run started:',1)
+  if m=='differ':seen=text.replace('\n','\r\n')
+  if m=='noclient':cid='other-client'
+  message={'type':'userMessage','id':'message','clientId':cid,'content':[{'type':'text','text':seen}]}
+  data=[] if m=='absent' else [{'turnId':'turn','item':message}]
+  if m=='paged' and f['params'].get('cursor') is None:result={'data':[],'nextCursor':'page-2'}
+  else:result={'data':data,'nextCursor':None}
  else:continue
  emit({'id':f['id'],'result':result})
 "#).unwrap();std::fs::set_permissions(&script,std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -4288,6 +4567,12 @@ for line in sys.stdin:
             let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,host,Ok(cfg)).unwrap());Self{fixture,home,generation}
         }
         fn wire(&self)->Vec<Value>{std::fs::read_to_string(self.fixture.root.join("wire.jsonl")).unwrap().lines().map(|line|serde_json::from_str(line).unwrap()).collect()}
+        fn turn_starts(&self)->usize{self.wire().iter().filter(|f|f["method"]=="turn/start").count()}
+        /// WR record files the peer saw at each turn/start, in arrival order.
+        fn wr_at_turn_start(&self)->Vec<Vec<String>>{std::fs::read_to_string(self.fixture.root.join("turn-start-wr.jsonl")).unwrap_or_default().lines().map(|line|serde_json::from_str(line).unwrap()).collect()}
+        fn set_mode(&self,name:&str,value:&str){std::fs::write(self.fixture.root.join(name),value).unwrap();}
+        /// The explicit App project (CHIRALITY_WORKSPACE stand-in) owning WR and RS records.
+        fn project(&self)->Option<&std::path::Path>{Some(&self.fixture.root)}
         fn select_history(&self){
             let list={let mut receiver=self.home.history.lock().unwrap();receiver.reconcile(&self.home.host);receiver.history_mut().unwrap().list_threads(None,crate::native_history::Direction::Asc).unwrap()};
             self.receive(list);
@@ -4298,20 +4583,192 @@ for line in sys.stdin:
     }
     impl Drop for Peer{fn drop(&mut self){let _=self.home.host.stop("owned fixture cleanup","test ended");}}
     #[test]
+    // CI-18: moved from a development selection to the ordinary registered route; assertions unchanged.
     fn workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages(){
-        let peer=Peer::new();let mut root=peer.fixture.selected();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into()).unwrap();
+        let peer=Peer::new();let mut root=peer.fixture.registered();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
         run.send().unwrap();assert_eq!(run.turn_id.as_deref(),Some("turn"));assert_eq!(run.status["observedStatus"],"failed");
-        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],run.prepared.turn_params("person exact\r\ntext",&run.client_id).unwrap());
+        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],run.prepared().turn_params("person exact\r\ntext",&run.client_id).unwrap());
         assert!(run.send().is_err());assert_eq!(peer.wire().iter().filter(|f|f["method"]=="turn/start").count(),1);
         peer.select_history();let supply=run.check_native_supply().unwrap();assert_eq!(supply["pageCount"],1);assert_eq!(supply["comparison"]["state"],"equal_claimed_text");assert_eq!(supply["adoption"],"unknown");assert_eq!(supply["sourceReceipts"].as_array().unwrap().len(),1);
     }
     #[test]
+    // CI-18: moved from a development selection to the ordinary registered route; assertions unchanged.
     fn workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend(){
-        let peer=Peer::new();let mut root=peer.fixture.selected();let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
-        assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into()).is_err());
-        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
+        let peer=Peer::new();let mut root=peer.fixture.registered();let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
+        assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into(),peer.project()).is_err());
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),peer.project()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
         peer.home.host.stop_scoped(&peer.generation,"fixture","source loss").unwrap();assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(run.source.as_ref().unwrap().request_ref(),original);assert_eq!(run.status["adoption"],"unknown");
+    }
+    // J1 control: WR TT-1/TX-1/WP-6. A development selection may be shown, never run.
+    #[test]
+    fn workflow_root_development_selection_run_is_refused_tt1_tx1(){
+        let peer=Peer::new();let mut root=peer.fixture.selected();
+        assert_eq!(root.snapshot()["selection"]["standing"],crate::workflow_workspace::development_catalog::STANDING);
+        let refused=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),peer.project());
+        assert!(refused.as_ref().is_err_and(|e|e.contains("TT-1")&&e.contains("TX-1")),"{refused:?}");
+        assert!(root.runs.is_empty());assert_eq!(peer.turn_starts(),0);assert!(peer.fixture.wr_files().is_empty());
+    }
+    // J1 control: WR SC-1/WP-5 publish-before-send, SC-6 new check per read, RS R3 per check.
+    #[test]
+    fn workflow_root_registered_run_publishes_before_send_and_records_each_check(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();
+        let seen=peer.wr_at_turn_start();assert_eq!(seen.len(),1);assert_eq!(seen[0].len(),2,"selection and run_text must be durable before turn/start: {seen:?}");
+        peer.select_history();run.check_native_supply().unwrap();run.check_native_supply().unwrap();
+        assert_eq!(peer.fixture.wr_files().len(),4,"each native read is a new immutable supply_check");
+        let r3:Vec<Value>=peer.fixture.rs_entries().into_iter().filter(|e|e["kind"]=="supplied_guidance").collect();
+        assert_eq!(r3.len(),2,"{}",run.view("run")["checks"]);for e in &r3{assert_eq!(e["body"]["supplyCheck"],"verified");assert_eq!(e["body"]["adoption"],"unknown");}
+        assert_eq!(peer.turn_starts(),1);
+    }
+    fn item_reads(peer:&Peer)->usize{peer.wire().iter().filter(|f|f["method"]=="thread/items/list").count()}
+    fn wr_dir(peer:&Peer)->PathBuf{peer.fixture.root.join(".chirality/records/workflow")}
+    // WP-5: failed pre-send publication sends nothing; a retry republishes the same original bytes.
+    #[test]
+    fn workflow_root_publication_failure_sends_nothing_and_retry_keeps_original_bytes(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        let pending=run.view(&reference)["publication"].clone();assert_eq!(pending["state"],"pending; not recorded");
+        // Definite failure: the WR directory cannot be created.
+        std::fs::write(wr_dir(&peer),b"not a directory").unwrap();
+        assert!(run.send().unwrap_err().contains("nothing sent"));
+        assert_eq!(peer.turn_starts(),0);assert!(!run.attempted);assert!(run.source.is_none());
+        assert_eq!(run.status["sent"],false);assert_eq!(run.status["supplied"],"not supplied");
+        assert_ne!(run.status["recorded"]["selection"]["state"],"recorded (resolves)");assert_ne!(run.status["recorded"]["runText"]["state"],"recorded (resolves)");
+        assert!(run.retry_records().is_err());assert_eq!(peer.turn_starts(),0);
+        std::fs::remove_file(wr_dir(&peer)).unwrap();
+        // Uncertain failure: the selection is linked, then the result is lost.
+        crate::workflow_workspace::publication::FAIL_AFTER_LINK.with(|v|v.set(true));
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),0);assert!(!run.attempted);
+        assert_eq!(run.status["recorded"]["selection"]["state"],"recorded (resolves)");assert_eq!(run.status["recorded"]["runText"]["state"],"not recorded");
+        let selection_ref=pending["selection"].as_str().unwrap();let text_ref=pending["runText"].as_str().unwrap();
+        let file=|r:&str|wr_dir(&peer).join(format!("{}.json",r.strip_prefix("wr-record:v1:").unwrap()));
+        let original=std::fs::read(file(selection_ref)).unwrap();
+        let retried=run.retry_records().unwrap();assert_eq!(retried["status"]["state"],"selection and run_text recorded; not sent");assert_eq!(peer.turn_starts(),0,"retry publishes only; it never sends");
+        assert_eq!(std::fs::read(file(selection_ref)).unwrap(),original,"same identity, same original bytes");assert!(file(text_ref).exists());
+        let view=run.view(&reference);assert_eq!(view["publication"]["selection"],selection_ref);assert_eq!(view["publication"]["runText"],text_ref);
+        let reopened=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let selection=reopened.resolve(selection_ref).unwrap();assert_eq!(selection.envelope()["observed_at"],root.snapshot()["selection"]["selectedAt"],"original selection time, not retry time");
+        run.send().unwrap();assert_eq!(peer.turn_starts(),1);
+        let name=|r:&str|file(r).file_name().unwrap().to_string_lossy().into_owned();
+        let seen=peer.wr_at_turn_start();assert_eq!(seen.len(),1);assert!(seen[0].contains(&name(selection_ref))&&seen[0].contains(&name(text_ref)),"{seen:?}");
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
+    }
+    // WP-1: an unknown or unopenable project is refused with no fallback store.
+    #[test]
+    fn workflow_root_unknown_project_is_refused_without_fallback(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let none=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),None);
+        assert!(none.as_ref().is_err_and(|e|e.contains("No explicit App project")&&e.contains("no fallback")),"{none:?}");
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),Some(std::path::Path::new("relative-project"))).is_err());
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),Some(peer.fixture.root.join("absent-project").as_path())).is_err());
+        assert!(root.runs.is_empty());assert_eq!(peer.turn_starts(),0);assert!(peer.fixture.wr_files().is_empty());
+        assert!(!peer.fixture.root.join("absent-project").exists());
+    }
+    // SC-3/SC-4 and §16.4: each mode is a new native read and a new immutable check; R3 copies the state.
+    #[test]
+    fn workflow_root_each_read_maps_state_faithfully_into_new_check_and_r3(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let cases=[("","verified",Some("client id")),("noclient","verified",Some("first user message of the turn")),("paged","verified",Some("client id")),
+            ("framing","text differs, workflow bytes equal",Some("client id")),("differ","text differs, workflow bytes differ",Some("client id")),("absent","not found",None),("error","unreadable",None)];
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let text_ref=run.view(&reference)["publication"]["runText"].as_str().unwrap().to_owned();
+        let mut seen=std::collections::BTreeSet::new();
+        for (mode,state,located) in cases {
+            peer.set_mode("items-mode",mode);
+            let supply=run.check_native_supply().unwrap_or_else(|e|panic!("{mode}: {e}"));
+            let check=&supply["check"];assert_eq!(check["state"],state,"{mode}");assert_eq!(check["published"],true,"{mode}");assert_eq!(check["r3"]["state"],"recorded","{mode}: {check}");
+            assert!(seen.insert(check["reference"].as_str().unwrap().to_owned()),"each read is a new check identity");
+            let record=project.resolve(check["reference"].as_str().unwrap()).unwrap();let body=record.body();
+            assert_eq!(body["state"],state);assert_eq!(body["turn"],"turn");assert_eq!(body["client_user_message_id"],run.client_id.as_str());
+            assert_eq!(record.envelope()["basis_records"],json!([text_ref]));assert_eq!(record.envelope()["observed_at"],body["read_at"]);
+            assert!(!record.envelope()["source_references"].as_array().unwrap().is_empty(),"actual native source receipts");
+            match located{Some(by)=>{assert_eq!(body["located_by"],by);assert_eq!(body["item"],"message");assert!(body.get("observed_text").is_some());},None=>assert!(body.get("observed_text").is_none())}
+            if mode=="paged"{assert_eq!(supply["pageCount"],2);}
+            let r3=peer.fixture.rs_entries().into_iter().find(|e|e["recordId"]==check["r3"]["recordId"]).unwrap();
+            assert_eq!(r3["kind"],"supplied_guidance");assert_eq!(r3["body"]["supplyCheck"],state);assert_eq!(r3["body"]["adoption"],"unknown");
+            assert_eq!(r3["body"]["nativeTurn"],"turn");assert_eq!(r3["body"]["thread"],"thread");assert_eq!(r3["body"]["supplyRecord"]["ref"],text_ref.as_str());
+            assert_eq!(r3["body"]["supplyCheckRecord"]["ref"],check["reference"]);assert_eq!(r3["observedAt"],body["read_at"]);assert_eq!(r3["runId"],reference.as_str());
+            assert_eq!(check["supplyReading"],if state=="verified"{"supplied"}else{"supplied — not verified"});
+        }
+        assert_eq!(peer.turn_starts(),1,"checks never resend");
+    }
+    // RN-4 gap treatment: a refused turn/start has no native turn or page boundary, so no
+    // supply_check is minted and R3 stays unavailable; nothing is resent.
+    #[test]
+    fn workflow_root_refused_send_mints_no_check_and_keeps_r3_unavailable(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","error");
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
+        assert_eq!(peer.wr_at_turn_start()[0].len(),2,"records were durable before the refused send");
+        assert!(run.status["supplyCheck"].as_str().unwrap().contains("RN-4"));assert!(run.status["r3"].as_str().unwrap().starts_with("unavailable"));
+        assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
+        assert_eq!(peer.fixture.wr_files().len(),2);assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="supplied_guidance"));
+    }
+    // WP-5/W-2: post-send check publication and R3 failures keep original facts, never resend or re-read.
+    #[test]
+    fn workflow_root_post_send_record_failures_retry_without_resend(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        // 1. RS writer unavailable: WR check published, R3 pending.
+        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let first=run.check_native_supply().unwrap()["check"].clone();
+        assert_eq!(first["published"],true);assert_eq!(first["r3"]["state"],"pending write; missing in record");
+        let r3_id=first["r3"]["recordId"].as_str().unwrap().to_owned();
+        // 2. WR check publication unavailable: the check is pending with its original bytes.
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        let second=run.check_native_supply().unwrap()["check"].clone();
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(second["published"],false);assert!(second["publicationLimit"].is_string());assert_eq!(second["r3"]["state"],"not recorded; awaits the published check");
+        let second_ref=second["reference"].as_str().unwrap().to_owned();assert!(!peer.fixture.wr_files().iter().any(|n|second_ref.ends_with(n.trim_end_matches(".json"))));
+        assert!(run.has_pending_records());
+        let (reads,starts)=(item_reads(&peer),peer.turn_starts());
+        std::fs::remove_file(&runs).unwrap();
+        let retried=run.retry_records().unwrap();assert_eq!(retried["pendingRecords"],false,"{retried}");
+        assert_eq!(item_reads(&peer),reads,"retry never re-reads native history");assert_eq!(peer.turn_starts(),starts);assert_eq!(starts,1);
+        let checks=run.view(&reference)["checks"].clone();assert_eq!(checks[0]["r3"]["recordId"],r3_id.as_str(),"late R3 keeps its reserved identity");
+        assert_eq!(checks[1]["reference"],second_ref.as_str(),"publication retry keeps the check identity");assert_eq!(checks[1]["readAt"],second["readAt"]);
+        let entries=peer.fixture.rs_entries();
+        let late=entries.iter().find(|e|e["recordId"]==r3_id.as_str()).unwrap();assert_eq!(late["observedAt"],first["readAt"],"original observation time");
+        assert!(entries.iter().any(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"&&e["body"]["subjectRef"]==r3_id.as_str()));
+        assert_eq!(entries.iter().filter(|e|e["kind"]=="supplied_guidance").count(),2);
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        assert_eq!(project.resolve(&second_ref).unwrap().body()["read_at"],second["readAt"]);
+        // A further retry is a no-op: no duplicate R3 or limit.
+        run.retry_records().unwrap();assert_eq!(peer.fixture.rs_entries().len(),entries.len());
+    }
+    // Outcome 5: a later process resolves every published record from the project alone.
+    #[test]
+    fn workflow_root_fresh_process_resolves_records_without_run_claims(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let (selection_ref,text_ref,check_ref,orphan_ref)={let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+            let check=run.check_native_supply().unwrap()["check"]["reference"].as_str().unwrap().to_owned();
+            // A stopped writer: R3 for this check never reaches the record (WP-5).
+            let blocked=peer.fixture.root.join(".chirality/records/runs");std::fs::rename(&blocked,peer.fixture.root.join("runs-aside")).unwrap();std::fs::write(&blocked,b"blocked").unwrap();
+            let orphan=run.check_native_supply().unwrap()["check"]["reference"].as_str().unwrap().to_owned();
+            std::fs::remove_file(&blocked).unwrap();std::fs::rename(peer.fixture.root.join("runs-aside"),&blocked).unwrap();
+            let view=run.view(&reference);(view["publication"]["selection"].as_str().unwrap().to_owned(),view["publication"]["runText"].as_str().unwrap().to_owned(),check,orphan)};
+        drop(root); // process state lost; pending R3 for the orphan is gone with it
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let check=project.resolve(&check_ref).unwrap();assert_eq!(check.envelope()["basis_records"],json!([text_ref]));
+        let text=project.resolve(&text_ref).unwrap();assert_eq!(text.envelope()["basis_records"],json!([selection_ref]));
+        let selection=project.resolve(&selection_ref).unwrap();assert_eq!(selection.body()["standing"],"registered");
+        let reading=crate::records::supply::read_project_supply(&project);
+        let records=reading["records"].as_array().unwrap();assert_eq!(records.len(),4);assert!(records.iter().all(|r|r["resolution"]=="resolved"),"{reading}");
+        let find=|r:&str|records.iter().find(|v|v["reference"]==r).unwrap().clone();
+        assert_eq!(find(&check_ref)["r3"][0]["standing"],"HistoricalCorrespondence");assert_eq!(find(&orphan_ref)["r3"],"missing in record");
+        assert!(reading["standing"].as_str().unwrap().contains("no live native witness, model adoption, registration or run lifecycle inferred"));
+        let kinds:Vec<Value>=peer.fixture.rs_entries().iter().map(|e|e["kind"].clone()).collect();
+        assert!(!kinds.iter().any(|k|k=="run_opened"||k=="run_ended"),"no active-run or completion claim: {kinds:?}");
+        let fresh=WorkflowRootSession::default();assert!(fresh.snapshot()["runs"].as_array().unwrap().is_empty(),"records do not recreate a live run");
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){

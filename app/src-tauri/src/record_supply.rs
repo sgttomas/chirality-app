@@ -1,10 +1,180 @@
-//! CC-RS-WR-SUPPLY-FIT: historical WR/RS correspondence, never live supply authority.
+//! CC-RS-WR-SUPPLY-FIT: WR/RS correspondence.
 //!
-//! Resolved immutable evidence can reconstruct a claim, but cannot recreate the
-//! source-owned comparison or authorize a new supplied_guidance append. Root's
-//! completed-check producer must supply that separate capability at integration.
-use crate::workflow_workspace::publication::{ProjectRecords, ResolvedRecord};
+//! Resolved immutable evidence can reconstruct a historical claim, but cannot
+//! recreate the source-owned comparison or authorize a new supplied_guidance
+//! append. Only the live path below appends R3, and only from a typed
+//! `PublishedSupplyCheck` that Root minted at the genuine native boundary.
+use crate::workflow_workspace::publication::{
+    ProjectRecords, PublishedSupplyCheck, ResolvedRecord,
+};
 use serde_json::{json, Value};
+
+/// Storage key of the App's live workflow-supply R3 writer (one log per run).
+pub(crate) const LIVE_WRITER: &str = "app-workflow-supply-writer";
+
+/// One pending live R3 observation (W-1/W-2). The reserved record identity and
+/// the original observation time (the check's read time) survive failed writes;
+/// it is held in memory only, so a stopped process loses it (WP-5, W-2).
+#[derive(Debug)]
+pub struct PendingSuppliedGuidance {
+    run: String,
+    record_id: String,
+    observed_at: String,
+    check_ref: String,
+    body: Value,
+    failure: Option<String>,
+}
+impl PendingSuppliedGuidance {
+    pub fn record_id(&self) -> &str {
+        &self.record_id
+    }
+    pub fn body(&self) -> &Value {
+        &self.body
+    }
+    pub fn failure(&self) -> Option<&str> {
+        self.failure.as_deref()
+    }
+}
+/// Prepare R3 from a check this process minted and published. Both supplier
+/// references must resolve in the explicit project (RS §13.6a).
+pub(crate) fn prepare_live(
+    project: &ProjectRecords,
+    published: &PublishedSupplyCheck,
+) -> Result<PendingSuppliedGuidance, CorrespondenceError> {
+    let joined = correspond(project, published.run_text(), published.check())?;
+    let observed_at = published.check().envelope()["observed_at"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| invalid("check observation time absent"))?
+        .to_owned();
+    Ok(PendingSuppliedGuidance {
+        run: joined.run,
+        record_id: crate::util::opaque_id("rec:app:").map_err(invalid)?,
+        observed_at,
+        check_ref: published.check().reference().to_owned(),
+        body: joined.body,
+        failure: None,
+    })
+}
+/// Append (or late-append) one live R3 entry. Joins are re-validated at write
+/// time; an uncertain earlier write that did land is recognised by its reserved
+/// identity and exact body, never written twice; a late write is followed by
+/// W-2's "record write failed" limit. Nothing here sends or re-reads native data.
+pub(crate) fn append_live(
+    project: &ProjectRecords,
+    published: &PublishedSupplyCheck,
+    pending: &mut PendingSuppliedGuidance,
+) -> Result<Value, String> {
+    let root = project.root().to_owned();
+    let current =
+        correspond(project, published.run_text(), published.check()).map_err(|e| e.to_string())?;
+    if current.body != pending.body
+        || current.run != pending.run
+        || published.check().reference() != pending.check_ref
+    {
+        return Err("R3 supplier joins changed since preparation; nothing written".into());
+    }
+    let (entries, limits) = crate::storage::read_all(&root);
+    if !limits.is_empty() {
+        let error = format!("RS record set incomplete; nothing written: {limits:?}");
+        pending.failure.get_or_insert(error.clone());
+        return Err(error);
+    }
+    let written = match entries
+        .iter()
+        .find(|e| e["recordId"].as_str() == Some(pending.record_id.as_str()))
+    {
+        Some(existing)
+            if existing["kind"] == "supplied_guidance"
+                && existing["body"] == pending.body
+                && existing["runId"] == pending.run.as_str()
+                && existing["observedAt"] == pending.observed_at.as_str() =>
+        {
+            existing.clone()
+        }
+        Some(_) => {
+            return Err(format!(
+                "R3 identity {} already holds other content; nothing written",
+                pending.record_id
+            ))
+        }
+        None => match crate::records::append_project_reserved(
+            &root,
+            &pending.run,
+            LIVE_WRITER,
+            "supplied_guidance",
+            &crate::records::APP_WRITER,
+            pending.body.clone(),
+            &pending.record_id,
+            &pending.observed_at,
+        ) {
+            Ok(entry) => entry,
+            Err(error) => {
+                pending.failure.get_or_insert(error.clone());
+                return Err(error);
+            }
+        },
+    };
+    if let Some(failure) = &pending.failure {
+        crate::records::note_project_late_write(
+            &root,
+            &pending.run,
+            LIVE_WRITER,
+            &pending.record_id,
+            &format!("supplied_guidance written after its original observation; first failure: {failure}"),
+        )?;
+    }
+    Ok(written)
+}
+
+/// Durable reading of one explicit project's WR supplier records and their R3
+/// entries, for a later process. Historical only: no active run, run end,
+/// completion, adoption or live native witness is inferred.
+pub fn read_project_supply(project: &ProjectRecords) -> Value {
+    let references = match project.list_references() {
+        Ok(r) => r,
+        Err(e) => {
+            return json!({"state":"WR records unreadable","limit":e,"standing":HISTORICAL_LIMIT})
+        }
+    };
+    let (entries, rs_limits) = crate::storage::read_all(project.root());
+    let r3: Vec<&Value> = entries
+        .iter()
+        .filter(|e| e["kind"] == "supplied_guidance")
+        .collect();
+    let records: Vec<Value> = references
+        .iter()
+        .map(|reference| match project.resolve(reference) {
+            Err(e) => json!({"reference":reference,"resolution":format!("{e:?}")}),
+            Ok(record) => {
+                let body = record.body();
+                let mut view = json!({"reference":reference,"resolution":"resolved","kind":body["record_kind"],"observedAt":record.envelope()["observed_at"],"basis":record.envelope()["basis_records"]});
+                for key in ["run", "conversation", "purpose", "state", "turn", "selection_id"] {
+                    if let Some(v) = body.get(key) {
+                        view[key] = v.clone();
+                    }
+                }
+                if body["record_kind"] == "supply_check" {
+                    let citing: Vec<Value> = r3
+                        .iter()
+                        .filter(|e| e["body"]["supplyCheckRecord"]["ref"] == reference.as_str())
+                        .map(|e| {
+                            let reading = read_correspondence(project, e);
+                            json!({"recordId":e["recordId"],"standing":format!("{:?}",reading.standing),"limits":reading.limits})
+                        })
+                        .collect();
+                    view["r3"] = if citing.is_empty() {
+                        json!("missing in record")
+                    } else {
+                        json!(citing)
+                    };
+                }
+                view
+            }
+        })
+        .collect();
+    json!({"project":crate::attachments::native_path_identity(project.root()),"records":records,"rsLimits":rs_limits,"standing":HISTORICAL_LIMIT})
+}
 
 const HISTORICAL_LIMIT: &str = "historical correspondence only; no live native witness, model adoption, registration or run lifecycle inferred";
 
