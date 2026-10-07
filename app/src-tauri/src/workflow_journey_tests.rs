@@ -86,13 +86,14 @@ for line in sys.stdin:
 
 /// The durable side of the journey: the explicit App project (the
 /// `CHIRALITY_WORKSPACE` stand-in), the development holding copy, the peer
-/// script, the Codex account/probe homes and two further library roots. It
-/// outlives every simulated App process.
+/// script, the Codex account/probe homes and the App user-data folder (which
+/// keeps App-kept draft bases, WR §3). It outlives every simulated App process.
 struct Disk {
     base: PathBuf,
     project: PathBuf,
     package: PathBuf,
     script: PathBuf,
+    app_data: PathBuf,
 }
 impl Disk {
     fn new() -> Self {
@@ -101,7 +102,8 @@ impl Disk {
             .unwrap()
             .join(crate::util::opaque_id("workflow-journey-").unwrap());
         let project = base.join("project");
-        for dir in [&base, &project, &base.join("account"), &base.join("probe")] {
+        let app_data = base.join("app-data");
+        for dir in [&base, &project, &base.join("account"), &base.join("probe"), &app_data] {
             std::fs::create_dir(dir).unwrap();
         }
         let package = project.join(NAME);
@@ -113,12 +115,7 @@ impl Disk {
         let script = base.join("owned-peer.py");
         std::fs::write(&script, PEER).unwrap();
         std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
-        Self { base, project, package, script }
-    }
-    fn library(&self, name: &str) -> PathBuf {
-        let root = self.base.join(name);
-        std::fs::create_dir(&root).unwrap();
-        root
+        Self { base, project, package, script, app_data }
     }
     /// Every frame the peer received, across all simulated processes, in order.
     fn wire(&self) -> Vec<Value> {
@@ -167,6 +164,12 @@ impl Disk {
     fn rs_for(&self, run: &str) -> Vec<Value> {
         self.rs().into_iter().filter(|e| e["runId"] == run).collect()
     }
+}
+/// `AppState.workflows` with lib.rs setup's wiring: the App user-data root.
+fn root_session(disk: &Disk) -> Mutex<WorkflowRootSession> {
+    let mut root = WorkflowRootSession::default();
+    root.set_app_user_data(disk.app_data.clone());
+    Mutex::new(root)
 }
 impl Drop for Disk {
     fn drop(&mut self) {
@@ -269,7 +272,7 @@ fn workflow_reopen(root: &Mutex<WorkflowRootSession>, process: &Process, project
     root.lock().unwrap().reopen(project, &events).unwrap()
 }
 
-/// Steps 2/7/8: draft, review, hot A15 and the registration transaction, with
+/// Step 2: draft, review, hot A15 and the registration transaction, with
 /// the act-control double used by
 /// `workflow_root_closed_selection_real_review_hot_receipt_and_transaction`,
 /// then selection of the hot registered revision. Requires the development
@@ -289,6 +292,15 @@ fn register_and_select(
     assert_eq!(draft["name"], NAME);
     r.begin_review(home.clone(), json!({"hostState":"fixture","identityVerified":false}), vec![NAME.into()], false)
         .unwrap();
+    let (reference, revision) = capture_and_register(&mut r, library, origin);
+    drop(r);
+    (reference, revision)
+}
+
+/// `workflow_register_native` (through the act-control double), the ledger
+/// checks and `workflow_select_registered` for the review `begin_review` just
+/// opened. Returns (review reference, registered revision).
+fn capture_and_register(r: &mut WorkflowRootSession, library: &Path, origin: &str) -> (String, String) {
     let reference = r.active_review.clone().unwrap();
     // workflow_register_native, through the act-control double.
     let revision = {
@@ -315,6 +327,8 @@ fn register_and_select(
         review.attempted_native = true;
         review.accept_result(result).unwrap();
         assert_eq!(review.status["entries"][0]["state"], "registered", "{}", review.status);
+        // J5: only this act's own revision becomes a registered value; a disclosed prior is never promoted.
+        assert_eq!(review.registered.len(), 1, "{:?}", review.registered.keys().collect::<Vec<_>>());
         review.registered.values().next().unwrap().identity().revision.clone()
     };
     // The library's registration ledger holds the registered line, bound to the A15 act.
@@ -337,6 +351,62 @@ fn register_and_select(
     assert_eq!(snapshot["selection"]["runnable"], true);
     assert_eq!(snapshot["selection"]["identity"]["revision"], revision.as_str());
     assert_eq!(snapshot["selection"]["identity"]["origin"], origin);
+    (reference, revision)
+}
+
+/// J4 finding 1 (J5): after process loss the person registers the same workflow
+/// again in the SAME library, through a new genuine A15 on the hot draft route
+/// (WR RB-6, DS-2). The draft from the earlier process is kept (D-1: the App
+/// never overwrites it) and refined, because identical content is DS-4. The
+/// prior ledger line and the App-kept base are disclosed observations, frozen at
+/// review and checked under the ledger lock; they never select the old revision.
+fn refine_register_and_select(
+    root: &Mutex<WorkflowRootSession>,
+    home: &Arc<HomeSession>,
+    library: &Path,
+    origin: &str,
+    project: &Path,
+    workspace_control: Arc<Mutex<Option<crate::act_control::ActControl>>>,
+    previous: &str,
+    refinement: &str,
+) -> (String, String) {
+    let mut r = root.lock().unwrap();
+    r.open_library(library.to_path_buf(), origin, Some(project), workspace_control).unwrap();
+    let context = json!({"hostState":"fixture","identityVerified":false});
+    // The published copy has registration history: in place is not offered (WR ME-1 / LS-2 only).
+    let in_place = r.begin_review(home.clone(), context.clone(), vec![NAME.into()], true);
+    assert!(in_place.as_ref().is_err_and(|e| e.contains("registration history")), "{in_place:?}");
+    // D-1: the kept draft is never overwritten by an App action.
+    assert!(r.create_selected_draft(NAME).is_err_and(|e| e.contains("no overwrite")));
+    // The person refines the kept draft (J-8), then reviews it.
+    let workflow = library.join(".chirality/workflow-drafts").join(NAME).join("WORKFLOW.md");
+    let mut text = std::fs::read_to_string(&workflow).unwrap();
+    text.push_str(refinement);
+    std::fs::write(&workflow, text).unwrap();
+    r.begin_review(home.clone(), context, vec![NAME.into()], false)
+        .expect("same-library review after relaunch: DS-2 from the App-kept base");
+    let reference = r.active_review.clone().unwrap();
+    let presentation = r.reviews[&reference].lock().unwrap().status["presentation"].clone();
+    let entry = &presentation["entries"][0];
+    assert_eq!(entry["disposition"], "new revision", "{entry}");
+    assert_eq!(entry["prior_revision"]["revision"], previous, "the prior is the slot's latest ledger line");
+    assert_eq!(entry["base"]["revision"], previous, "the App-kept base survived the process loss");
+    assert!(entry.to_string().contains("no earlier native-act authentication"), "{entry}");
+    let (reference, revision) = capture_and_register(&mut r, library, origin);
+    assert_ne!(revision, previous);
+    let ledger: Vec<Value> = std::fs::read_to_string(library.join(".chirality/workflow-registry.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let line = ledger.last().unwrap();
+    assert_eq!(line["disposition"], "new revision");
+    assert_eq!(line["prior_revision"]["revision"], previous, "the new act names the disclosed prior");
+    assert_eq!(line["identity"]["derived_from"]["revision"], previous, "derived from the App-kept base");
+    // The disclosed prior is not promoted: the old revision is not selectable, even through the new review.
+    let copy = library.join(".chirality/workflows").join(NAME);
+    assert!(r.select_hot_registered_copy(&reference, previous, copy.clone()).is_err(), "old revision stays cold");
+    r.select_hot_registered_copy(&reference, &revision, copy).unwrap();
     (reference, revision)
 }
 
@@ -366,7 +436,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let one = Process::start(&disk, "journey process 1");
     let generation_one = one.generation.clone();
     let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project)))); // AppState.act
-    let root = Mutex::new(WorkflowRootSession::default()); // AppState.workflows
+    let root = root_session(&disk); // AppState.workflows
     {
         let mut r = root.lock().unwrap();
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
@@ -559,11 +629,25 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     drop(root);
     drop(act);
     one.lose();
+    // The App-kept draft base survives in the App data folder (WR §3): one
+    // draft_reference, recorded by the App, naming the registered revision (G-6).
+    let base_records: Vec<PathBuf> = std::fs::read_dir(disk.app_data.join(crate::workflow_workspace::registration::BASE_STORE))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+        .map(|e| e.path())
+        .collect();
+    assert_eq!(base_records.len(), 1, "{base_records:?}");
+    let base_record: Value = serde_json::from_slice(&std::fs::read(&base_records[0]).unwrap()).unwrap();
+    assert_eq!(base_record["record_kind"], "draft_reference");
+    assert_eq!(base_record["base_recorded_by"], "app");
+    assert_eq!(base_record["base"]["revision"], revision_one.as_str());
+    assert_eq!(base_record["state"], "registered, unchanged since");
 
     let two = Process::start(&disk, "journey process 2 (after loss)");
     assert_ne!(two.generation, generation_one, "a new process generation");
     assert_eq!(two.generation["home"], generation_one["home"], "the same Codex home");
-    let root = Mutex::new(WorkflowRootSession::default());
+    let root = root_session(&disk);
     let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
     let reopened = workflow_reopen(&root, &two, &project);
     assert_eq!(reopened["limits"], json!([]), "{reopened}");
@@ -620,12 +704,27 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         "the lost process's hot registration is not recreated from files"
     );
     // A new start in that conversation is allowed because the run ended. The fresh
-    // process has no hot registration, so the person registers again (here in a
-    // second library) and selects that registered revision.
+    // process has no hot registration, so the person registers again in the SAME
+    // library (a refinement of the kept draft, new genuine A15) and selects that
+    // registered revision (J4 finding 1).
     let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
     root.lock().unwrap().select_development_copy(disk.package.clone()).unwrap();
-    let library_two = disk.library("library-2");
-    let (_, revision_two) = register_and_select(&root, &two.home, &library_two, "user", &project, act.clone());
+    let (review_two, revision_two) = refine_register_and_select(
+        &root,
+        &two.home,
+        &project,
+        "project",
+        &project,
+        act.clone(),
+        &revision_one,
+        "\nRefined after relaunch (journey step 7).\n",
+    );
+    assert!(
+        root.lock().unwrap().select_hot_registered_copy(&review_one, &revision_one, project.join(".chirality/workflows").join(NAME)).is_err(),
+        "re-registration does not recreate the lost process's registration"
+    );
+    // The selection is the new revision; re-select it after the negative check.
+    root.lock().unwrap().select_hot_registered_copy(&review_two, &revision_two, project.join(".chirality/workflows").join(NAME)).unwrap();
     let b = root
         .lock()
         .unwrap()
@@ -650,7 +749,8 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let b_log = disk.rs_for(&b);
     assert_eq!(kinds(&b_log), ["run_opened"]);
     assert_eq!(b_log[0]["body"]["workflow"]["revision"], revision_two.as_str());
-    assert_eq!(b_log[0]["body"]["workflow"]["origin"], "user");
+    // Was "user" (library-2); the re-registration is now in the same project library.
+    assert_eq!(b_log[0]["body"]["workflow"]["origin"], "project");
     assert_eq!(b_log[0]["body"]["conversationRef"], THREAD);
     let b_follows = b_log[0]["body"].get("follows").cloned();
     let wr_count = disk.wr_files().len();
@@ -660,7 +760,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     two.lose();
 
     let three = Process::start(&disk, "journey process 3 (after loss)");
-    let root = Mutex::new(WorkflowRootSession::default());
+    let root = root_session(&disk);
     let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
     let reopened = workflow_reopen(&root, &three, &project);
     let reading = crate::records::supply::read_project_runs(&records, &[]);
@@ -676,8 +776,17 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert!(root.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty(), "no live process run is recreated");
     let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
     root.lock().unwrap().select_development_copy(disk.package.clone()).unwrap();
-    let library_three = disk.library("library-3");
-    register_and_select(&root, &three.home, &library_three, "user", &project, act.clone());
+    // Step 8 re-registration also stays in the same library: a second refinement.
+    refine_register_and_select(
+        &root,
+        &three.home,
+        &project,
+        "project",
+        &project,
+        act.clone(),
+        &revision_two,
+        "\nRefined again after the second relaunch (journey step 8).\n",
+    );
     let (turns, wr) = (disk.frames("turn/start").len(), disk.wr_files().len());
     assert_eq!(wr, wr_count);
     let blocked = root.lock().unwrap().prepare_run(three.home.clone(), &three.generation, THREAD, "third".into(), Some(&project));

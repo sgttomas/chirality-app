@@ -3826,6 +3826,8 @@ pub(crate) struct WorkflowRootSession {
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    /// App user-data root: libraries opened later keep App-kept draft bases there (WR §3).
+    app_user_data: Option<std::path::PathBuf>,
 }
 impl Default for WorkflowRootSession {
     fn default() -> Self {
@@ -3839,6 +3841,7 @@ impl Default for WorkflowRootSession {
             conversations: Default::default(),
             reopened: None,
             notice_flags: Default::default(),
+            app_user_data: None,
         }
     }
 }
@@ -3850,6 +3853,10 @@ impl WorkflowRootSession {
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "reopened":self.reopened,
             "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
+    }
+    /// Startup wiring (lib.rs setup): the App user-data root for App-kept draft bases.
+    pub fn set_app_user_data(&mut self, data: std::path::PathBuf) {
+        self.app_user_data = Some(data);
     }
     pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
@@ -3888,11 +3895,14 @@ impl WorkflowRootSession {
             Some(ws) if std::fs::canonicalize(ws).ok().as_ref()==Some(&root)=>return Err("Existing workspace writer uses an alias of this library root; no second control or silent relocation".into()),
             _=>std::sync::Arc::new(std::sync::Mutex::new(Some(crate::act_control::ActControl::new(&root)))),
         };
-        let owner = crate::workflow_workspace::registration::LibraryOwner::open(
+        let mut owner = crate::workflow_workspace::registration::LibraryOwner::open(
             root.clone(),
             origin,
             &source_root,
         )?;
+        if let Some(data) = &self.app_user_data {
+            owner.attach_app_kept_bases(data)?;
+        }
         let id = crate::util::opaque_id("workflow-library:")?;
         self.libraries.insert(
             id.clone(),

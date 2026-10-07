@@ -489,3 +489,63 @@ owner or the owner. No Design file was changed.
     it. The panel shows the outcome. A *native* fork
   is not observed by the App, which has no `thread/fork` route. A run belongs to
   its (home, thread), so any other thread, a fork included, has no live run.
+
+## CI-21 (J5) App-kept draft bases and re-registration after relaunch
+
+Found 2026-10-07 by the J5 TASK of `APP-V4-GROUP-A-20261004`, repairing J4
+finding 1 (after process loss, the same workflow could not be registered again
+in the same library). No Design file was changed. SEAL-2 stays deferred: no old
+`RegisteredRevision`, `Selection` or A15 receipt is rebuilt from disk.
+
+- **(a) Where the base is kept.** WR §3: "Draft bases | App data folder, keyed
+  by draft key | The App only | App-kept pointer (R17-4); lost if the App data
+  is lost — then the draft has no base (U-WR-12)". §8 gives the record:
+  `draft_reference`, "App-recorded base", with `base` only when
+  `base_recorded_by` is *app*. The App writes one such record per draft key at
+  `<App user-data>/runtime/wr/draft-bases/<sha256 of the draft key JSON>.json`.
+  It validates the record against the WR schema before writing and again when
+  reading, and replaces it atomically. WR names only "App data folder" (§3 is
+  PROPOSED; OI-008 open), so the sub-path and file name are this
+  implementation's choice. For the WR owner: confirm or name the location.
+- **(b) Identical bytes cannot run again after relaunch.** DS-4 refuses content
+  identical to a registered revision ("select it instead"). Cold selection of
+  that revision stays refused (SEAL-2). After relaunch, the person can run the
+  workflow from the same library only by registering changed content (a
+  refinement, DS-2). The exact bytes registered in a lost process cannot be run
+  from that library until SEAL-2 or a WR ruling. For the owner and WR owner:
+  either accept this as the SEAL-2 boundary, or rule on a route (for example,
+  re-registering identical content under a new A15 as a new ledger line).
+- **(c) Base freshness.** RB-3 names two freshness conditions: the live draft
+  and the slot's latest revision. Following the I2 owner plan ("disclosed,
+  frozen and checked under lock"), the App also freezes its App-kept base
+  observation at review. It rechecks that observation at `current()` and under
+  the ledger lock at G1:
+  - a changed base withdraws the review, or after capture ends the attempt as
+    *not completed* (the act is kept, with no effect);
+  - an unreadable or malformed base keeps the attempt pending, with the exact
+    cause.
+  For the WR owner: confirm that base change belongs to RB-3.
+- **(d) No base for in-place entries.** §5.1 and G-6 record the new revision as
+  the *draft's* base. Before J5, the in-memory map also recorded a base, keyed
+  by name, after an in-place registration. Within that process, a same-name
+  draft written from scratch would then have passed SP-3. Now only draft
+  registrations record a base.
+- **(e) Folder removal.** §5.1: "Folder removed → the App's base pointer is
+  dropped". The App drops the pointer when it observes the draft folder absent,
+  at listing or at review. It does not watch the folder between its own
+  observations (D3). A draft that an agent deletes and recreates between two
+  App observations keeps its pointer.
+- **(f) Exact ledger causes.** The ledger reader names the path, the line and
+  the cause: *unreadable*, *malformed* (incomplete final line, not JSON, or
+  refused by the WR `library_entry` schema) or *ambiguous* (`ledger_seq` out of
+  order). For the slot under review, the registered lines must form one series
+  under SP-1 and G-4: `sequence` 1, 2, …; each `prior_revision` naming the
+  previous registered revision; and no revision registered twice. Otherwise the
+  latest revision is reported as ambiguous, with the line that breaks the
+  series. These reader checks are this implementation's reading of SP-1 and
+  G-4. WR states no reader rule beyond LS-1.
+- **(g) Root wiring.** `WorkflowRootSession::set_app_user_data` is called from
+  `lib.rs` setup with the App data folder. `open_library` attaches that folder
+  to each `LibraryOwner` (`attach_app_kept_bases`). An owner with no attached
+  folder keeps bases in process memory only, and its review presentation says
+  so.
