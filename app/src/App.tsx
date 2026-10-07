@@ -300,7 +300,7 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
       {run.endNotice?.state?.startsWith("pending")&&<p role="status">Ordinary messages in this conversation wait for this end notice: it goes first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}
         <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
-        <button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button></p>}
+        {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
       <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
       <ul>{(run.compatibility??[]).map((c:Json,i:number)=><li key={i}>{c.occasion} (advisory, never gates a start): {c.statement??c.state??c.checkResult??"evaluated"}; publication {c.publication?.state}; {c.r14}</li>)}</ul>
       <details><summary>Complete run evidence</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(run,null,2)}</pre></details>

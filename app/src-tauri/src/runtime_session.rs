@@ -4112,6 +4112,7 @@ impl WorkflowRootSession {
             hold_open_for: None,
             withdrawn: None,
             notice_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            notice_record_failure: None,
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
@@ -4563,6 +4564,9 @@ pub(crate) struct WorkflowRun {
     withdrawn: Option<String>,
     /// V10 G-5: shared with the Root index; true while an end notice awaits a turn.
     notice_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// V10 R-4: the last actual failure to write this run's end-notice record
+    /// (cleared once it is written). "Send without the end notice" needs it.
+    notice_record_failure: Option<String>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -4636,7 +4640,7 @@ impl WorkflowRun {
             "source":self.source.as_ref().map(|s|s.evidence()),"turn":self.turn_id,"status":self.status,"supply":self.supply,
             "checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records(),
             "lifecycle":self.lifecycle_view(),"conversation":self.prepared().scope().conversation,
-            "endNotice":self.notice.view(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
+            "endNotice":self.notice.view(),"noticeRecordFailure":self.notice_record_failure,"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
             "compatibility":self.compatibility_view(),
             "adoption":"unknown","runStanding":"lifecycle as recorded below; completion is never inferred from a native turn"})
     }
@@ -5054,17 +5058,23 @@ impl WorkflowRun {
     /// V10 G-5: the person sends without the end notice because its record cannot
     /// be written. The choice is recorded in this run's log (an `evidence_limit`
     /// naming the notice record) and the notice is never presented as supplied.
+    /// V10 R-4: offered only after an actual failure to write the notice record;
+    /// the recorded limit carries that failure, so it never claims one that did
+    /// not happen.
     pub fn skip_end_notice(&mut self) -> Result<Value, String> {
         if !self.notice.awaiting_turn() {
             return Err("No end notice is pending for this run".into());
         }
+        let Some(failure) = self.notice_record_failure.clone() else {
+            return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
+        };
         let subject = match &self.notice {
             NoticeState::Prepared(p) => p.reference().to_owned(),
             _ => self.prepared().scope().run.clone(),
         };
         let entry = crate::records::supply::PendingRunEntry::new(
             "evidence_limit",
-            json!({"label":"record write failed","subjectRef":subject,"detail":"end notice not supplied: its record could not be written and the person chose to send without it; the App did not tell the model that this run ended (WR TX-5)"}),
+            json!({"label":"record write failed","subjectRef":subject,"detail":format!("end notice not supplied: its record could not be written ({failure}) and the person chose to send without it; the App did not tell the model that this run ended (WR TX-5)")}),
             crate::util::now_rfc3339(),
         )?;
         self.entries.push(entry);
@@ -5101,8 +5111,12 @@ impl WorkflowRun {
             unreachable!()
         };
         let published = match publication.publish(&self.project) {
-            Ok(p) => p,
+            Ok(p) => {
+                self.notice_record_failure = None;
+                p
+            }
             Err(e) => {
+                self.notice_record_failure = Some(e.clone());
                 self.status = json!({"state":"end notice not recorded; nothing sent","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]});
                 return Err(format!("End notice not durably recorded; nothing sent: {e}. Retry the end-notice record, or choose \"Send without the end notice\" (recorded as not supplied)"));
             }
@@ -5197,8 +5211,14 @@ impl WorkflowRun {
             return Value::Null;
         };
         match publication.publish(&self.project) {
-            Ok(p) => json!({"state":"recorded; not sent; the next ordinary turn carries it","record":p.run_text_record().reference()}),
-            Err(e) => json!({"state":"still not recorded","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]}),
+            Ok(p) => {
+                self.notice_record_failure = None;
+                json!({"state":"recorded; not sent; the next ordinary turn carries it","record":p.run_text_record().reference()})
+            }
+            Err(e) => {
+                self.notice_record_failure = Some(e.clone());
+                json!({"state":"still not recorded","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]})
+            }
         }
     }
     /// SC-3..SC-6: one genuine native read, minted into a new immutable check,
@@ -6144,6 +6164,44 @@ for line in sys.stdin:
         let limit=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="evidence_limit").expect("the choice is recorded");
         assert!(limit["body"]["detail"].as_str().unwrap().contains("not supplied"));
         assert!(rs_for(&peer,&a).iter().all(|e|e["body"]["supplyForm"]!="workflow run end notice (turn text)"),"never presented as supplied");
+    }
+    // V10 R-4 (reviewer's probe P3): right after End, before any notice-record failure,
+    // "Send without the end notice" is not offered and is refused; nothing claims a record
+    // failure that did not happen, and the notice stays pending.
+    #[test]
+    fn v10_r4_skip_refused_without_an_actual_notice_record_failure(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let run=root.runs[&a].clone();run.lock().unwrap().end_run(false,None).unwrap();
+        assert_eq!(run.lock().unwrap().view(&a)["noticeRecordFailure"],Value::Null,"no skip choice offered");
+        let skipped=run.lock().unwrap().skip_end_notice();
+        assert!(skipped.as_ref().is_err_and(|e|e.contains("not failed")),"{skipped:?}");
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="evidence_limit"),"no failure claimed");
+        assert!(run.lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"));
+        let root=Mutex::new(root);let starts=peer.turn_starts();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 R-4: after an actual notice-record failure the skip is offered; the recorded limit
+    // carries that failure. Once a retry has written the record, the skip is refused again.
+    #[test]
+    fn v10_r4_skip_records_the_actual_failure_and_is_withdrawn_once_the_record_is_written(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let t2=peer.second_thread();let b=open_run(&peer,&mut root,&t2);
+        for r in [&a,&b]{root.runs[r].lock().unwrap().end_run(false,None).unwrap();}
+        let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_err());
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread-2","hello").unwrap().is_err());
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        let failure=root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["noticeRecordFailure"].as_str().expect("failure kept").to_owned();
+        root.lock().unwrap().runs[&a].lock().unwrap().skip_end_notice().unwrap();
+        let limit=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="evidence_limit").expect("recorded");
+        assert!(limit["body"]["detail"].as_str().unwrap().contains(&failure),"{limit}");
+        // B: the retry writes the notice record, so the record can be written: no skip.
+        root.lock().unwrap().runs[&b].lock().unwrap().retry_records().unwrap();
+        assert_eq!(root.lock().unwrap().runs[&b].lock().unwrap().view(&b)["noticeRecordFailure"],Value::Null);
+        assert!(root.lock().unwrap().runs[&b].lock().unwrap().skip_end_notice().is_err());
+        assert!(!rs_for(&peer,&b).iter().any(|e|e["kind"]=="evidence_limit"));
     }
     // V10 G-5: "Retry the end-notice record" publishes the pending notice record without
     // sending; the next ordinary turn then carries it once.
