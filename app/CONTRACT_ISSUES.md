@@ -274,3 +274,37 @@ No native content, new recorder, liveTurn inference or automatic resume is added
 Consumer propagation and actual cold-tuple tests remain pending; RC1-COLD is not
 closed by source adoption. Exact source pins and remaining work are in the Group A
 run's CC-REC-ITEM-TURN-SOURCE-ADOPTION.json.
+
+## CI-18 (J2) EXEC compatibility report: representation limits at publication
+
+- **Found:** 2026-10-07, J2 TASK of `APP-V4-GROUP-A-20261004`, while
+  implementing `execution_compatibility::report::evaluate`, which publishes the
+  EXEC report body (`compatibility-report.schema.json`, proposed-0.6, embedded
+  byte-identical at `src-tauri/resources/workflow_role/`) only from supplied facts.
+- **(a) Unrecognized elements.** EXEC EV-2 reports an unrecognized required-tool
+  element as *not established*, never skipped, and CR-9 lists every declared
+  checkpoint. The schema's requirement row requires `class` and `necessity`
+  from closed enums, and its checkpoint row requires a recognized required act,
+  reached-when kind, subject class and held-actions form. Such an element
+  cannot be represented. The code refuses publication, naming the element; the
+  advisory preparation still reports the check as *not established*. Nothing is
+  dropped or guessed. Proposed EXEC change for the Design owner (not made):
+  allow `not_established` for row `class`/`necessity` and for the checkpoint
+  fields, or add a list of unrecognized elements carried as found.
+- **(b) Revision method.** The report identity (CR-2) has no `revision_method`,
+  which WD-v0.8 §6.1 and CC-CONTENT-IDENTITY carry. The code omits it from the
+  identity and states it in `limitations`. Proposed: an optional
+  `revision_method` in the report identity.
+- **(c) Host and edition for App-only runs.** `host.host_id` and
+  `host.catalog_edition` are required. A workflow that needs only harness
+  capabilities, checked for an App run on X with no external host catalog,
+  therefore has no publishable report unless the caller supplies a host and an
+  edition. The code refuses instead of inventing them. The Design owner should
+  say what CR-4 means for an App-only run.
+- **Not changed:** channel state stays `enabled`/`not_enabled`; an unobserved
+  channel or an unobserved catalog refuses publication (V6: no schema change
+  follows from collector absence). `actual_host` standing needs a real
+  environment collector, which does not exist; current origins are
+  caller-supplied (`illustrative`) or test double (`test_double`).
+- **Standing:** open Design questions. Implementation and tests are in
+  `compatibility_report.rs` and `compatibility_report_tests.rs` (`j2_*`).
