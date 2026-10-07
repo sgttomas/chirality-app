@@ -4010,6 +4010,20 @@ impl WorkflowRootSession {
         person_text: String,
         project: Option<&std::path::Path>,
     ) -> Result<String, String> {
+        self.prepare_run_with(home, generation, thread, person_text, project, None)
+    }
+    /// `successor_of`: V10 G-2, B is prepared while A (still live) is about to be
+    /// ended by "End ‹A› and start ‹B›". CH-1 is waived for exactly that run, and
+    /// the chain is composed from A's prospective end.
+    fn prepare_run_with(
+        &mut self,
+        home: std::sync::Arc<HomeSession>,
+        generation: &Value,
+        thread: &str,
+        person_text: String,
+        project: Option<&std::path::Path>,
+        successor_of: Option<(String, crate::workflow_workspace::OwnerRunEnd)>,
+    ) -> Result<String, String> {
         current_conversation(&home.host.snapshot(), generation, thread)?;
         let selected = self
             .selected
@@ -4030,7 +4044,9 @@ impl WorkflowRootSession {
             .to_owned();
         // RE-7 / CH-1: one live run per conversation. A run reopened from the
         // project's records without run_ended is interrupted and still live.
-        let prior = self.conversation_prior(&home_key, thread, &records)?;
+        let waived = successor_of.as_ref().map(|(run, _)| run.as_str());
+        let prior = self.conversation_prior(&home_key, thread, &records, waived)?;
+        let prior = successor_of.or(prior);
         // App-local opaque run reference until EXEC supplies its lifecycle identity;
         // the `run:` form is RS $defs/runId, so R3 can be recorded under it.
         let run = crate::util::opaque_id("run:workflow:")?;
@@ -4088,6 +4104,9 @@ impl WorkflowRootSession {
             notice: NoticeState::None,
             notice_checks: Vec::new(),
             compatibility: Vec::new(),
+            held_end: false,
+            hold_open_for: None,
+            withdrawn: None,
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
@@ -4109,6 +4128,7 @@ impl WorkflowRootSession {
         home: &str,
         thread: &str,
         records: &crate::workflow_workspace::publication::ProjectRecords,
+        waived: Option<&str>,
     ) -> Result<Option<(String, crate::workflow_workspace::OwnerRunEnd)>, String> {
         let mut prior = None;
         let hot = self
@@ -4120,6 +4140,7 @@ impl WorkflowRootSession {
             let run = self.runs.get(reference).ok_or("conversation run index inconsistent")?;
             let run = run.try_lock().map_err(|_| format!("Run {reference} has an operation pending in this conversation; whether it is live cannot be established now. Nothing prepared"))?;
             match &run.lifecycle {
+                RunLifecycle::Open if waived == Some(reference.as_str()) => {}
                 RunLifecycle::Open => return Err(format!("A workflow run is live in this conversation ({reference}). End it first, or confirm \"End and start\" (RE-7, CH-1). Nothing prepared")),
                 RunLifecycle::Ended => {
                     if let Some(end) = &run.end {
@@ -4202,14 +4223,43 @@ impl WorkflowRootSession {
             selected.selection.identity().name.clone()
         };
         let run = self.conversation_run(live)?;
-        {
-            let mut run = run.try_lock().map_err(|_| "Original run operation pending; nothing ended")?;
+        // V10 G-2: establish B's preconditions (admission, verified selection,
+        // project, publication, composition, CK-1) before A is ended.
+        let prospective_end = {
+            let run = run.try_lock().map_err(|_| "Original run operation pending; nothing ended")?;
             if run.prepared().scope().conversation != thread || generation["home"] != run.prepared().scope().home.as_str() {
                 return Err("The live run belongs to another conversation; nothing ended".into());
             }
-            run.end_run(false, Some(&successor))?;
+            if run.lifecycle != RunLifecycle::Open {
+                return Err("Only an open run can be ended and followed; nothing ended".into());
+            }
+            let scope = run.prepared().scope();
+            crate::workflow_workspace::OwnerRunEnd {
+                home: scope.home.clone(),
+                conversation: scope.conversation.clone(),
+                run: scope.run.clone(),
+                workflow: run.prepared().workflow().clone(),
+                reason: crate::workflow_workspace::RunEndReason::ToStart(successor.clone()),
+            }
+        };
+        let next = self
+            .prepare_run_with(home, generation, thread, person_text, project, Some((live.to_owned(), prospective_end)))
+            .map_err(|e| format!("{e}; the live run was not ended"))?;
+        let ended = run
+            .try_lock()
+            .map_err(|_| "Original run operation pending; nothing ended".to_string())
+            .and_then(|mut run| run.end_run(false, Some(&successor)));
+        match ended {
+            Ok(_) => {
+                self.runs[&next].lock().unwrap().hold_open_for = Some(live.to_owned());
+                Ok(next)
+            }
+            Err(e) => {
+                // Nothing ended: withdraw the prepared successor rather than leave it startable.
+                self.runs[&next].lock().unwrap().withdrawn = Some(format!("its predecessor could not be ended: {e}"));
+                Err(e)
+            }
         }
-        self.prepare_run(home, generation, thread, person_text, project)
     }
     /// After relaunch: the person's explicit end (DEF-4) of a run the project's
     /// records show open and interrupted. Writes run_ended only. A cold record
@@ -4255,7 +4305,7 @@ pub(crate) fn start_workflow_run(
     root: &std::sync::Mutex<WorkflowRootSession>,
     reference: &str,
 ) -> Result<Value, String> {
-    let (run, others) = {
+    let (run, others, predecessor) = {
         let root = root.lock().unwrap();
         let run = root.conversation_run(reference)?;
         let others = root.superseded_notices(reference);
@@ -4265,10 +4315,25 @@ pub(crate) fn start_workflow_run(
                 return Err("A workflow run is live in this conversation; end it first (RE-7, CH-1). Nothing sent".into());
             }
         }
-        (run, others)
+        let held = run.try_lock().map_err(|_| "Original run operation pending")?.hold_open_for.clone();
+        let predecessor = held.map(|r| root.conversation_run(&r)).transpose()?;
+        (run, others, predecessor)
     };
     let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
     let result = run.send();
+    if let Some(predecessor) = predecessor {
+        // V10 G-2: A's held end is written first, then B's run_opened (RE-7 order).
+        let started = run.lifecycle == RunLifecycle::Open;
+        predecessor.lock().unwrap().release_held_end(started);
+        run.hold_open_for = None;
+        if started {
+            run.flush_entries();
+            run.advance_checks();
+        } else if !run.attempted {
+            run.withdrawn = Some("the successor was not sent; its predecessor was recorded as a plain end with a pending end notice".into());
+        }
+        return result;
+    }
     if run.attempted {
         for other in others {
             if let Ok(mut other) = other.try_lock() {
@@ -4471,6 +4536,14 @@ pub(crate) struct WorkflowRun {
     notice: NoticeState,
     notice_checks: Vec<WorkflowCheckSlot>,
     compatibility: Vec<CompatibilitySlot>,
+    /// V10 G-2: A's end from "End ‹A› and start ‹B›" is held (not written) until
+    /// B's start outcome decides its truthful cause.
+    held_end: bool,
+    /// V10 G-2: B's run_opened waits for this predecessor's held end to be written.
+    hold_open_for: Option<String>,
+    /// V10 G-2: a successor that never started after its predecessor fell back
+    /// to a plain end; it cannot be sent later (its chain line no longer holds).
+    withdrawn: Option<String>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -4575,6 +4648,9 @@ impl WorkflowRun {
     /// Writes pending lifecycle entries in their original order; stops at the
     /// first failure so later entries never overtake it (W-2).
     fn flush_entries(&mut self) {
+        if self.held_end || self.hold_open_for.is_some() {
+            return; // V10 G-2: written when the successor's start outcome is known
+        }
         let run = self.prepared().scope().run.clone();
         for entry in &mut self.entries {
             if entry.written.is_some() {
@@ -4697,6 +4773,9 @@ impl WorkflowRun {
         }
     }
     pub fn send(&mut self) -> Result<Value, String> {
+        if let Some(reason) = &self.withdrawn {
+            return Err(format!("This prepared successor was withdrawn: {reason}. Prepare a new run"));
+        }
         if self.attempted {
             return Err("Original workflow source attempt retained; no resend".into());
         }
@@ -4870,10 +4949,38 @@ impl WorkflowRun {
             NoticeState::AwaitingTurn
         };
         self.entries.push(entry);
+        // V10 G-2: for "End ‹A› and start ‹B›" the end is held until B's start
+        // outcome is known; it is then written with its truthful cause.
+        self.held_end = successor.is_some();
         self.flush_entries();
         self.advance_checks();
         self.status = json!({"state":"run ended by the person","cause":cause,"recorded":self.entry_written("run_ended"),"endNotice":self.notice.view(),"adoption":"unknown"});
         Ok(self.status.clone())
+    }
+    /// V10 G-2: release A's held end once B's start outcome is known. B opened:
+    /// "ended to start ‹B›" is written. B did not start: the end becomes a plain
+    /// end (truthful cause) with a pending end notice for the next ordinary turn.
+    fn release_held_end(&mut self, successor_started: bool) {
+        if !self.held_end {
+            return;
+        }
+        if !successor_started {
+            if let Some(entry) = self
+                .entries
+                .iter_mut()
+                .find(|e| e.kind == "run_ended" && e.written.is_none())
+            {
+                entry.body["cause"] = json!("ended by the person");
+            }
+            if let Some(end) = self.end.as_mut() {
+                end.reason = crate::workflow_workspace::RunEndReason::ByPerson;
+            }
+            self.notice = NoticeState::AwaitingTurn;
+            self.status = json!({"state":"run ended by the person","cause":"ended by the person","limit":"the successor did not start, so this is recorded as a plain end and the next ordinary turn carries the end notice","endNotice":self.notice.view(),"adoption":"unknown"});
+        }
+        self.held_end = false;
+        self.flush_entries();
+        self.advance_checks();
     }
     /// TX-5: publish the end notice, then send it as the first text element of
     /// the person's next ordinary turn. Dispatched at most once; a publication
@@ -5808,6 +5915,33 @@ for line in sys.stdin:
         assert!(refused.is_err());assert_eq!(peer.turn_starts(),starts,"no frame written");
         assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"));
         assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 G-2 (reviewer's probe): B's preconditions are established before A is ended; if B
+    // cannot be prepared, A is untouched (still live, no run_ended, no notice).
+    #[test]
+    fn v10_g2_end_and_start_leaves_a_untouched_when_b_cannot_be_prepared(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let copy=peer.fixture.root.join(".chirality/workflows/coordinated-knowledge-work/WORKFLOW.md");
+        let mut bytes=std::fs::read(&copy).unwrap();bytes.extend_from_slice(b"\nedited after selection\n");std::fs::write(&copy,bytes).unwrap();
+        let refused=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
+        assert!(refused.is_err(),"{refused:?}");
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open,"A is not ended when B cannot be prepared");
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"));assert_eq!(root.runs.len(),1,"no B");
+    }
+    // V10 G-2: when B's start does not happen after A's confirmed end, A's end falls back to a
+    // plain end with a truthful cause and a pending end notice; B is not live.
+    #[test]
+    fn v10_g2_end_and_start_falls_back_to_plain_end_when_b_does_not_start(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        peer.set_mode("turn-mode","error");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Mutex::new(root);assert!(start_workflow_run(&root,&b).is_err());
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").expect("A ended");assert_eq!(end["body"]["cause"],"ended by the person","truthful: B did not start");
+        assert!(!rs_for(&peer,&b).iter().any(|e|e["kind"]=="run_opened"));
+        assert_eq!(root.lock().unwrap().runs[&b].lock().unwrap().lifecycle,RunLifecycle::StartNotConfirmed);
+        peer.set_mode("turn-mode","");
+        let notice=send_with_pending_notice(&root,&peer.generation,"thread","next").expect("A's end notice is pending").unwrap();assert_eq!(notice["state"],"end notice and the person's text sent once");
+        assert!(last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().contains("ended by the person). No workflow is in force."));
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){

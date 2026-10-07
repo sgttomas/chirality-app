@@ -432,11 +432,25 @@ owner or the owner. No Design file was changed.
   not started leaves the run not opened. A refused or unknown start therefore
   records no `run_opened`, and is not live. A new start in the conversation is
   allowed. When the outcome was unknown and Codex did start the turn, its text
-  sits in history with no run record (see (a)). After "End ‹A› and start ‹B›",
-  if B's start is not confirmed, A has ended with "ended to start ‹B›", and
-  `end_notice` refuses that cause. Neither B's chain line nor an end notice
-  is then known to have reached the model. For the WR and EXEC owners: decide
-  whether a notice follows in that case.
+  sits in history with no run record (see (a)).
+
+  "End ‹A› and start ‹B›" (corrected by V10 G-2):
+  - **Before A ends.** B is prepared first: admission, verified selection,
+    project, publication, composition and CK-1. If that fails, A is not ended.
+  - **A's end is held.** It is recorded in memory and written only when B's
+    start outcome is known.
+  - **B opens.** A's `run_ended` ("ended to start ‹B›") is written, then B's
+    `run_opened`.
+  - **B does not open.** This covers a refused or unknown start, or nothing
+    sent. A's end is written as a plain end ("ended by the person"; WR's
+    end-notice pattern admits only that cause or *completed*). Its end
+    notice is pending for the next ordinary turn. A B that was never sent is
+    withdrawn.
+  - **Residual.** When B's outcome is unknown, B's chain line ("ended to start
+    ‹B›") may have reached the model while the record says "ended by the
+    person", and the notice follows as well. For the WR and EXEC owners: name
+    the cause for an end whose successor did not start, or allow "ended to
+    start ‹B›" in the end notice.
 - **(f) Predecessor across relaunch (J3).** CH-2 and RE-7: a later run cites
   the run before it (`follows`, `prior_run`, chain line). The chain is composed
   only from an `OwnerRunEnd` held by this process, the typed owner callback.
