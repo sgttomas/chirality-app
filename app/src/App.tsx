@@ -287,11 +287,17 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
     <h3>Send selected workflow text</h3>
     <label>Current native conversation <select value={thread} onChange={e=>setThread(e.target.value)} disabled={busy}><option value="">Select conversation</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
     <label>Person text <textarea value={text} onChange={e=>setText(e.target.value)} disabled={busy} rows={3}/></label>
-    <button disabled={busy||host?.state!=="ready"||!thread||!data?.selection} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
-    {(data?.runs??[]).map((run:Json)=><article key={run.reference}><h3>{run.reference}</h3><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(run,null,2)}</pre>
-      <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Send original prepared text once</button>
-      <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages</button>
-      <p>Load/select this conversation and its received turn in native History first. A failed native turn may retain supplied text; it does not establish model uptake or workflow execution.</p>
+    {data?.selection&&data.selection.runnable!==true&&<p role="note">Not runnable: {data.selection.runLimit}</p>}
+    <button disabled={busy||host?.state!=="ready"||!thread||data?.selection?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
+    <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
+    {(data?.runs??[]).map((run:Json)=><article key={run.reference}><h3>{run.reference}</h3>
+      <p>Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {run.status?.supplied??"see checks"}. Adoption: unknown; no active or completed run is inferred.</p>
+      <ul>{(run.checks??[]).map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
+      <details><summary>Complete run evidence</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(run,null,2)}</pre></details>
+      <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
+      <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
+      <button disabled={busy||!run.pendingRecords} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
+      <p>Selection and run text are recorded before sending; if recording fails nothing is sent. Load/select this conversation and its received turn in native History before checking. Each check is a new record. A failed native turn may retain supplied text; it does not establish model uptake or workflow execution.</p>
     </article>)}
     {message&&<p role="status" style={{whiteSpace:"pre-wrap"}}>{message}</p>}
   </section>;
