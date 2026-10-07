@@ -290,14 +290,27 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
     {data?.selection&&data.selection.runnable!==true&&<p role="note">Not runnable: {data.selection.runLimit}</p>}
     <button disabled={busy||host?.state!=="ready"||!thread||data?.selection?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
     <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
+    <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
+    {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
+      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart interruptions: ${r.restartInterruptions.length}`:""}
+        {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation,completed:false})}>End this interrupted run</button>}</li>)}</ul>
+      {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}</article>}
     {(data?.runs??[]).map((run:Json)=><article key={run.reference}><h3>{run.reference}</h3>
-      <p>Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {run.status?.supplied??"see checks"}. Adoption: unknown; no active or completed run is inferred.</p>
-      <ul>{(run.checks??[]).map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
+      <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {run.status?.supplied??"see checks"}. Adoption: unknown.</p>
+      {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
+      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
+      <ul>{(run.compatibility??[]).map((c:Json,i:number)=><li key={i}>{c.occasion} (advisory, never gates a start): {c.statement??c.state??c.checkResult??"evaluated"}; publication {c.publication?.state}; {c.r14}</li>)}</ul>
       <details><summary>Complete run evidence</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(run,null,2)}</pre></details>
       <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
       <button disabled={busy||!run.pendingRecords} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
-      <p>Selection and run text are recorded before sending; if recording fails nothing is sent. Load/select this conversation and its received turn in native History before checking. Each check is a new record. A failed native turn may retain supplied text; it does not establish model uptake or workflow execution.</p>
+      {run.lifecycle?.state?.startsWith("open")&&<>
+        <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,completed:false})}>End run</button>
+        <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,completed:true})}>End run (the workflow is finished)</button>
+        <button disabled={busy||host?.state!=="ready"||data?.selection?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {data?.selection?.identity?.name??"the selected workflow"}</button>
+      </>}
+      {run.endNotice?.state?.startsWith("sent")&&<button disabled={busy||host?.state!=="ready"} onClick={()=>action("workflow_check_notice",{runRef:run.reference})}>Check the end notice in native history (new check)</button>}
+      <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "finished" line does not end it. After an end, the next ordinary message in this conversation carries the end notice once. Load/select this conversation and its received turn in native History before checking.</p>
     </article>)}
     {message&&<p role="status" style={{whiteSpace:"pre-wrap"}}>{message}</p>}
   </section>;
