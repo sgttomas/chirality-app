@@ -276,3 +276,52 @@ custody review records RC1-COLD as repaired for the core scope. Root consumer
 integration is in the combined checkpoint. Actual native quit/relaunch evidence
 and external PI-6 mapping remain open. Exact source pins are in the Group A run's
 CC-REC-ITEM-TURN-SOURCE-ADOPTION.json; review status in V6-RECOVERY-CUSTODY-CORE.md.
+
+## CI-19 (J2) EXEC compatibility report: representation limits at publication
+
+- **Found:** 2026-10-07, J2 TASK of `APP-V4-GROUP-A-20261004`, while
+  implementing `execution_compatibility::report::evaluate`, which publishes the
+  EXEC report body (`compatibility-report.schema.json`, proposed-0.6, embedded
+  byte-identical at `src-tauri/resources/workflow_role/`) only from supplied facts.
+- **(a) Unrecognized elements.** EXEC EV-2 reports an unrecognized required-tool
+  element as *not established*, never skipped, and CR-9 lists every declared
+  checkpoint. The schema's requirement row requires `class` and `necessity`
+  from closed enums. Its checkpoint row requires a recognized required act,
+  reached-when kind, subject class and held-actions form, and a boolean
+  `governed`, so an unrecognized `governed` value (FB-19: preserved, never
+  assumed) has no place either. Such an element cannot be represented. The
+  code refuses publication, naming the element. Nothing is dropped or guessed.
+  For an unrepresentable required-tool element, the advisory preparation still
+  reports the check as *not established*. For an unrepresentable checkpoint,
+  the Phase-1 check is unchanged (PH-3) and may pass; only publication is
+  refused. Proposed EXEC change for the Design owner (not made): allow
+  `not_established` for row `class`/`necessity` and for the checkpoint fields
+  including `governed`, or add a list of unrecognized elements carried as found.
+- **(b) Revision method.** The report identity (CR-2) has no `revision_method`,
+  which WD-v0.8 §6.1 and CC-CONTENT-IDENTITY carry. The code omits it from the
+  identity and states it in `limitations`. Proposed: an optional
+  `revision_method` in the report identity.
+- **(c) Host facts for App-only runs.** `host.host_id`, `host.catalog_edition`,
+  `host.catalog_readable` and `surface.channel_state` are required. A workflow
+  that needs only harness capabilities, checked for an App run on X with no
+  external host, has no host identity, edition, catalog readability or channel
+  state to supply. It therefore has no publishable report unless the caller
+  supplies them. The code refuses instead of inventing them. The Design owner
+  should say what CR-4 and CR-5 mean for an App-only run.
+- **(d) R14 without a report.** RS R14 keeps "no report evaluated" explicit,
+  but `compatibilityReportRef` requires a report reference even for that
+  value. The code produces no R14 body when publication is refused and never
+  uses a preparation id as a report reference. RS should say how the absence
+  is written.
+- **(e) Strictness.** `report_check` now treats any unrecognized required-tool
+  element, including one marked optional, as *not established* (WD §3.4). This
+  is in tension with EXEC PS-5 ("optional references never block") and with the
+  older `Compatibility::check`, which still ignores unrecognized optional
+  elements; the Design owner should confirm which reading governs.
+- **Not changed:** channel state stays `enabled`/`not_enabled`; an unobserved
+  channel or an unobserved catalog refuses publication (V6: no schema change
+  follows from collector absence). `actual_host` standing needs a real
+  environment collector, which does not exist; current origins are
+  caller-supplied (`illustrative`) or test double (`test_double`).
+- **Standing:** open Design questions. Implementation and tests are in
+  `compatibility_report.rs` and `compatibility_report_tests.rs` (`j2_*`, `v8_*`).
