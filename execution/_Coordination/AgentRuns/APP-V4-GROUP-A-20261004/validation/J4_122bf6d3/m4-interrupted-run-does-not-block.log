@@ -1,0 +1,90 @@
+mutation m4-interrupted-run-does-not-block
+source sha256 before 94ba9caff43d8c8775cb53858374565f12f53161dce5568de02e84e78981720c
+source sha256 mutated 8a6b205bbc2704a1c5a25b5704358aeca88b688ecb367a0ad9a7930357c2e4e6
+
+running 1 test
+test runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss ... FAILED
+
+failures:
+
+---- runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss stdout ----
+
+thread 'runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss' (1098260) panicked at src/workflow_journey_tests.rs:684:5:
+the interrupted run blocks a new start: Ok("run:workflow:3c862c59-a5a1-4342-86de-1467b932f603")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.68s
+
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-a1ccffa5a57854dec/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1176:19
+     |
+ 404 | impl Host {
+     | --------- method in this implementation
+...
+1176 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:458:19
+    |
+458 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+458 -     RepairPending(String),
+458 +     RepairPending(()),
+    |
+
+warning: `chirality-app-v4` (lib test) generated 6 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.34s
+     Running unittests src/lib.rs (target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+error: test failed, to rerun pass `--lib`
+
+exit 101
+source sha256 restored 94ba9caff43d8c8775cb53858374565f12f53161dce5568de02e84e78981720c (matches before: True)

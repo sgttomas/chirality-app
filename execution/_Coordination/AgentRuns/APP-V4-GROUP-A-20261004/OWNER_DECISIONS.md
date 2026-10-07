@@ -143,3 +143,17 @@ binaries were downloaded. The isolated home is machine-local at
 cache and configuration are untouched. Retrieval evidence is in
 `dependencies/RESTORE_20261007.md`. None of these answers approves code,
 qualifies a supplier, or bears on the 90% gate.
+
+## Native journey witness provider — 2026-10-07
+
+HELP_HUMAN asked which model provider the native journey witness should use.
+The options were: an owned loopback provider with no model; a real model via
+Codex sign-in; or both, loopback first. Answer: **"Real model via Codex
+sign-in"**. Custody: a structured answer in the active Claude Code chat.
+
+Effect: the witness uses a fresh scratch Codex home, and the owner signs in
+when prompted. Agents never see, handle or inspect credentials, and never
+use `~/.codex`. Network access is used only by the stock supplier for the
+owner's signed-in model turns. The exact build and launch still need their
+own point-specific approval. This answer approves no launch, artifact, or
+other act.
