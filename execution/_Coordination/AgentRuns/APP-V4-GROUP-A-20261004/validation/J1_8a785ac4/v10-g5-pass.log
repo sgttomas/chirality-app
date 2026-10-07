@@ -1,0 +1,116 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-a30b47a03f09fe083/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1176:19
+     |
+ 404 | impl Host {
+     | --------- method in this implementation
+...
+1176 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:458:19
+    |
+458 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+458 -     RepairPending(String),
+458 +     RepairPending(()),
+    |
+
+warning: `chirality-app-v4` (lib test) generated 6 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.15s
+     Running unittests src/lib.rs (target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 45 tests
+test runtime_session::workflow_root_tests::j3_compatibility_is_advisory_and_writes_no_r14_on_refused_publication ... ok
+test runtime_session::workflow_root_tests::j3_failed_send_opens_no_run_and_does_not_block_a_new_start ... ok
+test runtime_session::workflow_root_tests::j3_end_on_finished_report_records_completed ... ok
+test runtime_session::workflow_root_tests::j3_end_and_start_orders_a_end_before_b_open_with_exact_chain ... ok
+test runtime_session::workflow_root_tests::j3_fork_conversation_has_no_live_run ... ok
+test runtime_session::workflow_root_tests::j3_compatibility_ck1_and_ck2_are_evaluated_advisory_only ... ok
+test runtime_session::workflow_root_tests::j3_finished_and_proposal_lines_have_no_lifecycle_effect ... ok
+test runtime_session::workflow_root_tests::j3_open_writes_run_opened_and_second_live_start_is_refused ... ok
+test runtime_session::workflow_root_tests::j3_second_live_start_in_conversation_is_refused ... ok
+test runtime_session::workflow_root_tests::j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once ... ok
+test runtime_session::workflow_root_tests::j3_reopen_after_state_loss_preserves_ended_and_unknown ... ok
+test runtime_session::workflow_root_tests::j3_successor_after_plain_end_gets_chain_only_and_no_notice ... ok
+test runtime_session::workflow_root_tests::j3_vc_e_17_interrupt_stop_quit_and_relaunch_never_end_a_run ... ok
+test runtime_session::workflow_root_tests::v10_g1_notice_refused_before_write_stays_pending ... ok
+test runtime_session::workflow_root_tests::v10_g2_end_and_start_leaves_a_untouched_when_b_cannot_be_prepared ... ok
+test runtime_session::workflow_root_tests::v10_g1_pending_notice_survives_record_failure_and_relaunch_then_sent_once ... ok
+test runtime_session::workflow_root_tests::v10_g2_end_and_start_falls_back_to_plain_end_when_b_does_not_start ... ok
+test runtime_session::workflow_root_tests::v10_g3_unknown_recorded_run_blocks_a_new_start ... ok
+test runtime_session::workflow_root_tests::v10_g5_busy_run_without_pending_notice_does_not_block_ordinary_text ... ok
+test runtime_session::workflow_root_tests::workflow_root_closed_selection_real_review_hot_receipt_and_transaction ... ok
+test runtime_session::workflow_root_tests::v10_g4_late_records_follow_observation_order_across_kinds ... ok
+test runtime_session::workflow_root_tests::workflow_root_development_selection_run_is_refused_tt1_tx1 ... ok
+test runtime_session::workflow_root_tests::v10_g5_unwritable_notice_offers_retry_or_recorded_send_without_it ... ok
+test runtime_session::workflow_root_tests::v10_g5_retry_publishes_notice_record_then_next_turn_carries_it ... ok
+test runtime_session::workflow_root_tests::v10_g4_lifecycle_entries_written_late_in_order_with_limits ... ok
+test runtime_session::workflow_root_tests::workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages ... ok
+test runtime_session::workflow_root_tests::workflow_root_publication_failure_sends_nothing_and_retry_keeps_original_bytes ... ok
+test runtime_session::workflow_root_tests::workflow_root_refused_send_records_not_found_check_and_keeps_r3_unavailable ... ok
+test runtime_session::workflow_root_tests::workflow_root_post_send_record_failures_retry_without_resend ... ok
+test runtime_session::workflow_root_tests::workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend ... ok
+test runtime_session::workflow_root_tests::workflow_root_recovered_writer_appends_pending_r3_in_observation_order ... ok
+test runtime_session::workflow_root_tests::workflow_root_fresh_process_resolves_records_without_run_claims ... ok
+test runtime_session::workflow_root_tests::workflow_root_whole_selected_copy_changes_and_library_alias_are_refused ... ok
+test runtime_session::workflow_root_tests::workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root ... ok
+test runtime_session::workflow_root_tests::workflow_root_wrc1_busy_review_selection_refuses_without_global_wait ... ok
+test workflow_root_context_tests::file_act_actual_observer_checks_original_context_and_fails_fast_under_contention ... ok
+test workflow_root_context_tests::j3_reopen_collects_rec_restart_facts_wherever_projected ... ok
+test workflow_root_context_tests::workflow_root_actual_observe_preserves_offline_context_and_refuses_retarget ... ok
+test runtime_session::workflow_root_tests::workflow_root_each_reread_has_a_new_check_identity ... ok
+test runtime_session::workflow_root_tests::workflow_root_unknown_project_is_refused_without_fallback ... ok
+test runtime_session::workflow_root_tests::workflow_root_check_minting_binds_pages_to_host_custody ... ok
+test runtime_session::workflow_root_tests::workflow_root_registered_run_publishes_before_send_and_records_each_check ... ok
+test runtime_session::workflow_root_tests::workflow_root_unwritable_earlier_r3_holds_later_r3_pending ... ok
+test runtime_session::workflow_root_tests::workflow_root_each_read_maps_state_faithfully_into_new_check_and_r3 ... ok
+test runtime_session::workflow_root_tests::workflow_root_unknown_send_outcome_mints_no_check_and_never_resends ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 301 filtered out; finished in 12.17s
+
+exit=0
