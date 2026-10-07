@@ -34,6 +34,11 @@ impl PendingSuppliedGuidance {
     pub fn failure(&self) -> Option<&str> {
         self.failure.as_deref()
     }
+    /// V10 G-4 (W-2): held behind an earlier unwritten record of the run, so it
+    /// is written late and its "record write failed" limit follows it.
+    pub fn hold(&mut self, reason: &str) {
+        self.failure.get_or_insert_with(|| reason.to_owned());
+    }
 }
 /// Prepare R3 from a check this process minted and published. Both supplier
 /// references must resolve in the explicit project (RS §13.6a).

@@ -4330,8 +4330,7 @@ pub(crate) fn start_workflow_run(
         predecessor.lock().unwrap().release_held_end(started);
         run.hold_open_for = None;
         if started {
-            run.flush_entries();
-            run.advance_checks();
+            run.flush_records();
         } else if !run.attempted {
             run.withdrawn = Some("the successor was not sent; its predecessor was recorded as a plain end with a pending end notice".into());
         }
@@ -4648,34 +4647,72 @@ impl WorkflowRun {
             .iter()
             .any(|e| e.kind == kind && e.written.is_some())
     }
-    /// Writes pending lifecycle entries in their original order; stops at the
-    /// first failure so later entries never overtake it (W-2).
-    fn flush_entries(&mut self) {
+    /// RS W-2 / WR WP-5 (V9 F-2, V10 G-4): every record of this run's log — the
+    /// lifecycle entries and each check's R3 — is written in observation order.
+    /// The first item that cannot be written stops the flush. Everything behind
+    /// it is marked held, so when it is written late its "record write failed"
+    /// limit follows it. An R3 also waits for its lifecycle entry (run_opened for
+    /// the start text, run_ended for the end notice).
+    fn flush_records(&mut self) {
         if self.held_end || self.hold_open_for.is_some() {
             return; // V10 G-2: written when the successor's start outcome is known
         }
+        const HELD: &str = "held behind an earlier unwritten record of this run (W-2)";
         let run = self.prepared().scope().run.clone();
-        for entry in &mut self.entries {
-            if entry.written.is_some() {
-                continue;
+        let read_at = |slot: &WorkflowCheckSlot| slot.pending.body()["read_at"].as_str().unwrap_or("").to_owned();
+        let mut stalled = false;
+        loop {
+            let entry = self.entries.iter().position(|e| e.written.is_none());
+            let check = self.checks.iter().position(|s| !s.settled());
+            let notice = self.notice_checks.iter().position(|s| !s.settled());
+            // Earliest observation first; on a tie a lifecycle entry precedes an R3.
+            let mut next: Option<(u8, usize, String)> = None;
+            for (kind, index, at) in [
+                entry.map(|i| (0u8, i, self.entries[i].observed_at.clone())),
+                check.map(|i| (1u8, i, read_at(&self.checks[i]))),
+                notice.map(|i| (2u8, i, read_at(&self.notice_checks[i]))),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                if next.as_ref().is_none_or(|(_, _, t)| at < *t) {
+                    next = Some((kind, index, at));
+                }
             }
-            if crate::records::supply::append_run_entry(&self.project_root, &run, entry).is_err() {
+            let Some((kind, index, _)) = next else { break };
+            let progressed = match kind {
+                0 => crate::records::supply::append_run_entry(&self.project_root, &run, &mut self.entries[index]).is_ok(),
+                1 => {
+                    let ready = self.entry_written("run_opened");
+                    self.checks[index].advance(&self.project, ready);
+                    self.checks[index].settled()
+                }
+                _ => {
+                    let ready = self.entry_written("run_ended");
+                    self.notice_checks[index].advance(&self.project, ready);
+                    self.notice_checks[index].settled()
+                }
+            };
+            if !progressed {
+                stalled = true;
                 break;
             }
         }
-    }
-    /// V9 F-2 (RS W-2, WR WP-5): R3 entries are written in observation order. An
-    /// earlier slot that is not settled holds every later R3 of the run pending.
-    fn advance_checks(&mut self) {
-        let mut ready = self.entry_written("run_opened");
-        for slot in &mut self.checks {
-            slot.advance(&self.project, ready);
-            ready &= slot.settled();
-        }
-        let mut ready = self.entry_written("run_ended") && ready;
-        for slot in &mut self.notice_checks {
-            slot.advance(&self.project, ready);
-            ready &= slot.settled();
+        if stalled {
+            for entry in self.entries.iter_mut().filter(|e| e.written.is_none()) {
+                entry.failure.get_or_insert_with(|| HELD.to_owned());
+            }
+            for slot in self.checks.iter_mut().chain(self.notice_checks.iter_mut()) {
+                if !slot.settled() {
+                    if slot.published.is_none() {
+                        // WR publication of a later check does not wait for RS.
+                        slot.advance(&self.project, false);
+                    }
+                    if let WorkflowR3::Pending(pending) = &mut slot.r3 {
+                        pending.hold(HELD);
+                    }
+                }
+            }
         }
     }
     /// EXEC §3.1 CK-1/CK-2 through J2's seam, from this run's own selection,
@@ -4880,7 +4917,7 @@ impl WorkflowRun {
                     publication_failure: None,
                     r3: WorkflowR3::AwaitingCheck,
                 });
-                self.advance_checks();
+                self.flush_records();
                 self.checks.last().map(WorkflowCheckSlot::view).unwrap_or(Value::Null)
             }
             Err(e) => json!({"state":"not found check not minted","limit":e}),
@@ -4915,7 +4952,7 @@ impl WorkflowRun {
             Ok(entry) => self.entries.push(entry),
             Err(e) => self.status["recordLimit"] = json!(format!("run_opened identity unavailable: {e}")),
         }
-        self.flush_entries();
+        self.flush_records();
     }
     /// EXEC AE-7 / A-11: only the person's explicit end ends a run. `successor`
     /// is set for "End ‹A› and start ‹B›": no end notice, the chain line says it.
@@ -4955,8 +4992,7 @@ impl WorkflowRun {
         // V10 G-2: for "End ‹A› and start ‹B›" the end is held until B's start
         // outcome is known; it is then written with its truthful cause.
         self.held_end = successor.is_some();
-        self.flush_entries();
-        self.advance_checks();
+        self.flush_records();
         self.status = json!({"state":"run ended by the person","cause":cause,"recorded":self.entry_written("run_ended"),"endNotice":self.notice.view(),"adoption":"unknown"});
         Ok(self.status.clone())
     }
@@ -4982,8 +5018,7 @@ impl WorkflowRun {
             self.status = json!({"state":"run ended by the person","cause":"ended by the person","limit":"the successor did not start, so this is recorded as a plain end and the next ordinary turn carries the end notice","endNotice":self.notice.view(),"adoption":"unknown"});
         }
         self.held_end = false;
-        self.flush_entries();
-        self.advance_checks();
+        self.flush_records();
     }
     /// TX-5: publish the end notice, then send it as the first text element of
     /// the person's next ordinary turn. Dispatched at most once; a publication
@@ -5081,8 +5116,7 @@ impl WorkflowRun {
                 self.status = json!({"state":"selection and run_text recorded; not sent","sent":false,"supplied":"not supplied","next":"Send remains a separate once-only step","adoption":"unknown","runStanding":"no active run inferred"});
             }
         }
-        self.flush_entries();
-        self.advance_checks();
+        self.flush_records();
         Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records()}))
     }
     /// SC-3..SC-6: one genuine native read, minted into a new immutable check,
@@ -5177,7 +5211,7 @@ impl WorkflowRun {
         } else {
             self.checks.push(slot);
         }
-        self.advance_checks();
+        self.flush_records();
         let slot = if notice { self.notice_checks.last() } else { self.checks.last() };
         let mut supply = display;
         supply["check"] = slot.map(WorkflowCheckSlot::view).unwrap_or(Value::Null);
@@ -5960,6 +5994,39 @@ for line in sys.stdin:
         // ...and, once the record is complete, the person's explicit end permits a new start.
         std::fs::remove_dir_all(&torn).unwrap();fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap();
         assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).is_ok());
+    }
+    fn log_order(peer:&Peer,run:&str)->Vec<String>{
+        let log=rs_for(peer,run);let id=|e:&Value|e["recordId"].as_str().unwrap().to_owned();
+        log.iter().map(|e|match e["kind"].as_str().unwrap(){
+            "evidence_limit"=>{let subject=e["body"]["subjectRef"].as_str().unwrap();format!("limit:{}",log.iter().find(|x|x["recordId"]==subject).map(|x|x["kind"].as_str().unwrap().to_owned()).unwrap_or(subject.to_owned()))}
+            k=>{let _=id(e);k.to_owned()}}).collect()
+    }
+    // V10 G-4, RS W-2: run_opened fails before send; the end and a later check wait behind
+    // it; on recovery the late entries are written in observation order, each with its limit.
+    #[test]
+    fn v10_g4_lifecycle_entries_written_late_in_order_with_limits(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();assert_eq!(run.lifecycle,RunLifecycle::Open);
+        assert!(!run.entry_written("run_opened"));
+        run.end_run(false,None).unwrap();assert!(!run.entry_written("run_ended"),"run_ended waits behind run_opened");
+        std::fs::remove_file(&runs).unwrap();run.retry_records().unwrap();
+        peer.select_history();let check=run.check_native_supply().unwrap()["check"].clone();assert_eq!(check["r3"]["state"],"recorded");
+        assert_eq!(log_order(&peer,&a),["run_opened","limit:run_opened","run_ended","limit:run_ended","supplied_guidance"]);
+    }
+    // V10 G-4: when a check is observed before the end, its R3 is written between run_opened
+    // and run_ended, following observation order, not lifecycle entries first.
+    #[test]
+    fn v10_g4_late_records_follow_observation_order_across_kinds(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let check=run.check_native_supply().unwrap()["check"].clone();assert_eq!(check["published"],true);assert_ne!(check["r3"]["state"],"recorded");
+        run.end_run(false,None).unwrap();
+        std::fs::remove_file(&runs).unwrap();let retried=run.retry_records().unwrap();assert_eq!(retried["pendingRecords"],false,"{retried}");
+        assert_eq!(log_order(&peer,&a),["run_opened","limit:run_opened","supplied_guidance","limit:supplied_guidance","run_ended","limit:run_ended"]);
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){
