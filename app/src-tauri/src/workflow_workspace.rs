@@ -947,6 +947,16 @@ impl PreparedRunText {
             record,
         })
     }
+    /// The same composed text and record, scoped to a later generation of the
+    /// same home (V10 G-1). Text, record and identities are unchanged.
+    pub fn with_generation(&self, current_generation: &serde_json::Value) -> Result<Self, String> {
+        if current_generation["home"] != self.scope.home {
+            return Err("text belongs to another home".into());
+        }
+        let mut copy = self.clone();
+        copy.scope.generation = current_generation.clone();
+        Ok(copy)
+    }
     pub fn end_notice(&self, end: &OwnerRunEnd) -> Result<(String, serde_json::Value), String> {
         if end.home != self.scope.home
             || end.conversation != self.scope.conversation

@@ -461,9 +461,17 @@ owner or the owner. No Design file was changed.
 - **(h) `run_ended.waitingArrivals` (J3).** The App has no checkpoint recorder
   (EXEC §2.4). `run_ended` writes `waitingArrivals: []`, meaning only that the
   App recorded no arrivals. It is not evidence that none were reached.
-- **(i) Notice dispatch is counted once (J3).** TX-5 says "once". The notice
-  counts as consumed when its turn is dispatched, whatever the outcome. If
-  Codex refuses it, or the outcome is unknown, it is not resent, and the
-  model may not have received it. The panel shows the outcome. A *native* fork
+- **(i) Notice dispatch is counted once (J3; corrected by V10 G-1).** TX-5 says
+  "once".
+  - When consumed: only when the Host observed a write attempt of the
+    `turn/start` frame carrying it.
+  - Refusals before any write: the notice stays pending, and the next ordinary
+    turn carries it. These refusals are parameter or scope validation, a
+    refused request, or a record that could not be written. A pending notice is
+    re-scoped to the current generation of the same home, so a Codex relaunch
+    does not strand it. Its record identity and bytes are unchanged.
+  - After its frame was written: if Codex then refuses the turn, or the outcome
+    is unknown, the notice is not resent, and the model may not have received
+    it. The panel shows the outcome. A *native* fork
   is not observed by the App, which has no `thread/fork` route. A run belongs to
   its (home, thread), so any other thread, a fork included, has no live run.

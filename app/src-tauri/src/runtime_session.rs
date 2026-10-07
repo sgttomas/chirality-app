@@ -4298,6 +4298,10 @@ pub(crate) fn send_with_pending_notice(
     };
     Some(run.send_end_notice(generation, person_text))
 }
+// Test seam (V10 G-1): behave as if the Host refused the notice turn before
+// writing any frame, as its own validation and scope refusals do.
+#[cfg(test)]
+thread_local! { pub(crate) static NOTICE_REFUSED_BEFORE_WRITE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 /// RS run_ended cause for the person's end (WR CH-1/CH-2 wording; R20-11 (4)).
 fn run_end_cause(reason: &crate::workflow_workspace::RunEndReason) -> String {
     match reason {
@@ -4357,7 +4361,7 @@ impl NoticeState {
         match self {
             Self::None => Value::Null,
             Self::AwaitingTurn => json!({"state":"pending: the next ordinary turn in this conversation carries it"}),
-            Self::Prepared(p) => json!({"state":"pending: publication failed; nothing sent; retried with the next turn","record":p.reference()}),
+            Self::Prepared(p) => json!({"state":"pending: not yet sent (its record or its send did not complete); the next ordinary turn carries it","record":p.reference()}),
             Self::Sent{published,turn,outcome,..} => json!({"state":"sent once with the next ordinary turn","record":published.run_text_record().reference(),"turn":turn,"outcome":outcome}),
             Self::Superseded(run) => json!({"state":"not sent: the successor run's chain line said the run ended","successor":run}),
             Self::ByChain => json!({"state":"not composed: ended to start a successor; its chain line carries the end"}),
@@ -4908,19 +4912,43 @@ impl WorkflowRun {
             }
         };
         let client_id = crate::util::opaque_id("workflow-message:")?;
-        let notice = crate::workflow_workspace::publication::PublishedText::prepared(&published).clone();
-        let mut outcome = json!({"state":"dispatch attempted"});
+        // V10 G-1: the record and text do not depend on the generation; a notice
+        // left pending across a relaunch is re-scoped to the current one.
+        let notice = crate::workflow_workspace::publication::PublishedText::prepared(&published)
+            .with_generation(generation)?;
+        let begun = {
+            #[cfg(test)]
+            let refused = NOTICE_REFUSED_BEFORE_WRITE.with(|v| v.replace(false));
+            #[cfg(not(test))]
+            let refused = false;
+            if refused {
+                Err("test seam: Host refused before any frame was written".to_string())
+            } else {
+                self.home.host.turn_start_prepared_run_text(generation, &notice, person_text, &client_id)
+            }
+        };
+        let source = match begun {
+            Ok(source) if source.evidence()["actualWriteAttemptObserved"] == true => source,
+            other => {
+                // Nothing was written: the notice stays pending for the next turn.
+                let limit = match other {
+                    Err(e) => e,
+                    Ok(source) => format!("no write attempt observed: {}", source.evidence()["noAttemptCause"]),
+                };
+                self.status = json!({"state":"end notice not sent; it stays pending for the next ordinary turn","limit":limit});
+                return Err(format!("End notice not sent (no frame written); it stays pending: {limit}"));
+            }
+        };
+        let mut outcome;
         let mut turn = None;
-        match self.home.host.turn_start_prepared_run_text(generation, &notice, person_text, &client_id) {
-            Err(e) => outcome = json!({"state":"native send not started","limit":e,"automaticRetry":false}),
-            Ok(source) => match self.home.host.turn_start_prepared_finish(&source, &notice, person_text, &client_id, std::time::Duration::from_secs(20)) {
-                Ok(native) => {
-                    turn = Some(native.turn_id().to_owned());
-                    outcome = json!({"state":"native turn observed","observedStatus":native.observed_status(),"source":source.evidence()});
-                }
-                Err(e) => outcome = json!({"state":"native send failed/unknown; not resent","limit":e,"source":source.evidence()}),
-            },
+        match self.home.host.turn_start_prepared_finish(&source, &notice, person_text, &client_id, std::time::Duration::from_secs(20)) {
+            Ok(native) => {
+                turn = Some(native.turn_id().to_owned());
+                outcome = json!({"state":"native turn observed","observedStatus":native.observed_status()});
+            }
+            Err(e) => outcome = json!({"state":"native send failed/unknown after its frame was written; not resent","limit":e}),
         }
+        outcome["source"] = source.evidence();
         self.notice = NoticeState::Sent {
             published,
             client_id,
@@ -5748,6 +5776,38 @@ for line in sys.stdin:
         for c in &compat{assert_eq!(c["publication"]["state"],"not published","{c}");assert!(c["r14"].as_str().unwrap().contains("no R14 written"));assert_eq!(c["gate"],"informs only; never gates a start (CC-3)");assert_eq!(c["advisory"],true,"J2 view field kept");}
         assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="compatibility_report_ref"),"no R14 from a refused publication");
         assert_eq!(view["lifecycle"]["state"],"open (live); only the person's explicit end ends it","the start proceeded whatever the advisory said");
+    }
+    // V10 G-1 (reviewer's probe): a notice whose record could not be written stays pending
+    // across a Codex relaunch, is re-scoped to the new generation, and is then sent exactly once.
+    #[test]
+    fn v10_g1_pending_notice_survives_record_failure_and_relaunch_then_sent_once(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        let first=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("notice pending");
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(first.unwrap_err().contains("nothing sent"));
+        peer.home.host.stop_scoped(&peer.generation,"the person","Codex stop").unwrap();let generation=peer.relaunch();
+        let starts=peer.turn_starts();
+        let sent=send_with_pending_notice(&root,&generation,"thread","hello").expect("still pending after relaunch");
+        assert!(sent.is_ok(),"{sent:?}");assert_eq!(peer.turn_starts(),starts+1,"exactly one turn/start carries it");
+        assert!(last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().starts_with("[Chirality] Workflow run ended:"));
+        assert_eq!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"],"sent once with the next ordinary turn");
+        assert!(send_with_pending_notice(&root,&generation,"thread","later").is_none());
+    }
+    // V10 G-1: when the Host refuses before any frame is written, the notice is not marked
+    // sent; it stays pending and the next ordinary turn carries it.
+    #[test]
+    fn v10_g1_notice_refused_before_write_stays_pending(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        let starts=peer.turn_starts();
+        NOTICE_REFUSED_BEFORE_WRITE.with(|v|v.set(true));
+        let refused=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("notice pending");
+        assert!(refused.is_err());assert_eq!(peer.turn_starts(),starts,"no frame written");
+        assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"));
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());assert_eq!(peer.turn_starts(),starts+1);
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){
