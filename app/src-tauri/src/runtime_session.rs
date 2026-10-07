@@ -4369,6 +4369,11 @@ impl WorkflowCheckSlot {
             }
         }
     }
+    /// Published, and its R3 either recorded or established as unavailable.
+    fn settled(&self) -> bool {
+        self.published.is_some()
+            && matches!(self.r3, WorkflowR3::Recorded(_) | WorkflowR3::Unavailable(_))
+    }
     fn view(&self) -> Value {
         let body = self.pending.body();
         let r3 = match &self.r3 {
@@ -4520,14 +4525,18 @@ impl WorkflowRun {
             }
         }
     }
+    /// V9 F-2 (RS W-2, WR WP-5): R3 entries are written in observation order. An
+    /// earlier slot that is not settled holds every later R3 of the run pending.
     fn advance_checks(&mut self) {
-        let opened = self.entry_written("run_opened");
-        let ended = self.entry_written("run_ended");
+        let mut ready = self.entry_written("run_opened");
         for slot in &mut self.checks {
-            slot.advance(&self.project, opened);
+            slot.advance(&self.project, ready);
+            ready &= slot.settled();
         }
+        let mut ready = self.entry_written("run_ended") && ready;
         for slot in &mut self.notice_checks {
-            slot.advance(&self.project, ended);
+            slot.advance(&self.project, ready);
+            ready &= slot.settled();
         }
     }
     /// EXEC §3.1 CK-1/CK-2 through J2's seam, from this run's own selection,
@@ -4959,21 +4968,25 @@ impl WorkflowRun {
             published,
             WR_WRITER,
         )?;
-        let mut slot = WorkflowCheckSlot {
+        let slot = WorkflowCheckSlot {
             pending,
             published: None,
             publication_failure: None,
             r3: WorkflowR3::AwaitingCheck,
         };
-        // R3 follows its lifecycle entry in the run log: run_opened for the start
-        // text, run_ended for the end notice (RS §4 R3).
-        slot.advance(&self.project, self.entry_written(if notice { "run_ended" } else { "run_opened" }));
-        let mut supply = display;
-        supply["check"] = slot.view();
+        // R3 follows its lifecycle entry in the run log (run_opened for the start
+        // text, run_ended for the end notice, RS §4 R3) and every earlier pending
+        // R3 of the run (V9 F-2): the new slot joins the ordered list first.
         if notice {
             self.notice_checks.push(slot);
         } else {
             self.checks.push(slot);
+        }
+        self.advance_checks();
+        let slot = if notice { self.notice_checks.last() } else { self.checks.last() };
+        let mut supply = display;
+        supply["check"] = slot.map(WorkflowCheckSlot::view).unwrap_or(Value::Null);
+        if !notice {
             self.supply = supply.clone();
         }
         Ok(supply)
@@ -5377,6 +5390,43 @@ for line in sys.stdin:
         assert_eq!(project.resolve(&second_ref).unwrap().body()["read_at"],second["readAt"]);
         // A further retry is a no-op: no duplicate R3 or limit.
         run.retry_records().unwrap();assert_eq!(peer.fixture.rs_entries().len(),entries.len());
+    }
+    // V9 F-2, RS W-2 / WR WP-5: after the writer recovers, a later check first writes every
+    // earlier pending R3 of the run, in order, before its own; the log order follows observation.
+    #[test]
+    fn workflow_root_recovered_writer_appends_pending_r3_in_observation_order(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        let had=runs.is_dir();if had{std::fs::rename(&runs,&aside).unwrap();}std::fs::write(&runs,b"blocked").unwrap();
+        let first=run.check_native_supply().unwrap()["check"].clone();assert_eq!(first["r3"]["state"],"pending write; missing in record");
+        std::fs::remove_file(&runs).unwrap();if had{std::fs::rename(&aside,&runs).unwrap();}
+        let second=run.check_native_supply().unwrap()["check"].clone();assert_eq!(second["r3"]["state"],"recorded");
+        let checks=run.view(&reference)["checks"].clone();assert_eq!(checks[0]["r3"]["state"],"recorded","the earlier pending R3 is written at the next check, without a manual retry");
+        let log:Vec<Value>=peer.fixture.rs_entries().into_iter().filter(|e|e["runId"]==reference.as_str()&&(e["kind"]=="supplied_guidance"||e["kind"]=="evidence_limit")).collect();
+        let r3:Vec<&Value>=log.iter().filter(|e|e["kind"]=="supplied_guidance").collect();assert_eq!(r3.len(),2);
+        assert_eq!(r3[0]["recordId"],first["r3"]["recordId"],"earlier observation first in the log");assert_eq!(r3[1]["recordId"],second["r3"]["recordId"]);
+        assert!(r3[0]["seq"].as_u64()<r3[1]["seq"].as_u64());assert!(r3[0]["observedAt"].as_str()<=r3[1]["observedAt"].as_str());
+        let limit=log.iter().find(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]==first["r3"]["recordId"]).expect("W-2 limit names the late entry");
+        assert!(limit["seq"].as_u64()>r3[0]["seq"].as_u64()&&limit["seq"].as_u64()<r3[1]["seq"].as_u64(),"W-2: late entries, then the limit, then later entries");
+    }
+    // V9 F-2: if an earlier R3 still cannot be written, the later R3 is held pending, never
+    // appended ahead of it.
+    #[test]
+    fn workflow_root_unwritable_earlier_r3_holds_later_r3_pending(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+        let first=run.check_native_supply().unwrap()["check"].clone();let reserved=first["r3"]["recordId"].as_str().unwrap().to_owned();
+        std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+        // Another log already holds the reserved identity with other content: the earlier R3 stays unwritable.
+        crate::records::append_with_id(&crate::storage::project_log(&peer.fixture.root,None,"conflict-fixture"),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),&reserved).unwrap();
+        let second=run.check_native_supply().unwrap()["check"].clone();
+        assert_eq!(second["published"],true);assert_eq!(second["r3"]["state"],"pending write; missing in record","the later R3 waits for the earlier one");
+        assert!(peer.fixture.rs_entries().iter().all(|e|!(e["runId"]==reference.as_str()&&e["kind"]=="supplied_guidance")),"nothing appended ahead of the earlier pending R3");
     }
     // Outcome 5: a later process resolves every published record from the project alone.
     #[test]
