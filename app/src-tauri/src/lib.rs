@@ -723,6 +723,13 @@ fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Val
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"successor not started","limit":e})}}))
 }
+/// V10 G-5: the person sends without the pending end notice (its record cannot be
+/// written); the choice is recorded in the run log and never shown as supplied.
+#[tauri::command]
+fn workflow_skip_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
+    let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
+    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;run.skip_end_notice()
+}
 #[tauri::command(async)]
 fn workflow_check_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
     let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
@@ -1039,7 +1046,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_reopen,workflow_end_recorded,
+            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,
             decision_view,
             continue_decision_recording,
             compose_offer,

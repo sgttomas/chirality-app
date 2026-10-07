@@ -3823,6 +3823,9 @@ pub(crate) struct WorkflowRootSession {
     conversations: std::collections::HashMap<(String, String), Vec<String>>,
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
+    /// V10 G-5: per-run "end notice must go first" flags, readable without the
+    /// run's lock, so a busy run never blocks ordinary text by itself.
+    notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
 }
 impl Default for WorkflowRootSession {
     fn default() -> Self {
@@ -3835,6 +3838,7 @@ impl Default for WorkflowRootSession {
             runs: Default::default(),
             conversations: Default::default(),
             reopened: None,
+            notice_flags: Default::default(),
         }
     }
 }
@@ -4107,9 +4111,11 @@ impl WorkflowRootSession {
             held_end: false,
             hold_open_for: None,
             withdrawn: None,
+            notice_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         };
         // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
         workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
+        self.notice_flags.insert(run.clone(), workflow_run.notice_flag.clone());
         self.runs.insert(
             run.clone(),
             std::sync::Arc::new(std::sync::Mutex::new(workflow_run)),
@@ -4185,13 +4191,13 @@ impl WorkflowRootSession {
             .into_iter()
             .flatten()
         {
-            let run = self.conversation_run(reference)?;
-            let pending = {
-                let guard = run.try_lock().map_err(|_| "A run operation is pending in this conversation; the end-notice state cannot be established now; nothing sent")?;
-                guard.notice.awaiting_turn()
-            };
+            // V10 G-5: read the flag, not the run, so a busy run never blocks ordinary text.
+            let pending = self
+                .notice_flags
+                .get(reference)
+                .is_some_and(|f| f.load(std::sync::atomic::Ordering::SeqCst));
             if pending {
-                return Ok(Some(run));
+                return Ok(Some(self.conversation_run(reference)?));
             }
         }
         Ok(None)
@@ -4340,6 +4346,7 @@ pub(crate) fn start_workflow_run(
         for other in others {
             if let Ok(mut other) = other.try_lock() {
                 other.notice.supersede(reference);
+                other.sync_notice_flag();
             }
         }
     }
@@ -4361,7 +4368,7 @@ pub(crate) fn send_with_pending_notice(
     };
     let mut run = match pending.try_lock() {
         Ok(run) => run,
-        Err(_) => return Some(Err("Original run operation pending; nothing sent".into())),
+        Err(_) => return Some(Err("The end notice of a run in this conversation must go first, and that run is busy (for example checking history); nothing sent. Try again shortly".into())),
     };
     Some(run.send_end_notice(generation, person_text))
 }
@@ -4414,6 +4421,8 @@ enum NoticeState {
     Superseded(String),
     /// The run ended to start a successor; the chain line carries the end.
     ByChain,
+    /// V10 G-5: the person sent without it; recorded, never supplied.
+    Skipped,
 }
 impl NoticeState {
     fn awaiting_turn(&self) -> bool {
@@ -4432,6 +4441,7 @@ impl NoticeState {
             Self::Sent{published,turn,outcome,..} => json!({"state":"sent once with the next ordinary turn","record":published.run_text_record().reference(),"turn":turn,"outcome":outcome}),
             Self::Superseded(run) => json!({"state":"not sent: the successor run's chain line said the run ended","successor":run}),
             Self::ByChain => json!({"state":"not composed: ended to start a successor; its chain line carries the end"}),
+            Self::Skipped => json!({"state":"not supplied: the person chose to send without it because its record could not be written (recorded in the run log)"}),
         }
     }
 }
@@ -4546,6 +4556,8 @@ pub(crate) struct WorkflowRun {
     /// V10 G-2: a successor that never started after its predecessor fell back
     /// to a plain end; it cannot be sent later (its chain line no longer holds).
     withdrawn: Option<String>,
+    /// V10 G-5: shared with the Root index; true while an end notice awaits a turn.
+    notice_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -4991,6 +5003,7 @@ impl WorkflowRun {
         self.entries.push(entry);
         // V10 G-2: for "End ‹A› and start ‹B›" the end is held until B's start
         // outcome is known; it is then written with its truthful cause.
+        self.sync_notice_flag();
         self.held_end = successor.is_some();
         self.flush_records();
         self.status = json!({"state":"run ended by the person","cause":cause,"recorded":self.entry_written("run_ended"),"endNotice":self.notice.view(),"adoption":"unknown"});
@@ -5017,6 +5030,7 @@ impl WorkflowRun {
             self.notice = NoticeState::AwaitingTurn;
             self.status = json!({"state":"run ended by the person","cause":"ended by the person","limit":"the successor did not start, so this is recorded as a plain end and the next ordinary turn carries the end notice","endNotice":self.notice.view(),"adoption":"unknown"});
         }
+        self.sync_notice_flag();
         self.held_end = false;
         self.flush_records();
     }
@@ -5024,6 +5038,38 @@ impl WorkflowRun {
     /// the person's next ordinary turn. Dispatched at most once; a publication
     /// failure sends nothing and keeps the original pending bytes.
     pub fn send_end_notice(&mut self, generation: &Value, person_text: &str) -> Result<Value, String> {
+        let result = self.send_end_notice_inner(generation, person_text);
+        self.sync_notice_flag();
+        result
+    }
+    fn sync_notice_flag(&self) {
+        self.notice_flag
+            .store(self.notice.awaiting_turn(), std::sync::atomic::Ordering::SeqCst);
+    }
+    /// V10 G-5: the person sends without the end notice because its record cannot
+    /// be written. The choice is recorded in this run's log (an `evidence_limit`
+    /// naming the notice record) and the notice is never presented as supplied.
+    pub fn skip_end_notice(&mut self) -> Result<Value, String> {
+        if !self.notice.awaiting_turn() {
+            return Err("No end notice is pending for this run".into());
+        }
+        let subject = match &self.notice {
+            NoticeState::Prepared(p) => p.reference().to_owned(),
+            _ => self.prepared().scope().run.clone(),
+        };
+        let entry = crate::records::supply::PendingRunEntry::new(
+            "evidence_limit",
+            json!({"label":"record write failed","subjectRef":subject,"detail":"end notice not supplied: its record could not be written and the person chose to send without it; the App did not tell the model that this run ended (WR TX-5)"}),
+            crate::util::now_rfc3339(),
+        )?;
+        self.entries.push(entry);
+        self.notice = NoticeState::Skipped;
+        self.sync_notice_flag();
+        self.flush_records();
+        self.status = json!({"state":"end notice not supplied by the person's choice; recorded","endNotice":self.notice.view()});
+        Ok(self.status.clone())
+    }
+    fn send_end_notice_inner(&mut self, generation: &Value, person_text: &str) -> Result<Value, String> {
         if !self.notice.awaiting_turn() {
             return Err("No end notice is pending for this run; nothing sent".into());
         }
@@ -5052,8 +5098,8 @@ impl WorkflowRun {
         let published = match publication.publish(&self.project) {
             Ok(p) => p,
             Err(e) => {
-                self.status = json!({"state":"end notice not recorded; nothing sent","limit":e,"retry":"the next send retries the same original notice record"});
-                return Err(format!("End notice not durably recorded; nothing sent: {e}"));
+                self.status = json!({"state":"end notice not recorded; nothing sent","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]});
+                return Err(format!("End notice not durably recorded; nothing sent: {e}. Retry the end-notice record, or choose \"Send without the end notice\" (recorded as not supplied)"));
             }
         };
         let client_id = crate::util::opaque_id("workflow-message:")?;
@@ -5117,7 +5163,38 @@ impl WorkflowRun {
             }
         }
         self.flush_records();
-        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records()}))
+        let notice = self.retry_notice_record();
+        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"endNoticeRecord":notice,"pendingRecords":self.has_pending_records()}))
+    }
+    /// V10 G-5 "Retry the end-notice record": publish a pending notice's record
+    /// (same identity and bytes) without sending. The next ordinary turn sends it.
+    fn retry_notice_record(&mut self) -> Value {
+        if matches!(self.notice, NoticeState::AwaitingTurn) {
+            let prepared = (|| {
+                let end = self.end.clone().ok_or("owner end absent")?;
+                let start = self.published.as_ref().ok_or("original run start not published")?;
+                crate::workflow_workspace::publication::PreparedEndPublication::for_turn(
+                    &self.project,
+                    start.prepared(),
+                    &end,
+                    start.run_text_record(),
+                    WR_WRITER,
+                    &crate::util::now_rfc3339(),
+                    &start.prepared().scope().generation,
+                )
+            })();
+            match prepared {
+                Ok(p) => self.notice = NoticeState::Prepared(p),
+                Err(e) => return json!({"state":"not prepared","limit":e}),
+            }
+        }
+        let NoticeState::Prepared(publication) = &self.notice else {
+            return Value::Null;
+        };
+        match publication.publish(&self.project) {
+            Ok(p) => json!({"state":"recorded; not sent; the next ordinary turn carries it","record":p.run_text_record().reference()}),
+            Err(e) => json!({"state":"still not recorded","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]}),
+        }
     }
     /// SC-3..SC-6: one genuine native read, minted into a new immutable check,
     /// published and recorded as R3. Each call is a new check (SC-6).
@@ -6027,6 +6104,56 @@ for line in sys.stdin:
         run.end_run(false,None).unwrap();
         std::fs::remove_file(&runs).unwrap();let retried=run.retry_records().unwrap();assert_eq!(retried["pendingRecords"],false,"{retried}");
         assert_eq!(log_order(&peer,&a),["run_opened","limit:run_opened","supplied_guidance","limit:supplied_guidance","run_ended","limit:run_ended"]);
+    }
+    // V10 G-5: a busy workflow run (for example during a long supply check) does not block
+    // ordinary text in its conversation; only a pending end notice must go first.
+    #[test]
+    fn v10_g5_busy_run_without_pending_notice_does_not_block_ordinary_text(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let run=root.runs[&a].clone();let root=Mutex::new(root);
+        let busy=run.lock().unwrap(); // the run is busy, e.g. waiting on history pages
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"no notice pending: ordinary sending applies");
+        drop(busy);
+        run.lock().unwrap().end_run(false,None).unwrap();
+        let busy=run.lock().unwrap();
+        let blocked=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("the pending notice must go first");
+        assert!(blocked.unwrap_err().contains("end notice"));drop(busy);
+    }
+    // V10 G-5: while the notice record cannot be written, the person is told why and may
+    // retry the record, or send without the notice; that choice is recorded and the notice
+    // is never presented as supplied.
+    #[test]
+    fn v10_g5_unwritable_notice_offers_retry_or_recorded_send_without_it(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        let refused=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").unwrap_err();
+        assert!(refused.contains("Retry the end-notice record")&&refused.contains("Send without the end notice"),"{refused}");
+        let wr_before=peer.fixture.wr_files().len();
+        assert!(root.lock().unwrap().runs[&a].lock().unwrap().retry_records().is_ok());assert_eq!(peer.fixture.wr_files().len(),wr_before,"still unwritable");
+        let starts=peer.turn_starts();
+        let skipped=root.lock().unwrap().runs[&a].lock().unwrap().skip_end_notice().unwrap();assert!(skipped["endNotice"]["state"].as_str().unwrap().starts_with("not supplied"));
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"ordinary sending proceeds");assert_eq!(peer.turn_starts(),starts);
+        let limit=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="evidence_limit").expect("the choice is recorded");
+        assert!(limit["body"]["detail"].as_str().unwrap().contains("not supplied"));
+        assert!(rs_for(&peer,&a).iter().all(|e|e["body"]["supplyForm"]!="workflow run end notice (turn text)"),"never presented as supplied");
+    }
+    // V10 G-5: "Retry the end-notice record" publishes the pending notice record without
+    // sending; the next ordinary turn then carries it once.
+    #[test]
+    fn v10_g5_retry_publishes_notice_record_then_next_turn_carries_it(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_err());
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        let (wr_before,starts)=(peer.fixture.wr_files().len(),peer.turn_starts());
+        root.lock().unwrap().runs[&a].lock().unwrap().retry_records().unwrap();
+        assert_eq!(peer.fixture.wr_files().len(),wr_before+1,"notice record published");assert_eq!(peer.turn_starts(),starts,"retry never sends");
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_ok());assert_eq!(peer.turn_starts(),starts+1);
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){
