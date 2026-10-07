@@ -366,7 +366,7 @@ impl CompletedSupplyCheck {
     pub(crate) fn from_native_coverage(
         seal: crate::hosting::NativeItemCoverageSeal,
         pages: &[Value],
-        published: &PublishedRunText,
+        published: &dyn PublishedText,
         turn: &str,
         client_id: &str,
         check: &str,
@@ -389,7 +389,7 @@ impl CompletedSupplyCheck {
             index += 1;
             Ok(page)
         });
-        let body = supply_check_body(
+        let body = check_body(
             run_text,
             published.prepared(),
             Observation::Located(located),
@@ -408,7 +408,7 @@ impl CompletedSupplyCheck {
     /// before coverage completed. Requires the Host-issued dispatches.
     pub(crate) fn unreadable_after_dispatch(
         issued: &[crate::hosting::HistoryDispatch],
-        published: &PublishedRunText,
+        published: &dyn PublishedText,
         turn: &str,
         client_id: &str,
         check: &str,
@@ -425,7 +425,7 @@ impl CompletedSupplyCheck {
         {
             return Err("no native item read was issued for this thread/turn; nothing checked".into());
         }
-        let body = supply_check_body(
+        let body = check_body(
             run_text,
             published.prepared(),
             Observation::ReadFailed(error),
@@ -444,6 +444,44 @@ impl CompletedSupplyCheck {
 enum Observation<'a> {
     Located(super::LocatedTurnText),
     ReadFailed(&'a str),
+}
+/// A text this process composed and published before sending: its immutable
+/// run_text record and the typed composed text. Implemented only by the two
+/// typed publication results below; a resolved JSON record alone is neither.
+pub trait PublishedText {
+    fn run_text_record(&self) -> &ResolvedRecord;
+    fn prepared(&self) -> &PreparedRunText;
+}
+impl PublishedText for PublishedRunText {
+    fn run_text_record(&self) -> &ResolvedRecord {
+        &self.text
+    }
+    fn prepared(&self) -> &PreparedRunText {
+        &self.prepared
+    }
+}
+impl PublishedText for PublishedEndNotice {
+    fn run_text_record(&self) -> &ResolvedRecord {
+        &self.record
+    }
+    fn prepared(&self) -> &PreparedRunText {
+        &self.notice
+    }
+}
+fn check_body(
+    run_text: &Value,
+    prepared: &PreparedRunText,
+    observation: Observation<'_>,
+    turn: &str,
+    client_id: &str,
+    check: &str,
+    read_at: &str,
+) -> Result<Value, String> {
+    if run_text["purpose"] == "run end notice" {
+        notice_check_body(run_text, prepared, observation, turn, client_id, check, read_at)
+    } else {
+        supply_check_body(run_text, prepared, observation, turn, client_id, check, read_at)
+    }
 }
 /// WR §16.4 state mapping for a run-start text. Pure; minting stays with the
 /// constructors above.
@@ -464,6 +502,67 @@ fn supply_check_body(
     }
     let mut body = json!({"record_kind":"supply_check","check":check,"run":run_text["run"],"conversation":run_text["conversation"],"turn":turn,"client_user_message_id":client_id,"purpose":"run start","expected_text":run_text["text_identity"],"expected_workflow":run_text["workflow_file"]["content"],"read_at":read_at});
     let mut limits = vec![CHECK_LIMIT.to_owned(), SUPPLY_LIMIT.to_owned()];
+    let state = map_observation(
+        &mut body,
+        &mut limits,
+        observation,
+        prepared,
+        &run_text["text_identity"],
+        &run_text["workflow_file"]["content"],
+    )?;
+    body["state"] = json!(state);
+    body["evidence_limits"] = json!(limits);
+    super::wr_validate("supply_check", &body)?;
+    Ok(body)
+}
+/// SQ-END EN-3: the check of a published end notice (TX-5). The notice has no
+/// workflow bytes, so no expected_workflow is written (WP-2) and a differing
+/// text can only read "text differs, workflow bytes differ".
+fn notice_check_body(
+    run_text: &Value,
+    notice: &PreparedRunText,
+    observation: Observation<'_>,
+    turn: &str,
+    client_id: &str,
+    check: &str,
+    read_at: &str,
+) -> Result<Value, String> {
+    if run_text["record_kind"] != "run_text"
+        || run_text["purpose"] != "run end notice"
+        || notice.record() != run_text
+    {
+        return Err("end-notice check requires the published end notice it was composed as".into());
+    }
+    if [turn, client_id, check, read_at].iter().any(|s| s.is_empty()) {
+        return Err("check/turn/client/read identity required".into());
+    }
+    let mut body = json!({"record_kind":"supply_check","check":check,"run":run_text["run"],"conversation":run_text["conversation"],"turn":turn,"client_user_message_id":client_id,"purpose":"run end notice","expected_text":run_text["text_identity"],"read_at":read_at});
+    let mut limits = vec![
+        CHECK_LIMIT.to_owned(),
+        SUPPLY_LIMIT.to_owned(),
+        "end notice carries no workflow bytes; a differing text is reported as 'text differs, workflow bytes differ' (WR §16.4 has no notice-specific state)".to_owned(),
+    ];
+    let state = map_observation(
+        &mut body,
+        &mut limits,
+        observation,
+        notice,
+        &run_text["text_identity"],
+        &run_text["text_identity"],
+    )?;
+    body["state"] = json!(state);
+    body["evidence_limits"] = json!(limits);
+    super::wr_validate("supply_check", &body)?;
+    Ok(body)
+}
+fn map_observation(
+    body: &mut Value,
+    limits: &mut Vec<String>,
+    observation: Observation<'_>,
+    prepared: &PreparedRunText,
+    expected_text: &Value,
+    expected_body: &Value,
+) -> Result<String, String> {
     let located_by = |by_client: bool| {
         if by_client {
             "client id"
@@ -503,11 +602,8 @@ fn supply_check_body(
                 if !by_client {
                     limits.push("client id not matched; first user message of the turn used (clientId echo is an inference, U-WR-15)".into());
                 }
-                let comparison = prepared.compare_observed_text(
-                    &run_text["text_identity"],
-                    &run_text["workflow_file"]["content"],
-                    &text,
-                )?;
+                let comparison =
+                    prepared.compare_observed_text(expected_text, expected_body, &text)?;
                 limits.extend(comparison.evidence_limits);
                 body["observed_text"] = comparison.observed_text;
                 body["item"] = json!(item);
@@ -519,10 +615,7 @@ fn supply_check_body(
             }
         },
     };
-    body["state"] = json!(state);
-    body["evidence_limits"] = json!(limits);
-    super::wr_validate("supply_check", &body)?;
-    Ok(body)
+    Ok(state)
 }
 
 /// Original immutable bytes remain with the owner across failed attempts.
@@ -600,7 +693,7 @@ impl PendingSupplyCheck {
     pub(crate) fn new(
         project: &ProjectRecords,
         completed: CompletedSupplyCheck,
-        published: &PublishedRunText,
+        published: &dyn PublishedText,
         writer: &str,
     ) -> Result<Self, String> {
         Ok(Self {
@@ -678,6 +771,12 @@ impl PreparedRunPublication {
             return Err("prepared text changed".into());
         }
         let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":"registered","selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
+        // SL-7: a selection for a chained run records prior_run as a relation, from
+        // the same owner end the chain line was composed from (CH-2).
+        let mut body = body;
+        if let Some(chain) = prepared.record["chain"].as_object() {
+            body["prior_run"] = json!({"run":chain["prior_run"],"workflow":chain["prior_workflow"],"ended":chain["ended"]});
+        }
         let selection = PendingRecord::new(project, body, vec![], vec![], writer, selected_at)?;
         let text = PendingRecord::new(
             project,
@@ -750,11 +849,13 @@ fn publication_boundary() -> Result<(), String> {
 #[derive(Debug)]
 pub struct PreparedEndPublication {
     text: String,
+    notice: PreparedRunText,
     record: PendingRecord,
 }
 #[derive(Debug)]
 pub struct PublishedEndNotice {
     text: String,
+    notice: PreparedRunText,
     record: ResolvedRecord,
 }
 impl PreparedEndPublication {
@@ -766,7 +867,29 @@ impl PreparedEndPublication {
         writer: &str,
         observed_at: &str,
     ) -> Result<Self, String> {
-        let (text, body) = prepared.end_notice(end)?;
+        Self::for_turn(
+            project,
+            prepared,
+            end,
+            original_start,
+            writer,
+            observed_at,
+            &prepared.scope.generation,
+        )
+    }
+    /// As `new`, with the notice scoped to the current generation of the same
+    /// home, for the person's next ordinary turn (TX-5).
+    pub fn for_turn(
+        project: &ProjectRecords,
+        prepared: &PreparedRunText,
+        end: &super::OwnerRunEnd,
+        original_start: &ResolvedRecord,
+        writer: &str,
+        observed_at: &str,
+        current_generation: &Value,
+    ) -> Result<Self, String> {
+        let notice = prepared.notice_turn(end, current_generation)?;
+        let (text, body) = (notice.text().to_owned(), notice.record().clone());
         if original_start.project != project.identity {
             return Err("original start belongs to another project".into());
         }
@@ -784,11 +907,19 @@ impl PreparedEndPublication {
             writer,
             observed_at,
         )?;
-        Ok(Self { text, record })
+        Ok(Self {
+            text,
+            notice,
+            record,
+        })
+    }
+    pub fn reference(&self) -> &str {
+        self.record.reference()
     }
     pub fn publish(&self, project: &ProjectRecords) -> Result<PublishedEndNotice, String> {
         Ok(PublishedEndNotice {
             text: self.text.clone(),
+            notice: self.notice.clone(),
             record: project.publish(&self.record)?,
         })
     }

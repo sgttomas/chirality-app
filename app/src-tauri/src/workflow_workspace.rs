@@ -922,6 +922,31 @@ impl PreparedRunText {
             serde_json::json!({"threadId":self.scope.conversation,"clientUserMessageId":client_id,"input":input}),
         )
     }
+    pub fn workflow(&self) -> &WorkflowIdentity {
+        &self.workflow
+    }
+    /// TX-5: the end notice as a sendable text element for the person's next
+    /// ordinary turn in the same conversation, scoped to the current generation of
+    /// the same home. Composition only; no lifecycle event is created here.
+    pub fn notice_turn(
+        &self,
+        end: &OwnerRunEnd,
+        current_generation: &serde_json::Value,
+    ) -> Result<Self, String> {
+        let (text, record) = self.end_notice(end)?;
+        if current_generation["home"] != self.scope.home {
+            return Err("end notice belongs to another home".into());
+        }
+        let mut scope = self.scope.clone();
+        scope.generation = current_generation.clone();
+        Ok(Self {
+            admission: self.admission.clone(),
+            scope,
+            workflow: self.workflow.clone(),
+            text,
+            record,
+        })
+    }
     pub fn end_notice(&self, end: &OwnerRunEnd) -> Result<(String, serde_json::Value), String> {
         if end.home != self.scope.home
             || end.conversation != self.scope.conversation

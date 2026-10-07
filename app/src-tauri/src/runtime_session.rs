@@ -3819,6 +3819,10 @@ pub(crate) struct WorkflowRootSession {
         std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<WorkflowReviewContext>>>,
     pub active_review: Option<String>,
     pub runs: std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+    /// Runs prepared in this process per (home, conversation), in order (RE-7).
+    conversations: std::collections::HashMap<(String, String), Vec<String>>,
+    /// Last durable reopen of the explicit project's records (display only).
+    reopened: Option<Value>,
 }
 impl Default for WorkflowRootSession {
     fn default() -> Self {
@@ -3829,6 +3833,8 @@ impl Default for WorkflowRootSession {
             reviews: Default::default(),
             active_review: None,
             runs: Default::default(),
+            conversations: Default::default(),
+            reopened: None,
         }
     }
 }
@@ -3838,7 +3844,8 @@ impl WorkflowRootSession {
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
-            "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); no cold file authority, compatibility, active-run or model adoption claim"})
+            "reopened":self.reopened,
+            "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
     }
     pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
@@ -4017,16 +4024,20 @@ impl WorkflowRootSession {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(&project_root)
             .map_err(|e| format!("Explicit App project not openable for WR records ({e}); nothing prepared or sent; no fallback store"))?;
         selected.selection.verify_store(&selected.package)?;
+        let home_key = generation["home"]
+            .as_str()
+            .ok_or("Native home absent")?
+            .to_owned();
+        // RE-7 / CH-1: one live run per conversation. A run reopened from the
+        // project's records without run_ended is interrupted and still live.
+        let prior = self.conversation_prior(&home_key, thread, &records)?;
         // App-local opaque run reference until EXEC supplies its lifecycle identity;
         // the `run:` form is RS $defs/runId, so R3 can be recorded under it.
         let run = crate::util::opaque_id("run:workflow:")?;
         let scope = crate::workflow_workspace::RunScope {
             run: run.clone(),
             conversation: thread.into(),
-            home: generation["home"]
-                .as_str()
-                .ok_or("Native home absent")?
-                .into(),
+            home: home_key.clone(),
             generation: generation.clone(),
             source_root: selected.selection.identity().source_root.clone(),
             holding_library: selected
@@ -4043,7 +4054,7 @@ impl WorkflowRootSession {
             &selected.selection,
             scope,
             "selected native workflow holding copy",
-            None,
+            prior.as_ref().map(|(_, end)| end),
         )?;
         let publication = crate::workflow_workspace::publication::PreparedRunPublication::new(
             &records,
@@ -4054,9 +4065,254 @@ impl WorkflowRootSession {
             &crate::util::now_rfc3339(),
         )?;
         let client_id = crate::util::opaque_id("workflow-message:")?;
-        self.runs.insert(run.clone(),std::sync::Arc::new(std::sync::Mutex::new(WorkflowRun{home,project:records,project_root,publication,published:None,publication_failure:None,person_text,client_id,source:None,attempted:false,turn_id:None,status:json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"no active run inferred from text preparation"}),supply:Value::Null,checks:Vec::new()})));
+        let mut workflow_run = WorkflowRun {
+            home,
+            project: records,
+            project_root,
+            selection: selected.selection.clone(),
+            publication,
+            published: None,
+            publication_failure: None,
+            person_text,
+            client_id,
+            source: None,
+            attempted: false,
+            turn_id: None,
+            status: json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed"}),
+            supply: Value::Null,
+            checks: Vec::new(),
+            follows: prior.map(|(run, _)| run),
+            lifecycle: RunLifecycle::Prepared,
+            entries: Vec::new(),
+            end: None,
+            notice: NoticeState::None,
+            notice_checks: Vec::new(),
+            compatibility: Vec::new(),
+        };
+        // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
+        workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
+        self.runs.insert(
+            run.clone(),
+            std::sync::Arc::new(std::sync::Mutex::new(workflow_run)),
+        );
+        self.conversations
+            .entry((home_key, thread.to_owned()))
+            .or_default()
+            .push(run.clone());
         Ok(run)
     }
+    /// CH-1/RE-7 for a new start in this conversation: refuses while a run is
+    /// live (hot, or interrupted in the record), and returns the run this one
+    /// follows with its owner end (the chain line, `follows`, `prior_run`).
+    fn conversation_prior(
+        &self,
+        home: &str,
+        thread: &str,
+        records: &crate::workflow_workspace::publication::ProjectRecords,
+    ) -> Result<Option<(String, crate::workflow_workspace::OwnerRunEnd)>, String> {
+        let mut prior = None;
+        let hot = self
+            .conversations
+            .get(&(home.to_owned(), thread.to_owned()))
+            .cloned()
+            .unwrap_or_default();
+        for reference in &hot {
+            let run = self.runs.get(reference).ok_or("conversation run index inconsistent")?;
+            let run = run.try_lock().map_err(|_| format!("Run {reference} has an operation pending in this conversation; whether it is live cannot be established now. Nothing prepared"))?;
+            match &run.lifecycle {
+                RunLifecycle::Open => return Err(format!("A workflow run is live in this conversation ({reference}). End it first, or confirm \"End and start\" (RE-7, CH-1). Nothing prepared")),
+                RunLifecycle::Ended => {
+                    if let Some(end) = &run.end {
+                        prior = Some((reference.clone(), end.clone()));
+                    }
+                }
+                RunLifecycle::Prepared | RunLifecycle::StartNotConfirmed => {}
+            }
+        }
+        let reading = crate::records::supply::read_project_runs(records, &[]);
+        if let Some(cold) = reading
+            .live_in(thread)
+            .into_iter()
+            .find(|r| !hot.contains(&r.run))
+        {
+            return Err(format!("A workflow run recorded in this conversation is still open (interrupted, no run_ended): {}. End it first (RE-4, RE-7). Nothing prepared", cold.run));
+        }
+        Ok(prior)
+    }
+    fn conversation_run(
+        &self,
+        reference: &str,
+    ) -> Result<std::sync::Arc<std::sync::Mutex<WorkflowRun>>, String> {
+        self.runs
+            .get(reference)
+            .cloned()
+            .ok_or_else(|| format!("Actual run {reference} unavailable in this process"))
+    }
+    /// The ended run in this conversation whose end notice the next ordinary turn
+    /// must carry (TX-5), if any.
+    pub fn pending_notice_for(
+        &self,
+        home: &str,
+        thread: &str,
+    ) -> Result<Option<std::sync::Arc<std::sync::Mutex<WorkflowRun>>>, String> {
+        for reference in self
+            .conversations
+            .get(&(home.to_owned(), thread.to_owned()))
+            .into_iter()
+            .flatten()
+        {
+            let run = self.conversation_run(reference)?;
+            let pending = {
+                let guard = run.try_lock().map_err(|_| "A run operation is pending in this conversation; the end-notice state cannot be established now; nothing sent")?;
+                guard.notice.awaiting_turn()
+            };
+            if pending {
+                return Ok(Some(run));
+            }
+        }
+        Ok(None)
+    }
+    /// Runs in the conversation of `run` that a successor start supersedes (their
+    /// pending end notice is replaced by the successor's chain line, TX-5).
+    fn superseded_notices(&self, run: &str) -> Vec<std::sync::Arc<std::sync::Mutex<WorkflowRun>>> {
+        self.conversations
+            .values()
+            .find(|runs| runs.iter().any(|r| r == run))
+            .into_iter()
+            .flatten()
+            .filter(|r| r.as_str() != run)
+            .filter_map(|r| self.runs.get(r).cloned())
+            .collect()
+    }
+    /// Durable reopen for display: the explicit project's records only.
+    pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
+        let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
+        let view = crate::records::supply::read_project_runs(&records, restart_events).view();
+        self.reopened = Some(view.clone());
+        Ok(view)
+    }
+}
+/// Starts a prepared run (CH-1 rechecked at dispatch). The Root lock is not held
+/// across the native wait. A successor start supersedes the predecessor's pending
+/// end notice: its chain line says the same (TX-5).
+pub(crate) fn start_workflow_run(
+    root: &std::sync::Mutex<WorkflowRootSession>,
+    reference: &str,
+) -> Result<Value, String> {
+    let (run, others) = {
+        let root = root.lock().unwrap();
+        let run = root.conversation_run(reference)?;
+        let others = root.superseded_notices(reference);
+        for other in &others {
+            let other = other.try_lock().map_err(|_| "Another run operation is pending in this conversation; whether a run is live cannot be established; nothing sent")?;
+            if other.lifecycle == RunLifecycle::Open {
+                return Err("A workflow run is live in this conversation; end it first (RE-7, CH-1). Nothing sent".into());
+            }
+        }
+        (run, others)
+    };
+    let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
+    let result = run.send();
+    if run.attempted {
+        for other in others {
+            if let Ok(mut other) = other.try_lock() {
+                other.notice.supersede(reference);
+            }
+        }
+    }
+    result
+}
+/// SQ-END / TX-5: the person's next ordinary turn in a conversation whose run
+/// ended without a successor carries the end notice first, exactly once. Returns
+/// None when no notice is pending (ordinary sending applies unchanged).
+pub(crate) fn send_with_pending_notice(
+    root: &std::sync::Mutex<WorkflowRootSession>,
+    generation: &Value,
+    thread: &str,
+    person_text: &str,
+) -> Option<Result<Value, String>> {
+    let home = generation["home"].as_str()?.to_owned();
+    let pending = match root.lock().unwrap().pending_notice_for(&home, thread) {
+        Ok(p) => p?,
+        Err(e) => return Some(Err(e)),
+    };
+    let mut run = match pending.try_lock() {
+        Ok(run) => run,
+        Err(_) => return Some(Err("Original run operation pending; nothing sent".into())),
+    };
+    Some(run.send_end_notice(generation, person_text))
+}
+/// RS run_ended cause for the person's end (WR CH-1/CH-2 wording; R20-11 (4)).
+fn run_end_cause(reason: &crate::workflow_workspace::RunEndReason) -> String {
+    match reason {
+        crate::workflow_workspace::RunEndReason::ByPerson => "ended by the person".into(),
+        crate::workflow_workspace::RunEndReason::Completed => "completed".into(),
+        crate::workflow_workspace::RunEndReason::ToStart(name)
+            if crate::workflow_workspace::valid_name(name) =>
+        {
+            format!("ended to start {name}")
+        }
+        _ => "invalid".into(),
+    }
+}
+/// Runtime lifecycle of one App run (EXEC AE-7, RE-4, RE-6, RE-7).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum RunLifecycle {
+    /// Prepared, not sent. Not a run yet.
+    Prepared,
+    /// The start turn was refused or its outcome is unknown (A-3): the run is
+    /// not opened and is not live.
+    StartNotConfirmed,
+    /// `run_opened`: the start turn was observed. Only an explicit end ends it.
+    Open,
+    /// The person's explicit end (DEF-4), with its cause.
+    Ended,
+}
+/// TX-5 end notice for a run ended with no successor.
+enum NoticeState {
+    None,
+    /// The next ordinary turn in the conversation must carry it.
+    AwaitingTurn,
+    /// Publication failed before send; the original pending bytes are kept.
+    Prepared(crate::workflow_workspace::publication::PreparedEndPublication),
+    /// Dispatched once (never again), with its outcome.
+    Sent {
+        published: crate::workflow_workspace::publication::PublishedEndNotice,
+        client_id: String,
+        turn: Option<String>,
+        generation: Value,
+        outcome: Value,
+    },
+    /// A successor run started in the conversation; its chain line said it.
+    Superseded(String),
+    /// The run ended to start a successor; the chain line carries the end.
+    ByChain,
+}
+impl NoticeState {
+    fn awaiting_turn(&self) -> bool {
+        matches!(self, Self::AwaitingTurn | Self::Prepared(_))
+    }
+    fn supersede(&mut self, successor: &str) {
+        if self.awaiting_turn() {
+            *self = Self::Superseded(successor.to_owned());
+        }
+    }
+    fn view(&self) -> Value {
+        match self {
+            Self::None => Value::Null,
+            Self::AwaitingTurn => json!({"state":"pending: the next ordinary turn in this conversation carries it"}),
+            Self::Prepared(p) => json!({"state":"pending: publication failed; nothing sent; retried with the next turn","record":p.reference()}),
+            Self::Sent{published,turn,outcome,..} => json!({"state":"sent once with the next ordinary turn","record":published.run_text_record().reference(),"turn":turn,"outcome":outcome}),
+            Self::Superseded(run) => json!({"state":"not sent: the successor run's chain line said the run ended","successor":run}),
+            Self::ByChain => json!({"state":"not composed: ended to start a successor; its chain line carries the end"}),
+        }
+    }
+}
+/// Advisory compatibility evaluation kept with its occasion and basis (EXEC §3).
+struct CompatibilitySlot {
+    occasion: &'static str,
+    basis: crate::execution_compatibility::report::Basis,
+    result: Result<crate::execution_compatibility::report::Evaluation, String>,
 }
 /// Supplier writer label carried in WR envelopes.
 const WR_WRITER: &str = "app-writer:local";
@@ -4078,7 +4334,13 @@ enum WorkflowR3 {
 impl WorkflowCheckSlot {
     /// Publish the original check bytes if needed, then prepare/append R3.
     /// Never re-reads native history and never sends.
-    fn advance(&mut self, project: &crate::workflow_workspace::publication::ProjectRecords) {
+    /// `record_ready`: the lifecycle entry this R3 follows in the run log is
+    /// written (run_opened for the start text, run_ended for the end notice).
+    fn advance(
+        &mut self,
+        project: &crate::workflow_workspace::publication::ProjectRecords,
+        record_ready: bool,
+    ) {
         if self.published.is_none() {
             match self.pending.publish(project) {
                 Ok(p) => {
@@ -4097,6 +4359,9 @@ impl WorkflowCheckSlot {
                 Ok(p) => WorkflowR3::Pending(p),
                 Err(e) => WorkflowR3::Unavailable(e.to_string()),
             };
+        }
+        if !record_ready {
+            return;
         }
         if let WorkflowR3::Pending(pending) = &mut self.r3 {
             if let Ok(entry) = crate::records::supply::append_live(project, published, pending) {
@@ -4131,6 +4396,16 @@ pub(crate) struct WorkflowRun {
     pub status: Value,
     pub supply: Value,
     checks: Vec<WorkflowCheckSlot>,
+    selection: crate::workflow_workspace::Selection,
+    /// RS `run_opened.follows`: the run this one follows in the conversation.
+    follows: Option<String>,
+    pub(crate) lifecycle: RunLifecycle,
+    /// Ordered RS lifecycle entries for this run's log (W-2 order kept).
+    entries: Vec<crate::records::supply::PendingRunEntry>,
+    end: Option<crate::workflow_workspace::OwnerRunEnd>,
+    notice: NoticeState,
+    notice_checks: Vec<WorkflowCheckSlot>,
+    compatibility: Vec<CompatibilitySlot>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -4203,13 +4478,133 @@ impl WorkflowRun {
         json!({"reference":reference,"runText":self.prepared().record(),"project":crate::attachments::native_path_identity(&self.project_root),"publication":publication,
             "source":self.source.as_ref().map(|s|s.evidence()),"turn":self.turn_id,"status":self.status,"supply":self.supply,
             "checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records(),
-            "adoption":"unknown","runStanding":"no active, ended or completed run inferred; EXEC lifecycle is separate"})
+            "lifecycle":self.lifecycle_view(),"conversation":self.prepared().scope().conversation,
+            "endNotice":self.notice.view(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
+            "compatibility":self.compatibility_view(),
+            "adoption":"unknown","runStanding":"lifecycle as recorded below; completion is never inferred from a native turn"})
+    }
+    fn lifecycle_view(&self) -> Value {
+        let state = match self.lifecycle {
+            RunLifecycle::Prepared => "prepared; not a run until its start turn is observed",
+            RunLifecycle::StartNotConfirmed => "start not confirmed (turn refused or outcome unknown); not opened, not live",
+            RunLifecycle::Open => "open (live); only the person's explicit end ends it",
+            RunLifecycle::Ended => "ended by the person",
+        };
+        json!({"state":state,"follows":self.follows,"end":self.end.as_ref().map(|e|json!({"run":e.run,"cause":run_end_cause(&e.reason)})),
+            "records":self.entries.iter().map(|e|json!({"kind":e.kind,"recordId":e.record_id,"observedAt":e.observed_at,"written":e.written.is_some(),"limit":e.failure})).collect::<Vec<_>>()})
     }
     pub fn has_pending_records(&self) -> bool {
+        let pending_check = |c: &WorkflowCheckSlot| {
+            c.published.is_none() || matches!(c.r3, WorkflowR3::Pending(_) | WorkflowR3::AwaitingCheck)
+        };
         self.published.is_none()
-            || self.checks.iter().any(|c| {
-                c.published.is_none() || matches!(c.r3, WorkflowR3::Pending(_) | WorkflowR3::AwaitingCheck)
-            })
+            || self.entries.iter().any(|e| e.written.is_none())
+            || self.checks.iter().any(pending_check)
+            || self.notice_checks.iter().any(pending_check)
+    }
+    fn entry_written(&self, kind: &str) -> bool {
+        self.entries
+            .iter()
+            .any(|e| e.kind == kind && e.written.is_some())
+    }
+    /// Writes pending lifecycle entries in their original order; stops at the
+    /// first failure so later entries never overtake it (W-2).
+    fn flush_entries(&mut self) {
+        let run = self.prepared().scope().run.clone();
+        for entry in &mut self.entries {
+            if entry.written.is_some() {
+                continue;
+            }
+            if crate::records::supply::append_run_entry(&self.project_root, &run, entry).is_err() {
+                break;
+            }
+        }
+    }
+    fn advance_checks(&mut self) {
+        let opened = self.entry_written("run_opened");
+        let ended = self.entry_written("run_ended");
+        for slot in &mut self.checks {
+            slot.advance(&self.project, opened);
+        }
+        for slot in &mut self.notice_checks {
+            slot.advance(&self.project, ended);
+        }
+    }
+    /// EXEC §3.1 CK-1/CK-2 through J2's seam, from this run's own selection,
+    /// holding library, home, generation and conversation. Advisory only: the
+    /// result never gates a start, and no R14 is written when publication is
+    /// refused (the normal case without an environment collector).
+    fn evaluate_compatibility(
+        &mut self,
+        occasion: crate::execution_compatibility::report::Occasion,
+    ) {
+        use crate::execution_compatibility::report as report;
+        let scope = self.prepared().scope().clone();
+        let basis = report::Basis {
+            home: scope.home.clone(),
+            generation: scope.generation.clone(),
+            conversation: scope.conversation.clone(),
+            acting_pin: "App Codex 0.160.0".into(),
+            surface: "X".into(),
+            environment_observation: None,
+            catalog_edition: None,
+        };
+        // Same-conversation obligation: the role binding is looked up for this
+        // run's own home and conversation; a missing binding stays Unknown.
+        let role = match self.home.history.try_lock() {
+            Ok(history) => history
+                .binding(&scope.home, &scope.conversation)
+                .map(|b| b.role_in_force(&scope.home, &scope.conversation))
+                .unwrap_or(crate::role_lifecycle::RoleInForce::Unknown {
+                    reason: "original App supply binding not established".into(),
+                }),
+            Err(_) => crate::role_lifecycle::RoleInForce::Unknown {
+                reason: "role binding owner busy; not read".into(),
+            },
+        };
+        let label = match occasion {
+            report::Occasion::Selection => "CK-1 selection",
+            report::Occasion::BeforeFirstAction => "CK-2 run start",
+            report::Occasion::EditionChange { .. } => "CK-3 edition change",
+        };
+        let result = report::evaluate(report::Request {
+            selection: &self.selection,
+            holding_library: Some(scope.holding_library.clone()),
+            role,
+            basis: basis.clone(),
+            occasion,
+            evaluated_at: crate::util::now_rfc3339(),
+            inventory: report::Inventory {
+                origin: report::InventoryOrigin::CallerSupplied {
+                    source: "App Root: no environment collector; nothing observed".into(),
+                },
+                host_id: None,
+                observations: report::Observations::default(),
+            },
+            model_destination: None,
+        });
+        self.compatibility.push(CompatibilitySlot {
+            occasion: label,
+            basis,
+            result,
+        });
+    }
+    fn compatibility_view(&self) -> Value {
+        let current = self.prepared().scope();
+        json!(self.compatibility.iter().map(|slot|{
+            let current_basis = crate::execution_compatibility::report::Basis{generation:current.generation.clone(),..slot.basis.clone()};
+            let mut view = match &slot.result {
+                Ok(evaluation) => evaluation.view(&current_basis),
+                Err(e) => json!({"state":"no evaluation","limit":e}),
+            };
+            view["occasion"] = json!(slot.occasion);
+            view["advisory"] = json!("informs only; never gates a start (CC-3)");
+            view["r14"] = json!(match &slot.result {
+                Ok(e) if e.published.is_ok() => "EXEC report published in memory only; the App has no allocated report store, so no R14 is written (CI-20)",
+                _ => "no report published; no R14 written (run's R14 stays 'no report evaluated')",
+            });
+            view
+        }).collect::<Vec<_>>())
     }
     /// WP-5 pre-send publication of the original selection and run_text. On
     /// failure nothing is sent and the original pending bytes are kept.
@@ -4258,6 +4653,11 @@ impl WorkflowRun {
             )
         };
         let records = json!({"selection":selection_ref,"runText":text_ref});
+        // EXEC §3.1 CK-2: a new evaluation immediately before the run's first
+        // action. Advisory: its outcome is not consulted below.
+        self.evaluate_compatibility(
+            crate::execution_compatibility::report::Occasion::BeforeFirstAction,
+        );
         self.attempted = true;
         let prepared = self.publication.prepared().clone();
         let source = match self.home.host.turn_start_prepared_run_text(
@@ -4268,7 +4668,8 @@ impl WorkflowRun {
         ) {
             Ok(source) => source,
             Err(error) => {
-                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                self.lifecycle = RunLifecycle::StartNotConfirmed;
+                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err(error);
             }
         };
@@ -4282,14 +4683,150 @@ impl WorkflowRun {
         ) {
             Ok(native) => {
                 self.turn_id = Some(native.turn_id().to_owned());
-                self.status = json!({"state":"native workflow-text turn observed","records":records,"replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"supplied":"not yet checked","adoption":"unknown","runStanding":"native input/turn observations are separate from workflow execution/adoption/run end"});
+                self.status = json!({"state":"native workflow-text turn observed; run opened","records":records,"replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"supplied":"not yet checked","adoption":"unknown","runStanding":"open until the person ends it; a failed or completed native turn does not end it"});
             }
             Err(error) => {
-                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","records":records,"limit":error,"automaticRetry":false,"supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                self.lifecycle = RunLifecycle::StartNotConfirmed;
+                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","records":records,"limit":error,"automaticRetry":false,"run":"not opened (EXEC A-3): start not confirmed","supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err("Original native workflow source outcome unavailable; inspect retained source, no resend".into());
             }
         }
+        self.open_run();
         Ok(self.status.clone())
+    }
+    /// EXEC A-2: the start turn was observed, so the run opens and the App writer
+    /// records `run_opened` (with `follows` for a sequential run, RE-7).
+    fn open_run(&mut self) {
+        let scope = self.prepared().scope().clone();
+        let id = self.prepared().workflow().clone();
+        let mut body = json!({"runId":scope.run,"startedBy":{"kind":"person"},"surface":"App run",
+            "workflow":{"kind":id.kind,"origin":id.origin,"sourceRoot":id.source_root,"name":id.name,"revision":id.revision,"revisionVerification":"verified"},
+            "conversationRef":scope.conversation});
+        if let Some(prior) = &self.follows {
+            body["follows"] = json!(prior);
+        }
+        // R5a: the role in force from this conversation's own App supply binding.
+        if let Ok(history) = self.home.history.try_lock() {
+            if let Some(crate::role_lifecycle::RoleInForce::AppObserved { role, .. }) = history
+                .binding(&scope.home, &scope.conversation)
+                .map(|b| b.role_in_force(&scope.home, &scope.conversation))
+            {
+                body["seatRole"] = json!(role.map(|r| r.name()).unwrap_or("no role"));
+            }
+        }
+        self.lifecycle = RunLifecycle::Open;
+        match crate::records::supply::PendingRunEntry::new(
+            "run_opened",
+            body,
+            crate::util::now_rfc3339(),
+        ) {
+            Ok(entry) => self.entries.push(entry),
+            Err(e) => self.status["recordLimit"] = json!(format!("run_opened identity unavailable: {e}")),
+        }
+        self.flush_entries();
+    }
+    /// EXEC AE-7 / A-11: only the person's explicit end ends a run. `successor`
+    /// is set for "End ‹A› and start ‹B›": no end notice, the chain line says it.
+    pub fn end_run(&mut self, completed: bool, successor: Option<&str>) -> Result<Value, String> {
+        if self.lifecycle != RunLifecycle::Open {
+            return Err("Only an open run can be ended; nothing recorded".into());
+        }
+        let scope = self.prepared().scope().clone();
+        let reason = match successor {
+            Some(name) => crate::workflow_workspace::RunEndReason::ToStart(name.to_owned()),
+            None if completed => crate::workflow_workspace::RunEndReason::Completed,
+            None => crate::workflow_workspace::RunEndReason::ByPerson,
+        };
+        let cause = run_end_cause(&reason);
+        if successor.is_some() && cause == "invalid" {
+            return Err("successor workflow name invalid; nothing ended".into());
+        }
+        let entry = crate::records::supply::PendingRunEntry::new(
+            "run_ended",
+            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":[]}),
+            crate::util::now_rfc3339(),
+        )?;
+        self.end = Some(crate::workflow_workspace::OwnerRunEnd {
+            home: scope.home.clone(),
+            conversation: scope.conversation.clone(),
+            run: scope.run.clone(),
+            workflow: self.prepared().workflow().clone(),
+            reason,
+        });
+        self.lifecycle = RunLifecycle::Ended;
+        self.notice = if successor.is_some() {
+            NoticeState::ByChain
+        } else {
+            NoticeState::AwaitingTurn
+        };
+        self.entries.push(entry);
+        self.flush_entries();
+        self.advance_checks();
+        self.status = json!({"state":"run ended by the person","cause":cause,"recorded":self.entry_written("run_ended"),"endNotice":self.notice.view(),"adoption":"unknown"});
+        Ok(self.status.clone())
+    }
+    /// TX-5: publish the end notice, then send it as the first text element of
+    /// the person's next ordinary turn. Dispatched at most once; a publication
+    /// failure sends nothing and keeps the original pending bytes.
+    pub fn send_end_notice(&mut self, generation: &Value, person_text: &str) -> Result<Value, String> {
+        if !self.notice.awaiting_turn() {
+            return Err("No end notice is pending for this run; nothing sent".into());
+        }
+        let scope = self.prepared().scope().clone();
+        current_conversation(&self.home.host.snapshot(), generation, &scope.conversation)?;
+        if person_text.is_empty() {
+            return Err("text required".into());
+        }
+        if matches!(self.notice, NoticeState::AwaitingTurn) {
+            let end = self.end.clone().ok_or("owner end absent")?;
+            let start = self.published.as_ref().ok_or("original run start not published")?;
+            let publication = crate::workflow_workspace::publication::PreparedEndPublication::for_turn(
+                &self.project,
+                start.prepared(),
+                &end,
+                start.run_text_record(),
+                WR_WRITER,
+                &crate::util::now_rfc3339(),
+                generation,
+            )?;
+            self.notice = NoticeState::Prepared(publication);
+        }
+        let NoticeState::Prepared(publication) = &self.notice else {
+            unreachable!()
+        };
+        let published = match publication.publish(&self.project) {
+            Ok(p) => p,
+            Err(e) => {
+                self.status = json!({"state":"end notice not recorded; nothing sent","limit":e,"retry":"the next send retries the same original notice record"});
+                return Err(format!("End notice not durably recorded; nothing sent: {e}"));
+            }
+        };
+        let client_id = crate::util::opaque_id("workflow-message:")?;
+        let notice = crate::workflow_workspace::publication::PublishedText::prepared(&published).clone();
+        let mut outcome = json!({"state":"dispatch attempted"});
+        let mut turn = None;
+        match self.home.host.turn_start_prepared_run_text(generation, &notice, person_text, &client_id) {
+            Err(e) => outcome = json!({"state":"native send not started","limit":e,"automaticRetry":false}),
+            Ok(source) => match self.home.host.turn_start_prepared_finish(&source, &notice, person_text, &client_id, std::time::Duration::from_secs(20)) {
+                Ok(native) => {
+                    turn = Some(native.turn_id().to_owned());
+                    outcome = json!({"state":"native turn observed","observedStatus":native.observed_status(),"source":source.evidence()});
+                }
+                Err(e) => outcome = json!({"state":"native send failed/unknown; not resent","limit":e,"source":source.evidence()}),
+            },
+        }
+        self.notice = NoticeState::Sent {
+            published,
+            client_id,
+            turn,
+            generation: generation.clone(),
+            outcome: outcome.clone(),
+        };
+        if outcome["state"] == "native turn observed" {
+            Ok(json!({"state":"end notice and the person's text sent once","endNotice":self.notice.view()}))
+        } else {
+            Err(format!("End notice turn outcome unavailable; not resent: {outcome}"))
+        }
     }
     /// Retries only pending original records (WP-5): pre-send publication, check
     /// publication and R3 late writes. Never sends and never re-reads native data.
@@ -4300,10 +4837,9 @@ impl WorkflowRun {
                 self.status = json!({"state":"selection and run_text recorded; not sent","sent":false,"supplied":"not supplied","next":"Send remains a separate once-only step","adoption":"unknown","runStanding":"no active run inferred"});
             }
         }
-        for slot in &mut self.checks {
-            slot.advance(&self.project);
-        }
-        Ok(json!({"status":self.status,"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records()}))
+        self.flush_entries();
+        self.advance_checks();
+        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records()}))
     }
     /// SC-3..SC-6: one genuine native read, minted into a new immutable check,
     /// published and recorded as R3. Each call is a new check (SC-6).
@@ -4315,33 +4851,63 @@ impl WorkflowRun {
             .turn_id
             .clone()
             .ok_or("Original native turn identity not received; no page guess")?;
+        let generation = self.prepared().scope().generation.clone();
+        let client = self.client_id.clone();
+        self.check_text(false, &generation, &turn, &client)
+    }
+    /// SQ-END EN-3: a check of the end notice against Codex's history.
+    pub fn check_end_notice_supply(&mut self) -> Result<Value, String> {
+        let NoticeState::Sent { turn, client_id, generation, .. } = &self.notice else {
+            return Err("No end notice was sent; nothing to check".into());
+        };
+        let turn = turn.clone().ok_or("End-notice turn identity not received; no page guess")?;
+        let (generation, client) = (generation.clone(), client_id.clone());
+        self.check_text(true, &generation, &turn, &client)
+    }
+    fn check_text(
+        &mut self,
+        notice: bool,
+        generation: &Value,
+        turn: &str,
+        client: &str,
+    ) -> Result<Value, String> {
+        let thread = self.prepared().scope().conversation.clone();
         let mut issued = Vec::new();
-        let outcome = self.read_native_items(&turn, &mut issued);
+        let outcome = self.read_native_items(generation, &thread, turn, &mut issued);
         let read_at = crate::util::now_rfc3339();
         let check = crate::util::opaque_id("workflow-check:")?;
-        let published = self.published.as_ref().unwrap();
+        let published: &dyn crate::workflow_workspace::publication::PublishedText = if notice {
+            match &self.notice {
+                NoticeState::Sent { published, .. } => published,
+                _ => return Err("end notice not published".into()),
+            }
+        } else {
+            self.published.as_ref().ok_or("run text not published")?
+        };
+        let expected_text = published.prepared().text().to_owned();
+        let (turn, client_id) = (turn.to_owned(), client.to_owned());
         let (completed, display) = match outcome {
             Ok((seal, pages)) => {
                 let mut index = 0;
                 let comparison = crate::workflow_workspace::compare_untrusted_pages(
-                    self.publication.prepared().text(),
+                    &expected_text,
                     &turn,
-                    &self.client_id,
+                    &client_id,
                     |_| {
                         let page = pages.get(index).cloned().ok_or("No checked native page")?;
                         index += 1;
                         Ok(page)
                     },
                 );
-                let display = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":self.prepared().scope().generation,"thread":self.prepared().scope().conversation,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
+                let display = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":generation,"thread":thread,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
                 let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::from_native_coverage(
-                    seal, &pages, published, &turn, &self.client_id, &check, &read_at,
+                    seal, &pages, published, &turn, &client_id, &check, &read_at,
                 )?;
                 (completed, display)
             }
             Err(error) if !issued.is_empty() => {
                 let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::unreadable_after_dispatch(
-                    &issued, published, &turn, &self.client_id, &check, &read_at, &error,
+                    &issued, published, &turn, &client_id, &check, &read_at, &error,
                 )?;
                 (completed, json!({"state":"native item read failed after dispatch; recorded as unreadable","limit":error,"turn":turn,"adoption":"unknown","runStanding":"no active/completed workflow run inferred"}))
             }
@@ -4359,30 +4925,36 @@ impl WorkflowRun {
             publication_failure: None,
             r3: WorkflowR3::AwaitingCheck,
         };
-        slot.advance(&self.project);
+        // R3 follows its lifecycle entry in the run log: run_opened for the start
+        // text, run_ended for the end notice (RS §4 R3).
+        slot.advance(&self.project, self.entry_written(if notice { "run_ended" } else { "run_opened" }));
         let mut supply = display;
         supply["check"] = slot.view();
-        self.checks.push(slot);
-        self.supply = supply;
-        Ok(self.supply.clone())
+        if notice {
+            self.notice_checks.push(slot);
+        } else {
+            self.checks.push(slot);
+            self.supply = supply.clone();
+        }
+        Ok(supply)
     }
     /// The existing source-owned traversal. Every Host-issued dispatch is kept so
     /// a later failure can still be recorded as *unreadable* against it.
     fn read_native_items(
         &self,
+        generation: &Value,
+        thread: &str,
         turn: &str,
         issued: &mut Vec<crate::hosting::HistoryDispatch>,
     ) -> Result<(crate::hosting::NativeItemCoverageSeal, Vec<Value>), String> {
-        let generation = self.prepared().scope().generation.clone();
-        let thread = self.prepared().scope().conversation.clone();
-        current_conversation(&self.home.host.snapshot(), &generation, &thread)?;
+        current_conversation(&self.home.host.snapshot(), generation, thread)?;
         let query = {
             let mut receiver = self.home.history.lock().unwrap();
             receiver.reconcile(&self.home.host);
             let h = receiver
                 .history_mut()
                 .ok_or("Native History owner unavailable")?;
-            if h.selected_thread() != Some(thread.as_str()) {
+            if h.selected_thread() != Some(thread) {
                 return Err("Select this original conversation in native History and load its turns before checking supply".into());
             }
             h.items_page(turn, None, crate::native_history::Direction::Asc)?
@@ -4769,6 +5341,35 @@ for line in sys.stdin:
         let kinds:Vec<Value>=peer.fixture.rs_entries().iter().map(|e|e["kind"].clone()).collect();
         assert!(!kinds.iter().any(|k|k=="run_opened"||k=="run_ended"),"no active-run or completion claim: {kinds:?}");
         let fresh=WorkflowRootSession::default();assert!(fresh.snapshot()["runs"].as_array().unwrap().is_empty(),"records do not recreate a live run");
+    }
+    fn kinds_for(peer:&Peer,run:&str)->Vec<String>{peer.fixture.rs_entries().iter().filter(|e|e["runId"]==run).map(|e|e["kind"].as_str().unwrap().to_owned()).collect()}
+    // J3 control: EXEC A-2/RE-7 and RS R1. Opening writes run_opened; a second live start is refused.
+    #[test]
+    fn j3_open_writes_run_opened_and_second_live_start_is_refused(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        root.runs[&a].clone().lock().unwrap().send().unwrap();
+        assert_eq!(kinds_for(&peer,&a).first().map(String::as_str),Some("run_opened"),"opening writes run_opened first");
+        let second=root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project());
+        assert!(second.as_ref().is_err_and(|e|e.contains("live")),"{second:?}");assert_eq!(peer.turn_starts(),1);
+    }
+    // J3 control: RE-7 / CH-1 alone, so the refusal is observed independently of run_opened.
+    #[test]
+    fn j3_second_live_start_in_conversation_is_refused(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        root.runs[&a].clone().lock().unwrap().send().unwrap();
+        let second=root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project());
+        assert!(second.as_ref().is_err_and(|e|e.contains("live")&&e.contains(&a)),"{second:?}");assert_eq!(root.runs.len(),1);assert_eq!(peer.turn_starts(),1);
+    }
+    // J3 control: EXEC §3.1 CK-1 at selection for a run and CK-2 before the first action.
+    #[test]
+    fn j3_compatibility_ck1_and_ck2_are_evaluated_advisory_only(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();
+        let view=run.view(&a);let occasions:Vec<Value>=view["compatibility"].as_array().map(|v|v.iter().map(|e|e["occasion"].clone()).collect()).unwrap_or_default();
+        assert_eq!(occasions,vec![json!("CK-1 selection"),json!("CK-2 run start")],"{}",view["compatibility"]);
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){
