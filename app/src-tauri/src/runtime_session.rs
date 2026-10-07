@@ -5526,6 +5526,9 @@ for line in sys.stdin:
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture refused turn/start'}});continue
   if mode('turn-mode')=='exit':
    sys.exit(0)
+  if mode('turn-mode')=='stall':
+   # Stops reading its input (until the Host's stop ends the process).
+   import time;time.sleep(60);continue
   text=f['params']['input'][0]['text'];client=f['params']['clientUserMessageId'];result={'turn':turn()}
  elif method=='thread/list':result={'data':[thread()]+[thread('thread-%d'%n) for n in range(2,starts[0]+1)],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
@@ -6075,6 +6078,36 @@ for line in sys.stdin:
         assert!(refused.is_err());assert_eq!(peer.turn_starts(),starts,"no frame written");
         assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"));
         assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 R-1: the Host accepts the notice's turn/start (a source is returned) but its
+    // generation closes before the frame is written, so no write attempt is observed. Real
+    // Host behaviour, no seam: the peer stops reading, a large frame holds the Host's writer,
+    // the notice queues behind it, and Codex is stopped. The notice stays pending, never
+    // Sent, and the next ordinary turn after relaunch carries it once.
+    #[test]
+    fn v10_r1_notice_accepted_but_never_written_stays_pending(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Arc::new(Mutex::new(root));
+        let (t2,t3)=(peer.second_thread(),{peer.second_thread();"thread-3".to_owned()});
+        let host=peer.home.host.clone();let g=peer.generation.clone();
+        let reserved=|in_progress:bool|host.snapshot()["reservedNativeRequests"].as_array().unwrap().iter().any(|r|r["method"]=="turn/start"&&r["writeAttemptInProgress"]==in_progress);
+        let wait=|done:&dyn Fn()->bool,what:&str|{let deadline=std::time::Instant::now()+Duration::from_secs(10);while !done(){assert!(std::time::Instant::now()<deadline,"{what}");std::thread::sleep(Duration::from_millis(10));}};
+        peer.set_mode("turn-mode","stall");
+        let (h,gg)=(host.clone(),g.clone());let stall=std::thread::spawn(move||h.turn_start_text(&gg,&t2,"stall"));
+        wait(&||peer.turn_starts()==2,"the peer read the stalling turn and stopped reading");
+        let (h,gg)=(host.clone(),g.clone());let large=std::thread::spawn(move||h.turn_start_text(&gg,&t3,&"x".repeat(1024*1024)));
+        wait(&||reserved(true),"the large frame holds the writer");
+        let (shared,gg)=(root.clone(),g.clone());let notice=std::thread::spawn(move||send_with_pending_notice(&shared,&gg,"thread","hello").expect("notice pending"));
+        wait(&||reserved(false),"the notice turn/start is accepted and queued, not written");
+        host.stop_scoped(&g,"the person","Codex stop").unwrap();
+        let refused=notice.join().unwrap().unwrap_err();
+        assert!(refused.contains("no write attempt observed"),"the Host returned a source with no write attempt: {refused}");
+        let _=(stall.join().unwrap(),large.join().unwrap());
+        assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"),"never Sent");
+        assert!(!peer.wire().iter().any(|f|f["params"]["input"][0]["text"].as_str().is_some_and(|t|t.starts_with("[Chirality] Workflow run ended:"))),"no notice frame reached the peer");
+        peer.set_mode("turn-mode","");let generation=peer.relaunch();
+        assert!(send_with_pending_notice(&root,&generation,"thread","hello").expect("still pending").is_ok());
+        assert_eq!(peer.wire().iter().filter(|f|f["params"]["input"][0]["text"].as_str().is_some_and(|t|t.starts_with("[Chirality] Workflow run ended:"))).count(),1,"carried exactly once");
     }
     // V10 G-2 (reviewer's probe): B's preconditions are established before A is ended; if B
     // cannot be prepared, A is untouched (still live, no run_ended, no notice).
