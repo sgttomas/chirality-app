@@ -5365,7 +5365,10 @@ for line in sys.stdin:
         let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
         // 1. RS writer unavailable: WR check published, R3 pending.
-        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        // Fixture only (J3): run_opened now creates the run-log directory, so it is moved aside
+        // before the blocking file is written, and restored with it below.
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
         let first=run.check_native_supply().unwrap()["check"].clone();
         assert_eq!(first["published"],true);assert_eq!(first["r3"]["state"],"pending write; missing in record");
         let r3_id=first["r3"]["recordId"].as_str().unwrap().to_owned();
@@ -5377,7 +5380,7 @@ for line in sys.stdin:
         let second_ref=second["reference"].as_str().unwrap().to_owned();assert!(!peer.fixture.wr_files().iter().any(|n|second_ref.ends_with(n.trim_end_matches(".json"))));
         assert!(run.has_pending_records());
         let (reads,starts)=(item_reads(&peer),peer.turn_starts());
-        std::fs::remove_file(&runs).unwrap();
+        std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
         let retried=run.retry_records().unwrap();assert_eq!(retried["pendingRecords"],false,"{retried}");
         assert_eq!(item_reads(&peer),reads,"retry never re-reads native history");assert_eq!(peer.turn_starts(),starts);assert_eq!(starts,1);
         let checks=run.view(&reference)["checks"].clone();assert_eq!(checks[0]["r3"]["recordId"],r3_id.as_str(),"late R3 keeps its reserved identity");
@@ -5478,8 +5481,17 @@ for line in sys.stdin:
         let find=|r:&str|records.iter().find(|v|v["reference"]==r).unwrap().clone();
         assert_eq!(find(&check_ref)["r3"][0]["standing"],"HistoricalCorrespondence");assert_eq!(find(&orphan_ref)["r3"],"missing in record");
         assert!(reading["standing"].as_str().unwrap().contains("no live native witness, model adoption, registration or run lifecycle inferred"));
-        let kinds:Vec<Value>=peer.fixture.rs_entries().iter().map(|e|e["kind"].clone()).collect();
-        assert!(!kinds.iter().any(|k|k=="run_opened"||k=="run_ended"),"no active-run or completion claim: {kinds:?}");
+        // J3 changes this assertion (intent kept: no completion, no invented active run). J1
+        // asserted no run_opened at all; J3 must record run_opened (EXEC A-2). Now: exactly the
+        // one recorded opening, no run_ended (no completion claim, though the native turn
+        // "failed"), the record reads open-and-interrupted (RE-4), and nothing in a fresh
+        // process becomes an active run.
+        let kinds:Vec<Value>=peer.fixture.rs_entries().iter().filter(|e|e["runId"]==reference.as_str()).map(|e|e["kind"].clone()).collect();
+        assert_eq!(kinds.iter().filter(|k|*k=="run_opened").count(),1,"{kinds:?}");
+        assert!(!kinds.iter().any(|k|k=="run_ended"),"no completion claim: {kinds:?}");
+        let runs=crate::records::supply::read_project_runs(&project,&[]);assert_eq!(runs.runs.len(),1);
+        assert_eq!(runs.runs[0].lifecycle,crate::records::supply::RecordedLifecycle::OpenInterrupted,"open; interrupted, never completed");
+        assert_eq!(runs.view()["runs"][0]["state"],"open; interrupted (no run_ended recorded)");
         let fresh=WorkflowRootSession::default();assert!(fresh.snapshot()["runs"].as_array().unwrap().is_empty(),"records do not recreate a live run");
     }
     fn kinds_for(peer:&Peer,run:&str)->Vec<String>{peer.fixture.rs_entries().iter().filter(|e|e["runId"]==run).map(|e|e["kind"].as_str().unwrap().to_owned()).collect()}
