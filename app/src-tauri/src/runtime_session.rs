@@ -4669,7 +4669,7 @@ impl WorkflowRun {
             Ok(source) => source,
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
-                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not recorded: no Host receipt of a turn/start refusal; outcome not established (CI-20)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err(error);
             }
         };
@@ -4687,12 +4687,52 @@ impl WorkflowRun {
             }
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
-                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","records":records,"limit":error,"automaticRetry":false,"run":"not opened (EXEC A-3): start not confirmed","supplyCheck":"not performed: no native turn (RN-4 not-found check not minted)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                // V9 F-1: only Codex's definite refusal of this exact turn/start
+                // grounds a supply_check *not found* (WR §16.4, RN-4). An unknown
+                // outcome mints nothing that claims not found (CI-20).
+                let refusal = self.home.host.prepared_turn_refusal(&source);
+                let definite = refusal.is_some();
+                let check = match refusal {
+                    Some(refusal) => self.record_refused_start(refusal),
+                    None => Value::Null,
+                };
+                self.status = json!({"state":if definite {"native workflow-text turn/start refused by Codex; original source retained"} else {"native workflow-text send outcome unknown; original source retained"},
+                    "records":records,"limit":error,"automaticRetry":false,"run":"not opened (EXEC A-3): start not confirmed",
+                    "supplyCheck":if definite {"not found (RN-4): turn/start refused by Codex"} else {"not recorded: turn/start outcome unknown (CI-20)"},
+                    "check":check,"r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err("Original native workflow source outcome unavailable; inspect retained source, no resend".into());
             }
         }
         self.open_run();
         Ok(self.status.clone())
+    }
+    /// V9 F-1: publish the *not found* check for a definitely refused start. R3
+    /// stays unavailable: no source-bound native turn exists (RS §13.6a).
+    fn record_refused_start(&mut self, refusal: crate::hosting::NativeTurnRefusal) -> Value {
+        let minted = (|| {
+            let published = self.published.as_ref().ok_or("run text not published")?;
+            let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::not_found_after_refusal(
+                refusal,
+                published,
+                &self.client_id,
+                &crate::util::opaque_id("workflow-check:")?,
+                &crate::util::now_rfc3339(),
+            )?;
+            crate::workflow_workspace::publication::PendingSupplyCheck::new(&self.project, completed, published, WR_WRITER)
+        })();
+        match minted {
+            Ok(pending) => {
+                self.checks.push(WorkflowCheckSlot {
+                    pending,
+                    published: None,
+                    publication_failure: None,
+                    r3: WorkflowR3::AwaitingCheck,
+                });
+                self.advance_checks();
+                self.checks.last().map(WorkflowCheckSlot::view).unwrap_or(Value::Null)
+            }
+            Err(e) => json!({"state":"not found check not minted","limit":e}),
+        }
     }
     /// EXEC A-2: the start turn was observed, so the run opens and the App writer
     /// records `run_opened` (with `follows` for a sequential run, RE-7).
@@ -5116,6 +5156,8 @@ for line in sys.stdin:
   with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
   if mode('turn-mode')=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture refused turn/start'}});continue
+  if mode('turn-mode')=='exit':
+   sys.exit(0)
   text=f['params']['input'][0]['text'];client=f['params']['clientUserMessageId'];result={'turn':turn()}
  elif method=='thread/list':result={'data':[thread()],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
@@ -5269,18 +5311,38 @@ for line in sys.stdin:
         }
         assert_eq!(peer.turn_starts(),1,"checks never resend");
     }
-    // RN-4 gap treatment: a refused turn/start has no native turn or page boundary, so no
-    // supply_check is minted and R3 stays unavailable; nothing is resent.
+    // V9 F-1, WR §16.4 / RN-4: Codex's definite refusal of the exact turn/start mints a
+    // supply_check *not found* grounded in that Host receipt; R3 stays unavailable (RS §13.6a).
     #[test]
-    fn workflow_root_refused_send_mints_no_check_and_keeps_r3_unavailable(){
+    fn workflow_root_refused_send_records_not_found_check_and_keeps_r3_unavailable(){
         let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","error");
         let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
         assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
         assert_eq!(peer.wr_at_turn_start()[0].len(),2,"records were durable before the refused send");
-        assert!(run.status["supplyCheck"].as_str().unwrap().contains("RN-4"));assert!(run.status["r3"].as_str().unwrap().starts_with("unavailable"));
+        assert_eq!(run.status["supplyCheck"],"not found (RN-4): turn/start refused by Codex");assert!(run.status["r3"].as_str().unwrap().starts_with("unavailable"));
+        assert_eq!(peer.fixture.wr_files().len(),3,"one supply_check not found");
+        let check=run.view(&reference)["checks"][0].clone();assert_eq!(check["state"],"not found");assert_eq!(check["published"],true);assert_eq!(check["r3"]["state"],"unavailable");
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let record=project.resolve(check["reference"].as_str().unwrap()).unwrap();let body=record.body();
+        assert!(body.get("turn").is_none()&&body.get("item").is_none()&&body.get("observed_text").is_none(),"no turn or item exists for a refused start: {body}");
+        assert_eq!(body["client_user_message_id"],run.client_id.as_str());assert_eq!(body["purpose"],"run start");
+        assert_eq!(record.envelope()["source_references"],json!([run.source.as_ref().unwrap().request_ref()]),"grounded in the exact turn/start receipt");
         assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
-        assert_eq!(peer.fixture.wr_files().len(),2);assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="supplied_guidance"));
+        assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="supplied_guidance"));
+    }
+    // V9 F-1: a genuinely unknown outcome (transport loss before any response) mints nothing
+    // claiming *not found*; status stays "outcome unknown"; no resend (CI-20).
+    #[test]
+    fn workflow_root_unknown_send_outcome_mints_no_check_and_never_resends(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","exit");
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
+        assert_eq!(run.status["supplyCheck"],"not recorded: turn/start outcome unknown (CI-20)");
+        assert_eq!(peer.fixture.wr_files().len(),2,"no supply_check claims not found for an unknown outcome");
+        assert!(run.view(&reference)["checks"].as_array().unwrap().is_empty());
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
     }
     // WP-5/W-2: post-send check publication and R3 failures keep original facts, never resend or re-read.
     #[test]

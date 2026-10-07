@@ -370,3 +370,26 @@ run's CC-REC-ITEM-TURN-SOURCE-ADOPTION.json.
   caller-supplied (`illustrative`) or test double (`test_double`).
 - **Standing:** open Design questions. Implementation and tests are in
   `compatibility_report.rs` and `compatibility_report_tests.rs` (`j2_*`, `v8_*`).
+
+## CI-20 J1/J3 supply and lifecycle: gaps found in implementation
+
+Found 2026-10-07 by the J1/J3 TASK of `APP-V4-GROUP-A-20261004`, partly through
+independent review V9 (`reviews/V9-J1-PUBLICATION.md`). Each item states what
+the accepted text says, what the code does, and what remains for the design
+owner or the owner. No Design file was changed.
+
+- **(a) Unknown `turn/start` outcome (V9 F-1).** WR §16.4 ("`turn/start` refused
+  or fails before the item is recorded" → `supply_check` *not found*) and RN-4
+  name a state for a refused or failed start, but none for an outcome that is
+  genuinely unknown: no response, a timeout, or transport loss after the frame
+  may have been delivered. The App now mints *not found* only from a typed
+  Host refusal (`Host::prepared_turn_refusal`: the exact written `turn/start`
+  received a correlated native error). The check cites that request's receipt,
+  has no `turn` or item, and R3 stays unavailable (RS §13.6a). For an unknown
+  outcome it mints nothing, shows "outcome unknown", records the run start as
+  not confirmed and never resends. *Not found* there would be an unsupported
+  claim, since the text may have been supplied. Proposed for the WR owner: name
+  an unknown-outcome state (for example *outcome unknown*, with a later read
+  of the turn when an identity becomes known), or rule that an unknown start
+  leaves no `supply_check`. A start that fails before any frame is written has
+  no Host receipt and is treated the same way.

@@ -441,6 +441,41 @@ impl CompletedSupplyCheck {
         Ok(Self { body, sources })
     }
 }
+impl CompletedSupplyCheck {
+    /// V9 F-1, WR §16.4 / RN-4: Codex definitely refused this exact `turn/start`
+    /// before any item was recorded, so the check is *not found*, with no turn or
+    /// item. Consumes the Host-issued refusal; the source is that request's
+    /// receipt. An unknown outcome has no refusal value and cannot reach here.
+    pub(crate) fn not_found_after_refusal(
+        refusal: crate::hosting::NativeTurnRefusal,
+        published: &dyn PublishedText,
+        client_id: &str,
+        check: &str,
+        read_at: &str,
+    ) -> Result<Self, String> {
+        let run_text = published.run_text_record().body();
+        if run_text["record_kind"] != "run_text"
+            || refusal.thread() != run_text["conversation"]
+            || refusal.client_id() != client_id
+            || published.prepared().record() != run_text
+        {
+            return Err("refusal belongs to another conversation, client message or text".into());
+        }
+        if [client_id, check, read_at].iter().any(|s| s.is_empty()) {
+            return Err("check/client/read identity required".into());
+        }
+        let mut body = json!({"record_kind":"supply_check","check":check,"run":run_text["run"],"conversation":run_text["conversation"],"client_user_message_id":client_id,"purpose":run_text["purpose"],"expected_text":run_text["text_identity"],"state":"not found","read_at":read_at,
+            "evidence_limits":[SUPPLY_LIMIT,format!("turn/start refused by Codex (correlated native error at receipt position {}); no turn or item was recorded (WR §16.4, RN-4); the run start is not confirmed",refusal.response_position()),format!("native error: {}",refusal.error())]});
+        if run_text["purpose"] == "run start" {
+            body["expected_workflow"] = run_text["workflow_file"]["content"].clone();
+        }
+        super::wr_validate("supply_check", &body)?;
+        Ok(Self {
+            body,
+            sources: vec![refusal.request_ref().to_owned()],
+        })
+    }
+}
 enum Observation<'a> {
     Located(super::LocatedTurnText),
     ReadFailed(&'a str),
