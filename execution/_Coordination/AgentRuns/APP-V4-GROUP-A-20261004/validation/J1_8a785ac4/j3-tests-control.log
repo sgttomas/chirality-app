@@ -1,0 +1,50 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-a30b47a03f09fe083/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `end_recorded_run` found for struct `runtime_session::WorkflowRootSession` in the current scope
+    --> src/runtime_session.rs:5569:25
+     |
+3814 | pub(crate) struct WorkflowRootSession {
+     | ------------------------------------- method `end_recorded_run` not found for this struct
+...
+5569 |         let ended=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap();assert_eq!(ended["state"],"ended by the person");
+     |                         ^^^^^^^^^^^^^^^^ method not found in `runtime_session::WorkflowRootSession`
+
+error[E0599]: no method named `end_recorded_run` found for struct `runtime_session::WorkflowRootSession` in the current scope
+    --> src/runtime_session.rs:5571:23
+     |
+3814 | pub(crate) struct WorkflowRootSession {
+     | ------------------------------------- method `end_recorded_run` not found for this struct
+...
+5571 |         assert!(fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).is_err(),"an ended run cannot be ended again");
+     |                       ^^^^^^^^^^^^^^^^ method not found in `runtime_session::WorkflowRootSession`
+
+error[E0599]: no method named `end_and_start` found for struct `runtime_session::WorkflowRootSession` in the current scope
+    --> src/runtime_session.rs:5609:20
+     |
+3814 | pub(crate) struct WorkflowRootSession {
+     | ------------------------------------- method `end_and_start` not found for this struct
+...
+5609 |         let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B text".into(),peer.project()).unwrap();
+     |                    ^^^^^^^^^^^^^ method not found in `runtime_session::WorkflowRootSession`
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `chirality-app-v4` (lib test) generated 2 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 3 previous errors; 2 warnings emitted
+exit=101

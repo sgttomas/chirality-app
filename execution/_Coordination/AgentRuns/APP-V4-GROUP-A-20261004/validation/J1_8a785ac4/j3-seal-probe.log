@@ -1,0 +1,47 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-a30b47a03f09fe083/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0277]: the trait bound `ColdProbe: Sealed` is not satisfied
+    --> src/runtime_session.rs:5130:68
+     |
+5130 |     impl crate::workflow_workspace::publication::PublishedText for ColdProbe { fn run_text_record(&self)->&crate::workflow_workspace::pub...
+     |                                                                    ^^^^^^^^^ unsatisfied trait bound
+     |
+help: the trait `Sealed` is not implemented for `ColdProbe`
+    --> src/runtime_session.rs:5129:5
+     |
+5129 |     struct ColdProbe;
+     |     ^^^^^^^^^^^^^^^^
+     = help: the following other types implement trait `Sealed`:
+               PublishedEndNotice
+               publication::PublishedRunText
+note: required by a bound in `publication::PublishedText`
+    --> src/workflow_record_store.rs:541:26
+     |
+ 541 | pub trait PublishedText: sealed::Sealed {
+     |                          ^^^^^^^^^^^^^^ required by this bound in `PublishedText`
+     = note: `PublishedText` is a "sealed trait", because to implement it you also need to implement `workflow_workspace::publication::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+     = help: the following types implement the trait:
+               workflow_workspace::publication::PublishedRunText
+               workflow_workspace::publication::PublishedEndNotice
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0277`.
+warning: `chirality-app-v4` (lib test) generated 2 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 1 previous error; 2 warnings emitted
+exit=101
