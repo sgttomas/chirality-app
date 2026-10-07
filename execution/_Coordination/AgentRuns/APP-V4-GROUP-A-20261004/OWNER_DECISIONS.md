@@ -102,7 +102,11 @@ Operational implementation (manager disposition, not additional owner words): no
 
 The owner resumed the undertaking through a new HELP_HUMAN init prompt in a
 Claude Code session (Claude Opus 5.5). The steer names this run, its graph
-and the pause handoff, and says the human has passed the 60% gate. The
+and the pause handoff. Its steer states, in the owner's words: "The human has
+passed the 60% gate." Custody: the owner's init prompt in the active Claude Code
+chat, 2026-10-07. The gate act itself is recorded in
+`../APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md`: "I am accepting the 60%
+gate cleared." The
 outgoing Codex sessions and their descendants have stopped; none of their
 identities, reservations or `/tmp` resources transfer.
 

@@ -271,6 +271,8 @@ CC-REC-ITEM-TURN-CUSTODY is technically adopted after independent V6-S1 review.
 Ledger schema0.3 adds an optional opaque actual turnId; exact0.2 bytes remain
 available, legacy absence stays unknown, and older readers reject the new rows.
 No native content, new recorder, liveTurn inference or automatic resume is added.
-Consumer propagation and actual cold-tuple tests remain pending; RC1-COLD is not
-closed by source adoption. Exact source pins and remaining work are in the Group A
-run's CC-REC-ITEM-TURN-SOURCE-ADOPTION.json.
+The adopted source is implemented with cold-tuple tests (cold03); the final V6
+custody review records RC1-COLD as repaired for the core scope. Root consumer
+integration is in the combined checkpoint. Actual native quit/relaunch evidence
+and external PI-6 mapping remain open. Exact source pins are in the Group A run's
+CC-REC-ITEM-TURN-SOURCE-ADOPTION.json; review status in V6-RECOVERY-CUSTODY-CORE.md.

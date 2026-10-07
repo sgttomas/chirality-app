@@ -2,8 +2,9 @@
 
 HELP_HUMAN (Claude Opus 5.5, Claude Code session of 2026-10-07) checked the
 committed pause checkpoint **e524c087f563d0cae8e61c51f41301c3d27b13ff**. Its
-App sources equal the 276-file pause manifest
-(`recovery/PAUSE-ASTRA-20261006/CURRENT_APP_SOURCES.json`) byte for byte. This
+App sources equal the pause manifest
+(`recovery/PAUSE-ASTRA-20261006/CURRENT_APP_SOURCES.json`) byte for byte: 272
+tracked files, plus 4 gitignored `src-tauri/gen/schemas` build outputs. This
 is the first compile and check of the combined REC custody, REC Root reader,
 WR publisher, RS historical correspondence and compatibility-core fan-in.
 Before this, each contribution had been reviewed only on its own.
@@ -12,7 +13,7 @@ Before this, each contribution had been reviewed only on its own.
 |---|---|
 | `npm run build` | TypeScript and Vite passed |
 | `python3 schemas/sync.py` | 6 resources match canonical bytes, hashes and IDs |
-| `cargo build --offline --locked` | Exit 0; 51 warnings, all dead code (below) |
+| `cargo build --offline --locked` | Exit 0; 50 warnings, all dead code (below) |
 | `cargo test --offline --locked` | 40 targets: 595 top-level passes, 0 failures, 3 marked ignored; 58.9 s |
 | FIFO worker subprocesses | 4 additional successful nested executions, counted separately |
 | `npm test` | 3 passed, 0 skipped; stock 0.160.0 handshake included |

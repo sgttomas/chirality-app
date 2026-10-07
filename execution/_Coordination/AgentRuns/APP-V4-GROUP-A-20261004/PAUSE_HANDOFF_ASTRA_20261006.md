@@ -85,3 +85,14 @@ Parent final UI result: `probes/NATIVE_UI_B44_RESULT.json`. Cmd-Q closed the sec
 ## Later owner clarification after checkpoint 0a2ed81b47
 
 After the checkpoint, the owner reported that a native popup still offered “Decline” or “Mark checked,” despite the test App's reported quit. Computer-use inspection timed out and direct access to the macOS notification host was disallowed; process inspection found no surviving test App executable. The owner then stated, “I cancelled.” Treat this as the owner's report that the remaining popup was dismissed. No agent observed which control produced the dismissal, and no new post-dismissal record inventory was taken. It does not qualify native Cancel behavior or change the earlier synthetic A4's human-confirmed provenance. Group A remains paused; the next session should use the work graph and this handoff to recover the actual source state before proceeding.
+
+## Superseded machine-local facts — 2026-10-07
+
+A restart after this handoff cleared `/tmp`. The private source trees,
+executables, Cargo home and staging paths named above under "Original
+failures and private recovery material" and the Cargo settings no longer
+exist. The `/Users/ryan/.codex/worktrees/077c` target is not used by the
+resumed session. The in-tree retained copies (`recovery/`, `evidence/`)
+are unaffected. Current machine-local state: `OWNER_DECISIONS.md` ("Resume
+in Claude Code"), `dependencies/RESTORE_20261007.md` and
+`validation/COMBINED_e524c087.md`.
