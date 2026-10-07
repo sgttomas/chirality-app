@@ -4662,8 +4662,9 @@ impl WorkflowRun {
                 Ok(evaluation) => evaluation.view(&current_basis),
                 Err(e) => json!({"state":"no evaluation","limit":e}),
             };
-            view["occasion"] = json!(slot.occasion);
-            view["advisory"] = json!("informs only; never gates a start (CC-3)");
+            // J2's own `occasion` and `advisory` fields are kept as J2 wrote them.
+            view["occasionLabel"] = json!(slot.occasion);
+            view["gate"] = json!("informs only; never gates a start (CC-3)");
             view["r14"] = json!(match &slot.result {
                 Ok(e) if e.published.is_ok() => "EXEC report published in memory only; the App has no allocated report store, so no R14 is written (CI-20)",
                 _ => "no report published; no R14 written (run's R14 stays 'no report evaluated')",
@@ -5592,7 +5593,7 @@ for line in sys.stdin:
         let peer=Peer::new();let mut root=peer.fixture.registered();
         let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
         let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();
-        let view=run.view(&a);let occasions:Vec<Value>=view["compatibility"].as_array().map(|v|v.iter().map(|e|e["occasion"].clone()).collect()).unwrap_or_default();
+        let view=run.view(&a);let occasions:Vec<Value>=view["compatibility"].as_array().map(|v|v.iter().map(|e|e["occasionLabel"].clone()).collect()).unwrap_or_default();
         assert_eq!(occasions,vec![json!("CK-1 selection"),json!("CK-2 run start")],"{}",view["compatibility"]);
     }
     fn open_run(peer:&Peer,root:&mut WorkflowRootSession,thread:&str)->String{
@@ -5744,7 +5745,7 @@ for line in sys.stdin:
     fn j3_compatibility_is_advisory_and_writes_no_r14_on_refused_publication(){
         let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
         let view=root.runs[&a].lock().unwrap().view(&a);let compat=view["compatibility"].as_array().unwrap().clone();assert_eq!(compat.len(),2);
-        for c in &compat{assert_eq!(c["publication"]["state"],"not published","{c}");assert!(c["r14"].as_str().unwrap().contains("no R14 written"));assert_eq!(c["advisory"],"informs only; never gates a start (CC-3)");}
+        for c in &compat{assert_eq!(c["publication"]["state"],"not published","{c}");assert!(c["r14"].as_str().unwrap().contains("no R14 written"));assert_eq!(c["gate"],"informs only; never gates a start (CC-3)");assert_eq!(c["advisory"],true,"J2 view field kept");}
         assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="compatibility_report_ref"),"no R14 from a refused publication");
         assert_eq!(view["lifecycle"]["state"],"open (live); only the person's explicit end ends it","the start proceeded whatever the advisory said");
     }
