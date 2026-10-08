@@ -1,0 +1,84 @@
+{
+  "run": "APP-V4-GROUP-C-20261008",
+  "manager": "/root/group_c_successor",
+  "parent": "/root",
+  "role": "WORKING_ITEMS",
+  "base": "236cbc3c693423499120b4abeadfdcc5fb670477",
+  "branch": "codex/group-c-ci29",
+  "methods": [
+    "chirality-root:bundled:workflow:coordinated-knowledge-work",
+    "chirality-root:bundled:workflow:construct-local-work-graph"
+  ],
+  "reading_limits": {
+    "Field Book": "full",
+    "User Manual": "headings through level 3; sections 7 and 13",
+    "PM Manual": "sections 4.6 and 4.7",
+    "Group A/B graphs": "relationship and current state recovery; full returned output was truncated"
+  },
+  "sources": [
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "origin": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "origin": "workflows/index.json",
+      "sha256": "2e418cf269853b45b7d09391488447717a82fe68a0ad35b7182539734cee3e2d"
+    },
+    {
+      "origin": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+    },
+    {
+      "origin": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "sha256": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "origin": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "origin": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v8.md",
+      "sha256": "3ce966305415d2b39a444fc1622c5e54633d209b13516cd286442d4eb2afda76"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md",
+      "sha256": "6093db7cbfc067d90cec8647ca1cb79bbc8709bb89484b527ec839c759be9605"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md",
+      "sha256": "c4a5ea535f46f07a6eb09d77b45c0695030ff84a9aa7430f6cbea11a6ee79537"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "25e2ce4c11202aded54e31f352da024047916fb547ddd85b40dd22a3e0f4d065"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C1_EVIDENCE.md",
+      "sha256": "77ba59f6a991aaa269f8bef721044e06c96e7d8350d7ef0b16c33b74b38354a3"
+    },
+    {
+      "origin": ".agents/skills/proposal-format/SKILL.md",
+      "sha256": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d"
+    }
+  ]
+}
