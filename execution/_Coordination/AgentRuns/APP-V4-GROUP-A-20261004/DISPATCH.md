@@ -112,3 +112,11 @@ R1-1 was corrected in `9d1e0bb0cd` (CI-22 (c) and an appended
 OWNER_DECISIONS correction). J8's owner was told to merge the integration
 head and resolve the `lib.rs`/`App.tsx` overlap within its V15 repairs, so
 that the V15 confirmation review covers the combined candidate.
+
+J8 integrated (2026-10-08): V15-R1 returned READY at `7f0300cfe2`. HELP_HUMAN
+merged it as `6889359941`; its `app/` bytes equal `7f0300cfe2`. The R1-1
+code repair (the intended-path ending, with probe P6) is not made. Instead
+CI-24 (b) now names that case as an open follow-up. This is the reviewer's
+stated minimum, and the change to the CI-24 text is sent to the reviewer
+for confirmation. The reviewer's logs are retained in
+`validation/V15R1_7f0300cf/`.

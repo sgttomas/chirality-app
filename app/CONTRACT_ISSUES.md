@@ -807,6 +807,17 @@ record's "App implementation items". No Design or schema file was changed.
     A15 re-confirms.
   - Tested: `v15_p2_second_process_x2_then_continue_keeps_one_line_per_act`,
     through the `storage::fail_directory_for_test` hook.
+  - **Exception (V15-R1 R1-1, open).** The ending above holds only when the
+    first process's attempt is not in *Intended*. If its append failed
+    without writing anything, the attempt is *Intended*. On every Continue
+    it then takes the intended-line path, is refused on `ledger_seq`, and
+    reports "registration ledger durability uncertain; same hot attempt
+    retained" for as long as the process runs. This is safe: there is still
+    one ledger line for the act, the ledger stays readable, and ‹k› is not
+    held. But it never shows the definite *not completed* line already in
+    the ledger. The repair is to fail on the intended path with the same
+    "already has ledger line ‹n›" reason, with the reviewer's probe P6 as a
+    test. It is open as a follow-up.
 - **(c) Registration X-2 is still absent.** The App keeps no attempt journal
   for a *registration* (F15). A registration lost after G-3 and before G-4
   leaves its store folder and no ledger line, as before J8.

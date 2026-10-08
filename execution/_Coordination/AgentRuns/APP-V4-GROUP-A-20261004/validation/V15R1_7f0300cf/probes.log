@@ -1,0 +1,110 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/v15r1/copy/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1176:19
+     |
+ 404 | impl Host {
+     | --------- method in this implementation
+...
+1176 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: `chirality-app-v4` (lib test) generated 6 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.67s
+     Running unittests src/lib.rs (/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T//v15r1/target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 7 tests
+test workflow_workspace::registration::tests::v15r1_probe_g1r_line_changed_branch_appends_a_line_the_reader_refuses ... PROBE5 outcome: [Pending { identity: WorkflowIdentity { kind: "workflow", origin: "project", source_root: "fixture-project", name: "sample", revision: "13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114", revision_method: "chirality.app.workflow-package.sha256/v1", derived_from: None }, reason: "re-confirmation line not appended: the App's RC-9 reader would refuse it (registration ledger ambiguous: /private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-library-62d9bb4f-70eb-4567-98c4-ab6aa8452600/.chirality/workflow-registry.jsonl: line 2 (not completed) re-confirms line 1, which is not an earlier registered line)" }]
+PROBE5 read_ledger after the attempt: Ok(1)
+ok
+test workflow_workspace::registration::tests::v15r1_probe_p6_append_fails_then_second_process_x2_then_continue ... PROBE6 first advance (append refused): [Pending { identity: WorkflowIdentity { kind: "workflow", origin: "project", source_root: "fixture-project", name: "sample", revision: "13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114", revision_method: "chirality.app.workflow-package.sha256/v1", derived_from: None }, reason: "registration ledger durability uncertain; same hot attempt retained" }]
+PROBE6 process C reconciliation: ["re-confirmation attempt of A15 \"rec:app:914ee35c-c8c6-485b-8c7d-e887f1bfec64\" not completed: process lost before re-confirmation committed"]
+PROBE6 B continue 0: [Pending { identity: WorkflowIdentity { kind: "workflow", origin: "project", source_root: "fixture-project", name: "sample", revision: "13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114", revision_method: "chirality.app.workflow-package.sha256/v1", derived_from: None }, reason: "registration ledger durability uncertain; same hot attempt retained" }]
+PROBE6 B continue 1: [Pending { identity: WorkflowIdentity { kind: "workflow", origin: "project", source_root: "fixture-project", name: "sample", revision: "13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114", revision_method: "chirality.app.workflow-package.sha256/v1", derived_from: None }, reason: "registration ledger durability uncertain; same hot attempt retained" }]
+PROBE6 lines citing the A15: 1; read_ledger ok: true
+ok
+test workflow_workspace::registration::tests::v15r1_probe_p7_listing_shows_ls4_row_as_registered ... PROBE7 listing with an LS-4 store: [{"disposition":"new workflow","label":"registered — re-confirm to use in this App session","name":"sample","offered":"Refine (RF-1); Review a draft with its bytes (DS-8)","registeredAt":"2026-10-08T02:41:59.734Z","revision":"13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114","sequence":1}]
+ok
+test workflow_workspace::registration::tests::v15r1_probe_reconfirm_current_rc5d_after_k_became_selectable ... PROBE4 b.current() after a committed: Some("changed since review (revision 1 already selectable in this App session); review again")
+ok
+test workflow_workspace::registration::tests::v15r1_probe_second_process_x2_then_continue_gives_two_lines_for_one_act ... PROBE2 first advance: [Pending { identity: WorkflowIdentity { kind: "workflow", origin: "project", source_root: "fixture-project", name: "sample", revision: "13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114", revision_method: "chirality.app.workflow-package.sha256/v1", derived_from: None }, reason: "directory sync: injected failure" }]
+PROBE2 journals after first advance: 1
+PROBE2 process C reconciliation: ["re-confirmation attempt of A15 \"rec:app:6b8507dc-963c-45c7-bf2d-5f8edbd100e3\" not completed: process lost before re-confirmation committed"]
+PROBE2 second advance in B: [NotCompleted { identity: WorkflowIdentity { kind: "workflow", origin: "project", source_root: "fixture-project", name: "sample", revision: "13631f2b7d702ba6088b619eb15d86cf2d252b0c66f7666a959e4bcf9e70f114", revision_method: "chirality.app.workflow-package.sha256/v1", derived_from: None }, reason: "A15 rec:app:6b8507dc-963c-45c7-bf2d-5f8edbd100e3 already has ledger line 2 (not completed); nothing appended, one act has one line (RC-7, RB-8); review again" }]
+PROBE2 ledger lines citing the one A15: 1
+PROBE2 read_ledger: Ok(2)
+ok
+test workflow_workspace::registration::tests::v15r1_probe_unrelated_act_log_line_makes_every_revision_ls4 ... PROBE3 review: Some("DS-4: identical to revision 1, whose standing is LS-4 registration record incomplete: act log not completely readable: acts.jsonl: invalid line 2: RS W-1 validation refused: \"format\" is a required property. Restore the record or bytes (WR §5.3), then review again")
+
+thread 'workflow_workspace::registration::tests::v15r1_probe_unrelated_act_log_line_makes_every_revision_ls4' (2100185) panicked at src/workflow_library_tests.rs:1990:5:
+an unrelated unreadable act-log line still blocks DS-8
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test workflow_workspace::registration::tests::v15r1_probe_x2_appends_a_line_its_own_reader_refuses ... PROBE1 reconciliation: ["X-2 pending: re-confirmation line not appended: the App's RC-9 reader would refuse it (registration ledger ambiguous: /private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-library-fc7c15c4-270f-446d-998b-d8649aea80fc/.chirality/workflow-registry.jsonl: line 2 (not completed) names line 1 with another slot, tuple or sequence)"]
+PROBE1 read_ledger after X-2: Ok(1)
+
+thread 'workflow_workspace::registration::tests::v15r1_probe_x2_appends_a_line_its_own_reader_refuses' (2100188) panicked at src/workflow_library_tests.rs:1943:5:
+X-2 appended a line its own reader refuses
+FAILED
+
+failures:
+
+failures:
+    workflow_workspace::registration::tests::v15r1_probe_unrelated_act_log_line_makes_every_revision_ls4
+    workflow_workspace::registration::tests::v15r1_probe_x2_appends_a_line_its_own_reader_refuses
+
+test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 405 filtered out; finished in 3.02s
+
+error: test failed, to rerun pass `--lib`
+EXIT 101
