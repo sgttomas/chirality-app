@@ -70,8 +70,9 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
   DEL-09-10 cases; D has no active group graph at entry, so carry these there
   when it is constructed. CFB reads ordinary project/fleet records as files;
   it does not require D fleet software (CFB §6, H-6).
-- **Placement question:** CFB §9 leaves route-account project placement open
-  with DEL-06-01 placement. Persistence is held outside C1. If resolving this
+- **Placement treatment:** CFB §9's open route-account placement is resolved
+  for bounded C3-P by reviewed CRP-v0.2 and DEL-06-01 concurrence. No fleet
+  implementation prerequisite is introduced. If later receiving work
   entails a C→D prerequisite, group-order reversal, cross-group cycle or
   invalidation of finished work, bring it immediately to HELP_HUMAN/owner
   under GC-7 rather than silently declaring readiness.
@@ -106,6 +107,6 @@ C3-D named source treatment → C3-V independent source/consumer review → C3-I
 
 Actual harness-native children are TASK `/root/group_c_successor/cfb_design_owner` (DEL-07-02 Design and named C3 source evidence only) and TASK `/root/group_c_successor/cfb_design_review` (independent read/review evidence only). Both use `gpt-6-astra` low, separate managed worktrees and branches based on main. The write fences are supplied instructions, not claims of host per-file enforcement. Manager basis and reading limits: [C3_MANAGER_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_MANAGER_BASIS.json). No MEMORY writes or additional owner acts are authorized.
 
-C3-D source successor `96791613ed` was integrated unchanged as `4f610ba4a3`; independent review at `8a24e3bf2f` is READY with 16 maintained and 14 independent constructed checks. [C3_DESIGN_TREATMENT.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md) contains consumer notices and O-D alternatives; [C3_DESIGN_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_REVIEW.md) states exact reviewed scope. Source format 0.2 is proposed, old 0.1 bytes and consumer pins remain intact. The canonical connector descendant proposal was returned through HELP_HUMAN; it is not selected policy. No persistent behavior or 90% claim follows from source review.
+C3-D source successor `96791613ed` was integrated unchanged as `4f610ba4a3`; independent review at `8a24e3bf2f` is READY with 16 maintained and 14 independent constructed checks. [C3_DESIGN_TREATMENT.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md) contains consumer notices and O-D alternatives; [C3_DESIGN_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_REVIEW.md) states exact reviewed scope. Source format 0.2 is proposed, old 0.1 bytes and consumer pins remain intact. The initial canonical descendant proposal returned through HELP_HUMAN and is now refined and technically selected by the exact CRP-v0.2 adoption below. No persistent behavior or 90% claim follows from source review.
 
 C3-I source-only [PR #1130](https://github.com/sgttomas/chirality/pull/1130) merged as `44ade85d955e45e2c1fbba8a9ae1a9be675c18dd`, source `2a7eaf4548`, after exact-head review and all selected CI passed. C3-PLACE-01 technical adoption is recorded in [C3_PLACEMENT_ADOPTION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md); fleet concurrence and repaired independent review are linked by that account. The initial overbroad containment READY is withdrawn. C3-P now has a selected namespace/custody contract; implementation and race/durability evidence are not yet established.
