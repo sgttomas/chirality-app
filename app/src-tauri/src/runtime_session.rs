@@ -3852,7 +3852,7 @@ impl Default for WorkflowRootSession {
 impl WorkflowRootSession {
     pub fn snapshot(&self) -> Value {
         json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err()})),
-            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
+            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null)})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "reopened":self.reopened,
@@ -3939,12 +3939,12 @@ impl WorkflowRootSession {
             .reviews
             .get(review_ref)
             .cloned()
-            .ok_or("Original hot review not retained; ledger/JSON cannot select")?;
+            .ok_or("Original hot review not retained; ledger/JSON cannot select. If the revision is registered: registered — re-confirm to use in this App session (Review a draft with its bytes, or Refine to make one)")?;
         let review = review.try_lock().map_err(|_| "Original review owner busy/unavailable; selection pending, no transfer")?;
         let actual = review
             .registered
             .get(revision)
-            .ok_or("Actual hot registered revision unavailable")?;
+            .ok_or("Actual hot registered revision unavailable in this review; registered — re-confirm to use in this App session")?;
         let selection = actual.select();
         selection.verify_store(&path)?;
         self.selected = Some(WorkflowSelectionState {
@@ -3991,6 +3991,16 @@ impl WorkflowRootSession {
         Ok(
             json!({"state":"draft copied from actual closed selection","library":library.reference,"name":name,"base":selected.selection.identity(),"registration":"not captured/registered; edit then Review"}),
         )
+    }
+    /// J8 (WR §4.6 RF-1): Refine a registered (LS-1 as read) revision of the
+    /// active library from its revision store, with no selection. The successor
+    /// to `create_selected_draft`'s hot-selection requirement.
+    pub fn refine_registered(&mut self, name: &str, revision: &str) -> Result<Value, String> {
+        let library = self.active_library()?;
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; draft operation pending")?;
+        let mut made = owner.refine_from_store(name, revision)?;
+        made["library"] = json!(library.reference);
+        Ok(made)
     }
     pub fn begin_review(
         &mut self,
@@ -4684,9 +4694,14 @@ impl WorkflowReviewContext {
                     self.registered
                         .insert(revision.identity().revision.clone(), revision.clone());
                 }
+                // J8 (WR §4.8 RC-2): a re-confirmation result is selectable in this process only.
+                if let crate::workflow_workspace::registration::EntryOutcome::ReConfirmed { revision, .. } = outcome {
+                    self.registered.insert(revision.identity().revision.clone(), revision.clone());
+                }
             }
             self.status = json!({"state":"original registration attempt advanced","entries":outcomes.iter().map(|o|match o{
                 crate::workflow_workspace::registration::EntryOutcome::Registered{revision,publication}=>json!({"state":"registered","identity":revision.identity(),"actRef":revision.act_ref(),"publication":format!("{publication:?}")}),
+                crate::workflow_workspace::registration::EntryOutcome::ReConfirmed{revision,publication}=>json!({"state":"re-confirmed","identity":revision.identity(),"actRef":revision.act_ref(),"newRevision":false,"selectable":"in this App session only","baseUpdate":format!("{publication:?}")}),
                 crate::workflow_workspace::registration::EntryOutcome::NotCompleted{identity,reason}=>json!({"state":"not completed","identity":identity,"reason":reason}),
                 crate::workflow_workspace::registration::EntryOutcome::Pending{identity,reason}=>json!({"state":"pending; not registered","identity":identity,"reason":reason}),
             }).collect::<Vec<_>>()});

@@ -492,12 +492,22 @@ fn j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base() {
     let record: Value = serde_json::from_slice(&fs::read(&s.base_files()[0]).unwrap()).unwrap();
     assert_eq!(record["base"]["revision"], two.revision());
     assert_eq!(record["state"], "registered, unchanged since");
-    // Identical content after relaunch stays DS-4 (WR SP-4); its remedy needs SEAL-2 (CI-21).
-    let identical = s.persistent_owner().review_draft("sample", two.revision());
+    // Identical content in the same process stays DS-4: this process holds revision 2.
+    let identical = owner.review_draft("sample", two.revision());
     assert!(
         identical.as_ref().is_err_and(|e| e.starts_with("DS-4")),
         "{:?}",
         identical.err()
+    );
+    // After a relaunch it is DS-8 re-confirmation, by the owner's CC-WR-RECONFIRM
+    // decision (was DS-4 here before J8; CI-21 (b) closed by adoption).
+    let relaunched = s
+        .persistent_owner()
+        .review_draft("sample", two.revision())
+        .unwrap();
+    assert_eq!(
+        relaunched.current().unwrap().descriptor()["disposition"],
+        "re-confirmation"
     );
 }
 
@@ -807,4 +817,1098 @@ fn v11_j5_3_same_draft_name_in_two_libraries_keeps_separate_app_kept_bases() {
     let user = owner(&a, "user").base_custody().get("sample").unwrap();
     assert_eq!(user.base, None);
     assert_eq!(user.source["record"], "none for this draft key");
+}
+
+/// J8 control (WR-VC-16 first half): after a relaunch, the registered draft left
+/// unchanged reviews as DS-8 re-confirmation, not DS-4.
+#[test]
+fn j8_control_relaunch_unchanged_registered_draft_reviews_as_ds8() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let session = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .expect("DS-8 offered after relaunch");
+    let descriptor = session.current().unwrap().descriptor().clone();
+    assert_eq!(descriptor["disposition"], "re-confirmation");
+    assert_eq!(
+        descriptor["wording"],
+        "re-confirm workflow revision for use"
+    );
+}
+
+// ---- J8: CC-WR-RECONFIRM (WR §4.8 RC-1…RC-10, RF-1; WR-VC-16…WR-VC-20).
+// Per V13 R2-N2, LS-1 "as read" only gates the DS-8 offer: none of these tests
+// treats it as a trust signal, and nothing is selectable without a new act.
+
+/// One DS-8 review, a synthetic native A15 and one advance.
+fn reconfirm(owner: &LibraryOwner, revision: &str) -> (Vec<EntryOutcome>, String) {
+    let session = owner.review_draft("sample", revision).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    (attempt.advance(), record)
+}
+fn ledger(s: &Scratch) -> Vec<Value> {
+    read_ledger(&s.0).unwrap()
+}
+fn store_folders(s: &Scratch) -> usize {
+    fs::read_dir(s.0.join(".chirality/workflow-revisions/sample"))
+        .map(|d| d.count())
+        .unwrap_or(0)
+}
+fn journal_files(s: &Scratch) -> usize {
+    fs::read_dir(s.0.join(".chirality/.workflow-staging/attempts"))
+        .map(|d| {
+            d.filter_map(|e| e.ok())
+                .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+                .count()
+        })
+        .unwrap_or(0)
+}
+fn reconfirmed(outcome: &EntryOutcome) -> RegisteredRevision {
+    match outcome {
+        EntryOutcome::ReConfirmed { revision, .. } => revision.clone(),
+        other => panic!("expected re-confirmed: {other:?}"),
+    }
+}
+
+/// WR-VC-16: register ‹k›; relaunch; the registered draft, unchanged, reviews as
+/// DS-8; a new A15 re-confirms ‹k› with no new revision, sequence, store or copy;
+/// ‹k› is then selectable in that process only.
+#[test]
+fn wr_vc_16_reconfirm_after_relaunch_keeps_the_revision_and_needs_a_new_act() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let before = ledger(&s);
+    let copy = Snapshot::capture(&s.0.join(".chirality/workflows/sample")).unwrap();
+    // Relaunch: a new owner holds nothing; LS-1 as read gates the offer only.
+    let owner = s.persistent_owner();
+    assert!(
+        !owner.is_held(first.identity()),
+        "nothing selectable from disk"
+    );
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    {
+        let view = session.current().unwrap();
+        let d = view.descriptor();
+        assert_eq!(d["disposition"], "re-confirmation");
+        assert_eq!(d["wording"], "re-confirm workflow revision for use");
+        assert_eq!(
+            d["purpose"],
+            "make it available again in this App session from the project library"
+        );
+        assert_eq!(
+            d["subject"], before[0]["identity"],
+            "RC-3: ‹k›'s tuple as its line records it"
+        );
+        assert_eq!(
+            d["relations"]["prior_revision"],
+            Value::Null,
+            "‹k›'s own prior"
+        );
+        assert_eq!(
+            d["reconfirms"],
+            json!({"identity":before[0]["identity"],"ledger_seq":1,"sequence":1})
+        );
+        assert_eq!(
+            d["freshness"]["slot_latest"],
+            json!({"method":SNAPSHOT_METHOD,"value":one.revision()}),
+            "RC-5: the slot's latest at review"
+        );
+        let entry = &view.review_presentation()["entries"][0];
+        assert!(entry["message"]
+            .as_str()
+            .unwrap()
+            .contains("not verified in this session"));
+        let rc = &entry["reconfirmation"];
+        assert_eq!(rc["sequence"], 1);
+        assert!(rc["standing"].as_str().unwrap().starts_with("LS-1"));
+        assert_eq!(rc["registered_earlier"]["act"], before[0]["act"]);
+        assert_eq!(
+            rc["statement"],
+            "Re-confirm revision 1 of project:sample for use in this App session. This registers no new revision."
+        );
+        let binding = view.ordered_bindings().next().unwrap();
+        assert_eq!(binding.subject(), first.identity());
+        assert_eq!(binding.prior(), None);
+    }
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    let outcomes = attempt.advance();
+    assert_eq!(outcomes.len(), 1);
+    let again = reconfirmed(&outcomes[0]);
+    assert_eq!(
+        again.identity(),
+        first.identity(),
+        "no new revision identity"
+    );
+    assert_eq!(again.act_ref(), record, "the value cites the new act");
+    assert_ne!(again.act_ref(), first.act_ref());
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 2);
+    let line = &rows[1];
+    assert_eq!(line["outcome"], "re-confirmed");
+    assert_eq!(line["disposition"], "re-confirmation");
+    assert_eq!(line["act"]["record_id"], record.as_str());
+    assert_eq!(line["reconfirms"]["ledger_seq"], 1);
+    for field in ["identity", "sequence", "prior_revision", "store_path"] {
+        assert_eq!(line[field], rows[0][field], "{field}");
+    }
+    assert_eq!(store_folders(&s), 1, "no new store folder");
+    assert_eq!(
+        Snapshot::capture(&s.0.join(".chirality/workflows/sample"))
+            .unwrap()
+            .files(),
+        copy.files(),
+        "no published copy written"
+    );
+    assert_eq!(journal_files(&s), 0, "the attempt closed");
+    let (acts, _) = crate::records::read_log(&storage::library_log(&s.0));
+    let act = acts
+        .iter()
+        .find(|a| a["recordId"] == record.as_str())
+        .unwrap();
+    assert_eq!(
+        act["body"]["purpose"],
+        "make it available again in this App session from the project library"
+    );
+    // RC-2: selectable here (DS-4 for identical bytes), not after another relaunch.
+    assert!(owner.is_held(first.identity()));
+    let here = owner.review_draft("sample", one.revision()).err().unwrap();
+    assert!(
+        here.starts_with("DS-4: identical to revision 1; select it instead"),
+        "{here}"
+    );
+    let later = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .unwrap();
+    assert_eq!(
+        later.current().unwrap().descriptor()["disposition"],
+        "re-confirmation"
+    );
+    // G-6R: ‹k› is the draft's App-kept base.
+    let record: Value = serde_json::from_slice(&fs::read(&s.base_files()[0]).unwrap()).unwrap();
+    assert_eq!(record["base"]["revision"], one.revision());
+    assert_eq!(record["state"], "registered, unchanged since");
+}
+
+/// WR-VC-17: DS-4 while ‹k› is selectable in this process, or when ‹k› is not
+/// LS-1 (with its exact cause); after the record or bytes are restored, DS-8.
+#[test]
+fn wr_vc_17_ds4_while_selectable_or_not_ls1_with_exact_cause() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    register(&owner, one.revision());
+    let same = owner.review_draft("sample", one.revision()).err().unwrap();
+    assert!(
+        same.starts_with("DS-4: identical to revision 1; select it instead"),
+        "{same}"
+    );
+    // LS-4: the A15 record missing.
+    let log = storage::library_log(&s.0);
+    let aside = s.0.join("acts-aside.jsonl");
+    fs::rename(&log, &aside).unwrap();
+    let missing = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(
+        missing.starts_with("DS-4") && missing.contains("LS-4") && missing.contains("not found"),
+        "{missing}"
+    );
+    fs::rename(&aside, &log).unwrap();
+    // LS-4: store bytes that no longer recompute.
+    let store =
+        s.0.join(".chirality/workflow-revisions/sample")
+            .join(storage::key(one.revision()))
+            .join("sample");
+    fs::write(store.join("extra.txt"), b"x").unwrap();
+    let bytes = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(
+        bytes.starts_with("DS-4") && bytes.contains("does not recompute"),
+        "{bytes}"
+    );
+    // RF-1 gives no draft from such a store either.
+    fs::remove_dir_all(s.0.join(".chirality/workflow-drafts/sample")).unwrap();
+    let refine = s
+        .persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(refine.contains("LS-4"), "{refine}");
+    assert!(!s.0.join(".chirality/workflow-drafts/sample").exists());
+    // Restored (§5.3): DS-8 applies.
+    fs::remove_file(store.join("extra.txt")).unwrap();
+    s.persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .unwrap();
+    let restored = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .unwrap();
+    assert_eq!(
+        restored.current().unwrap().descriptor()["disposition"],
+        "re-confirmation"
+    );
+}
+
+/// WR-VC-18: after a relaunch, a draft one byte away from ‹k› takes the ordinary
+/// route: DS-2 with a base reaching the slot, DS-3 without one.
+#[test]
+fn wr_vc_18_changed_bytes_take_the_ordinary_route() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let changed = s.put("sample", false, "One!");
+    let ds2 = s
+        .persistent_owner()
+        .review_draft("sample", changed.revision())
+        .unwrap();
+    assert_eq!(
+        ds2.current().unwrap().descriptor()["disposition"],
+        "new revision"
+    );
+    let ds3 = s
+        .owner()
+        .review_draft("sample", changed.revision())
+        .err()
+        .unwrap();
+    assert!(ds3.starts_with("DS-3"), "{ds3}");
+    // Identical bytes without a base reaching the slot: K-6 first (SP-4a), DS-3.
+    s.put("sample", false, "One");
+    let k6 = s
+        .owner()
+        .review_draft("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(k6.starts_with("DS-3"), "{k6}");
+}
+
+/// WR-VC-19: dismissal, staleness and loss have no effect.
+#[test]
+fn wr_vc_19_dismissal_staleness_and_loss_have_no_effect() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    // Control closed: nothing captured, ledger unchanged, ‹k› not selectable.
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    {
+        let mut ac = ActControl::new(&s.0);
+        let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+        ac.dismiss_a15(&offer);
+    }
+    assert_eq!(ledger(&s).len(), 1);
+    assert!(!owner.is_held(first.identity()));
+    // Bytes changed between review and act: withdrawn, nothing captured.
+    fs::write(
+        s.0.join(".chirality/workflow-drafts/sample/notes.txt"),
+        b"edit",
+    )
+    .unwrap();
+    assert!(session.current().is_err());
+    s.put("sample", false, "One");
+    assert_eq!(ledger(&s).len(), 1);
+    // ‹k› became selectable after capture: the second act has no effect.
+    let a = owner.review_draft("sample", one.revision()).unwrap();
+    let b = owner.review_draft("sample", one.revision()).unwrap();
+    let (ra, rb) = (receipt(&a), receipt(&b));
+    let mut first_attempt = a.begin_hot_registration(ra).unwrap();
+    let mut second_attempt = b.begin_hot_registration(rb).unwrap();
+    reconfirmed(&first_attempt.advance()[0]);
+    match &second_attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(
+                reason.contains("already selectable in this App session"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected no effect: {other:?}"),
+    }
+    let rows = ledger(&s);
+    assert_eq!(rows.last().unwrap()["outcome"], "not completed");
+    assert_eq!(rows.last().unwrap()["disposition"], "re-confirmation");
+    assert_eq!(rows.last().unwrap()["reconfirms"]["ledger_seq"], 1);
+    // Act record no longer found after capture (relaunched owner): no effect.
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let log = storage::library_log(&s.0);
+    let kept = fs::read(&log).unwrap();
+    // The record is renamed in place: the log still reads completely (V15 F4
+    // keeps an unreadable log pending instead; tested separately).
+    let renamed = String::from_utf8(kept.clone())
+        .unwrap()
+        .replace(first.act_ref(), "rec:app:renamed-elsewhere");
+    fs::write(&log, renamed).unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    let outcome = attempt.advance();
+    fs::write(&log, kept).unwrap();
+    match &outcome[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(
+                reason.contains("registration record incomplete"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected no effect: {other:?}"),
+    }
+    assert!(!owner.is_held(first.identity()));
+    // Store no longer recomputes after capture: no effect, and nothing written to it.
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let store =
+        s.0.join(".chirality/workflow-revisions/sample")
+            .join(storage::key(one.revision()))
+            .join("sample");
+    fs::write(store.join("notes.txt"), b"tampered").unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(reason.contains("store no longer recomputes"), "{reason}")
+        }
+        other => panic!("expected no effect: {other:?}"),
+    }
+    assert_eq!(
+        fs::read(store.join("notes.txt")).unwrap(),
+        b"tampered",
+        "never repaired"
+    );
+    fs::write(store.join("notes.txt"), b"original notes\n").unwrap();
+    assert_eq!(journal_files(&s), 0);
+}
+
+/// WR-VC-19 / RC-5 (F1): freshness is read against `freshness.slot_latest`. A
+/// re-confirmation of an earlier ‹k› while the slot's latest is another revision
+/// stays current until the latest changes, then has no effect.
+#[test]
+fn wr_vc_19_freshness_is_against_slot_latest_not_the_prior() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let two = s.put("sample", false, "Two");
+    let second = register(&s.persistent_owner(), two.revision());
+    // Relaunch with revision 2's bytes: k = 2, its prior 1, the slot's latest 2.
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", two.revision()).unwrap();
+    let d = session.current().unwrap().descriptor().clone();
+    assert_eq!(d["relations"]["prior_revision"]["revision"], one.revision());
+    assert_eq!(d["freshness"]["slot_latest"]["value"], two.revision());
+    let r = receipt(&session);
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    assert_eq!(
+        reconfirmed(&attempt.advance()[0]).identity(),
+        second.identity()
+    );
+    // Back to revision 1's bytes (base 2 reaches the slot): k = 1, latest 2.
+    s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let entry = session.current().unwrap().review_presentation()["entries"][0].clone();
+    assert_eq!(
+        entry["reconfirmation"]["slot_latest"]["revision"],
+        two.revision()
+    );
+    let r = receipt(&session);
+    // The slot moves on after capture: a third revision registered elsewhere.
+    let mover = s.owner();
+    mover
+        .bases
+        .lock()
+        .unwrap()
+        .insert("sample".into(), second.identity().clone());
+    s.put("sample", false, "Three");
+    let three = Snapshot::capture(&s.0.join(".chirality/workflow-drafts/sample")).unwrap();
+    register(&mover, three.revision());
+    s.put("sample", false, "One");
+    assert!(session.current().is_err(), "RB-3 (b): the latest changed");
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(reason.contains("slot moved on"), "{reason}")
+        }
+        other => panic!("expected slot moved on: {other:?}"),
+    }
+}
+
+/// WR-VC-19 / RC-7, X-2: process loss. Lost after *stored*, before G-4R: X-2
+/// writes *not completed*. Lost after G-4R became durable: X-2 rereads the
+/// ledger, finds the line citing the act and writes nothing (V13 F3).
+#[test]
+fn wr_vc_19_process_loss_and_x2() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    // Lost after *stored*, before G-4R.
+    {
+        let owner = s.persistent_owner();
+        let session = owner.review_draft("sample", one.revision()).unwrap();
+        let r = receipt(&session);
+        let record = r.record_id().to_string();
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        STOP_AFTER_STORED.with(|stop| stop.set(true));
+        assert!(matches!(
+            &attempt.advance()[0],
+            EntryOutcome::Pending { .. }
+        ));
+        assert_eq!(journal_files(&s), 1);
+        assert_eq!(ledger(&s).len(), 1);
+        drop(attempt);
+        drop(owner);
+        let relaunched = s.persistent_owner();
+        assert_eq!(
+            relaunched.reconciliation().len(),
+            1,
+            "{:?}",
+            relaunched.reconciliation()
+        );
+        assert!(relaunched.reconciliation()[0].contains("not completed"));
+        let rows = ledger(&s);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[1]["outcome"], "not completed");
+        assert_eq!(
+            rows[1]["reason"],
+            "process lost before re-confirmation committed"
+        );
+        assert_eq!(rows[1]["disposition"], "re-confirmation");
+        assert_eq!(rows[1]["act"]["record_id"], record.as_str());
+        assert_eq!(journal_files(&s), 0);
+        assert!(!relaunched.is_held(first.identity()));
+        // A later open finds nothing to do.
+        assert!(s.persistent_owner().reconciliation().is_empty());
+    }
+    // Lost after G-4R durable (uncertain sync): nothing written by X-2.
+    {
+        let owner = s.persistent_owner();
+        let session = owner.review_draft("sample", one.revision()).unwrap();
+        let r = receipt(&session);
+        let record = r.record_id().to_string();
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        FAIL_LEDGER_SYNC.with(|fail| fail.set(true));
+        assert!(matches!(
+            &attempt.advance()[0],
+            EntryOutcome::Pending { .. }
+        ));
+        assert_eq!(journal_files(&s), 1);
+        drop(attempt);
+        drop(owner);
+        let relaunched = s.persistent_owner();
+        assert!(
+            relaunched.reconciliation()[0].contains("nothing written"),
+            "{:?}",
+            relaunched.reconciliation()
+        );
+        let rows = ledger(&s);
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[2]["outcome"], "re-confirmed");
+        assert_eq!(
+            rows.iter()
+                .filter(|v| v["act"]["record_id"] == record.as_str())
+                .count(),
+            1,
+            "one act, one ledger line"
+        );
+        assert_eq!(journal_files(&s), 0);
+        assert!(
+            !relaunched.is_held(first.identity()),
+            "X-2 never completes a re-confirmation"
+        );
+    }
+}
+
+/// WR-VC-20: re-confirmed lines add nothing to the slot's series and never change
+/// its latest; a concurrent registration is not "slot moved on" (F14); RC-9's
+/// reader checks name the breaking line.
+#[test]
+fn wr_vc_20_ledger_series_with_reconfirmation_lines() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let two = s.put("sample", false, "Two");
+    let second = register(&s.persistent_owner(), two.revision());
+    // Re-confirm 2, then 1 twice (each in a fresh process).
+    reconfirmed(&reconfirm(&s.persistent_owner(), two.revision()).0[0]);
+    s.put("sample", false, "One");
+    reconfirmed(&reconfirm(&s.persistent_owner(), one.revision()).0[0]);
+    reconfirmed(&reconfirm(&s.persistent_owner(), one.revision()).0[0]);
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 5);
+    let slot = slot_lines(&rows, "project", "fixture-project", "sample");
+    assert_eq!(
+        latest(&slot).unwrap().as_ref(),
+        Some(second.identity()),
+        "latest unchanged"
+    );
+    // F14: a DS-2 attempt captured before a re-confirmation commits still registers.
+    let mover = s.owner();
+    mover
+        .bases
+        .lock()
+        .unwrap()
+        .insert("sample".into(), second.identity().clone());
+    let three = s.put("sample", false, "Three");
+    let ds2 = mover.review_draft("sample", three.revision()).unwrap();
+    let r3 = receipt(&ds2);
+    s.put("sample", false, "One");
+    reconfirmed(&reconfirm(&s.persistent_owner(), one.revision()).0[0]);
+    // (The live draft changed after capture, which RB-6 allows; G-1 compares the
+    // slot's latest registered revision only.)
+    let mut a3 = ds2.begin_hot_registration(r3).unwrap();
+    assert!(matches!(&a3.advance()[0], EntryOutcome::Registered { .. }));
+    let rows = ledger(&s);
+    assert_eq!(rows.last().unwrap()["sequence"], 3);
+    // RC-9 reader checks.
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let good = fs::read_to_string(&path).unwrap();
+    let lines: Vec<Value> = good
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let reline = lines
+        .iter()
+        .find(|v| v["outcome"] == "re-confirmed")
+        .unwrap()
+        .clone();
+    let append = |edit: &dyn Fn(&mut Value)| {
+        let mut v = reline.clone();
+        v["ledger_seq"] = json!(lines.len() + 1);
+        edit(&mut v);
+        format!("{good}{}\n", serde_json::to_string(&v).unwrap())
+    };
+    let cases: Vec<(String, &str)> = vec![
+        (append(&|_| {}), "is cited by another ledger line"),
+        (
+            append(&|v| {
+                v["act"]["record_id"] = json!("rec:fresh");
+                v["reconfirms"]["ledger_seq"] = json!(3);
+            }),
+            "which is not an earlier registered line",
+        ),
+        (
+            append(&|v| {
+                v["act"]["record_id"] = json!("rec:fresh");
+                v["store_path"] = json!("elsewhere");
+            }),
+            "store_path differs from line",
+        ),
+    ];
+    for (bytes, cause) in cases {
+        fs::write(&path, &bytes).unwrap();
+        let error = read_ledger(&s.0).err().unwrap();
+        assert!(
+            error.contains("registration ledger ambiguous") && error.contains(cause),
+            "{cause}: {error}"
+        );
+    }
+    fs::write(&path, &good).unwrap();
+    assert!(read_ledger(&s.0).is_ok());
+}
+
+/// WR §4.6 RF-1: Refine an LS-1 revision from the revision store with no
+/// selection, including one registered in place; the base is App-recorded,
+/// shown and frozen at review; left unchanged the draft is DS-8.
+#[test]
+fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
+    let s = Scratch::new();
+    // Two entries: a single in-place a15_descriptor is refused by the adopted
+    // AAC offer schema (pre-existing; CONTRACT_ISSUES CI-24 (e)).
+    let entry = s.put("sample", true, "In place");
+    s.put("other", true, "Other in place");
+    let session = s
+        .persistent_owner()
+        .review_in_place(&["sample".into(), "other".into()])
+        .unwrap();
+    let r = receipt(&session);
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    assert!(matches!(
+        &attempt.advance()[0],
+        EntryOutcome::Registered { .. }
+    ));
+    // Relaunch: no selection exists in this process.
+    let owner = s.persistent_owner();
+    assert!(owner
+        .refine_from_store("sample", "0".repeat(64).as_str())
+        .is_err());
+    let made = owner.refine_from_store("sample", entry.revision()).unwrap();
+    assert_eq!(made["base"]["revision"], entry.revision());
+    assert!(made["standing"]
+        .as_str()
+        .unwrap()
+        .contains("not verified in this session"));
+    let draft = s.0.join(".chirality/workflow-drafts/sample");
+    assert_eq!(Snapshot::capture(&draft).unwrap().files(), entry.files());
+    // D-1: never overwrites.
+    let again = owner
+        .refine_from_store("sample", entry.revision())
+        .err()
+        .unwrap();
+    assert!(again.contains("already exists"), "{again}");
+    // Shown and frozen at review: DS-8 with the App-recorded base.
+    let review = owner.review_draft("sample", entry.revision()).unwrap();
+    let view = review.current().unwrap();
+    assert_eq!(view.descriptor()["disposition"], "re-confirmation");
+    let shown = &view.review_presentation()["entries"][0];
+    assert_eq!(shown["base"]["revision"], entry.revision());
+    assert_eq!(
+        shown["base_observation"]["observed"]["source"],
+        "App data folder"
+    );
+    drop(view);
+    let r = receipt(&review);
+    let mut attempt = review.begin_hot_registration(r).unwrap();
+    reconfirmed(&attempt.advance()[0]);
+}
+
+// ---- V15 F1 (MAJOR): the App never appends a re-confirmation line its own RC-9
+// reader refuses, and one act never has two ledger lines (RC-7, RB-8). Based on
+// the reviewer's probes P1, P2 and P5 (`v15-probe-tests.rs.txt`).
+
+/// P1: X-2 from a journal whose intended line is schema-valid but breaks RC-9
+/// appends nothing; the attempt stays pending with the exact cause.
+#[test]
+fn v15_p1_x2_never_appends_a_line_its_reader_refuses() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    {
+        let owner = s.persistent_owner();
+        let session = owner.review_draft("sample", one.revision()).unwrap();
+        let r = receipt(&session);
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        STOP_AFTER_STORED.with(|stop| stop.set(true));
+        let _ = attempt.advance();
+    }
+    let dir = s.0.join(".chirality/.workflow-staging/attempts");
+    let file = fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .find(|p| !p.file_name().unwrap().to_string_lossy().starts_with('.'))
+        .unwrap();
+    let mut journal: Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+    journal["intended"]["reconfirms"]["sequence"] = json!(2);
+    fs::write(&file, serde_json::to_vec(&journal).unwrap()).unwrap();
+    let relaunched = s.persistent_owner();
+    let outcome = relaunched.reconciliation().join("; ");
+    assert!(
+        outcome.contains("X-2 pending") && outcome.contains("RC-9"),
+        "{outcome}"
+    );
+    assert_eq!(
+        ledger(&s).len(),
+        1,
+        "nothing appended; the ledger still reads"
+    );
+    assert_eq!(
+        journal_files(&s),
+        1,
+        "the attempt stays open with its cause"
+    );
+}
+
+/// P2: process B's journal publication fails its directory sync (pending);
+/// process C's X-2 closes the attempt as lost; B's Continue then finds the line
+/// citing its A15 and appends nothing: one act, one ledger line.
+#[test]
+fn v15_p2_second_process_x2_then_continue_keeps_one_line_per_act() {
+    struct ResetSync;
+    impl Drop for ResetSync {
+        fn drop(&mut self) {
+            storage::fail_directory_for_test(None);
+        }
+    }
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let dir = s.0.join(".chirality/.workflow-staging/attempts");
+    fs::create_dir_all(&dir).unwrap();
+    let owner_b = s.persistent_owner();
+    let session = owner_b.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    storage::fail_directory_for_test(Some(dir.clone()));
+    let _reset = ResetSync;
+    assert!(matches!(
+        &attempt.advance()[0],
+        EntryOutcome::Pending { .. }
+    ));
+    storage::fail_directory_for_test(None);
+    let owner_c = s.persistent_owner();
+    assert!(
+        owner_c.reconciliation()[0].contains("not completed"),
+        "{:?}",
+        owner_c.reconciliation()
+    );
+    match &attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(reason.contains("already has ledger line"), "{reason}")
+        }
+        other => panic!("expected no second line: {other:?}"),
+    }
+    let raw = fs::read_to_string(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+    assert_eq!(
+        raw.lines().filter(|l| l.contains(&record)).count(),
+        1,
+        "one act, one line"
+    );
+    assert!(read_ledger(&s.0).is_ok());
+    assert!(!owner_b.is_held(first.identity()));
+}
+
+/// P5: after capture, registered line 1 is edited outside the App so it no
+/// longer reads as registered. WR G-1R says *not completed*, but no such line
+/// can satisfy RC-9 here (CI-25): the App appends nothing and the attempt stays
+/// pending with the exact cause; the ledger stays readable.
+#[test]
+fn v15_p5_g1r_line_no_longer_registered_appends_nothing() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let mut line: Value =
+        serde_json::from_str(fs::read_to_string(&path).unwrap().lines().next().unwrap()).unwrap();
+    line["outcome"] = json!("not completed");
+    line["reason"] = json!("edited outside the App");
+    fs::write(
+        &path,
+        format!("{}\n", serde_json::to_string(&line).unwrap()),
+    )
+    .unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::Pending { reason, .. } => {
+            assert!(
+                reason.contains("RC-9") && reason.contains("not appended"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected pending: {other:?}"),
+    }
+    assert_eq!(
+        read_ledger(&s.0).unwrap().len(),
+        1,
+        "nothing appended; readable"
+    );
+}
+
+// ---- V15 F2–F5: branches the reviewer's mutations MA–ME showed untested.
+
+/// F2 (MC; P4): RC-5 (d) in current(): once ‹k› becomes selectable in this
+/// process, a second DS-8 review of it is withdrawn.
+#[test]
+fn v15_f2_rc5d_second_review_withdrawn_once_k_selectable() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let a = owner.review_draft("sample", one.revision()).unwrap();
+    let b = owner.review_draft("sample", one.revision()).unwrap();
+    let ra = receipt(&a);
+    let mut attempt = a.begin_hot_registration(ra).unwrap();
+    reconfirmed(&attempt.advance()[0]);
+    let stale = b.current().err().unwrap();
+    assert!(
+        stale.contains("already selectable in this App session"),
+        "{stale}"
+    );
+}
+
+/// F2 (MD): LS-4 "bound to other content": the line's A15 record is found but
+/// binds another content identity, so DS-4 with that cause, never DS-8.
+#[test]
+fn v15_f2_ls4_record_bound_to_other_content_is_ds4() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let log = storage::library_log(&s.0);
+    let text = fs::read_to_string(&log).unwrap();
+    let edited: String = text
+        .lines()
+        .map(|l| {
+            let mut v: Value = serde_json::from_str(l).unwrap();
+            if v["recordId"] == first.act_ref() {
+                v["body"]["boundContent"][0]["value"] = json!("f".repeat(64));
+            }
+            format!("{}\n", serde_json::to_string(&v).unwrap())
+        })
+        .collect();
+    fs::write(&log, edited).unwrap();
+    assert!(
+        crate::records::read_log(&log).1.is_empty(),
+        "the log still reads"
+    );
+    let error = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(
+        error.starts_with("DS-4") && error.contains("bound to other content"),
+        "{error}"
+    );
+}
+
+/// F2 (MB, ME): RC-9 reader negatives not covered by WR-VC-20: same slot, tuple
+/// and sequence of `reconfirms`; the *re-confirmed* line's identity and prior;
+/// reviewed content; and a `reconfirms` naming a *not completed* or later line.
+#[test]
+fn v15_f2_rc9_reader_names_each_breach() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    reconfirmed(&reconfirm(&s.persistent_owner(), one.revision()).0[0]);
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let good = fs::read_to_string(&path).unwrap();
+    let rows: Vec<Value> = good
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    assert_eq!(rows.len(), 2);
+    let reline = rows[1].clone();
+    // A valid *not completed* re-confirmation line, as line 3.
+    let mut not_completed = reline.clone();
+    {
+        let f = not_completed.as_object_mut().unwrap();
+        f.remove("sequence");
+        f.remove("store_path");
+    }
+    not_completed["outcome"] = json!("not completed");
+    not_completed["reason"] = json!("fixture");
+    not_completed["ledger_seq"] = json!(3);
+    not_completed["act"]["record_id"] = json!("rec:fixture:nc");
+    let base = format!("{good}{}\n", serde_json::to_string(&not_completed).unwrap());
+    assert!(
+        {
+            fs::write(&path, &base).unwrap();
+            read_ledger(&s.0).is_ok()
+        },
+        "the valid fixture line reads"
+    );
+    let with = |edit: &dyn Fn(&mut Value)| {
+        let mut v = reline.clone();
+        v["ledger_seq"] = json!(4);
+        v["act"]["record_id"] = json!("rec:fixture:new");
+        edit(&mut v);
+        format!("{base}{}\n", serde_json::to_string(&v).unwrap())
+    };
+    let other = |v: &mut Value, field: &str, value: Value| {
+        v["reconfirms"][field] = value;
+    };
+    let cases: Vec<(String, &str)> = vec![
+        (
+            with(&|v| other(v, "sequence", json!(2))),
+            "with another slot, tuple or sequence",
+        ),
+        (
+            with(&|v| {
+                let mut id = v["reconfirms"]["identity"].clone();
+                id["revision"] = json!("e".repeat(64));
+                other(v, "identity", id);
+            }),
+            "with another slot, tuple or sequence",
+        ),
+        (
+            with(&|v| v["identity"]["name"] = json!("elsewhere")),
+            "with another slot, tuple or sequence",
+        ),
+        (
+            with(&|v| v["identity"]["derived_from"] = v["identity"].clone()),
+            "identity differs from line 1",
+        ),
+        (
+            with(&|v| v["prior_revision"] = v["identity"].clone()),
+            "prior_revision differs from line 1",
+        ),
+        (
+            with(&|v| v["reviewed_draft"]["content"]["value"] = json!("d".repeat(64))),
+            "reviewed content is not the re-confirmed revision",
+        ),
+        (
+            with(&|v| other(v, "ledger_seq", json!(3))),
+            "re-confirms line 3, which is not an earlier registered line",
+        ),
+        (
+            with(&|v| other(v, "ledger_seq", json!(4))),
+            "re-confirms line 4, which is not an earlier registered line",
+        ),
+    ];
+    for (bytes, cause) in cases {
+        fs::write(&path, &bytes).unwrap();
+        let error = read_ledger(&s.0).err().unwrap_or_default();
+        assert!(
+            error.contains("registration ledger ambiguous") && error.contains(cause),
+            "{cause}: {error}"
+        );
+    }
+}
+
+/// F2 (WR G-1R "line changed"): the registered line still reads as registered
+/// for ‹k› but no longer as reviewed. The *not completed* line satisfies RC-9,
+/// so it is written; the ledger stays readable.
+#[test]
+fn v15_f2_g1r_registered_line_changed_is_not_completed() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let mut line: Value =
+        serde_json::from_str(fs::read_to_string(&path).unwrap().lines().next().unwrap()).unwrap();
+    line["written_at"] = json!("2026-10-08T00:00:00Z");
+    fs::write(
+        &path,
+        format!("{}\n", serde_json::to_string(&line).unwrap()),
+    )
+    .unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(
+                reason.contains("registered line 1 no longer reads as reviewed"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected no effect: {other:?}"),
+    }
+    let rows = read_ledger(&s.0).unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1]["disposition"], "re-confirmation");
+}
+
+/// F3 (MA): RF-1 leaves no draft without its App-kept base: on a failure to
+/// record the base, and on a sync failure after the copy, the copy is removed.
+#[test]
+fn v15_f3_rf1_removes_its_copy_on_every_failure() {
+    struct ResetSync;
+    impl Drop for ResetSync {
+        fn drop(&mut self) {
+            storage::fail_directory_for_test(None);
+        }
+    }
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let draft = s.0.join(".chirality/workflow-drafts/sample");
+    fs::remove_dir_all(&draft).unwrap();
+    // (a) The App-kept base cannot be written.
+    let base_files = s.base_files();
+    for f in &base_files {
+        fs::remove_file(f).unwrap();
+    }
+    let blocker = s.app_data().join("runtime/wr");
+    fs::remove_dir_all(&blocker).unwrap();
+    fs::write(&blocker, b"not a directory").unwrap();
+    let error = s
+        .persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(
+        error.contains("App-kept base not recorded") && error.contains("copy was removed"),
+        "{error}"
+    );
+    assert!(!draft.exists());
+    fs::remove_file(&blocker).unwrap();
+    // (b) The copy's directory sync fails after the copy was written.
+    storage::fail_directory_for_test(Some(draft.clone()));
+    let _reset = ResetSync;
+    let error = s
+        .persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .err()
+        .unwrap();
+    storage::fail_directory_for_test(None);
+    assert!(
+        error.contains("injected failure") && error.contains("copy was removed"),
+        "{error}"
+    );
+    assert!(!draft.exists());
+    assert!(s.base_files().is_empty(), "no base recorded");
+    // Then Refine works.
+    s.persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .unwrap();
+    assert!(draft.join("WORKFLOW.md").is_file());
+    assert_eq!(s.base_files().len(), 1);
+}
+
+/// F4: an act log that cannot be read completely keeps a captured
+/// re-confirmation pending at G-1R (the act is not spent); once readable, the
+/// same attempt completes.
+#[test]
+fn v15_f4_unreadable_act_log_keeps_g1r_pending() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let log = storage::library_log(&s.0);
+    let kept = fs::read(&log).unwrap();
+    let mut broken = kept.clone();
+    broken.extend_from_slice(b"{\"not\":\"an act record\"}\n");
+    fs::write(&log, &broken).unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::Pending { reason, .. } => {
+            assert!(
+                reason.contains("act log not completely readable"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected pending: {other:?}"),
+    }
+    assert_eq!(ledger(&s).len(), 1, "nothing appended");
+    fs::write(&log, &kept).unwrap();
+    assert_eq!(
+        reconfirmed(&attempt.advance()[0]).identity(),
+        first.identity()
+    );
+}
+
+/// F5: the library lists its registered revisions with WR's label; a row is
+/// "selectable in this App session" only after this process's own commit.
+#[test]
+fn v15_f5_registered_listing_labels_rows() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let rows = owner.registered_listing();
+    assert_eq!(rows.as_array().unwrap().len(), 1, "{rows}");
+    assert_eq!(rows[0]["revision"], one.revision());
+    assert_eq!(rows[0]["sequence"], 1);
+    assert_eq!(
+        rows[0]["label"],
+        "registered — re-confirm to use in this App session"
+    );
+    reconfirmed(&reconfirm(&owner, one.revision()).0[0]);
+    let rows = owner.registered_listing();
+    assert_eq!(
+        rows.as_array().unwrap().len(),
+        1,
+        "a re-confirmed line is not a revision"
+    );
+    assert_eq!(
+        rows[0]["label"],
+        "registered — selectable in this App session"
+    );
 }

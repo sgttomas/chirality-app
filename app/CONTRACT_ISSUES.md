@@ -564,14 +564,18 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
   forged record can still place a false `derived_from` on a first revision.
   The `state`, `content` and `findings` fields record what the App saw when it
   wrote the record (V11 J5-6). They are not refreshed on later edits.
-- **(b) Identical bytes cannot run again after relaunch.** DS-4 refuses content
+- **(b) Identical bytes cannot run again after relaunch.** *Closed by adoption
+  (J8, 2026-10-08).* The owner chose "A15 re-confirmation now (Recommended)",
+  and the WR change CC-WR-RECONFIRM is adopted (commit `007489e72b`). After a
+  relaunch, identical bytes review as DS-8. A new genuine A15 re-confirms the
+  registered revision with no new revision, and the result is selectable in
+  that process only (WR §4.8). DS-4 still applies while the revision is
+  selectable in the process, or when it is not LS-1. App implementation and its
+  limits: CI-24. The original text follows, for history: "DS-4 refuses content
   identical to a registered revision ("select it instead"). Cold selection of
   that revision stays refused (SEAL-2). After relaunch, the person can run the
   workflow from the same library only by registering changed content (a
-  refinement, DS-2). The exact bytes registered in a lost process cannot be run
-  from that library until SEAL-2 or a WR ruling. For the owner and WR owner:
-  either accept this as the SEAL-2 boundary, or rule on a route (for example,
-  re-registering identical content under a new A15 as a new ledger line).
+  refinement, DS-2)."
 - **(c) Base freshness.** RB-3 names two freshness conditions: the live draft
   and the slot's latest revision. Following the I2 owner plan ("disclosed,
   frozen and checked under lock"), the App also freezes its App-kept base
@@ -756,3 +760,193 @@ App tests pass.
 Owner: DEL-04-03 (RS). Options: rewrite the rule with `anyOf`/`not`, or add
 `if`/`then` to `minischema`. The App copy must follow either way. Until
 then, the Design prototypes do not run as evidence.
+
+## CI-24 (J8) Re-confirmation and Refine without a selection: implementation notes
+
+Found 2026-10-08 by the J8 TASK of `APP-V4-GROUP-A-20261004`, implementing
+the adopted CC-WR-RECONFIRM: WR §4.8 RC-1…RC-10, §4.6 RF-1, and the change
+record's "App implementation items". No Design or schema file was changed.
+
+- **(a) Where "selectable in this process" lives.** RC-2 makes ‹k› selectable
+  only while the App holds the result of its registration (G-4) or
+  re-confirmation (G-4R). The library owner keeps an in-memory set, filled only
+  by its own hot commits. Root's `WorkflowReviewContext.registered` values hold
+  the selectable revisions. Both end with the process, and neither is rebuilt
+  from disk. DS-4 "select it instead" and RC-5 (d) read the owner's set. LS-1
+  "as read" (ledger line, A15 record with the same bound content, store
+  recompute) only gates the DS-8 offer (V13 R2-N2).
+- **(b) Attempt journal placement (X-1, X-2).** WR §5.2 names an "attempt
+  journal (App-kept)" without a location, and X-1 reads "each library's
+  attempt journal". The App writes one journal file per *stored*
+  re-confirmation at
+  `<library>/.chirality/.workflow-staging/attempts/<sha256 of the A15 record id>.json`.
+  This is inside §3's App-written, temporary staging area. The file is
+  removed when the attempt closes. X-2 runs when a library owner is opened (in
+  Root, once per library per process). It takes the ledger lock, then lists
+  the journal directory and treats a journal that has gone as already closed
+  (V15 F8). It rereads the ledger for a line citing the A15. If one exists it
+  writes nothing; otherwise it writes *not completed* "process lost before
+  re-confirmation committed", but only if the App's RC-9 reader would accept
+  that line. If not, it writes nothing, keeps the journal and reports
+  "X-2 pending" with the exact cause (V15 F1). It never completes a
+  re-confirmation. Its outcomes appear in the Root snapshot's
+  `libraries[].reconciliation`. For the WR owner: name the journal location.
+
+  **Second App process (corrected after V15 F1; the earlier text understated
+  it).** A journal is visible outside the lock only when the attempt is
+  pending: the append failed or was uncertain, or the journal's own
+  publication failed after the file was visible.
+  - If a second App process opens the library then, its X-2 closes the
+    attempt as lost and writes *not completed* citing the A15.
+  - When the first process continues, G-1R finds the ledger already citing its
+    A15. It appends nothing and ends the attempt *not completed* in that
+    process, naming the line ("already has ledger line ‹n›"). ‹k› is not held.
+  - So one act keeps one ledger line (RC-7, RB-8), and the ledger stays
+    readable.
+  - The person's act had no effect and they review again; a second review and
+    A15 re-confirms.
+  - Tested: `v15_p2_second_process_x2_then_continue_keeps_one_line_per_act`,
+    through the `storage::fail_directory_for_test` hook.
+- **(c) Registration X-2 is still absent.** The App keeps no attempt journal
+  for a *registration* (F15). A registration lost after G-3 and before G-4
+  leaves its store folder and no ledger line, as before J8.
+- **(d) F14, rollback and version skew.** G-1, G-1R and RB-3 (b) now compare
+  the slot's latest *registered* revision, not the whole slot. *Re-confirmed*
+  and *not completed* lines therefore never fail a concurrent attempt or stale
+  a review. Once a *re-confirmed* line exists, an App binary built on the
+  preimage WR schema refuses the whole ledger (`read_ledger` →
+  `wr_validate("library_entry")`). That is acceptable for development builds.
+  Rolling back to such a binary needs the *re-confirmed* lines set aside by
+  hand.
+- **(e) A single in-place registration is refused by the AAC offer schema
+  (found, not introduced).** WR's single in-place entry (DS-7) goes out as an
+  `a15_descriptor` with an `entry:` reviewed reference. The adopted
+  `aac.offer.schema.json` `allOf/6` requires the `draft:` form for an
+  `a15_descriptor`, so `compose_a15` refuses it. Two or more in-place entries
+  (`a15_multi_descriptor`) work. The RF-1 test therefore registers in place
+  with two entries. For the AAC and WR owners: admit `entry:` for a single
+  in-place `a15_descriptor`, or route DS-7 through another form.
+- **(f) Native statement and buttons (AAC §4.2 re-confirmation): J6's, now
+  integrated.** J8 does not write the native statement or dialog code.
+  `a15_native.rs` and the J6 dialog code in `act_control_a15.rs` are as J6
+  merged them (integration head `9d1e0bb0cd`, merged into J8).
+  - **What J8 supplies:**
+    - the descriptor's wording "re-confirm workflow revision for use",
+      disposition *re-confirmation*, re-confirm purpose and `reconfirms`;
+    - the offer that `compose_a15` builds from them unchanged;
+    - the review presentation's `entries[0].reconfirmation.statement`.
+  - **What J6 does with them.** J6's `a15_variant` selects the
+    re-confirmation statement when the descriptor kind is `a15_descriptor` and
+    the disposition is *re-confirmation*. The statement reads "Re-confirm
+    revision ‹short k› of ‹origin›:‹name› for use in this App session. This
+    registers no new revision." It has no "Registering makes …" sentence. The
+    owner's three-button layout (OWNER_DECISIONS, 2026-10-08; V15 F6) then
+    gives [Don't re-confirm (default)] [Re-confirm] [Cancel], where only
+    "Re-confirm" acts.
+  - **Tests.** Journey step 9 checks, on the combined code, that the
+    descriptor the DS-8 path composes selects that variant:
+    - the act label is "Re-confirm";
+    - the statement opens with the re-confirm wording and contains the
+      re-confirm sentence for revision three;
+    - no registration sentence appears;
+    - a registration keeps "Register".
+
+    J6's `reconfirmation_descriptor_has_its_own_statement_and_act_label` also
+    passes.
+  - **Limit.** No native witness of the dialog has been taken; the tests use
+    the synthetic event.
+- **(g) Capture outcome not written.** `aac.capture-evidence` now admits the
+  entry outcome *re-confirmed*. The App writes no capture entry outcome for
+  any registration, so none is written for a re-confirmation either. The
+  ledger line and Root status carry the outcome.
+- **(h) Base freshness interacts with G-6R (CI-21 (c)).** G-6R rewrites the
+  draft's App-kept base record. A second review of the same draft taken
+  before that commit then goes stale ("App-kept base changed since review").
+  At G-1R the WR checks run first, so a concurrent re-confirmation of an
+  already selectable ‹k› reports "already selectable in this App session".
+- **(i) RF-1 Root route.** `WorkflowRootSession::refine_registered(name,
+  revision)` and the `workflow_refine_registered` command call
+  `LibraryOwner::refine_from_store`. The owner recomputes the store, makes the
+  draft (D-1: never overwrites), and records ‹k› as the App-kept base (on
+  failure the copy is removed, as in V11 J5-2). It makes no selection.
+  `create_selected_draft` (from a hot selection) is kept.
+- **(j) Not touched.** V13 R2-N1: WR's LS-4 row still offers "Review to
+  register", while a draft with an LS-4 revision's bytes reviews as DS-4 with
+  the restore route. That is left to the WR owner. U-WR-21 (re-confirmation
+  from the listing without a draft) stays deferred.
+- **(k) An unreadable act log is a read limit, not LS-4 (V15 F4).** WR LS-4
+  names "A15 record missing or bound to other content". The App separates a
+  third case: an act log it cannot read completely (an unreadable or invalid
+  line anywhere, a sequence gap, an I/O error).
+  - At review, ‹k›'s standing cannot be read as LS-1, so the review is DS-4
+    with that exact cause and DS-8 is not offered. As before, any unreadable
+    line in the library act log, even one unrelated to ‹k›, blocks DS-8.
+  - At G-1R, after the person's act was captured, the attempt stays *pending*
+    with the cause, and no ledger line is written. Once the log reads again,
+    the same attempt continues. A missing record, or one bound to other
+    content, still ends the attempt *not completed*.
+  - Tested: `v15_f4_unreadable_act_log_keeps_g1r_pending`.
+  - For the WR owner: confirm that a read limit at G-1R is "pending", as for
+    an unreadable ledger.
+- **(l) Listing of registered revisions (V15 F5; WR §4.6 LS-1 note, §5.4).**
+  Each library in the Root snapshot gains a `registered` list: name, sequence,
+  revision, registration time, disposition, and the label "registered —
+  re-confirm to use in this App session", or "registered — selectable in this
+  App session" when this process holds the result. The workflow panel shows
+  the active library's rows, each with a Refine action (RF-1), so the content
+  identity need not be typed. The list reads the ledger only. It does not
+  check LS-1; Refine checks it.
+- **(m) RF-1 failure cleanup (V15 F3).**
+  - RF-1 copies exactly the store snapshot that `standing_as_read` verified.
+  - The copy uses the store's exclusive, self-cleaning writer
+    (`publish_reserved_store`).
+  - Any later failure removes the App's own copy, using the exact-bytes check
+    (sync of the copy or its parent, or recording the base). So RF-1 leaves no
+    draft without an App-kept base.
+  - Tested: `v15_f3_rf1_removes_its_copy_on_every_failure`.
+
+## CI-25 (J8, V15 F1) WR G-1R "registered line changed or missing" against RC-9
+
+Found 2026-10-08 by independent review V15 (probe P5) of J8. No Design file was
+changed.
+
+- **The WR rule.** WR §4.8 RC-6, G-1R: when the registered line ‹ledger_seq›
+  has changed or is missing after capture, write *not completed* "registered
+  line ‹ledger_seq› no longer reads as reviewed", citing the A15.
+- **The conflict.** RC-9 requires that every line with disposition
+  *re-confirmation*, a *not completed* one included, name in `reconfirms` an
+  earlier *registered* line of the same slot, with the same tuple and
+  sequence.
+  - If line ‹ledger_seq› was removed, or no longer reads as *registered* for
+    ‹k›'s tuple and sequence, no *not completed* line can satisfy RC-9.
+  - If the App wrote one anyway, its own reader would refuse the whole library
+    ledger: every review, registration, Refine and X-2, until a hand repair.
+  - A related path has the same result: when the line no longer reads as
+    registered, the slot's latest also changes, and G-1R's "slot moved on"
+    *not completed* line runs into the same refusal.
+- **What the App does.**
+  - Before every append of a line with disposition *re-confirmation* (G-1R
+    and G-2R/G-3R failures, G-4R, the in-process retry and X-2), the App runs
+    its RC-9 reader over the ledger as it would then read.
+  - If the reader would refuse, the App appends nothing. The attempt stays
+    *pending* in the process, with the cause "re-confirmation line not
+    appended: the App's RC-9 reader would refuse it (…)".
+  - The person's act stands, recorded in the act log, with no effect. ‹k› is
+    not selectable.
+  - A change that still leaves ‹k›'s line reading as registered for its tuple
+    and sequence (for example a changed `written_at`) is written *not
+    completed* as WR says.
+  - X-2 likewise keeps a journal whose *not completed* line would breach RC-9,
+    reporting "X-2 pending" with the cause.
+  - Tests: `v15_p5_g1r_line_no_longer_registered_appends_nothing`,
+    `v15_p1_x2_never_appends_a_line_its_reader_refuses` and
+    `v15_f2_g1r_registered_line_changed_is_not_completed`.
+- **For the WR owner.** Rule on the case, for example:
+  - G-1R ends the attempt without a ledger line when RC-9 cannot be met (the
+    act log keeps the act); or
+  - RC-9 admits a *not completed* re-confirmation line whose `reconfirms` no
+    longer resolves, which the reader then reports instead of refusing; or
+  - another form.
+
+  Until then, the App's behaviour above stands. It is stricter than WR: it
+  never writes an unreadable ledger.
