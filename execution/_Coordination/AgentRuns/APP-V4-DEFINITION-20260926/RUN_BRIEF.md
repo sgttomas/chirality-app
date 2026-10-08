@@ -14,4 +14,4 @@ Skills: chirality-change for Git/PR/merge under standing authority. Root instruc
 
 Checks must distinguish accepted scope,complete draft normalization,source-fidelity review,Git integration and human Group1 acceptance. Existing records' pending labels are historical sources and are superseded only at their actual subjects by later owner acts.
 
-Git identity: parent verified prior chat commit cc0207059 and donor9375abcca use the same effective identity returned here, Ryan Tufts <ryan@Ryans-MacBook-Air.local>. Use that existing identity with truthful Codex/role attribution;do not invent a preferred email or change global configuration. Git integration and authenticated merge remain separate from any personal owner review.
+Git identity: parent verified prior chat commit cc0207059 and donor9375abcca use the same effective identity returned here, Ryan Tufts <ryan@<host>.local>. Use that existing identity with truthful Codex/role attribution;do not invent a preferred email or change global configuration. Git integration and authenticated merge remain separate from any personal owner review.
