@@ -237,3 +237,23 @@ overstated "Return and Escape never act". Return chooses "Don't ‹act›" and
 an abort maps to Cancel, by the dialog plugin's mapping. Which button Escape
 triggers in the parentless macOS alert is not yet observed; it is a gating
 step of the native re-witness. The owner's answer is unchanged.
+
+## Native re-witness launch — 2026-10-08
+
+HELP_HUMAN asked for approval of one specific artifact and plan:
+- **Artifact.** The unsigned debug "Chirality v4 Reconfirm Witness.app",
+  built offline from `8cd69ff7fc`; main binary sha256
+  `63f2d8d048d35b5dea9c65c3bf7b92b0e82b087b8cad63f0891b01eb66e555a1`.
+- **Environment.** Stock Codex 0.160.0 and a fresh synthetic workspace.
+- **Plan.** Two launches. The owner presses each dialog key personally:
+  Escape, then Return, then Register; after the relaunch, Re-confirm.
+  HELP_HUMAN sends one real model turn.
+
+Answer: **"Approve; reuse sign-in (Recommended)"**. Custody: a structured
+answer in the active Claude Code chat.
+
+Effect: the run uses the existing scratch Codex home
+`/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-witness-codex-home.skB5uW2FWI`,
+which holds the owner's sign-in from the first witness, never `~/.codex`.
+The approval covers this artifact and plan only. Each dialog act is the
+owner's own key press.
