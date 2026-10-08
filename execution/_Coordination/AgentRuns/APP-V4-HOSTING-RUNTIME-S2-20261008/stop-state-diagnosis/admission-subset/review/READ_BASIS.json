@@ -1,0 +1,27 @@
+{
+  "role": "independent TASK",
+  "parent": "/root/hosting_runtime_manager",
+  "mechanism": "delegated harness-native task; no delegation",
+  "sources": [
+    {
+      "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/.agents/skills/software-code-review/SKILL.md",
+      "sha256": "ee085d589c44f912d11a59eead8edac214f0343761d26b0d33e886a979888bca"
+    },
+    {
+      "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "/private/tmp/STOP_ADMISSION_SUBSET_DESIGN.md",
+      "sha256": "5754f9841156b3778d15c50c2ce542b0d8680e71289ecdf589ce8149c68f3933"
+    }
+  ]
+}

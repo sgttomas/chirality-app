@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/AGENTS.md",
+    "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/agents/AGENT_TASK.md",
+    "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/.agents/skills/software-defect-diagnosis/SKILL.md",
+    "sha256": "7e423dfd24132c33d3aa8fe6994bf17a1def966c396723f6bd72ac8d2442112b"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+    "sha256": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.json",
+    "sha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
+    "sha256": "9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85"
+  }
+]

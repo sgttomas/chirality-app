@@ -1,0 +1,28 @@
+{
+  "basis": "cd79d9b477f7f33aa4d7a3683e26e6337039d412",
+  "status": "Independent READY for parent decision; no implementation release or post-exit route selected",
+  "files": {
+    "STOP_DIAGNOSIS_REVIEW.md": "7fce2ef542c995ce5b80e1a0b984f08fc5d6780e69d5384c7ba40ec296861890",
+    "STOP_REC_REPAIR_REVIEW.md": "eb14769cdad1c918b7189ad70d7c51606825697b0479bc163abcec110e2cee22",
+    "STOP_REC_SOURCE_ASSESSMENT.md": "4d85a3ffe78274cc70699c330afa234104039a3607d40985e04b08145b37b01b",
+    "STOP_REPAIR_PROPOSAL.md": "0b7e1b906e5c354ed0823b86f356548c784c9704924bec3366a52d1e2e05a971",
+    "STOP_REPAIR_PROPOSAL_INITIAL.md": "8675c10d2e669f992b327bea292982fd050fc372882c73ede63a8efbb670c4c8",
+    "STOP_REPAIR_REVIEW.md": "b34a056b642f9bf17696592fc9c0e7396322b85704c9f1af624b2d8580b84387",
+    "STOP_RS_SOURCE_ASSESSMENT.md": "eda680f5e746494b442c1288ab8c81f9bc26f95c62bd6e71ffdfab6ad9de9cb4",
+    "STOP_RS_TWO_PART_ASSESSMENT.md": "2890298e837a8a13cf3524688202dde2837094a2d72695612b33d9c93846c411",
+    "reproduction/FINAL_INSTRUMENTATION.rs": "67d2a54e5e052f303d6fd0a18c3339ebc6db9b2bad9bbad2f46aba13243ff3df",
+    "reproduction/INSTRUMENTATION.patch": "5cb9ea433d8b8d800a9083897d7581421888befdd81ea958017dd1412c95c6ec",
+    "reproduction/MANIFEST.json": "b9c17134b3b193df2bba0cf9265e1dbb881eda5cbe776abf7ffbf5bb3ad66cd3",
+    "reproduction/OBSERVATIONS.json": "17cade4ea65c22f1b42ffd553ddff544a796075c598862fad73a322e6a38b1a7",
+    "reproduction/ORIGINS.json": "5d992ebc7f37f8f0e675160f96c7f2f20a36abca1d1678e41994611f3a7e242c",
+    "reproduction/REPORT.md": "be374152c5eaf6957439763899935c985f4dbbe795e8f523ba6fabe3f49e6381",
+    "reproduction/RESTORATION.json": "b40e117c23bcbeb50fda965712d82dbdd124bfcd8289fde4f75c6401a2787dbb",
+    "reproduction/SOURCE_BEFORE.json": "70d2b53936a789df15916156030aafb71d7032f8d3f5794850ec6bb315dedd5c",
+    "reproduction/closure-counts.log": "358051e036bc1e9077d4a2a8dbcaa96b1a8e9bd557cb3da1ba7bd24b86a9e293",
+    "reproduction/diagnostic.log": "34759c4b40b8f8d259577bb800dcec6b46ce325c75030ac51f89c055373a24ef",
+    "reproduction/hosting.rs": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d",
+    "reproduction/hosting_stop_diagnosis.rs": "67d2a54e5e052f303d6fd0a18c3339ebc6db9b2bad9bbad2f46aba13243ff3df",
+    "reproduction/hosting_successor.rs": "92748193385f7912fa1a3c626abbab779599f5ebd98c6b4c86460db5980d6d02",
+    "reproduction/verify-gate.log": "a311df96f6993d638722848ddc37eb7ebc720de91b0cd00ac2a7ff26618c4a5e"
+  }
+}
