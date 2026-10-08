@@ -89,7 +89,7 @@ Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-Next: final combined review and CI for [PR #1137](https://github.com/sgttomas/chirality/pull/1137), receiving main `c9a2b2d3f3`, then merge under standing Git authority. Source reconstruction and presentation need their own bounded continuation. No download, sign-in, credentials, native act, provider act, MEMORY write or human decision is authorized by this graph. SEAL-2 remains deferred. External SWBPIPE, PEC and Domains implementation stays with its owners. No 90% claim.
+Next: final combined review and CI for [PR #1137](https://github.com/sgttomas/chirality/pull/1137), receiving main `d35b29f813`, then merge under standing Git authority. Source reconstruction and presentation need their own bounded continuation. No download, sign-in, credentials, native act, provider act, MEMORY write or human decision is authorized by this graph. SEAL-2 remains deferred. External SWBPIPE, PEC and Domains implementation stays with its owners. No 90% claim.
 
 C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C1_EVIDENCE.md). C1 and C3-P are programmatic library contributions; no App view or actual source recovery is complete.
 
