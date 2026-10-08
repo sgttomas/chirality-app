@@ -99,6 +99,7 @@ performed an act.
 | `attachments.rs`, `hosting::attachment_custody`, `resources/attachments/` | Native-selected immutable ordered text sources, durable metadata/client pointers before scoped send, and explicit native outcome limits |
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
+| `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
 ## Offline build and checks
@@ -244,3 +245,20 @@ provider prediction. A separately frozen controlled live backend greeting passed
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.
+
+## Recorded connector route accounts
+
+With an explicitly associated App project, **Read / refresh accounts** inspects
+its canonical connector route-account directory without creating it. The view
+shows the recorded question, gaps and responsibility, duties, and parsed source
+and conclusion fields. Duplicate IDs and discovery issues remain visible; an
+empty or incomplete scan does not establish that no work remains. Unknown or
+mismatched project association refuses the read without a fallback directory.
+
+The view does not open cited sources, resolve anchors, save accounts, submit
+attachments, or perform recorded duties. Host-parsed JSON can normalize numeric
+values; the displayed binding hash is a host observation of file bytes, not
+frontend verification of displayed values. The source-bound manual comparison
+in Group C `C3_SOURCE_WALK.md` and its maintained fixture are separately
+evidenced. App-native source selection/reconstruction and its actual witness
+remain unfinished, as do the recorded PEC/Domains and research activation joins.
