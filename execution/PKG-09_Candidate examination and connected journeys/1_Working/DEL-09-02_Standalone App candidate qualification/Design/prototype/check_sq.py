@@ -11,6 +11,7 @@ dossiers; it passes no VER criterion (SQ §10). Needs Python 3 and `jsonschema`
     python3 check_sq.py
 """
 import glob
+import copy
 import json
 import os
 import re
@@ -165,6 +166,29 @@ def main():
           not any(c["case_id"] == "VC-AAC-04" for s in sum(step_map["scenarios"].values(), []) for c in s["supplier_cases"]))
     check("MAP VC-R-14 cited at every V4-EXM-11 step (one execution)",
           all(any(c["case_id"] == "VC-R-14" for c in s["supplier_cases"]) for s in step_map["scenarios"]["V4-EXM-11"]))
+    # CC-SQ-J2-ST4: the prose stages delegation at J-2, not only recovery.
+    check("MAP SQ §3.1/§3.4 ST-4 carried at J-2, S11-1 and S11-6",
+          {s["step"] for s in map_steps(step_map).values() if "ST-4" in s["stimuli"]}
+          == {"J-2", "S11-1", "S11-6"})
+    # Paired probes prevent another stimulus or rule failure from masking omission.
+    baseline = next(d for d in load("sq.dossier.valid.examples.json") if d["record_id"] == "SQ-EX-03")
+    for produced, outcome, expected in [(None, "pass", ["SQ-R9"]),
+                                         ("not_produced", "pass", ["SQ-R9"]),
+                                         ("not_produced", "blocked", []),
+                                         ("replay", "pass", [])]:
+        probe = copy.deepcopy(baseline)
+        scenario = next(s for s in probe["scenarios"] if s["scenario"] == "V4-EXM-10")
+        step = next(s for s in scenario["steps"] if s["step"] == "J-2")
+        step["stimuli"] = ([] if produced is None else
+                           [{"id": "ST-4", "produced": produced,
+                             **({"cause": "ILLUSTRATIVE delegation and recording unavailable"}
+                                if produced == "not_produced" else
+                                {"evidence": "ILLUSTRATIVE recorded delegation counterpart"})}])
+        step["outcome"] = outcome
+        scenario["outcome"] = aggregate([s["outcome"] for s in scenario["steps"] if s["counts"]])
+        check(f"CC-SQ J-2 {produced}/{outcome}: schema valid and exact rules {expected}",
+              not list(val.iter_errors(probe)) and violations(probe, step_map) == expected,
+              str(violations(probe, step_map)))
     for d in load("sq.dossier.valid.examples.json"):
         errs = list(val.iter_errors(d))
         check(f"VALID {d['record_id']}", not errs, "; ".join(e.message[:120] for e in errs[:2]))

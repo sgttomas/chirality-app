@@ -1892,7 +1892,14 @@
        "core_loop_element": "execution",
        "v3_reference": "J02, J04 (real tool use)",
        "result_record": "EXP-J-2 (ILLUSTRATIVE)",
-       "outcome": "pass"
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
       },
       {
        "step": "J-3",
@@ -5196,7 +5203,14 @@
        "core_loop_element": "execution",
        "v3_reference": "J02, J04 (real tool use)",
        "result_record": "EXP-J-2 (ILLUSTRATIVE)",
-       "outcome": "pass"
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
       },
       {
        "step": "J-3",
@@ -5920,7 +5934,14 @@
        "core_loop_element": "execution",
        "v3_reference": "J02, J04 (real tool use)",
        "result_record": "EXP-J-2 (ILLUSTRATIVE)",
-       "outcome": "pass"
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
       },
       {
        "step": "J-3",
@@ -6644,7 +6665,14 @@
        "core_loop_element": "execution",
        "v3_reference": "J02, J04 (real tool use)",
        "result_record": "EXP-J-2 (ILLUSTRATIVE)",
-       "outcome": "pass"
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
       },
       {
        "step": "J-3",
@@ -7368,7 +7396,14 @@
        "core_loop_element": "execution",
        "v3_reference": "J02, J04 (real tool use)",
        "result_record": "EXP-J-2 (ILLUSTRATIVE)",
-       "outcome": "pass"
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
       },
       {
        "step": "J-3",

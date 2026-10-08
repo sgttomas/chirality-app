@@ -1,0 +1,73 @@
+{
+  "base_revision": "462f66975d36cd10d5b8455193ada9517d28d353",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/ScopeOfWork.md",
+      "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/STANDALONE_QUALIFICATION.md",
+      "sha256": "3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/prototype/check_sq.py",
+      "sha256": "4a141a8c3f36620aec3f54ba5ace6d193c5cbfd00129f0d7e6fff7ef1b7ef2ea"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.invalid.examples.json",
+      "sha256": "99e154f4a57b42848852ef42fa23d286e517752ed6813468d02124b89843fb28"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.rule-violations.examples.json",
+      "sha256": "eb75db6c3990d7d8488244819271359d16932ab819b9240f918c5a18bf871514"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.schema.json",
+      "sha256": "16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.valid.examples.json",
+      "sha256": "426165ba047ac7c53edb1d81debb0f917121866ebbdd7fd7ecc00bca835de7db"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.step-map.json",
+      "sha256": "e57ff599c169aee2c45fc676fe579d3f2fabdfd4085f15616acf01965e826fc7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md",
+      "sha256": "365cd4eea3c2d4c5b0d5ede10435014409fa5aa85b41497d57e4ebc4d190406e"
+    }
+  ]
+}

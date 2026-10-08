@@ -93,7 +93,9 @@
     ],
     "core_loop_element": "execution",
     "v3_reference": "J02, J04 (real tool use)",
-    "stimuli": [],
+    "stimuli": [
+     "ST-4"
+    ],
     "counts": true
    },
    {

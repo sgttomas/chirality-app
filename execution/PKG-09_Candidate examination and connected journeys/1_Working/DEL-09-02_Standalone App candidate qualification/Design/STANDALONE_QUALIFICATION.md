@@ -463,3 +463,20 @@ Q2, Q4 and SQ-R-L's P-a, P-b among them).
 | SQ-v0.1 (2026-10-03) | First Design file: step map over the suppliers' cases, V4-EXM-11 insertion points, dossier schema and rules, DEL-11-03 return; prototype 72/0 |
 | SQ-v0.2 (2026-10-03) | Repair for RV2-SQ-U3. SQ-R-A/SQ-R-B (R23-27): stimuli ST-1…ST-5 declared before the run (§3.4), counted toward their scenario; ST-5's replay required; ST-4 natively or by replay; else `blocked` (SQ-R9). SQ-R-C: J-6/J-8/J-9 join VC-AAC-08, -13 (and -07, -03 with ST-3); VC-AAC-04 dropped. SQ-R-D: NIR-v0.3 adopted for S11-1 (TO-4, Δ3); pin-basis sentence and U-SQ-1 per R23-22. SQ-R-E: J-8R/J-9R added and not counted; "try" restored. SQ-R-F: EXP §6.1 states; outcome only when recorded; `examination_opened`; handover and independence (SQ-R8). SQ-R-G: §3.2 precondition; S11-5 conditions stated; S11-6 continues J-8's try conversation. SQ-R-H: `core_loop_element` and `v3_reference` per step. SQ-R-I: U-SQ-3 states SEAL-2's effect. SQ-R-J: SQ-RV-08 for SQ-R7; VC-R-14 at every S11 step. Schema `…:0.2`, records `SQ-v0.2`. Prototype 108/0 |
 | SQ-v0.2, in place (2026-10-03) | RV2 confirmation items: SQ-R-L SQ-R9 refuses a replay claim for ST-1…ST-3 and makes a not-produced stimulus `blocked` (examples SQ-RV-11, -12, SQ-EX-05); SQ-R-M ST-5's counterpart is a capture of the real Codex with the condition in it, owner and point of need U-SQ-6, reason recorded in §3.4. Prototype 114/0 |
+
+
+### CC-SQ-J2-ST4 correction candidate (2026-10-07)
+
+Pending independent review and manager adoption. The machine map's J-2
+`stimuli` was empty despite §3.1's delegation action, §3.4's staging and the
+map's own ST-4 `staged_at`. It now lists ST-4. SQ-R9 therefore applies at
+J-2 as already specified: missing stimulus evidence cannot support a
+recorded counted step, and unavailable native/replay production blocks it.
+No counts, scenario intent, native route, replay counterpart, schema or rule
+semantics change. Recorded J-2 entries in illustrative examples now carry
+illustrative ST-4 evidence; no real examination or pass is created. The
+prototype adds staging and paired omission/nonproduction/replay probes.
+See the named change's source basis, consumer account and check results in
+`execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/changes/CC-SQ-J2-ST4/`
+(relative to the App v4 project). Earlier prototype results above remain
+historical.
