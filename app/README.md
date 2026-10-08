@@ -262,3 +262,23 @@ frontend verification of displayed values. The source-bound manual comparison
 in Group C `C3_SOURCE_WALK.md` and its maintained fixture are separately
 evidenced. App-native source selection/reconstruction and its actual witness
 remain unfinished, as do the recorded PEC/Domains and research activation joins.
+
+## Transient source observation
+
+**Observe a project text source** prepares one question and opens a native
+selector for a file within the explicit App project. The first slice accepts
+regular UTF-8 text up to 262144 bytes, without NUL or symlink descendants.
+The host retains a session-memory snapshot; exact line excerpts refer to that
+buffer even after the file changes. Cancellation and failed reads keep earlier
+observations historical, with unresolved read failures separate from excerpt
+failures. New preparation or a successful reread establishes a new basis.
+
+Revision labels are caller assertions. Locating source text verifies inclusion
+only; it establishes no authoritative revision, Git identity or source truth.
+The preview creates no saved account, supported conclusion, attachment supply
+or performed duty. It does not send source text elsewhere. Ordinary metadata
+and path checks detect some changes; concurrent transient writes or renames
+can evade them, so the buffer is not certified as a coherent historical revision.
+The current evidence uses injected selection callbacks, real scratch reads and
+component rendering. Actual native selection/use, the Git adapter and later
+account materialization remain separate unfinished obligations.
