@@ -82,14 +82,14 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 ## Current state and recovery
 
 Successor basis: `236cbc3c693423499120b4abeadfdcc5fb670477` (includes merged PRs #1127 and #1128), isolated branch
-`codex/group-c-persistence-receipt`; this branch is the designated graph ref while ahead of
+`codex/group-c-source-route`; this branch is the designated graph ref while ahead of
 main. WORKING_ITEMS `/root/group_c_successor` now owns C3 continuation under HELP_HUMAN `/root`. Manager owns graph/evidence/integration; children own isolated worktrees.
 Basis identities and reading limits: [BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/BASIS.json). Actual assignments: [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/DELEGATION.md).
 Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-[PR #1137](https://github.com/sgttomas/chirality/pull/1137) merged as `412cf7fa012f400043182e4c9e8ea0e1725c843f`, receiving main `d35b29f813`, after independent READY at final head `2ecde9055d232553fd79298ba27dcc49aef81aee` and all selected CI passed. Next: source reconstruction and presentation need their own bounded continuation. No download, sign-in, credentials, native act, provider act, MEMORY write or human decision is authorized by this graph. SEAL-2 remains deferred. External SWBPIPE, PEC and Domains implementation stays with its owners. No 90% claim.
+[PR #1137](https://github.com/sgttomas/chirality/pull/1137) merged as `412cf7fa012f400043182e4c9e8ea0e1725c843f`, receiving main `d35b29f813`, after independent READY at final head `2ecde9055d232553fd79298ba27dcc49aef81aee` and all selected CI passed. Next: C3-S1 actual file-only reconstruction walk and C3-U1 read-only saved-account presentation proceed in parallel, with source-owner definition and independent source/code/consumer checks. Reviewed receipt `9485943216` travels with that substantive PR. No download, sign-in, credentials, native act, provider act, MEMORY write or human decision is authorized by this graph. SEAL-2 remains deferred. External SWBPIPE, PEC and Domains implementation stays with its owners. No 90% claim.
 
 C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C1_EVIDENCE.md). C1 and C3-P are programmatic library contributions; no App view or actual source recovery is complete.
 
@@ -100,7 +100,10 @@ C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-202610
 | C3-D / CI-29 source treatment | COMPLETE bounded source correction; PR #1130 merged `44ade85d955e45e2c1fbba8a9ae1a9be675c18dd`. Empty-source accounts cannot fabricate a read; historical pins remain intact | C3_DESIGN_TREATMENT.md and C3_DESIGN_REVIEW.md preserve consumer analysis and checks |
 | C3-O / O-D placement | COMPLETE bounded technical selection. PR #1132 merged initial reviewed CRP-v0.2; CRP-R2 selects source `3d9a91a988` / CRP-v0.3 after review `0d1b8c62bb` and fleet concurrence `873f23b906` | C3_PLACEMENT_ADOPTION.md is the current exact selection; C3_PLACEMENT_REVIEW.md and C3_FLEET_PLACEMENT_CONCURRENCE.md retain superseded findings and custody |
 | C3-P caller-account persistence | COMPLETE bounded backend; PR #1137 merged `412cf7fa012f400043182e4c9e8ea0e1725c843f` after exact-head READY and CI | 31 maintained plus three independent checks passed under default and distribution-successor features at final combined review. Original failing temporary-name sequences and late same-byte inode substitution were backchecked; C3_PERSISTENCE_REVIEW.md preserves original NOT READY and repair evidence |
-| C3-S source reconstruction / C3-U presentation | UNFINISHED; actual source selection, custody, question reconstruction and visible consumer integration require their own inputs and checks | No source truth, responsible act, provider adoption or connected witness inferred from persistence |
+| C3-S0 source-route basis and implementation assessment | COMPLETE bounded assessment; existing attachment supply does not establish route revision/anchor custody and is not reused as a local-read shortcut | Source owner found read-only account inspection plus an actual file-only walk implementable without a new schema/meaning decision; parent concurred |
+| C3-S1 actual file-only reconstruction walk | ACTIVE TASK cfb_design_owner; C3_SOURCE_WALK.md, basis and fixture in this run only | Exact committed bytes/revisions/hashes/anchors; same question with explicitly simulated triggers; actual TASK comparison distinguished from separate manager and human duties; independent source backcheck |
+| C3-U1 saved-account presentation | ACTIVE TASK route_persistence; minimal backend command, standalone UI and tests, C3_PRESENTATION evidence | Existing explicit project association only; whole account and discovery issues/duplicates visible; no source-truth/duty promotion; independent code and consumer checks |
+| C3-S2 App-native source reconstruction/production join | UNFINISHED next production obligation after S1/U1; requires separately reviewed source selection/read/revision/anchor producer and actual point-approved selection witness | File-only walk and saved-account inspection do not establish this App production join or finish C3; no native act is presently authorized |
 
 Current publication uses exclusive no-replace rename with no automatic pathname
 unlink. Exact postpublication inode, bytes, account and path checks precede a
