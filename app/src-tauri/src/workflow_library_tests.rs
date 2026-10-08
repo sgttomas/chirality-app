@@ -762,3 +762,49 @@ fn v11_j5_1_app_kept_base_must_name_a_revision_registered_in_the_slot() {
         .review_draft("sample", two.revision())
         .is_ok());
 }
+
+/// V11 J5-3 (reviewer probe P2): the base key is the whole draft key {draft
+/// location, draft root, name}. Two libraries with the same draft name, sharing
+/// one App data folder, keep separate bases; the same root under another origin
+/// sees none of them.
+#[test]
+fn v11_j5_3_same_draft_name_in_two_libraries_keeps_separate_app_kept_bases() {
+    let a = Scratch::new();
+    let b = Scratch::new();
+    let app_data = a.app_data();
+    let owner = |s: &Scratch, origin: &str| {
+        let mut owner = LibraryOwner::open(s.0.clone(), origin, "fixture-project").unwrap();
+        owner.attach_app_kept_bases(&app_data).unwrap();
+        owner
+    };
+    let a1 = a.put("sample", false, "A one");
+    let first_a = register(&owner(&a, "project"), a1.revision());
+    let b1 = b.put("sample", false, "B one");
+    let first_b = register(&owner(&b, "project"), b1.revision());
+    assert_eq!(a.base_files().len(), 2, "one record per draft key");
+    // Library A, relaunched after B registered: still DS-2 from A's own base.
+    let a2 = a.put("sample", false, "A two");
+    let session = owner(&a, "project")
+        .review_draft("sample", a2.revision())
+        .unwrap();
+    let entry = session.current().unwrap().review_presentation()["entries"][0].clone();
+    assert_eq!(entry["disposition"], "new revision");
+    assert_eq!(
+        entry["base"]["revision"],
+        first_a.identity().revision.as_str()
+    );
+    // Library B likewise.
+    let b2 = b.put("sample", false, "B two");
+    let session = owner(&b, "project")
+        .review_draft("sample", b2.revision())
+        .unwrap();
+    let entry = session.current().unwrap().review_presentation()["entries"][0].clone();
+    assert_eq!(
+        entry["base"]["revision"],
+        first_b.identity().revision.as_str()
+    );
+    // The same root as a user library: another draft location, so no base.
+    let user = owner(&a, "user").base_custody().get("sample").unwrap();
+    assert_eq!(user.base, None);
+    assert_eq!(user.source["record"], "none for this draft key");
+}
