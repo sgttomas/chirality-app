@@ -1,0 +1,29 @@
+{
+  "format": "group-b-s4-fixture-provenance.v1",
+  "standing": "actual-synthetic-host-export-not-native-app-examination",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9",
+      "export_group_b_s4_selected_and_unselected",
+      "--ignored",
+      "--exact",
+      "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+      "--test-threads=1"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "34fd766fbe2848365cbcc6c938a37e061db413edcf8cb00514c3e5e7fb4ee1d1",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "f2671306a3e167a5a858b11d04b6b1090771139a"
+  },
+  "exchange_sha256": {
+    "selected": "6101b24548823effdf6ddca311fae20b657fe5c6f0cd884b80c8e96f6a290fe8",
+    "unselected": "a0e02184fc08c1b06570a8f4be10f9e1dca846cf1c0c60850c91367ed9e31229"
+  },
+  "exporter_sources": {
+    "app/src-tauri/src/hosting_s4_export.rs": "3114efc75f4c2ca9b3118d82b63d30d25e48455f053bff2c8a75f0ec8c7b1d4c",
+    "app/src-tauri/src/hosting_successor.rs": "fb70478c4c25efe00848d6d85c4b39bbcd3a7eebbf15ae56ac78ab5ed707e410",
+    "app/src-tauri/resources/distribution-successor/S4_TEST_EXCHANGE.md": "dc8bc14ef16ca850da8a8acb2e53adeb93174563159d17292196a2755d573f74"
+  },
+  "receipt_sources_unchanged_from": "37feb501bbb23cc2932e0101a51a2ae63edbd489",
+  "custody": "Committed-source recompile/export reported by Host owning manager through Group B manager; B checked copied raw bytes, source hashes and executable digest. Serialized export is not runtime authentication."
+}

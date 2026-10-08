@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-input-hold`, based on verified
-PR #1142 merge `5c1b258db0645e422d8896bce9d02bf8a7cd04d5`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-s4-receiving`, based on verified
+PR #1146 merge `fa71b93432612a3615d0c2db0e5767811818454a`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -133,8 +133,9 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Current hold and resumption:** Parent HELP_HUMAN directed this bounded hold
-after PR #1142. Independent read-only readiness assessment by separate TASK
+**Prior hold and current resumption:** Parent HELP_HUMAN directed this bounded hold
+after PR #1142. S4 resumed after reviewed Host PR #1145 merged; the remaining
+package/native holds below persist. Independent read-only readiness assessment by separate TASK
 `complete_content_review` at 5c1b258db0 found no further material Group B
 production slice with sufficient supplied inputs. This is a dependency hold,
 not a new approval gate, undertaking completion or abandonment. No additional
@@ -143,7 +144,7 @@ commissioned merely to keep the lane active.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|
-| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. Current reported full-S1/closure work is not frozen. |
+| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. BOUNDED CORRESPONDENCE READY: reader.s3/closure received at #1145; exporter received at #1146. Actual selected/unselected synthetic Host exports join the unchanged canonical six-record EXP/PKG checker. 43 tests and independent review pass; this is file correspondence only. Production/native receiving and canonical successor adoption remain open; no S3 or native authority is supplied. |
 | B2 current package and B4–B6 signing/package witness | Select intended current source/build after applicable implementation/reference readiness; preserve the #1134 f793 artifact as historical. Current-source and applicable supplier reference/configuration inputs remain absent. CF1/CF7 names alone do not justify an Apple-account request. FP2/W4 actual installed witnesses follow signing and installation; they are not pre-sign prerequisites. |
 | B7/B8 actual standalone journey | B7 exact-example preparation is supplied. Actual candidate/configuration, examiner pre-run definition, ST4/ST5 contributions, people/modes, genuine registrations/refinements and applicable native authority remain missing. Resume the eligible case when its actual inputs arrive. SQ permits native_development; signed packaging or S3 is not a blanket gate on every eligible SQ step. |
 | B3 full M1 / native support and A-IN-S5 reliance | Actual connected runner/native qualification and package/reference evidence remain required at their existing points. Scoped CI-26 closure and offline preparation do not supply them. |
@@ -163,8 +164,8 @@ Readiness sources: this graph's B4–B8/A-IN-S1…S5; reviewed
 `pre-run-inputs/RETURN.md` governing boundary; and
 APP-V4-CANDIDATE-ADMISSION-20261008/DECISION_PACKAGE.md point-of-need and decision
 interface. The Host manager's current report is coordination status, not an
-independently accepted implementation artifact. HELP_HUMAN will resume this
-lane when the frozen Host receipt or another genuine input arrives.
+independently accepted implementation artifact. HELP_HUMAN resumed S4 on the named Host merge; other nodes await their own
+actual inputs. Current assignment/evidence is in s4-receiving/COORDINATION.md.
 
 CI-26 representation/initial EXP-PKG cohort is narrowly closed through merged
 EXP-SUPPORT-BINDING-v1. SQ/native-form/S4 receiving and full M1 support remain
@@ -219,7 +220,7 @@ adoption, qualified expected reference, FP-2/W-4 or Group B completion.
 | A-IN-S1 coherent versioned successor contracts | DEL-01-01 + DEL-01-06 Design owners, HELP_HUMAN coordinates; respective Design schemas/prototypes/examples | Proposed HOSTING/PKG successors, DISTRIBUTION_IDENTITY method, reviewed inventory model, current lifecycle/PKG v0.2 contracts | Full expected/observed reference and lifecycle successor, immutable exact-byte verification reference, PKG successor and PK-R1 rules, historical-version handling; independently reviewed named adoption with complete consumer plan. OPEN, ready for bounded offline implementation assignment; no qualified record minted |
 | A-IN-S2 connected runtime and packaging implementation | Group A DEL-01-01 implementation owner with DEL-01-06 packaging owner; hosting/resolver/launcher/lifecycle and packaging code/tests under coordinated fence | S1 reviewed contracts; native resource configuration and generated identity references; synthetic expected-reference doubles | No-follow complete scanner, generation/custody/refusal, resolver→verifier→probe→launcher chain, direct PATH convention, immutable record resolver, packaging successor output; negative/mutation and joined offline checks, independent review. OPEN; production verified standing awaits S3 |
 | A-IN-S3 qualified supplier-reference artifact | DEL-01-01 qualification owner through HELP_HUMAN; exact supplier-reference evidence and adoption record | S1/S2 method, actual archive source/digest/acquisition authorization and extraction custody, pin/platform, maintained generated-output identity, passed version-advance evidence; separately authorized isolated label probe | Independently checked complete reference bytes/digest and technical adoption bound to reviewed App build; no observation promoted to expectation. OPEN; missing acquisition/generation/probe evidence stays missing; downloads/credentials/probe execution need existing authority |
-| A-IN-S4 examination and standalone receiving joins | Group B DEL-09-01/02 owners with DEL-01-06; consumer code/fixtures/manifests and named adoption notice | S1/S2 successor artifacts plus S3 for verified claims; current EXP/SQ exact candidate/package/support contracts | Reject mixed versions, unresolved/missing expected references and false verified claims; immutable full-artifact digest resolution, exact package/candidate/support joins; affected regressions and independent review. OPEN; legacy/preparation consumers retain accepted basis until atomic adoption |
+| A-IN-S4 examination and standalone receiving joins | Group B DEL-09-01/02 owners with DEL-01-06; consumer code/fixtures/manifests and named adoption notice | S1/S2 successor artifacts plus S3 for verified claims; current EXP/SQ exact candidate/package/support contracts | Reject mixed versions, unresolved/missing expected references and false verified claims; immutable full-artifact digest resolution, exact package/candidate/support joins; affected regressions and independent review. PARTIAL: bounded synthetic Host-export file consumer independently READY, exact pinned reader.s3 and unchanged canonical six-record EXP/PKG join; production/native receiving and canonical successor adoption remain OPEN, legacy consumers retain accepted basis |
 | A-IN-S5 package witness and downstream reliance | Group B packaging/examiners; B5/B6 evidence; HELP_HUMAN coordinates owner acts | S2/S3/S4, actual candidate/package/support, FP-0/1(a)/1(b)/3 and permitted native/install actions | Actual FP-2/W-4 runtime evidence joins exact package/reference; Option B and EXP/SQ criteria maintained. OPEN, no synthetic substitution; B4/B5/B6 and owner points remain governing |
 
 S1→S2; S1+S2+actual authorized evidence→S3; S1+S2→S4 implementation
