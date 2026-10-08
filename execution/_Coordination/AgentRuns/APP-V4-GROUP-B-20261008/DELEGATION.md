@@ -59,3 +59,39 @@ readiness; product bytes remain identical. No native/product qualification or
 Group B completion follows. No child is currently executing; author and reviewer
 remain available for bounded repairs/backchecks. PR/CI/main integration is
 returned to HELP_HUMAN as required by the launch brief.
+
+## Offline B2/B7 continuation after PR #1117
+
+HELP_HUMAN dispatched continued B2 unsigned package configuration/inventory and
+B7 standalone case preparation after first-slice merge
+462f66975d36cd10d5b8455193ada9517d28d353. Manager fetched main, verified that
+commit and a clean worktree, then created codex/app-v4-group-b-offline-preparation.
+No history was rewritten. App v4 source is unchanged from the previously returned
+fc2027f6df through this merge, verified by scoped Git diff; inherited definitions,
+manuals and constraints remain applicable. The current graph carries execution.
+
+Actual children:
+
+- Existing TASK support_production was activated with followup_task, on a new
+  clean codex/app-v4-group-b-package-prep branch from 462f66975d in its own
+  app-v4-group-b-support worktree. It owns new app/packaging/,
+  tests/group_b_packaging* and run/packaging-prep only. Brief requires actual
+  offline approved-tree inspection/staging, negative tests, source/evidence
+  identity and missing-input limits. No shared config/Design changes.
+- New TASK standalone_preparation was launched with spawn_agent, fork_turns=none,
+  requested gpt-6-astra/low, in own app-v4-group-b-case-prep worktree/branch at
+  462f66975d. It owns app/examination/standalone/, tests/group_b_standalone* and
+  run/standalone-prep only. Brief requires exact SQ step/stimulus/source fidelity
+  and negative tests; no examination opening, invented build identity or pass.
+
+Both briefs retain no delegation, downloads, credentials, native launch/acts,
+signing/notarisation, user Codex home use or SEAL-2. Tools enforce real host
+permissions; writes to these isolated paths require host-reviewed escalation.
+This is native harness delegation, not managed Chirality delegate_agent.
+Requested model allocation is gpt-6-astra/low; no family-diversity claim.
+
+The manager alone owns graph/shared docs and candidate-value evidence. Parent
+explicitly retained 15.0 and dev.chirality.app-v4 as candidate recommendations,
+with no durable signed-identity or native compatibility claim. DEL-01-01 full
+supplier-distribution verification remains a separately coordinated Group A
+input before FP-2/W-4. Source inspection does not complete that contribution.
