@@ -1,0 +1,86 @@
+{
+  "run": "APP-V4-GROUP-C-20261008",
+  "slice": "C3-S1/U1",
+  "manager": "/root/group_c_successor",
+  "receiving_base": "412cf7fa012f400043182e4c9e8ea0e1725c843f",
+  "relayed_steering": "HELP_HUMAN authorized continued source reconstruction/presentation, then concurred with actual file-only walk plus separately labeled saved-account inspection. App-native source production remains unfinished.",
+  "mechanism": "harness-native TASK descendants, gpt-6-astra low, isolated managed worktrees; instruction write fences do not claim per-file host enforcement",
+  "owners": {
+    "cfb_design_owner": "C3_SOURCE_WALK and basis/fixture; actual committed source comparison and presentation definition",
+    "route_persistence": "read-only command/projection/panel/tests and C3_PRESENTATION evidence",
+    "cfb_design_review": "independent source and implementation backcheck"
+  },
+  "reading_limit": "Contracts read for C3 scope; code inspected selectively for source custody and project/discovery interfaces. Earlier manual/full field-book reading remains in C3_MANAGER_BASIS.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "sha256": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/attachments.rs",
+      "sha256": "77791e9bb62dd994ff7f0fa12a04acb667834ca3d5132f2a3d7284b308ffa0a5"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "sha256": "ace6a925fe32d49754f3a7fbd30eebf1bf144292ef2104e48a9886663b99f160"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "e18d2021d12c15051ee57a2de158b0fbc837e32deec8c69c924f9b9423c529c0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md",
+      "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md",
+      "sha256": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK_v0.3.md",
+      "sha256": "3b1007357e05571f1f22b09c6bfe1af575ec6549d938f95ab94cf61093bd834d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/recovery.rs",
+      "sha256": "2e3c52c8fbc02b92067310a2a9caca9bfbd241ac99c79d49e1285c766014687f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "e3f55b01a834e5f7f74b68c62962d5485b475d17be9f3300ad0b1fdb048c295a"
+    }
+  ],
+  "holds": [
+    "no MEMORY",
+    "no downloads or credentials",
+    "no native App or person act",
+    "C2 actual OI-022",
+    "C4 OI-023/OI-026",
+    "C5 owner activation",
+    "SEAL-2 deferred"
+  ],
+  "production_gap": "No App-native source-selection/revision/anchor producer or actual native witness is established by this slice."
+}
