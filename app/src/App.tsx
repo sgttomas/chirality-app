@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileActPanel } from "./FileActPanel";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
+import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -259,7 +260,41 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
+// V14 F1/F5: while a native confirmation is open and names content by digest
+// (a logout assessment, an A16 alternative, a request answer, an attachment
+// comparison or an A15 review), the host publishes that content here so the
+// person can read it whole. Read-only; it is withdrawn when the alert closes.
+function NativeConfirmationContent() {
+  const [shown, setShown] = useState<Json[]>([]);
+  const [checks, setChecks] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let live = true;
+    const poll = () => invoke<Json[]>("native_confirmation_content").then(async (rows) => {
+      if (!live) return;
+      setShown(rows ?? []);
+      const next: Record<string, string> = {};
+      for (const row of rows ?? []) {
+        try { next[row.digest] = (await reviewDigest(row.content)) === row.digest ? "This view recomputed the same digest from the content below." : "This view recomputed a different digest: do not rely on this view; cancel the native confirmation."; }
+        catch (e) { next[row.digest] = `This view cannot recompute it (${e instanceof Error ? e.message : String(e)}).`; }
+      }
+      if (live) setChecks(next);
+    }).catch(() => undefined);
+    poll();
+    const t = setInterval(poll, 1000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  if (!shown.length) return null;
+  return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
+    <h2>Content named by an open native confirmation</h2>
+    {shown.map((row: Json) => <article key={row.digest}>
+      <h3>{row.kind}</h3>
+      <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
+      <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(readablePaths(row.content), null, 2)}</pre>
+    </article>)}
+  </section>;
+}
+
+export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [inPlace,setInPlace]=useState(false);
   const [thread,setThread]=useState("");
@@ -268,18 +303,44 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
   const [message,setMessage]=useState("");
   const action=async(command:string,args:Record<string,unknown>)=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));}catch(e){setMessage(String(e));}finally{setBusy(false);}};
   const entries:Json[]=data?.reviews??[];
+  // J6 D-1 / V14 F2, F8: the digest of each complete review as the host
+  // reports it (the native A15 statement names the same value), and this
+  // view's own recomputation as a check. Kept per review so it stays readable
+  // while the native confirmation holds the review.
+  const [digests,setDigests]=useState<Record<string,ReviewDigestView>>({});
+  const presentations=JSON.stringify(entries.map(review=>[review.reference,review.status?.presentation??null]));
+  useEffect(()=>{
+    let live=true;
+    (async()=>{
+      const next:Record<string,ReviewDigestView>={};
+      for(const review of entries){
+        if(!review.status?.presentation)continue;
+        const row:ReviewDigestView={};
+        try{const host=await invoke<Json>("workflow_review_digest",{reviewRef:review.reference});if(host.digest)row.host=host.digest;else row.hostUnavailable=String(host.unavailable);}
+        catch(e){row.hostUnavailable=String(e);}
+        try{row.app=await reviewDigest(review.status.presentation);}
+        catch(e){row.appUnavailable=e instanceof Error?e.message:String(e);}
+        next[review.reference]=row;
+      }
+      if(live&&Object.keys(next).length)setDigests(old=>({...old,...next}));
+    })();
+    return()=>{live=false;};
+  },[presentations]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section><h2>Workflow selection and native registration</h2><a href="#file-acts">Review a workspace draft file for a separate standing act</a>
     <p>Development content, native registration, supplied text, model adoption and run standing remain separate observations.</p>
     <button disabled={busy} onClick={()=>action("workflow_select_development",{})}>Select exact development workflow holding copy…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"project"})}>Open project workflow library…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"user"})}>Open user workflow library…</button>
-    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary},null,2)}</pre>
+    <p>Paths are shown as text (display only: identities keep their exact bytes; a path that is not valid UTF-8 is marked).</p>
+    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre>
     <label>Draft or entry name <input value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.selection||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>Create draft from selected content</button>
     <label><input type="checkbox" checked={inPlace} onChange={e=>setInPlace(e.target.checked)} disabled={busy}/> Review existing unregistered in-place entry</label>
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace})}>Read actual library entry for review</button>
     {entries.map(review=><article key={review.reference}>
-      <h3>{review.reference}</h3><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(review.status??review,null,2)}</pre>
+      <h3>{review.reference}</h3>
+      {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?"":" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}. Read the complete review below before choosing Register: the native confirmation shows the act statement and this digest, not the review itself.</p>}
+      <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre>
       <button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>Register this review through native A15 confirmation…</button>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
       {(review.status?.entries??[]).filter((entry:Json)=>entry.state==="registered").map((entry:Json)=><button key={entry.identity.revision} disabled={busy} onClick={()=>action("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select hot registered {entry.identity.name} holding copy…</button>)}
@@ -296,14 +357,14 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
         {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
       {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}</article>}
     {(data?.runs??[]).map((run:Json)=><article key={run.reference}><h3>{run.reference}</h3>
-      <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {run.status?.supplied??"see checks"}. Adoption: unknown.</p>
+      <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {suppliedSummary(run)}. Adoption: unknown.</p>
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
       {run.endNotice?.state?.startsWith("pending")&&<p role="status">Ordinary messages in this conversation wait for this end notice: it goes first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}
         <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
         {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
       <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
       <ul>{(run.compatibility??[]).map((c:Json,i:number)=><li key={i}>{c.occasion} (advisory, never gates a start): {c.statement??c.state??c.checkResult??"evaluated"}; publication {c.publication?.state}; {c.r14}</li>)}</ul>
-      <details><summary>Complete run evidence</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(run,null,2)}</pre></details>
+      <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
       <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
       <button disabled={busy||!run.pendingRecords} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
@@ -370,7 +431,7 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     {rows.map((row, index) => <article key={row.selection.selectionRef} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
       <h3>{index + 1}. {row.selection.displayName} · {row.selection.standing}</h3>
       <p>{row.selection.displayPath} · carrier: {row.selection.carrier}.</p>
-      <pre>{JSON.stringify({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft }, null, 2)}</pre>
+      <pre>{JSON.stringify(readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft }), null, 2)}</pre>
       <button disabled={busy || index === 0} onClick={() => move(index, -1)}>Move earlier</button>{" "}
       <button disabled={busy || index === rows.length - 1} onClick={() => move(index, 1)}>Move later</button>{" "}
       <button disabled={busy} onClick={() => invokeAction("remove_attachment", { selectionRef: row.selection.selectionRef })}>Remove</button>{" "}
@@ -534,6 +595,7 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
+      <NativeConfirmationContent />
       <FileActPanel command={(name,args)=>invoke(name,args)} />
 
       <WorkflowRootPanel data={host?.workflowRoot} host={host} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />
