@@ -1,0 +1,67 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-namespace-admission/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused import: `NativeNamespaceBindings`
+ --> src/namespace_admission_tests.rs:2:45
+  |
+2 | use attachment_custody::{NamespaceAuthority,NativeNamespaceBindings,AttachmentCustody};
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: `hosting::SourceRequest` doesn't implement `Debug`
+  --> src/namespace_admission_tests.rs:18:471
+   |
+18 | ...tch_attachment_turn(&packet).unwrap_err().contains("stale"));assert_eq!(f.host.inner.0.lock().unwrap().send_position,0);assert_eq!(f.h...
+   |                                 ^^^^^^^^^^ the trait `Debug` is not implemented for `hosting::SourceRequest`
+   |
+   = note: add `#[derive(Debug)]` to `hosting::SourceRequest` or manually `impl Debug for hosting::SourceRequest`
+note: required by a bound in `std::result::Result::<T, E>::unwrap_err`
+  --> /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/result.rs:1324:5
+help: consider annotating `hosting::SourceRequest` with `#[derive(Debug)]`
+  --> src/hosting.rs:192:1
+   |
+192+ #[derive(Debug)]
+193| pub struct SourceRequest {
+   |
+
+error[E0061]: this method takes 1 argument but 0 arguments were supplied
+   --> src/distribution_store.rs:486:30
+    |
+486 |         let parent = f.store.guard().unwrap();
+    |                              ^^^^^-- argument #1 of type `&hosting::attachment_custody::NamespaceLease<'_>` is missing
+    |
+note: method defined here
+   --> src/distribution_store.rs:298:8
+    |
+298 |     fn guard(&self,lease:&NamespaceLease<'_>)->Result<File,String>{self.preflight_binding(lease)?;physical_root(&self.root)}
+    |        ^^^^^       -------------------------
+help: provide the argument
+    |
+486 |         let parent = f.store.guard(/* &hosting::attachment_custody::NamespaceLease<'_> */).unwrap();
+    |                                    ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3234:13
+     |
+3234 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+Some errors have detailed explanations: E0061, E0277.
+For more information about an error, try `rustc --explain E0061`.
+warning: `chirality-app-v4` (lib test) generated 4 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 2 previous errors; 4 warnings emitted

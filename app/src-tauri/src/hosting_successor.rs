@@ -414,6 +414,25 @@ for line in sys.stdin:
         assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
     }
     #[test]
+    fn namespace_admission_two_actual_host_homes_preserve_store_reference_and_expand_guards(){
+        let f=Fixture::new("pass");let account=Arc::new(Host::new());let data=attach_store(&account,&f);
+        let store=account.distribution_store_for_admission(true).unwrap().unwrap();let authority=store.namespace_authority();
+        account.configure_recovery(data.join("runtime/recovery.ledger.jsonl")).unwrap();
+        let ready=account.start(&f.cfg,"fixture").unwrap();let ga=ready["generation"].clone();let before=account.distribution_evidence(&ga);
+        let shared=f.root.join("shared");std::fs::create_dir(&shared).unwrap();std::fs::create_dir(shared.join("skills")).unwrap();for name in ["config.toml","AGENTS.md"]{std::fs::write(shared.join(name),b"synthetic resource").unwrap();}
+        let bootstrap=crate::runtime_session::freeze_root_home_descriptors(&data,&f.cfg,Some(data.join("key")),[Some(shared.join("config.toml")),Some(shared.join("AGENTS.md")),Some(shared.join("skills"))]).unwrap();
+        let cap=account.app_runtime_custody().unwrap();let installed=std::sync::atomic::AtomicBool::new(false);
+        let(tx,rx)=std::sync::mpsc::channel();let(go,wait)=std::sync::mpsc::channel();store.before_s1_audit(move||{tx.send(()).unwrap();wait.recv_timeout(Duration::from_secs(2)).unwrap();});let source=account.clone();let generation=ga.clone();let reader=std::thread::spawn(move||source.distribution_evidence(&generation));rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(crate::runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&cap,&authority,&[store.clone()],|_|panic!("busy must not install")).err().unwrap().contains("busy"));assert_eq!(authority.lease().unwrap().epoch(),0);go.send(()).unwrap();assert_eq!(reader.join().unwrap(),before);
+
+        let admitted=crate::runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&cap,&authority,&[store.clone()],|_|{installed.store(true,std::sync::atomic::Ordering::SeqCst);}).unwrap();
+        assert!(installed.load(std::sync::atomic::Ordering::SeqCst));assert_eq!(before,account.distribution_evidence(&ga));
+        let key=Arc::new(Host::new_with_app_custody(cap).unwrap());key.configure_distribution_store(Ok(store.clone()));let mut cfg=f.cfg.clone();cfg.codex_home=data.join("key");
+        let ready=key.start(&cfg,"fixture").unwrap();let gk=ready["generation"].clone();assert_ne!(ga["home"],gk["home"]);assert_eq!(ga["appSession"],gk["appSession"]);assert_eq!(key.distribution_evidence(&gk)["state"],"read");assert_eq!(before,account.distribution_evidence(&ga));assert_eq!(key.distribution_evidence(&ga)["state"],"unavailable");
+        std::fs::remove_file(data.join("key/skills")).unwrap();assert_eq!(account.distribution_evidence(&ga)["state"],"unavailable");assert!(admitted.attachment.supplies_path("anything").is_err());std::os::unix::fs::symlink(shared.join("skills"),data.join("key/skills")).unwrap();assert_eq!(before,account.distribution_evidence(&ga));
+        key.stop("fixture","key continuity complete").unwrap();account.stop("fixture","account continuity complete").unwrap();
+    }
+    #[test]
     fn actual_s1_selected_closure_is_unverified_exact_and_rechecks_original_source() {
         let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_selected_store(&host,&f,Some("reference/expected.json"));
         let ready=host.start(&f.cfg,"fixture").unwrap();let g=ready["generation"].clone();let evidence=host.distribution_evidence(&g);

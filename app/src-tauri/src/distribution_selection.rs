@@ -146,15 +146,19 @@ impl Selected {
     pub(crate) fn recheck(&self) -> Result<(), String> {
         // Association is held by this sealed native capability, never reselected
         // from mirror bytes. Production can construct it only from the constant.
+        self.recheck_root()?;
+        resolve(&self.source, &self.anchor)?;
+        if collect(&self.source, &self.anchor)? != self.files {
+            return Err("selected source closure changed".into());
+        }
+        Ok(())
+    }
+    pub(crate) fn recheck_root(&self)->Result<(),String>{
         let metadata = super::root(&self.source)?
             .metadata()
             .map_err(|e| e.to_string())?;
         if (metadata.dev(), metadata.ino()) != self.source_id {
             return Err("selected source root relocated/replaced".into());
-        }
-        resolve(&self.source, &self.anchor)?;
-        if collect(&self.source, &self.anchor)? != self.files {
-            return Err("selected source closure changed".into());
         }
         Ok(())
     }

@@ -1,0 +1,126 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-namespace-admission/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused import: `NativeNamespaceBindings`
+ --> src/namespace_admission_tests.rs:2:45
+  |
+2 | use attachment_custody::{NamespaceAuthority,NativeNamespaceBindings,AttachmentCustody};
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3234:13
+     |
+3234 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1443:19
+     |
+ 442 | impl Host {
+     | --------- method in this implementation
+...
+1443 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `namespace_authority` is never used
+   --> src/distribution_store.rs:288:19
+    |
+246 | impl Store {
+    | ---------- method in this implementation
+...
+288 |     pub(crate) fn namespace_authority(&self)->Arc<NamespaceAuthority>{self.authority.clone()}
+    |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3875:9
+     |
+3874 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3875 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: `chirality-app-v4` (lib test) generated 9 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 4 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.95s
+     Running unittests src/lib.rs (/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 4 tests
+test hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_busy_epoch_and_writer_leave_old_capabilities_usable ... FAILED
+test hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_final_geometry_failure_and_unavailable_rec_are_truthful ... FAILED
+test hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_postwrite_response_retained_when_old_link_persistence_refuses ... FAILED
+test hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_stale_clone_prepared_and_cold_read_do_not_replay ... FAILED
+
+failures:
+
+---- hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_busy_epoch_and_writer_leave_old_capabilities_usable stdout ----
+
+thread 'hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_busy_epoch_and_writer_leave_old_capabilities_usable' (3546770) panicked at src/namespace_admission_tests.rs:7:794:
+called `Result::unwrap()` on an `Err` value: "publication object is not private, owned, and expected type"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_final_geometry_failure_and_unavailable_rec_are_truthful stdout ----
+
+thread 'hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_final_geometry_failure_and_unavailable_rec_are_truthful' (3546771) panicked at src/namespace_admission_tests.rs:7:794:
+called `Result::unwrap()` on an `Err` value: "publication object is not private, owned, and expected type"
+
+---- hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_postwrite_response_retained_when_old_link_persistence_refuses stdout ----
+
+thread 'hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_postwrite_response_retained_when_old_link_persistence_refuses' (3546772) panicked at src/namespace_admission_tests.rs:7:794:
+called `Result::unwrap()` on an `Err` value: "publication object is not private, owned, and expected type"
+
+---- hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_stale_clone_prepared_and_cold_read_do_not_replay stdout ----
+
+thread 'hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_stale_clone_prepared_and_cold_read_do_not_replay' (3546773) panicked at src/namespace_admission_tests.rs:7:794:
+called `Result::unwrap()` on an `Err` value: "publication object is not private, owned, and expected type"
+
+
+failures:
+    hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_busy_epoch_and_writer_leave_old_capabilities_usable
+    hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_final_geometry_failure_and_unavailable_rec_are_truthful
+    hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_postwrite_response_retained_when_old_link_persistence_refuses
+    hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_stale_clone_prepared_and_cold_read_do_not_replay
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 530 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `--lib`

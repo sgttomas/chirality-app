@@ -1,0 +1,106 @@
+{
+  "role": "TASK",
+  "parent": "/root/hosting_runtime_manager",
+  "mechanism": "delegated harness native",
+  "descendants": false,
+  "releaseBasis": "f23997d3202375f9d607098731f8d374d019b434",
+  "integratedBase": "7fd670cc061a564d9a1c3a8cc3e85a4f870cf418",
+  "reviewedProposalSha256": "15907e97c803d64037251b512110591e9611733611d731242810056492d580d6",
+  "release": "HELP_HUMAN release relayed by manager in task; exact retained release remains manager-owned",
+  "entryReading": "Root/TASK/skill and project entry carried forward from this continuous task; Agent Manual headings and Field Book previously read, no additional role loaded",
+  "entry": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    }
+  ],
+  "technicalBasis": [
+    {
+      "origin": "/private/tmp/hosting-secondary-manager/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2_secondary/NAMESPACE_PROPOSAL.md",
+      "sha256": "15907e97c803d64037251b512110591e9611733611d731242810056492d580d6",
+      "retained": "basis/NAMESPACE_PROPOSAL.md"
+    },
+    {
+      "origin": "/private/tmp/hosting-secondary-manager/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2_secondary/DESIGN_BACKCHECK.md",
+      "sha256": "ba76b7304f2596cfa6b08e6cc0062e7fa55b5e2decb907dc76567028e3da46a2",
+      "retained": "basis/DESIGN_BACKCHECK.md"
+    },
+    {
+      "origin": "/private/tmp/hosting-secondary-manager/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2_secondary/RS_CHOICE_FINAL.md",
+      "sha256": "a75ac42b8b706fe57d154a406d04d4df31aea4fbb854fa07102deae2e7deb95e",
+      "retained": "basis/RS_CHOICE_FINAL.md"
+    },
+    {
+      "origin": "/private/tmp/hosting-secondary-manager/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2_secondary/ATTACHMENT_OWNER.md",
+      "sha256": "a6921e3b3027707fdb36696deacd6419ddc3881791359fdd7b6f8782800a049f",
+      "retained": "basis/ATTACHMENT_OWNER.md"
+    }
+  ],
+  "sourceReading": "Targeted affected methods, not every full-file body",
+  "sourceBasis": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/attachment_custody.rs",
+      "sha256": "04f82cbd64fe5a9c40b57556a804c063740019d584f0cf68aeab9172a2d58082"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_s1.rs",
+      "sha256": "32586a82316350717f0856483d36f30debf66efec22cd006740b51b11b7a1e7f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_selection.rs",
+      "sha256": "914c7619118e12308dca70b201941383b76e75c08dd5799b3a3b5c44696d02f5"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_store.rs",
+      "sha256": "9a19eaf09f5dae25bb562233a9e84d49c3da9ab37e58edf8f125fbfe5c6fb192"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs",
+      "sha256": "6c7abec33ad8b8488f1849fe44abdb819d36ddea2e977f133c4c4365114b4ffd"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "56207599ed86d712d55caccc9ffcc93189d9b2d17201b339946c811056a02852"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "sha256": "fb70478c4c25efe00848d6d85c4b39bbcd3a7eebbf15ae56ac78ab5ed707e410"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "0d28e14e58827b47f94a453885709ecba8e8002ce1bf5cf1223dc18c68b2e50a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/recovery.rs",
+      "sha256": "2e3c52c8fbc02b92067310a2a9caca9bfbd241ac99c79d49e1285c766014687f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "1cf78544f67bf552eab3c3b62d6d0e4a2f07492cf6f3b5610acdc0d72c435a01"
+    }
+  ]
+}

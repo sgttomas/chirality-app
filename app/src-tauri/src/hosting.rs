@@ -357,6 +357,7 @@ impl AppRuntimeCustody {
     pub fn preflight_native_namespaces(&self,binding:&Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{
         let _writer=self.writer.lock().unwrap();self.preflight_native_namespaces_owned(binding)
     }
+    pub(crate) fn try_preflight_native_namespaces(&self,binding:&Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{let _writer=self.writer.try_lock().map_err(|_|"REC writer busy; explicit retry permitted")?;self.preflight_native_namespaces_owned(binding)}
     fn preflight_native_namespaces_owned(&self,binding:&Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{
         let path=self.recovery_path.as_ref().ok_or("actual configured REC leaf is absent; no path default or H5 resolver")?;binding.guard_domains(&[path.clone()])?;
         for source in self.sources.lock().unwrap().iter(){if let Some(inner)=source.inner.upgrade(){let home=inner.0.lock().unwrap().home.clone();if !home.is_empty(){binding.contains_home_id(&home)?;}}}
@@ -366,6 +367,20 @@ impl AppRuntimeCustody {
     pub fn bind_native_namespaces(&self,binding:Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{
         let _writer=self.writer.lock().unwrap();let result=self.preflight_native_namespaces_owned(&binding)?;
         if let Some(ledger)=&self.ledger{ledger.lock().unwrap().bind_namespaces(binding)?;}else{return Ok(json!({"preflight":result,"ledgerUnavailable":true,"bindingCommitted":false,"limit":self.initial_limit,"standing":"namespace geometry checked; original REC unavailable, no new ledger opened or durable binding claimed"}));}Ok(result)
+    }
+    /// Caller holds exclusive namespace authority; final Store checks are geometry only.
+    pub(crate) fn commit_namespace_admission(&self,admission:&mut attachment_custody::NamespaceAdmission<'_>,binding:Arc<attachment_custody::NativeNamespaceBindings>,stores:&[Arc<crate::distribution_store::Store>],attachment:&attachment_custody::AttachmentCustody)->Result<Value,String>{
+        let _writer=self.writer.try_lock().map_err(|_|"REC writer busy; namespace admission unchanged, explicit retry permitted")?;
+        attachment.preflight_binding(&binding)?;for store in stores{store.preflight_binding(&binding)?;}
+        let preflight=self.preflight_native_namespaces_owned(&binding)?;
+        if let Some(ledger)=&self.ledger{
+            let mut ledger=ledger.lock().unwrap();let prepared=ledger.prepare_namespace_binding(binding.clone())?;
+            prepared.commit();admission.commit(binding);
+            Ok(json!({"preflight":preflight,"protectiveAdmission":true,"bindingCommitted":true,"namespaceEpoch":admission.next()}))
+        }else{
+            admission.commit(binding);
+            Ok(json!({"preflight":preflight,"protectiveAdmission":true,"ledgerUnavailable":true,"bindingCommitted":false,"namespaceEpoch":admission.next(),"limit":self.initial_limit,"standing":"protective namespace admitted; REC remains unavailable; no ledger opened"}))
+        }
     }
     pub fn flush_captured_recovery(&self)->Value{
         let _writer=match self.writer.try_lock(){Ok(writer)=>writer,Err(_)=>return json!({"standing":"App writer busy; captured pointer facts remain owned/unpersisted"})};
@@ -394,6 +409,10 @@ pub struct Host {
     submission_contexts:Arc<Mutex<Vec<Value>>>,
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
+    #[cfg(test)]
+    after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    #[cfg(test)]
+    before_attachment_hot_join:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
     inner: Arc<(Mutex<Inner>, Condvar)>,
     stdin: Mutex<Option<ChildStdin>>,
@@ -437,6 +456,10 @@ impl Host {
             submission_contexts:Arc::new(Mutex::new(Vec::new())),
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
+            #[cfg(test)]
+            after_attachment_namespace_write:Mutex::new(None),
+            #[cfg(test)]
+            before_attachment_hot_join:Mutex::new(None),
             distribution_store: Mutex::new(None),
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
             stdin: Mutex::new(None),
@@ -494,6 +517,7 @@ impl Host {
     pub(crate) fn configure_distribution_store(&self, store: Result<Arc<crate::distribution_store::Store>, String>) {
         *self.distribution_store.lock().unwrap() = Some(store);
     }
+    pub(crate) fn distribution_store_for_admission(&self,required:bool)->Result<Option<Arc<crate::distribution_store::Store>>,String>{match self.distribution_store.lock().unwrap().clone(){Some(Ok(store))=>Ok(Some(store)),Some(Err(e))=>Err(e),None if required=>Err("required distribution Store unavailable".into()),None=>Ok(None)}}
     /// Read exact bytes outside source/ledger locks, then recheck the source.
     pub(crate) fn distribution_evidence(&self, generation: &Value) -> Value {
         let (attempt, reference) = {
@@ -1678,15 +1702,16 @@ impl Host {
         self.check_source(&prepared.source)?;
         {let mut state=prepared.state.lock().unwrap();if *state!="prepared"{return Err(format!("attachment dispatch is {state}; no resend"));}*state="validating";}
         let result=(||->Result<SourceRequest,String>{
-            prepared.custody.check_prepared(&prepared.list.supply_records(),&prepared.client)?;
+            let namespace_lease=prepared.custody.lease()?;
+            prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
             // Revalidation uses actual original picker source; generated new
             // preparation IDs are discarded, never substituted into the list.
             let recheck=attachments::prepare_ordered(&prepared.selections,prepared.submission_ref(),&now_rfc3339()).map_err(|e|e.message)?;
             if recheck.native_inputs()!=prepared.list.native_inputs(){return Err("attachment source/input changed after durable preparation; nothing sent".into());}
             let frame=prepared.source.attempted_frame();let bytes=Self::frame_bytes(frame)?;
             let serial=self.frame_write.lock().unwrap();
-            let source_lock=prepared.custody.lock_sources()?;
-            prepared.custody.check_prepared(&prepared.list.supply_records(),&prepared.client)?;
+            let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
+            prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
             let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
             Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
@@ -1702,7 +1727,9 @@ impl Host {
             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}}
                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
-            drop(i);let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
+            drop(i);drop(namespace_lease);
+            #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+            let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
         })();if let Err(error)=&result{*prepared.state.lock().unwrap()="refused";self.attachment_limit(&prepared.source,error.clone());}result
     }
     pub fn persist_attachment_observation(&self,source:&SourceRequest)->Result<Value,String>{
@@ -1719,7 +1746,9 @@ impl Host {
         let i=self.inner.0.lock().unwrap();let a=i.source_requests.get(&source.request_id().to_string()).and_then(|e|e.attachment.as_ref()).ok_or("source is not attachment-bearing")?;evidence["custodyLimit"]=json!(a.limit);Ok(evidence)
     }
     pub fn resolve_attachment_submission(&self,custody:&Arc<AttachmentCustody>,submission:&str)->Value{
-        let mut view=custody.resolve_cold(submission);if view.get("clientMetadata").is_none(){return view;}
+        let lease=match custody.lease(){Ok(lease)=>lease,Err(error)=>return json!({"submissionRef":submission,"nativeTurnRef":null,"dispatch":"unknown/unavailable","limits":[error],"automaticRetry":false})};
+        let mut view=custody.resolve_cold_leased(&lease,submission);if view.get("clientMetadata").is_none(){return view;}
+        #[cfg(test)] {let hook=self.before_attachment_hot_join.lock().unwrap().take();if let Some(hook)=hook{hook();}}
         let record=view["clientMetadata"].clone();let i=self.inner.0.lock().unwrap();let Some(e)=i.source_requests.get(&record["requestIdentity"].to_string())else{return view;};let Some(a)=e.attachment.as_ref()else{return view;};
         if !Arc::ptr_eq(custody,&a.custody)||e.request.generation!=record["generation"]||a.original["submissionAssociation"]!=record["submissionAssociation"]||view["supplyRecords"].as_array()!=Some(&a.records) {return view;}
         view["sourceStanding"]=json!("genuine hot Host source; immutable owning metadata resolved");
@@ -2452,6 +2481,7 @@ mod additive_guidance_transport_tests {
 
 #[cfg(test)]
 mod conversation_transport_tests {
+    mod namespace_admission_tests { include!("namespace_admission_tests.rs"); }
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {

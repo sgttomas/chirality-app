@@ -1,0 +1,17 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-namespace-admission/chirality/projects/chirality-app-v4/app/src-tauri)
+error: this file contains an unclosed delimiter
+   --> src/distribution_store.rs:622:33
+    |
+437 | mod tests {
+    |           - unclosed delimiter
+...
+486 |     fn reviewer_root_replacement_before_returned_descriptor_must_not_receive_writes(){
+    |                                                                                      - this delimiter might not be properly closed...
+...
+618 | }
+    | - ...as it matches this but it has different indentation
+...
+622 | pub(crate) use s1::S1Reference;
+    |                                ^
+
+error: could not compile `chirality-app-v4` (lib test) due to 1 previous error

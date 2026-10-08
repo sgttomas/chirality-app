@@ -243,6 +243,8 @@ pub struct RecoveryLedger {
     entries: Vec<Value>,
     namespaces:Option<Arc<NativeNamespaceBindings>>,
 }
+pub(crate) struct PreparedNamespaceBinding<'a>{ledger:&'a mut RecoveryLedger,binding:Arc<NativeNamespaceBindings>}
+impl PreparedNamespaceBinding<'_>{pub(crate) fn commit(self){self.ledger.namespaces=Some(self.binding);}}
 impl RecoveryLedger {
     pub fn open(path: PathBuf) -> Result<Self, String> {Self::open_inner(path,None)}
     pub fn open_with_namespaces(path:PathBuf,namespaces:Arc<NativeNamespaceBindings>)->Result<Self,String>{Self::open_inner(path,Some(namespaces))}
@@ -287,6 +289,7 @@ impl RecoveryLedger {
         binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;
         match std::fs::symlink_metadata(path){Ok(meta)=>{use std::os::unix::fs::MetadataExt;if !meta.is_file()||meta.nlink()!=1{return Err("REC owning leaf is not a regular single-link source".into());}},Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(format!("REC owning leaf metadata unavailable: {e}"))}Ok(())
     }
+    pub(crate) fn prepare_namespace_binding(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<PreparedNamespaceBinding<'_>,String>{self.preflight_namespaces(&binding)?;Ok(PreparedNamespaceBinding{ledger:self,binding})}
     pub(crate) fn bind_namespaces(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<(),String>{self.preflight_namespaces(&binding)?;self.namespaces=Some(binding);Ok(())}
     fn guard_descriptor(path:&std::path::Path,binding:&Arc<NativeNamespaceBindings>,file:&File)->Result<(),String>{
         use std::os::unix::fs::MetadataExt;binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;let fd=file.metadata().map_err(|e|e.to_string())?;let named=std::fs::symlink_metadata(path).map_err(|e|e.to_string())?;

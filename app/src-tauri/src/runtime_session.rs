@@ -2044,6 +2044,33 @@ pub fn prepare_native_key_namespace(
         observation: json!({"state":"actual namespace candidate received","preflight":preflight,"rec":committed,"qualification":"metadata geometry only; no native/auth/discovery claim"}),
     })
 }
+pub(crate) fn admitted_key_setup<T>(status:&std::sync::Mutex<Value>,admission:&Value,operation:impl FnOnce()->Result<T,String>)->Result<T,String>{operation().map_err(|error|{*status.lock().unwrap()=json!({"state":"protective namespace admitted; key setup unavailable","admission":admission,"limit":error});error})}
+/// Root-only coordinated protective admission. Commit callback installs slots only;
+/// no Host registration, filesystem IO or recursive namespace acquisition is allowed.
+pub(crate) fn prepare_native_key_namespace_coordinated(
+    bootstrap:&HomeBootstrapSet,app_data:&std::path::Path,
+    app_custody:&std::sync::Arc<crate::hosting::AppRuntimeCustody>,
+    authority:&std::sync::Arc<crate::hosting::attachment_custody::NamespaceAuthority>,
+    stores:&[std::sync::Arc<crate::distribution_store::Store>],
+    install:impl FnOnce(&NativeKeyAdmission),
+)->Result<NativeKeyAdmission,String>{
+    use crate::hosting::attachment_custody::AttachmentCustody;
+    let epoch=authority.lease()?.epoch();let next=epoch.checked_add(1).ok_or("namespace epoch exhausted")?;
+    let proposed=bootstrap.native_namespaces(true)?;
+    app_custody.try_preflight_native_namespaces(&proposed)?;
+    AttachmentCustody::open_with_namespaces(app_data,proposed.clone())?;
+    for store in stores{if !store.uses_authority(authority){return Err("Store has foreign namespace authority".into());}store.preflight_binding(&proposed)?;store.preflight_selection()?;}
+    bootstrap.prepare_key()?;
+    let namespaces=bootstrap.native_namespaces(true)?;
+    let attachment=std::sync::Arc::new(AttachmentCustody::prepared_shared(app_data,authority.clone(),namespaces.clone(),next)?);
+    for store in stores{store.preflight_binding(&namespaces)?;store.preflight_selection()?;}
+    let mut admission=authority.admission(epoch)?;
+    // Final bounded geometry/ID checks; no selected closure hashing under writer.
+    attachment.preflight_binding(&namespaces)?;for store in stores{store.preflight_binding(&namespaces)?;}
+    let committed=app_custody.commit_namespace_admission(&mut admission,namespaces.clone(),stores,&attachment)?;
+    let admitted=NativeKeyAdmission{namespaces,attachment,observation:json!({"state":"protective namespace admitted","rec":committed,"namespaceEpoch":next,"qualification":"metadata protection only; no native/auth/discovery claim"})};
+    install(&admitted);drop(admission);Ok(admitted)
+}
 fn home_resource_view(observation: &crate::home_resources::HomeObservation) -> Value {
     json!({"modeHomeClass":observation.class.as_str(),"homeIdentity":observation.opaque_home_id,"nativePath":crate::attachments::native_path_identity(&observation.native_path),"displayPath":observation.display_path(),"resources":observation.resources.iter().map(|resource| json!({"name":resource.name,"destination":crate::attachments::native_path_identity(&resource.destination),"intendedTarget":resource.intended_target.as_ref().map(|path|crate::attachments::native_path_identity(path)),"state":format!("{:?}",resource.state),"limit":resource.limit})).collect::<Vec<_>>(),"limit":"resource relationship is a current observation; resolved config target is not future write authority"})
 }

@@ -1,0 +1,371 @@
+    Checking chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-namespace-admission/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `ProductionBundlePackage`, `ProductionHoldingCopy`, and `RELEASE_SUBJECT`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+15 |         RELEASE_SUBJECT,
+   |         ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `original_capture`, `durable_record`, and `original_offer` are never read
+   --> src/act_control_a15.rs:212:5
+    |
+211 | struct A15NativeWitness {
+    |        ---------------- fields in this struct
+212 |     original_capture: Value,
+    |     ^^^^^^^^^^^^^^^^
+213 |     durable_record: Value,
+    |     ^^^^^^^^^^^^^^
+214 |     original_offer: Value,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `witness` is never read
+   --> src/act_control_a15.rs:221:5
+    |
+217 | pub(crate) struct HotA15Receipt {
+    |                   ------------- field in this struct
+...
+221 |     witness: std::sync::Arc<A15NativeWitness>,
+    |     ^^^^^^^
+
+warning: field `source` is never read
+   --> src/hosting.rs:237:5
+    |
+236 | pub(crate) struct PreparedNativeTurnStart<'a> {
+    |                   ----------------------- field in this struct
+237 |     source:&'a SourceRequest,
+    |     ^^^^^^
+
+warning: method `source` is never used
+   --> src/hosting.rs:243:19
+    |
+242 | impl PreparedNativeTurnStart<'_> {
+    | -------------------------------- method in this implementation
+243 |     pub(crate) fn source(&self)->&SourceRequest {self.source}
+    |                   ^^^^^^
+
+warning: methods `source_request_id` and `source_request_ref` are never used
+   --> src/hosting.rs:270:19
+    |
+267 | impl AcceptedNativeItemPage<'_> {
+    | ------------------------------- methods in this implementation
+...
+270 |     pub(crate) fn source_request_id(&self)->&Value {self.source.dispatch.source.request_id()}
+    |                   ^^^^^^^^^^^^^^^^^
+271 |     pub(crate) fn source_request_ref(&self)->&str {self.source.dispatch.source.request_ref()}
+    |                   ^^^^^^^^^^^^^^^^^^
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1438:19
+     |
+ 439 | impl Host {
+     | --------- method in this implementation
+...
+1438 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `staged_start` is never used
+   --> src/distribution_preflight.rs:436:4
+    |
+436 | fn staged_start(
+    |    ^^^^^^^^^^^^
+
+warning: constant `MANIFEST` is never used
+  --> src/distribution_store.rs:19:7
+   |
+19 | const MANIFEST: &str = "transport.json";
+   |       ^^^^^^^^
+
+warning: constant `ATTEMPT` is never used
+  --> src/distribution_store.rs:20:7
+   |
+20 | const ATTEMPT: &str = "attempt.json";
+   |       ^^^^^^^
+
+warning: struct `Reference` is never constructed
+  --> src/distribution_store.rs:24:19
+   |
+24 | pub(crate) struct Reference {
+   |                   ^^^^^^^^^
+
+warning: field `namespaces` is never read
+  --> src/distribution_store.rs:38:5
+   |
+33 | pub(crate) struct Store {
+   |                   ----- field in this struct
+...
+38 |     namespaces: Arc<NativeNamespaceBindings>,
+   |     ^^^^^^^^^^
+
+warning: methods `publish_attempt`, `read`, and `read_leased` are never used
+   --> src/distribution_store.rs:301:19
+    |
+246 | impl Store {
+    | ---------- methods in this implementation
+...
+301 |     pub(crate) fn publish_attempt(&self, g: &Value, attempt: &Value) -> Result<Reference, String> {
+    |                   ^^^^^^^^^^^^^^^
+...
+342 |     pub(crate) fn read(&self,g:&Value,reference:&Reference)->Result<Value,String>{let lease=self.authority.lease()?;self.read_leased(&lea...
+    |                   ^^^^
+343 |     fn read_leased(&self,lease:&NamespaceLease<'_>, g: &Value, reference: &Reference) -> Result<Value, String> {
+    |        ^^^^^^^^^^^
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3875:9
+     |
+3874 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3875 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: field `draft_key` is never read
+   --> src/workflow_workspace.rs:278:9
+    |
+274 | pub struct Review {
+    |            ------ field in this struct
+...
+278 |     pub draft_key: String,
+    |         ^^^^^^^^^
+    |
+    = note: `Review` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `is_current` is never used
+   --> src/workflow_workspace.rs:362:12
+    |
+282 | impl Review {
+    | ----------- method in this implementation
+...
+362 |     pub fn is_current(&self, live: &Snapshot, latest: Option<&WorkflowIdentity>) -> bool {
+    |            ^^^^^^^^^^
+
+warning: struct `RegistrationAdapterClaim` is never constructed
+   --> src/workflow_workspace.rs:372:12
+    |
+372 | pub struct RegistrationAdapterClaim {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RegistrationClaimMatch` is never constructed
+   --> src/workflow_workspace.rs:380:12
+    |
+380 | pub struct RegistrationClaimMatch {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `compare`, `identity`, `snapshot`, `claimed_act_ref`, `selection_eligible`, and `evidence` are never used
+   --> src/workflow_workspace.rs:386:12
+    |
+385 | impl RegistrationClaimMatch {
+    | --------------------------- associated items in this implementation
+386 |     pub fn compare(
+    |            ^^^^^^^
+...
+414 |     pub fn identity(&self) -> &WorkflowIdentity {
+    |            ^^^^^^^^
+...
+417 |     pub fn snapshot(&self) -> &Snapshot {
+    |            ^^^^^^^^
+...
+420 |     pub fn claimed_act_ref(&self) -> &str {
+    |            ^^^^^^^^^^^^^^^
+...
+423 |     pub fn selection_eligible(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+426 |     pub fn evidence(&self) -> serde_json::Value {
+    |            ^^^^^^^^
+
+warning: method `run_turn_params` is never used
+   --> src/workflow_workspace.rs:586:12
+    |
+487 | impl Selection {
+    | -------------- method in this implementation
+...
+586 |     pub fn run_turn_params(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `collisions` is never used
+   --> src/workflow_workspace.rs:606:8
+    |
+606 | pub fn collisions<'a>(name: &str, entries: &'a [WorkflowIdentity]) -> Vec<&'a WorkflowIdentity> {
+    |        ^^^^^^^^^^
+
+warning: methods `standing` and `select_embedded` are never used
+  --> src/workflow_catalog.rs:55:12
+   |
+24 | impl DevelopmentCatalog {
+   | ----------------------- methods in this implementation
+...
+55 |     pub fn standing(&self) -> &'static str {
+   |            ^^^^^^^^
+...
+60 |     pub fn select_embedded(&self) -> Selection {
+   |            ^^^^^^^^^^^^^^^
+
+warning: methods `package_path` and `standing` are never used
+   --> src/workflow_catalog.rs:98:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- methods in this implementation
+...
+ 98 |     pub fn package_path(&self) -> &Path {
+    |            ^^^^^^^^^^^^
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: method `manifest` is never used
+   --> src/workflow_catalog.rs:175:12
+    |
+123 | impl ProductionCatalog {
+    | ---------------------- method in this implementation
+...
+175 |     pub fn manifest(&self) -> &'static [u8] {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: field `text` is never read
+   --> src/workflow_record_store.rs:947:5
+    |
+946 | pub struct PublishedEndNotice {
+    |            ------------------ field in this struct
+947 |     text: String,
+    |     ^^^^
+    |
+    = note: `PublishedEndNotice` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+   --> src/workflow_record_store.rs:952:12
+    |
+951 | impl PreparedEndPublication {
+    | --------------------------- associated function in this implementation
+952 |     pub fn new(
+    |            ^^^
+
+warning: method `text` is never used
+    --> src/workflow_record_store.rs:1018:12
+     |
+1017 | impl PublishedEndNotice {
+     | ----------------------- method in this implementation
+1018 |     pub fn text(&self) -> &str {
+     |            ^^^^
+
+warning: variant `EditionChange` is never constructed
+  --> src/compatibility_report.rs:17:5
+   |
+10 | pub enum Occasion {
+   |          -------- variant in this enum
+...
+17 |     EditionChange {
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `Occasion` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Unreadable`, `Partial`, and `Complete` are never constructed
+  --> src/compatibility_report.rs:38:5
+   |
+34 | pub enum CatalogCoverage {
+   |          --------------- variants in this enum
+...
+38 |     Unreadable,
+   |     ^^^^^^^^^^
+39 |     Partial(BTreeMap<String, Operation>),
+   |     ^^^^^^^
+40 |     Complete(BTreeMap<String, Operation>),
+   |     ^^^^^^^^
+
+warning: methods `id` and `result` are never used
+   --> src/compatibility_report.rs:265:12
+    |
+219 | impl PreparedReport {
+    | ------------------- methods in this implementation
+...
+265 |     pub fn id(&self) -> &str {
+    |            ^^
+...
+268 |     pub fn result(&self) -> &Check {
+    |            ^^^^^^
+
+warning: variant `TestDouble` is never constructed
+   --> src/compatibility_report.rs:318:5
+    |
+314 | pub enum InventoryOrigin {
+    |          --------------- variant in this enum
+...
+318 |     TestDouble { fixture: String },
+    |     ^^^^^^^^^^
+    |
+    = note: `InventoryOrigin` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Local`, `Cloud`, and `Unknown` are never constructed
+   --> src/compatibility_report.rs:330:5
+    |
+329 | pub enum DestinationClass {
+    |          ---------------- variants in this enum
+330 |     Local,
+    |     ^^^^^
+331 |     Cloud,
+    |     ^^^^^
+332 |     Unknown,
+    |     ^^^^^^^
+    |
+    = note: `DestinationClass` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: fields `occasion` and `pass_result` are never read
+   --> src/compatibility_report.rs:426:5
+    |
+424 | pub struct PublishedReport {
+    |            --------------- fields in this struct
+425 |     report_id: String,
+426 |     occasion: &'static str,
+    |     ^^^^^^^^
+427 |     pass_result: &'static str,
+    |     ^^^^^^^^^^^
+    |
+    = note: `PublishedReport` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: methods `id`, `body`, and `r14_body` are never used
+   --> src/compatibility_report.rs:431:12
+    |
+430 | impl PublishedReport {
+    | -------------------- methods in this implementation
+431 |     pub fn id(&self) -> &str {
+    |            ^^
+...
+434 |     pub fn body(&self) -> &Value {
+    |            ^^^^
+...
+442 |     pub fn r14_body(&self, stored: Option<&[u8]>) -> Result<Value, String> {
+    |            ^^^^^^^^
+
+warning: constant `R14_TARGET` is never used
+   --> src/compatibility_report.rs:495:7
+    |
+495 | const R14_TARGET: &str =
+    |       ^^^^^^^^^^
+
+warning: function `r14_validator` is never used
+   --> src/compatibility_report.rs:513:4
+    |
+513 | fn r14_validator() -> Result<&'static jsonschema::Validator, String> {
+    |    ^^^^^^^^^^^^^
+
+warning: `chirality-app-v4` (lib) generated 37 warnings (run `cargo fix --lib -p chirality-app-v4` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.27s

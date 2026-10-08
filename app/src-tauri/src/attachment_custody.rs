@@ -299,9 +299,31 @@ fn physical_alias(a:&Path,b:&Path)->Result<bool,String>{
     match(read(a)?,read(b)?){(Some(a),Some(b))=>Ok(a.dev()==b.dev()&&a.ino()==b.ino()),_=>Ok(false)}
 }
 /// Root comes from the integrating native host, never a renderer path or fallback.
+/// Live Root protection only; never a serialized capability or cached safety claim.
+pub(crate) struct NamespaceAuthority { state: std::sync::RwLock<NamespaceState> }
+struct NamespaceState { epoch:u64, binding:std::sync::Arc<NativeNamespaceBindings> }
+pub(crate) struct NamespaceLease<'a> { guard:std::sync::RwLockReadGuard<'a,NamespaceState> }
+impl std::ops::Deref for NamespaceLease<'_> { type Target=NativeNamespaceBindings; fn deref(&self)->&Self::Target { &self.guard.binding } }
+pub(crate) struct NamespaceAdmission<'a> { guard:std::sync::RwLockWriteGuard<'a,NamespaceState>, next:u64 }
+impl NamespaceAuthority {
+    #[cfg(test)]
+    pub(crate) fn test_epoch(&self,epoch:u64){self.state.write().unwrap().epoch=epoch;}
+    pub(crate) fn new(binding:std::sync::Arc<NativeNamespaceBindings>)->std::sync::Arc<Self>{std::sync::Arc::new(Self{state:std::sync::RwLock::new(NamespaceState{epoch:0,binding})})}
+    pub(crate) fn lease(&self)->Result<NamespaceLease<'_>,String>{Ok(NamespaceLease{guard:self.state.read().map_err(|_|"namespace authority poisoned")?})}
+    pub(crate) fn admission(&self,expected:u64)->Result<NamespaceAdmission<'_>,String>{let guard=self.state.try_write().map_err(|_|"namespace admission busy; explicit retry permitted")?;if guard.epoch!=expected{return Err("namespace epoch changed before admission".into());}let next=guard.epoch.checked_add(1).ok_or("namespace epoch exhausted")?;Ok(NamespaceAdmission{guard,next})}
+}
+impl NamespaceLease<'_>{pub(crate) fn epoch(&self)->u64{self.guard.epoch}}
+impl NamespaceAdmission<'_>{
+    pub(crate) fn next(&self)->u64{self.next}
+    pub(crate) fn commit(&mut self,binding:std::sync::Arc<NativeNamespaceBindings>){self.guard.binding=binding;self.guard.epoch=self.next;}
+}
+pub(crate) struct AttachmentLease<'a>{namespace:Option<NamespaceLease<'a>>,owner:&'a AttachmentCustody}
+pub(crate) struct LeasedCustodyOwnership<'a>{_ownership:CustodyOwnership,_lease:std::marker::PhantomData<&'a AttachmentLease<'a>>}
 pub struct AttachmentCustody {
     root: PathBuf,
     namespaces:Option<std::sync::Arc<NativeNamespaceBindings>>,
+    authority:Option<std::sync::Arc<NamespaceAuthority>>,
+    epoch:u64,
 }
 impl AttachmentCustody {
     pub fn open(app_data: &Path, codex_home: &Path) -> Result<Self, String> {
@@ -312,29 +334,37 @@ impl AttachmentCustody {
             return Err("App attachment custody and Codex home overlap".into());
         }
         storage::ensure_directory(&root.join("runtime"))?;
-        Ok(Self { root, namespaces:None })
+        Ok(Self { root, namespaces:None,authority:None,epoch:0 })
     }
     pub fn open_with_namespaces(app_data:&Path,namespaces:std::sync::Arc<NativeNamespaceBindings>)->Result<Self,String>{
         storage::check_path(app_data)?;let root=resolved(app_data)?;namespaces.guard_app_root(&root)?;
-        let owner=Self{root,namespaces:Some(namespaces)};owner.guard_scope()?;storage::ensure_directory(&owner.root.join("runtime"))?;owner.guard_scope()?;Ok(owner)
+        let owner=Self{root,namespaces:Some(namespaces),authority:None,epoch:0};let lease=owner.lease()?;owner.guard_scope(&lease)?;storage::ensure_directory(&owner.root.join("runtime"))?;owner.guard_scope(&lease)?;drop(lease);Ok(owner)
     }
-    fn guard_scope(&self)->Result<(),String>{
-        if let Some(bindings)=&self.namespaces{bindings.guard_app_root(&self.root)?;bindings.guard_domains(&[self.root.join("runtime/nir/attachment-supplies"),self.root.join("runtime/hosting/client-requests"),self.lock_path()])?;}Ok(())
+    pub(crate) fn open_shared(app_data:&Path,authority:std::sync::Arc<NamespaceAuthority>)->Result<Self,String>{
+        let lease=authority.lease()?;let mut owner=Self::open_with_namespaces(app_data,lease.guard.binding.clone())?;owner.epoch=lease.epoch();drop(lease);owner.authority=Some(authority);Ok(owner)
     }
-    fn guard_generation(&self,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;if let Some(bindings)=&self.namespaces{bindings.contains_home_id(g["home"].as_str().unwrap())?;}Ok(())}
-    fn guard_leaf(&self,path:&Path)->Result<(),String>{self.guard_scope()?;if let Some(bindings)=&self.namespaces{bindings.guard_domains(&[path.to_owned()])?;}Ok(())}
+    pub(crate) fn prepared_shared(app_data:&Path,authority:std::sync::Arc<NamespaceAuthority>,binding:std::sync::Arc<NativeNamespaceBindings>,epoch:u64)->Result<Self,String>{let mut owner=Self::open_with_namespaces(app_data,binding)?;owner.authority=Some(authority);owner.epoch=epoch;Ok(owner)}
+    pub(crate) fn authority(&self)->Result<std::sync::Arc<NamespaceAuthority>,String>{self.authority.clone().ok_or("Root namespace authority unavailable".into())}
+    pub(crate) fn lease(&self)->Result<AttachmentLease<'_>,String>{let namespace=self.authority.as_ref().map(|a|a.lease()).transpose()?;if namespace.as_ref().is_some_and(|n|n.epoch()!=self.epoch){return Err("stale attachment namespace capability; no reliance or automatic retry".into());}Ok(AttachmentLease{namespace,owner:self})}
+    fn bindings<'a>(&'a self,lease:&'a AttachmentLease<'_>)->Result<Option<&'a NativeNamespaceBindings>,String>{if !std::ptr::eq(self,lease.owner){return Err("foreign attachment operation lease".into());}Ok(lease.namespace.as_deref().or(self.namespaces.as_deref()))}
+    pub(crate) fn preflight_binding(&self,binding:&NativeNamespaceBindings)->Result<(),String>{binding.guard_app_root(&self.root)?;binding.guard_domains(&[self.root.join("runtime/nir/attachment-supplies"),self.root.join("runtime/hosting/client-requests"),self.lock_path()])}
+    fn guard_scope(&self,lease:&AttachmentLease<'_>)->Result<(),String>{if let Some(binding)=self.bindings(lease)?{self.preflight_binding(binding)?;}Ok(())}
+    fn guard_generation(&self,lease:&AttachmentLease<'_>,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;if let Some(binding)=self.bindings(lease)?{binding.contains_home_id(g["home"].as_str().unwrap())?;}Ok(())}
+    fn guard_leaf(&self,lease:&AttachmentLease<'_>,path:&Path)->Result<(),String>{self.guard_scope(lease)?;if let Some(binding)=self.bindings(lease)?{binding.guard_domains(&[path.to_owned()])?;}Ok(())}
     pub fn root(&self) -> &Path {
         &self.root
     }
-    pub fn supplies_path(&self, submission: &str) -> Result<PathBuf, String> {
-        self.guard_scope()?;
+    pub fn supplies_path(&self,submission:&str)->Result<PathBuf,String>{let lease=self.lease()?;self.supplies_path_leased(&lease,submission)}
+    fn supplies_path_leased(&self,lease:&AttachmentLease<'_>, submission: &str) -> Result<PathBuf, String> {
+        self.guard_scope(&lease)?;
         Ok(self
             .root
             .join("runtime/nir/attachment-supplies")
             .join(format!("{}.json", submission_key(submission)?)))
     }
-    pub fn client_path(&self, g: &Value, id: &Value) -> Result<PathBuf, String> {
-        self.guard_scope()?;self.guard_generation(g)?;
+    pub fn client_path(&self,g:&Value,id:&Value)->Result<PathBuf,String>{let lease=self.lease()?;self.client_path_leased(&lease,g,id)}
+    fn client_path_leased(&self,lease:&AttachmentLease<'_>, g: &Value, id: &Value) -> Result<PathBuf, String> {
+        self.guard_scope(&lease)?;self.guard_generation(&lease,g)?;
         Ok(self
             .root
             .join("runtime/hosting/client-requests")
@@ -344,10 +374,11 @@ impl AttachmentCustody {
     fn lock_path(&self) -> PathBuf {
         self.root.join("runtime/hosting/.client-custody.lock")
     }
-    pub(crate) fn lock_sources(&self) -> Result<CustodyOwnership, String> {
-        self.guard_leaf(&self.lock_path())?;owning_lock(&self.lock_path(), true)
+    pub(crate) fn lock_sources<'a>(&self,lease:&'a AttachmentLease<'a>) -> Result<LeasedCustodyOwnership<'a>, String> {
+        self.guard_leaf(lease,&self.lock_path())?;Ok(LeasedCustodyOwnership{_ownership:owning_lock(&self.lock_path(),true)?,_lease:std::marker::PhantomData})
     }
     pub fn publish_prepared(&self, records: &[Value], client: &Value) -> Result<(), String> {
+        let lease=self.lease()?;
         validate_client(client)?;
         if client["outcome"] != "prepared-not-sent"
             || client["writeResult"] != "not-attempted"
@@ -355,29 +386,30 @@ impl AttachmentCustody {
         {
             return Err("prewrite observation differs".into());
         }
-        self.guard_scope()?;self.guard_generation(&client["generation"])?;
+        self.guard_scope(&lease)?;self.guard_generation(&lease,&client["generation"])?;
         let association = &client["submissionAssociation"];
         validate_list(records, association)?;
-        let _lock = self.lock_sources()?;
+        let _lock = self.lock_sources(&lease)?;
         storage::create_json(
-            &self.supplies_path(association["submissionRef"].as_str().unwrap())?,
+            &self.supplies_path_leased(&lease,association["submissionRef"].as_str().unwrap())?,
             &json!(records),
         )?;
         storage::create_json(
-            &self.client_path(&client["generation"], &client["requestIdentity"])?,
+            &self.client_path_leased(&lease,&client["generation"], &client["requestIdentity"])?,
             client,
         )?;
-        self.check_prepared(records, client)
+        self.check_prepared_leased(&lease,records, client)
     }
-    pub fn check_prepared(&self, records: &[Value], client: &Value) -> Result<(), String> {
-        self.guard_scope()?;validate_client(client)?;
+    pub fn check_prepared(&self,records:&[Value],client:&Value)->Result<(),String>{let lease=self.lease()?;self.check_prepared_leased(&lease,records,client)}
+    pub(crate) fn check_prepared_leased(&self,lease:&AttachmentLease<'_>, records: &[Value], client: &Value) -> Result<(), String> {
+        self.guard_scope(&lease)?;validate_client(client)?;
         let actual =
-            read_metadata(&self.client_path(&client["generation"], &client["requestIdentity"])?)?;
+            read_metadata(&self.client_path_leased(&lease,&client["generation"], &client["requestIdentity"])?)?;
         if actual != *client {
             return Err("durable client binding differs from reserved observation".into());
         }
         let array = read_metadata(
-            &self.supplies_path(
+            &self.supplies_path_leased(&lease,
                 client["submissionAssociation"]["submissionRef"]
                     .as_str()
                     .ok_or("submission absent")?,
@@ -394,9 +426,10 @@ impl AttachmentCustody {
     }
     /// Atomic state update of the same source; original values are immutable.
     pub fn replace_observation(&self, record: &Value) -> Result<(), String> {
+        let lease=self.lease()?;
         validate_client(record)?;
-        let _lock = self.lock_sources()?;
-        let path = self.client_path(&record["generation"], &record["requestIdentity"])?;
+        let _lock = self.lock_sources(&lease)?;
+        let path = self.client_path_leased(&lease,&record["generation"], &record["requestIdentity"])?;
         let old = read_metadata(&path)?;
         validate_client(&old)?;
         for field in [
@@ -427,9 +460,10 @@ impl AttachmentCustody {
         Ok(())
     }
     /// Source reader. Disk claims never create a hot capability/native turn proof.
-    pub fn resolve_cold(&self, submission: &str) -> Value {
+    pub fn resolve_cold(&self, submission: &str) -> Value {match self.lease(){Ok(lease)=>self.resolve_cold_leased(&lease,submission),Err(error)=>json!({"submissionRef":submission,"nativeTurnRef":null,"dispatch":"unknown/unavailable","limits":[error],"automaticRetry":false})}}
+    pub(crate) fn resolve_cold_leased(&self,lease:&AttachmentLease<'_>,submission:&str)->Value{
         let result = (|| -> Result<Value, String> {
-            submission_key(submission)?;self.guard_scope()?;
+            submission_key(submission)?;self.guard_scope(&lease)?;
             let _read_lock = owning_lock(&self.lock_path(), false)?;
             let clients = self.root.join("runtime/hosting/client-requests");
             let mut found = vec![];
@@ -451,7 +485,7 @@ impl AttachmentCustody {
                     let record = read_metadata(&path)?;
                     validate_client(&record)?;
                     if path
-                        != self.client_path(&record["generation"], &record["requestIdentity"])?
+                        != self.client_path_leased(&lease,&record["generation"], &record["requestIdentity"])?
                     {
                         return Err(
                             "source path key differs from authoritative typed fields".into()
@@ -466,7 +500,7 @@ impl AttachmentCustody {
                 return Err("submission source missing or conflicting".into());
             }
             let record = found.pop().unwrap();
-            let records = read_metadata(&self.supplies_path(submission)?)?;
+            let records = read_metadata(&self.supplies_path_leased(&lease,submission)?)?;
             validate_list(
                 records.as_array().ok_or("supply source is not array")?,
                 &record["submissionAssociation"],
