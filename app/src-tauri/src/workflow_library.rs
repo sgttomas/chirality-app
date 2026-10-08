@@ -62,8 +62,9 @@ impl LibraryOwner {
     /// same bound content, and store bytes that recompute to the revision. A cold
     /// read of App-kept files (V13 R2-N2): it gates the DS-8 offer only and is
     /// never a trust signal or a selection.
-    fn standing_as_read(&self, line: &Value, k: &WorkflowIdentity) -> Result<(), String> {
-        act_record_found(&self.root, line, k)?;
+    /// Returns the store snapshot it verified (V15 F3: copy exactly these bytes).
+    fn standing_as_read(&self, line: &Value, k: &WorkflowIdentity) -> Result<Snapshot, String> {
+        act_record_found(&self.root, line, k).map_err(|fault| fault.to_string())?;
         let store = store_path(&self.root, k);
         storage::check_path(&store)?;
         let read = Snapshot::capture(&store)
@@ -74,7 +75,30 @@ impl LibraryOwner {
                 store.display()
             ));
         }
-        Ok(())
+        Ok(read)
+    }
+    /// V15 F5 (WR §4.6 LS-1 note, §5.4): the library's registered revisions as
+    /// read, for listing and per-row Refine. LS-1 is not checked here; a row is
+    /// "selectable in this App session" only when this process holds its result.
+    pub(crate) fn registered_listing(&self) -> Value {
+        let rows = match read_ledger(&self.root) {
+            Ok(rows) => rows,
+            Err(cause) => return json!({"limit":cause}),
+        };
+        json!(rows
+            .iter()
+            .filter(|v| v["outcome"] == "registered"
+                && v["identity"]["origin"] == self.origin.as_str()
+                && v["identity"]["source_root"] == self.source_root.as_str())
+            .map(|v| {
+                let held = serde_json::from_value::<WorkflowIdentity>(v["identity"].clone())
+                    .is_ok_and(|k| self.is_held(&k));
+                json!({"name":v["identity"]["name"],"sequence":v["sequence"],"revision":v["identity"]["revision"],
+                    "registeredAt":v["written_at"],"disposition":v["disposition"],
+                    "label":if held {"registered — selectable in this App session"} else {"registered — re-confirm to use in this App session"},
+                    "offered":"Refine (RF-1); Review a draft with its bytes (DS-8)"})
+            })
+            .collect::<Vec<_>>())
     }
     /// WR §4.6 RF-1: Refine an LS-1 revision from the revision store, with no
     /// selection. The store bytes are recomputed; the App records the revision,
@@ -93,10 +117,10 @@ impl LibraryOwner {
             .ok_or_else(|| format!("revision {revision} is not registered in this slot"))?;
         let k: WorkflowIdentity = serde_json::from_value(line["identity"].clone())
             .map_err(|e| format!("registered identity not readable: {e}"))?;
-        self.standing_as_read(line, &k).map_err(|cause| {
+        // V15 F3: copy exactly the bytes standing_as_read verified.
+        let store = self.standing_as_read(line, &k).map_err(|cause| {
             format!("LS-4 registration record incomplete: {cause}; no draft made (RF-1)")
         })?;
-        let store = Snapshot::capture(&store_path(&self.root, &k))?;
         let target = self.root.join(".chirality/workflow-drafts").join(name);
         storage::check_path(&target)?;
         if fs::symlink_metadata(&target).is_ok() {
@@ -104,14 +128,23 @@ impl LibraryOwner {
                 "a draft named {name} already exists; rename or remove the draft (D-1)"
             ));
         }
-        storage::ensure_directory(target.parent().ok_or("draft has no parent")?)?;
-        store.publish_new(&target)?;
-        sync_package(&target)?;
-        storage::sync_dir(target.parent().ok_or("draft has no parent")?)?;
-        if let Err(error) = self.base_custody().put(name, &k, false) {
+        let parent = target.parent().ok_or("draft has no parent")?;
+        storage::ensure_directory(parent)?;
+        // Exclusive create; a part-way failure removes only what it wrote.
+        publish_reserved_store(&store, &target)
+            .map_err(|e| format!("draft copy failed ({e}); nothing kept; refine again"))?;
+        // Every later failure removes the App's own copy (exact-bytes check), so
+        // no draft is left that can only be DS-3 (V11 J5-2; V15 F3).
+        let published = sync_package(&target).and_then(|()| storage::sync_dir(parent));
+        let recorded = published.and_then(|()| {
+            self.base_custody()
+                .put(name, &k, false)
+                .map_err(|e| format!("App-kept base not recorded ({e})"))
+        });
+        if let Err(error) = recorded {
             return Err(match self.discard_unbased_copy(name, &store) {
-                Ok(()) => format!("App-kept base not recorded ({error}); the draft copy was removed, nothing kept; refine again"),
-                Err(kept) => format!("Draft copied but App-kept base not recorded ({error}); the copy was not removed ({kept}); remove {} and refine again", target.display()),
+                Ok(()) => format!("{error}; the draft copy was removed, nothing kept; refine again"),
+                Err(kept) => format!("Draft copied but not completed ({error}); the copy was not removed ({kept}); remove {} and refine again", target.display()),
             });
         }
         Ok(
@@ -833,22 +866,43 @@ fn is_held(held: &Held, identity: &WorkflowIdentity) -> bool {
         .map(|h| h.contains(&(identity.name.clone(), identity.revision.clone())))
         .unwrap_or(false)
 }
+/// Why LS-1's act condition does not hold as read (V15 F4). WR LS-4 names
+/// "A15 record missing or bound to other content"; an act log that cannot be
+/// read completely is a read limit, not a finding about the record.
+enum ActRecordFault {
+    /// The act log could not be read completely (a line, a gap, an I/O error).
+    LogUnreadable(String),
+    /// The record is missing, or bound to other content (LS-4).
+    Incomplete(String),
+}
+impl std::fmt::Display for ActRecordFault {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LogUnreadable(cause) | Self::Incomplete(cause) => f.write_str(cause),
+        }
+    }
+}
 /// LS-1's act condition as read: the line's A15 record is in the library act
 /// log with the same bound content. A cold read; it never authenticates the act.
-fn act_record_found(root: &Path, line: &Value, k: &WorkflowIdentity) -> Result<(), String> {
+fn act_record_found(root: &Path, line: &Value, k: &WorkflowIdentity) -> Result<(), ActRecordFault> {
     let log = storage::library_log(root);
     let (acts, limits) = crate::records::read_log(&log);
     if !limits.is_empty() {
-        return Err(format!(
+        return Err(ActRecordFault::LogUnreadable(format!(
             "act log not completely readable: {}",
             limits.join("; ")
-        ));
+        )));
     }
     let record = &line["act"]["record_id"];
     let act = acts
         .iter()
         .find(|a| &a["recordId"] == record)
-        .ok_or_else(|| format!("A15 record {record} not found in {}", log.display()))?;
+        .ok_or_else(|| {
+            ActRecordFault::Incomplete(format!(
+                "A15 record {record} not found in {}",
+                log.display()
+            ))
+        })?;
     let bound = json!({"method":k.revision_method,"value":k.revision});
     if act["kind"] != "human_act"
         || act["body"]["actKind"] != "A15"
@@ -856,9 +910,28 @@ fn act_record_found(root: &Path, line: &Value, k: &WorkflowIdentity) -> Result<(
             .as_array()
             .is_some_and(|b| b.contains(&bound))
     {
-        return Err(format!("A15 record {record} is bound to other content"));
+        return Err(ActRecordFault::Incomplete(format!(
+            "A15 record {record} is bound to other content"
+        )));
     }
     Ok(())
+}
+/// V15 F1: before any append of a line with disposition *re-confirmation*, run
+/// the App's own RC-9 reader over the ledger as it would then read. A line the
+/// reader would refuse is never appended (it would make the whole library
+/// ledger unreadable); the caller keeps the attempt pending with this cause.
+fn rc9_guard(root: &Path, rows: &[Value], line: &Value) -> Result<(), String> {
+    if line["disposition"] != "re-confirmation" {
+        return Ok(());
+    }
+    let mut after = rows.to_vec();
+    after.push(line.clone());
+    let path = root.join(".chirality/workflow-registry.jsonl");
+    check_reconfirmation_lines(&after, &path.display().to_string()).map_err(|cause| {
+        format!(
+            "re-confirmation line not appended: the App's RC-9 reader would refuse it ({cause})"
+        )
+    })
 }
 fn slot_lines(rows: &[Value], origin: &str, source: &str, name: &str) -> Vec<Value> {
     rows.iter()
@@ -1048,8 +1121,25 @@ impl HotRegistrationAttempt {
                     "intended ledger line no longer appendable; no duplicate/rebase".into(),
                 );
             }
+            rc9_guard(root, &rows, &line)?;
             append_line(root, &line)?;
             return self.finish_line(index, line);
+        }
+        // V15 F1 (RC-7, RB-8): one act never has two ledger lines. If the ledger
+        // already cites this attempt's A15 (for example X-2 of another process
+        // closed it as lost), append nothing and end the attempt in this process.
+        if e.reconfirm.is_some() {
+            let record = self.receipt.record_id();
+            if let Some(existing) = rows.iter().find(|v| v["act"]["record_id"] == record) {
+                let reason = format!(
+                    "A15 {record} already has ledger line {} ({}); nothing appended, one act has one line (RC-7, RB-8); review again",
+                    existing["ledger_seq"],
+                    existing["outcome"].as_str().unwrap_or("?")
+                );
+                close_attempt_journal(root, &json!({"act":{"record_id":record}}))?;
+                self.progress[index] = Progress::Failed(reason);
+                return Ok(());
+            }
         }
         // G-1 / G-1R (F14): compare the slot's latest *registered* revision, so
         // re-confirmed and not completed lines never fail a concurrent attempt.
@@ -1155,6 +1245,14 @@ impl HotRegistrationAttempt {
             );
             return self.fail_entry(index, reason, rows);
         }
+        // V15 F4: an act log that cannot be read completely is a read limit: the
+        // attempt stays pending with its cause instead of spending the act.
+        if let Err(ActRecordFault::LogUnreadable(cause)) = act_record_found(&root, &r.line, &k) {
+            return Err(format!(
+                "revision {} standing not readable at G-1R: {cause}; attempt kept pending",
+                r.sequence
+            ));
+        }
         if let Err(cause) = act_record_found(&root, &r.line, &k) {
             let reason = format!(
                 "revision {} registration record incomplete: {cause}; review again",
@@ -1188,6 +1286,7 @@ impl HotRegistrationAttempt {
         line["sequence"] = r.line["sequence"].clone();
         line["store_path"] = r.line["store_path"].clone();
         super::wr_validate("library_entry", &line)?;
+        rc9_guard(&root, rows, &line)?;
         write_attempt_journal(&root, &line)?;
         #[cfg(test)]
         if STOP_AFTER_STORED.with(|stop| stop.replace(false)) {
@@ -1245,6 +1344,9 @@ impl HotRegistrationAttempt {
         let mut line = self.line(index, rows, "not completed");
         line["reason"] = json!(reason);
         super::wr_validate("library_entry", &line)?;
+        // V15 F1: a re-confirmation's *not completed* line must satisfy RC-9 too;
+        // otherwise nothing is appended and the attempt stays pending (CI-25).
+        rc9_guard(&self.session.root, rows, &line)?;
         self.progress[index] = Progress::Intended(line.clone());
         append_line(&self.session.root, &line)?;
         self.progress[index] = Progress::Failed(reason);
@@ -1396,8 +1498,8 @@ fn reconcile_reconfirmations(root: &Path) -> Vec<String> {
             dir.display()
         )];
     }
-    let files = match fs::read_dir(&dir) {
-        Ok(entries) => entries
+    let list = || match fs::read_dir(&dir) {
+        Ok(entries) => Ok(entries
             .filter_map(|e| e.ok())
             .map(|e| e.path())
             .filter(|p| {
@@ -1406,29 +1508,43 @@ fn reconcile_reconfirmations(root: &Path) -> Vec<String> {
                         .file_name()
                         .is_some_and(|n| n.to_string_lossy().starts_with('.'))
             })
-            .collect::<Vec<_>>(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return vec![],
-        Err(e) => {
-            return vec![format!(
-                "attempt journal unreadable: {}: {e}",
-                dir.display()
-            )]
-        }
+            .collect::<Vec<_>>()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(vec![]),
+        Err(e) => Err(format!(
+            "attempt journal unreadable: {}: {e}",
+            dir.display()
+        )),
     };
-    if files.is_empty() {
-        return vec![];
+    // A cheap look first, so a library with no journal takes no lock.
+    match list() {
+        Ok(files) if files.is_empty() => return vec![],
+        Ok(_) => {}
+        Err(cause) => return vec![cause],
     }
     let _lock = match storage::lock(&root.join(".chirality/workflow-registry.lock")) {
         Ok(lock) => lock,
         Err(e) => return vec![format!("X-2 pending: {e}")],
     };
+    // V15 F8: list again under the lock; another process may have closed some.
+    let files = match list() {
+        Ok(files) => files,
+        Err(cause) => return vec![cause],
+    };
     let mut outcomes = vec![];
     for file in files {
         let result = (|| -> Result<String, String> {
-            let journal: Value = serde_json::from_slice(
-                &fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?,
-            )
-            .map_err(|e| format!("attempt journal malformed: {}: {e}", file.display()))?;
+            let bytes = match fs::read(&file) {
+                Ok(bytes) => bytes,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    return Ok(format!(
+                        "re-confirmation attempt journal {} already closed",
+                        file.display()
+                    ))
+                }
+                Err(e) => return Err(format!("{}: {e}", file.display())),
+            };
+            let journal: Value = serde_json::from_slice(&bytes)
+                .map_err(|e| format!("attempt journal malformed: {}: {e}", file.display()))?;
             let intended = &journal["intended"];
             if journal["record_kind"] != "wr_reconfirmation_attempt"
                 || intended["disposition"] != "re-confirmation"
@@ -1453,6 +1569,9 @@ fn reconcile_reconfirmations(root: &Path) -> Vec<String> {
             line["ledger_seq"] = json!(rows.len() + 1);
             line["written_at"] = json!(crate::util::now_rfc3339());
             super::wr_validate("library_entry", &line)?;
+            // V15 F1: never append a line the App's RC-9 reader would refuse;
+            // the journal stays and the cause is reported.
+            rc9_guard(root, &rows, &line)?;
             append_line(root, &line)?;
             close_attempt_journal(root, intended)?;
             Ok(format!(

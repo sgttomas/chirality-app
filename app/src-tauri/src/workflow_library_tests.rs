@@ -1146,13 +1146,12 @@ fn wr_vc_19_dismissal_staleness_and_loss_have_no_effect() {
     let r = receipt(&session);
     let log = storage::library_log(&s.0);
     let kept = fs::read(&log).unwrap();
-    let only_new: String = String::from_utf8(kept.clone())
+    // The record is renamed in place: the log still reads completely (V15 F4
+    // keeps an unreadable log pending instead; tested separately).
+    let renamed = String::from_utf8(kept.clone())
         .unwrap()
-        .lines()
-        .filter(|l| !l.contains(first.act_ref()))
-        .map(|l| format!("{l}\n"))
-        .collect();
-    fs::write(&log, only_new).unwrap();
+        .replace(first.act_ref(), "rec:app:renamed-elsewhere");
+    fs::write(&log, renamed).unwrap();
     let mut attempt = session.begin_hot_registration(r).unwrap();
     let outcome = attempt.advance();
     fs::write(&log, kept).unwrap();
@@ -1470,4 +1469,446 @@ fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
     let r = receipt(&review);
     let mut attempt = review.begin_hot_registration(r).unwrap();
     reconfirmed(&attempt.advance()[0]);
+}
+
+// ---- V15 F1 (MAJOR): the App never appends a re-confirmation line its own RC-9
+// reader refuses, and one act never has two ledger lines (RC-7, RB-8). Based on
+// the reviewer's probes P1, P2 and P5 (`v15-probe-tests.rs.txt`).
+
+/// P1: X-2 from a journal whose intended line is schema-valid but breaks RC-9
+/// appends nothing; the attempt stays pending with the exact cause.
+#[test]
+fn v15_p1_x2_never_appends_a_line_its_reader_refuses() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    {
+        let owner = s.persistent_owner();
+        let session = owner.review_draft("sample", one.revision()).unwrap();
+        let r = receipt(&session);
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        STOP_AFTER_STORED.with(|stop| stop.set(true));
+        let _ = attempt.advance();
+    }
+    let dir = s.0.join(".chirality/.workflow-staging/attempts");
+    let file = fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .find(|p| !p.file_name().unwrap().to_string_lossy().starts_with('.'))
+        .unwrap();
+    let mut journal: Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+    journal["intended"]["reconfirms"]["sequence"] = json!(2);
+    fs::write(&file, serde_json::to_vec(&journal).unwrap()).unwrap();
+    let relaunched = s.persistent_owner();
+    let outcome = relaunched.reconciliation().join("; ");
+    assert!(
+        outcome.contains("X-2 pending") && outcome.contains("RC-9"),
+        "{outcome}"
+    );
+    assert_eq!(
+        ledger(&s).len(),
+        1,
+        "nothing appended; the ledger still reads"
+    );
+    assert_eq!(
+        journal_files(&s),
+        1,
+        "the attempt stays open with its cause"
+    );
+}
+
+/// P2: process B's journal publication fails its directory sync (pending);
+/// process C's X-2 closes the attempt as lost; B's Continue then finds the line
+/// citing its A15 and appends nothing: one act, one ledger line.
+#[test]
+fn v15_p2_second_process_x2_then_continue_keeps_one_line_per_act() {
+    struct ResetSync;
+    impl Drop for ResetSync {
+        fn drop(&mut self) {
+            storage::fail_directory_for_test(None);
+        }
+    }
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let dir = s.0.join(".chirality/.workflow-staging/attempts");
+    fs::create_dir_all(&dir).unwrap();
+    let owner_b = s.persistent_owner();
+    let session = owner_b.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    storage::fail_directory_for_test(Some(dir.clone()));
+    let _reset = ResetSync;
+    assert!(matches!(
+        &attempt.advance()[0],
+        EntryOutcome::Pending { .. }
+    ));
+    storage::fail_directory_for_test(None);
+    let owner_c = s.persistent_owner();
+    assert!(
+        owner_c.reconciliation()[0].contains("not completed"),
+        "{:?}",
+        owner_c.reconciliation()
+    );
+    match &attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(reason.contains("already has ledger line"), "{reason}")
+        }
+        other => panic!("expected no second line: {other:?}"),
+    }
+    let raw = fs::read_to_string(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+    assert_eq!(
+        raw.lines().filter(|l| l.contains(&record)).count(),
+        1,
+        "one act, one line"
+    );
+    assert!(read_ledger(&s.0).is_ok());
+    assert!(!owner_b.is_held(first.identity()));
+}
+
+/// P5: after capture, registered line 1 is edited outside the App so it no
+/// longer reads as registered. WR G-1R says *not completed*, but no such line
+/// can satisfy RC-9 here (CI-25): the App appends nothing and the attempt stays
+/// pending with the exact cause; the ledger stays readable.
+#[test]
+fn v15_p5_g1r_line_no_longer_registered_appends_nothing() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let mut line: Value =
+        serde_json::from_str(fs::read_to_string(&path).unwrap().lines().next().unwrap()).unwrap();
+    line["outcome"] = json!("not completed");
+    line["reason"] = json!("edited outside the App");
+    fs::write(
+        &path,
+        format!("{}\n", serde_json::to_string(&line).unwrap()),
+    )
+    .unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::Pending { reason, .. } => {
+            assert!(
+                reason.contains("RC-9") && reason.contains("not appended"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected pending: {other:?}"),
+    }
+    assert_eq!(
+        read_ledger(&s.0).unwrap().len(),
+        1,
+        "nothing appended; readable"
+    );
+}
+
+// ---- V15 F2–F5: branches the reviewer's mutations MA–ME showed untested.
+
+/// F2 (MC; P4): RC-5 (d) in current(): once ‹k› becomes selectable in this
+/// process, a second DS-8 review of it is withdrawn.
+#[test]
+fn v15_f2_rc5d_second_review_withdrawn_once_k_selectable() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let a = owner.review_draft("sample", one.revision()).unwrap();
+    let b = owner.review_draft("sample", one.revision()).unwrap();
+    let ra = receipt(&a);
+    let mut attempt = a.begin_hot_registration(ra).unwrap();
+    reconfirmed(&attempt.advance()[0]);
+    let stale = b.current().err().unwrap();
+    assert!(
+        stale.contains("already selectable in this App session"),
+        "{stale}"
+    );
+}
+
+/// F2 (MD): LS-4 "bound to other content": the line's A15 record is found but
+/// binds another content identity, so DS-4 with that cause, never DS-8.
+#[test]
+fn v15_f2_ls4_record_bound_to_other_content_is_ds4() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let log = storage::library_log(&s.0);
+    let text = fs::read_to_string(&log).unwrap();
+    let edited: String = text
+        .lines()
+        .map(|l| {
+            let mut v: Value = serde_json::from_str(l).unwrap();
+            if v["recordId"] == first.act_ref() {
+                v["body"]["boundContent"][0]["value"] = json!("f".repeat(64));
+            }
+            format!("{}\n", serde_json::to_string(&v).unwrap())
+        })
+        .collect();
+    fs::write(&log, edited).unwrap();
+    assert!(
+        crate::records::read_log(&log).1.is_empty(),
+        "the log still reads"
+    );
+    let error = s
+        .persistent_owner()
+        .review_draft("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(
+        error.starts_with("DS-4") && error.contains("bound to other content"),
+        "{error}"
+    );
+}
+
+/// F2 (MB, ME): RC-9 reader negatives not covered by WR-VC-20: same slot, tuple
+/// and sequence of `reconfirms`; the *re-confirmed* line's identity and prior;
+/// reviewed content; and a `reconfirms` naming a *not completed* or later line.
+#[test]
+fn v15_f2_rc9_reader_names_each_breach() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    reconfirmed(&reconfirm(&s.persistent_owner(), one.revision()).0[0]);
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let good = fs::read_to_string(&path).unwrap();
+    let rows: Vec<Value> = good
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    assert_eq!(rows.len(), 2);
+    let reline = rows[1].clone();
+    // A valid *not completed* re-confirmation line, as line 3.
+    let mut not_completed = reline.clone();
+    {
+        let f = not_completed.as_object_mut().unwrap();
+        f.remove("sequence");
+        f.remove("store_path");
+    }
+    not_completed["outcome"] = json!("not completed");
+    not_completed["reason"] = json!("fixture");
+    not_completed["ledger_seq"] = json!(3);
+    not_completed["act"]["record_id"] = json!("rec:fixture:nc");
+    let base = format!("{good}{}\n", serde_json::to_string(&not_completed).unwrap());
+    assert!(
+        {
+            fs::write(&path, &base).unwrap();
+            read_ledger(&s.0).is_ok()
+        },
+        "the valid fixture line reads"
+    );
+    let with = |edit: &dyn Fn(&mut Value)| {
+        let mut v = reline.clone();
+        v["ledger_seq"] = json!(4);
+        v["act"]["record_id"] = json!("rec:fixture:new");
+        edit(&mut v);
+        format!("{base}{}\n", serde_json::to_string(&v).unwrap())
+    };
+    let other = |v: &mut Value, field: &str, value: Value| {
+        v["reconfirms"][field] = value;
+    };
+    let cases: Vec<(String, &str)> = vec![
+        (
+            with(&|v| other(v, "sequence", json!(2))),
+            "with another slot, tuple or sequence",
+        ),
+        (
+            with(&|v| {
+                let mut id = v["reconfirms"]["identity"].clone();
+                id["revision"] = json!("e".repeat(64));
+                other(v, "identity", id);
+            }),
+            "with another slot, tuple or sequence",
+        ),
+        (
+            with(&|v| v["identity"]["name"] = json!("elsewhere")),
+            "with another slot, tuple or sequence",
+        ),
+        (
+            with(&|v| v["identity"]["derived_from"] = v["identity"].clone()),
+            "identity differs from line 1",
+        ),
+        (
+            with(&|v| v["prior_revision"] = v["identity"].clone()),
+            "prior_revision differs from line 1",
+        ),
+        (
+            with(&|v| v["reviewed_draft"]["content"]["value"] = json!("d".repeat(64))),
+            "reviewed content is not the re-confirmed revision",
+        ),
+        (
+            with(&|v| other(v, "ledger_seq", json!(3))),
+            "re-confirms line 3, which is not an earlier registered line",
+        ),
+        (
+            with(&|v| other(v, "ledger_seq", json!(4))),
+            "re-confirms line 4, which is not an earlier registered line",
+        ),
+    ];
+    for (bytes, cause) in cases {
+        fs::write(&path, &bytes).unwrap();
+        let error = read_ledger(&s.0).err().unwrap_or_default();
+        assert!(
+            error.contains("registration ledger ambiguous") && error.contains(cause),
+            "{cause}: {error}"
+        );
+    }
+}
+
+/// F2 (WR G-1R "line changed"): the registered line still reads as registered
+/// for ‹k› but no longer as reviewed. The *not completed* line satisfies RC-9,
+/// so it is written; the ledger stays readable.
+#[test]
+fn v15_f2_g1r_registered_line_changed_is_not_completed() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let mut line: Value =
+        serde_json::from_str(fs::read_to_string(&path).unwrap().lines().next().unwrap()).unwrap();
+    line["written_at"] = json!("2026-10-08T00:00:00Z");
+    fs::write(
+        &path,
+        format!("{}\n", serde_json::to_string(&line).unwrap()),
+    )
+    .unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::NotCompleted { reason, .. } => {
+            assert!(
+                reason.contains("registered line 1 no longer reads as reviewed"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected no effect: {other:?}"),
+    }
+    let rows = read_ledger(&s.0).unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1]["disposition"], "re-confirmation");
+}
+
+/// F3 (MA): RF-1 leaves no draft without its App-kept base: on a failure to
+/// record the base, and on a sync failure after the copy, the copy is removed.
+#[test]
+fn v15_f3_rf1_removes_its_copy_on_every_failure() {
+    struct ResetSync;
+    impl Drop for ResetSync {
+        fn drop(&mut self) {
+            storage::fail_directory_for_test(None);
+        }
+    }
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let draft = s.0.join(".chirality/workflow-drafts/sample");
+    fs::remove_dir_all(&draft).unwrap();
+    // (a) The App-kept base cannot be written.
+    let base_files = s.base_files();
+    for f in &base_files {
+        fs::remove_file(f).unwrap();
+    }
+    let blocker = s.app_data().join("runtime/wr");
+    fs::remove_dir_all(&blocker).unwrap();
+    fs::write(&blocker, b"not a directory").unwrap();
+    let error = s
+        .persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .err()
+        .unwrap();
+    assert!(
+        error.contains("App-kept base not recorded") && error.contains("copy was removed"),
+        "{error}"
+    );
+    assert!(!draft.exists());
+    fs::remove_file(&blocker).unwrap();
+    // (b) The copy's directory sync fails after the copy was written.
+    storage::fail_directory_for_test(Some(draft.clone()));
+    let _reset = ResetSync;
+    let error = s
+        .persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .err()
+        .unwrap();
+    storage::fail_directory_for_test(None);
+    assert!(
+        error.contains("injected failure") && error.contains("copy was removed"),
+        "{error}"
+    );
+    assert!(!draft.exists());
+    assert!(s.base_files().is_empty(), "no base recorded");
+    // Then Refine works.
+    s.persistent_owner()
+        .refine_from_store("sample", one.revision())
+        .unwrap();
+    assert!(draft.join("WORKFLOW.md").is_file());
+    assert_eq!(s.base_files().len(), 1);
+}
+
+/// F4: an act log that cannot be read completely keeps a captured
+/// re-confirmation pending at G-1R (the act is not spent); once readable, the
+/// same attempt completes.
+#[test]
+fn v15_f4_unreadable_act_log_keeps_g1r_pending() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let log = storage::library_log(&s.0);
+    let kept = fs::read(&log).unwrap();
+    let mut broken = kept.clone();
+    broken.extend_from_slice(b"{\"not\":\"an act record\"}\n");
+    fs::write(&log, &broken).unwrap();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    match &attempt.advance()[0] {
+        EntryOutcome::Pending { reason, .. } => {
+            assert!(
+                reason.contains("act log not completely readable"),
+                "{reason}"
+            )
+        }
+        other => panic!("expected pending: {other:?}"),
+    }
+    assert_eq!(ledger(&s).len(), 1, "nothing appended");
+    fs::write(&log, &kept).unwrap();
+    assert_eq!(
+        reconfirmed(&attempt.advance()[0]).identity(),
+        first.identity()
+    );
+}
+
+/// F5: the library lists its registered revisions with WR's label; a row is
+/// "selectable in this App session" only after this process's own commit.
+#[test]
+fn v15_f5_registered_listing_labels_rows() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    register(&s.persistent_owner(), one.revision());
+    let owner = s.persistent_owner();
+    let rows = owner.registered_listing();
+    assert_eq!(rows.as_array().unwrap().len(), 1, "{rows}");
+    assert_eq!(rows[0]["revision"], one.revision());
+    assert_eq!(rows[0]["sequence"], 1);
+    assert_eq!(
+        rows[0]["label"],
+        "registered — re-confirm to use in this App session"
+    );
+    reconfirmed(&reconfirm(&owner, one.revision()).0[0]);
+    let rows = owner.registered_listing();
+    assert_eq!(
+        rows.as_array().unwrap().len(),
+        1,
+        "a re-confirmed line is not a revision"
+    );
+    assert_eq!(
+        rows[0]["label"],
+        "registered — selectable in this App session"
+    );
 }
