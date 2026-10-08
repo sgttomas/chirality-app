@@ -35,7 +35,7 @@ required before adoption. It is not a reusable workflow.
 
 ## Point of need: M2/M3 versus bundled-workflow examination
 
-This proposal is not a new blanket gate on Group B M2/M3. EXP §9's packaged
+This proposal is not a new blanket gate on Group B M2/M3. EXP §8.2's packaged
 smoke covers start, handshake shown and a conversation opening; EXP §10 M2 is
 package/identity/install witness, and M3 is that native smoke on the same package.
 PKG §8 W-0–W-6 does not require a workflow conversation. Candidate inventory,

@@ -30,5 +30,19 @@
     "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md": "6bfb2277006a16e6089e7e862da24e9ed7fe749a08f0e63e35e50f25ea251838",
     "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md": "2327508f2290e7cf2528950d65bc331d72a80d8413a13fe31ea8f867cce4d176",
     "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/ROLE_SUPPLY.md": "b279a23a5c8d8b2170618a062b3a5ccc3ea07a1cecdfcec7c61d0320f6559ba9"
-  }
+  },
+  "additional_reads": [
+    {
+      "path": ".agents/skills/proposal-format/SKILL.md",
+      "sha256": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d",
+      "extent": "Full skill, applied to CC-WR-PKG-CANDIDATE-01",
+      "basis": "847c6a084c48d6c1e1d68a49fd4a6d489136bb57"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
+      "extent": "Sections8.2/9/10 and M2/M3 references for proposal point of need",
+      "basis": "847c6a084c48d6c1e1d68a49fd4a6d489136bb57"
+    }
+  ]
 }

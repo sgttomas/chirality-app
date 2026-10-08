@@ -99,3 +99,14 @@ bundled-workflow examination point of need from M2/M3 package/start/handshake/
 conversation smoke. Genuine A15 testing remains viable with an explicit LS5/LS8
 bundled-path coverage gap. Current runtime refusal and all product bytes stay
 unchanged.
+
+Final current-main integration: `601ba408e4` (after Group C `236cbc3c69`) merged
+cleanly without rewriting at `a758935c8fa65f053196e28b431d6733618469e7`. P2/P3
+product bytes are unchanged; shared lib exports connector_standing and the
+separately reviewed distribution_preflight. Independent read-only integration
+backcheck found no P2/P3 blocker. On this joined code, production-feature
+workflow checks passed 156, P3 checks passed 8, and actual Host role-start receipt
+join passed 1. No accepted Design or three downstream source-pin changes.
+The reviewer also confirmed the proposal sequencing and corrected its smoke
+citation to EXP §8.2. Final source-read hashes are in BASIS.json; the final
+evidence-only head is backchecked through the native review return before PR.
