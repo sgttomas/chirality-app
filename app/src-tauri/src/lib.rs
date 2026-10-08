@@ -308,17 +308,22 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     let data=state.app_user_data_root.lock().unwrap().clone()?;
     let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
     let app_custody=account.host.app_runtime_custody()?;
-    let admitted=match runtime_session::prepare_native_key_namespace(&bootstrap,&data,&app_custody) {
+    let authority=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.authority()?;
+    let entries=state.homes.lock().unwrap().entries();
+    let mut stores=Vec::new();for entry in &entries{let required=entry.host_config.as_ref().map_err(Clone::clone)?.distribution.is_some();if let Some(store)=entry.host.distribution_store_for_admission(required)?{if !stores.iter().any(|old|Arc::ptr_eq(old,&store)){stores.push(store);}}}
+    let account_store=account.host.distribution_store_for_admission(account.host_config.as_ref().map_err(Clone::clone)?.distribution.is_some())?;
+    let admitted=match runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&app_custody,&authority,&stores,|admitted|{
+        *state.native_namespaces.lock().unwrap()=Ok(admitted.namespaces.clone());
+        *state.key_namespace_admission.lock().unwrap()=admitted.observation.clone();
+        for entry in &entries{*entry.attachment_custody.lock().unwrap()=Ok(admitted.attachment.clone());}
+    }) {
         Ok(admitted)=>admitted,
-        Err(error)=>{*state.key_namespace_admission.lock().unwrap()=json!({"state":"key namespace/setup refused; original bindings retained","limit":error,"existingAccount":"current ledger/custody bindings retained"});return Err(error);}
+        Err(error)=>{*state.key_namespace_admission.lock().unwrap()=json!({"state":"key namespace/setup refused before admission; original bindings retained","limit":error,"existingAccount":"current ledger/custody bindings retained; physical preparation may remain"});return Err(error);}
     };
-    *state.native_namespaces.lock().unwrap()=Ok(admitted.namespaces);
-    *state.key_namespace_admission.lock().unwrap()=admitted.observation;
     let attachment=admitted.attachment;
-    for entry in state.homes.lock().unwrap().entries(){*entry.attachment_custody.lock().unwrap()=Ok(attachment.clone());}
     let existing=state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey);
-    let home={
-        match existing{
+    let home=runtime_session::admitted_key_setup(&state.key_namespace_admission,&admitted.observation,||->Result<Arc<runtime_session::HomeSession>,String>{
+        Ok(match existing{
             Ok(home)=>home,
             Err(_)=>{
                 let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
@@ -327,6 +332,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 bootstrap.validate_binding(home_resources::HomeClass::ApiKey,&config)?;
                 let custody=account.host.app_runtime_custody()?;
                 let host=Arc::new(Host::new_with_app_custody(custody)?);
+                if let Some(store)=&account_store{host.configure_distribution_store(Ok(store.clone()));}
                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
@@ -334,15 +340,17 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 state.homes.lock().unwrap().bind_key(home.clone())?;
                 home
             }
-        }
-    };
+        })
+    })?;
+    let config=runtime_session::admitted_key_setup(&state.key_namespace_admission,&admitted.observation,|| {
     let config=home.host_config.clone()?;
     bootstrap.validate_binding(home.class(),&config)?;
     if home.host.snapshot()["state"]!="ready" {
         let data=state.app_user_data_root.lock().unwrap().clone()?;
         runtime_session::start_with_recovery(&home.host,&home.recovery_startup,Ok(data.as_path()),Some(&config.codex_home),||home.host.start(&config,"the person: add-key"))?;
     }
-    bootstrap.validate_binding(home.class(),&config)?;
+    bootstrap.validate_binding(home.class(),&config)?;Ok(config)})?;
+    let _=config;
     let generation=home.host.snapshot()["generation"].clone();
     runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
 }
@@ -1146,23 +1154,25 @@ pub fn run() {
                 runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
             })();
             *state.native_namespaces.lock().unwrap()=namespaces.clone();
+            let namespace_authority=namespaces.clone().map(hosting::attachment_custody::NamespaceAuthority::new);
             if let Ok(cfg) = &home.host_config {
                 if cfg.distribution.is_some() {
                     let store = (|| {
                         let data = data.as_ref().map_err(Clone::clone)?;
                         let vendor = cfg.distribution.as_ref().unwrap().vendor_root();
-                        match cfg.distribution.as_ref().unwrap() {
+                        let store=match cfg.distribution.as_ref().unwrap() {
                             hosting::successor::Distribution::Production { resources } => {
                                 let selected=distribution_preflight::selection::Selected::production(&resources.join("distribution-reference"))?;
                                 crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)
                             },
                             hosting::successor::Distribution::Development { .. } => crate::distribution_store::Store::open(data,&vendor,namespaces.clone()?),
-                        }
+                        }?;
+                        crate::distribution_store::Store::with_authority(store,namespace_authority.clone()?)
                     })();
                     host.configure_distribution_store(store);
                 }
             }
-            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_with_namespaces(data,namespaces.clone()?).map(Arc::new));
+            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_shared(data,namespace_authority.clone()?).map(Arc::new));
             home.recovery_startup.lock().unwrap().initialize_with_namespaces(
                 &host,
                 data.as_deref().map_err(String::as_str),

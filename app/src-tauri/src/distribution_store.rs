@@ -1,6 +1,6 @@
 //! Protected, immutable publication of explicitly unqualified Host attempts.
 //! This is not an S1 observation/lifecycle reader or a supplier trust issuer.
-use crate::hosting::attachment_custody::NativeNamespaceBindings;
+use crate::hosting::attachment_custody::{NativeNamespaceBindings,NamespaceAuthority,NamespaceLease};
 use crate::{distribution_preflight::digest, recovery, util};
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -36,6 +36,9 @@ pub(crate) struct Store {
     root_id: (u64, u64),
     vendor: PathBuf,
     namespaces: Arc<NativeNamespaceBindings>,
+    authority: Arc<NamespaceAuthority>,
+    #[cfg(test)]
+    reviewer_before_reopen: std::sync::Mutex<Option<Box<dyn FnOnce()+Send>>>,
     selected: Option<crate::distribution_preflight::selection::Selected>,
     #[cfg(test)]
     before_audit: std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>>,
@@ -270,42 +273,53 @@ impl Store {
             root,
             root_id: id(&dir)?,
             vendor: vendor.into(),
+            authority:NamespaceAuthority::new(namespaces.clone()),
             namespaces,
+            #[cfg(test)]
+            reviewer_before_reopen: std::sync::Mutex::new(None),
             selected: None,
             #[cfg(test)]
             before_audit: std::sync::Mutex::new(None),
         });
-        store.guard()?;
+        store.guard(&store.authority.lease()?)?;
         Ok(store)
     }
-    fn guard(&self) -> Result<File, String> {
-        self.namespaces.guard_app_root(&self.app_data)?;
-        self.namespaces.guard_domains(&[self.root.clone()])?;
-        guard_vendor_domain(&self.root, &self.vendor)?;
-        let root = physical_root(&self.root)?;
-        private(&root, true)?;
-        if id(&root)? != self.root_id {
-            return Err("publication root relocated or replaced".into());
-        }
+    pub(crate) fn with_authority(mut store:Arc<Self>,authority:Arc<NamespaceAuthority>)->Result<Arc<Self>,String>{
+        {let lease=authority.lease()?;store.preflight_binding(&lease)?;}
+        Arc::get_mut(&mut store).ok_or("Store already shared before authority setup")?.authority=authority;Ok(store)
+    }
+    #[cfg(test)]
+    pub(crate) fn namespace_authority(&self)->Arc<NamespaceAuthority>{self.authority.clone()}
+    pub(crate) fn uses_authority(&self,authority:&Arc<NamespaceAuthority>)->bool{Arc::ptr_eq(&self.authority,authority)}
+    /// Geometry/identity only, safe for final short admission. No inventory hashing.
+    pub(crate) fn preflight_binding(&self,binding:&NativeNamespaceBindings)->Result<(),String>{self.validated_root(binding).map(drop)}
+    fn validated_root(&self,binding:&NativeNamespaceBindings)->Result<File,String>{
+        binding.guard_app_root(&self.app_data)?;binding.guard_domains(&[self.root.clone()])?;
+        guard_vendor_domain(&self.root,&self.vendor)?;let root=physical_root(&self.root)?;private(&root,true)?;
+        if id(&root)?!=self.root_id{return Err("publication root relocated or replaced".into());}
+        if let Some(selected)=&self.selected{guard_vendor_domain(&self.root,selected.source())?;selected.recheck_root()?;}Ok(root)
+    }
+    pub(crate) fn preflight_selection(&self)->Result<(),String>{if let Some(selected)=&self.selected{selected.recheck()?;}Ok(())}
+    fn guard(&self,lease:&NamespaceLease<'_>)->Result<File,String>{
+        let root=self.validated_root(lease)?;
+        // Regression seam retains its review name: there is no reopen anymore.
+        #[cfg(test)] {let hook=self.reviewer_before_reopen.lock().unwrap().take();if let Some(hook)=hook{hook();}}
         Ok(root)
     }
-    fn generation(&self, g: &Value) -> Result<(), String> {
-        recovery::generation_ref(g)?;
-        self.namespaces
-            .contains_home_id(g["home"].as_str().ok_or("missing home")?)
-    }
+    fn generation(&self,lease:&NamespaceLease<'_>,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;lease.contains_home_id(g["home"].as_str().ok_or("missing home")?)}
     /// Development evidence only: no caller can turn it into a qualified closure.
     /// Selected-closure transport machinery is a separate implementation residual;
     /// production also lacks the compiled S3 selection and installed-custody issuer.
     pub(crate) fn publish_attempt(&self, g: &Value, attempt: &Value) -> Result<Reference, String> {
-        self.generation(g)?;
+        let lease=self.authority.lease()?;
+        self.generation(&lease,g)?;
         if attempt["format"] != "host-successor-attempt.s2"
             || attempt["standing"] != "unverified-development"
             || attempt["verificationGeneration"] != *g
         {
             return Err("unsupported attempt format/standing/generation".into());
         }
-        let parent = self.guard()?;
+        let parent = self.guard(&lease)?;
         let name = util::opaque_id("attempt-")?;
         let staging = format!(".pending-{name}");
         let dir = mkdir(&parent, &staging, true)?;
@@ -318,8 +332,8 @@ impl Store {
         write_new(&dir, ATTEMPT, &raw)?;
         write_new(&dir, MANIFEST, &manifest_raw)?;
         dir.sync_all().map_err(error)?;
-        self.guard()?;
-        self.generation(g)?;
+        self.guard(&lease)?;
+        self.generation(&lease,g)?;
         if id(&dir)? != id(&open_at(&parent, &staging, true)?)? {
             return Err("staging root replaced".into());
         }
@@ -333,16 +347,17 @@ impl Store {
             attempt_sha256: attempt_hash,
             publication_id: id(&dir)?,
         };
-        self.read(g, &reference)?;
+        self.read_leased(&lease,g, &reference)?;
         Ok(reference)
     }
     /// Native at-use read: references are held capabilities, not UI-supplied paths.
-    pub(crate) fn read(&self, g: &Value, reference: &Reference) -> Result<Value, String> {
-        self.generation(g)?;
+    pub(crate) fn read(&self,g:&Value,reference:&Reference)->Result<Value,String>{let lease=self.authority.lease()?;self.read_leased(&lease,g,reference)}
+    fn read_leased(&self,lease:&NamespaceLease<'_>, g: &Value, reference: &Reference) -> Result<Value, String> {
+        self.generation(&lease,g)?;
         if &reference.generation != g {
             return Err("foreign generation reference".into());
         }
-        let root = self.guard()?;
+        let root = self.guard(&lease)?;
         let dir = open_at(&root, &reference.publication, true)?;
         private(&dir, true)?;
         if id(&dir)? != reference.publication_id {
@@ -410,8 +425,8 @@ impl Store {
         if id(&dir)? != id(&open_at(&root, &reference.publication, true)?)? {
             return Err("publication directory replaced".into());
         }
-        self.guard()?;
-        self.generation(g)?;
+        self.guard(&lease)?;
+        self.generation(&lease,g)?;
         Ok(
             json!({"reference":reference,"artifact":attempt,"transport":manifest,"standing":"unverified-development","readStanding":"exact bytes checked at this read; no future integrity or live-custody assertion"}),
         )
@@ -468,6 +483,18 @@ mod tests {
         }
     }
     #[test]
+    fn reviewer_root_replacement_before_returned_descriptor_must_not_receive_writes(){
+        use std::os::unix::fs::PermissionsExt;
+        let f=Fixture::new();let root=f.store.root.clone();
+        *f.store.reviewer_before_reopen.lock().unwrap()=Some(Box::new(move||{
+            std::fs::rename(&root,root.with_extension("original")).unwrap();
+            std::fs::create_dir(&root).unwrap();std::fs::set_permissions(&root,std::fs::Permissions::from_mode(0o700)).unwrap();
+        }));
+        assert!(f.store.publish_attempt(&f.g,&f.attempt).is_err());
+        let names=std::fs::read_dir(&f.store.root).unwrap().map(|e|e.unwrap().file_name()).collect::<Vec<_>>();
+        assert!(names.is_empty(),"unbound replacement received publication writes: {names:?}");
+    }
+    #[test]
     fn repeated_prospective_tuple_never_overwrites_and_foreign_tuple_refuses() {
         let f = Fixture::new();
         let a = f.publish();
@@ -478,7 +505,7 @@ mod tests {
         let mut g = f.g.clone();
         g["spawnCounter"] = json!(2);
         assert!(f.store.read(&g, &a).is_err());
-        let parent = f.store.guard().unwrap();
+        let parent = f.store.guard(&f.store.authority.lease().unwrap()).unwrap();
         assert!(publish_rename(&parent, &a.publication, &b.publication).is_err());
         assert!(f.store.read(&f.g, &a).is_ok());
         assert!(f.store.read(&f.g, &b).is_ok());

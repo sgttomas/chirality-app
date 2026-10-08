@@ -103,11 +103,11 @@ impl Store {
         Arc::get_mut(&mut store)
             .ok_or("store unexpectedly shared")?
             .selected = Some(selected);
-        store.guard_s1()?;
+        store.guard_s1(&store.authority.lease()?)?;
         Ok(store)
     }
-    fn guard_s1(&self) -> Result<File, String> {
-        let root = self.guard()?;
+    fn guard_s1(&self,lease:&NamespaceLease<'_>) -> Result<File, String> {
+        let root = self.guard(lease)?;
         if let Some(selected) = &self.selected {
             guard_vendor_domain(&self.root, selected.source())?;
             selected.recheck()?;
@@ -120,8 +120,9 @@ impl Store {
         mut observation: Value,
         facts: Value,
     ) -> Result<S1Reference, String> {
-        self.guard_s1()?;
-        self.generation(g)?;
+        let lease=self.authority.lease()?;
+        self.guard_s1(&lease)?;
+        self.generation(&lease,g)?;
         if observation["generation"] != *g {
             return Err("observation generation differs".into());
         }
@@ -161,7 +162,7 @@ impl Store {
             OBSERVED.into(),
             serde_json::to_vec(&observation).map_err(error)?,
         );
-        self.publish_s1(g, files, false)
+        self.publish_s1(&lease,g, files, false)
     }
     pub(crate) fn publish_lt09(
         &self,
@@ -169,7 +170,8 @@ impl Store {
         prior: &S1Reference,
         event: &Value,
     ) -> Result<S1Reference, String> {
-        self.read_s1(g, prior)?;
+        let lease=self.authority.lease()?;
+        self.read_s1_leased(&lease,g, prior)?;
         if event["transitionId"] != "LT-09" || event["generation"] != *g {
             return Err("only actual same-generation LT-09 supported".into());
         }
@@ -181,16 +183,17 @@ impl Store {
             LIFECYCLE.into(),
             serde_json::to_vec(&envelope).map_err(error)?,
         );
-        self.publish_s1(g, files, true)
+        self.publish_s1(&lease,g, files, true)
     }
     fn publish_s1(
         &self,
+        lease:&NamespaceLease<'_>,
         g: &Value,
         mut files: Files,
         lifecycle: bool,
     ) -> Result<S1Reference, String> {
-        self.generation(g)?;
-        let root = self.guard_s1()?;
+        self.generation(&lease,g)?;
+        let root = self.guard_s1(&lease)?;
         let name = util::opaque_id("s1-")?;
         let staging = format!(".pending-{name}");
         let transport = json!({"format":"distribution-closure-transport.s3","method":"selected-s1-contract-closure.s3","sourceAssociation":self.selected.as_ref().map(Selected::association),"mirrorLocator":self.root.join(&name),"generation":g,"entries":files.iter().map(|(path,raw)|artifact_ref(path,raw)).collect::<Vec<_>>(),"reader":distribution_s1::identity(),"limit":"Creation correspondence only; no future integrity, issuer, qualification or live custody assertion"});
@@ -209,8 +212,8 @@ impl Store {
             parent.sync_all().map_err(error)?;
         }
         dir.sync_all().map_err(error)?;
-        self.guard_s1()?;
-        self.generation(g)?;
+        self.guard_s1(&lease)?;
+        self.generation(&lease,g)?;
         if id(&dir)? != id(&open_at(&root, &staging, true)?)? {
             return Err("staging directory changed".into());
         }
@@ -231,15 +234,16 @@ impl Store {
             files,
             publication_id: id(&dir)?,
         };
-        self.read_s1(g, &reference)?;
+        self.read_s1_leased(&lease,g, &reference)?;
         Ok(reference)
     }
-    pub(crate) fn read_s1(&self, g: &Value, reference: &S1Reference) -> Result<Value, String> {
-        self.generation(g)?;
+    pub(crate) fn read_s1(&self,g:&Value,reference:&S1Reference)->Result<Value,String>{let lease=self.authority.lease()?;self.read_s1_leased(&lease,g,reference)}
+    fn read_s1_leased(&self,lease:&NamespaceLease<'_>, g: &Value, reference: &S1Reference) -> Result<Value, String> {
+        self.generation(&lease,g)?;
         if &reference.generation != g {
             return Err("foreign S1 generation".into());
         }
-        let root = self.guard_s1()?;
+        let root = self.guard_s1(&lease)?;
         let dir = open_at(&root, &reference.publication, true)?;
         private(&dir, true)?;
         if id(&dir)? != reference.publication_id {
@@ -318,8 +322,8 @@ impl Store {
         if id(&dir)? != id(&open_at(&root, &reference.publication, true)?)? {
             return Err("S1 publication changed".into());
         }
-        self.guard_s1()?;
-        self.generation(g)?;
+        self.guard_s1(&lease)?;
+        self.generation(&lease,g)?;
         Ok(
             json!({"reference":reference,"artifact":observed,"lifecycle":lifecycle,"transport":transport,"outcome":outcome,"standing":"unverified-development","readStanding":"S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion","unsupportedEnvelopes":"Only actual LT-09 is published; pre-spawn/restart/other legacy envelopes unavailable"}),
         )

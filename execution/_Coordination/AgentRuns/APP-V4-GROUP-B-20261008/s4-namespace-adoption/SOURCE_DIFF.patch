@@ -1,0 +1,861 @@
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/attachment_custody.rs b/projects/chirality-app-v4/app/src-tauri/src/attachment_custody.rs
+index 431cb35af8..43e05bc8a5 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/attachment_custody.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/attachment_custody.rs
+@@ -299,9 +299,31 @@ fn physical_alias(a:&Path,b:&Path)->Result<bool,String>{
+     match(read(a)?,read(b)?){(Some(a),Some(b))=>Ok(a.dev()==b.dev()&&a.ino()==b.ino()),_=>Ok(false)}
+ }
+ /// Root comes from the integrating native host, never a renderer path or fallback.
++/// Live Root protection only; never a serialized capability or cached safety claim.
++pub(crate) struct NamespaceAuthority { state: std::sync::RwLock<NamespaceState> }
++struct NamespaceState { epoch:u64, binding:std::sync::Arc<NativeNamespaceBindings> }
++pub(crate) struct NamespaceLease<'a> { guard:std::sync::RwLockReadGuard<'a,NamespaceState> }
++impl std::ops::Deref for NamespaceLease<'_> { type Target=NativeNamespaceBindings; fn deref(&self)->&Self::Target { &self.guard.binding } }
++pub(crate) struct NamespaceAdmission<'a> { guard:std::sync::RwLockWriteGuard<'a,NamespaceState>, next:u64 }
++impl NamespaceAuthority {
++    #[cfg(test)]
++    pub(crate) fn test_epoch(&self,epoch:u64){self.state.write().unwrap().epoch=epoch;}
++    pub(crate) fn new(binding:std::sync::Arc<NativeNamespaceBindings>)->std::sync::Arc<Self>{std::sync::Arc::new(Self{state:std::sync::RwLock::new(NamespaceState{epoch:0,binding})})}
++    pub(crate) fn lease(&self)->Result<NamespaceLease<'_>,String>{Ok(NamespaceLease{guard:self.state.read().map_err(|_|"namespace authority poisoned")?})}
++    pub(crate) fn admission(&self,expected:u64)->Result<NamespaceAdmission<'_>,String>{let guard=self.state.try_write().map_err(|_|"namespace admission busy; explicit retry permitted")?;if guard.epoch!=expected{return Err("namespace epoch changed before admission".into());}let next=guard.epoch.checked_add(1).ok_or("namespace epoch exhausted")?;Ok(NamespaceAdmission{guard,next})}
++}
++impl NamespaceLease<'_>{pub(crate) fn epoch(&self)->u64{self.guard.epoch}}
++impl NamespaceAdmission<'_>{
++    pub(crate) fn next(&self)->u64{self.next}
++    pub(crate) fn commit(&mut self,binding:std::sync::Arc<NativeNamespaceBindings>){self.guard.binding=binding;self.guard.epoch=self.next;}
++}
++pub(crate) struct AttachmentLease<'a>{namespace:Option<NamespaceLease<'a>>,owner:&'a AttachmentCustody}
++pub(crate) struct LeasedCustodyOwnership<'a>{_ownership:CustodyOwnership,_lease:std::marker::PhantomData<&'a AttachmentLease<'a>>}
+ pub struct AttachmentCustody {
+     root: PathBuf,
+     namespaces:Option<std::sync::Arc<NativeNamespaceBindings>>,
++    authority:Option<std::sync::Arc<NamespaceAuthority>>,
++    epoch:u64,
+ }
+ impl AttachmentCustody {
+     pub fn open(app_data: &Path, codex_home: &Path) -> Result<Self, String> {
+@@ -312,29 +334,37 @@ impl AttachmentCustody {
+             return Err("App attachment custody and Codex home overlap".into());
+         }
+         storage::ensure_directory(&root.join("runtime"))?;
+-        Ok(Self { root, namespaces:None })
++        Ok(Self { root, namespaces:None,authority:None,epoch:0 })
+     }
+     pub fn open_with_namespaces(app_data:&Path,namespaces:std::sync::Arc<NativeNamespaceBindings>)->Result<Self,String>{
+         storage::check_path(app_data)?;let root=resolved(app_data)?;namespaces.guard_app_root(&root)?;
+-        let owner=Self{root,namespaces:Some(namespaces)};owner.guard_scope()?;storage::ensure_directory(&owner.root.join("runtime"))?;owner.guard_scope()?;Ok(owner)
+-    }
+-    fn guard_scope(&self)->Result<(),String>{
+-        if let Some(bindings)=&self.namespaces{bindings.guard_app_root(&self.root)?;bindings.guard_domains(&[self.root.join("runtime/nir/attachment-supplies"),self.root.join("runtime/hosting/client-requests"),self.lock_path()])?;}Ok(())
+-    }
+-    fn guard_generation(&self,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;if let Some(bindings)=&self.namespaces{bindings.contains_home_id(g["home"].as_str().unwrap())?;}Ok(())}
+-    fn guard_leaf(&self,path:&Path)->Result<(),String>{self.guard_scope()?;if let Some(bindings)=&self.namespaces{bindings.guard_domains(&[path.to_owned()])?;}Ok(())}
++        let owner=Self{root,namespaces:Some(namespaces),authority:None,epoch:0};let lease=owner.lease()?;owner.guard_scope(&lease)?;storage::ensure_directory(&owner.root.join("runtime"))?;owner.guard_scope(&lease)?;drop(lease);Ok(owner)
++    }
++    pub(crate) fn open_shared(app_data:&Path,authority:std::sync::Arc<NamespaceAuthority>)->Result<Self,String>{
++        let lease=authority.lease()?;let mut owner=Self::open_with_namespaces(app_data,lease.guard.binding.clone())?;owner.epoch=lease.epoch();drop(lease);owner.authority=Some(authority);Ok(owner)
++    }
++    pub(crate) fn prepared_shared(app_data:&Path,authority:std::sync::Arc<NamespaceAuthority>,binding:std::sync::Arc<NativeNamespaceBindings>,epoch:u64)->Result<Self,String>{let mut owner=Self::open_with_namespaces(app_data,binding)?;owner.authority=Some(authority);owner.epoch=epoch;Ok(owner)}
++    pub(crate) fn authority(&self)->Result<std::sync::Arc<NamespaceAuthority>,String>{self.authority.clone().ok_or("Root namespace authority unavailable".into())}
++    pub(crate) fn lease(&self)->Result<AttachmentLease<'_>,String>{let namespace=self.authority.as_ref().map(|a|a.lease()).transpose()?;if namespace.as_ref().is_some_and(|n|n.epoch()!=self.epoch){return Err("stale attachment namespace capability; no reliance or automatic retry".into());}Ok(AttachmentLease{namespace,owner:self})}
++    fn bindings<'a>(&'a self,lease:&'a AttachmentLease<'_>)->Result<Option<&'a NativeNamespaceBindings>,String>{if !std::ptr::eq(self,lease.owner){return Err("foreign attachment operation lease".into());}Ok(lease.namespace.as_deref().or(self.namespaces.as_deref()))}
++    pub(crate) fn preflight_binding(&self,binding:&NativeNamespaceBindings)->Result<(),String>{binding.guard_app_root(&self.root)?;binding.guard_domains(&[self.root.join("runtime/nir/attachment-supplies"),self.root.join("runtime/hosting/client-requests"),self.lock_path()])}
++    fn guard_scope(&self,lease:&AttachmentLease<'_>)->Result<(),String>{if let Some(binding)=self.bindings(lease)?{self.preflight_binding(binding)?;}Ok(())}
++    fn guard_generation(&self,lease:&AttachmentLease<'_>,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;if let Some(binding)=self.bindings(lease)?{binding.contains_home_id(g["home"].as_str().unwrap())?;}Ok(())}
++    fn guard_leaf(&self,lease:&AttachmentLease<'_>,path:&Path)->Result<(),String>{self.guard_scope(lease)?;if let Some(binding)=self.bindings(lease)?{binding.guard_domains(&[path.to_owned()])?;}Ok(())}
+     pub fn root(&self) -> &Path {
+         &self.root
+     }
+-    pub fn supplies_path(&self, submission: &str) -> Result<PathBuf, String> {
+-        self.guard_scope()?;
++    pub fn supplies_path(&self,submission:&str)->Result<PathBuf,String>{let lease=self.lease()?;self.supplies_path_leased(&lease,submission)}
++    fn supplies_path_leased(&self,lease:&AttachmentLease<'_>, submission: &str) -> Result<PathBuf, String> {
++        self.guard_scope(&lease)?;
+         Ok(self
+             .root
+             .join("runtime/nir/attachment-supplies")
+             .join(format!("{}.json", submission_key(submission)?)))
+     }
+-    pub fn client_path(&self, g: &Value, id: &Value) -> Result<PathBuf, String> {
+-        self.guard_scope()?;self.guard_generation(g)?;
++    pub fn client_path(&self,g:&Value,id:&Value)->Result<PathBuf,String>{let lease=self.lease()?;self.client_path_leased(&lease,g,id)}
++    fn client_path_leased(&self,lease:&AttachmentLease<'_>, g: &Value, id: &Value) -> Result<PathBuf, String> {
++        self.guard_scope(&lease)?;self.guard_generation(&lease,g)?;
+         Ok(self
+             .root
+             .join("runtime/hosting/client-requests")
+@@ -344,10 +374,11 @@ impl AttachmentCustody {
+     fn lock_path(&self) -> PathBuf {
+         self.root.join("runtime/hosting/.client-custody.lock")
+     }
+-    pub(crate) fn lock_sources(&self) -> Result<CustodyOwnership, String> {
+-        self.guard_leaf(&self.lock_path())?;owning_lock(&self.lock_path(), true)
++    pub(crate) fn lock_sources<'a>(&self,lease:&'a AttachmentLease<'a>) -> Result<LeasedCustodyOwnership<'a>, String> {
++        self.guard_leaf(lease,&self.lock_path())?;Ok(LeasedCustodyOwnership{_ownership:owning_lock(&self.lock_path(),true)?,_lease:std::marker::PhantomData})
+     }
+     pub fn publish_prepared(&self, records: &[Value], client: &Value) -> Result<(), String> {
++        let lease=self.lease()?;
+         validate_client(client)?;
+         if client["outcome"] != "prepared-not-sent"
+             || client["writeResult"] != "not-attempted"
+@@ -355,29 +386,30 @@ impl AttachmentCustody {
+         {
+             return Err("prewrite observation differs".into());
+         }
+-        self.guard_scope()?;self.guard_generation(&client["generation"])?;
++        self.guard_scope(&lease)?;self.guard_generation(&lease,&client["generation"])?;
+         let association = &client["submissionAssociation"];
+         validate_list(records, association)?;
+-        let _lock = self.lock_sources()?;
++        let _lock = self.lock_sources(&lease)?;
+         storage::create_json(
+-            &self.supplies_path(association["submissionRef"].as_str().unwrap())?,
++            &self.supplies_path_leased(&lease,association["submissionRef"].as_str().unwrap())?,
+             &json!(records),
+         )?;
+         storage::create_json(
+-            &self.client_path(&client["generation"], &client["requestIdentity"])?,
++            &self.client_path_leased(&lease,&client["generation"], &client["requestIdentity"])?,
+             client,
+         )?;
+-        self.check_prepared(records, client)
++        self.check_prepared_leased(&lease,records, client)
+     }
+-    pub fn check_prepared(&self, records: &[Value], client: &Value) -> Result<(), String> {
+-        self.guard_scope()?;validate_client(client)?;
++    pub fn check_prepared(&self,records:&[Value],client:&Value)->Result<(),String>{let lease=self.lease()?;self.check_prepared_leased(&lease,records,client)}
++    pub(crate) fn check_prepared_leased(&self,lease:&AttachmentLease<'_>, records: &[Value], client: &Value) -> Result<(), String> {
++        self.guard_scope(&lease)?;validate_client(client)?;
+         let actual =
+-            read_metadata(&self.client_path(&client["generation"], &client["requestIdentity"])?)?;
++            read_metadata(&self.client_path_leased(&lease,&client["generation"], &client["requestIdentity"])?)?;
+         if actual != *client {
+             return Err("durable client binding differs from reserved observation".into());
+         }
+         let array = read_metadata(
+-            &self.supplies_path(
++            &self.supplies_path_leased(&lease,
+                 client["submissionAssociation"]["submissionRef"]
+                     .as_str()
+                     .ok_or("submission absent")?,
+@@ -394,9 +426,10 @@ impl AttachmentCustody {
+     }
+     /// Atomic state update of the same source; original values are immutable.
+     pub fn replace_observation(&self, record: &Value) -> Result<(), String> {
++        let lease=self.lease()?;
+         validate_client(record)?;
+-        let _lock = self.lock_sources()?;
+-        let path = self.client_path(&record["generation"], &record["requestIdentity"])?;
++        let _lock = self.lock_sources(&lease)?;
++        let path = self.client_path_leased(&lease,&record["generation"], &record["requestIdentity"])?;
+         let old = read_metadata(&path)?;
+         validate_client(&old)?;
+         for field in [
+@@ -427,9 +460,10 @@ impl AttachmentCustody {
+         Ok(())
+     }
+     /// Source reader. Disk claims never create a hot capability/native turn proof.
+-    pub fn resolve_cold(&self, submission: &str) -> Value {
++    pub fn resolve_cold(&self, submission: &str) -> Value {match self.lease(){Ok(lease)=>self.resolve_cold_leased(&lease,submission),Err(error)=>json!({"submissionRef":submission,"nativeTurnRef":null,"dispatch":"unknown/unavailable","limits":[error],"automaticRetry":false})}}
++    pub(crate) fn resolve_cold_leased(&self,lease:&AttachmentLease<'_>,submission:&str)->Value{
+         let result = (|| -> Result<Value, String> {
+-            submission_key(submission)?;self.guard_scope()?;
++            submission_key(submission)?;self.guard_scope(&lease)?;
+             let _read_lock = owning_lock(&self.lock_path(), false)?;
+             let clients = self.root.join("runtime/hosting/client-requests");
+             let mut found = vec![];
+@@ -451,7 +485,7 @@ impl AttachmentCustody {
+                     let record = read_metadata(&path)?;
+                     validate_client(&record)?;
+                     if path
+-                        != self.client_path(&record["generation"], &record["requestIdentity"])?
++                        != self.client_path_leased(&lease,&record["generation"], &record["requestIdentity"])?
+                     {
+                         return Err(
+                             "source path key differs from authoritative typed fields".into()
+@@ -466,7 +500,7 @@ impl AttachmentCustody {
+                 return Err("submission source missing or conflicting".into());
+             }
+             let record = found.pop().unwrap();
+-            let records = read_metadata(&self.supplies_path(submission)?)?;
++            let records = read_metadata(&self.supplies_path_leased(&lease,submission)?)?;
+             validate_list(
+                 records.as_array().ok_or("supply source is not array")?,
+                 &record["submissionAssociation"],
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/distribution_s1.rs b/projects/chirality-app-v4/app/src-tauri/src/distribution_s1.rs
+index a6aeba2aa6..5de3f4b594 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/distribution_s1.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/distribution_s1.rs
+@@ -11,7 +11,7 @@ const LIFE: &str =
+ const TRANSITIONS: &str =
+     include_str!("../resources/distribution-successor/lifecycle-transitions.s1.json");
+ pub(crate) fn identity() -> Value {
+-    json!({"semanticRevision":"observed-lifecycle-reader.s3","stringIdentity":crate::distribution_preflight::selection::string_identity_basis(),"readerSourceSha256":digest(include_bytes!("distribution_s1.rs")),"closureReaderSha256":digest(include_bytes!("distribution_selection.rs")),"storeReaderSha256":digest(include_bytes!("distribution_store_s1.rs")),"storeGuardsSha256":digest(include_bytes!("distribution_store.rs")),"preflightReaderSha256":digest(include_bytes!("distribution_preflight.rs")),"factsSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-preflight-facts.s3.schema.json")),"transportSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-closure-transport.s3.schema.json")),"labelJoin":crate::distribution_semantics::label_join_identity(),"schemas":{"expected-reference.s1":digest(include_bytes!("../resources/distribution-successor/expected-reference.s1.schema.json")),"adoption-attestation.s1":digest(include_bytes!("../resources/distribution-successor/adoption-attestation.s1.schema.json")),"observed-verification.s1":digest(OBS.as_bytes()),"lifecycle-event.s1":digest(LIFE.as_bytes())},"transitionsSha256":digest(TRANSITIONS.as_bytes()),"transitionProvenance":serde_json::from_str::<Value>(include_str!("../resources/distribution-successor/lifecycle-transitions.s1.provenance.json")).expect("compiled transition provenance"),"limit":"installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only"})
++    json!({"semanticRevision":"observed-lifecycle-reader.s3","stringIdentity":crate::distribution_preflight::selection::string_identity_basis(),"readerSourceSha256":digest(include_bytes!("distribution_s1.rs")),"closureReaderSha256":digest(include_bytes!("distribution_selection.rs")),"storeReaderSha256":digest(include_bytes!("distribution_store_s1.rs")),"storeGuardsSha256":digest(include_bytes!("distribution_store.rs")),"namespaceAuthoritySourceSha256":digest(include_bytes!("attachment_custody.rs")),"preflightReaderSha256":digest(include_bytes!("distribution_preflight.rs")),"factsSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-preflight-facts.s3.schema.json")),"transportSchemaSha256":digest(include_bytes!("../resources/distribution-successor/distribution-closure-transport.s3.schema.json")),"labelJoin":crate::distribution_semantics::label_join_identity(),"schemas":{"expected-reference.s1":digest(include_bytes!("../resources/distribution-successor/expected-reference.s1.schema.json")),"adoption-attestation.s1":digest(include_bytes!("../resources/distribution-successor/adoption-attestation.s1.schema.json")),"observed-verification.s1":digest(OBS.as_bytes()),"lifecycle-event.s1":digest(LIFE.as_bytes())},"transitionsSha256":digest(TRANSITIONS.as_bytes()),"transitionProvenance":serde_json::from_str::<Value>(include_str!("../resources/distribution-successor/lifecycle-transitions.s1.provenance.json")).expect("compiled transition provenance"),"limit":"installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only"})
+ }
+ pub(crate) fn shape(value: &Value, schema: &str) -> Result<(), String> {
+     let schema: Value = serde_json::from_str(schema).map_err(|e| e.to_string())?;
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/distribution_selection.rs b/projects/chirality-app-v4/app/src-tauri/src/distribution_selection.rs
+index 3083572e21..fc1fbdf2a1 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/distribution_selection.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/distribution_selection.rs
+@@ -146,16 +146,20 @@ impl Selected {
+     pub(crate) fn recheck(&self) -> Result<(), String> {
+         // Association is held by this sealed native capability, never reselected
+         // from mirror bytes. Production can construct it only from the constant.
++        self.recheck_root()?;
++        resolve(&self.source, &self.anchor)?;
++        if collect(&self.source, &self.anchor)? != self.files {
++            return Err("selected source closure changed".into());
++        }
++        Ok(())
++    }
++    pub(crate) fn recheck_root(&self)->Result<(),String>{
+         let metadata = super::root(&self.source)?
+             .metadata()
+             .map_err(|e| e.to_string())?;
+         if (metadata.dev(), metadata.ino()) != self.source_id {
+             return Err("selected source root relocated/replaced".into());
+         }
+-        resolve(&self.source, &self.anchor)?;
+-        if collect(&self.source, &self.anchor)? != self.files {
+-            return Err("selected source closure changed".into());
+-        }
+         Ok(())
+     }
+     pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/distribution_store.rs b/projects/chirality-app-v4/app/src-tauri/src/distribution_store.rs
+index 46c277a2b7..3d55e619d5 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/distribution_store.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/distribution_store.rs
+@@ -1,6 +1,6 @@
+ //! Protected, immutable publication of explicitly unqualified Host attempts.
+ //! This is not an S1 observation/lifecycle reader or a supplier trust issuer.
+-use crate::hosting::attachment_custody::NativeNamespaceBindings;
++use crate::hosting::attachment_custody::{NativeNamespaceBindings,NamespaceAuthority,NamespaceLease};
+ use crate::{distribution_preflight::digest, recovery, util};
+ use serde::Serialize;
+ use serde_json::{json, Value};
+@@ -36,6 +36,9 @@ pub(crate) struct Store {
+     root_id: (u64, u64),
+     vendor: PathBuf,
+     namespaces: Arc<NativeNamespaceBindings>,
++    authority: Arc<NamespaceAuthority>,
++    #[cfg(test)]
++    reviewer_before_reopen: std::sync::Mutex<Option<Box<dyn FnOnce()+Send>>>,
+     selected: Option<crate::distribution_preflight::selection::Selected>,
+     #[cfg(test)]
+     before_audit: std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>>,
+@@ -270,42 +273,53 @@ impl Store {
+             root,
+             root_id: id(&dir)?,
+             vendor: vendor.into(),
++            authority:NamespaceAuthority::new(namespaces.clone()),
+             namespaces,
++            #[cfg(test)]
++            reviewer_before_reopen: std::sync::Mutex::new(None),
+             selected: None,
+             #[cfg(test)]
+             before_audit: std::sync::Mutex::new(None),
+         });
+-        store.guard()?;
++        store.guard(&store.authority.lease()?)?;
+         Ok(store)
+     }
+-    fn guard(&self) -> Result<File, String> {
+-        self.namespaces.guard_app_root(&self.app_data)?;
+-        self.namespaces.guard_domains(&[self.root.clone()])?;
+-        guard_vendor_domain(&self.root, &self.vendor)?;
+-        let root = physical_root(&self.root)?;
+-        private(&root, true)?;
+-        if id(&root)? != self.root_id {
+-            return Err("publication root relocated or replaced".into());
+-        }
+-        Ok(root)
++    pub(crate) fn with_authority(mut store:Arc<Self>,authority:Arc<NamespaceAuthority>)->Result<Arc<Self>,String>{
++        {let lease=authority.lease()?;store.preflight_binding(&lease)?;}
++        Arc::get_mut(&mut store).ok_or("Store already shared before authority setup")?.authority=authority;Ok(store)
+     }
+-    fn generation(&self, g: &Value) -> Result<(), String> {
+-        recovery::generation_ref(g)?;
+-        self.namespaces
+-            .contains_home_id(g["home"].as_str().ok_or("missing home")?)
++    #[cfg(test)]
++    pub(crate) fn namespace_authority(&self)->Arc<NamespaceAuthority>{self.authority.clone()}
++    pub(crate) fn uses_authority(&self,authority:&Arc<NamespaceAuthority>)->bool{Arc::ptr_eq(&self.authority,authority)}
++    /// Geometry/identity only, safe for final short admission. No inventory hashing.
++    pub(crate) fn preflight_binding(&self,binding:&NativeNamespaceBindings)->Result<(),String>{self.validated_root(binding).map(drop)}
++    fn validated_root(&self,binding:&NativeNamespaceBindings)->Result<File,String>{
++        binding.guard_app_root(&self.app_data)?;binding.guard_domains(&[self.root.clone()])?;
++        guard_vendor_domain(&self.root,&self.vendor)?;let root=physical_root(&self.root)?;private(&root,true)?;
++        if id(&root)?!=self.root_id{return Err("publication root relocated or replaced".into());}
++        if let Some(selected)=&self.selected{guard_vendor_domain(&self.root,selected.source())?;selected.recheck_root()?;}Ok(root)
+     }
++    pub(crate) fn preflight_selection(&self)->Result<(),String>{if let Some(selected)=&self.selected{selected.recheck()?;}Ok(())}
++    fn guard(&self,lease:&NamespaceLease<'_>)->Result<File,String>{
++        let root=self.validated_root(lease)?;
++        // Regression seam retains its review name: there is no reopen anymore.
++        #[cfg(test)] {let hook=self.reviewer_before_reopen.lock().unwrap().take();if let Some(hook)=hook{hook();}}
++        Ok(root)
++    }
++    fn generation(&self,lease:&NamespaceLease<'_>,g:&Value)->Result<(),String>{recovery::generation_ref(g)?;lease.contains_home_id(g["home"].as_str().ok_or("missing home")?)}
+     /// Development evidence only: no caller can turn it into a qualified closure.
+     /// Selected-closure transport machinery is a separate implementation residual;
+     /// production also lacks the compiled S3 selection and installed-custody issuer.
+     pub(crate) fn publish_attempt(&self, g: &Value, attempt: &Value) -> Result<Reference, String> {
+-        self.generation(g)?;
++        let lease=self.authority.lease()?;
++        self.generation(&lease,g)?;
+         if attempt["format"] != "host-successor-attempt.s2"
+             || attempt["standing"] != "unverified-development"
+             || attempt["verificationGeneration"] != *g
+         {
+             return Err("unsupported attempt format/standing/generation".into());
+         }
+-        let parent = self.guard()?;
++        let parent = self.guard(&lease)?;
+         let name = util::opaque_id("attempt-")?;
+         let staging = format!(".pending-{name}");
+         let dir = mkdir(&parent, &staging, true)?;
+@@ -318,8 +332,8 @@ impl Store {
+         write_new(&dir, ATTEMPT, &raw)?;
+         write_new(&dir, MANIFEST, &manifest_raw)?;
+         dir.sync_all().map_err(error)?;
+-        self.guard()?;
+-        self.generation(g)?;
++        self.guard(&lease)?;
++        self.generation(&lease,g)?;
+         if id(&dir)? != id(&open_at(&parent, &staging, true)?)? {
+             return Err("staging root replaced".into());
+         }
+@@ -333,16 +347,17 @@ impl Store {
+             attempt_sha256: attempt_hash,
+             publication_id: id(&dir)?,
+         };
+-        self.read(g, &reference)?;
++        self.read_leased(&lease,g, &reference)?;
+         Ok(reference)
+     }
+     /// Native at-use read: references are held capabilities, not UI-supplied paths.
+-    pub(crate) fn read(&self, g: &Value, reference: &Reference) -> Result<Value, String> {
+-        self.generation(g)?;
++    pub(crate) fn read(&self,g:&Value,reference:&Reference)->Result<Value,String>{let lease=self.authority.lease()?;self.read_leased(&lease,g,reference)}
++    fn read_leased(&self,lease:&NamespaceLease<'_>, g: &Value, reference: &Reference) -> Result<Value, String> {
++        self.generation(&lease,g)?;
+         if &reference.generation != g {
+             return Err("foreign generation reference".into());
+         }
+-        let root = self.guard()?;
++        let root = self.guard(&lease)?;
+         let dir = open_at(&root, &reference.publication, true)?;
+         private(&dir, true)?;
+         if id(&dir)? != reference.publication_id {
+@@ -410,8 +425,8 @@ impl Store {
+         if id(&dir)? != id(&open_at(&root, &reference.publication, true)?)? {
+             return Err("publication directory replaced".into());
+         }
+-        self.guard()?;
+-        self.generation(g)?;
++        self.guard(&lease)?;
++        self.generation(&lease,g)?;
+         Ok(
+             json!({"reference":reference,"artifact":attempt,"transport":manifest,"standing":"unverified-development","readStanding":"exact bytes checked at this read; no future integrity or live-custody assertion"}),
+         )
+@@ -468,6 +483,18 @@ mod tests {
+         }
+     }
+     #[test]
++    fn reviewer_root_replacement_before_returned_descriptor_must_not_receive_writes(){
++        use std::os::unix::fs::PermissionsExt;
++        let f=Fixture::new();let root=f.store.root.clone();
++        *f.store.reviewer_before_reopen.lock().unwrap()=Some(Box::new(move||{
++            std::fs::rename(&root,root.with_extension("original")).unwrap();
++            std::fs::create_dir(&root).unwrap();std::fs::set_permissions(&root,std::fs::Permissions::from_mode(0o700)).unwrap();
++        }));
++        assert!(f.store.publish_attempt(&f.g,&f.attempt).is_err());
++        let names=std::fs::read_dir(&f.store.root).unwrap().map(|e|e.unwrap().file_name()).collect::<Vec<_>>();
++        assert!(names.is_empty(),"unbound replacement received publication writes: {names:?}");
++    }
++    #[test]
+     fn repeated_prospective_tuple_never_overwrites_and_foreign_tuple_refuses() {
+         let f = Fixture::new();
+         let a = f.publish();
+@@ -478,7 +505,7 @@ mod tests {
+         let mut g = f.g.clone();
+         g["spawnCounter"] = json!(2);
+         assert!(f.store.read(&g, &a).is_err());
+-        let parent = f.store.guard().unwrap();
++        let parent = f.store.guard(&f.store.authority.lease().unwrap()).unwrap();
+         assert!(publish_rename(&parent, &a.publication, &b.publication).is_err());
+         assert!(f.store.read(&f.g, &a).is_ok());
+         assert!(f.store.read(&f.g, &b).is_ok());
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs b/projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs
+index d4f2620421..e1dbf456a2 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs
+@@ -103,11 +103,11 @@ impl Store {
+         Arc::get_mut(&mut store)
+             .ok_or("store unexpectedly shared")?
+             .selected = Some(selected);
+-        store.guard_s1()?;
++        store.guard_s1(&store.authority.lease()?)?;
+         Ok(store)
+     }
+-    fn guard_s1(&self) -> Result<File, String> {
+-        let root = self.guard()?;
++    fn guard_s1(&self,lease:&NamespaceLease<'_>) -> Result<File, String> {
++        let root = self.guard(lease)?;
+         if let Some(selected) = &self.selected {
+             guard_vendor_domain(&self.root, selected.source())?;
+             selected.recheck()?;
+@@ -120,8 +120,9 @@ impl Store {
+         mut observation: Value,
+         facts: Value,
+     ) -> Result<S1Reference, String> {
+-        self.guard_s1()?;
+-        self.generation(g)?;
++        let lease=self.authority.lease()?;
++        self.guard_s1(&lease)?;
++        self.generation(&lease,g)?;
+         if observation["generation"] != *g {
+             return Err("observation generation differs".into());
+         }
+@@ -161,7 +162,7 @@ impl Store {
+             OBSERVED.into(),
+             serde_json::to_vec(&observation).map_err(error)?,
+         );
+-        self.publish_s1(g, files, false)
++        self.publish_s1(&lease,g, files, false)
+     }
+     pub(crate) fn publish_lt09(
+         &self,
+@@ -169,7 +170,8 @@ impl Store {
+         prior: &S1Reference,
+         event: &Value,
+     ) -> Result<S1Reference, String> {
+-        self.read_s1(g, prior)?;
++        let lease=self.authority.lease()?;
++        self.read_s1_leased(&lease,g, prior)?;
+         if event["transitionId"] != "LT-09" || event["generation"] != *g {
+             return Err("only actual same-generation LT-09 supported".into());
+         }
+@@ -181,16 +183,17 @@ impl Store {
+             LIFECYCLE.into(),
+             serde_json::to_vec(&envelope).map_err(error)?,
+         );
+-        self.publish_s1(g, files, true)
++        self.publish_s1(&lease,g, files, true)
+     }
+     fn publish_s1(
+         &self,
++        lease:&NamespaceLease<'_>,
+         g: &Value,
+         mut files: Files,
+         lifecycle: bool,
+     ) -> Result<S1Reference, String> {
+-        self.generation(g)?;
+-        let root = self.guard_s1()?;
++        self.generation(&lease,g)?;
++        let root = self.guard_s1(&lease)?;
+         let name = util::opaque_id("s1-")?;
+         let staging = format!(".pending-{name}");
+         let transport = json!({"format":"distribution-closure-transport.s3","method":"selected-s1-contract-closure.s3","sourceAssociation":self.selected.as_ref().map(Selected::association),"mirrorLocator":self.root.join(&name),"generation":g,"entries":files.iter().map(|(path,raw)|artifact_ref(path,raw)).collect::<Vec<_>>(),"reader":distribution_s1::identity(),"limit":"Creation correspondence only; no future integrity, issuer, qualification or live custody assertion"});
+@@ -209,8 +212,8 @@ impl Store {
+             parent.sync_all().map_err(error)?;
+         }
+         dir.sync_all().map_err(error)?;
+-        self.guard_s1()?;
+-        self.generation(g)?;
++        self.guard_s1(&lease)?;
++        self.generation(&lease,g)?;
+         if id(&dir)? != id(&open_at(&root, &staging, true)?)? {
+             return Err("staging directory changed".into());
+         }
+@@ -231,15 +234,16 @@ impl Store {
+             files,
+             publication_id: id(&dir)?,
+         };
+-        self.read_s1(g, &reference)?;
++        self.read_s1_leased(&lease,g, &reference)?;
+         Ok(reference)
+     }
+-    pub(crate) fn read_s1(&self, g: &Value, reference: &S1Reference) -> Result<Value, String> {
+-        self.generation(g)?;
++    pub(crate) fn read_s1(&self,g:&Value,reference:&S1Reference)->Result<Value,String>{let lease=self.authority.lease()?;self.read_s1_leased(&lease,g,reference)}
++    fn read_s1_leased(&self,lease:&NamespaceLease<'_>, g: &Value, reference: &S1Reference) -> Result<Value, String> {
++        self.generation(&lease,g)?;
+         if &reference.generation != g {
+             return Err("foreign S1 generation".into());
+         }
+-        let root = self.guard_s1()?;
++        let root = self.guard_s1(&lease)?;
+         let dir = open_at(&root, &reference.publication, true)?;
+         private(&dir, true)?;
+         if id(&dir)? != reference.publication_id {
+@@ -318,8 +322,8 @@ impl Store {
+         if id(&dir)? != id(&open_at(&root, &reference.publication, true)?)? {
+             return Err("S1 publication changed".into());
+         }
+-        self.guard_s1()?;
+-        self.generation(g)?;
++        self.guard_s1(&lease)?;
++        self.generation(&lease,g)?;
+         Ok(
+             json!({"reference":reference,"artifact":observed,"lifecycle":lifecycle,"transport":transport,"outcome":outcome,"standing":"unverified-development","readStanding":"S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion","unsupportedEnvelopes":"Only actual LT-09 is published; pre-spawn/restart/other legacy envelopes unavailable"}),
+         )
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/hosting.rs b/projects/chirality-app-v4/app/src-tauri/src/hosting.rs
+index d6416cf0fc..61f7d2b4d2 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/hosting.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/hosting.rs
+@@ -357,6 +357,7 @@ impl AppRuntimeCustody {
+     pub fn preflight_native_namespaces(&self,binding:&Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{
+         let _writer=self.writer.lock().unwrap();self.preflight_native_namespaces_owned(binding)
+     }
++    pub(crate) fn try_preflight_native_namespaces(&self,binding:&Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{let _writer=self.writer.try_lock().map_err(|_|"REC writer busy; explicit retry permitted")?;self.preflight_native_namespaces_owned(binding)}
+     fn preflight_native_namespaces_owned(&self,binding:&Arc<attachment_custody::NativeNamespaceBindings>)->Result<Value,String>{
+         let path=self.recovery_path.as_ref().ok_or("actual configured REC leaf is absent; no path default or H5 resolver")?;binding.guard_domains(&[path.clone()])?;
+         for source in self.sources.lock().unwrap().iter(){if let Some(inner)=source.inner.upgrade(){let home=inner.0.lock().unwrap().home.clone();if !home.is_empty(){binding.contains_home_id(&home)?;}}}
+@@ -367,6 +368,20 @@ impl AppRuntimeCustody {
+         let _writer=self.writer.lock().unwrap();let result=self.preflight_native_namespaces_owned(&binding)?;
+         if let Some(ledger)=&self.ledger{ledger.lock().unwrap().bind_namespaces(binding)?;}else{return Ok(json!({"preflight":result,"ledgerUnavailable":true,"bindingCommitted":false,"limit":self.initial_limit,"standing":"namespace geometry checked; original REC unavailable, no new ledger opened or durable binding claimed"}));}Ok(result)
+     }
++    /// Caller holds exclusive namespace authority; final Store checks are geometry only.
++    pub(crate) fn commit_namespace_admission(&self,admission:&mut attachment_custody::NamespaceAdmission<'_>,binding:Arc<attachment_custody::NativeNamespaceBindings>,stores:&[Arc<crate::distribution_store::Store>],attachment:&attachment_custody::AttachmentCustody)->Result<Value,String>{
++        let _writer=self.writer.try_lock().map_err(|_|"REC writer busy; namespace admission unchanged, explicit retry permitted")?;
++        attachment.preflight_binding(&binding)?;for store in stores{store.preflight_binding(&binding)?;}
++        let preflight=self.preflight_native_namespaces_owned(&binding)?;
++        if let Some(ledger)=&self.ledger{
++            let mut ledger=ledger.lock().unwrap();let prepared=ledger.prepare_namespace_binding(binding.clone())?;
++            prepared.commit();admission.commit(binding);
++            Ok(json!({"preflight":preflight,"protectiveAdmission":true,"bindingCommitted":true,"namespaceEpoch":admission.next()}))
++        }else{
++            admission.commit(binding);
++            Ok(json!({"preflight":preflight,"protectiveAdmission":true,"ledgerUnavailable":true,"bindingCommitted":false,"namespaceEpoch":admission.next(),"limit":self.initial_limit,"standing":"protective namespace admitted; REC remains unavailable; no ledger opened"}))
++        }
++    }
+     pub fn flush_captured_recovery(&self)->Value{
+         let _writer=match self.writer.try_lock(){Ok(writer)=>writer,Err(_)=>return json!({"standing":"App writer busy; captured pointer facts remain owned/unpersisted"})};
+         let sources=self.sources.lock().unwrap().iter().map(|s|(s.inner.clone(),Arc::clone(&s.queue))).collect::<Vec<_>>();
+@@ -394,6 +409,10 @@ pub struct Host {
+     submission_contexts:Arc<Mutex<Vec<Value>>>,
+     frame_write: Mutex<()>,
+     attachment_gate: Mutex<()>,
++    #[cfg(test)]
++    after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
++    #[cfg(test)]
++    before_attachment_hot_join:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
+     inner: Arc<(Mutex<Inner>, Condvar)>,
+     stdin: Mutex<Option<ChildStdin>>,
+@@ -437,6 +456,10 @@ impl Host {
+             submission_contexts:Arc::new(Mutex::new(Vec::new())),
+             frame_write: Mutex::new(()),
+             attachment_gate: Mutex::new(()),
++            #[cfg(test)]
++            after_attachment_namespace_write:Mutex::new(None),
++            #[cfg(test)]
++            before_attachment_hot_join:Mutex::new(None),
+             distribution_store: Mutex::new(None),
+             inner: Arc::new((Mutex::new(inner), Condvar::new())),
+             stdin: Mutex::new(None),
+@@ -494,6 +517,7 @@ impl Host {
+     pub(crate) fn configure_distribution_store(&self, store: Result<Arc<crate::distribution_store::Store>, String>) {
+         *self.distribution_store.lock().unwrap() = Some(store);
+     }
++    pub(crate) fn distribution_store_for_admission(&self,required:bool)->Result<Option<Arc<crate::distribution_store::Store>>,String>{match self.distribution_store.lock().unwrap().clone(){Some(Ok(store))=>Ok(Some(store)),Some(Err(e))=>Err(e),None if required=>Err("required distribution Store unavailable".into()),None=>Ok(None)}}
+     /// Read exact bytes outside source/ledger locks, then recheck the source.
+     pub(crate) fn distribution_evidence(&self, generation: &Value) -> Value {
+         let (attempt, reference) = {
+@@ -1678,15 +1702,16 @@ impl Host {
+         self.check_source(&prepared.source)?;
+         {let mut state=prepared.state.lock().unwrap();if *state!="prepared"{return Err(format!("attachment dispatch is {state}; no resend"));}*state="validating";}
+         let result=(||->Result<SourceRequest,String>{
+-            prepared.custody.check_prepared(&prepared.list.supply_records(),&prepared.client)?;
++            let namespace_lease=prepared.custody.lease()?;
++            prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
+             // Revalidation uses actual original picker source; generated new
+             // preparation IDs are discarded, never substituted into the list.
+             let recheck=attachments::prepare_ordered(&prepared.selections,prepared.submission_ref(),&now_rfc3339()).map_err(|e|e.message)?;
+             if recheck.native_inputs()!=prepared.list.native_inputs(){return Err("attachment source/input changed after durable preparation; nothing sent".into());}
+             let frame=prepared.source.attempted_frame();let bytes=Self::frame_bytes(frame)?;
+             let serial=self.frame_write.lock().unwrap();
+-            let source_lock=prepared.custody.lock_sources()?;
+-            prepared.custody.check_prepared(&prepared.list.supply_records(),&prepared.client)?;
++            let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
++            prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
+             let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
+             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
+             Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
+@@ -1702,7 +1727,9 @@ impl Host {
+             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+                 if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}}
+                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+-            drop(i);let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
++            drop(i);drop(namespace_lease);
++            #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
++            let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
+         })();if let Err(error)=&result{*prepared.state.lock().unwrap()="refused";self.attachment_limit(&prepared.source,error.clone());}result
+     }
+     pub fn persist_attachment_observation(&self,source:&SourceRequest)->Result<Value,String>{
+@@ -1719,7 +1746,9 @@ impl Host {
+         let i=self.inner.0.lock().unwrap();let a=i.source_requests.get(&source.request_id().to_string()).and_then(|e|e.attachment.as_ref()).ok_or("source is not attachment-bearing")?;evidence["custodyLimit"]=json!(a.limit);Ok(evidence)
+     }
+     pub fn resolve_attachment_submission(&self,custody:&Arc<AttachmentCustody>,submission:&str)->Value{
+-        let mut view=custody.resolve_cold(submission);if view.get("clientMetadata").is_none(){return view;}
++        let lease=match custody.lease(){Ok(lease)=>lease,Err(error)=>return json!({"submissionRef":submission,"nativeTurnRef":null,"dispatch":"unknown/unavailable","limits":[error],"automaticRetry":false})};
++        let mut view=custody.resolve_cold_leased(&lease,submission);if view.get("clientMetadata").is_none(){return view;}
++        #[cfg(test)] {let hook=self.before_attachment_hot_join.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+         let record=view["clientMetadata"].clone();let i=self.inner.0.lock().unwrap();let Some(e)=i.source_requests.get(&record["requestIdentity"].to_string())else{return view;};let Some(a)=e.attachment.as_ref()else{return view;};
+         if !Arc::ptr_eq(custody,&a.custody)||e.request.generation!=record["generation"]||a.original["submissionAssociation"]!=record["submissionAssociation"]||view["supplyRecords"].as_array()!=Some(&a.records) {return view;}
+         view["sourceStanding"]=json!("genuine hot Host source; immutable owning metadata resolved");
+@@ -2452,6 +2481,7 @@ mod additive_guidance_transport_tests {
+ 
+ #[cfg(test)]
+ mod conversation_transport_tests {
++    mod namespace_admission_tests { include!("namespace_admission_tests.rs"); }
+     use super::*;
+     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
+     fn host()->Arc<Host> {
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs b/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs
+index d4b1efad1f..e3851428dc 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs
+@@ -414,6 +414,25 @@ for line in sys.stdin:
+         assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+     }
+     #[test]
++    fn namespace_admission_two_actual_host_homes_preserve_store_reference_and_expand_guards(){
++        let f=Fixture::new("pass");let account=Arc::new(Host::new());let data=attach_store(&account,&f);
++        let store=account.distribution_store_for_admission(true).unwrap().unwrap();let authority=store.namespace_authority();
++        account.configure_recovery(data.join("runtime/recovery.ledger.jsonl")).unwrap();
++        let ready=account.start(&f.cfg,"fixture").unwrap();let ga=ready["generation"].clone();let before=account.distribution_evidence(&ga);
++        let shared=f.root.join("shared");std::fs::create_dir(&shared).unwrap();std::fs::create_dir(shared.join("skills")).unwrap();for name in ["config.toml","AGENTS.md"]{std::fs::write(shared.join(name),b"synthetic resource").unwrap();}
++        let bootstrap=crate::runtime_session::freeze_root_home_descriptors(&data,&f.cfg,Some(data.join("key")),[Some(shared.join("config.toml")),Some(shared.join("AGENTS.md")),Some(shared.join("skills"))]).unwrap();
++        let cap=account.app_runtime_custody().unwrap();let installed=std::sync::atomic::AtomicBool::new(false);
++        let(tx,rx)=std::sync::mpsc::channel();let(go,wait)=std::sync::mpsc::channel();store.before_s1_audit(move||{tx.send(()).unwrap();wait.recv_timeout(Duration::from_secs(2)).unwrap();});let source=account.clone();let generation=ga.clone();let reader=std::thread::spawn(move||source.distribution_evidence(&generation));rx.recv_timeout(Duration::from_secs(2)).unwrap();
++        assert!(crate::runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&cap,&authority,&[store.clone()],|_|panic!("busy must not install")).err().unwrap().contains("busy"));assert_eq!(authority.lease().unwrap().epoch(),0);go.send(()).unwrap();assert_eq!(reader.join().unwrap(),before);
++
++        let admitted=crate::runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&cap,&authority,&[store.clone()],|_|{installed.store(true,std::sync::atomic::Ordering::SeqCst);}).unwrap();
++        assert!(installed.load(std::sync::atomic::Ordering::SeqCst));assert_eq!(before,account.distribution_evidence(&ga));
++        let key=Arc::new(Host::new_with_app_custody(cap).unwrap());key.configure_distribution_store(Ok(store.clone()));let mut cfg=f.cfg.clone();cfg.codex_home=data.join("key");
++        let ready=key.start(&cfg,"fixture").unwrap();let gk=ready["generation"].clone();assert_ne!(ga["home"],gk["home"]);assert_eq!(ga["appSession"],gk["appSession"]);assert_eq!(key.distribution_evidence(&gk)["state"],"read");assert_eq!(before,account.distribution_evidence(&ga));assert_eq!(key.distribution_evidence(&ga)["state"],"unavailable");
++        std::fs::remove_file(data.join("key/skills")).unwrap();assert_eq!(account.distribution_evidence(&ga)["state"],"unavailable");assert!(admitted.attachment.supplies_path("anything").is_err());std::os::unix::fs::symlink(shared.join("skills"),data.join("key/skills")).unwrap();assert_eq!(before,account.distribution_evidence(&ga));
++        key.stop("fixture","key continuity complete").unwrap();account.stop("fixture","account continuity complete").unwrap();
++    }
++    #[test]
+     fn actual_s1_selected_closure_is_unverified_exact_and_rechecks_original_source() {
+         let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_selected_store(&host,&f,Some("reference/expected.json"));
+         let ready=host.start(&f.cfg,"fixture").unwrap();let g=ready["generation"].clone();let evidence=host.distribution_evidence(&g);
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/lib.rs b/projects/chirality-app-v4/app/src-tauri/src/lib.rs
+index 01374eacc0..be8829d65e 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/lib.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/lib.rs
+@@ -16,6 +16,8 @@ pub mod connector_route_store;
+ mod connector_route_view;
+ mod connector_source;
+ mod connector_source_fs;
++#[cfg(unix)] mod connector_git;
++#[cfg(unix)] mod connector_git_process;
+ pub mod decision_view;
+ mod file_act_root;
+ mod file_act_view;
+@@ -223,6 +225,23 @@ fn revise_connector_source(state:State<'_,AppState>,session_token:String,generat
+     source_project(&state)?;state.connector_sources.lock().map_err(|_|"Source state unavailable")?.revision(&session_token,&generation,&observation_reference,&kind,&label,anchor_reference.as_deref())
+ }
+ 
++
++#[tauri::command(async)]
++fn read_connector_git(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,at:String,since:Option<String>)->Result<Value,String>{source_project(&state)?;
++    #[cfg(unix)] {connector_source::git_read(&state.connector_sources,&session_token,&generation,&observation_reference,&at,since.as_deref())}
++    #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
++}
++#[tauri::command]
++fn cancel_connector_git(state:State<'_,AppState>,session_token:String,generation:String)->Result<Value,String>{source_project(&state)?;
++    #[cfg(unix)] {connector_source::git_cancel(&state.connector_sources,&session_token,&generation)}
++    #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
++}
++#[tauri::command]
++fn anchor_connector_git(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,side:String,start:usize,end:usize,expected:Option<String>)->Result<Value,String>{source_project(&state)?;
++    #[cfg(unix)] {connector_source::git_anchor(&state.connector_sources,&session_token,&generation,&observation_reference,&side,start,end,expected.as_deref())}
++    #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
++}
++
+ fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
+     match mode { "account"=>Ok(home_resources::HomeClass::Account),"api-key"=>Ok(home_resources::HomeClass::ApiKey),_=>Err("Unknown active home class; no default/fallback".into()) }
+ }
+@@ -289,17 +308,22 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
+     let data=state.app_user_data_root.lock().unwrap().clone()?;
+     let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+     let app_custody=account.host.app_runtime_custody()?;
+-    let admitted=match runtime_session::prepare_native_key_namespace(&bootstrap,&data,&app_custody) {
++    let authority=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.authority()?;
++    let entries=state.homes.lock().unwrap().entries();
++    let mut stores=Vec::new();for entry in &entries{let required=entry.host_config.as_ref().map_err(Clone::clone)?.distribution.is_some();if let Some(store)=entry.host.distribution_store_for_admission(required)?{if !stores.iter().any(|old|Arc::ptr_eq(old,&store)){stores.push(store);}}}
++    let account_store=account.host.distribution_store_for_admission(account.host_config.as_ref().map_err(Clone::clone)?.distribution.is_some())?;
++    let admitted=match runtime_session::prepare_native_key_namespace_coordinated(&bootstrap,&data,&app_custody,&authority,&stores,|admitted|{
++        *state.native_namespaces.lock().unwrap()=Ok(admitted.namespaces.clone());
++        *state.key_namespace_admission.lock().unwrap()=admitted.observation.clone();
++        for entry in &entries{*entry.attachment_custody.lock().unwrap()=Ok(admitted.attachment.clone());}
++    }) {
+         Ok(admitted)=>admitted,
+-        Err(error)=>{*state.key_namespace_admission.lock().unwrap()=json!({"state":"key namespace/setup refused; original bindings retained","limit":error,"existingAccount":"current ledger/custody bindings retained"});return Err(error);}
++        Err(error)=>{*state.key_namespace_admission.lock().unwrap()=json!({"state":"key namespace/setup refused before admission; original bindings retained","limit":error,"existingAccount":"current ledger/custody bindings retained; physical preparation may remain"});return Err(error);}
+     };
+-    *state.native_namespaces.lock().unwrap()=Ok(admitted.namespaces);
+-    *state.key_namespace_admission.lock().unwrap()=admitted.observation;
+     let attachment=admitted.attachment;
+-    for entry in state.homes.lock().unwrap().entries(){*entry.attachment_custody.lock().unwrap()=Ok(attachment.clone());}
+     let existing=state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey);
+-    let home={
+-        match existing{
++    let home=runtime_session::admitted_key_setup(&state.key_namespace_admission,&admitted.observation,||->Result<Arc<runtime_session::HomeSession>,String>{
++        Ok(match existing{
+             Ok(home)=>home,
+             Err(_)=>{
+                 let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+@@ -308,6 +332,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
+                 bootstrap.validate_binding(home_resources::HomeClass::ApiKey,&config)?;
+                 let custody=account.host.app_runtime_custody()?;
+                 let host=Arc::new(Host::new_with_app_custody(custody)?);
++                if let Some(store)=&account_store{host.configure_distribution_store(Ok(store.clone()));}
+                 let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::ApiKey,host,Ok(config.clone()))?);
+                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
+                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
+@@ -315,15 +340,17 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
+                 state.homes.lock().unwrap().bind_key(home.clone())?;
+                 home
+             }
+-        }
+-    };
++        })
++    })?;
++    let config=runtime_session::admitted_key_setup(&state.key_namespace_admission,&admitted.observation,|| {
+     let config=home.host_config.clone()?;
+     bootstrap.validate_binding(home.class(),&config)?;
+     if home.host.snapshot()["state"]!="ready" {
+         let data=state.app_user_data_root.lock().unwrap().clone()?;
+         runtime_session::start_with_recovery(&home.host,&home.recovery_startup,Ok(data.as_path()),Some(&config.codex_home),||home.host.start(&config,"the person: add-key"))?;
+     }
+-    bootstrap.validate_binding(home.class(),&config)?;
++    bootstrap.validate_binding(home.class(),&config)?;Ok(config)})?;
++    let _=config;
+     let generation=home.host.snapshot()["generation"].clone();
+     runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
+ }
+@@ -1127,23 +1154,25 @@ pub fn run() {
+                 runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
+             })();
+             *state.native_namespaces.lock().unwrap()=namespaces.clone();
++            let namespace_authority=namespaces.clone().map(hosting::attachment_custody::NamespaceAuthority::new);
+             if let Ok(cfg) = &home.host_config {
+                 if cfg.distribution.is_some() {
+                     let store = (|| {
+                         let data = data.as_ref().map_err(Clone::clone)?;
+                         let vendor = cfg.distribution.as_ref().unwrap().vendor_root();
+-                        match cfg.distribution.as_ref().unwrap() {
++                        let store=match cfg.distribution.as_ref().unwrap() {
+                             hosting::successor::Distribution::Production { resources } => {
+                                 let selected=distribution_preflight::selection::Selected::production(&resources.join("distribution-reference"))?;
+                                 crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)
+                             },
+                             hosting::successor::Distribution::Development { .. } => crate::distribution_store::Store::open(data,&vendor,namespaces.clone()?),
+-                        }
++                        }?;
++                        crate::distribution_store::Store::with_authority(store,namespace_authority.clone()?)
+                     })();
+                     host.configure_distribution_store(store);
+                 }
+             }
+-            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_with_namespaces(data,namespaces.clone()?).map(Arc::new));
++            *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_shared(data,namespace_authority.clone()?).map(Arc::new));
+             home.recovery_startup.lock().unwrap().initialize_with_namespaces(
+                 &host,
+                 data.as_deref().map_err(String::as_str),
+@@ -1182,6 +1211,7 @@ pub fn run() {
+             read_recovery_custody,
+             read_connector_routes,
+             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
++            read_connector_git, cancel_connector_git, anchor_connector_git,
+             host_status,
+             select_home,
+             read_home_access,
+@@ -1286,3 +1316,20 @@ mod group_b_fixture_consumer;
+ #[cfg(test)]
+ #[path = "p3_role_entry_tests.rs"]
+ mod p3_role_entry_tests;
++
++#[cfg(all(test,unix))]
++mod connector_git_guard_tests {
++    use super::*;
++    #[test]
++    fn connector_git_shared_command_guard_refuses_unknown_mismatch_and_absent_project() {
++        let(root,mut state,_,_,_,_)=workflow_root_context_tests::fixture();
++        assert!(source_project(&state).is_err());
++        state.project_context_limit=None;
++        assert!(source_project(&state).is_err());
++        state.project_context=recovery::ExplicitAppProjectContext::known(root.to_str().unwrap(),recovery::AppProjectSource::ConfiguredDirectory).unwrap();
++        assert_eq!(source_project(&state).unwrap(),root);
++        state.workspace=Some(root.join("different"));assert!(source_project(&state).is_err());
++        state.workspace=None;assert!(source_project(&state).is_err());
++        std::fs::remove_dir_all(root).unwrap();
++    }
++}
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/recovery.rs b/projects/chirality-app-v4/app/src-tauri/src/recovery.rs
+index 2cb8094635..cd527a5eae 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/recovery.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/recovery.rs
+@@ -243,6 +243,8 @@ pub struct RecoveryLedger {
+     entries: Vec<Value>,
+     namespaces:Option<Arc<NativeNamespaceBindings>>,
+ }
++pub(crate) struct PreparedNamespaceBinding<'a>{ledger:&'a mut RecoveryLedger,binding:Arc<NativeNamespaceBindings>}
++impl PreparedNamespaceBinding<'_>{pub(crate) fn commit(self){self.ledger.namespaces=Some(self.binding);}}
+ impl RecoveryLedger {
+     pub fn open(path: PathBuf) -> Result<Self, String> {Self::open_inner(path,None)}
+     pub fn open_with_namespaces(path:PathBuf,namespaces:Arc<NativeNamespaceBindings>)->Result<Self,String>{Self::open_inner(path,Some(namespaces))}
+@@ -287,6 +289,7 @@ impl RecoveryLedger {
+         binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;
+         match std::fs::symlink_metadata(path){Ok(meta)=>{use std::os::unix::fs::MetadataExt;if !meta.is_file()||meta.nlink()!=1{return Err("REC owning leaf is not a regular single-link source".into());}},Err(e)if e.kind()==std::io::ErrorKind::NotFound=>{},Err(e)=>return Err(format!("REC owning leaf metadata unavailable: {e}"))}Ok(())
+     }
++    pub(crate) fn prepare_namespace_binding(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<PreparedNamespaceBinding<'_>,String>{self.preflight_namespaces(&binding)?;Ok(PreparedNamespaceBinding{ledger:self,binding})}
+     pub(crate) fn bind_namespaces(&mut self,binding:Arc<NativeNamespaceBindings>)->Result<(),String>{self.preflight_namespaces(&binding)?;self.namespaces=Some(binding);Ok(())}
+     fn guard_descriptor(path:&std::path::Path,binding:&Arc<NativeNamespaceBindings>,file:&File)->Result<(),String>{
+         use std::os::unix::fs::MetadataExt;binding.guard_domains(&[path.to_owned()])?;crate::storage::check_path(path)?;let fd=file.metadata().map_err(|e|e.to_string())?;let named=std::fs::symlink_metadata(path).map_err(|e|e.to_string())?;
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs b/projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs
+index 4c7bb762a8..90ab4f546a 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs
+@@ -2044,6 +2044,33 @@ pub fn prepare_native_key_namespace(
+         observation: json!({"state":"actual namespace candidate received","preflight":preflight,"rec":committed,"qualification":"metadata geometry only; no native/auth/discovery claim"}),
+     })
+ }
++pub(crate) fn admitted_key_setup<T>(status:&std::sync::Mutex<Value>,admission:&Value,operation:impl FnOnce()->Result<T,String>)->Result<T,String>{operation().map_err(|error|{*status.lock().unwrap()=json!({"state":"protective namespace admitted; key setup unavailable","admission":admission,"limit":error});error})}
++/// Root-only coordinated protective admission. Commit callback installs slots only;
++/// no Host registration, filesystem IO or recursive namespace acquisition is allowed.
++pub(crate) fn prepare_native_key_namespace_coordinated(
++    bootstrap:&HomeBootstrapSet,app_data:&std::path::Path,
++    app_custody:&std::sync::Arc<crate::hosting::AppRuntimeCustody>,
++    authority:&std::sync::Arc<crate::hosting::attachment_custody::NamespaceAuthority>,
++    stores:&[std::sync::Arc<crate::distribution_store::Store>],
++    install:impl FnOnce(&NativeKeyAdmission),
++)->Result<NativeKeyAdmission,String>{
++    use crate::hosting::attachment_custody::AttachmentCustody;
++    let epoch=authority.lease()?.epoch();let next=epoch.checked_add(1).ok_or("namespace epoch exhausted")?;
++    let proposed=bootstrap.native_namespaces(true)?;
++    app_custody.try_preflight_native_namespaces(&proposed)?;
++    AttachmentCustody::open_with_namespaces(app_data,proposed.clone())?;
++    for store in stores{if !store.uses_authority(authority){return Err("Store has foreign namespace authority".into());}store.preflight_binding(&proposed)?;store.preflight_selection()?;}
++    bootstrap.prepare_key()?;
++    let namespaces=bootstrap.native_namespaces(true)?;
++    let attachment=std::sync::Arc::new(AttachmentCustody::prepared_shared(app_data,authority.clone(),namespaces.clone(),next)?);
++    for store in stores{store.preflight_binding(&namespaces)?;store.preflight_selection()?;}
++    let mut admission=authority.admission(epoch)?;
++    // Final bounded geometry/ID checks; no selected closure hashing under writer.
++    attachment.preflight_binding(&namespaces)?;for store in stores{store.preflight_binding(&namespaces)?;}
++    let committed=app_custody.commit_namespace_admission(&mut admission,namespaces.clone(),stores,&attachment)?;
++    let admitted=NativeKeyAdmission{namespaces,attachment,observation:json!({"state":"protective namespace admitted","rec":committed,"namespaceEpoch":next,"qualification":"metadata protection only; no native/auth/discovery claim"})};
++    install(&admitted);drop(admission);Ok(admitted)
++}
+ fn home_resource_view(observation: &crate::home_resources::HomeObservation) -> Value {
+     json!({"modeHomeClass":observation.class.as_str(),"homeIdentity":observation.opaque_home_id,"nativePath":crate::attachments::native_path_identity(&observation.native_path),"displayPath":observation.display_path(),"resources":observation.resources.iter().map(|resource| json!({"name":resource.name,"destination":crate::attachments::native_path_identity(&resource.destination),"intendedTarget":resource.intended_target.as_ref().map(|path|crate::attachments::native_path_identity(path)),"state":format!("{:?}",resource.state),"limit":resource.limit})).collect::<Vec<_>>(),"limit":"resource relationship is a current observation; resolved config target is not future write authority"})
+ }

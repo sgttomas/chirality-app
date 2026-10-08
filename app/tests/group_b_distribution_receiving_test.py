@@ -12,7 +12,8 @@ import unittest
 from unittest.mock import patch
 
 APP = Path(__file__).resolve().parents[1]
-FIXTURES = APP / 'tests/group_b_distribution_receiving_fixtures'
+HISTORICAL = APP / 'tests/group_b_distribution_receiving_fixtures'
+FIXTURES = APP / 'tests/group_b_distribution_receiving_namespace_fixtures'
 
 
 def load(name, path):
@@ -22,7 +23,7 @@ def load(name, path):
 
 
 receiver = load('_s4_receiving_test_subject', APP / 'examination/distribution_receiving/receive.py')
-records = load('_s4_invented_record_fixtures', FIXTURES / 'records.py')
+records = load('_s4_invented_record_fixtures', HISTORICAL / 'records.py')
 
 
 def encoded(value):
@@ -223,6 +224,49 @@ class DistributionReceivingTests(unittest.TestCase):
             return raw + b'\n' if path.endswith('distribution_s1.rs') else raw
         with patch.object(receiver, 'relative', changed):
             with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+
+    def test_historical_cohort_is_preserved_but_not_active(self):
+        provenance = receiver.parse((HISTORICAL / 'provenance.json').read_bytes())
+        for case in ('selected', 'unselected'):
+            path = HISTORICAL / case / 'exchange.json'
+            self.assertEqual(receiver.sha(path.read_bytes()), provenance['exchange_sha256'][case])
+            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection,
+                                    receiver.sha(self.selection.read_bytes()))
+        old = receiver.parse((HISTORICAL / 'selected/exchange.json').read_bytes())
+        old['producer']['sourceRevision'] = self.receiver.pins['producer_source_revision']
+        self.exchange = old
+        self.refused('reader identity differs')
+
+    def test_missing_mixed_and_forged_namespace_receipts_refuse(self):
+        historical = receiver.parse((HISTORICAL / 'selected/exchange.json').read_bytes())
+        old_reader = historical['readback']['evidence']['reference']['reader']
+        for field in ('reference', 'transport'):
+            for mutation in ('missing', 'forged', 'old', 'claim'):
+                with self.subTest(field=field, mutation=mutation):
+                    self.select('selected')
+                    value = self.exchange['readback']['evidence'][field]['reader']
+                    if mutation == 'missing': value.pop('namespaceAuthoritySourceSha256')
+                    elif mutation == 'forged': value['namespaceAuthoritySourceSha256'] = '0' * 64
+                    elif mutation == 'old': value.update(old_reader)
+                    else: value['namespaceAuthorityAuthenticated'] = True
+                    self.rebind_publication()
+                    self.refused('reader identity differs|transport reader/boundary differs')
+        self.select('selected')
+        self.exchange['readback']['evidence']['reference']['namespaceAuthority'] = {'epoch': 1}
+        self.refused('fields differ')
+
+    def test_namespace_source_guard_and_non_authority_report(self):
+        original = receiver.relative
+        def changed(root, path):
+            raw = original(root, path)
+            return raw + b'\n' if path.endswith('attachment_custody.rs') else raw
+        with patch.object(receiver, 'relative', changed):
+            with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
+        report = self.check()
+        self.assertEqual(report['receiving_adoption'], 'B-S4-NAMESPACE-ADOPTION-v1')
+        self.assertFalse(report['namespace_authority_authenticated'])
+        self.assertFalse(report['qualification_established'])
 
     def test_cli_uses_actual_export_and_preserves_limits(self):
         result = subprocess.run([sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),

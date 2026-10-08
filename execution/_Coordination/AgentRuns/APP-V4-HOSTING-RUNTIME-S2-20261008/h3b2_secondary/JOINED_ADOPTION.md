@@ -1,0 +1,9 @@
+# Joined namespace and B receiving adoption
+
+Group B independently returned READY at5b72ded9d0918aa622f79d9d4ebbe94b85e72c52. Manager applied these B-only commits without changing their resulting bytes: 0f6fd350429bbc4a0d9cce74b57585690b1bd1b2, 7af03d2116d8a419317ce9223f963c498520ce63, 79351ec33901e100fb1dde430523d70d22af1869, 5b72ded9d0918aa622f79d9d4ebbe94b85e72c52. They are integrated together after Host records-only aa2d7479c8; producing source remains b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0.
+
+Manager compared all68 B files byte-for-byte with that independently reviewed B head and rechecked every maintained Host hash against the repaired author manifest. All match. The named B-S4-NAMESPACE-ADOPTION-v1 receipt selects fixed pins.namespace-v1.json and exact new namespace fixture bytes; original pins.json and historical f267 fixtures/provenance remain unchanged. B owns its graph, source selection and consumer tests. No Host/code changes were made during this join.
+
+Repeated on the actual combined tree:19 distribution receiving tests,11 canonical binding tests and16 support identity tests pass (46 total, no skips). Raw logs are retained beside this note. B review additionally verifies34 selected source identities and negative mixed/forged namespace cases. These are file correspondence checks, not native capability, semantic reexecution, authenticated producer/build history, S3, package or native qualification.
+
+Host original descriptor defect and R1 repair remain preserved; exact Host-head review is in review_r1/EXACT_HEAD_REVIEW.md. Final whole joined-head review and required CI follow this commit. No remaining approved implementation is claimed solely from these consumer checks; restart hydration, other lifecycle mapping and real supplier/installed custody qualification remain open.
