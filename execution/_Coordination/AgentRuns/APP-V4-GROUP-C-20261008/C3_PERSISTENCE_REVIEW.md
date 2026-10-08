@@ -47,3 +47,30 @@ Hashes identify entire files; inherited Root/TASK/loop/manual/skill reading iden
 | `projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.standing.schema.json` | `bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719` |
 | `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PERSISTENCE_BASIS.json` | `b55636e7f95414f06ba07dc878c2fa9a43b476f27f16d703b304a5292fdc3026` |
 | `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PERSISTENCE_EVIDENCE.md` | `b20a4405fab790a87a406dc63517d6d07fcd62962c700106b2c122d5f9854dd3` |
+
+## CRP-R2 repaired implementation and combined-candidate backcheck
+
+Exact repair author: `8f1195761d6f88dcb4c52b9d4ba9215aa0d60cd4`; exact integrated candidate: `f1ff1699e094bb526dcef6f7a3dc47f002da837a`, reviewed against receiving main `00ce2e1074`. **READY for bounded persistence integration under adopted CRP-v0.3. F1 is resolved against that expressly revised contract.** The original NOT READY assessment above remains true for its original candidate. The new result does not claim the old unconditional publication guarantee was implemented.
+
+Inspected the complete 16-path combined contribution, including unchanged schema copies, registration, the complete production/maintained-test repair, source successor, amended fleet concurrence, technical adoption, graph and author evidence/basis. Exact CRP-v0.3 remains `e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e`; source selection and affected concurrence bind those bytes. The four integrated repair files are byte-identical to the author revision. Tested-output hashes were checked against the author revision, successor-source hashes against their declared revisions; combined diff check passed. The one module registration preserves receiving-main changes.
+
+The repair removes automatic unlink entirely and replaces link publication with exclusive no-replace rename. An observed substituted temporary now refuses before publication, leaves the foreign replacement and original moved-aside bytes intact, and records the recovery name. No error or success cleanup can delete a reappearing entry at that name. Before successful binding, the retained original inode and intended content/version/ID are checked; the directory sync and identity comparison remain. Unsupported operation refuses without weaker fallback; ambiguous outcomes preserve intended and observed/absent/unreadable details for reconciliation.
+
+The AFTER-final-precheck source-name race is deliberately retained by the reviewed successor. A foreign entry can move to final, but original-inode comparison rejects success even for identical bytes. The writer neither rolls back nor retries, and later discovery does not establish successful publication. This is an explicit change in the source guarantee, separately reviewed/adopted, not an assertion that checks exclude all races.
+
+### Independent execution and finding backcheck
+
+Reused the same private copy-on-write target; exported exact combined candidate sources into the disposable harness and added three independent tests. Production/repository source remained unchanged. Offline command and supplier-disabled cache settings were those of the original independent run. Result: **34 passed, 0 failed: 31 maintained checks plus 3 independent checks**; the two deliberate abrupt-exit child witnesses also ran. No downloads, supplier/native App launch or extra target copy.
+
+- Original cleanup sequence repeated: at `TempSynced`, rename the owned temporary aside, write an unrelated replacement under its name, then inject failure. The replacement bytes survive, no final file exists, and the outcome is definite failure. This directly reverses the originally observed deletion.
+- Original publication sequence repeated: the same substitution at `TempSynced`, followed by continuation. It now returns ChangedContent before attempting publication; the foreign entry survives and no final file exists. The original harness previously read final bytes to demonstrate the bug; this backcheck asserts the stronger corrected outcome, no final target at all, rather than requiring a target to exist merely to compare it.
+- Independent late identical-byte/new-inode sequence: substitute at `TempChecked`, after the final check. Exclusive rename moves those bytes to final; the call returns uncertain ChangedContent, original and observed file identities differ, intended reconciliation fails, original moved-aside bytes survive, and the directory has exactly one final record with no retry. This tests the successor's disclosed residual, not the superseded stronger criterion.
+
+Maintained tests additionally exercise late foreign accounts, symlink and directory entries, identical-byte inodes, existing destination collisions, same-name reappearance after successful rename, actual syscall invalid-flag refusal and injected ambiguous EIO. All passed through the integrated code. The invalid-flag test is not a separately mounted unsupported filesystem; injected EIO is not device failure. Physical power loss, actual fsync failure, induced midstream readdir failure and Linux execution remain unperformed, as the author reports. No durability qualification beyond the observed calls is inferred.
+
+No remaining actionable findings in this bounded reviewed contribution. The selected directory/source-name residuals remain. Full source reconstruction, UI, consumer adoption, provider work, qualification, release and Group C completion are not established. Manager graph/readiness updates and required CI must bind the actual integration head; a later content change requires an affected backcheck.
+
+### Repaired code identities
+
+- `projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs`: `ace6a925fe32d49754f3a7fbd30eebf1bf144292ef2104e48a9886663b99f160`.
+- `projects/chirality-app-v4/app/src-tauri/src/connector_route_store_tests.rs`: `4ec5ceb945f01f89ecdc5ae778a3a443824521c4131f90a636ca51bf76636334`.
