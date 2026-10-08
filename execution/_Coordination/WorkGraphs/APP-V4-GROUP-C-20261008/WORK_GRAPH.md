@@ -80,7 +80,7 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 ## Current state and recovery
 
 Successor basis: `236cbc3c693423499120b4abeadfdcc5fb670477` (includes merged PRs #1127 and #1128), isolated branch
-`codex/group-c-native-witness-manager`; this branch is the designated graph ref while ahead of
+`codex/group-c-reconstruction-manager`; this branch is the designated graph ref while ahead of
 main. WORKING_ITEMS `/root/group_c_successor` now owns C3 continuation under HELP_HUMAN `/root`. Manager owns graph/evidence/integration; children own isolated worktrees.
 Basis identities and reading limits: [BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/BASIS.json). Actual assignments: [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/DELEGATION.md).
 Delegation uses harness-native descendants, with instruction fences, not a
@@ -108,6 +108,7 @@ C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-202610
 | C3-S3-P transient Git object producer | COMPLETE bounded producer in PR #1149, merged `7fd670cc06`; independent code review `6a3feb7dc8`, final exact-head READY `71df861a44`, all required CI passed | 60 default and 61 distribution-feature checks; independent 82-object hash oracle, hostile/lifecycle/handler checks. Constructed repositories with real restricted Git; synthetic selection/session/handlers, no native user-project witness or account materialization |
 | C3-S4-D provenance-preserving account treatment | READY source `e57dec1c31`, independent review/backcheck `86ee7be1dc` / `bf9b497f7c`; HELP_HUMAN technical release recorded in C3_S4_TECHNICAL_SELECTION.md | Existing 0.1/0.2 meanings retained; no evidence hidden in old fields; no facts, supported conclusions, performed duties or native authority inferred |
 | C3-S4-P durable source-evidence draft | COMPLETE bounded implementation in merged PR #1151 (`c9bfde5269`), independent review `bae0f320a4` and final exact-head READY `1dae398f03`; required CI passed. CAM-R1 technical confirmation retained | Current private Git side/anchor → attributed composition → CRP publication → cold view; same opened project identity and uncertainty preserved. 64 lifetime identities/one payload is a development bound requiring later product capacity assessment, not 90% evidence; native witness remains separate |
+| C3-S4-R1 bounded record comparison source | READY source-only candidate `f0d0b6f41a22`, independent review `0298ebdd3a`; implementation and adoption remain held | CRR-v0.1 proposes additive format0.4: checked record excerpts/comparisons, attributed claims, unresolved contradictions and unverified contribution reports. Actual duty performance/authority remains unestablished; no typed RS consumption or capacity-policy change |
 | C3-S4-R full question reconstruction and actor contributions | UNFINISHED | Source evidence alone supplies no factual interpretation, supported conclusion, manager integration or person coordination; actual native witness remains separately point-held |
 
 Current publication uses exclusive no-replace rename with no automatic pathname
@@ -151,3 +152,8 @@ proposed witness cannot establish final capacity sufficiency.
 C3_EXTERNAL_INPUT_CURRENCY.md records the bounded current-main check: no new
 inputs in the inspected PEC/receiving scopes; OI-022/023/026 remain open.
 C2/C4 input holds and C5 activation hold remain, without external-owner adoption.
+
+C3_S4_RECONSTRUCTION_INTEGRATION.md retains the source-only assignment, exact
+candidate/review, five repaired definition findings and consumer boundaries.
+This is a proposal awaiting technical selection, not format0.4 production or
+full C3-S4-R closure. The prepared c9bfde5269 native artifact remains frozen.
