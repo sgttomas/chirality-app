@@ -1,0 +1,23 @@
+Executable=<scratch>/target/debug/bundle/macos/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4
+Identifier=chirality_app_v4-cf89c1ea86ddf9f4
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20400 size=434170 flags=0x20002(adhoc,linker-signed) hashes=13564+0 location=embedded
+VersionPlatform=1
+VersionMin=983040
+VersionSDK=1769472
+Hash type=sha256 size=32
+CandidateCDHash sha256=b54a087f0287f71946d01acac6c4f1724a46faa8
+CandidateCDHashFull sha256=b54a087f0287f71946d01acac6c4f1724a46faa82bea811078fa7fa38881169e
+Hash choices=sha256
+CMSDigest=b54a087f0287f71946d01acac6c4f1724a46faa82bea811078fa7fa38881169e
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=20094880
+Executable Segment flags=0x1
+Page size=4096
+CDHash=b54a087f0287f71946d01acac6c4f1724a46faa8
+Signature=adhoc
+Info.plist=not bound
+TeamIdentifier=not set
+Sealed Resources=none
+Internal requirements=none

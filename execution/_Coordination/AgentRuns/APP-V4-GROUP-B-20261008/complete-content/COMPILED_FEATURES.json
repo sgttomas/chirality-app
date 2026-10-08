@@ -1,0 +1,7 @@
+[
+  {
+    "path": "target/debug/.fingerprint/chirality-app-v4-5033c0c200b08938/lib-chirality_app_v4_lib.json",
+    "sha256": "9951d99ffb8d60e7b0006e3857784065e24ea90b231abe855108d8e882ac14c2",
+    "features": "[\"custom-protocol\"]"
+  }
+]

@@ -1,0 +1,78 @@
+{
+  "mechanism": "Codex delegated-harness-native descendant",
+  "parent": "/root/group_b_successor",
+  "child": "/root/group_b_successor/complete_content_build",
+  "role": "TASK",
+  "delegation": false,
+  "origins": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/README.md",
+      "sha256": "cdb08450a1cb29bd5e6e10d491efc6f537cc4ca08ba2e0add395e4223e7148b2"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md",
+      "sha256": "c4a5ea535f46f07a6eb09d77b45c0695030ff84a9aa7430f6cbea11a6ee79537"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BUNDLE-INPUTS-20261008/INTEGRATION.md",
+      "sha256": "93a6f93795fdb4c03ddb038e35af146223016fe6a65bb5251bb89951af0607e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "sha256": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype/read_tree.py",
+      "sha256": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md",
+      "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/unsigned-candidate/RETURN.md",
+      "sha256": "d9b901de697b7e78eb864797a78a97cf5100c12c5c94f14f83495e18c300b7e2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/unsigned-candidate/command.json",
+      "sha256": "f845c8a3895815aefc3158463fe3bc857209595069b9030965ec54e07ac92b49"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/unsigned-candidate/bundle-command.json",
+      "sha256": "16b2586b3db946e6d5336430a3c4f1245991c717a5c562509214291ff6d8749c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/unsigned-candidate/TOOL_IDENTITIES.json",
+      "sha256": "0bf3768e536fae69c48bb1c2dc494acb7a421e6cd8e305a4acfebc29c4bc2f1f"
+    }
+  ],
+  "reading_extent": "Root supplied; TASK/skill/loop/Field Book/README/receiving integration and prior return/commands; manual headings; PKG SoW and Design P0\u2013P4/CF/FP; current graph selected context"
+}
