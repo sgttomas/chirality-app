@@ -1,0 +1,15 @@
+{
+  "basis": "9f1f96b17b9a9307827b8d00ae880a6c9a2c0039",
+  "mechanism": "existing native WORKING_ITEMS manager with existing independent TASK reviewer; no new agents",
+  "reads": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_WORKING_ITEMS.md": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "projects/chirality-app-v4/app/examination/sq_receiving/README.md": "ab6ad39bf239de1f11a5e58ed0fb696f7b09f8d15ca619808decf2b81ce90ef9",
+    "projects/chirality-app-v4/app/examination/sq_receiving/pins.json": "10adf42fd3855fbbbbfc20b1f67e10d55bb3c10ee54a453e133551d65073c2a8",
+    "projects/chirality-app-v4/app/examination/distribution_receiving/README.md": "710668840b64be70113f5a2db448dce687cdbe761eeeedf6a537f49a52d5965c",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/stop-state-diagnosis/part1-design/STOP_PART1_DESIGN.md": "b932f261f378ac4f09973d3a04ead69a8c97a140551effc258a22a047c503ba0",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/stop-state-diagnosis/part1-design/STOP_PART1_INDEPENDENT_REVIEW.md": "9dd97898385dac471b62d59e919f1109c56322743acda82c7710c5f79fe389a3"
+  }
+}
