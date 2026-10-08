@@ -1,0 +1,100 @@
+{
+  "basis": "dd50b1692c7d3c710ade07a5c344cc16fafeee77",
+  "status": "DRAFT; classification route owner selection outstanding; no implementation release",
+  "role": "TASK DEL-07-02 source owner; deliberate wider DEL-04-01 policy consultation for interface comparison, not policy-owner acceptance",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_v0.1.md",
+      "sha256": "71bdbfa0538ed335bef97e0ab11f3180b2b49628174f285dc9f9dbd32e329bc4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Design/ACT_AND_POLICY_CONTRACT.md",
+      "sha256": "97e95a6a0ca66673b51d566421c1592d9312bf517c22c4e5a288e3bfd59d08d4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "sha256": "910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/act_control.rs",
+      "sha256": "fe0ba9a87529bf7b40aff3e4d88c7b7a84cfe881f887569660573f9056368913"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/act_control_file.rs",
+      "sha256": "470709d37cadbf203bdb16975074cd7b14180da98ec690eb6effe7c144e80e59"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/act_policy.rs",
+      "sha256": "96a6d9d2b9a24ca1dcf17f05e62942fb44c2331531813b0f33c87e877ca7188b"
+    },
+    {
+      "path": "projects/chirality-app-dev/instructions/AGENTS.md",
+      "sha256": "12b2c01c7e960bc35ef7bf55d2a968687bef776826f12edfea8b8fdbc778e3de"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/PRD.md",
+      "sha256": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+      "sha256": "d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "068c3039d446b8d341c8c3e5dac60937b7cc11b0746276da6babd751b90872f2"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d"
+    }
+  ],
+  "RS_concurrence": {
+    "origin": "manager-routed temporary report C3_RS_TARGET_SCOPE_CONCURRENCE.md",
+    "sha256": "c2eb62a36d0b61958f1591b3c6814582e6b8746a27242aaba7c1efbe132bb359",
+    "scope": "reference and cold/live separation only; no grant producer"
+  },
+  "artifact": {
+    "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_R1.md",
+    "sha256": "7c10127d8f714d29ce0b5539662b40a357c4f76af38e7ebe1d6646e4fb871ce1"
+  },
+  "checks": "draft source comparison only; no production/native examination",
+  "selected": "Lifecycle A incremental target only; unchanged 64 identities/one payload/1MiB; prefreeze loss PM05 residual",
+  "unselected": [
+    "S original task-scope admission route",
+    "T operation classification/default/acceptance/direct producers",
+    "W controlled writer and actual human/agent adapters",
+    "durable recovery migration"
+  ],
+  "decision_packet": {
+    "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_TARGET_SCOPE_DECISION.md",
+    "sha256": "30329086eee0e67f0405a500fe11a8764afdbb83aba6caa05e4dd14f53bf0ff4"
+  },
+  "retained_review_findings": [
+    {
+      "candidate": "835b1d369df165341a0d683f63f455ec74e7a9cd",
+      "finding": "A ordinary-task scope versus B host-class treatment conflated complementary axes; independently confirmed",
+      "repair": "Separate S WHAT scope, T HOW treatment, W controlled writer/adapters; H hold. Task scope is not direct treatment; A12 is not scope admission or universal person-execution prerequisite. No choice selected."
+    },
+    {
+      "candidate": "ca18add03a12364c219d6680627c6dfeb7f618aa",
+      "finding": "R1 section3 retained false either/or and omitted effective policy-default distinction",
+      "repair": "One sentence separates task-scope admission from operation treatment and preserves policy-default versus person-set direct branches."
+    }
+  ]
+}
