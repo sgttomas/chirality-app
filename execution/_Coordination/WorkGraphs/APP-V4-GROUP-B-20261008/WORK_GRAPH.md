@@ -76,7 +76,7 @@ authors. Each production slice carries its necessary documentation and checks.
 | B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | COMPLETE bounded support merged PR #1128; author ea75b4b412, exact-head review READY; successor/reviews/RUNNER.md |
 | B2-CONTENT complete-content unsigned development candidate | DEL-01-06 OUT-001/002; complete_content_build TASK; unsigned overlay/tests and complete-content evidence | Merged P2/P3 at f79317be; approved cached P1/toolchain; explicit custom-protocol/no-sign | Actual offline build; P0…4 physical bytes/modes/links, exact source/resource equality; independent exact-artifact review; no package qualification | COMPLETE bounded physical increment merged PR #1134 at 00ce2e1074; 56 files, exact P1/P2/P3; complete-content/RETURN.md |
 | B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | COMPLETE bounded proposal/tool merged PR #1136 at d35b29f813; 77 integrated tests; B3-ID-ADOPT owns CI-26 disposition |
-| B3-ID-ADOPT canonical full support identity | DEL-09-01/DEL-01-06 technical receiving; support_identity TASK; additive Design supplements, new canonical reader/pins/tests, CI-26 only | Merged proposed tool, unchanged prior publication, independent source assessment | Published tuple provenance; canonical selection outside record input; joined positive/false-authority/history/mutation tests; scoped adoption and recipient notices; independent review | ACTIVE; no old schema/source-lock mutation or native claim |
+| B3-ID-ADOPT canonical full support identity | DEL-09-01/DEL-01-06 technical receiving; support_identity TASK; additive Design supplements, new canonical reader/pins/tests, CI-26 only | Merged proposed tool, unchanged prior publication, independent source assessment | Published tuple provenance; canonical selection outside record input; joined positive/false-authority/history/mutation tests; scoped adoption and recipient notices; independent review | READY author b9b3c7131d; review e1f93f6101; 53 independent and 88 integrated tests; scoped adoption effective named merge |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -131,14 +131,16 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** B3-ID-ADOPT implements a separately versioned additive canonical
-binding method and EXP/PKG reader cohort, preserving original EXP-v0.2/PKG
-bytes and legacy source guards. Nine relied-on canonical sources were verified
-byte-equal to ancestor PR #1077 merge 09106477e351c6e5bde85259c55a00cc8fc5f7f5.
-That prior publication is separate from new method adoption at the reviewed
-merge. No writer may select publication or retrospectively establish historical
-producer use. CI-26 scoped disposition follows independent review; native M1
-qualification, SQ/S4 receiving and all other support obligations stay separate.
+**Next:** merge the independently reviewed B3-ID-ADOPT contribution after
+required CI and exact-head receiving backcheck. It supplies separately versioned
+EXP-SUPPORT-BINDING-v1 and its fixed canonical EXP/PKG consumer cohort, preserving
+original EXP-v0.2/PKG bytes and legacy guards. Prior source publication remains
+PR #1077 merge 09106477e351c6e5bde85259c55a00cc8fc5f7f5; new method adoption
+is effective only at this named reviewed merge. CI-26's representation and
+initial consumer gap closes at that boundary, not all M1 or native qualification.
+SQ/native-form/S4 receiving is explicitly pending in the adoption receiving
+notice. Current main 412cf7fa01 was integrated without rewriting; its Group C
+changes alter none of the relied-on EXP/PKG/legacy validator bytes.
 
 The retained unsigned development .app binds f79317be plus the unsigned-overlay patch; all
 406 App input entries (350 files) were checked against sealed source and scratch. Physical
@@ -156,7 +158,8 @@ DC-R5 whole-process isolation remain inconclusive. Prior unsigned-candidate
 evidence binds its historical f2+overlay, not this new candidate. B7 stimuli,
 mode/person/examiner and configuration inputs remain missing.
 
-**Carried limits:** CI-26 complete M1 identity, CI-27 full distribution identity,
+**Carried limits:** CI-26 downstream canonical-binding adoption and complete M1
+runner/native qualification remain separate from this scoped closure; CI-27 full distribution identity,
 SEAL-2 cold native-origin proof (Group A I3-CUST/CI-10), Group A CI-11 and
 CI-19…25 receiving matters, ST-4 usable route/recording, ST-5 real candidate-pin
 capture, account/API/local modes and native/person inputs remain open. SIGN-1
