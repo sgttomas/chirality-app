@@ -1,0 +1,6 @@
+
+running 1 test
+test hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 610 filtered out; finished in 1.69s
+

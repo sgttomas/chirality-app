@@ -1,0 +1,50 @@
+[
+  {
+    "path": "RETURN.md",
+    "sha256": "a592552533066920e982597f7d2053ae3e6cd77bc24c62e7e46c8f12c4459b70"
+  },
+  {
+    "path": "SOURCE_MEMBERS.json",
+    "sha256": "272f79ccf6f43c6a0366cb3d2fdfe333243e35da0fbfe2c8cc180ddc9b18a7e4"
+  },
+  {
+    "path": "SUMMARY.json",
+    "sha256": "dc55a7d9595397eab19ab19baf074469351f7bf5657a84168f8d2a20cc24c77c"
+  },
+  {
+    "path": "VERIFICATION.json",
+    "sha256": "037b9bbd8c057aad7cec0b544d0a5381765180576f4055290a073ef2cbcc2512"
+  },
+  {
+    "path": "lt09-receipt.json",
+    "sha256": "739c05d3bc96128cdde6964279dbb258ae5e89abae0d3d16516a9184834ad956"
+  },
+  {
+    "path": "lt09.log",
+    "sha256": "30662fd0567c53fb97683b0d923be2a1ce43e795242c44240530cd34fefee579"
+  },
+  {
+    "path": "lt12-committed-build.log",
+    "sha256": "64caadb3b54610df477d0a33fb8fed043b204a58bd4e823c84e392e3f42b2ceb"
+  },
+  {
+    "path": "lt12-committed-export-result.log",
+    "sha256": "30fada1a543b627d235a06f752debc65671717979160b5c5e5ee4ddffd8220d0"
+  },
+  {
+    "path": "lt12-committed-harness.jsonl",
+    "sha256": "faa66db4f1b67bceb9eccef116d673d4abd6618f351b5d9ace2c8461fe341257"
+  },
+  {
+    "path": "lt12_run_committed_exports.py",
+    "sha256": "0175007bbf8ff206e1eca8fe666f66413b75d14e2d225369be8d71b26fa7bbed"
+  },
+  {
+    "path": "terminal-receipt.json",
+    "sha256": "e3580b2acf79897a8416895bff4013189936d61e6eeab14a2cdf8a66126c2cd7"
+  },
+  {
+    "path": "terminal.log",
+    "sha256": "d757bd0c38113ab97fb75ad7799890f10b77ab4df94868e0ed4a46ceb63eb904"
+  }
+]

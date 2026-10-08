@@ -1,0 +1,19 @@
+{
+  "sourceRevision": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+  "harnessExecutable": "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+  "harnessExecutableSha256": "69d418bb91d6734f3da46812982e6a858369839aeed4532ff86299038abb8bea",
+  "exports": [
+    {
+      "kind": "lt09",
+      "outputRoot": "/private/tmp/lt12-committed-exports-achyuhbn/lt09",
+      "receipt": "/private/tmp/lt12-committed-exports-achyuhbn/lt09-receipt.json",
+      "receiptSha256": "739c05d3bc96128cdde6964279dbb258ae5e89abae0d3d16516a9184834ad956"
+    },
+    {
+      "kind": "terminal",
+      "outputRoot": "/private/tmp/lt12-committed-exports-achyuhbn/terminal",
+      "receipt": "/private/tmp/lt12-committed-exports-achyuhbn/terminal-receipt.json",
+      "receiptSha256": "e3580b2acf79897a8416895bff4013189936d61e6eeab14a2cdf8a66126c2cd7"
+    }
+  ]
+}
