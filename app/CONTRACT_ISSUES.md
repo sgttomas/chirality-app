@@ -1036,3 +1036,25 @@ changed.
   identities; historical fixtures stay frozen. Existing actual dossiers, if
   any, require the examiner's EXP §6.2 affected-claim assessment. Group E's
   receiving notice is carried in the Group B work graph, not automatic adoption.
+
+## CI-29 Wholly unavailable sources in a connector route account
+
+- **Found:** 2026-10-08 by independent Group C source preparation;
+  run APP-V4-GROUP-C-20261008.
+- **Source:** DEL-07-02 CONNECTOR_FALLBACK §7 says a missing or unreadable
+  source produces a gap with its responsible party and leaves the affected
+  part unsupported. ScopeOfWork REQ-002 and VER-002 include unavailable
+  underlying sources. The current connector.route-account schema requires
+  `sources` with `minItems: 1`; §4 describes each source read with its revision
+  and digest. A wholly unavailable source set cannot be represented by
+  inventing a successful source read.
+- **Current bounded behavior:** C1 computes semantic standing and identifies
+  question parts needing the source route. It writes no route account and
+  changes no schema, source identity or criterion. Missing evidence remains
+  missing; this issue does not prevent the bounded in-memory slice.
+- **Owning route:** Group C C3, DEL-07-02 source-owner design treatment with
+  affected PEC/Domains receiving and later fleet/examination consumer review,
+  before persistent account writing. Resolve through a named reviewed change;
+  no product meaning or group order is changed here. A consequential choice
+  returns through HELP_HUMAN to the owner. No fabricated source entry or
+  weakened test may conceal the mismatch.
