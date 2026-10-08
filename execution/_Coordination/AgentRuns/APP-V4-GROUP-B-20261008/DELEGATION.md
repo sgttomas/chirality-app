@@ -165,3 +165,31 @@ check/rules import collision. Separate reviewer confirmed original combined
 discovery now 51/0 and both import orders. Manager independently ran 51/0 on
 integration. Original evidence remains historical; F1-repair binds repaired
 module names/bytes and CLI outputs. Whole-candidate docs review pending.
+
+## Resumed actual consumer production
+
+Owner steering “resume work on App v4” was relayed by HELP_HUMAN to this
+WORKING_ITEMS manager. Base f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1 includes
+PRs #1117/#1119/#1121/#1122. Current graph replaces superseded next states;
+resumed-production/PRIOR_GRAPH.md preserves the prior checkpoint. No MEMORY
+writes under the later owner instruction. Correct shared author/committer
+identity and absence of email environment overrides were checked before work.
+
+Existing harness-native TASKs activated via followup_task, requested model
+gpt-6-astra/low, each with its own new branch/worktree on current main:
+- standalone_preparation owns B7-FX, new standalone/fixtures and
+  group_b_fixture consumer tests. Manager additionally authorized exactly the
+  cfg(test) module declaration in src-tauri/src/lib.rs needed to test actual
+  crate-private parser/Snapshot/Review consumers; no API widening or acts.
+- support_production owns B3-N1, new native_forms module/tests/evidence,
+  consuming existing source-bound B7 preparation to make unobserved blank forms.
+- first_slice_review owns read-only independent review on next-review branch;
+  no authored production or machine/person observations.
+
+No child may delegate, amend Design/pins, write MEMORY, download, use credentials
+or user Codex home, launch native/browser processes or sign/notarise. Actual
+host enforcement remains separate from these brief limits. Each commit requires
+private-term --staged --from-host validation, pushes require current-main range
+validation. No machine host names or junit hostname attributes in outputs.
+A-IN-S1 is separately owned by distribution_successor_design; no contract
+adoption is implied by concurrent Group B work.
