@@ -56,3 +56,15 @@ produced. C2–C5 and CI-29/C3 carry the remaining Group C work.
 Independent review is by a separate TASK and must cover the actual combined
 candidate. Its record and required CI establish readiness for the first PR;
 this evidence alone is not merge approval, Group C completion or a 90% gate.
+
+## Combined candidate and PR
+
+Manager independently repeated the targeted full App library compilation/check
+on `08fcd838d14417ebc3c574105a442f86f0519dd7`: 7 passed, 0 failed, 410
+filtered, using the approved offline cache and a separate private integration
+target. No source change followed the author's successful tests.
+[Independent C1 review](C1_REVIEW.md) found no actionable defect at that exact
+candidate. [PR #1127](https://github.com/sgttomas/chirality/pull/1127) carries
+this first slice; its eventual Git/PR record establishes actual integration.
+Required CI remains separate. Later evidence-only changes receive an affected
+exact-head backcheck before merge.
