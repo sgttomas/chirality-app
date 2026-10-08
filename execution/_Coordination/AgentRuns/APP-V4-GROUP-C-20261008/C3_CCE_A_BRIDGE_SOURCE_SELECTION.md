@@ -23,3 +23,15 @@ MEMORY or external provider work.
 Existing cfb_design_owner is commissioned as DEL-07-02 source author. Existing
 Host rs_concurrence is available for scoped DEL-04-03 review. Its role does not
 by itself grant DEL-04-01 policy ownership; parent designation is requested.
+
+## Bounded DEL-04-01 receiving/change-control designation
+
+HELP_HUMAN designated /root/group_c_successor as coordinating WORKING_ITEMS
+for this DEL-04-01 interface assessment, not its historical design author and
+not a supplier of owner acceptance. Existing C source owner compares
+ACT-POLICY-v0.11 and actual A16/A12/App admission code; existing independent
+reviewer checks the result. Unresolved policy choices return to HELP_HUMAN's
+owner decision package. Any required policy contract change is a named proposal
+with consumer propagation before code. Existing RS owner covers DEL-04-03 only.
+No scope grant, implementation or actual graph edit may arise from inferred
+authority. Wider deliberate policy consultation must retain exact origins/hashes.
