@@ -969,3 +969,23 @@ changed.
 
   Until then, the App's behaviour above stands. It is stricter than WR: it
   never writes an unreadable ledger.
+
+
+## CI-26 Group B full EXP support identity versus record fields
+
+- **Found:** 2026-10-08 by Group B first-slice TASK while implementing the
+  offline EXP/PKG file checker; run APP-V4-GROUP-B-20261008.
+- **Source:** DEL-09-01 EXP §4.4 defines a support revision as its version,
+  all three schema IDs and the prototype digest. The EXP result schema carries
+  its own `schema_id` and optional `prototype_digest`; PKG's identity schema
+  carries only the EXP version in `support_revision`.
+- **Current bounded behavior:** schema validation preserves those exact fields
+  and optionality. The new package-link check additionally requires the pinned
+  prototype digest under §4.4, checks result schema/version and matching package
+  version, and reports maintained tool/rule/source identities separately. It
+  claims only this partial file-consistency check, never complete support
+  admission or qualification.
+- **Owning route:** DEL-09-01 and DEL-01-06 design owners confirm how a complete
+  M1 support identity is bound across package and result records before full M1
+  reliance (Group B B3). Any changed interface uses a named reviewed change and
+  consumer propagation; no schema or Design change is made by this slice.
