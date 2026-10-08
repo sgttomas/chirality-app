@@ -1,0 +1,162 @@
+{
+  "assignment": "C3-U-READ-01 read-only cold route-account presentation",
+  "role": "TASK",
+  "agent": "/root/group_c_successor/route_persistence",
+  "parent": "/root/group_c_successor",
+  "mechanism": "delegated-harness-native; no child delegation",
+  "base_commit": "412cf7fa012f400043182e4c9e8ea0e1725c843f",
+  "branch": "codex/group-c-route-presentation",
+  "authority": "Manager bounded implementation and fixture fence; source independently reviewed b6dfaf7bc3 and adopted unchanged ae061bd / 4b392582ba, per manager return",
+  "scope_enforcement": "Instruction fence plus host permissions; no per-file host sandbox claim",
+  "sources": [
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/README.md",
+      "sha256": "cdb08450a1cb29bd5e6e10d491efc6f537cc4ca08ba2e0add395e4223e7148b2",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/PAUSE_HANDOFF_HELP_HUMAN_20261008.md",
+      "sha256": "f8788e0bfdc68813b360e690c7e64f1cf0c18c911ed9097c9c92f90fb880be4e",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "21915f34f8608fd540f2bf504e390ef7c24d908f4fa188dad5a09511ddd79e81",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md",
+      "sha256": "428a330de7acfa0687a85f1328b081ccdbc64ded4fc53f9266585b45f9079ca0",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_REVIEW.md",
+      "sha256": "1c9b8513ebec4074bb5190c7a752228369bd77da8aa19035de6bf41cd78c0f5a",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_FLEET_PLACEMENT_CONCURRENCE.md",
+      "sha256": "b357e80fa7e4d791a55549f3a961d313513c8e58f98283659657a229475c1a2e",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/IMPLEMENTATION_BASIS.json",
+      "sha256": "5745706121e428e4534ac71fa87f66f820ca2c8584f405e1fd8a66606ee29005",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.2.md",
+      "sha256": "6552f82f3a574b847e19ed909ac610e4b263f27d6034253488b0d2a314659f12",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md",
+      "sha256": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK_v0.3.md",
+      "sha256": "3b1007357e05571f1f22b09c6bfe1af575ec6549d938f95ab94cf61093bd834d",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.schema.json",
+      "sha256": "a6823eebb2872d0d563b7e77589a0cc2f7cd2545abe654e5b427af7d79365286",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/schema_validation.rs",
+      "sha256": "42545d9d544f0a8ac7be84814bc9285d987888e6c7ef2ca0201041458c2eb3a9",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/util.rs",
+      "sha256": "4c890ed6e57c5ef5a155dfac18133f9a0ab7c5b7ba1a96b5a42631a2ebceb951",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/workflow_record_store.rs",
+      "sha256": "327f2f054e307aceaa5166a9b8d0edd236103b2c92d5dfe9152c9c6aafda4345",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "897dfa625fbb9c3666a92c9cbd6b12ff8bb86083b5ee050313832a71bca3b968",
+      "coverage": "inherited actual C3-P source context; original hashes retained, not rebound to current files"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK.md",
+      "revision": "e24bd8a5a2",
+      "sha256": "f7a817f35a3278f6060ce3e5fb524634685de81968577ff96c5275a1c9e9b6ff",
+      "coverage": "full definition/account; basis source table inspected"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK_ACCOUNT.json",
+      "revision": "e24bd8a5a2",
+      "sha256": "22038d3adef3681c0c776de5bbc85eef7b4111d8dcb425db809cd3f74c312643",
+      "coverage": "full definition/account; basis source table inspected"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK_BASIS.json",
+      "revision": "e24bd8a5a2",
+      "sha256": "7f1741a165313ea90a165f6f540d00a8b45af632a96d47ed1504648d3fe9c3e7",
+      "coverage": "full definition/account; basis source table inspected"
+    }
+  ],
+  "fixture": {
+    "path": "projects/chirality-app-v4/app/tests/fixtures/connector-route-source-walk.json",
+    "sha256": "22038d3adef3681c0c776de5bbc85eef7b4111d8dcb425db809cd3f74c312643",
+    "standing": "Exact manual source-walk account; pinned historical recorded claims, not current project status or App reconstruction witness"
+  },
+  "limits": [
+    "No source reads by App view",
+    "No held-prior-reference resolve action",
+    "No native/supplier/provider/person acts",
+    "No full C3 completion or release"
+  ]
+}

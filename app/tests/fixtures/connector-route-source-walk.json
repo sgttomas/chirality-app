@@ -1,0 +1,178 @@
+{
+  "format": "chirality.connector.route-account",
+  "formatVersion": "0.2",
+  "account_id": "ra:C3-SOURCE-WALK-20261008",
+  "question": {
+    "id": "Q-C3-RECORDED-DELTA",
+    "text": "What changed in the recorded Group C C3 production state since the pre-persistence basis, and what work remained held or unfinished at the asked revision?",
+    "at_revision": "412cf7fa012f400043182e4c9e8ea0e1725c843f",
+    "since_revision": "d35b29f813488e3ce344b05976cf682b576e1a39"
+  },
+  "trigger": {
+    "connector": "pec",
+    "why": "CONSTRUCTED absent trigger for Q-C3-RECORDED-DELTA; no actual provider request/response observed",
+    "receiving_records": []
+  },
+  "sources": [
+    {
+      "source_id": "graph-before",
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "revision": "d35b29f813488e3ce344b05976cf682b576e1a39",
+      "sha256": "21915f34f8608fd540f2bf504e390ef7c24d908f4fa188dad5a09511ddd79e81",
+      "role": "recorded work graph before persistence"
+    },
+    {
+      "source_id": "graph-at",
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "revision": "412cf7fa012f400043182e4c9e8ea0e1725c843f",
+      "sha256": "dd2f137d91b66e0fbf07bb9ef3bd051f070a4cd5077e6f23dde322b4d5421744",
+      "role": "recorded work graph at asked revision"
+    },
+    {
+      "source_id": "placement-at",
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md",
+      "revision": "412cf7fa012f400043182e4c9e8ea0e1725c843f",
+      "sha256": "0585f960b1aa901ec1dbfc8a7565ef9d7c1cf3f9f8b08acad4343f115004a336",
+      "role": "technical selection record; not newly witnessed owner act"
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "F1",
+      "statement": "Before: the graph records selected C3-P namespace/custody contract, but implementation and race/durability evidence not yet established.",
+      "source_id": "graph-before",
+      "anchor": "L112"
+    },
+    {
+      "fact_id": "F2",
+      "statement": "At the asked revision: the graph records independently READY repaired persistence at f1ff1699e094bb526dcef6f7a3dc47f002da837a, 31 maintained and three independent checks, with final combined review/CI still described as pending.",
+      "source_id": "graph-at",
+      "anchor": "L102"
+    },
+    {
+      "fact_id": "F3",
+      "statement": "The graph records actual source reconstruction and presentation as UNFINISHED.",
+      "source_id": "graph-at",
+      "anchor": "L103"
+    },
+    {
+      "fact_id": "F4",
+      "statement": "PEC dependent adapter work remains blocked on actual provider terms; preparation remains available.",
+      "source_id": "graph-at",
+      "anchor": "L41"
+    },
+    {
+      "fact_id": "F5",
+      "statement": "Domains dependent implementation remains blocked at provider/admission/allocation inputs.",
+      "source_id": "graph-at",
+      "anchor": "L43"
+    },
+    {
+      "fact_id": "F6",
+      "statement": "Later research remains blocked at activation/input points; no activation follows from Group C resume.",
+      "source_id": "graph-at",
+      "anchor": "L44"
+    },
+    {
+      "fact_id": "F7",
+      "statement": "Placement record selects CRP-v0.3 as a named technical successor.",
+      "source_id": "placement-at",
+      "anchor": "L52"
+    },
+    {
+      "fact_id": "F8",
+      "statement": "Placement record retains the repair-time statement that code stays NOT READY until the required evidence exists.",
+      "source_id": "placement-at",
+      "anchor": "L73"
+    },
+    {
+      "fact_id": "F9",
+      "statement": "Before: PEC dependent adapter work was blocked on provider terms.",
+      "source_id": "graph-before",
+      "anchor": "L41"
+    },
+    {
+      "fact_id": "F10",
+      "statement": "Before: Domains dependent implementation was blocked at its inputs.",
+      "source_id": "graph-before",
+      "anchor": "L43"
+    },
+    {
+      "fact_id": "F11",
+      "statement": "Before: later research was blocked at activation/input points.",
+      "source_id": "graph-before",
+      "anchor": "L44"
+    }
+  ],
+  "gaps": [
+    {
+      "gap": "The pinned graph still describes PR #1137 final review/CI as pending; the placement record retains repair-time NOT READY wording. These are records at their pins, not a reconciled final integration receipt.",
+      "effect": "This walk does not conclude final CI, integration acceptance, product readiness or current operational state from those statements.",
+      "responsible": "Group C WORKING_ITEMS manager for reconciliation against integration records"
+    },
+    {
+      "gap": "No actual PEC or Domains response/adoption inputs, later research activation, native selection or App source-reconstruction witness is supplied in this walk.",
+      "effect": "Those questions remain unsupported; this walk cannot complete C3 or Group C.",
+      "responsible": "Named receiving owners and Group C manager; cross-project relay remains with owner"
+    }
+  ],
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "The pinned records move from a selected persistence contract without implementation evidence to a reported independently reviewed backend; source reconstruction/presentation remain unfinished and PEC/Domains/research holds remain. This reports file statements only.",
+        "basis": "source_route",
+        "refs": [
+          "F1",
+          "F2",
+          "F3",
+          "F4",
+          "F5",
+          "F6",
+          "F9",
+          "F10",
+          "F11"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "Final integration/CI status, product readiness, complete C3 or Group C, provider adoption and performed manager/person duties",
+        "why": "Not established by this bounded pinned-file reconstruction; historical status wording is retained and gaps remain"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "duties": [
+    {
+      "duty": "locate_compare",
+      "actor_role": "agent",
+      "standing": "performed",
+      "actor": "TASK /root/group_c_successor/cfb_design_owner",
+      "evidence": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK.md#actual-locate-and-compare",
+      "reason": "Actually read the three exact Git blobs, hashed them, located anchors and compared recorded statements during this assignment."
+    },
+    {
+      "duty": "review_integrate",
+      "actor_role": "manager",
+      "standing": "outstanding",
+      "reason": "Source-owner self-check is not the manager review/integration act; await separate actual return."
+    },
+    {
+      "duty": "cross_undertaking_coordination",
+      "actor_role": "person",
+      "standing": "not_required",
+      "reason": "This bounded question compares existing Group C records within the App project and performs no cross-project adoption/relay. Necessary external PEC/Domains/SWBPIPE coordination remains with its actual owner; this does not mark it performed."
+    }
+  ],
+  "recorder": {
+    "kind": "agent",
+    "identity": "TASK /root/group_c_successor/cfb_design_owner"
+  },
+  "written_at": "2026-10-08T08:18:27.340037+00:00",
+  "written_at_source": "observed_clock"
+}

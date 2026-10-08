@@ -13,6 +13,7 @@ pub mod canonical;
 pub mod catalog;
 pub mod connector_standing;
 pub mod connector_route_store;
+mod connector_route_view;
 pub mod decision_view;
 mod file_act_root;
 mod file_act_view;
@@ -179,12 +180,18 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["homeAccess"] = home.account_view();
     s["workflowRoot"] = state.workflows.lock().unwrap().snapshot();
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
+    s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
     }
     s
+}
+
+#[tauri::command(async)]
+fn read_connector_routes(state: State<'_ , AppState>) -> Value {
+    connector_route_view::read(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref())
 }
 
 fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
@@ -1126,6 +1133,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             file_act_select, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read,
             read_recovery_custody,
+            read_connector_routes,
             host_status,
             select_home,
             read_home_access,
