@@ -9,3 +9,7 @@ Candidate: the two authored packet files in this directory, on basis 462f66975d3
 - No downloads, supplier execution, credential access/sign-in, native App launch, signing/notarisation, SEAL-2 or owner act. No user Codex configuration consulted. Managed branch and writes required host filesystem escalation and succeeded.
 
 Parent should freeze the returned commit for independent Design review, then integrate any accepted text/schema propagation as named change CC-HOSTING-DISTRIBUTION-01. Do not mark the pin qualified from this packet.
+
+## N1/N2 clarification revision
+
+The independent review at the origin preserved in SOURCE_HASHES.json covers bcfc31c only. This minimal proposal revision addresses its lifecycle-schema and PATH representability clarifications; independent backcheck of changed bytes remains pending. All 23 recorded source digests recomputed and match; JSON parses. No maintained Design or product edits.

@@ -86,6 +86,17 @@
       "origin": "/Users/ryan/.codex/worktrees/app-v4-group-b-distribution-input/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_input/PROPOSAL.md",
       "standing": "candidate contribution, not authority",
       "sha256": "fb0dd89952cf3629c1e4f1c4169d0dd3b1547781e7c1dc98453fedad192d3b92"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/app-v4-hosting-distribution-review/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/hosting_distribution_review/exact-bcfc31c/REVIEW.md",
+      "standing": "independent review of bcfc31cceee926a4b32d28e59133e6c5e4e5ef03 only; revised bytes await backcheck",
+      "sha256": "cf67d83c76f522bb4b4c3c847da0ce7659d8433e9942c3897a5de546121c1c8f"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/hosting.lifecycle-event.schema.json",
+      "standing": "maintained lifecycle schema inspected for N1",
+      "sha256": "40d9dc95330f7186ed43d152459a10441c732233403bf49642b87ec67d13cd97"
     }
-  ]
+  ],
+  "revision_consultation": "N1/N2 follow-up: exact independent review and closed lifecycle identity schema; original consultation preserved."
 }
