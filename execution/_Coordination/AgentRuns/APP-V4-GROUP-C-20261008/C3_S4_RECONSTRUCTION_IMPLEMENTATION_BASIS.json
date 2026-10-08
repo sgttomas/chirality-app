@@ -307,7 +307,7 @@
     },
     {
       "origin": "projects/chirality-app-v4/app/tests/connector-source-presentation.test.mjs",
-      "sha256": "fe244b0d2ae22991634583a5c344337286fe2ff8f0d1cacfe4f8edfde4753370"
+      "sha256": "8d06e3397b9966bcc7e53fb59752d2338ef59dea3d2ae68b6ee91d278e480c93"
     },
     {
       "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.route-account.v0.4.schema.json",
@@ -323,9 +323,17 @@
     },
     {
       "origin": "projects/chirality-app-v4/app/src/ConnectorReconstruction.tsx",
-      "sha256": "3c905187022addb9caffe2dcb843a564f9ae8750b69a491d488061d6a957e38e"
+      "sha256": "fc14eaf0a857af1a401c135012ed7d0c2647feee2e6848ef9812161b52a6f430"
     }
   ],
   "scope_enforcement": "Instruction fence and actual host permissions, not per-file enforcement",
-  "frozen_native_artifact": "Unchanged and unlaunched; SHA256 c8b42e12901be2f72d1b3927bbd8249d26f0b3d1945fbdfbfef8fe92f361a583"
+  "frozen_native_artifact": "Unchanged and unlaunched; SHA256 c8b42e12901be2f72d1b3927bbd8249d26f0b3d1945fbdfbfef8fe92f361a583",
+  "repair_history": [
+    {
+      "finding": "Independent P2 local keys collide after format-toggle child remount",
+      "reviewed_combined": "30f214d",
+      "original_author": "ce1bc1948c8a1f3daa555f734915846dd94694bf",
+      "checks": "20 affected UI tests passed; frontend build passed; no Rust change"
+    }
+  ]
 }

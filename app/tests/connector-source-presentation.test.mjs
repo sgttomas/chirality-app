@@ -129,3 +129,22 @@ test('record-comparison handler carries explicit references and edits invalidate
  fields().props.onChange({...data,claims:[{...data.claims[0],statement:'Edited'}]});assert.equal(calls.at(-1).name,'cancel_connector_draft');assert.deepEqual(calls.at(-1).args,{token:'frozen',generation:'frozen-generation'});
  const html=renderToStaticMarkup(React.createElement(reconstructionExports.ReconstructionFields,{value:data,onChange(){},anchors:source.view.git.result.anchors}));assert.match(html,/not prove truth, entailment, authorship, permission or performance/);assert.match(html,/Reported status/);assert.match(html,/Record change/);
 });
+test('format toggle remount preserves unique pair and claim keys and existing citations',()=>{
+ const nodes=(x,out=[])=>{if(Array.isArray(x))x.forEach(n=>nodes(n,out));else if(x&&typeof x==='object'){out.push(x);nodes(x.props?.children,out);}return out;};
+ let parentCursor=0,childCursor=0,childSlots=[];const parentSlots=[],child={},parent={};
+ new Function('require','exports',reconstructionCode)(name=>name==='react'?{...React,useRef(initial){const i=childCursor++;if(!(i in childSlots))childSlots[i]={current:initial};return childSlots[i];}}:createRequire(reconstructionUrl)(name),child);
+ new Function('require','exports',compiled.outputText)(name=>name==='./ConnectorReconstruction'?child:name==='react'?{...React,useEffect(){},useState(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]=typeof initial==='function'?initial():initial;return[parentSlots[i],v=>parentSlots[i]=typeof v==='function'?v(parentSlots[i]):v];}}:connectedRequire(name),parent);
+ const draw=()=>{parentCursor=0;return parent.ConnectorDraftPanel({source:state(),availability:{enabled:true},command:async()=>({})});};
+ const toggle=version=>{nodes(draw()).find(n=>n.type==='label'&&n.props.children?.[0]==='Account format').props.children[1].props.onChange({target:{value:version}});if(version==='0.3')childSlots=[];};
+ const element=()=>nodes(draw()).find(n=>n.type===child.ReconstructionFields);
+ const fields=()=>{childCursor=0;return child.ReconstructionFields(element().props);};
+ const add=label=>nodes(fields()).find(n=>n.type==='button'&&n.props.children===label).props.onClick();
+ toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');
+ let value=element().props.value;const pair=value.pairs[0].key,claim=value.claims[0].key;
+ element().props.onChange({...value,claims:[{...value.claims[0],pairs:[pair]}],contradictions:[{key:'retained-conflict',claims:[claim],description:'retained',effect:'unresolved',responsible:{standing:'unassigned',identity:null}}]});
+ toggle('0.3');assert.equal(element(),undefined);toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');
+ value=element().props.value;assert.equal(new Set(value.pairs.map(x=>x.key)).size,2);assert.equal(new Set(value.claims.map(x=>x.key)).size,2);assert.deepEqual(value.claims[0].pairs,[pair]);assert.deepEqual(value.contradictions[0].claims,[claim]);
+ element().props.onChange({...value,pairs:value.pairs.slice(1),claims:value.claims.slice(1).map(c=>({...c,pairs:[pair]}))});
+ toggle('0.3');toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');value=element().props.value;
+ assert.ok(value.pairs.every(p=>p.key!==pair));assert.ok(value.claims.every(c=>c.key!==claim));assert.deepEqual(value.contradictions[0].claims,[claim]);
+});
