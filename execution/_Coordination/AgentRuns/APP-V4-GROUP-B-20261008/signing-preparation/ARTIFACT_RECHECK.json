@@ -1,0 +1,37 @@
+{
+  "observed_on": "2026-10-08",
+  "artifact_logical_path": "retained-b2/Chirality App v4 (development candidate).app",
+  "full_inventory_equals_previous": true,
+  "prior_inventory_ref": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/complete-content/BUNDLE_INVENTORY.json",
+  "prior_inventory_sha256": "37a20b94a325e9d87bedaab0bddc5e730f780a9e6e9ef1a4f3f3fbd103abd79f",
+  "manifest_sha256": "cd0e8f7216d6c85b1b1cee96300e3b1f4aeaea15bbc6185214345290bdb83c15",
+  "entries": 74,
+  "regular_files": 56,
+  "P0_sha256": "54c3dcf305fc98159706fb21c029140e3a93c8ca71aeba0059b9115e7c5c4f1a",
+  "FP1a": {
+    "equal": true,
+    "differing": [],
+    "missing": [],
+    "extra": []
+  },
+  "P1_manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+  "P1_root_mode_equal": true,
+  "P4": {
+    "CFBundleDevelopmentRegion": "English",
+    "CFBundleDisplayName": "Chirality App v4 (development candidate)",
+    "CFBundleExecutable": "chirality-app-v4",
+    "CFBundleIdentifier": "dev.chirality.app-v4.skeleton",
+    "CFBundleInfoDictionaryVersion": "6.0",
+    "CFBundleName": "Chirality App v4 (development candidate)",
+    "CFBundlePackageType": "APPL",
+    "CFBundleShortVersionString": "0.0.0",
+    "CFBundleVersion": "0.0.0",
+    "CSResourcesFileMapped": true,
+    "LSMinimumSystemVersion": "15.0",
+    "CFBundleIconFile": "Chirality App v4 (development candidate).icns",
+    "LSRequiresCarbon": true,
+    "NSHighResolutionCapable": true
+  },
+  "native_or_supplier_execution": false,
+  "artifact_mutation": false
+}
