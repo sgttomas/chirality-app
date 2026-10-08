@@ -1,0 +1,37 @@
+--- a/hosting_successor.rs
++++ b/hosting_successor.rs
+@@ -664,4 +664,33 @@
+             .any(|e| e["transitionId"] == "LT-09"));
+         assert!(host.child.lock().unwrap().as_mut().unwrap().wait().is_ok());
+     }
+-}
++    #[test]
++    fn reviewer_original_boundary_serializes_stop_and_preserves_stop() {
++        let f=Fixture::new("pass");let host=Arc::new(Host::new());
++        let (checked,go)=pause_at(&host.after_successor_check);
++        let (published,finish)=pause_at(&host.after_successor_publish);
++        let h=host.clone();let cfg=f.cfg.clone();let starter=std::thread::spawn(move||h.start(&cfg,"review"));
++        checked.recv_timeout(Duration::from_secs(5)).unwrap();
++        let h=host.clone();let (tx,rx)=std::sync::mpsc::channel();let stopper=std::thread::spawn(move||tx.send(h.stop("review","cancel checked start")).unwrap());
++        assert!(rx.recv_timeout(Duration::from_millis(100)).is_err());
++        go.send(()).unwrap();published.recv_timeout(Duration::from_secs(5)).unwrap();
++        rx.recv_timeout(Duration::from_secs(8)).unwrap().unwrap();stopper.join().unwrap();
++        let stopped=host.snapshot();assert_eq!(stopped["state"],"stopped");finish.send(()).unwrap();assert!(starter.join().unwrap().is_err());
++        assert_eq!(host.snapshot(),stopped);assert!(host.child.lock().unwrap().as_mut().unwrap().try_wait().unwrap().is_some());
++        assert_eq!(host.lifecycle_events().last().unwrap()["descendants"]["surviving"],0);
++        assert!(!host.lifecycle_events().iter().any(|e|e["transitionId"]=="LT-09"));
++    }
++    #[test]
++    fn reviewer_cancel_before_guard_preserves_empty_custody() {
++        let f=Fixture::new("pass");let host=Arc::new(Host::new());let (paused,go)=pause_at(&host.before_successor_gate);
++        let h=host.clone();let cfg=f.cfg.clone();let starter=std::thread::spawn(move||h.start(&cfg,"review"));paused.recv_timeout(Duration::from_secs(5)).unwrap();
++        host.stop("review","cancel").unwrap();let stopped=host.snapshot();go.send(()).unwrap();assert!(starter.join().unwrap().is_err());assert_eq!(host.snapshot(),stopped);assert!(host.spawn_counters.lock().unwrap().is_empty());assert!(host.child.lock().unwrap().is_none());
++    }
++    #[test]
++    fn reviewer_old_success_and_failure_cannot_change_new_ready_generation(){
++        let f=Fixture::new("pass");let host=Arc::new(Host::new());host.start(&f.cfg,"review").unwrap();let old=host.snapshot()["generation"].clone();let attempt=host.inner.0.lock().unwrap().start_attempt;host.stop("review","restart").unwrap();host.start(&f.cfg,"review").unwrap();let before=host.snapshot();
++        for response in [Ok(json!({"result":{"userAgent":"codex/0.160.0"}})),Err("old failure".into()),Ok(json!({"result":{"userAgent":"codex/0.0.0"}}))] {assert!(host.finish_successor_handshake(&old,attempt,json!({}),response).is_err());assert_eq!(host.snapshot(),before);}
++        host.stop("review","cleanup").unwrap();
++    }
++
++}

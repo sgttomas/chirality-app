@@ -1,0 +1,11 @@
+# H3B-1 manager integration
+
+Receiving base `00ce2e10749dbf72cb69cd6814baab82e339d224` includes PR #1133 documentation and PR #1134 unsigned packaging configuration/evidence after author/test base `f79317be861bb63553512de3197b22d556268198`. The intervening range changes no App src-tauri or frontend src files. The five maintained candidate files were copied only after matching every CANDIDATE.json SHA-256; author evidence remains unchanged. Existing graph, layout concurrence and independent initial failed review remain manager-owned records.
+
+The earlier Group B complete-content bundle is evidence only for its recorded source/feature inputs. It does not validate this H3B candidate. This slice adds a default-off distribution-successor feature; future production packaging adoption must explicitly select it with custom-protocol and join exact feature/build-selection identity. No selection is supplied and production remains refused without S3 and installed integrity/custody authority.
+
+Default and production-feature affected checks and legacy integration are documented in CHECKS.md. Because the post-author main changes are documentation/unsigned packaging inputs, they do not change the checked Host code or test inputs; independent integration review must confirm this scope. Required CI remains necessary on the actual committed PR head. Independent R1 backcheck is READY: three independently scheduled controls and 16 maintained tests in each feature mode pass (reviews/r1). Whole committed-head review remains pending.
+
+Durable transport/observation/lifecycle publication and explicit successor reference display remain H3B-2, not claimed by an in-memory snapshot. Existing accepted Design and PKG/EXP/SQ source pins are unchanged. No MEMORY, downloads, credentials, actual supplier/native App acts, signing or release.
+
+Manager deliberately reread repository chirality-change skill for integration: `.agents/skills/chirality-change/SKILL.md`, SHA-256 `1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450`. Configured author/committer identity was checked as Ryan C Tufts <ryan@chirality.ai>; no override. Harness-native TASK author and independent reviewer are separate descendants; their exact source read records are retained in their packets. Parent HELP_HUMAN coordinates PR/CI/merge.

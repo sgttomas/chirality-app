@@ -1019,7 +1019,24 @@ fn file_act_read(state:State<'_,AppState>)->Result<Value,String>{
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let workspace = std::env::var_os("CHIRALITY_WORKSPACE").map(PathBuf::from);
-    let host_config = host_config_from_env(workspace.as_ref());
+    tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .setup(move |app| {
+    let host_config = if tauri::is_dev() || !cfg!(feature = "distribution-successor") {
+        host_config_from_env(workspace.as_ref()).and_then(|mut cfg| {
+            if tauri::is_dev() && std::env::var("CHIRALITY_DISTRIBUTION_SUCCESSOR").as_deref() == Ok("1") {
+                cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
+            }
+            Ok(cfg)
+        })
+    } else {
+        (|| {
+            let resources = app.path().resource_dir().map_err(|e|e.to_string())?;
+            let data = app.path().app_data_dir().map_err(|e|e.to_string())?;
+            let home = std::env::var_os("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
+            Ok(hosting::successor::production_config(resources, home, probe_home()?, workspace.clone().unwrap_or(data)))
+        })()
+    };
     let project = runtime_session::freeze_configured_project(workspace.as_deref());
     let project_context_limit = project.as_ref().err().cloned();
     let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
@@ -1047,10 +1064,7 @@ pub fn run() {
         root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
     };
     let host = Arc::clone(&home.host);
-    tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
-        .manage(state)
-        .setup(move |app| {
+            app.manage(state);
             let data = app.path().app_data_dir().map_err(|e| e.to_string());
             let state = app.state::<AppState>();
             *state.home_bootstrap.lock().unwrap() = (|| {

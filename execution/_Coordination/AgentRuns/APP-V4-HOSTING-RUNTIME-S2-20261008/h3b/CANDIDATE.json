@@ -1,0 +1,27 @@
+{
+  "standing": "R1 uncommitted frozen author repair for independent review; initial candidate preserved in CANDIDATE.initial.json",
+  "base": "f79317be861bb63553512de3197b22d556268198",
+  "branch": "codex/hosting-h3b-production",
+  "files": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "f6e922c4ed5a94d7728f5e4f0edaa4ab81d858183dd7979327475c63487e907f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs",
+      "sha256": "29068171502b69a090c9553604ec5470d1a6c7eb698f1cff31d096387432eb27"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "e81074aa33110360ea14b34d0aed4ff49150ec09e935ea537674ffd152c20c58"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "sha256": "d0640cac6b581bb90646f7e5b4c775e85b47ff710af396c616cd34bab3f7b217"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "233b4542c6e3783e17ce629a00cdf0aeb69b94201a7f95fc1fa5fc91c78fac77"
+    }
+  ]
+}
