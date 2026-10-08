@@ -1,0 +1,65 @@
+{
+  "prior_source": "b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0",
+  "selected_source": "5c9aabcfb400bab3ef1e283362dc378414621da7",
+  "reader_changes": {
+    "storeReaderSha256": {
+      "previous": "e78664f9b422344f246099062c9247e484277095d8df2e570f247a02d469c8de",
+      "selected": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57"
+    }
+  },
+  "reader_unchanged_fields": [
+    "closureReaderSha256",
+    "factsSchemaSha256",
+    "labelJoin",
+    "limit",
+    "namespaceAuthoritySourceSha256",
+    "preflightReaderSha256",
+    "readerSourceSha256",
+    "schemas",
+    "semanticRevision",
+    "storeGuardsSha256",
+    "stringIdentity",
+    "transitionProvenance",
+    "transitionsSha256",
+    "transportSchemaSha256"
+  ],
+  "producer_boundary": {
+    "previous": "Only actual LT-09 is published; pre-spawn/restart/other legacy envelopes unavailable",
+    "selected": "Actual LT-09 and eligible same-H5 LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"
+  },
+  "source_changes": {
+    "app/src-tauri/resources/distribution-successor/LT23_PUBLICATION.md": {
+      "previous": null,
+      "selected": "84ad932f86d69525a327e8a17f81020e2d39f747ee3a261a0c706a3ea0f98e5b"
+    },
+    "app/src-tauri/src/distribution_store_s1.rs": {
+      "previous": "e78664f9b422344f246099062c9247e484277095d8df2e570f247a02d469c8de",
+      "selected": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57"
+    },
+    "app/src-tauri/src/hosting.rs": {
+      "previous": "2952406eeab874252de18fe3a263bd77c6e70f808d91c6cefdf2df4e4ee1cf52",
+      "selected": "7281e582de19ee560b71db0713e8afadc98da617cb1bff02acf2e8382e51edc8"
+    },
+    "app/src-tauri/src/hosting_successor.rs": {
+      "previous": "580578f22515d684bbb3d47a7742356f37ed2ffe5c424c1a6316f38637f16105",
+      "selected": "cab82e69f6bc47c9b11596964f2b63a345eeb5b9b8a99d4fc7b416f773374c8c"
+    },
+    "app/src-tauri/src/lib.rs": {
+      "previous": "cce8469315cec6e9d3cf379ed9519a0823825c4c1062a9d11070fe119bfd72ad",
+      "selected": "2cd2559f351fc02a6077d2fd6ca1e2c0ee995909a02d40b2883eb406b90b3c09"
+    }
+  },
+  "exact_git_diff_sha256": "98383f097e1c10a437e916fbc68fc4d20063b45928488a16bbe55d236c45b45e",
+  "diff_reproduce": [
+    "git",
+    "diff",
+    "b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0",
+    "5c9aabcfb400bab3ef1e283362dc378414621da7",
+    "--",
+    "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/LT23_PUBLICATION.md",
+    "projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs",
+    "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+    "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+    "projects/chirality-app-v4/app/src-tauri/src/lib.rs"
+  ]
+}

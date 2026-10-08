@@ -4,7 +4,7 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-namespace-adoption`, based on verified
+PR #1126. Current graph ref: `codex/app-v4-group-b-lt23-adoption`, based on verified
 PR #1147 merge `f23997d3202375f9d607098731f8d374d019b434`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
@@ -133,23 +133,23 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Namespace successor resumption:** Parent released bounded B receiving on
-reviewed Host source b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0 with fresh
-committed/recompiled selected/unselected exchanges. B named successor pins,
-new fixtures and source correspondence are independently READY at B author
-05927cd8d9, with 46 integrated tests passing; Host
-manager will join the reviewed B return before final review/CI. This is not an
-already merged implementation or qualification. Historical f267 evidence and
-original pins remain unchanged; missing native/S3/package inputs stay missing.
-See s4-namespace-adoption/COORDINATION.md for exact basis and write fences.
+**LT23-source successor resumption:** Parent released bounded B receiving on
+independently reviewed Host source 5c9aabcfb400bab3ef1e283362dc378414621da7.
+Fresh committed/recompiled selected/unselected exchanges remain actual LT09;
+this receiving adoption is not LT23 terminal-event proof. Named successor
+pins/receipt, new fixtures and source correspondence are independently READY
+at B author 3edae358f3, with 48 integrated tests passing. Host manager owns joined integration, exact-head review and required CI.
 
-The former #1148 S4 input hold is satisfied for this bounded receiving work
-only. Current source-drift refusal remains intentional. Stable semanticRevision
-does not excuse changed source identity; no bare repin or fallback is allowed.
-Historical f267 bytes/provenance remain exact. The new candidate must carry its
-named receipt and fresh evidence through independent B review and joined CI.
-This adoption cannot establish S3, live native authority or qualification by
-file correspondence alone. No additional preparation-only layer is commissioned.
+Historical f267 and b7 pin/cohort bytes and evidence remain unchanged. Current
+source drift still refuses, no bare repin/fallback is permitted, and unchanged
+method labels do not establish unchanged full source identity. This scoped
+adoption cannot establish S3, native/namespace/terminal authority, actual App
+build, package witnesses or qualification. No additional preparation-only
+layer is commissioned. Exact custody and write fences are recorded in
+s4-lt23-adoption/COORDINATION.md. The separate case/package holds persist. After this joined merge, the next
+material synthetic path needs a separate reviewed Host terminal exchange with
+actual committed/recompiled LT23 and predecessor bytes before B consumer work;
+no terminal cohort is supplied by this LT09-only adoption.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|
