@@ -66,6 +66,48 @@ Available now: in-memory source-account definition/checks. Held: persistent
 writing and placement implementation. No placement choice, new DAG arc,
 provider deployment, native act, person act or SEAL-2 work occurs here.
 
+## O-D comparison using the bounded Group A precedent
+
+Source custody: `AgentRuns/APP-V4-GROUP-A-20261004/OWNER_DECISIONS.md`,
+“Bounded App-local storage allocation”, records the exact human answer
+**“Approve App-local storage (recommended)”**, relayed from the human's active
+chat by parent `/root`. The prepared question points to the manager amendment
+in that run's `PLACEMENT_DECISION_PREPARATION.md`, “Current reviewed
+recommendation — manager amendment”. That amendment specifies project run
+logs under `.chirality/records/runs/`, outside-run standing acts under
+`.chirality/records/acts/`, and project captures under `.chirality/captures/`;
+unwritable targets refuse visibly with no silent relocation. The decision
+expressly is not global OI-013/014 closure or SWBPIPE construction/resumption.
+This is existing recorded custody, not a newly witnessed owner act here.
+
+That Group A allocation is a useful project-local recovery precedent; it
+neither assigns connector/fleet paths nor selects the CFB §9 treatment.
+No connector account is an act log or capture merely because it shares a
+parent directory. Group A readers must not be assumed to discover it.
+
+| O-D alternative | Benefit | Required treatment and risk |
+|---|---|---|
+| Canonical connector descendant, for example `.chirality/records/connectors/route-accounts/<safe-storage-key>.json` | Predictable discovery/recovery alongside other project records; portable project-relative references; avoids requiring callers to maintain a target registry | Proposed path only. O-D must select/version naming, account-to-storage identity mapping, immutable prior-account handling, containment/symlink checks, collision rules and reader discovery. A shared parent is no common service or inherited act-log/capture semantics. Visible failure on unwritable targets/no silent relocation should be selected explicitly. |
+| Explicit caller-selected project-contained target | Fits differing project structures without global canonical path; caller retains destination choice | Still needs O-D selection. Caller must supply root/target and durable discovery/reference custody; moved targets and missing registrations can make recovery incomplete. Same containment, collision and visible-failure policy require review. |
+
+With this precedent available, the preferred proposal for the placement
+owner to consider is the canonical connector descendant: predictable recovery
+reduces the additional discovery contract. The earlier caller-selected
+recommendation remains a viable alternative, not an adopted policy. This
+comparison changes no selected path: neither option is authorized here for
+persistent implementation. The concrete example above is deliberately
+identified as proposed, not a current repository or user-project convention.
+
+DEL-06-01 could later adopt a separate fleet descendant under the same
+`.chirality/records/` parent and consume stable project-relative route-account
+references. C can define its own connector target/reference contract without
+waiting for D fleet software, while notifying D of the proposed interface.
+Sharing the parent does not require merging formats, readers, writers or
+custody; D decides its own adoption. This preserves the C→D direction and H-6
+file access. If agreement instead requires D's placement implementation first,
+or a common service/reader prerequisite, return that consequential choice
+through HELP_HUMAN under GC-7; do not label the resulting reversal resolved.
+
 ## Verification
 
 Maintained `Design/check_route_account_v02.py` checks Draft 2020-12 schemas,
