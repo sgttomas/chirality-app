@@ -188,6 +188,8 @@ Effect:
   rests on the new act, not on a replay.
 - It goes through change control, consumer propagation and review, then
   implementation.
-- SEAL-2 stays deferred, to be weighed at the 90% gate.
+- SEAL-2 stays deferred under the owner's earlier words, "Keep SEAL-2 deferred;
+  continue other work". HELP_HUMAN *proposed* weighing it at the 90% gate;
+  the owner did not say so (correction from review V12 F1).
 
 This approves no signing, credentials or downloads.
