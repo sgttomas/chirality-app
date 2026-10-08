@@ -89,7 +89,7 @@ Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-Next: review the named CRP-R2 successor, then repair and independently backcheck C3-P temporary-name publication before integration; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
+Next: repair and independently backcheck C3-P temporary-name publication against the selected, reviewed CRP-v0.3 successor before integration; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
 MEMORY write or human decision is authorized by this graph. SEAL-2 remains
 deferred. External SWBPIPE, PEC and Domains implementation stays in its own
 sessions and cross-project relay belongs to the owner. No 90% claim.
@@ -120,3 +120,5 @@ Independent TASK `/root/group_c_successor/cfb_design_review` found a blocking te
 HELP_HUMAN selected a bounded technical CRP-R2 treatment: exclusive atomic no-replace rename, no automatic pathname unlink on errors, exact postpublication intended identity/bytes/path checks, and preserved uncertain outcomes without rollback or retry. The same-user source-name substitution residual must be explicit. DEL-07-02 source owner is preparing the named successor; DEL-06-01 source owner and the independent reviewer assess its exact bytes before adoption and code changes. Unsupported filesystem capability must refuse. No new owner act, grouping change or provider activation follows.
 
 These are harness-native TASK descendants under WORKING_ITEMS `/root/group_c_successor`, each using its own managed worktree and branch, `gpt-6-astra` low, bounded instruction fences, and no child delegation. C3-P tests used one private copy-on-write target and the already approved offline dependency cache; no download or supplier/native App launch. Source and code evidence carry exact origins/hashes and execution limits.
+
+CRP-R2 source `3d9a91a988` is now technically selected after independent backcheck `0d1b8c62bb` and fleet concurrence `873f23b906`; the current selection and source hash are in C3_PLACEMENT_ADOPTION.md. Implementation repair is released; code remains NOT READY until exact repaired behavior and original/late-race cases pass independent review.
