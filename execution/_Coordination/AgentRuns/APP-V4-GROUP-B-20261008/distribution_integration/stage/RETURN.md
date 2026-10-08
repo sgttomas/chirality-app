@@ -1,0 +1,9 @@
+# Distribution Design staging return
+
+TASK `/root/distribution_integration_manager/stage_design`, parent WORKING_ITEMS `/root/distribution_integration_manager`, harness-native delegated child; no descendants. The parent brief authorizes only three existing Design Markdown files, their adjacent proposed successor Markdown files, and this run directory. No workflow selected; chirality-change skill applied. Shared graph, MEMORY, notices, review and integration remain with parent.
+
+Accepted HOSTING and PKG bytes are restored exactly from 45796bc1159ef7903db37863d0c4a192975c0071. The complete amended documents are retained after explicit staging banners in adjacent named proposed successors. DISTRIBUTION_IDENTITY explicitly proposes, without selecting U-08/U-17 or establishing consumer reliance. Its technical body is preserved apart from making the DEL-01-06 consumption statement conditional.
+
+CHECKS.json records accepted-byte equality, exact preservation of both amended bodies, technical-body preservation, source revisions and read-origin hashes. References to newly proposed sections are explicitly scoped to the proposed successors. Historical amendment evidence remains historical and unchanged. Existing schemas/prototypes are untouched and establish no adoption. Full qualification schemas, lifecycle/PKG successors, atomic consumers/fixtures, runtime verification and qualified supplier reference remain outstanding; all method and migration obligations remain in the staged text. No new-method or package qualification is claimed.
+
+No supplier execution, download, credentials, native launch, signing/notarisation or owner act occurred. This is author verification only; independent review and integration remain with parent. The narrow brief leaves consumer guard checks to integration; no manifest pins or guards were edited. Writes and commit require host sandbox escalation for the assigned worktree.
