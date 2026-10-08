@@ -75,6 +75,10 @@
     {
       "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C1_EVIDENCE.md",
       "sha256": "77ba59f6a991aaa269f8bef721044e06c96e7d8350d7ef0b16c33b74b38354a3"
+    },
+    {
+      "origin": ".agents/skills/proposal-format/SKILL.md",
+      "sha256": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d"
     }
   ]
 }

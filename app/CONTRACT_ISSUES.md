@@ -1058,3 +1058,16 @@ changed.
   no product meaning or group order is changed here. A consequential choice
   returns through HELP_HUMAN to the owner. No fabricated source entry or
   weakened test may conceal the mismatch.
+- **C3 source successor:** named CI-29 / CFB-v0.3 defines route-account
+  format 0.2 in the additive `Design/CONNECTOR_FALLBACK_v0.3.md` and
+  `connector.route-account.v0.2.schema.json`. With no successful source reads,
+  it requires empty facts and supported conclusions, nonempty gaps with
+  effects/responsibility, and unsupported conclusions. Historical 0.1 bytes,
+  pins and evidence are unchanged. Source preparation is not consumer adoption
+  or persistent behavior; independent source review is READY at `96791613ed`,
+  with combined integration review and placement disposition separate.
+- **Consumer and placement account:** Group C
+  `AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md` identifies
+  PEC, Domains, fleet, examination and later research receiving work. O-D
+  placement stays open before persistent writing; this correction adds no
+  requirement for Group D software and changes no accepted group order.
