@@ -988,7 +988,7 @@ changed.
 - **Owning route:** DEL-09-01 and DEL-01-06 design owners confirm how a complete
   M1 support identity is bound across package and result records before full M1
   reliance (Group B B3). Any changed interface uses a named reviewed change and
-  consumer propagation; no schema or Design change is made by this slice.
+  consumer propagation; no schema or Design change was made by that original slice.
 
 - **CC-EXP-SUPPORT-IDENTITY-01 scoped disposition:** additive
   `EXP-SUPPORT-BINDING-v1` is implemented for independent review and named
