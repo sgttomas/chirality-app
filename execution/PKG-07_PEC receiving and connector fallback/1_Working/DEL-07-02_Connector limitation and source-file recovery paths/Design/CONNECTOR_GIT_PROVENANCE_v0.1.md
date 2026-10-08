@@ -114,8 +114,8 @@ payload per side to 8 MiB, and one request to 10 seconds with bounded stderr
 (16 KiB). These are explicit technical limits, not source invalidity claims.
 Refuse truncation, over-limit declared/actual lengths, framing mismatch, stalled
 read, invalid UTF-8 or NUL-bearing blob; do not hash a truncated buffer as a
-complete source. Preserve eligible other-side result as partial, never a
-complete comparison. Parsing consumes only successfully bounded raw payloads.
+complete source. Apply the side-local versus whole-request rules below. Parsing consumes only
+successfully bounded raw payloads; incomplete bytes never become an observation.
 
 ## 5. Offline implementation mechanism and qualification boundary
 
@@ -127,7 +127,8 @@ qualification across machines. Do not download an engine or dependency.
 
 Preferred bounded implementation: a known absolute Git executable, invoked as
 a subprocess by an explicit argv vector, never a shell. Restrict operations to
-raw `cat-file` object queries with full object IDs supplied as data; tree walks
+raw `cat-file` object queries and the CGP-R1 nonwriting recomputation below;
+full object IDs are supplied as data. Tree walks
 are parsed by the host, not revision expressions or pathspecs. Before release,
 verify the actual executable/version supports the required switches and test
 its complete command/environment envelope; unsupported installations refuse.
@@ -144,8 +145,10 @@ only the validated object directory for raw reads. Exclude all inherited Git
 path/config/alternate/namespace/trace/command overrides; disable system/global
 configuration and terminal prompts. Do not copy repository remotes, includes,
 aliases, extensions or helper/hook/filter configuration into that directory.
-Reject unsupported source extensions/alternates before use. On timeout, cap exhaustion or cancellation, terminate and reap the child,
-boundedly drain/close its pipes, and retain no successful partial observation.
+Reject unsupported source extensions/alternates before use. On a child/payload cap failure terminate and reap the affected child and
+boundedly drain/close its pipes; that side fails under §6. Whole-request
+deadline or cancellation terminates all request children and follows the
+request-abort rule in §6. Incomplete object bytes are never successful evidence.
 No Git operation writes to original worktree, repository metadata or object store. Temporary
 helper metadata is session-owned, not persistent authority or a new service.
 
@@ -159,6 +162,45 @@ and sanitized configuration cannot establish the stated no-helper/no-network
 behavior on the actual host, refuse and return the mechanism gap for technical
 review rather than weakening it. A different object library/engine is a named
 reviewed alternative, not an implicit dependency addition.
+
+### CGP-R1: concrete object-ID recomputation, no new dependency
+
+The approved offline Cargo cache has no `sha1` archive/extracted source; sparse
+index metadata alone is not build availability. Existing Cargo.lock has no
+sha1 crate. No dependency download, manifest change or custom cryptographic
+implementation is selected. Extend the restricted Git operation allowlist
+explicitly with this fixed nonwriting command in the same sanitized helper:
+
+`hash-object -t <type> --stdin --no-filters`
+
+`<type>` is a host enum limited to `commit`, `tree`, or `blob`, matching the
+validated raw object's reported type. Pass the already bounded, fully read
+object payload as raw stdin bytes, with no pathname, transformations or shell.
+The helper's validated repository object format chooses SHA-1 or SHA-256; an
+unsupported format/capability refuses. Never pass `-w`, `--path`, `--stdin-paths`,
+`--literally`, a file argument or caller-selected extra option. No object is
+created. Existing object-byte/side-total limits apply to the buffer; hashing
+cannot extend the whole request's remaining 10-second deadline. Terminate/reap
+on failure using the same supervisor and result-publication rules.
+
+Accept exactly one lowercase full-length object ID followed by one LF on
+stdout, zero exit status and no framing excess (stdout capped at 65 bytes).
+Compare with the requested commit/tree/blob ID. This recomputes identity from
+type and the returned raw bytes, rather than trusting `cat-file`'s ID echo.
+Mismatch or type/framing/command failure yields a side-local integrity gap,
+unless the failure is whole-request deadline/cancellation/supervision failure.
+Compute blob content SHA-256 separately with existing `sha2`.
+
+Both reads and recomputation use the same qualified Git executable. This is
+an independently invoked calculation over the received buffer, **not an
+independent cryptographic implementation or protection from a compromised Git
+binary**. Its warrant is byte/type/object-ID consistency under that identified
+implementation. Qualification must include fixed independently known SHA-1
+and SHA-256 commit/tree/blob vectors, corrupted payload/type negatives,
+nonwriting/source-object-store invariance and hostile configuration tests.
+Do not count a Git-generated expectation checked only by the same Git as an
+independent oracle. Actual host invocation support remains to be demonstrated
+by implementation evidence; the source definition itself is not that evidence.
 
 ## 6. Frozen observations, excerpts and comparison
 
@@ -180,6 +222,35 @@ anchor. At/since same path may yield different content, one missing side, or
 identical content in different commits. Show these facts mechanically; do not
 infer semantic change, rename history, contradiction resolution or authority.
 One successful side plus one gap is partial, never a verified comparison.
+
+**Request publication rule.** Prepare results privately, then publish one new
+request result only after both requested sides finish and session/generation
+checks pass. With no since input, completion applies to the at side only.
+Side-local failure means missing/nonregular object/path, invalid or oversized
+payload, decoding/integrity failure, or that side's 8 MiB payload budget. Retain
+a completed verified other side as a current **partial** result with the failed
+side's explicit gap; discard incomplete object buffers on the failed side.
+Neither side can consume the other's budget. Two failed sides publish gaps
+only, not a successful Git observation. Input grammar/association/capability
+failure before sides begin yields request failure with no new object result.
+
+Whole-request failure means the 10-second overall deadline, user cancellation,
+stale session/generation, changed project/repository association, or process
+supervision failure that prevents establishing isolation/completion. Abort the
+entire new result, including any internally completed side; do not publish a
+new current partial observation. Keep only the previously published request
+result as explicitly historical, with the latest operation failed/cancelled.
+A previously published result is never silently relabelled as this request.
+
+Examples: at verified, then since exceeds its blob or side-total limit → new
+partial result containing at plus since gap. At verified, then since consumes
+the remaining overall deadline → aborted request, no new at result; previous
+published result historical. At verified, then user cancels or generation
+changes → same abort rule. At and since verified before deadline but session
+check fails → abort. At missing and since verified → current partial since
+plus at gap. These rules concern presentation/result custody, not changes to
+actual bytes that may already have been read in private request memory.
+
 
 No route source entry/account is emitted. Even commit/blob verification leaves
 source role, factual interpretation, reliance and actor evidence unestablished.
@@ -239,4 +310,5 @@ or D prerequisite returns to HELP_HUMAN before adoption.
 Technical references consulted (upstream mutable manuals, not qualified runtime
 pins): [Git object read](https://git-scm.com/docs/git-cat-file),
 [Git controls](https://git-scm.com/docs/git), and
-[repository layout](https://git-scm.com/docs/gitrepository-layout).
+[repository layout](https://git-scm.com/docs/gitrepository-layout), and
+[nonwriting object hash](https://git-scm.com/docs/git-hash-object).

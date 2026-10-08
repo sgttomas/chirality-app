@@ -33,3 +33,26 @@ Technical choices are proposed for manager selection, not a new owner gate.
 Broader authority, policy, network/dependency or persisted-meaning changes would
 return through HELP_HUMAN. Source origins and exact repository hashes are in
 C3_S3_SOURCE_BASIS.json. No MEMORY/native/download/credential work occurred.
+
+## CGP-R1 lifecycle and feasible object-hash repair
+
+Source review found conflicting partial-result wording. The repaired definition
+publishes an eligible verified side plus gap only for side-local failure after
+request completion. Overall deadline/cancellation/stale basis or supervision
+failure aborts the whole new result; prior published observations are historical.
+Explicit at-success/since-limit versus deadline/cancel examples bind tests.
+
+Implementation-owner recon reported no approved-cache sha1 archive/extracted
+source and no sha1 lock entry; index-only metadata does not permit offline use.
+The named technical alternative explicitly extends the subprocess allowlist to
+nonwriting `hash-object -t <host enum> --stdin --no-filters`, hashing bounded
+received raw bytes under the same sanitized helper/format/time constraints.
+No write flag, path, file, filter or caller option is allowed. Strict output
+is compared to the original requested ID. Existing sha2 supplies content hash.
+This is same-Git recomputation, not independent cryptographic implementation;
+qualification requires independently fixed vectors and mutated-buffer negatives.
+
+No dependency/custom crypto/download is selected. Original cat-file-only fence
+is amended explicitly here, not bypassed by implementation. Source backcheck
+and named manager selection remain required before code release. No native or
+production qualification is claimed by this source repair.

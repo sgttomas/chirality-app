@@ -61,6 +61,10 @@
     {
       "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
       "sha256": "f6e922c4ed5a94d7728f5e4f0edaa4ab81d858183dd7979327475c63487e907f"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.lock",
+      "sha256": "c1910cffc3fc311fc50cae1117d5aa379dc374142c643c3b22ad85998dbf86b2"
     }
   ],
   "technical_references": [
@@ -75,8 +79,20 @@
     {
       "origin": "https://git-scm.com/docs/gitrepository-layout",
       "standing": "mutable official web documentation consulted; not runtime qualification"
+    },
+    {
+      "origin": "https://git-scm.com/docs/git-hash-object",
+      "standing": "official mutable documentation consulted for explicit nonwriting raw-stdin envelope; no runtime qualification"
     }
   ],
   "host_observation": "git version 2.54.0 (Apple Git-157); availability only",
-  "status": "proposed source contract; no implementation/test/native witness"
+  "status": "proposed source contract; no implementation/test/native witness",
+  "repairs": [
+    {
+      "id": "CGP-R1",
+      "source_sha256": "d6822a94bf0fcf2793d43ac1d43a848abbbccf772b800ad9690da66e17b6d2e4",
+      "scope": "side/request lifecycle and explicit nonwriting hash-object recomputation",
+      "cache_evidence": "TASK route_persistence active message: zero approved-cache sha1 archives/extracted sources; index only. Relayed evidence, not source-owner cache inspection."
+    }
+  ]
 }
