@@ -711,3 +711,91 @@ G-6 and G-8 remain NOTEs.
   recorded in CI-20 (e).
 - G-6 NOTE.
 - G-8 NOTE.
+
+## R-5 confirmation
+
+2026-10-07. Same reviewer, same rules. My only write is this appended section.
+I made no commits and used no network, credentials, `~/.codex`, model calls or
+UI.
+
+### What was checked
+
+- **Head:** `2e2a02844a0fb28552fde5622e17855756d197bf`, one commit on
+  `07ff354860`.
+- **`numstat`:** `runtime_session.rs` +95/-4, `CONTRACT_ISSUES.md` +4/-0.
+- **SHA-256:**
+  - `runtime_session.rs`: `4ee2e2af3ed6bd85a6f47762cc685d58522fc6daa6b70a3fcbc84b8e16a9e726`
+  - `CONTRACT_ISSUES.md`: `e00d9a7cb5f414fb3cffc282aedfa6e58fa02e14e5bb54931ed811251ed52317`
+- **Copy:** a fresh `git archive` at `$TMPDIR/j3g/`. After the probes and the
+  mutation were reverted, `diff -r` shows `src-tauri/src` identical to the
+  candidate.
+
+### Repair
+
+- **New checks:** `held_step_in`, which reads the Root `held_successors` map
+  against the runs of the conversation, and a per-run `held_step`, from
+  `hold_open_for` or `held_end`.
+- **Where they apply:**
+  - preparation (`conversation_prior`);
+  - dispatch: the `reserved` check in `start_workflow_run`, applied on both the
+    claimed and unclaimed paths, plus each other run's `held_step` inside the
+    live check.
+- **B's own claim is not blocked:** it is removed from `held_successors` before
+  the reservation is computed, and A, its own predecessor, is excluded from
+  the live check.
+- **Release:** the reservation ends with B's outcome
+  (`v10_r5_reservation_ends_with_the_successor_outcome`).
+- **CI-20 (e)** gains the matching text.
+
+### Suite
+
+The log's SHA-256 is
+`3ba4607416356c9408d52e26c895311ed5c433e9ca7b3571b0a0b2938456f211`.
+- `npm run build`: passed.
+- `npm test`: 3/3 passed.
+- **Cargo (`--no-fail-fast`): 668 top-level tests, of which 667 passed and 1
+  failed, plus the 4 nested runs.** One nested result line is interleaved with
+  other output in the log; the per-binary totals reconcile (lib 354, which is
+  351 + 3 new R-5 tests).
+
+**The one failure is a pre-existing, load-sensitive integration test, not R-5.**
+- The test is `tests/handshake.rs::hosts_codex_initialize_then_thread_start`.
+  It panicked at `:147`: "remoteControl/status/changed delivered".
+- It runs the real Codex 0.160.0 binary and expects a notification to arrive
+  with the initialize response.
+- `tests/handshake.rs` is unchanged since base `3d0db214cb` (`git diff` is
+  empty), and R-5 touches only `runtime_session.rs` and `CONTRACT_ISSUES.md`.
+- The same test passed in the `npm test` phase of the same run, and in 6 of 6
+  immediate reruns of `cargo test --test handshake` (5/5 each).
+- I record it as an intermittent timing failure of the real supplier, outside
+  J1/J3. It should be watched in CI.
+
+### Probes and mutation
+
+These were temporary and have been removed. P6–P8 ran three times each with
+identical results.
+
+| Probe | What it does | Result |
+|---|---|---|
+| P8 | Prepare C between `end_and_start` and B's start | **Refused**: "\"End and start\" is in progress in this conversation (A ended to start B); … no other run may be prepared or started here (RE-7, CH-1). Nothing prepared." B then starts: exactly one live run (B), A's cause is "ended to start …", and no notice is pending. A later C is refused because B is live. **R-5 repaired.** |
+| P6 | Two concurrent starts of B | One succeeds. The other is refused ("already in progress" or "Original run operation pending", depending on timing). 1 `turn/start` for B, 1 `run_ended` for A, 1 `run_opened` for B, no hold left. |
+| P7 | A ended separately while held | Unchanged and safe. Both end routes are refused, retry writes nothing while held, and B's start writes exactly one `run_ended` for A. |
+
+| ID | Mutation | Result |
+|---|---|---|
+| R2M | `held_successors.get` instead of `remove` | **Caught by 6 tests**, including `v10_r5_concurrent_successor_starts_claim_the_hold_once` and both other `v10_r5_*` tests. |
+
+### Final verdict (J1 + J3 at `2e2a02844a`)
+
+**READY.**
+- **J1:** V9 F-1…F-5 are repaired and F-7 is recorded.
+- **J3:** V10 G-1…G-5, G-7 and R-1, R-2, R-4, R-5 are repaired with tests, and
+  R-3 is recorded as CI-20 (j).
+- **Mutations:** every reviewer mutation is now caught.
+
+**Remaining, none blocking:**
+- G-6 NOTE: compatibility currency.
+- G-8 NOTE: record-truth limits, logged in CI-20 (c) and (d).
+- The pre-existing `handshake.rs` timing flake above. Required CI must pass on
+  the merge candidate, so a recurrence there should be rerun or investigated
+  separately.
