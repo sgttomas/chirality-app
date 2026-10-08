@@ -1,0 +1,765 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-07-02:route-account:0.3",
+  "title": "Source-evidence draft account (CAM-v0.1; proposed format 0.3)",
+  "description": "Durable unreviewed source evidence and separately attributed caller interpretations; not a reconstructed answer, source truth, performed duty or publication receipt. Older versions retain their own meanings.",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "account_id",
+    "question",
+    "trigger",
+    "sources",
+    "facts",
+    "gaps",
+    "conclusions",
+    "duties",
+    "recorder",
+    "written_at",
+    "standing",
+    "evidence",
+    "interpretations",
+    "written_at_source"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "chirality.connector.route-account"
+    },
+    "formatVersion": {
+      "const": "0.3"
+    },
+    "account_id": {
+      "type": "string",
+      "pattern": "^ra:[A-Za-z0-9._-]+$"
+    },
+    "question": {
+      "type": "object",
+      "required": [
+        "id",
+        "text",
+        "at_revision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "since_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "required": [
+        "connector",
+        "why",
+        "standing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "connector": {
+          "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/connector"
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The standing that sent the question here, or 'route walked independently of any connector'."
+        },
+        "receiving_records": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standing": {
+          "const": "constructed"
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "path",
+          "revision",
+          "sha256",
+          "role",
+          "role_standing",
+          "provenance",
+          "excerpts"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repository commit, or the source's own stated revision for a non-repository source."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Content identity of the bytes read."
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "role_standing": {
+            "const": "caller_assertion"
+          },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "side",
+              "object_format",
+              "commit",
+              "root_tree",
+              "blob",
+              "mode",
+              "raw_commit_sha256",
+              "traversal_sha256",
+              "observed_at",
+              "time_provenance",
+              "verification",
+              "observation_reference"
+            ],
+            "properties": {
+              "side": {
+                "enum": [
+                  "at",
+                  "since"
+                ]
+              },
+              "object_format": {
+                "enum": [
+                  "sha1",
+                  "sha256"
+                ]
+              },
+              "commit": {
+                "type": "string",
+                "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              "root_tree": {
+                "type": "string",
+                "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              "blob": {
+                "type": "string",
+                "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+              },
+              "mode": {
+                "enum": [
+                  "100644",
+                  "100755"
+                ]
+              },
+              "raw_commit_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "traversal_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "observed_at": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "time_provenance": {
+                "const": "observed_clock"
+              },
+              "verification": {
+                "const": "same_engine_object_id_consistency"
+              },
+              "observation_reference": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "excerpts": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "excerpt_id",
+                "anchor",
+                "byte_start",
+                "byte_end",
+                "text",
+                "sha256",
+                "standing"
+              ],
+              "properties": {
+                "excerpt_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "anchor": {
+                  "type": "string",
+                  "pattern": "^L[1-9][0-9]*(-L[1-9][0-9]*)?$"
+                },
+                "byte_start": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 262144
+                },
+                "byte_end": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 262144
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 262144
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "standing": {
+                  "const": "exact_byte_inclusion_only"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Successful reads only. Unavailable sources are gaps, never fabricated reads.",
+      "maxItems": 2
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fact_id",
+          "statement",
+          "source_id",
+          "anchor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "maxItems": 0
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "gap",
+          "effect",
+          "responsible",
+          "origin",
+          "context"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "gap": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responsible": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "standing",
+              "identity"
+            ],
+            "properties": {
+              "standing": {
+                "enum": [
+                  "caller_assigned",
+                  "unassigned"
+                ]
+              },
+              "identity": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "standing": {
+                      "const": "unassigned"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "identity": {
+                      "type": "null"
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "identity": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "origin": {
+            "enum": [
+              "observed_git_failure",
+              "caller_reported",
+              "producer_limit"
+            ]
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "side",
+              "requested_commit",
+              "path"
+            ],
+            "properties": {
+              "side": {
+                "enum": [
+                  "at",
+                  "since",
+                  "general"
+                ]
+              },
+              "requested_commit": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            }
+          }
+        }
+      },
+      "maxItems": 32
+    },
+    "conclusions": {
+      "allOf": [
+        {
+          "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/conclusions"
+        },
+        {
+          "properties": {
+            "supported": {
+              "maxItems": 0
+            },
+            "unsupported": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    },
+    "duties": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "duty",
+          "actor_role",
+          "standing",
+          "reason",
+          "assertion_standing"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "duty": {
+            "enum": [
+              "locate_compare",
+              "review_integrate",
+              "cross_undertaking_coordination"
+            ]
+          },
+          "actor_role": {
+            "enum": [
+              "agent",
+              "manager",
+              "person"
+            ]
+          },
+          "actor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standing": {
+            "enum": [
+              "prepared",
+              "outstanding"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assertion_standing": {
+            "const": "caller_reported_unverified"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "standing": {
+                  "const": "performed"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "actor",
+                "evidence"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "duty": {
+                  "const": "locate_compare"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "actor_role": {
+                  "const": "agent"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "duty": {
+                  "const": "review_integrate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "actor_role": {
+                  "const": "manager"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "duty": {
+                  "const": "cross_undertaking_coordination"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "actor_role": {
+                  "const": "person"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "maxItems": 3
+    },
+    "recorder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "properties": {
+        "kind": {
+          "const": "app"
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "written_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "written_at_source": {
+      "const": "observed_clock"
+    },
+    "standing": {
+      "const": "source_evidence_draft"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "project_identity",
+        "project_display",
+        "association_sha256",
+        "engine_sha256",
+        "git_request",
+        "selection_mechanism",
+        "verification_limit",
+        "custody_limit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "host_observed_git_receipt"
+        },
+        "project_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "device",
+            "inode"
+          ],
+          "properties": {
+            "device": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "inode": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          }
+        },
+        "project_display": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "association_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "engine_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "git_request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "at",
+            "since"
+          ],
+          "properties": {
+            "at": {
+              "type": "string",
+              "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "since": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "selection_mechanism": {
+          "enum": [
+            "native_picker_callback",
+            "synthetic_test_callback"
+          ]
+        },
+        "verification_limit": {
+          "const": "same_engine_consistency_not_truth_authorship_or_authority"
+        },
+        "custody_limit": {
+          "const": "stored_receipt_not_hot_capability_or_independent_reverification"
+        }
+      }
+    },
+    "interpretations": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "interpretation_id",
+          "statement",
+          "asserted_by",
+          "attribution_standing",
+          "standing",
+          "source_ids",
+          "excerpt_ids"
+        ],
+        "properties": {
+          "interpretation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16384
+          },
+          "asserted_by": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "attribution_standing": {
+            "const": "caller_asserted_identity"
+          },
+          "standing": {
+            "const": "unreviewed_caller_interpretation"
+          },
+          "source_ids": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "excerpt_ids": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "sources": {
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "sources"
+        ]
+      },
+      "then": {
+        "properties": {
+          "facts": {
+            "maxItems": 0
+          },
+          "gaps": {
+            "minItems": 1
+          },
+          "conclusions": {
+            "properties": {
+              "supported": {
+                "maxItems": 0
+              },
+              "unsupported": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
