@@ -14,7 +14,8 @@ from unittest.mock import patch
 APP = Path(__file__).resolve().parents[1]
 HISTORICAL = APP / 'tests/group_b_distribution_receiving_fixtures'
 NAMESPACE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_namespace_fixtures'
-FIXTURES = APP / 'tests/group_b_distribution_receiving_lt23_source_fixtures'
+LT23_SOURCE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_lt23_source_fixtures'
+FIXTURES = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
 
 
 def load(name, path):
@@ -266,7 +267,7 @@ class DistributionReceivingTests(unittest.TestCase):
         with patch.object(receiver, 'relative', changed):
             with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
         report = self.check()
-        self.assertEqual(report['receiving_adoption'], 'B-S4-LT23-SOURCE-ADOPTION-v1')
+        self.assertEqual(report['receiving_adoption'], 'B-S4-TERMINAL-SOURCE-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
 
@@ -299,6 +300,15 @@ class DistributionReceivingTests(unittest.TestCase):
         self.assertFalse(report['terminal_evidence_received'])
         self.assertFalse(report['terminal_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
+
+    def test_prior_lt23_source_and_terminal_exchange_are_not_standalone_v1(self):
+        for case in ('selected', 'unselected'):
+            path = LT23_SOURCE_HISTORICAL / case / 'exchange.json'
+            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+        path = APP / 'tests/group_b_terminal_receiving_fixtures/selected/exchange.json'
+        with self.assertRaisesRegex(ValueError, 'exchange fields differ'):
+            self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
 
     def test_cli_uses_actual_export_and_preserves_limits(self):
         result = subprocess.run([sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),

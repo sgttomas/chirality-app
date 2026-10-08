@@ -1,5 +1,10 @@
 # Staged S4 file receiving
 
+Current standalone source selection: [B-S4-TERMINAL-SOURCE-LT09-v1](TERMINAL_SOURCE_LT09_ADOPTION.md),
+with pins.terminal-source-lt09-v1.json and fresh9af LT09 fixtures. Earlier active-cohort
+descriptions below are historical. The separate [terminal receiver](TERMINAL_RECEIVING.md)
+checks completed LT09/LT23 exported pairs under its own fixed contract.
+
 `receive.py` joins a specifically selected synthetic Host export to the existing
 canonical EXP/PKG six-record cohort. A successful report means exact exported
 file correspondence. It does not mean native S1 semantics were rerun, that a

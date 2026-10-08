@@ -4,7 +4,7 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-lt23-adoption`, based on verified
+PR #1126. Current graph ref: `codex/app-v4-group-b-terminal-receiving`, based on verified
 PR #1147 merge `f23997d3202375f9d607098731f8d374d019b434`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
@@ -133,23 +133,21 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**LT23-source successor resumption:** Parent released bounded B receiving on
-independently reviewed Host source 5c9aabcfb400bab3ef1e283362dc378414621da7.
-Fresh committed/recompiled selected/unselected exchanges remain actual LT09;
-this receiving adoption is not LT23 terminal-event proof. Named successor
-pins/receipt, new fixtures and source correspondence are independently READY
-at B author 3edae358f3, with 48 integrated tests passing. Host manager owns joined integration, exact-head review and required CI.
+**Paired terminal receiving:** Parent released bounded B receiving on reviewed
+Host source 9af67409ed0e625fcd8e0e9a0c59975fccfcae71 and completed actual
+synthetic LT09/LT23 paired exchanges. New closed-format terminal receiving and
+separate named fixed current LT09 source adoption are independently READY at
+B author 52cead3c04, with 61 integrated tests passing, under the explicit
+two-cohort technical disposition in s4-terminal-receiving/COORDINATION.md.
 
-Historical f267 and b7 pin/cohort bytes and evidence remain unchanged. Current
-source drift still refuses, no bare repin/fallback is permitted, and unchanged
-method labels do not establish unchanged full source identity. This scoped
-adoption cannot establish S3, native/namespace/terminal authority, actual App
-build, package witnesses or qualification. No additional preparation-only
-layer is commissioned. Exact custody and write fences are recorded in
-s4-lt23-adoption/COORDINATION.md. The separate case/package holds persist. After this joined merge, the next
-material synthetic path needs a separate reviewed Host terminal exchange with
-actual committed/recompiled LT23 and predecessor bytes before B consumer work;
-no terminal cohort is supplied by this LT09-only adoption.
+Original v1 format/behavior and all historical pins/fixtures remain preserved;
+only the named fixed active LT09 selection changes after fresh verified v1
+exports. Terminal pins freeze afterward. Both current positive paths and
+cross-cohort/format/stale/malformed negatives passed independent review; joined
+Host exact-head review/CI remain ahead. There is no dynamic fallback or native/S3/package
+qualification. Actual native/namespace authority, renewed terminal integrity,
+installed custody and zero-descendant proof remain outside file correspondence.
+The separate actual candidate, examination and package inputs remain open.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|
