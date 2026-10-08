@@ -46,3 +46,58 @@ CC-SQ-J2-ST4 reconciles the former J-2 prose/map discrepancy by including the
 already required ST-4 in J-2's machine map. This consumer explicitly adopts that
 independently reviewed correction; the source lock and generated preparation
 retain its revision and bytes. No examination outcome follows from the correction.
+
+## Freeze exact maintained pre-run inputs
+
+`pre_run_inputs.py` is a separate technical preparation helper. It validates the
+unchanged B7 plan, captures the fixed source basis and full canonical EXP support
+selection, and binds all 13 explicit maintained fixture roles by exact bytes.
+It introduces no EXP sidecar, dossier schema, result record or ready state.
+Historical preparation and canonical source locks remain unchanged.
+
+From `app/`, first generate the ordinary plan, calculate its exact file digest,
+and supply that digest explicitly:
+
+```sh
+python3 -B examination/standalone/prepare.py prepare > /private/tmp/b7-plan.json
+shasum -a 256 /private/tmp/b7-plan.json
+python3 -B examination/standalone/pre_run_inputs.py freeze \
+  --plan /private/tmp/b7-plan.json --plan-sha256 <exact-plan-sha256> \
+  > /private/tmp/b7-inputs.json
+shasum -a 256 /private/tmp/b7-inputs.json
+python3 -B examination/standalone/pre_run_inputs.py check \
+  --plan /private/tmp/b7-plan.json --selection /private/tmp/b7-inputs.json \
+  --selection-sha256 <previously-frozen-selection-sha256>
+```
+
+The fixed role list identifies WORKFLOW.md and tally.py for revisions 1/2/3 and
+the same-name collision example, plus initial/reuse/refinement/duplicate-negative
+CSV inputs. All required roles must remain exact; missing/extra fields, duplicate
+keys, changed identities, different bytes and additional fixture companions
+refuse. Source changes require a reviewed pin update. No fixture code executes.
+Descriptors read files without following links; symlink components, traversal
+and nonregular files refuse. Use real paths such as `/private/tmp`, not a
+symlink alias. Digests establish file correspondence, not external provenance.
+
+The helper runs existing preparation and support readers against an exact
+captured source snapshot and removes its scratch copy afterward. The selected
+support tuple is **preparation source correspondence only**: it is neither proof
+of producer use nor SQ/native result-consumer adoption. Null candidate fields
+and the complete existing missing-input list are preserved, including its
+historical entry wording; the helper does not reinterpret it as live readiness.
+The original `invented-inputs.json` remains context; explicit CSV roles identify
+the actual selected test bytes without silently rewriting that context.
+
+J-1 still begins in an empty project. The maintained fixtures are examiner
+examples for later drafting, not a replacement for the person's plan, draft
+trial, review or A15. Nothing is installed or registered. A changed actual draft
+cannot pass this fixed selection and requires a fresh exact case-definition
+binding under the examiner's later scope. This is preparation for that work,
+not the final pre-run case-definition declaration or an opened examination.
+
+The connected form wrapper is documented in `../native_forms/README.md`.
+Run the maintained offline checks with:
+
+```sh
+python3 -B -m unittest discover -s tests -p 'group_b_pre_run_inputs_test.py' -v
+```
