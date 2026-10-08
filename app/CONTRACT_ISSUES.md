@@ -612,3 +612,19 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
     own copy (`discard_unbased_copy`), but only when the folder still holds
     exactly the copied bytes. The refusal says that the copy was removed.
     Otherwise the draft is kept and the refusal names the folder to remove.
+
+## CI-23 RS schema `if` breaks the DEL-04-03 and WR prototypes
+
+Found 2026-10-08 by independent review V13 (CC-WR-RECONFIRM, Q8), and
+reproduced on an unmodified tree. `RS_RECORD.schema.json`
+`#/$defs/suppliedGuidance/allOf/2` uses the keyword `if`. DEL-04-03's
+`minischema` does not support it, so DEL-04-03 `run_prototype.py` and WR
+`wrproto.py` exit 1 ("unsupported keyword 'if'") before running any check.
+The keyword entered with the CC-RS-WR-SUPPLY-FIT candidate (checkpoint
+`0a2ed81b47`), which was checked with the installed `jsonschema` rather
+than `minischema`. The App's validator, `jsonschema`, is unaffected, and
+App tests pass.
+
+Owner: DEL-04-03 (RS). Options: rewrite the rule with `anyOf`/`not`, or add
+`if`/`then` to `minischema`. The App copy must follow either way. Until
+then, the Design prototypes do not run as evidence.
