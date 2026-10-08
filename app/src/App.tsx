@@ -1,3 +1,4 @@
+import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
@@ -626,6 +627,7 @@ export function App() {
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
       <NativeConfirmationContent />
+      <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
       <FileActPanel command={(name,args)=>invoke(name,args)} />
 

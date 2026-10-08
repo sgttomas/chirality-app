@@ -1,0 +1,39 @@
+# C3-S2 transient source observation implementation
+
+Candidate is the implementation in this commit, based on `c3a0f50f032ae20e54c7d66b36d55cf40223e184`. Author: TASK `/root/group_c_successor/route_persistence`, delegated by WORKING_ITEMS `/root/group_c_successor`, no delegation. Independent implementation review and receiving-main integration remain required. This contribution does not complete C3, source reconstruction, native qualification or product release.
+
+## Selected contract and fence
+
+CSP-v0.1 at exact `938f02634908596e7ec71af2392c0170d933efee`, SHA-256 `fc8fc1dd1277448bf87a4d615eb9a583c6c7bc8011c092c25cf7f640bb97028f`; source READY `c8b71bcef0`, manager selection `15d224d52b`. Read the full definition, repaired source review and technical selection. Initial source NOT READY and repaired anchor/cancellation treatment remain historical. Actual instruction/source origins and hashes are retained in C3_S2_IMPLEMENTATION_BASIS.json.
+
+Only new connector_source model/filesystem/tests, new ConnectorSourcePanel/render tests, additive lib state/commands/setup, minimal App panel wiring/package test list, and these evidence/basis files changed. Existing route store, route reader, attachments, runtime_session, native_items, distribution setup, schemas, Design semantics and graph/instructions are unchanged.
+
+## Implemented behavior
+
+Host commands repeat the existing explicit-project association guard. Preparation freezes the caller question/requested revisions and constructed trigger under fresh host-private session/generation tokens. A renderer path/body/hash or exported observation cannot create capability. Selection invokes one native-picker callback; tests inject scratch paths. Stale completion cannot overwrite a newer generation; overlapping selection refuses. Question edits require new preparation. Cancellation creates no observation or read time and labels retained evidence prior/historical. Failure preserves prior evidence with same-question reason/effect and caller-assigned or unassigned responsibility.
+
+The dedicated Unix reader retains an opened resolved project directory and opens descendants relative to directory handles with no-follow, nonblocking descriptor operations. It rejects outside paths, parent traversal, symlinks, nonregular descriptors, unreadable files, invalid UTF-8, NUL and over-limit buffers. It reads at most 262145 bytes and accepts at most 262144 without truncation. Before/after file metadata and a post-read directory/file identity walk detect ordinary mutation/replacement. Detected association changes refuse before the picker or during the read. The design explicitly retains concurrent rename/transient-write residuals; no continuous pathname containment or coherent historical revision is claimed. Other platforms refuse unsupported capability rather than falling back.
+
+Hash, length and text derive from one accepted buffer; opened file identities use strings for large device/inode values. Lossless native path identity is separate from display text. Observation/time references are fresh, and later file changes cannot alter the frozen preview. Native reselection/reread creates a new observation. The model is session-memory-only, with no persistence/reconstruction path from DTOs.
+
+Anchors accept an opaque observation reference and exact one-based LF line interval. They preserve CR, BOM, Unicode bytes and final-line LF when present, return zero-based half-open byte intervals and hash precisely the selected slice. Empty/zero/reversed/out-of-range and expected-text mismatches refuse. No links activate. Revision controls expose only unavailable, caller assertion and host-checked text inclusion with caller interpretation. Typed Git hashes, requested revisions and local files never become verified Git evidence. No source entry/account/fact/conclusion, attachment supply, save/send or performed/not-required duty is emitted.
+
+The UI separately displays frozen question, gaps/responsibility, source text/hash/identity/read limits, exact escaped excerpts and unverified revision standing. Edited questions, pending/error/cancelled operations mark retained observations historical. Actual source content is ordinary escaped React text. Existing saved-account rendering remains unchanged.
+
+## Executed checks
+
+- Initial six backend acceptance tests passed after a test-only missing Debug derive was corrected.
+- Final combined offline connector run: **43 passed, zero failed**, including eight new CSP test functions and existing standing/store/view checks. The FIFO worker also ran in a bounded subprocess; that nested check is not counted as a ninth new parent-suite test. Cases include real scratch reads, exact bytes/hash/path/length, empty/max/max+1, invalid UTF-8/NUL/missing/unreadable/directory/FIFO/symlink, outside/traversal paths, file and directory replacement hooks, detected in-place mutation, moved project association, stale/forged session/generation/observation, cancellation/failure, immutable preview and fresh reread, responsibility gaps, revision refusal and no cold recreation or persistence directories.
+- All seven nonempty CSP §5 examples assert exact byte start/end, excerpt and excerpt hash. Empty-file, terminal-LF extra-line, zero/reversed/range and CRLF expected-text mismatch refusals passed; BOM/Unicode preservation is covered.
+- New actual React server-render/state suite: **five passed**. It covers escaped content/anchors, separate gaps/read limits, all revision treatments without Git promotion, historical cancellation/pending/error/edited-question display, unchanged read time, four constructed triggers, unassigned/assigned responsibility, and disabled unavailable-project controls.
+- Frontend TypeScript/Vite build passed.
+- Full maintained offline npm entrypoint: **18 passed, zero failed, one explicit supplier-handshake skip**. All five new source tests and seven prior route-presentation tests executed. Its Rust decide-flow dependency passed four tests. No supplier was launched.
+- Diff check passed. Staged private-term validation is run immediately before committing.
+
+One added non-Unicode actual-filename fixture failed on this macOS filesystem with an illegal-byte-sequence error before exercising product code. A first textual patch missed the formatted declaration and the same failure recurred. The final fixture selects an actual Unicode name on macOS; the non-Unicode filename branch is Linux-only and not claimed executed here. The failed run is retained in private scratch and the correction changes no reader behavior. A preliminary rustfmt invocation also stopped before the new test file existed. None of these failed/preparation checks is counted as passing evidence.
+
+## Execution limits
+
+Used only existing offline dependencies (`npm install --offline --no-audit --no-fund --ignore-scripts`), approved Group A Cargo home, `CARGO_NET_OFFLINE=true`, `CHIRALITY_SKIP_CODEX=1`, and serial reuse of this author's quiescent private presentation target. No new target clone or other owner's target writes. Cache artifacts are local acceleration, not portable evidence. Available disk space was monitored; no capacity blocker occurred.
+
+Only macOS was exercised. No native App/dialog launch, actual person selection, supplier/provider/network/credentials, external file admission, Git revision adapter, persistence/materialization, physical filesystem fault or other-OS witness was performed. Mutation/replacement tests use explicit deterministic hooks within actual scratch reads. Rendering tests exercise the component and transitions; compilation covers host wiring but is not a native IPC witness. Source text truth, actor acts and reconstruction remain unestablished. Manager integration, exact-head independent review and required CI remain separate.
