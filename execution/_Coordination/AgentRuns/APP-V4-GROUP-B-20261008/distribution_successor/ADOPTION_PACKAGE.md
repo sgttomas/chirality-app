@@ -34,6 +34,14 @@ Replace DISTRIBUTION_IDENTITY.md's first paragraph under “Expected-record prov
 
 Read later “qualified expected-reference binding” as this pair and its trusted build selection. The full-tree identity method, exclusion/rejection rules, label/generated comparison, LT-24 mismatch precedence, stable-custody limits, launcher PATH convention and K-12 remain unchanged. The earlier focused HOSTING §7.4 and PKG §§4.4/5.5 additions must reference the reviewed successor package and version identities rather than claim that schemas remain undelivered.
 
+## Proposed S2 build-selection anchor
+
+The trusted selection is not a field an arbitrary record caller may choose. S2 shall create a small immutable build-selection document containing the selected method/schema identities and exact SHA-256 digests of the supplier reference and qualification attestation. Its exact-byte digest is compiled into the App executable from the reviewed source/build recipe. The selection and both artifacts ship as resources outside the measured vendor tree. At runtime, the App checks the compiled digest against selection bytes, then checks both selected artifact digests before parsing/reliance. Production has no environment, path, UI or record parameter that can replace this anchor. The prototype's separately supplied trusted digest is a test seam, not that production implementation.
+
+Replacing both resource files cannot satisfy an unchanged compiled anchor. Replacing the executable or entire bundle is a separate integrity/custody threat: production reliance requires the existing reviewed build/signature/integrity chain and trusted stable installed-bundle custody. Record failure or unavailable trust as unverifiable; a matching digest alone is insufficient. Development unsigned builds may establish source/test consistency at explicit development standing, never signed production qualification or FP-2/W-4. This selects no new signing identity, performs no signing/notary act, and does not claim hostile same-user filesystem isolation.
+
+The dependency order is reference bytes → separate attestation → build-selection bytes → compiled App → signed/package identity. No reference, attestation or selection contains the final package digest or its own digest. Later package/runtime records bind the actual final candidate; supplier qualification does not wait for that package. S2 must test wrong selection bytes, arbitrary replacement pairs, wrong compiled anchor, unsupported versions and unavailable integrity/custody, while S3/S5 supply actual qualification evidence.
+
 ## Alternatives and consequences
 
 | Choice | Consequence and responsibility |
@@ -44,6 +52,8 @@ Read later “qualified expected-reference binding” as this pair and its trust
 | Generalize package shape now | Supporting links, hardlinks or alternative launcher conventions changes the identity method and scanner threat assumptions; requires a new reviewed method, fixtures and consumer migration. No evidence currently requires this expansion. |
 
 ## Named adoption and consumer plan
+
+Recommendation to the App implementation owner through HELP_HUMAN: technically select the reviewed bounded tree/direct-launcher method, the separate-attestation clarification, candidate versioned schema cohort and this consumer plan. This is within existing U-08/U-17 ownership; it requests no additional human checkpoint. Record technical selection separately from the later canonical consumer rollout.
 
 Technical adoption record must identify reviewed source commit, exact artifact set/digests, selected schema/method versions, owning adopter, independent review disposition, consumer statuses and limits. Preserve the accepted preimages and historical readers. This document is a proposed adoption record structure, not a completed adoption.
 
