@@ -1,0 +1,91 @@
+{
+  "basis_revision": "462f66975d36cd10d5b8455193ada9517d28d353",
+  "read_scope": "Root/role/skills/loop; Field Book full; Agent User Manual headings and sections 7,11\u201313; SoWs; HOSTING selected sections; PKG sections 1\u20137; schemas/prototypes and runtime targeted; A/B graph relationships; candidate A-IN full",
+  "sources": [
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "origin": ".agents/skills/proposal-format/SKILL.md",
+      "sha256": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d"
+    },
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "origin": "agents/AGENT_HELPS_HUMANS.md",
+      "sha256": "a0c9fb9443d8671d694c1f7b24ff3c402ffd626c781a2739342c938f2f3c3d1e"
+    },
+    {
+      "origin": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "origin": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "108d63fa18975ec38ecf488938ec86c8e4a19a2abc7fde9c19879a1b2639331a"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
+      "sha256": "9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/ScopeOfWork.md",
+      "sha256": "bbc81a8d31eeacab3497acf297c8c6eeac7b2f6febda5381f332ec14b8f65d02"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "sha256": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/pkg.identity-record.schema.json",
+      "sha256": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype/check_pkg.py",
+      "sha256": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype/read_tree.py",
+      "sha256": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md",
+      "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+      "sha256": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md",
+      "sha256": "a3dbbc363c78c160ee7824cff401a34d7f0a75958a1184e1a4f647dbbb83d573"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md",
+      "sha256": "365cd4eea3c2d4c5b0d5ede10435014409fa5aa85b41497d57e4ebc4d190406e"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/app-v4-group-b-distribution-input/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_input/PROPOSAL.md",
+      "standing": "candidate contribution, not authority",
+      "sha256": "fb0dd89952cf3629c1e4f1c4169d0dd3b1547781e7c1dc98453fedad192d3b92"
+    }
+  ]
+}
