@@ -1080,7 +1080,8 @@ changed.
 - **Persistence implementation:** the bounded C3-P backend now has a tested
   writer, cold discovery and reference reconciliation for caller-supplied
   schema-valid accounts; independent repair review is READY at `f1ff1699e0`,
-  with final combined-head review and CI still required for PR #1137. Initial code passed 25 checks but failed two independent temporary-name
+  with final combined-head READY at `2ecde9055d` and all selected CI passed;
+  PR #1137 merged as `412cf7fa01`. Initial code passed 25 checks but failed two independent temporary-name
   substitution checks. Named CRP-R2 / CRP-v0.3 selects exclusive no-replace
   rename with no automatic unlink, exact intended binding checks and explicit
   late-substitution uncertainty. The repaired author candidate `8f1195761d`
