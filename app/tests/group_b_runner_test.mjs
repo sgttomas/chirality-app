@@ -44,7 +44,9 @@ test('cached browsers exercise real false-pass, missing-target, capture and netw
     for (const p of report.projects) {
       assert.ok(p.version, `${p.engine}: ${p.cause}`);
       assert.equal(p.checks['DC-R1'], p.engine === 'webkit' ? 'inconclusive' : 'pass');
-      for (const id of ['DC-R2', 'DC-R3', 'DC-R4']) assert.equal(p.checks[id], 'pass');
+      assert.equal(p.sensitivity_probe, 'pass');
+      assert.equal(p.checks['DC-R2'], 'inconclusive');
+      for (const id of ['DC-R3', 'DC-R4']) assert.equal(p.checks[id], 'pass');
       assert.deepEqual(p.probes.map(x => x.status), ['pass', 'fail', 'blocked']);
       assert.equal(p.page_isolation_guard, 'pass');
       assert.ok(p.requests.some(r => r.destination === 'local-fixture' && r.action === 'continue'));

@@ -1,7 +1,9 @@
 # Offline interface runner support
 
-This maintained tool supplies partial EXP §8.3 DC-R1–R4 checks against an invented interface
-seam in WebKit and Chromium. It observes and aborts page requests outside its
+This maintained tool supplies partial EXP §8.3 DC-R1–R4 checks against a static invented interface
+fixture in WebKit and Chromium. Successful assertion sensitivity is reported
+separately from DC-R2, which remains inconclusive: this fixture supplies no
+supplier double or recorded fixture behind an interface seam. It observes and aborts page requests outside its
 local fixture origin, including a deliberate guard probe. DC-R5 remains
 inconclusive: page interception is not whole-process socket observation.
 Consequently this tool **never admits a runner** and never emits a canonical

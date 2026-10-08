@@ -2,14 +2,15 @@
   "format": "chirality-runner-support-v1",
   "run_basis": "definition_check",
   "subject": "offline-interface-runner",
-  "runner_sha256": "413381e1bfb28ac6cb9abdafbce16764636ac4189a1568609eacd5b48c7b91a7",
+  "runner_sha256": "0bf884dd63bfecd04b34d2c16e0cc2fff8be0ceb7917a83e121a112972652ab8",
   "fixture_sha256": "cbc1396202947d27da4ca16e7e63e76a770087ae10b33f6aeec4cd813dd07f1c",
-  "date": "2026-10-08T06:36:43.101Z",
+  "date": "2026-10-08T06:39:44.550Z",
   "admitted": false,
   "qualification": "unestablished",
   "limits": [
     "Invented seam fixture; no App candidate or native witness",
     "DC-R5 whole-process traffic observation is not supplied",
+    "DC-R2 supplier-double or recorded-fixture interface seam is not supplied",
     "A canonical EXP result and independent review remain required"
   ],
   "projects": [
@@ -18,7 +19,7 @@
       "version": "148.0.7778.96",
       "checks": {
         "DC-R1": "pass",
-        "DC-R2": "pass",
+        "DC-R2": "inconclusive",
         "DC-R3": "pass",
         "DC-R5": "inconclusive",
         "DC-R4": "pass"
@@ -75,6 +76,7 @@
       "version_source": "Chromium Browser.getVersion via Playwright",
       "executable_selection": "explicit-cache-override",
       "websocket_guard": true,
+      "sensitivity_probe": "pass",
       "page_isolation_guard": "pass"
     },
     {
@@ -82,7 +84,7 @@
       "version": "26.0",
       "checks": {
         "DC-R1": "inconclusive",
-        "DC-R2": "pass",
+        "DC-R2": "inconclusive",
         "DC-R3": "pass",
         "DC-R5": "inconclusive",
         "DC-R4": "pass"
@@ -139,6 +141,7 @@
       "version_source": "Playwright module version label; actual engine version unestablished",
       "executable_selection": "explicit-cache-override",
       "websocket_guard": true,
+      "sensitivity_probe": "pass",
       "page_isolation_guard": "pass"
     }
   ],

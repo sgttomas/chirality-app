@@ -34,6 +34,7 @@ export async function run({ output, modulePath, executables = {} }) {
     admitted: false, qualification: 'unestablished',
     limits: ['Invented seam fixture; no App candidate or native witness',
       'DC-R5 whole-process traffic observation is not supplied',
+      'DC-R2 supplier-double or recorded-fixture interface seam is not supplied',
       'A canonical EXP result and independent review remain required'], projects: [],
   };
   let pw;
@@ -99,7 +100,8 @@ export async function run({ output, modulePath, executables = {} }) {
           try { await fetch('https://runner-isolation.invalid/probe'); } catch {}
         });
         p.checks['DC-R1'] = engine === 'webkit' ? 'inconclusive' : (p.version ? 'pass' : 'fail');
-        p.checks['DC-R2'] = p.probes[0].status === 'pass' && p.probes[1].status === 'fail' ? 'pass' : 'fail';
+        p.sensitivity_probe = p.probes[0].status === 'pass' && p.probes[1].status === 'fail' ? 'pass' : 'fail';
+        p.checks['DC-R2'] = p.sensitivity_probe === 'fail' ? 'fail' : 'inconclusive';
         p.checks['DC-R3'] = p.probes[2].status === 'blocked' && !!p.probes[2].cause ? 'pass' : 'fail';
         p.page_isolation_guard = p.requests.some(r => r.destination === 'outside-fixture' && r.action === 'abort') ? 'pass' : 'fail';
       } catch (error) {
