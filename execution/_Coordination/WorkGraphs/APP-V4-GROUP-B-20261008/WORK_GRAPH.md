@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-successor`, based on merged
-#1126 `7311df06d81ce4d45bb1222080e52731f1ed45ba`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-complete-content`, based on merged
+P2/P3 and S2 foundation at `f79317be861bb63553512de3197b22d556268198`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -73,7 +73,8 @@ authors. Each production slice carries its necessary documentation and checks.
 | B7-FX usable invented workflow fixtures and real consumer checks | DEL-09-02/DEL-09-01; standalone_preparation TASK; new standalone fixtures and group_b_fixture tests; exact cfg(test) module declaration in lib.rs | Accepted SQ/WD/WR/EXEC; actual maintained Rust parser/review/snapshot path | Invented workflow/collision inputs pass real consumer, meaningful negatives; no registration/act/native stimulus fabricated | COMPLETE bounded54db725c independently READY;5 actual Rust/2 tool checks; native stimuli unperformed |
 | B3-N1 usable blank native-step forms | DEL-09-01/DEL-09-02; support_production TASK; new native_forms and group_b_native_forms tests | EXP §8.2, current source-bound B7 prep and SQ steps | Actual prep→ordered form path, blank unobserved fields and explicit no-examination standing; meaningful mismatch tests | COMPLETE bounded79154910 independently READY;3 blank forms exact regeneration; N-1 execution unrun |
 | V4 integrated consuming-path review | Separate reviewer first_slice_review; manager fan-in | Frozen B7-FX/B3-N1 code/evidence, current main | Independent contract/consumer review, affected integration tests, private-term checks and parent PR | COMPLETE PR #1126 merged 7311df06d8; exact-head review and CI retained in PR; 61 integrated Python checks |
-| B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | READY bounded support at author ea75b4b412; independent review READY; successor/reviews/RUNNER.md |
+| B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | COMPLETE bounded support merged PR #1128; author ea75b4b412, exact-head review READY; successor/reviews/RUNNER.md |
+| B2-CONTENT complete-content unsigned development candidate | DEL-01-06 OUT-001/002; complete_content_build TASK; unsigned overlay/tests and complete-content evidence | Merged P2/P3 at f79317be; approved cached P1/toolchain; explicit custom-protocol/no-sign | Actual offline build; P0…4 physical bytes/modes/links, exact source/resource equality; independent exact-artifact review; no package qualification | ACTIVE |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -105,7 +106,7 @@ and graph-closure graphs remain at their original paths.
   old Design pins do not automatically adopt later changes. CP0 receiving
   notices remain adoption work. Group A C1 and CI-19…25 do not establish all
   inputs. B2/B7 check the particular contribution before relying on it.
-- **B2 bundle-content receiving (GC-8):** separate [APP-V4-BUNDLE-INPUTS-20261008](../APP-V4-BUNDLE-INPUTS-20261008/WORK_GRAPH.md), owned by distribution_integration_manager, supplies DEL-02-02 production P2 packages/shipped-revision manifest with actual LS5/LS8 proof and DEL-02-04 P3 roles.json/current guidance bindings with actual load/start/refusal identity proof. Both contributions remain pending and unqualified; this graph does not adopt them before review/receipt. The receiving graph may be on its owner's active branch until integrated.
+- **B2 bundle-content receiving (GC-8):** [APP-V4-BUNDLE-INPUTS-20261008](../APP-V4-BUNDLE-INPUTS-20261008/WORK_GRAPH.md) now supplies merged P2 package/MANIFEST and P3 roles/source binding/guidance. B2-CONTENT receives physical assets at f79317be; source and bundle identities must be checked. P2 remains non-runnable under LS-5/LS-8; its named proposal reserves new candidate authority to the owner. That workflow-examination point is not a blanket M2/M3 smoke gate. P3 requires explicit custom-protocol production mode and exact resource-byte checks. No qualification or completed package is inherited.
 - **A consumes B:** existing DEP-09-09-012 (external trace uses EXP) is the
   accepted acyclic exception to group order; protocol definition exists but
   candidate qualification remains unclaimed. O-1's A–B cycle/P16 cut and held
@@ -122,29 +123,24 @@ and graph-closure graphs remain at their original paths.
 
 ## Current state and recovery
 
-Current receiving source: merged PR #1126, 7311df06d8. PR #1117 supplied partial EXP→PKG support;
+Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 supplied partial EXP→PKG support;
 #1119 supplied unsigned supplier staging and source-bound standalone preparation;
 #1121 supplied review/change-impact joins; #1122 preserved accepted contracts and
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** integrate the independently reviewed B3-RUNNER support increment.
-Actual cached-engine assertion, missing-target and capture probes exist. DC-R2
-remains inconclusive because the static fixture is not a supplier-double seam;
-WebKit DC-R1 does not query the engine identity; page traffic does not establish
-DC-R5 whole-process isolation. No route is admitted. Independent browser rerun
-was not performed after automatic approval review rejected that launch; source,
-retained captures and nonbrowser checks were independently examined. Receive P2/P3 and hosting S1/S2 contributions
-at their separately reviewed boundaries. P2 production LS-5/LS-8 admission is
-held: an unshipped candidate cannot mint its own shipping history. Distribution's
-named WR/PKG pre-release proposal owns that treatment; development catalog checks
-remain separate. S1 is technically selected for staged S2 work by its owner;
-canonical Design and pins remain unchanged.
-An actual incomplete unsigned development .app now exists (unsigned-candidate
-evidence), distinct from earlier Python staging. It binds f2+overlay, not the
-latest manager source revision; changes require affected rebuild/checks. Its
-0.160.0 pin is developmental, not R23-22 qualification selection. Full route
-and limits: [resumed-production/RETURN.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/RETURN.md).
+**Next:** B2-CONTENT builds an offline unsigned development candidate from
+f79317be with explicit custom-protocol and --no-sign, then independently checks
+physical P-0…4 bytes/modes/links and exact P2/P3 source joins. No native launch,
+supplier execution, credentials, signing/notary or downloads. Incidental linker
+ad-hoc output remains unqualified. H3B actual runtime and S3 qualified selection
+are absent; no synthetic distribution-reference is added. Hosting's sibling
+resource layout is technically concurred for its future implementation only.
+
+B3 runner support is integrated; DC-R2 static-fixture scope, WebKit DC-R1 and
+DC-R5 whole-process isolation remain inconclusive. Prior unsigned-candidate
+evidence binds its historical f2+overlay, not this new candidate. B7 stimuli,
+mode/person/examiner and configuration inputs remain missing.
 
 **Carried limits:** CI-26 complete M1 identity, CI-27 full distribution identity,
 SEAL-2 cold native-origin proof (Group A I3-CUST/CI-10), Group A CI-11 and
