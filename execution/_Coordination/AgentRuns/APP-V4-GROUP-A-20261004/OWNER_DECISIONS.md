@@ -231,3 +231,9 @@ File acts are excluded, because an abort there would record a decline; they
 keep their current layout until a custom dialog exists, recorded as a known
 limit. The AAC wording follows through CI-22. This answer approves no
 launch or act.
+
+Correction (V14-R1 R1-1, 2026-10-08): HELP_HUMAN's effect line above
+overstated "Return and Escape never act". Return chooses "Don't ‹act›" and
+an abort maps to Cancel, by the dialog plugin's mapping. Which button Escape
+triggers in the parentless macOS alert is not yet observed; it is a gating
+step of the native re-witness. The owner's answer is unchanged.

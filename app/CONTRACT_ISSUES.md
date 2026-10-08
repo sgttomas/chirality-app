@@ -680,9 +680,11 @@ What the code now does (J6, revised after independent review V14):
   `YesNoCancelCustom("Don't ‹act›", "‹Act›", "Cancel")`: Return chooses
   "Don't ‹act›", which records nothing; tauri-plugin-dialog 2.7.2 reports any
   unmatched, failed or aborted alert as the third label, "Cancel"; only the
-  middle label acts. Which key Escape triggers in the macOS alert
-  (CFUserNotification) needs the native re-witness; every candidate records
-  nothing. **Known limit: file acts are excluded.** Their three slots are
+  middle label acts. Escape: not yet observed. Which button Escape
+  triggers in the parentless macOS alert (CFUserNotification) is
+  unestablished, and the act now sits in the alternate slot, so Escape must
+  be witnessed natively before any person relies on the build for an act;
+  if Escape reaches the middle slot the layout is revisited (V14-R1 R1-1). **Known limit: file acts are excluded.** Their three slots are
   act, decline and Cancel; under the three-button layout an aborted alert
   would map to the third slot, which there would be a decline. They keep
   [act (default)] [Decline this act] [Cancel], so Return still performs a
@@ -736,7 +738,8 @@ Design):
 
 DEL-01-05 (AE-12, KE-13, Q-5) and NIR are met as written: the logout list is
 shown in full (in the alert or in the App while the alert is open), and a
-request answer of any length can be confirmed.
+request answer of any length can be confirmed unless its content holds a
+non-integer number, which is refused with its location (V14-R1 R1-1).
 
 ## CI-23 RS schema `if` breaks the DEL-04-03 and WR prototypes
 
