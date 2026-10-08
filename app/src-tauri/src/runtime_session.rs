@@ -3912,12 +3912,24 @@ impl Default for WorkflowRootSession {
 }
 impl WorkflowRootSession {
     pub fn snapshot(&self) -> Value {
-        json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err()})),
+        // Inventory describes verified build inputs, never release registration.
+        let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
+            Ok(catalog) => {
+                let identity = catalog.identity();
+                json!({"standing":crate::workflow_workspace::production_catalog::PRODUCTION_STANDING,
+                    "entries":[{"name":identity.name,"revision":identity.revision,
+                        "origin":identity.origin,"sourceRoot":identity.source_root,
+                        "revisionMethod":identity.revision_method,"identity":identity,
+                        "runnable":false,"runLimit":run_admission(&catalog.select_embedded()).err()}]})
+            },
+            Err(error) => json!({"standing":"candidate catalog unavailable","entries":[],"limit":error}),
+        };
+        json!({"productionCatalog":production_catalog,"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err()})),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null)})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "reopened":self.reopened,
-            "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
+            "limit":"actual hot registrations may run; development and production bundle candidate selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
     }
     /// Startup wiring (lib.rs setup): the App user-data root for App-kept draft bases.
     pub fn set_app_user_data(&mut self, data: std::path::PathBuf) {
@@ -3933,6 +3945,37 @@ impl WorkflowRootSession {
             package: path,
             selected_at: crate::util::now_rfc3339(),
         });
+        Ok(self.snapshot())
+    }
+    /// Native caller resolves App resource_dir/workflows. This records an explicit
+    /// candidate selection only; CC-WR-PKG-CANDIDATE-01 is not adopted admission.
+    pub fn select_production_bundle(&mut self, root: std::path::PathBuf, name: &str) -> Result<Value, String> {
+        let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load()?;
+        let resolved = catalog.select_bundle_package(&root, name)?;
+        resolved.verify_current()?;
+        self.selected = Some(WorkflowSelectionState {
+            reference: crate::util::opaque_id("workflow-selection:")?,
+            selection: resolved.selection().clone(),
+            package: resolved.package_path().to_path_buf(),
+            selected_at: crate::util::now_rfc3339(),
+        });
+        Ok(self.snapshot())
+    }
+    /// Recognition uses the actual opened library, never a caller's registry
+    /// assertion. A matching candidate copy remains non-runnable, not LS-8.
+    pub fn select_production_copy(&mut self, name: &str) -> Result<Value, String> {
+        let library = self.active_library()?;
+        let _owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; selection pending")?;
+        let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load()?;
+        let resolved = catalog.recognize_holding_copy(&library.root, name)?;
+        resolved.verify_current()?;
+        self.selected = Some(WorkflowSelectionState {
+            reference: crate::util::opaque_id("workflow-selection:")?,
+            selection: resolved.selection().clone(),
+            package: resolved.package_path().to_path_buf(),
+            selected_at: crate::util::now_rfc3339(),
+        });
+        drop(_owner);
         Ok(self.snapshot())
     }
     pub fn open_library(
@@ -5735,6 +5778,90 @@ for line in sys.stdin:
         assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into(),peer.project()).is_err());
         let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),peer.project()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
         peer.home.host.stop_scoped(&peer.generation,"fixture","source loss").unwrap();assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(run.source.as_ref().unwrap().request_ref(),original);assert_eq!(run.status["adoption"],"unknown");
+    }
+    // P-2 candidate mechanics are connected to the actual Root selection path;
+    // a valid native-shaped conversation does not grant workflow admission.
+    fn p2_candidate_bundle(fixture: &Fixture) -> PathBuf {
+        let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap();
+        let root = fixture.root.join("production-bundle");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
+        catalog.select_embedded().snapshot().publish_new(&root.join(catalog.identity().name.as_str())).unwrap();
+        root
+    }
+    fn p2_candidate_refuses_without_effects(root: &mut WorkflowRootSession, peer: &Peer) {
+        let before_wire = peer.wire();
+        let before_records = peer.fixture.rs_entries();
+        let before_wr = peer.fixture.wr_files();
+        let before_record_directory = peer.fixture.root.join(".chirality/records").exists();
+        let before_selection = root.snapshot()["selection"]["reference"].clone();
+        let refused = root.prepare_run(peer.home.clone(), &peer.generation, "thread", "candidate examination".into(), peer.project());
+        assert!(refused.as_ref().is_err_and(|e| e.contains("TT-1") && e.contains("TX-1") && e.contains("production bundle candidate")), "{refused:?}");
+        assert!(root.runs.is_empty());
+        assert!(root.conversations.is_empty());
+        assert!(root.notice_flags.is_empty());
+        assert!(root.held_successors.is_empty());
+        assert_eq!(root.snapshot()["selection"]["reference"], before_selection);
+        assert_eq!(peer.wire(), before_wire, "no native request dispatched by refusal");
+        assert_eq!(peer.fixture.rs_entries(), before_records, "no RS record written");
+        assert_eq!(peer.fixture.wr_files(), before_wr, "no WR record written");
+        assert_eq!(peer.fixture.root.join(".chirality/records").exists(), before_record_directory, "no record directory created");
+        assert_eq!(peer.turn_starts(), 0);
+    }
+    #[test]
+    fn p2_root_candidate_bundle_selection_is_visible_but_prepare_has_no_effects() {
+        let peer = Peer::new();
+        let bundle = p2_candidate_bundle(&peer.fixture);
+        let mut root = WorkflowRootSession::default();
+        let view = root.select_production_bundle(bundle.clone(), "coordinated-knowledge-work").unwrap();
+        let entry = &view["productionCatalog"]["entries"][0];
+        assert_eq!(entry["identity"], view["selection"]["identity"]);
+        assert_eq!(entry["runnable"], false);
+        assert_eq!(view["selection"]["standing"], crate::workflow_workspace::production_catalog::PRODUCTION_STANDING);
+        assert_eq!(view["selection"]["runnable"], false);
+        assert!(view["selection"]["currentLimit"].is_null());
+        p2_candidate_refuses_without_effects(&mut root, &peer);
+        // Same-named development content is not silently substituted on failure.
+        let selected = view["selection"]["reference"].clone();
+        std::fs::write(bundle.join("MANIFEST.json"), b"{}").unwrap();
+        assert!(root.select_production_bundle(bundle, "coordinated-knowledge-work").is_err());
+        assert_eq!(root.snapshot()["selection"]["reference"], selected);
+        assert!(root.snapshot()["selection"]["currentLimit"].as_str().unwrap().contains("manifest differs"));
+        p2_candidate_refuses_without_effects(&mut root, &peer);
+    }
+    #[test]
+    fn p2_root_candidate_copy_uses_open_library_and_preserves_refusal_after_mutation() {
+        let peer = Peer::new();
+        let mut root = WorkflowRootSession::default();
+        assert!(root.select_production_copy("coordinated-knowledge-work").is_err());
+        let library = peer.fixture.root.join("candidate-library");
+        std::fs::create_dir_all(library.join(".chirality/workflows")).unwrap();
+        let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap();
+        let package = library.join(".chirality/workflows/coordinated-knowledge-work");
+        catalog.select_embedded().snapshot().publish_new(&package).unwrap();
+        root.open_library(library.clone(), "project", None, Arc::new(Mutex::new(None))).unwrap();
+        let view = root.select_production_copy("coordinated-knowledge-work").unwrap();
+        assert_eq!(view["selection"]["identity"]["source_root"], crate::workflow_workspace::production_catalog::RELEASE_SUBJECT);
+        assert_eq!(view["selection"]["runnable"], false);
+        assert_eq!(root.selected.as_ref().unwrap().package, package);
+        p2_candidate_refuses_without_effects(&mut root, &peer);
+        std::fs::write(library.join(".chirality/workflow-registry.jsonl"), b"{bad}\n").unwrap();
+        assert!(root.snapshot()["selection"]["currentLimit"].as_str().unwrap().contains("registration ledger malformed"));
+        let selected = view["selection"]["reference"].clone();
+        assert!(root.select_production_copy("coordinated-knowledge-work").is_err());
+        assert_eq!(root.snapshot()["selection"]["reference"], selected);
+        p2_candidate_refuses_without_effects(&mut root, &peer);
+    }
+    #[test]
+    fn p2_root_candidate_copy_never_reinterprets_registered_slot() {
+        let fixture = Fixture::new();
+        let mut root = fixture.registered();
+        let before = root.snapshot()["selection"].clone();
+        let error = root.select_production_copy("coordinated-knowledge-work").unwrap_err();
+        assert!(error.contains("registered slot"), "{error}");
+        assert_eq!(root.snapshot()["selection"], before);
+        assert_eq!(before["standing"], "registered revision");
+        assert_eq!(before["runnable"], true);
     }
     // J1 control: WR TT-1/TX-1/WP-6. A development selection may be shown, never run.
     #[test]
