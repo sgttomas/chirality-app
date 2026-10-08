@@ -29,6 +29,7 @@ pub mod trace_receiving;
 pub mod hosting;
 #[cfg(unix)]
 pub mod distribution_preflight;
+mod compiled_development_selection;
 pub mod distribution_semantics;
 mod distribution_store;
 mod distribution_s1;
@@ -62,6 +63,7 @@ use tauri::{Manager, State};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 pub struct AppState {
+    compiled_development_selection: Value,
     connector_sources: Mutex<connector_source::Session>,
     connector_drafts: Mutex<connector_materialization::Registry>,
     workspace: Option<PathBuf>,
@@ -154,6 +156,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     }
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
+    s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
     let mut history = home.history.lock().unwrap();
     history.reconcile(&home.host);
     let root = state.instructions_root.lock().unwrap().clone();
@@ -1149,6 +1152,7 @@ pub fn run() {
     let key_path = std::env::var_os("CHIRALITY_KEY_HOME").map(PathBuf::from);
     let shared_paths = ["CHIRALITY_SHARED_CONFIG","CHIRALITY_SHARED_AGENTS","CHIRALITY_SHARED_SKILLS"].map(|key|std::env::var_os(key).map(PathBuf::from));
     let state = AppState {
+        compiled_development_selection: compiled_development_selection::observe_startup(|| app.path().resource_dir().map_err(|e| e.to_string())),
         connector_sources: Mutex::new(connector_source::Session::default()),
         connector_drafts: Mutex::new(connector_materialization::Registry::default()),
         act: Arc::new(Mutex::new(workspace.as_ref().map(|w| ActControl::new(w)))),
@@ -1312,7 +1316,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
