@@ -312,7 +312,8 @@ fn register_and_select(
 /// opened. Returns (review reference, registered revision).
 /// `workflow_register_native`'s act through the act-control double, for the
 /// review `begin_review` just opened.
-fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) {
+/// Returns the native statement and its act-button label (J6's variant).
+fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) -> (String, &'static str) {
     let review = r.reviews[reference].clone();
     let mut review = review.lock().unwrap();
     let library_ctx = review.library.clone();
@@ -322,7 +323,8 @@ fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) {
     let context = json!({"library":library_ctx.reference,"home":"explicit absent/unknown fixture source","identityVerified":false});
     let mut owner_guard = library_ctx.control.lock().unwrap();
     let owner = owner_guard.as_mut().unwrap();
-    owner.a15_confirmation_text(offer, &current, &actor, &context).unwrap();
+    let statement = owner.a15_confirmation_text(offer, &current, &actor, &context).unwrap();
+    let act_label = owner.a15_variant(offer).unwrap().act;
     owner.present_a15(offer).unwrap();
     let event = crate::a15_native::ConfirmedA15Event::synthetic_for_test(
         offer.id().into(),
@@ -335,13 +337,15 @@ fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) {
     drop(owner_guard);
     review.attempted_native = true;
     review.accept_result(result).unwrap();
+    (statement, act_label)
 }
 
 fn capture_and_register(r: &mut WorkflowRootSession, library: &Path, origin: &str) -> (String, String) {
     let reference = r.active_review.clone().unwrap();
     // workflow_register_native, through the act-control double.
     let revision = {
-        confirm_with_double(r, &reference);
+        let (_, act_label) = confirm_with_double(r, &reference);
+        assert_eq!(act_label, "Register", "a registration keeps J6's Register label");
         let review = r.reviews[&reference].clone();
         let review = review.lock().unwrap();
         assert_eq!(review.status["entries"][0]["state"], "registered", "{}", review.status);
@@ -878,7 +882,17 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         assert_eq!(descriptor["purpose"], "make it available again in this App session from the project library");
         assert_eq!(descriptor["subject"]["revision"], revision_three.as_str());
         assert_eq!(descriptor["reconfirms"]["sequence"], 3);
-        confirm_with_double(&mut r, &reference);
+        // J6 integration (CI-24 (f)): the DS-8 descriptor this path composed
+        // selects J6's re-confirmation statement and its act label.
+        let (statement, act_label) = confirm_with_double(&mut r, &reference);
+        assert_eq!(act_label, "Re-confirm", "J6's re-confirm act label");
+        assert!(statement.starts_with("re-confirm workflow revision for use (A15)"), "{statement}");
+        assert!(
+            statement.contains("for use in this App session. This registers no new revision."),
+            "{statement}"
+        );
+        assert!(statement.contains(&format!("Re-confirm revision {} of project:{NAME}", &revision_three[..12])), "{statement}");
+        assert!(!statement.contains("Registering makes"), "{statement}");
         reference
     };
     {

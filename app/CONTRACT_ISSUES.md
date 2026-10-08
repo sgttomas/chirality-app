@@ -826,26 +826,35 @@ record's "App implementation items". No Design or schema file was changed.
   (`a15_multi_descriptor`) work. The RF-1 test therefore registers in place
   with two entries. For the AAC and WR owners: admit `entry:` for a single
   in-place `a15_descriptor`, or route DS-7 through another form.
-- **(f) Native statement (AAC §4.2 re-confirmation): left to J6.** By
-  coordination, J8 does not change `a15_native.rs` or the A15 statement code;
-  both are unchanged from `007489e72b`. J8 supplies the source facts:
-  - the descriptor's wording "re-confirm workflow revision for use",
-    disposition *re-confirmation*, re-confirm purpose and `reconfirms`;
-  - the offer that `compose_a15` builds from them unchanged;
-  - the review presentation's `entries[0].reconfirmation.statement`, "Re-confirm
-    revision ‹k› of ‹origin›:‹name› for use in this App session. This registers
-    no new revision.".
+- **(f) Native statement and buttons (AAC §4.2 re-confirmation): J6's, now
+  integrated.** J8 does not write the native statement or dialog code.
+  `a15_native.rs` and the J6 dialog code in `act_control_a15.rs` are as J6
+  merged them (integration head `9d1e0bb0cd`, merged into J8).
+  - **What J8 supplies:**
+    - the descriptor's wording "re-confirm workflow revision for use",
+      disposition *re-confirmation*, re-confirm purpose and `reconfirms`;
+    - the offer that `compose_a15` builds from them unchanged;
+    - the review presentation's `entries[0].reconfirmation.statement`.
+  - **What J6 does with them.** J6's `a15_variant` selects the
+    re-confirmation statement when the descriptor kind is `a15_descriptor` and
+    the disposition is *re-confirmation*. The statement reads "Re-confirm
+    revision ‹short k› of ‹origin›:‹name› for use in this App session. This
+    registers no new revision." It has no "Registering makes …" sentence. The
+    owner's three-button layout (OWNER_DECISIONS, 2026-10-08; V15 F6) then
+    gives [Don't re-confirm (default)] [Re-confirm] [Cancel], where only
+    "Re-confirm" acts.
+  - **Tests.** Journey step 9 checks, on the combined code, that the
+    descriptor the DS-8 path composes selects that variant:
+    - the act label is "Re-confirm";
+    - the statement opens with the re-confirm wording and contains the
+      re-confirm sentence for revision three;
+    - no registration sentence appears;
+    - a registration keeps "Register".
 
-  J6's statement variant reads these when HELP_HUMAN integrates the two
-  branches. Until then, the base statement's closing sentence ("Registering
-  makes these reviewed bytes available …") also appears for a
-  re-confirmation.
-  **Button label and layout (V15 F6).** The J6 integration also supplies the
-  re-confirm act-button label under the owner's three-button layout:
-  [Don't ‹act› (default)] [‹Act›] [Cancel], where only the middle button acts
-  (OWNER_DECISIONS, 2026-10-08). On J8 alone, a re-confirmation is still
-  confirmed with the base "Register" button. No native witness should be taken
-  on J8 without J6.
+    J6's `reconfirmation_descriptor_has_its_own_statement_and_act_label` also
+    passes.
+  - **Limit.** No native witness of the dialog has been taken; the tests use
+    the synthetic event.
 - **(g) Capture outcome not written.** `aac.capture-evidence` now admits the
   entry outcome *re-confirmed*. The App writes no capture entry outcome for
   any registration, so none is written for a re-confirmation either. The
