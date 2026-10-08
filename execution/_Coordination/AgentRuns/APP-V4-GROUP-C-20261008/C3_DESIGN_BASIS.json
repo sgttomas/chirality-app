@@ -96,6 +96,17 @@
     {
       "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/PLACEMENT_DECISION_PREPARATION.md",
       "sha256": "7f8d365b783d045a590ca7c79eb0c0510abe70677497ab345f57033eb1a58f26"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.2.md",
+      "sha256": "6552f82f3a574b847e19ed909ac610e4b263f27d6034253488b0d2a314659f12"
+    }
+  ],
+  "technical_sources": [
+    {
+      "origin": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/main/bsd/man/man2/rename.2",
+      "reading": "API description, RENAME_EXCL and failure behavior via web tool; mutable upstream main, not pinned runtime qualification",
+      "scope": "CRP-R2 proposal and selection as relayed by WORKING_ITEMS"
     }
   ]
 }
