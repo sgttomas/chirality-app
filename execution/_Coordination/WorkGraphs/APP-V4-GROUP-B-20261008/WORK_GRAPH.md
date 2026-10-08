@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-input-hold`, based on verified
-PR #1142 merge `5c1b258db0645e422d8896bce9d02bf8a7cd04d5`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-s4-receiving`, based on verified
+PR #1145 merge `37feb501bbb23cc2932e0101a51a2ae63edbd489`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -133,8 +133,9 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Current hold and resumption:** Parent HELP_HUMAN directed this bounded hold
-after PR #1142. Independent read-only readiness assessment by separate TASK
+**Prior hold and current resumption:** Parent HELP_HUMAN directed this bounded hold
+after PR #1142. S4 resumed after reviewed Host PR #1145 merged; the remaining
+package/native holds below persist. Independent read-only readiness assessment by separate TASK
 `complete_content_review` at 5c1b258db0 found no further material Group B
 production slice with sufficient supplied inputs. This is a dependency hold,
 not a new approval gate, undertaking completion or abandonment. No additional
@@ -143,7 +144,7 @@ commissioned merely to keep the lane active.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|
-| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. Current reported full-S1/closure work is not frozen. |
+| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. RESUMED at PR #1145 merge37feb501bbb: exact reader.s3/closure available. Host-owned test exporter and B-owned file-correspondence consumer are ACTIVE; positive actual synthetic Host→EXP/PKG join and independent review required. No S3 or native authority is supplied. |
 | B2 current package and B4–B6 signing/package witness | Select intended current source/build after applicable implementation/reference readiness; preserve the #1134 f793 artifact as historical. Current-source and applicable supplier reference/configuration inputs remain absent. CF1/CF7 names alone do not justify an Apple-account request. FP2/W4 actual installed witnesses follow signing and installation; they are not pre-sign prerequisites. |
 | B7/B8 actual standalone journey | B7 exact-example preparation is supplied. Actual candidate/configuration, examiner pre-run definition, ST4/ST5 contributions, people/modes, genuine registrations/refinements and applicable native authority remain missing. Resume the eligible case when its actual inputs arrive. SQ permits native_development; signed packaging or S3 is not a blanket gate on every eligible SQ step. |
 | B3 full M1 / native support and A-IN-S5 reliance | Actual connected runner/native qualification and package/reference evidence remain required at their existing points. Scoped CI-26 closure and offline preparation do not supply them. |
@@ -163,8 +164,8 @@ Readiness sources: this graph's B4–B8/A-IN-S1…S5; reviewed
 `pre-run-inputs/RETURN.md` governing boundary; and
 APP-V4-CANDIDATE-ADMISSION-20261008/DECISION_PACKAGE.md point-of-need and decision
 interface. The Host manager's current report is coordination status, not an
-independently accepted implementation artifact. HELP_HUMAN will resume this
-lane when the frozen Host receipt or another genuine input arrives.
+independently accepted implementation artifact. HELP_HUMAN resumed S4 on the named Host merge; other nodes await their own
+actual inputs. Current assignment/evidence is in s4-receiving/COORDINATION.md.
 
 CI-26 representation/initial EXP-PKG cohort is narrowly closed through merged
 EXP-SUPPORT-BINDING-v1. SQ/native-form/S4 receiving and full M1 support remain
