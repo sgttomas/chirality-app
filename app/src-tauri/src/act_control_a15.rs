@@ -284,6 +284,102 @@ pub(super) struct A15OfferSlot {
     actor: Option<Value>,
     context: Option<Value>,
     capture_id: Option<String>,
+    /// Digest of the complete review the native statement named (J6 D-1).
+    review_digest: Option<String>,
+}
+/// sha-256 (lowercase hex) of the complete review presentation in the
+/// `aac-offer-digest/0.1` canonical serialization (canonical.rs). The native
+/// statement names it; the App computes the same value beside the review it
+/// shows, so the person can tie the statement to the complete review.
+pub(crate) fn review_digest(presentation: &Value) -> Result<String, String> {
+    let mut canonical = String::new();
+    crate::canonical::canonical(presentation, &mut canonical).map_err(|e| {
+        format!("A15 complete review digest unavailable ({e}); nothing presented or captured")
+    })?;
+    Ok(crate::util::sha256_hex(canonical.as_bytes()))
+}
+/// The bounded native A15 statement (J6 D-1). It names the act, every entry's
+/// workflow identity (short and full revision), the prior revision, the
+/// library, scope and purpose, the complete review by reference and digest,
+/// the offer, the consequence, the actor and its limit, and what Cancel does.
+/// The complete review itself is shown in the App (AAC §4.2 step 1, §6.2).
+fn a15_statement(o: &Value, bound: &BoundReview, actor: &Value, review_digest: &str) -> String {
+    use super::native_statement::{actor_line, short};
+    let n = bound.bindings.len();
+    let wording = o["wording"].as_str().unwrap_or("");
+    let mut t = vec![if n == 1 {
+        format!("{wording} (A15)")
+    } else {
+        format!("{wording} (A15, {n} entries)")
+    }];
+    let methods = bound
+        .bindings
+        .iter()
+        .map(|b| b.subject.revision_method.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    let one_method = (methods.len() == 1).then(|| methods.iter().next().copied()).flatten();
+    if let Some(method) = one_method {
+        t.push(format!("Revision method: {method}"));
+    }
+    let disposition = bound.descriptor["disposition"].as_str().unwrap_or("not stated");
+    for (i, b) in bound.bindings.iter().enumerate() {
+        let s = &b.subject;
+        let number = if n == 1 { String::new() } else { format!(" {}", i + 1) };
+        let reviewed = if b.reviewed_id3.starts_with("draft:") {
+            "; reviewed draft"
+        } else {
+            ""
+        };
+        t.push(format!(
+            "Workflow{number}: {} ({} library; {disposition}{reviewed})",
+            s.name, s.origin
+        ));
+        match one_method {
+            Some(_) => t.push(format!("Revision {}, in full:", short(&s.revision))),
+            None => t.push(format!(
+                "Revision {} ({}), in full:",
+                short(&s.revision),
+                s.revision_method
+            )),
+        }
+        t.push(s.revision.clone());
+        match &b.prior {
+            None => t.push("Prior revision: none".into()),
+            Some(p) => {
+                t.push(format!("Prior revision {}, in full:", short(&p.revision)));
+                t.push(p.revision.clone());
+            }
+        }
+        if let Some(base) = &s.derived_from {
+            t.push(format!("Derived from: {} revision {}", base.name, short(&base.revision)));
+        }
+    }
+    let library = bound.library_root.display().to_string();
+    let scope = o["scope"].as_str().unwrap_or("");
+    if scope == library {
+        // The App's library scope is its source root: one exact line, not two.
+        t.push(format!("Library and scope: {library}"));
+    } else {
+        t.push(format!("Library: {library}"));
+        t.push(format!("Scope: {scope}"));
+    }
+    t.push(format!("Purpose: {}", o["purpose"].as_str().unwrap_or("")));
+    t.push(format!("Answers: {}", o["answers"]["standing"].as_str().unwrap_or(STANDING)));
+    t.push(String::new());
+    t.push(format!("Complete review: in the App, {}", bound.review_ref));
+    t.push("Its sha-256 digest (compare with the App):".into());
+    t.push(review_digest.into());
+    t.push(format!(
+        "Offer: {} (digest {})",
+        o["offerId"].as_str().unwrap_or(""),
+        short(o["offerDigest"]["value"].as_str().unwrap_or(""))
+    ));
+    t.push(String::new());
+    t.push("Registering makes these reviewed bytes available in this library; earlier revisions are kept. It is not a check that the workflow can run here.".into());
+    t.push(format!("Actor: {}. Required: {}.", actor_line(actor), o["actorRequirement"].as_str().unwrap_or("the person")));
+    t.push("Register records this act. Cancel closes without an act: nothing is captured or registered.".into());
+    t.push("Native confirmation; apps with Accessibility access could press these buttons.".into());
+    t.join("\n")
 }
 impl ActControl {
     pub(crate) fn compose_a15(
@@ -320,6 +416,7 @@ impl ActControl {
                 actor: None,
                 context: None,
                 capture_id: None,
+                review_digest: None,
             },
         );
         Ok(A15OfferRef { id })
@@ -357,11 +454,17 @@ impl ActControl {
         if offer_digest(&slot.offer)? != slot.offer["offerDigest"]["value"].as_str().unwrap_or("") {
             return Err("A15 frozen offer digest mismatch".into());
         }
+        // Composed from the frozen binding (equal to `now`, checked above).
+        let frozen = slot.bound.as_ref().ok_or("A15 binding absent")?;
+        let digest = review_digest(&frozen.presentation)?;
+        let text = super::native_statement::bounded(
+            "A15 native confirmation",
+            a15_statement(&slot.offer, frozen, actor, &digest),
+        )?;
         slot.actor = Some(actor.clone());
         slot.context = Some(context.clone());
-        Ok(format!("{} (A15)\n\nOwning library: {}\nComplete review:\n{}\n\nNative offer:\n{}\n\nActor: {} (identity not verified)\n\nRegistering makes these reviewed bytes available in this library. It is not a check that the workflow can run here.\nNative confirmation only; Accessibility-authorized processes may operate native buttons. Cancel closes without an act.",
-            slot.offer["wording"].as_str().unwrap_or(""),now.library_root.display(),serde_json::to_string_pretty(&now.presentation).map_err(|e|e.to_string())?,
-            serde_json::to_string_pretty(&slot.offer).map_err(|e|e.to_string())?,serde_json::to_string(actor).map_err(|e|e.to_string())?))
+        slot.review_digest = Some(digest);
+        Ok(text)
     }
     pub(crate) fn frozen_a15_offer_digest(&self, offer: &A15OfferRef) -> Result<&Value, String> {
         let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
@@ -411,6 +514,12 @@ impl ActControl {
         if !slot.bound.as_ref().is_some_and(|b| b.matches(&now)) {
             slot.state = OfferState::Stale;
             return Err("A15 review stale; nothing captured".into());
+        }
+        // The complete review the native statement named by digest is still the
+        // review now bound (in addition to the full equality above).
+        if slot.review_digest.as_deref() != Some(review_digest(&now.presentation)?.as_str()) {
+            slot.state = OfferState::Stale;
+            return Err("A15 complete review differs from the one the native statement named; nothing captured".into());
         }
         if event.offer_id() != offer.id
             || event.offer_digest() != &slot.offer["offerDigest"]
@@ -717,6 +826,177 @@ mod tests {
             drop(current);
             std::fs::remove_dir_all(root).unwrap();
         }
+    }
+    /// Shared vector with app/tests/presentation.test.mjs: the App's review
+    /// digest (src/presentation.ts) must equal the one the native statement names.
+    #[test]
+    fn review_digest_vector_is_shared_with_the_app_view() {
+        let vector = json!({"b":"x\u{2028}ü≈\u{7f}\u{1}\n\"\\","a":[1,-2,true,null,{"z":"😀","é":0,"y":"\t\u{8}\u{c}\r"}],"😀":"astral key","\u{ffff}":"bmp max key"});
+        let mut canonical = String::new();
+        crate::canonical::canonical(&vector, &mut canonical).unwrap();
+        assert!(canonical.find("\"\u{ffff}\":").unwrap() < canonical.find("\"😀\":").unwrap(), "code-point key order");
+        // Also computed independently (Python, code-point key order) during J6.
+        assert_eq!(
+            review_digest(&vector).unwrap(),
+            "f0320f0cb802f23b0ca96ae972832215676a3c76e825efceb37c941e8e0e6d6b"
+        );
+        assert!(review_digest(&json!({"x":1.5})).unwrap_err().contains("nothing presented"));
+    }
+    /// A realistic large single registration (long library path used as scope,
+    /// prior revision, derived-from base, full actor) still fits the bound; a
+    /// multi-entry act fits up to a stated count and is refused above it.
+    #[test]
+    fn realistic_large_statements_fit_or_are_refused_whole() {
+        let library = PathBuf::from(format!(
+            "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/tmp.{}/workspace",
+            "x".repeat(40)
+        ));
+        let id = |name: &str, rev: char, base: Option<WorkflowIdentity>| WorkflowIdentity {
+            kind: "workflow".into(),
+            origin: "project".into(),
+            source_root: library.display().to_string(),
+            name: name.into(),
+            revision: rev.to_string().repeat(64),
+            revision_method: crate::workflow_workspace::SNAPSHOT_METHOD.into(),
+            derived_from: base.map(Box::new),
+        };
+        // `prior`: a new revision of a draft with a prior and a derived-from
+        // base; otherwise an in-place entry (neither).
+        let binding = |name: &str, rev: char, prior: bool| {
+            let base = prior.then(|| id("coordinated-knowledge-work", 'b', None));
+            let subject = id(name, rev, base);
+            A15Binding {
+                content_method: subject.revision_method.clone(),
+                content_value: subject.revision.clone(),
+                reviewed_id3: format!("draft:project:{name}@{}", subject.revision),
+                reviewed_content_method: subject.revision_method.clone(),
+                reviewed_content_value: subject.revision.clone(),
+                prior: prior.then(|| id(name, 'p', None)),
+                subject,
+            }
+        };
+        let bound = |bindings: Vec<A15Binding>| BoundReview {
+            review_ref: format!("review:{}", uuid_like()),
+            descriptor_id: "descriptor:x".into(),
+            descriptor_kind: "a15_descriptor".into(),
+            library_root: library.clone(),
+            act_log: library.join(".chirality/records/acts.jsonl"),
+            descriptor: json!({"disposition":"new revision"}),
+            presentation: json!({}),
+            bindings,
+        };
+        let offer = json!({"wording":"register workflow revision","scope":library.display().to_string(),
+            "purpose":"make it available in the project library","answers":{"standing":STANDING},
+            "offerId":format!("offer:{}", uuid_like()),"offerDigest":{"value":"d".repeat(64)},"actorRequirement":"the person"});
+        let mut actor = person(Some("Ryan, accountable workflow owner"), Some("ryan"));
+        actor["codexAccount"] = json!("someone.with.a.long.address@example.invalid");
+        let single = a15_statement(&offer, &bound(vec![binding("coordinated-knowledge-work", 'a', true)]), &actor, &"e".repeat(64));
+        let single = super::super::native_statement::bounded("A15", single).unwrap();
+        assert!(single.contains("Library and scope: /private/var/folders"), "{single}");
+        assert!(single.lines().any(|l| l == "p".repeat(64)), "full prior revision line:\n{single}");
+        assert!(single.contains("Derived from: coordinated-knowledge-work revision bbbbbbbbbbbb"));
+        let multi = |n: usize| {
+            let entries = (0..n).map(|i| binding(&format!("workflow-entry-{i}"), 'a', false)).collect();
+            let mut b = bound(entries);
+            b.descriptor_kind = "a15_multi_descriptor".into();
+            b.descriptor = json!({"disposition":"in place"});
+            super::super::native_statement::bounded("A15", a15_statement(&offer, &b, &actor, &"e".repeat(64)))
+        };
+        // With this long library path, two in-place entries fit; a third is
+        // refused whole with its cause (the person registers fewer per act).
+        let fits = (2..=12).take_while(|n| multi(*n).is_ok()).count() + 1;
+        assert_eq!(fits, 2, "entries that fit at this library path");
+        assert!(multi(fits + 1).unwrap_err().contains("exceeds the readable native confirmation"));
+    }
+    fn uuid_like() -> String {
+        "01234567-89ab-4cde-8f01-23456789abcd".into()
+    }
+    fn facts() -> (Value, Value) {
+        (
+            person(Some("Synthetic test person"), Some("fixture-os")),
+            json!({"fixture":"synthetic owning context"}),
+        )
+    }
+    #[test]
+    fn native_adapter_only_explicit_register_captures_and_sees_bounded_statement() {
+        use tauri_plugin_dialog::MessageDialogResult as R;
+        for result in [R::Custom("Cancel".into()), R::Cancel, R::Ok, R::Yes, R::No, R::Custom("register".into())] {
+            let (root, session) = library(&["sample"], false);
+            let mut ac = ActControl::new(&root);
+            let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+            let mut shown = String::new();
+            let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |text| {
+                shown = text;
+                result
+            })
+            .unwrap();
+            assert!(out.is_none());
+            assert!(shown.lines().count() <= super::super::native_statement::MAX_LINES);
+            assert!(shown.contains("Cancel closes without an act"));
+            assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Dismissed);
+            assert!(ac.native_captures.is_empty());
+            assert!(!storage::library_log(&root).exists());
+            assert!(!root.join(CAPTURE_STORE).exists() || std::fs::read_dir(root.join(CAPTURE_STORE)).unwrap().next().is_none());
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        let (root, session) = library(&["sample"], false);
+        let mut ac = ActControl::new(&root);
+        let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+        let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_| {
+            R::Custom(crate::a15_native::REGISTER.into())
+        })
+        .unwrap();
+        assert!(matches!(out, Some(HotA15Result::Recorded(_))));
+        assert_eq!(records::read_log(&storage::library_log(&root)).0.len(), 1);
+        std::fs::remove_dir_all(root).unwrap();
+        // The act label stays out of the cancel slot, which the dialog plugin
+        // also returns for an unmatched or aborted modal result.
+        assert!(matches!(crate::a15_native::a15_buttons(),
+            tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom(ok, cancel)
+                if ok == crate::a15_native::REGISTER && cancel == "Cancel"));
+    }
+    #[test]
+    fn over_long_statement_is_refused_before_presentation_with_its_cause() {
+        let names = ["one", "two", "three", "four", "five", "six", "seven"];
+        let (root, session) = library(&names, true);
+        let mut ac = ActControl::new(&root);
+        let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+        let mut called = false;
+        let err = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_| {
+            called = true;
+            tauri_plugin_dialog::MessageDialogResult::Custom(crate::a15_native::REGISTER.into())
+        })
+        .err()
+        .unwrap();
+        assert!(!called, "an over-long statement is never presented");
+        assert!(err.contains("exceeds the readable native confirmation") && err.contains("nothing captured"), "{err}");
+        assert!(ac.frozen_a15_offer_digest(&offer).is_err(), "not frozen, not presented");
+        assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Composed);
+        assert!(ac.native_captures.is_empty());
+        assert!(!storage::library_log(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn capture_still_requires_the_frozen_offer_and_the_named_review_digest() {
+        // The digest named in the statement is checked at capture; a review
+        // that differs from it captures nothing, as a stale review always has.
+        let (root, session) = library(&["sample"], false);
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let named = ac.a15_offers[offer.id()].review_digest.clone().unwrap();
+        assert_eq!(named, review_digest(session.current().unwrap().review_presentation()).unwrap());
+        ac.a15_offers.get_mut(offer.id()).unwrap().review_digest = Some("0".repeat(64));
+        let refused = ac.confirm_a15_after_native_event(
+            &offer,
+            event(&offer, digest, actor, context),
+            &session.current().unwrap(),
+        );
+        assert!(refused.err().unwrap().contains("nothing captured"));
+        assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Stale);
+        assert!(ac.native_captures.is_empty());
+        assert!(!storage::library_log(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+        // A review changed after the statement was shown still refuses:
+        // synthetic_retained_old_view_rechecks_live_freshness_before_capture.
     }
     fn event(
         offer: &A15OfferRef,

@@ -158,6 +158,368 @@ pub fn person(display_name: Option<&str>, os_account: Option<&str>) -> Value {
     p
 }
 
+/// Presentation only (J6 D-1/D-3): native confirmation statements a person can
+/// read whole, with the act and Cancel buttons on screen. A macOS alert has no
+/// scrolling, so an over-long statement is refused with its cause before it is
+/// presented (AAC §4.1a: "if the surface cannot do so, it refuses presentation
+/// with the cause and captures nothing"); it is never silently truncated.
+/// Nothing here changes what an offer or capture binds.
+pub(crate) mod native_statement {
+    use serde_json::Value;
+    use tauri_plugin_dialog::MessageDialogResult;
+
+    /// Logical lines in one native statement. Tunable after a native re-witness.
+    pub(crate) const MAX_LINES: usize = 30;
+    /// Characters in one native statement. Tunable after a native re-witness.
+    pub(crate) const MAX_CHARS: usize = 1500;
+    /// Shown before a full identity on its own (copyable) line.
+    pub(crate) const SHORT: usize = 12;
+
+    /// Refuses a statement that would not fit a readable native alert.
+    pub(crate) fn bounded(what: &str, text: String) -> Result<String, String> {
+        let (lines, chars) = (text.lines().count(), text.chars().count());
+        if lines > MAX_LINES || chars > MAX_CHARS {
+            return Err(format!(
+                "{what}: the statement ({lines} lines, {chars} characters) exceeds the readable native confirmation ({MAX_LINES} lines, {MAX_CHARS} characters); nothing presented, nothing captured or sent"
+            ));
+        }
+        Ok(text)
+    }
+    /// The first `SHORT` characters of an identity (it is then shown in full).
+    pub(crate) fn short(value: &str) -> &str {
+        value
+            .char_indices()
+            .nth(SHORT)
+            .map_or(value, |(i, _)| &value[..i])
+    }
+    /// "name · OS account a · Codex account c (identity not verified)".
+    pub(crate) fn actor_line(actor: &Value) -> String {
+        let mut parts = vec![actor["displayName"]
+            .as_str()
+            .unwrap_or("no name set in the App")
+            .to_owned()];
+        if let Some(os) = actor["osAccount"].as_str() {
+            parts.push(format!("OS account {os}"));
+        }
+        if let Some(codex) = actor["codexAccount"].as_str() {
+            parts.push(format!("Codex account {codex}"));
+        }
+        format!("{} (identity not verified)", parts.join(" · "))
+    }
+    /// True only for the explicit act/confirm label: Cancel, Escape, closing the
+    /// alert or any other result is not that choice.
+    pub(crate) fn chose(result: &MessageDialogResult, label: &str) -> bool {
+        matches!(result, MessageDialogResult::Custom(chosen) if chosen == label)
+    }
+    /// A native path identity (`attachments::native_path_identity`) as readable
+    /// text. Display only: identities and comparisons keep the exact value.
+    /// Valid UTF-8 is shown as itself; otherwise invalid bytes are shown as
+    /// `\xNN` behind an explicit marker. `None` when `v` is not a path identity.
+    pub(crate) fn native_path_text(v: &Value) -> Option<String> {
+        let object = v.as_object()?;
+        match object.get("encoding")?.as_str()? {
+            "unix_bytes" | "native_encoded_bytes" => {
+                let bytes = object
+                    .get("bytes")?
+                    .as_array()?
+                    .iter()
+                    .map(|b| b.as_u64().filter(|b| *b <= 255).map(|b| b as u8))
+                    .collect::<Option<Vec<u8>>>()?;
+                Some(match std::str::from_utf8(&bytes) {
+                    Ok(text) => text.to_owned(),
+                    Err(_) => format!(
+                        "[path is not valid UTF-8; invalid bytes shown as \\xNN] {}",
+                        escape_invalid(&bytes)
+                    ),
+                })
+            }
+            "windows_utf16" => {
+                let units = object
+                    .get("codeUnits")?
+                    .as_array()?
+                    .iter()
+                    .map(|u| u.as_u64().filter(|u| *u <= 0xFFFF).map(|u| u as u16))
+                    .collect::<Option<Vec<u16>>>()?;
+                Some(match String::from_utf16(&units) {
+                    Ok(text) => text,
+                    Err(_) => format!(
+                        "[path is not valid UTF-16; unpaired code units shown as \\u{{NNNN}}] {}",
+                        char::decode_utf16(units.iter().copied())
+                            .map(|r| r.map_or_else(
+                                |e| format!("\\u{{{:04x}}}", e.unpaired_surrogate()),
+                                String::from
+                            ))
+                            .collect::<String>()
+                    ),
+                })
+            }
+            _ => None,
+        }
+    }
+    fn escape_invalid(mut bytes: &[u8]) -> String {
+        let mut out = String::new();
+        while !bytes.is_empty() {
+            match std::str::from_utf8(bytes) {
+                Ok(text) => {
+                    out.push_str(text);
+                    break;
+                }
+                Err(e) => {
+                    let (valid, rest) = bytes.split_at(e.valid_up_to());
+                    out.push_str(std::str::from_utf8(valid).unwrap_or_default());
+                    let bad = e.error_len().unwrap_or(rest.len());
+                    for b in &rest[..bad] {
+                        out.push_str(&format!("\\x{b:02x}"));
+                    }
+                    bytes = &rest[bad..];
+                }
+            }
+        }
+        out
+    }
+    /// A JSON value as indented "key: value" lines, with native paths as text.
+    /// Every member is shown; nothing is elided.
+    pub(crate) fn readable(v: &Value) -> String {
+        let mut out = Vec::new();
+        render(None, v, 0, &mut out);
+        out.join("\n")
+    }
+    fn scalar(v: &Value) -> Option<String> {
+        if let Some(path) = native_path_text(v) {
+            return Some(path);
+        }
+        match v {
+            Value::Null => Some("null".into()),
+            Value::Bool(b) => Some(b.to_string()),
+            Value::Number(n) => Some(n.to_string()),
+            Value::String(s) => Some(s.clone()),
+            Value::Array(a) if a.is_empty() => Some("none".into()),
+            Value::Object(o) if o.is_empty() => Some("none".into()),
+            _ => None,
+        }
+    }
+    fn render(key: Option<&str>, v: &Value, indent: usize, out: &mut Vec<String>) {
+        let pad = "  ".repeat(indent);
+        let label = key.map(|k| format!("{k}: ")).unwrap_or_default();
+        if let Some(text) = scalar(v) {
+            out.push(format!("{pad}{label}{text}"));
+            return;
+        }
+        let child = if key.is_some() { indent + 1 } else { indent };
+        match v {
+            Value::Array(items) if items.iter().all(|i| scalar(i).is_some()) => {
+                let joined = items.iter().filter_map(scalar).collect::<Vec<_>>().join(", ");
+                out.push(format!("{pad}{label}{joined}"));
+            }
+            Value::Array(items) => {
+                if let Some(k) = key {
+                    out.push(format!("{pad}{k}:"));
+                }
+                for (i, item) in items.iter().enumerate() {
+                    render(Some(&format!("{}", i + 1)), item, child, out);
+                }
+            }
+            Value::Object(members) => {
+                if let Some(k) = key {
+                    out.push(format!("{pad}{k}:"));
+                }
+                for (k, member) in members {
+                    render(Some(k), member, child, out);
+                }
+            }
+            _ => unreachable!("scalars are handled above"),
+        }
+    }
+
+    fn count(v: &Value) -> usize {
+        v.as_array().map_or(0, Vec::len)
+    }
+    fn text_or<'a>(v: &'a Value, absent: &'a str) -> &'a str {
+        v.as_str().unwrap_or(absent)
+    }
+    /// Native logout confirmation: a fixed-size summary of the frozen
+    /// assessment (counts, account observation, coverage and its warning). The
+    /// complete assessment is returned to the App with the result.
+    pub(crate) fn logout_statement(view: &Value) -> Result<String, String> {
+        let account = &view["account"];
+        let generation = &view["generation"];
+        let text = [
+            "Log out through Codex for this exact native home?".to_owned(),
+            format!(
+                "Home: {} · App session {} · Codex process start {}",
+                text_or(&view["modeHomeClass"], "not reported"),
+                text_or(&generation["appSession"], "not reported"),
+                scalar(&generation["spawnCounter"]).unwrap_or_default()
+            ),
+            format!(
+                "Account: {}; native type {}",
+                scalar(&account["state"]).unwrap_or_default(),
+                scalar(&account["nativeType"]).unwrap_or_default()
+            ),
+            format!("Account read: {}", text_or(&account["readAvailability"], "not reported")),
+            format!("Current report: {}", text_or(&account["currentReport"]["state"], "not reported")),
+            format!("Observed live turns: {}", count(&view["observedLiveTurns"])),
+            format!(
+                "Observed outstanding requests: {}",
+                count(&view["observedOutstandingRequests"])
+            ),
+            format!("Observed active children: {}", count(&view["observedActiveChildren"])),
+            format!(
+                "Known children with unknown activity: {}",
+                count(&view["knownChildActivityUnknown"])
+            ),
+            format!(
+                "Unresolved turn observations: {}",
+                count(&view["coverage"]["turns"]["unresolved"])
+            ),
+            "Coverage of turns, requests and children is not complete.".into(),
+            text_or(&view["warning"], "").to_owned(),
+            format!(
+                "Observed at {}. The complete assessment, with every identity, is returned to the App with the result.",
+                text_or(&view["observedAt"], "not reported")
+            ),
+            "OK sends the logout request once; Cancel sends nothing.".into(),
+        ]
+        .join("\n");
+        bounded("Logout confirmation", text)
+    }
+    /// Native cancellation of a pending sign-in: the safe observation as lines.
+    pub(crate) fn oauth_cancel_statement(safe: &Value) -> Result<String, String> {
+        bounded(
+            "Sign-in cancellation confirmation",
+            format!(
+                "Cancel this original Codex sign-in?\n\n{}\n\nOK sends one cancellation request; Cancel keeps the pending sign-in.",
+                readable(safe)
+            ),
+        )
+    }
+    fn source_lines(label: &str, s: &Value, out: &mut Vec<String>) {
+        out.push(format!("{label}: {}", text_or(&s["displayName"], "name not reported")));
+        out.push(format!(
+            "  Path: {}",
+            native_path_text(&s["nativePath"])
+                .unwrap_or_else(|| text_or(&s["displayPath"], "not reported").to_owned())
+        ));
+        let identity = &s["identityAtSelection"];
+        out.push(format!(
+            "  Content ({}), in full:",
+            text_or(&identity["method"], "method not reported")
+        ));
+        out.push(format!("  {}", text_or(&identity["value"], "not reported")));
+    }
+    /// Native confirmation of a refreshed attachment source: both selections
+    /// with readable paths and full content identities.
+    pub(crate) fn attachment_source_statement(comparison: &Value) -> Result<String, String> {
+        let (old, new) = (&comparison["oldSelection"], &comparison["tentativeSelection"]);
+        let mut t = vec!["Confirm current attachment source".to_owned(), String::new()];
+        source_lines("Original selection", old, &mut t);
+        source_lines("Current source", new, &mut t);
+        t.push(format!(
+            "Content: {}",
+            if old["identityAtSelection"] == new["identityAtSelection"] {
+                "unchanged"
+            } else {
+                "changed"
+            }
+        ));
+        t.push(format!("Standing: {}", text_or(&comparison["standing"], "not reported")));
+        t.push(String::new());
+        t.push("This changes only the selected source. Nothing is sent or registered.".into());
+        bounded("Attachment source confirmation", t.join("\n"))
+    }
+    /// Native confirmation of a request answer: the masked preview as lines.
+    pub(crate) fn request_answer_statement(preview: &Value) -> Result<String, String> {
+        bounded(
+            "Request answer confirmation",
+            format!(
+                "Send this native request answer?\n\n{}\n\nSend answer sends it once; Keep waiting sends nothing.",
+                readable(preview)
+            ),
+        )
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use serde_json::json;
+        #[test]
+        fn operational_dialogs_are_bounded_readable_and_complete_in_kind() {
+            let generation = json!({"appSession":"app-session:0123456789abcdef","home":"home-a","spawnCounter":3});
+            let row = json!({"generation":generation,"threadId":"t","turnId":"u","status":"inProgress","source":"s"});
+            let many = json!((0..200).map(|_| row.clone()).collect::<Vec<_>>());
+            let view = json!({"modeHomeClass":"account","generation":generation,"observedAt":"2026-10-08T00:00:00Z",
+                "account":{"state":"signed in","nativeType":"chatgpt","readAvailability":"typed native account read observed","currentReport":{"state":"native type reported; identity not established"}},
+                "observedLiveTurns":many,"observedOutstandingRequests":many,"observedActiveChildren":[],"knownChildActivityUnknown":many,
+                "coverage":{"turns":{"unresolved":many}},"warning":"None observed is not none."});
+            let text = logout_statement(&view).unwrap();
+            for needle in ["Observed live turns: 200", "Observed active children: 0", "Known children with unknown activity: 200", "None observed is not none.", "Cancel sends nothing", "account", "0123456789ab"] {
+                assert!(text.contains(needle), "{needle} in\n{text}");
+            }
+            assert!(!text.contains('{'), "{text}");
+            let path = |p: &str| json!({"encoding":"unix_bytes","bytes":p.as_bytes()});
+            let old = json!({"displayName":"notes.txt","nativePath":path("/work/notes.txt"),"displayPath":"/work/notes.txt","identityAtSelection":{"method":"sha256","value":"a".repeat(64)}});
+            let mut new = old.clone();
+            new["identityAtSelection"]["value"] = json!("b".repeat(64));
+            let text = attachment_source_statement(&json!({"oldSelection":old,"tentativeSelection":new,"standing":"explicit refresh"})).unwrap();
+            assert!(text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{text}");
+            assert!(!text.contains("bytes") && !text.contains("47,"), "{text}");
+            let safe = json!({"generation":generation,"requestIdentity":7,"phase":"Pending","cancelAvailable":true,"standing":"source observation"});
+            let text = oauth_cancel_statement(&safe).unwrap();
+            assert!(text.contains("cancelAvailable: true") && text.contains("spawnCounter: 3") && !text.contains('{'), "{text}");
+            let preview = json!({"method":"item/tool/requestUserInput","generation":generation,"requestIdentity":9,"answer":{"answers":{"q1":{"answers":["yes"]}}},"actorRef":"R"});
+            let text = request_answer_statement(&preview).unwrap();
+            assert!(text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+            let long = json!({"answer":{"text":"x".repeat(MAX_CHARS)}});
+            assert!(request_answer_statement(&long).unwrap_err().contains("nothing presented"));
+        }
+        #[test]
+        fn bound_refuses_with_cause_and_never_truncates() {
+            let ok = "a\n".repeat(MAX_LINES);
+            assert_eq!(bounded("X", ok.clone()).unwrap(), ok);
+            let long_lines = "a\n".repeat(MAX_LINES + 1);
+            let err = bounded("X", long_lines).unwrap_err();
+            assert!(err.contains("nothing presented") && err.contains(&format!("{}", MAX_LINES + 1)));
+            assert!(bounded("X", "é".repeat(MAX_CHARS)).is_ok(), "characters, not bytes");
+            assert!(bounded("X", "a".repeat(MAX_CHARS + 1)).is_err());
+        }
+        #[test]
+        fn native_paths_are_readable_with_explicit_non_utf8_marker() {
+            let utf8 = json!({"encoding":"unix_bytes","bytes":"/tmp/Prüfung lib".as_bytes()});
+            assert_eq!(native_path_text(&utf8).unwrap(), "/tmp/Prüfung lib");
+            let bad = json!({"encoding":"unix_bytes","bytes":[47,97,0xff,98,0xc3]});
+            let text = native_path_text(&bad).unwrap();
+            assert!(text.starts_with("[path is not valid UTF-8"), "{text}");
+            assert!(text.ends_with("/a\\xffb\\xc3"), "{text}");
+            let wide = json!({"encoding":"windows_utf16","codeUnits":[67,58,0xD800]});
+            let wide = native_path_text(&wide).unwrap();
+            assert!(wide.starts_with("[path is not valid UTF-16") && wide.ends_with("C:\\u{d800}"), "{wide}");
+            assert!(native_path_text(&json!({"bytes":12,"path":"x"})).is_none(), "manifest sizes are not paths");
+            assert!(native_path_text(&json!({"encoding":"unix_bytes","bytes":[300]})).is_none());
+        }
+        #[test]
+        fn readable_shows_every_member_without_json_or_byte_arrays() {
+            let v = json!({"old":{"nativePath":{"encoding":"unix_bytes","bytes":"/a/b.txt".as_bytes()},"identity":{"method":"sha256","value":"ab"}},"list":[1,2],"rows":[{"x":null}],"empty":[]});
+            let text = readable(&v);
+            assert!(!text.contains('{') && !text.contains("47,"), "{text}");
+            for needle in ["old:", "  nativePath: /a/b.txt", "    method: sha256", "list: 1, 2", "rows:", "    x: null", "empty: none"] {
+                assert!(text.contains(needle), "{needle} in\n{text}");
+            }
+        }
+        #[test]
+        fn actor_line_and_choice() {
+            let line = actor_line(&json!({"displayName":"R","osAccount":"r","codexAccount":"c@x","identityVerified":false}));
+            assert_eq!(line, "R · OS account r · Codex account c@x (identity not verified)");
+            assert!(actor_line(&json!({"osAccount":"r"})).starts_with("no name set in the App · OS account r"));
+            assert!(chose(&MessageDialogResult::Custom("Register".into()), "Register"));
+            for other in [MessageDialogResult::Custom("Cancel".into()), MessageDialogResult::Ok, MessageDialogResult::Yes, MessageDialogResult::Cancel] {
+                assert!(!chose(&other, "Register"));
+            }
+            assert_eq!(short("0123456789abcdef"), "0123456789ab");
+            assert_eq!(short("abc"), "abc");
+        }
+    }
+}
+
 impl ActControl {
     pub fn new(workspace: &Path) -> Self {
         ActControl {
@@ -321,16 +683,20 @@ impl ActControl {
             .map(|c| format!("  - {c}"))
             .collect::<Vec<_>>()
             .join("\n");
-        s.selected = Some(alternative.into());
-        s.frozen_offer = Some(o.clone());
-        s.frozen_actor = Some(actor.clone());
-        Ok(format!(
+        let text = format!(
             "Decide (A16)\n\nPackage: {}\nContent identity: {}\nPurpose: {}\nScope: {}\n\nChosen alternative: {} — {}\nConsequences:\n{}\n\nActor: {} (identity not verified)\nAnswers: {}\nNo decline exists for A16; Cancel closes the control.",
             o["subject"]["ref"].as_str().unwrap_or(""),
             o["subject"]["contentIdentity"]["value"].as_str().unwrap_or(""),
             o["purpose"].as_str().unwrap_or(""),
             o["scope"].as_str().unwrap_or(""),
-            alternative, alt["statement"].as_str().unwrap_or(""), cons, who, STANDING))
+            alternative, alt["statement"].as_str().unwrap_or(""), cons, who, STANDING);
+        // AAC §4.1a: all selected text without silent truncation, or refuse
+        // presentation with the cause; nothing is frozen for a refused text.
+        let text = native_statement::bounded("A16 native confirmation", text)?;
+        s.selected = Some(alternative.into());
+        s.frozen_offer = Some(o.clone());
+        s.frozen_actor = Some(actor.clone());
+        Ok(text)
     }
 
     /// AX-04, AX-06, AX-08, then AX-12/AX-13. Returns {state, capture, record?}.
@@ -943,6 +1309,32 @@ mod persistence_tests {
         control.confirmation_text(&id, "ALT-2", &actor).unwrap();
         control.present(&id).unwrap();
         (control, id, actor)
+    }
+    #[test]
+    fn a16_statement_is_bounded_and_an_over_long_one_is_refused_before_presentation() {
+        let root = scratch();
+        let package = root.join("project/decisions/PKG-1.json");
+        let mut p: Value = serde_json::from_slice(&std::fs::read(&package).unwrap()).unwrap();
+        p["alternatives"][1]["consequences"] =
+            json!((0..40).map(|i| format!("invented consequence {i}")).collect::<Vec<_>>());
+        std::fs::write(&package, serde_json::to_vec_pretty(&p).unwrap()).unwrap();
+        let request = crate::recorder::identify_packages(&root).unwrap().remove(0);
+        let mut control = ActControl::new(&root);
+        let offer = control.compose_a16(request["recordId"].as_str().unwrap()).unwrap();
+        let id = offer["offerId"].as_str().unwrap().to_owned();
+        let actor = person(Some("Fixture person"), Some("fixture"));
+        let err = control.confirmation_text(&id, "ALT-2", &actor).unwrap_err();
+        assert!(err.contains("exceeds the readable native confirmation"), "{err}");
+        assert!(control.offers[&id].selected.is_none() && control.offers[&id].frozen_offer.is_none());
+        let refused = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone());
+        assert!(refused.is_err() || refused.unwrap()["recorded"] != true);
+        assert!(control.native_captures.is_empty());
+        // Every consequence of a shorter alternative is shown whole.
+        let text = control.confirmation_text(&id, "ALT-1", &actor).unwrap();
+        assert!(text.lines().count() <= native_statement::MAX_LINES);
+        assert!(text.contains("Stage 2 starts today; any changed supplier fact reopens the affected parts"));
+        assert!(text.contains("Cancel closes the control"));
+        std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn capture_directory_failure_precedes_writer_reservation_then_hot_retry_accounts_delay() {

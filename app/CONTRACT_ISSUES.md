@@ -612,3 +612,59 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
     own copy (`discard_unbased_copy`), but only when the folder still holds
     exactly the copied bytes. The refusal says that the copy was removed.
     Otherwise the draft is kept and the refusal names the folder to remove.
+
+## CI-22 (J6) Readable native confirmations: what the A15 alert shows
+
+Found 2026-10-08 by the J6 TASK of `APP-V4-GROUP-A-20261004`, repairing the
+native journey witness defect D-1 (PR 1113 witness). The A15 alert embedded the
+complete review and offer JSON. It grew taller than the screen, so the person
+could not read the statement or reach the buttons, and pressed Return unseen.
+No Design file was changed. The repair uses only what AAC already permits:
+
+- §6.2 P-2 lists what the native confirmation shows: "the act wording, subject
+  and its identity, scope, purpose, the arrival or 'standing act', and the
+  buttons". It does not require the review itself.
+- §4.2 step 1: "DEL-02-02 shows the review package". §6.2: "The interface may
+  show the offer in the webview too, for reading; only the native confirmation
+  captures."
+- §4.1a (A16): "The host must display all selected text without silent
+  truncation; if the surface cannot do so, it refuses presentation with the
+  cause and captures nothing."
+
+What the code now does:
+
+- **(a) A15 statement.** The alert carries a bounded statement: the wording;
+  each entry's name, origin, disposition, short revision and full revision on
+  its own line, revision method and prior revision; the library, scope,
+  purpose and standing; the review reference and the sha-256 digest of the
+  complete review (`aac-offer-digest/0.1` canonical form); the offer and its
+  short digest; the consequence; the actor with "identity not verified"; and
+  what Register and Cancel do. The App shows the complete review beside the
+  same digest, computed in the webview. Capture still binds the frozen offer
+  (digest checked) and the frozen review (full equality). It now also checks
+  that the review digest equals the one the statement named.
+- **(b) Bound.** Each native statement (A15, A16, file acts, logout, sign-in
+  cancellation, attachment source, request answer) is limited to 30 lines and
+  1500 characters. A longer statement is refused with its cause before
+  presentation, and nothing is captured or sent. This applies §4.1a's rule to
+  every kind. A multi-entry A15 with many entries is therefore refused with
+  the cause; the person registers fewer entries per act. With a library path
+  of about 120 characters, a single draft (with prior and base) fits and two
+  in-place entries fit; a third is refused. The limits are a guess at a
+  readable macOS alert and need the native re-witness.
+- **(c) Default button (not changed).** Register remains the first (default)
+  button, so Return registers. Swapping the slots is unsafe with
+  tauri-plugin-dialog 2.7.2: it maps an unmatched or aborted modal result to
+  the cancel-slot label, so the act must never be in that slot. Making Cancel
+  the default needs a different button layout or dialog facility. This is for
+  the owner to decide.
+
+Proposed AAC clarification (for the AAC owner; not applied):
+
+> §6.2, after "the buttons": "The native confirmation shows a statement the
+> person can read whole with its buttons on screen. Where the subject's
+> reviewed content is too large for that surface (A15), the statement names it
+> by reference and digest and the App shows the complete reviewed content with
+> the same digest before the person opens the control; the capture binds the
+> reviewed content as before. A statement the surface cannot show whole is
+> refused with its cause and nothing is captured (as §4.1a), for every kind."

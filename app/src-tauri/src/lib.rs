@@ -208,7 +208,7 @@ fn logout_home(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value,mo
     if home.class()!=home_class(&mode_home_class)? {return Err("Logout mode differs from its actual source; no other-home fallback".into());}
     state.validate_home_source(&home)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
-    runtime_session::logout_native_home(&home,bootstrap.as_deref(),&generation,|assessment|app.dialog().message(format!("Log out through Codex for this exact native home?\n{}",serde_json::to_string_pretty(assessment).unwrap_or_else(|_|"Assessment unavailable".into()))).title("Native home logout / remove key").buttons(MessageDialogButtons::OkCancel).blocking_show())
+    runtime_session::logout_native_home(&home,bootstrap.as_deref(),&generation,|assessment|confirm_bounded(&app,"Native home logout / remove key",act_control::native_statement::logout_statement(assessment),MessageDialogButtons::OkCancel))
 }
 
 #[tauri::command(async)]
@@ -232,7 +232,7 @@ fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)-
     let home=state.homes.lock().unwrap().for_generation(&generation)?;
     state.validate_home_source(&home)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
-    runtime_session::cancel_native_oauth(&home,&generation,bootstrap.as_deref(),|safe|app.dialog().message(format!("Cancel this original Codex sign-in?\n{}",serde_json::to_string_pretty(safe).unwrap_or_else(|_|"Original safe observation unavailable".into()))).title("Cancel original pending sign-in").buttons(MessageDialogButtons::OkCancel).blocking_show())
+    runtime_session::cancel_native_oauth(&home,&generation,bootstrap.as_deref(),|safe|confirm_bounded(&app,"Cancel original pending sign-in",act_control::native_statement::oauth_cancel_statement(safe),MessageDialogButtons::OkCancel))
 }
 
 #[tauri::command(async)]
@@ -493,9 +493,8 @@ fn reorder_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u
 #[tauri::command(async)]
 fn reconfirm_attachment(app:tauri::AppHandle,state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_ref:String)->Result<Value,String>{
     runtime_session::reconfirm_attachment_source(&state.attachment_selection,&owner_ref,list_revision,&selection_ref,|comparison| {
-        app.dialog().message(format!("Confirm current attachment source\n\n{}\n\nThis changes only the selected source. Nothing is sent or registered.",serde_json::to_string_pretty(comparison).unwrap()))
-            .title("Chirality — confirm current attachment source").kind(MessageDialogKind::Info)
-            .buttons(MessageDialogButtons::OkCancelCustom("Use current source".into(),"Keep original selection".into())).blocking_show()
+        confirm_bounded(&app,"Chirality — confirm current attachment source",act_control::native_statement::attachment_source_statement(comparison),
+            MessageDialogButtons::OkCancelCustom("Use current source".into(),"Keep original selection".into()))
     })
 }
 
@@ -589,10 +588,7 @@ fn answer_native_request(
         runtime_session::answer_preview(&snapshot, &generation, &request_id, &answer, &actor)?;
     let confirmed = app
         .dialog()
-        .message(format!(
-            "Send this native request answer?\n{}",
-            serde_json::to_string_pretty(&preview).map_err(|e| e.to_string())?
-        ))
+        .message(act_control::native_statement::request_answer_statement(&preview)?)
         .title("Chirality — answer native request")
         .kind(MessageDialogKind::Warning)
         .buttons(MessageDialogButtons::OkCancelCustom(
@@ -617,6 +613,14 @@ fn answer_native_request(
     )
 }
 
+/// J6: a native confirmation shows a bounded, readable statement. When the
+/// statement would not fit, the alert says why and nothing is chosen.
+fn confirm_bounded(app:&tauri::AppHandle,title:&str,statement:Result<String,String>,buttons:MessageDialogButtons)->bool{
+    match statement {
+        Ok(text)=>app.dialog().message(text).title(title).kind(MessageDialogKind::Info).buttons(buttons).blocking_show(),
+        Err(cause)=>{app.dialog().message(cause).title(title).kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();false}
+    }
+}
 fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathBuf>,String>{
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
