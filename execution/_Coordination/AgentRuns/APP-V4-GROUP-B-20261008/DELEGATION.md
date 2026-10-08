@@ -147,3 +147,21 @@ examination and standalone manifests stay untouched; CI-26 remains unresolved.
 Independent separate-session review follows a frozen candidate. B9 is not
 included: current unresolved terms obligation is already explicit, and adding
 a duplicate record contributes little to this bounded implementation.
+
+B3 selected the bounded review/change-impact path: canonical record validation
+and explicit selected-result joins. Author 809a7bfa850c7e6f6e25b48b66521dec8e98507a
+reports 15 tests. Opaque aliases are tooling inputs; other references remain
+unresolved, with no complete affectedness, actual review/repair or admission
+claim. N-1 forms and DC-R/DC-N runner/tool checks remain future B3 work.
+
+Existing separate TASK first_slice_review was activated on its own new
+codex/app-v4-group-b-admission-review branch at 45796bc. It is reviewing code
+while author records exact-candidate evidence; actual Codex harness mechanism
+is followup_task, requested model still gpt-6-astra/low. No family-diversity
+claim. Reviewer may probe offline but cannot edit implementation.
+
+Author final 15594c287d80 returns repair 6acb23613a90 after V3 found the generic
+check/rules import collision. Separate reviewer confirmed original combined
+discovery now 51/0 and both import orders. Manager independently ran 51/0 on
+integration. Original evidence remains historical; F1-repair binds repaired
+module names/bytes and CLI outputs. Whole-candidate docs review pending.
