@@ -1,3 +1,4 @@
+import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
@@ -540,6 +541,16 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
 }
 
 export function App() {
+  const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
+  const readRoutes = async () => {
+    setRouteRead(s => routeReadTransition(s, {type: "start"}));
+    try {
+      const result = await invoke<RouteView>("read_connector_routes");
+      setRouteRead(s => routeReadTransition(s, {type: "success", view: result}));
+    } catch (error) {
+      setRouteRead(s => routeReadTransition(s, {type: "failure", error: String(error)}));
+    }
+  };
   const [host, setHost] = useState<Json>(null);
   const [view, setView] = useState<Json>(null);
   const [offer, setOffer] = useState<Json>(null);
@@ -615,6 +626,7 @@ export function App() {
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
       <NativeConfirmationContent />
+      <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
       <FileActPanel command={(name,args)=>invoke(name,args)} />
 
       <WorkflowRootPanel data={host?.workflowRoot} host={host} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />

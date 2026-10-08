@@ -1,0 +1,15 @@
+# C3-S1/U1 bounded integration account
+
+WORKING_ITEMS `/root/group_c_successor` reviewed and integrated source walk `e24bd8a5a2` unchanged as `ae061bd`, and independent source review `b6dfaf7bc3` as `4b392582ba`. The manager read the question, source/fact mappings, recorded-state gaps and duty boundaries, checked source-owner and independent returns, and selected the bounded C3-U-READ-01 definition. This is the actual manager review/integration account; it does not rewrite the historical fixture's outstanding duty or perform a person act.
+
+Backend/UI author `4eb1c26314` integrated unchanged as `9d8baf3da6` against receiving main `5d562a1f11`. Independent review identified a visible precision overclaim and recorded NOT READY at `814c5eadd9`, integrated `0f6e8b7d1a`. Author repair `1951c80a7a` integrated unchanged as `e71ae8b9da`; independent repaired READY `b7b78c1905` integrated `8ac7250227`. Numeric normalization still exists in the host JSON parser and is now disclosed; it was not repaired into arbitrary precision. Original findings remain intact.
+
+Actual checks: independently verified three committed source blobs, eleven unique anchors and four simulated trigger variants; 35 backend connector tests; frontend TypeScript/Vite build; repaired full npm entrypoint 13 passed and one explicit supplier-handshake skip, including seven connector render/state tests. The unchanged backend's earlier passing tests remain applicable. No native App/IPC/source-selection witness, provider act, or source reconstruction production is established by these tests.
+
+During integration the manager raised a mistaken missing-test-script concern using a pre-integration package snapshot. The author challenged it against exact bytes; manager verified both author and integrated package include all new tests and withdrew the concern. No test repair was needed and no stale observation is used as evidence.
+
+PR: https://github.com/sgttomas/chirality/pull/1140 . Final documentation/graph backcheck and required CI remain the merge gate; Git/PR history establishes the actual merge. Receipt `9485943216` for prior PR #1137 is included here, not published alone. Group B CI-26 contract sections survive the receiving merge; this slice changes only CI-29's prior merge disposition. Shared lib declarations are minimal; current-base integration is checked before merge.
+
+Next production obligation C3-S2 remains explicit in the current graph: a separately reviewed App-native source-selection/read/revision/anchor producer and point-approved actual witness. The manual walk and saved-account inspection do not complete C3 or Group C. C2 OI-022, C4 OI-023/OI-026, C5 activation, SEAL-2 and external owner boundaries remain unchanged. No MEMORY write, download, credential or human/native act was performed.
+
+Receiving Host PR #1139 merged as `78194a8d78` and integrated cleanly as `92621df28d`; its additive lib declarations and C3 command are both retained. This later combined head requires affected tests and exact-head backcheck before final CI/merge; earlier reviewed candidate identities remain historical.
