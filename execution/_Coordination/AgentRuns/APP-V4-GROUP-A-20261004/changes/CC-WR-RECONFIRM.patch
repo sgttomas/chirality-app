@@ -1,0 +1,620 @@
+--- a/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md
++++ b/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md
+@@ -26,6 +26,7 @@
+ | F-E2 (design-pass-3 citation check; in place, no version step; R19-7) | §8's receivers: DEL-02-04 is removed from `library_entry` and `selection_record`. R19-7 dropped the row DEL-02-04 → DEL-02-02 (R17-8) and DEL-02-04 composes role guidance only (§1; §7's DEL-02-04 row: nothing flows for workflows; ROLE-v0.2 §7.1, C-6 withdrawn). The schema's `selection_record` description still names DEL-02-04 (workflow supply, R17-8); it is outside F-E2's write fence and is returned (F/F-E2.md). No record kind, field, rule or identifier changes | §8 |
+ | RV21 (repairs from V21; in place, no version step) | **R21-3 (V21-A M-1, item 6):** RB-4a's stale sentence is replaced: RS-v0.9 admits both `draft:` and `entry:` and AAC-v0.2 (RV21) adopts this file's `a15_multi_descriptor` as one descriptor per act, with the plural wording; ME-3 cites it. **R21-4 (V21-B m-4):** the supply check reads with `thread/items/list {threadId, turnId}` (HOSTING-v0.9 §4.4 "Recovery reads"), following its pages, not `thread/read {includeTurns: true}`; *unreadable* now means a failed read or page. **V21-A MINOR 13:** §7's DEL-01-03 row follows R18-1 C-05 (only the plan-mode element needs the experimental opt-in); §8's stale paragraph on the RS-v0.8 form is rewritten. **V21-B m-9 (F-E2 §4.3 row 7; in this fence):** the schema's `selection_record` description no longer names DEL-02-04 (R19-7). Prototype: P-50a new, P-51/P-52 read pages; 99 checks | RB-4a; §4.7 ME-3; §7; §8; §15 U-WR-14; §16.4; §16.6 SC-3; §16.7 RN-5; §13; schema descriptions (`supply_check`, `selection_record`); `prototype/wrproto.py` |
+ | C0 (closeout; in place, no version step) | **R21-5 (V21b-A N-2):** TT-3's pre-fill now attaches the draft's `WORKFLOW.md` as a text element, following NIR-v0.2 §6 AT-8 (other text files AT-9, other files named AT-10); once sent it is the person's own attachment: no run, no workflow supply, no run-start text. The earlier "a message naming the draft's path and content identity" is withdrawn. Prototype rerun 2026-10-02 (no change needed: it models the trial pointer, TT-4, not the pre-fill): `wrproto.py` 99 checks, 99 passed (`closeout/C0.md`) | §4.2 TT-3 |
++| CC-WR-RECONFIRM (named change; in place, no version step; owner decision "A15 re-confirmation now (Recommended)", 2026-10-07, run `APP-V4-GROUP-A-20261004` `OWNER_DECISIONS.md`; change record `changes/CC-WR-RECONFIRM.md` of that run) | After the App process that held a revision's registration result is gone (for example after a relaunch), a new genuine A15 may **re-confirm** a draft whose reviewed bytes equal registered revision ‹k›: new disposition DS-8; no new revision, sequence or identity; ledger outcome *re-confirmed* citing the new A15 and ‹k›'s registered line; the result is selectable in that process only. DS-4 stands while ‹k› is selectable in this process; K-6 (SP-3, DS-3) is decided first, unchanged (SP-4a). Trust rests on the new act, never on a replay of the earlier act or receipt; SEAL-2 stays deferred; CI-10 and I3-CUST stay open. Answers `app/CONTRACT_ISSUES.md` CI-21 (b) | §4.1 SP-4 (DS-4, DS-8), SP-4a; §4.3 RB-3, RB-4, RB-8; §4.6 note; new §4.8 RC-1…RC-10; §5.1–§5.4; §6 SQ-R R-3, SQ-G, SQ-X X-2; §7; §8; §9; §12 WR-VC-16…WR-VC-20; §15 U-WR-21…U-WR-23; schema (`reconfirmed_revision`; `registration_disposition`, `draft_transition`, `a15_descriptor`, `library_entry`) |
+ - **Serves:** OUT-001, OUT-002 (design of the CODE), OUT-003 (fixture design and a design prototype), OUT-004 (receiving and reuse account, §7, §10); REQ-001…REQ-008; AC-001…AC-008 by designed verification (§12); VER-001…VER-006 (cases designed; library-side parts run on the prototype only).
+ - **Labels** (as R9 and R17): **SETTLED** (an accepted text or owner decision says it), **DERIVED** (follows from those), **INTEGRATION** (an integrator ruling, open to the owner), **PROPOSED** (a design structure of this file, decided by no one). Supplier facts carry `observed`, `observed-in-generated-types` or `inference` (R17-13).
+ - **Basis (binding):** the accepted basis as amended by SCA-V4-001 and SCA-V4-002; DAG-003 (`_DAG/DAG-003/HANDOFF_STATE.md` sha256 `56d849b6d078d8d5…`; held arcs non-gating); DECISION-K3 as revised (`OWNER_DECISIONS.md` sha256 `9d18c40dd7d894dc…`): K-6, K-7 (owner's alternative), K-8 bind this file; DECISION-K1 K1-1…K1-4; R1–R16; R17-1…R17-16 (`R17_RESOLUTIONS.md` sha256 `b0af81bcbad9bc52…`); DECISION-3 (host joins deferred).
+@@ -131,12 +132,15 @@
+ | **DS-1 new workflow** | The target slot has no registered revision and no unrecorded content | First revision; prior revision none | "Registers a new workflow ‹origin›:‹name›" |
+ | **DS-2 new revision** | The slot has registered revisions and SP-3 holds | Next revision; prior revision = the slot's **latest** revision at review | "Registers revision ‹n+1›; earlier revisions are kept" |
+ | **DS-3 refused: name taken** | The slot is not empty and SP-3 fails (no base, a base elsewhere, or lineage not established) | Nothing registered; library unchanged | "A workflow named ‹name› already exists in this library and this draft was not made from it. Choose a new name for the draft." (K-6) |
+-| **DS-4 refused: identical content** | The reviewed content equals a revision already registered in the slot | Nothing registered | "Identical to revision ‹k›; select it instead" |
++| **DS-4 refused: identical content** | The reviewed content equals a revision already registered in the slot, and that revision is selectable in this App process (§4.8 RC-2; CC-WR-RECONFIRM) | Nothing registered | "Identical to revision ‹k›; select it instead" |
+ | **DS-5 refused: draft not valid** | A refusing hygiene finding (HY-1…HY-5, HY-7) | Nothing registered | The findings |
+ | **DS-6 refused: changed since review** | The live draft changed while the snapshot was taken | Nothing registered | "Review again" |
+ | **DS-7 in place** | The slot holds content with no registration record (LS-2) and the draft is identical to it | First revision; the slot's bytes unchanged | "Registers the content already in this slot" |
+ | **refused: slot moved on** | Between review and publication another revision was registered in the slot (§6 G-1) | Not completed; the A15 stands, recorded as not effective | "Another revision was registered after this review; review again" |
++| **DS-8 re-confirmation** (CC-WR-RECONFIRM) | The reviewed content equals revision ‹k› registered in the slot, and ‹k› is **not** selectable in this App process (§4.8 RC-1, RC-2) | No new revision; on a new A15, revision ‹k› is re-confirmed for use in this App process (§4.8) | "Identical to revision ‹k›, registered earlier (not verified in this session). Re-confirm revision ‹k› for use in this App session; no new revision is registered" |
+ 
++- **SP-4a Order (CC-WR-RECONFIRM; PROPOSED).** A review decides DS-5 and DS-6 first. For a slot with registered revisions it then applies SP-3, unchanged: when SP-3 fails the disposition is DS-3 (K-6), whatever the content. Only then is identical content decided (DS-4, or DS-8 per §4.8), and otherwise DS-2. For a slot with no registered revision, DS-1 and DS-7 apply as before. This keeps K-6's refusal of a same-name draft with no such origin for identical content too (U-WR-23).
++
+ - **SP-5 (PROPOSED).** Every review also lists the same name in **other** libraries and origins, each with its holding library and standing (C-1). This is a notice ("shadows bundled create-workflow"), not a refusal: a selection holds a full tuple, so a new same-name entry rebinds nothing (C-2).
+ - **SP-6 (PROPOSED; R17-11).** A new revision's derived-from is its **draft base** (none when there is no base). The prior-revision link is separate: it is the slot's latest revision at review, recorded in the A15 relations and the ledger. For a refinement made from the latest revision the two name the same tuple; for a stale base or a round trip they differ, and both are shown.
+ - **SP-7 (PROPOSED).** A draft made from an earlier revision than the slot's latest (a stale base) may still register as DS-2. The review states "made from revision ‹i›; the latest is revision ‹j›; changes in ‹j› are not in this draft" and shows the difference against both. Nothing is lost, because ‹j› stays.
+@@ -155,13 +159,13 @@
+ 
+ - **RB-1 Snapshot.** Opening a review copies the draft's regular files into staging, computes the content identity of the copy, recomputes the live draft's identity after copying, and compares both with the identity shown in the draft list. Any difference: DS-6, "the draft changed while it was read; review again". (App v3 made the same check; §10.)
+ - **RB-2 Review package** (what the review view shows; DEL-01-04 presents it, §7): the target slot and disposition (SP-4) with its message; the reviewed content identity and method; the file list with per-file sizes and digests; `WORKFLOW.md`; the declared part's reading with its FB findings (WD §3.7), shown as information; hygiene findings; the difference against the prior revision and, when it differs, against the draft base; lineage; the same name elsewhere (SP-5); and the sentence "Registering makes this revision available in ‹library›. It is not a check that the workflow can run here." A compatibility report (EXEC CK-1) may be shown beside it, labelled as a check of this environment (REQ-005).
+-- **RB-3 Freshness.** The review stays current while (a) the live draft's content identity equals the snapshot's and (b) the slot's latest revision is still the prior revision bound (or the slot is still empty). The workspace watches both. When either fails it withdraws the A15 descriptor, the act control stops offering it, and the draft shows "changed since review — review again" (K-8).
+-- **RB-4 A15 descriptor** (`a15_descriptor`), handed to the act control for a registrable disposition (DS-1, DS-2, DS-7): act kind A15; wording "register workflow revision"; subject = the target tuple with the revision (ID-1); bound content = the snapshot's content identity (equal to the subject's revision, ID-2; a reader check); relations {reviewed draft (draft key and content identity), prior revision (tuple or none), derived-from (tuple or none)}; disposition; scope = the library; purpose "make it available in the project library" or "make it available in the user library" (ACT's single "in the project" wording does not fit the user library; join J-15); review reference; freshness values; and the agent's A8 request record, where one was recorded (RS R16).
++- **RB-3 Freshness.** The review stays current while (a) the live draft's content identity equals the snapshot's and (b) the slot's latest revision is still the prior revision bound (or the slot is still empty). The workspace watches both. When either fails it withdraws the A15 descriptor, the act control stops offering it, and the draft shows "changed since review — review again" (K-8). A DS-8 review has two more conditions (§4.8 RC-5; CC-WR-RECONFIRM).
++- **RB-4 A15 descriptor** (`a15_descriptor`), handed to the act control for a registrable disposition (DS-1, DS-2, DS-7): act kind A15; wording "register workflow revision"; subject = the target tuple with the revision (ID-1); bound content = the snapshot's content identity (equal to the subject's revision, ID-2; a reader check); relations {reviewed draft (draft key and content identity), prior revision (tuple or none), derived-from (tuple or none)}; disposition; scope = the library; purpose "make it available in the project library" or "make it available in the user library" (ACT's single "in the project" wording does not fit the user library; join J-15); review reference; freshness values; and the agent's A8 request record, where one was recorded (RS R16). For DS-8 the descriptor takes the re-confirmation form of §4.8 RC-4 (CC-WR-RECONFIRM): its own wording and purpose, subject the registered revision ‹k›, and `reconfirms`.
+ - **RB-4a Persisted form (R18-1 C-01).** The A15 record itself is RS's: `relations.reviewedDraft` = {`draft`: the ID-3 string, `content`: the reviewed content identity} and `relations.priorRevision` = the prior revision as RS's `workflowTuple` (camelCase), or null for a new workflow or an in-place registration. WR's descriptor keeps its snake_case object; the act control's writer maps it (WD §3.6's one-to-one spelling). WD's derived-from stays in the subject tuple and is not an act relation (C-21). For a multi-entry act (§4.7) RS-v0.9 carries `relations.registeredEntries`, one {subject, reviewedDraft, priorRevision} per entry in the order of `boundSubject`; WR writes it so. RS-v0.9's `reviewedDraft.draft` pattern, `^(draft|entry):(project|user):[^@]+@.+$`, admits both ID-3 forms, and DEL-01-04's act control (AAC-v0.2 §4.2, schemas 0.3, RV21) takes this file's descriptors as they are, one per act, with `entry:` strings and the plural wording (R21-3; its prototype check K-17 runs this file's two descriptor examples through the offer and the capture into RS's writer).
+ - **RB-5 Capture (DEL-01-04).** The act control captures A15 only from the person's native interface event (R17-5; CAP-4). The agent may ask the person to register (A8; K1-1); an answer to a supplier user-input or elicitation request is never A15 (CAP-6); a chat statement is not either (CAP-7). The control records the person as the App observes them, "identity not verified" (K1-4).
+ - **RB-6 Publication uses the snapshot.** The registration writer publishes the snapshot's bytes, never the live draft's, after re-checking the slot (G-1). The bytes registered are therefore the bytes reviewed, whatever happens to the draft afterwards.
+ - **RB-7 Review is not an act.** Showing a review is an App presentation, recorded as a `review shown` transition. It is never recorded as a human act (ACT §2.1: "a draft's review is not A15"). REQ-002's "the person reviews the identified content" is evidenced by the A15's binding to the content the review showed (S1-C §A.4 item 5, option (a); INTEGRATION), not by a separate act kind.
+-- **RB-8 One act, the revisions it names (PROPOSED; v0.2 widened for L-4).** An A15 completes at most the registrations its descriptor names: one for an `a15_descriptor`, one per entry for an `a15_multi_descriptor` (§4.7). An act whose registration did not complete is recorded as not effective and is never reused for other content or a later attempt (FX-56 (c); VER-002). The only continuation is §6 SQ-X, which finishes the same attempt after an interruption when nothing has changed.
++- **RB-8 One act, the revisions it names (PROPOSED; v0.2 widened for L-4).** An A15 completes at most the registrations its descriptor names: one for an `a15_descriptor`, one per entry for an `a15_multi_descriptor` (§4.7). An act whose registration did not complete is recorded as not effective and is never reused for other content or a later attempt (FX-56 (c); VER-002). The only continuation is §6 SQ-X, which finishes the same attempt after an interruption when nothing has changed, and never a re-confirmation (§4.8 RC-7). A re-confirmation (§4.8; CC-WR-RECONFIRM) is one such attempt: its A15 completes at most the re-confirmation of the one revision it names.
+ 
+ ### 4.4 Selection (WD C-1…C-6; U-10)
+ 
+@@ -200,6 +204,8 @@
+ 
+ LS-2's "not runnable" follows K-7's "only registered revisions run". **Settled by DECISION-L L-4 A as clarified:** shipped workflows are registered by the release and are not affected (LS-5); entries byte-equal to a shipped revision are recognized (LS-8); the rest are registered in place, several per act allowed (§4.7). U-WR-4 is closed.
+ 
++**LS-1 after a relaunch (CC-WR-RECONFIRM; INTEGRATION).** LS-1 is read from the ledger, the A15 record and the bytes, and is shown as read. While SEAL-2 is deferred, a revision is selectable only from a registration or re-confirmation result held in this App process (§4.8 RC-2). After a relaunch an LS-1 revision is listed "registered — re-confirm to use in this App session"; a draft with its bytes that SP-3 admits (for example the registered draft left unchanged, §5.1) reviews as DS-8. The standing value stays *registered*.
++
+ ### 4.7 Registering several library entries in one act (v0.2; L-4 A; PROPOSED)
+ 
+ - **ME-1.** **Review library entries** lists the LS-2 entries of one library. The person picks two or more; each must pass HY-1…HY-5, HY-7 (refusing findings exclude the entry, named). An entry that is LS-8 is not offered (it already runs).
+@@ -209,6 +215,31 @@
+ - **ME-5 Per-entry publication.** After capture, each entry goes through G-1 (still the bound bytes and still unregistered), G-2/G-3 from its snapshot, and G-4: a `library_entry` *registered* (disposition *in place*, sequence 1, `reviewed_entry`) or *not completed* with its reason, every line citing the one A15. An entry changed between capture and publication is *not completed* and needs its own review; the others register. The published copy is left as it is (it equals the registered bytes).
+ - **ME-6.** The A15 is never extended to entries it did not list, and an entry's not-completed line is never completed later by the same act (RB-8).
+ 
++### 4.8 Re-confirming a registered revision for use (CC-WR-RECONFIRM; PROPOSED)
++
++The owner chose **"A15 re-confirmation now (Recommended)"** on 2026-10-07 (run `APP-V4-GROUP-A-20261004`, `OWNER_DECISIONS.md`, "Rerunning an unchanged workflow after relaunch"): a new genuine A15 may re-confirm identical bytes after the original in-process registration is gone; trust rests on the new act, not on a replay; SEAL-2 stays deferred. That choice is SETTLED; the design below is PROPOSED. It answers `app/CONTRACT_ISSUES.md` CI-21 (b).
++
++- **RC-1 When it is offered.** A review (SQ-R) of a **draft** has disposition **DS-8 re-confirmation** when SP-3 holds for the slot (SP-4a), the reviewed content identity equals the revision value of a *registered* ledger line ‹k› of the target slot, and ‹k› is **not selectable in this App process** (RC-2). While ‹k› is selectable in this process, DS-4 stands ("Identical to revision ‹k›; select it instead"). ‹k› may be any registered revision of the slot, not only the latest (SP-1). One draft per act, through an `a15_descriptor`; a library entry reviewed in place (§4.7) and the listing itself offer no re-confirmation (U-WR-21).
++- **RC-2 Selectable in this process (INTEGRATION: the owner's SEAL-2 deferral of 2026-10-05; AAC §4.4, §5.2a; `I2-SELECTION-AUTHORITY-ROUTE.md`).** A registered revision is selectable (SL-1, TT-1) in an App process only while the App holds, in that process, the result of its registration (G-4) or of its re-confirmation (G-4R), whose A15 the act control captured in that process (AAC §4.2). The App holds that result in memory. It ends with the process and is never rebuilt from the ledger, the act log, a capture or any other record read from disk. LS-1 is still read and shown (§4.6), but while SEAL-2 is deferred it gives no selection after a relaunch. If a custody mechanism that establishes native capture origin across a relaunch is adopted later (SEAL-2 or another; AAC U-AAC-3; RS U-32), a revision whose standing it verifies counts as selectable and DS-4 applies; re-confirmation stays the route whenever that verification is absent or fails.
++- **RC-3 Same revision, no new identity.** A re-confirmation registers nothing new: no tuple, revision value, sequence, store folder or published copy. Its subject is ‹k›'s tuple exactly as ‹k›'s registered ledger line records it, derived-from included. The revision value is the content identity of the package's files, and the reviewed bytes are ‹k›'s, so a "new revision" would carry ‹k›'s identity a second time (ID-1, ID-2; §2.1 "identity is the revision value"). A slot holds a series of distinct revisions, never overwritten (SP-1), which DS-4 already protects. The selection, the run and their records then cite ‹k› exactly as after the original registration (SL-1, SL-2; K-6 "every run cites the revision it used"; EXEC A-1, §6.1 *selected*, *resolved*; RS R2), so no consumer of selection or revision identity sees a change. A recorded draft base is shown in the review and does not change ‹k›'s tuple.
++- **RC-4 The act.** A genuine A15 at DEL-01-04's act control, captured only from the person's native interface event (K-8; RB-5), composed from one `a15_descriptor` with: disposition *re-confirmation*; wording "re-confirm workflow revision for use"; subject ‹k›'s tuple; bound content the reviewed content identity, equal to ‹k›'s revision (ID-2); relations {reviewed draft: this draft, ID-3 `draft:` form; prior revision: ‹k›'s own prior revision as its registered line records it, null for a first revision; derived-from: ‹k›'s}; `reconfirms` {‹k›'s tuple, the registered line's `ledger_seq` and `sequence`}; purpose "make it available again in this App session from the project library" (or "… from the user library"); scope, review reference and freshness as RB-4. The prior revision is ‹k›'s own, not the slot's latest, because RS reads it as "the revision this one follows in its slot"; the slot's latest stays in `freshness.slot_latest`. The control's statement names ‹k› and says that no new revision is registered, in substance: "Re-confirm revision ‹k› of ‹origin›:‹name› for use in this App session. This registers no new revision." (the statement's placement is DEL-01-04's).
++- **RC-5 Freshness.** RB-3 (a) and (b) apply unchanged. A DS-8 descriptor is also current only while (c) the registered line ‹ledger_seq› still reads with ‹k›'s tuple and (d) ‹k› has not become selectable in this process. When any condition fails the descriptor is withdrawn and the act control captures nothing (AAC AX-06).
++- **RC-6 Re-confirmation sequence** (SQ-G's steps, reused), after the act control reports a capture naming the descriptor:
++
++| Step | Action | Failure · record · next |
++|---|---|---|
++| G-0 | As SQ-G G-0 | As G-0: nothing happens |
++| G-1R | Under the ledger lock, held to G-4R: the slot's latest is still the one bound; the registered line ‹ledger_seq› still reads with ‹k›'s tuple; ‹k› is still not selectable in this process | Slot moved on → *not completed* "slot moved on"; line changed or missing → *not completed* "registered line ‹ledger_seq› no longer reads as reviewed"; ‹k› became selectable → *not completed* "revision ‹k› already selectable in this App session"; each citing the A15 · review again, or select ‹k›. Ledger unreadable or malformed → the attempt stays pending with the exact cause |
++| G-2R, G-3R | ‹k›'s store folder recomputes to ‹k› | Recomputes → continue. Absent → G-2 and G-3 from the snapshot (create-if-absent, copy, recompute). Other bytes → *not completed* "store conflict" |
++| G-4R | Under the same lock, append `library_entry` *re-confirmed*: ‹k›'s identity, sequence, prior revision and store path; disposition *re-confirmation*; `reconfirms`; the reviewed draft; the new A15 record and capture-evidence references | **Commit point.** As G-4: a lock held by another writer waits; an uncertain write keeps the intended line and rereads it without appending a duplicate; nothing is selectable until the line is durable |
++| G-5 | Does not apply: a re-confirmation publishes no copy | A stale published copy is X-3's |
++| G-6R | Transition *re-confirmed* with `a15_record` and `revision` (‹k›); DEL-01-04 informed; the App records ‹k› as the draft's base; the App holds the result, so ‹k› is selectable in this process (RC-2) | — |
++
++- **RC-7 Failure behaviour.** Bytes changed between review and act: the act control captures nothing (AAC AX-06; K-8); review again. The person closes or dismisses the control: nothing is captured, the attempt is *withdrawn* and nothing is inferred (AAC §4.2 step 3; A15 has no decline). The A15 record write fails: AAC §4.2 step 6 (a late write from the capture kept in this process); G-0 waits for the capture report. A failure at G-1R, G-2R or G-3R: *not completed* citing the A15; the act stands and had no effect (AAC AK-f). The process is lost after capture and before G-4R: at relaunch SQ-X writes *not completed* "process lost before re-confirmation committed", citing the A15. X-2 never completes a re-confirmation, because its only effect, selectability in that process, ended with the process. A re-confirmation that did not complete is never completed later by the same act (RB-8); re-confirming again needs a new review and a new A15.
++- **RC-8 What it is not.** It is not cold replay. The earlier registered line, its act reference and its capture are read only as disclosed facts, labelled "registered earlier; not verified in this session", and are never authority. Nothing makes the earlier act, its capture or any receipt trusted, now or after a later relaunch, and a *re-confirmed* line read from disk after a relaunch is itself an ordinary record read cold (RC-2). It does not satisfy CI-10 or I3-CUST (trustworthy persistent replay stays required), does not change SEAL-2 (deferred) or AAC §4.4 and §5.2a, does not carry an earlier A15 to any content (RB-8; RS HA-10 "an earlier A15 never carries over"), and is not acceptance, checking, approval, reliance or a compatibility check (§9).
++- **RC-9 Ledger series.** The *registered* lines of a slot alone form its series (SP-1; G-4): sequence 1, 2, … in ledger order, each naming the previous registered revision as its prior, no revision twice. A *re-confirmed* line, and a *not completed* line with disposition *re-confirmation*, add nothing to the series and never change the slot's latest (SP-4, RB-3, G-1). Reader checks on a *re-confirmed* line: `reconfirms.ledger_seq` names an earlier *registered* line of the same slot; `identity`, `reconfirms.identity`, `sequence`, `prior_revision` and `store_path` equal that line's; `reviewed_draft.content` equals the revision; the A15 it cites (`act.record_id`) is cited by no other ledger line (one single-descriptor act, one effect; RB-8). On a *not completed* re-confirmation line, `reconfirms` names an earlier *registered* line of the slot. Several *re-confirmed* lines may cite one registered line. A breach makes the ledger ambiguous at that line, which is named, as for other series breaks.
++- **RC-10 Review package.** For DS-8 the review (RB-2) shows ‹k›'s sequence, the ledger's registration time and act reference labelled "registered earlier; not verified in this session", the slot's latest revision when it is not ‹k› (as SP-7), the draft base, and the sentence "Re-confirming makes revision ‹k› available in this App session. It registers no new revision, and it is not a check that the workflow can run here."
++
+ ## 5. States (one table per stateful thing this file owns)
+ 
+ ### 5.1 Draft (per draft folder)
+@@ -224,7 +255,10 @@
+ | *under review* | Review closed without an act | *draft* | none (no act, nothing inferred) |
+ | *under review* | A15 captured and registration committed | *registered, unchanged since*; the App records the new revision as the draft's base | *registered* with `a15_record` and `revision` (C-02); `library_entry` *registered* |
+ | *under review* | A15 captured; registration not completed | *draft* | *registration not completed* with `a15_record` (C-02); `library_entry` *not completed* |
++| *under review* (DS-8; CC-WR-RECONFIRM) | A15 captured and re-confirmation committed (G-4R) | *registered, unchanged since*; the App records ‹k› as the draft's base | *re-confirmed* with `a15_record` and `revision` = ‹k›; `library_entry` *re-confirmed* |
++| *under review* (DS-8) | A15 captured; re-confirmation not completed (§4.8 RC-7) | *draft* | *registration not completed* with `a15_record` and disposition *re-confirmation*; `library_entry` *not completed*, disposition *re-confirmation* |
+ | *registered, unchanged since* | Files change | *draft* (a refinement of that revision) | *changed* |
++| *registered, unchanged since* | Review opened (CC-WR-RECONFIRM) | *under review* (DS-8), or unchanged on a refusal (DS-3, DS-4) | as for *draft* |
+ | any | Folder removed | *removed* | *removed*; the App's base pointer is dropped |
+ 
+ ### 5.2 Registration attempt (per review)
+@@ -243,6 +277,8 @@
+ | *stored* (relaunch) | SQ-X: slot moved on | *not completed* | as above; the store folder is left, standing "not registered" |
+ | *committed* | G-5 published copy written, or not | *committed* (a failed copy is repaired at the next reconciliation; not a registration failure) | — |
+ 
++A re-confirmation attempt (§4.8; CC-WR-RECONFIRM) has the same states, with G-1R…G-4R in place of G-1…G-4 and no G-5. At relaunch a *stored* re-confirmation attempt ends *not completed* (RC-7), never *committed*.
++
+ ### 5.3 Library entry (per revision) and published copy
+ 
+ | From | Event | To |
+@@ -251,6 +287,7 @@
+ | *registered* | At read, the A15 record is missing or the store bytes do not recompute | *registration record incomplete* (LS-4); not runnable |
+ | *registration record incomplete* | The record or bytes are restored | *registered* |
+ | *registered* | Nothing removes it in this design (no withdrawal; U-WR-6) | — |
++| *registered* | A re-confirmation of this revision commits (G-4R; CC-WR-RECONFIRM) | *registered*, unchanged; a *re-confirmed* line cites it (§4.8 RC-9) |
+ | Published copy equals the latest revision | Files in it change | *library copy changed outside registration* (LS-3) |
+ | *library copy changed outside registration* | A new revision is published (G-5) | The changed copy is moved to the kept-aside location; the new latest is published |
+ | Slot with content and no registration | — | *present without registration record* (LS-2) → DS-7 → *registered* |
+@@ -261,6 +298,7 @@
+ |---|---|---|
+ | none | The person selects a tuple with revision whose standing is LS-1, LS-5 or LS-6 | *selected* (pinned) |
+ | none | The person tries to select a draft or LS-2/LS-3/LS-4 content | none; refusal with standing and "Review to register" |
++| none | The person tries to select an LS-1 revision that is not selectable in this process (§4.8 RC-2; CC-WR-RECONFIRM) | none; "registered — re-confirm to use in this App session", with Review where a draft holds its bytes (DS-8) |
+ | *selected* | A newer revision is registered in the slot | *selected*, "newer revision available" shown |
+ | *selected* | The person selects another tuple | *selected* (a new event that cites the one it replaces) |
+ | *selected* (its run ended) | The person selects the next workflow, or confirms an agent's proposal (R19-2) | *selected* for the next run, with `prior_run` (SL-7); the run starts by §16 |
+@@ -298,7 +336,7 @@
+ |---|---|---|
+ | R-1 | Hygiene; refusing finding → DS-5 | `registration_disposition` refused · fix |
+ | R-2 | Snapshot and the two recomputations (RB-1) | Mismatch → DS-6 · review again |
+-| R-3 | Disposition (SP-4), lineage, same name elsewhere | DS-3 / DS-4 · as the message says |
++| R-3 | Disposition (SP-4, in SP-4a's order), lineage, same name elsewhere | DS-3 / DS-4 · as the message says. DS-8 · re-confirmation is offered (§4.8; CC-WR-RECONFIRM) |
+ | R-4 | Review package shown (RB-2); A15 descriptor handed to the act control | The act control is not available (not built) · the review shows "registration control not available"; nothing is registered (EXEC CH-23 analogue) |
+ | R-5 | Freshness watched (RB-3) | Stale → descriptor withdrawn · review again |
+ 
+@@ -316,6 +354,8 @@
+ 
+ The A15 record itself is written by the act control's writer at capture (ACT LC-2 → LC-3), before G-0. A registration that does not complete therefore leaves a true record of the person's act together with a ledger line saying it had no effect, and why.
+ 
++**Re-confirmation (CC-WR-RECONFIRM).** A capture of a DS-8 descriptor runs G-0, G-1R…G-4R and G-6R (§4.8 RC-6) in place of G-1…G-6.
++
+ **SQ-S — select and hand off a run.**
+ 
+ | Step | Action | Failure · next |
+@@ -340,7 +380,7 @@
+ | Step | Action | Failure |
+ |---|---|---|
+ | X-1 | Read each library's attempt journal and store | Library unreadable → its standings *not established* until read |
+-| X-2 | For an attempt in *stored*: if the slot is unchanged, complete G-4 and G-5 citing the **same** A15 (the act bound this content and this prior revision, and nothing changed); otherwise write *not completed* | — |
++| X-2 | For an attempt in *stored*: if the slot is unchanged, complete G-4 and G-5 citing the **same** A15 (the act bound this content and this prior revision, and nothing changed); otherwise write *not completed*. A re-confirmation attempt is never completed here: write *not completed* "process lost before re-confirmation committed", citing the same A15 (§4.8 RC-7; CC-WR-RECONFIRM) | — |
+ | X-3 | Re-publish a stale published copy from the store when it equals neither the latest revision nor content kept aside | — |
+ | X-4 | Review packages are not restored: an *under review* draft returns to *draft*, and its descriptor is withdrawn | — |
+ 
+@@ -352,7 +392,7 @@
+ |---|---|---|---|---|
+ | DEL-01-03 native plans, tools, delegation | DEP-02-02-012 · admitted | Plan items and revisions, tool items, delegation items shown in journey conversations (J-1, J-2) | Plan items, tool items and delegation are stable and shown without any opt-in; only the plan-mode element (choosing Plan) needs Codex's experimental opt-in (K-5 as narrowed by R18-1 C-05; NPTD-v0.2 §4 EX-1, EX-3); plan revision identity is DEL-01-03's | Views absent: the journey works in prose; nothing in the workspace depends on a plan item. Plan acceptance is ordinary input (R17-9) |
+ | DEL-01-04 native requests, outcomes, attachments, draft view | DEP-02-02-013 (receive) and DEP-01-04-009 (offer) · held, SCC-002 | **Offered:** `draft_reference`, `draft_transition` (with `a15_record` and `revision`, C-02), `registration_disposition` (collision and refusal standing), the review package (RB-2); v0.2: the run-start and end-notice text elements for the turn it composes (R18-1 C-06: DEL-01-04 composes `turn/start`), the agent-proposal offer "Start ‹workflow›" with its candidates (§16.5), and the run start and end marks the conversation view shows (R19-2). **Received:** the native draft view and review presentation (DEL-01-04 OUT-002, OUT-004, REQ-004); attachments into conversations | DEL-01-04 shows a draft as a draft until a *registered* transition arrives (its REQ-004) | Draft view not built: the workspace list is the only view; no transition is invented by the receiver |
+-| DEL-01-04 App act control (K-8; SC2-01-04-1, PROPOSED until SCA-V4-003) | DEP-02-02-013 (statement to be revised, return file) · held | **Offered:** `a15_descriptor` (RB-4) and its withdrawal (RB-3). **Received:** the capture {A15 record identity, capture-evidence reference, bound content, descriptor identity} | Capture only from a native event (CAP-4; R17-5); the control refuses capture while the descriptor is stale | Control not built: nothing is registered; the review says so (R-4). Capture refused as stale: review again |
++| DEL-01-04 App act control (K-8; SC2-01-04-1, PROPOSED until SCA-V4-003) | DEP-02-02-013 (statement to be revised, return file) · held | **Offered:** `a15_descriptor` (RB-4) and its withdrawal (RB-3); CC-WR-RECONFIRM: the DS-8 re-confirmation form of the same descriptor (§4.8 RC-4) and its withdrawal (RC-5). **Received:** the capture {A15 record identity, capture-evidence reference, bound content, descriptor identity} | Capture only from a native event (CAP-4; R17-5); the control refuses capture while the descriptor is stale | Control not built: nothing is registered; the review says so (R-4). Capture refused as stale: review again |
+ | DEL-02-01 portable contract | DEP-02-02-014 · held | Identity tuple (`$defs/workflow_identity`), RV-1…RV-5, name rule, the declared-part reader (VO-1…VO-10) for the review, collision and rebinding rules (C-1…C-6) | Consumed unchanged | Reader finding: shown, never refusing (HY-6). Algorithm open (U-03): the prototype's illustrative digest stands in |
+ | DEL-02-03 execution, compatibility, round trip | DEP-02-02-015 (receive) and DEP-02-03-010 (offer) · held | **Offered:** `selection_record` (with `prior_run`, `proposal`); v0.2: the composed run text and its `run_text` record for the run DEL-02-03 opens, the `supply_check` after the turn (§16; R19-7: "DEL-02-02 composes …; DEL-02-03 starts the run"); resolution from the store (the resolver reads the revision store; EXEC §6.1 *resolved*); the drafted / registered link (EXEC §6.1 *opened / drafted / registered*); the HR-1…HR-4 App steps (SQ-H). **Received:** the compatibility report (shown beside a review or a selection, labelled), T-1's refusal wording, run start | EXEC's run start is the only place a workflow runs (TT-1) | Report not established: shown so (EXEC CR-3); nothing is gated by it (CC-3) |
+ | DEL-02-04 role guidance | none (v0.2: the R17-8 row is **dropped** by R19-7) | Nothing flows for workflows: DEL-02-04 composes product guidance and the conversation's role only. Runtime value only: the conversation's role is fixed for its life (L-2); a run text never changes it | — | — |
+@@ -371,10 +411,10 @@
+ | Kind | Receiver(s) | Content | Reader checks beyond the schema |
+ |---|---|---|---|
+ | `draft_reference` | DEL-01-04 (DEP-01-04-009); cited by A15 descriptor and ledger | Draft key, state (§5.1), content identity or "not established", file count, App-recorded base, findings | `base` present only when `base_recorded_by` is *app* (schema); content identity recomputes over the folder |
+-| `draft_transition` | DEL-01-04 | Event, from/to states, content identity, disposition, cause, time, attribution (*file change item* with thread and item · *app action* · *not observed*) | The workspace never emits a *registered* transition without a matching ledger line |
+-| `registration_disposition` | DEL-01-04; the review | Occasion (*registration review* · *discovery*), target slot, reviewed content, disposition (SP-4), prior revision, base, lineage, stale-base flag, same name elsewhere with holding libraries and standings, findings, message | DS-2 names a prior revision and DS-1 none (schema) |
+-| `a15_descriptor` | DEL-01-04 act control | RB-4 | `subject.revision` equals `bound_content.value` (ID-2; prototype P-39) |
+-| `library_entry` | DEL-02-03 resolver; DEL-09-02 evidence | Ledger line: outcome (*registered* · *not completed*), tuple, sequence, disposition, prior revision, reviewed draft, A15 record and capture-evidence references, store path, reason, evidence limits | LS-1 needs the A15 record and recomputing bytes as well |
++| `draft_transition` | DEL-01-04 | Event (CC-WR-RECONFIRM adds *re-confirmed*), from/to states, content identity, disposition, cause, time, attribution (*file change item* with thread and item · *app action* · *not observed*) | The workspace never emits a *registered* transition without a matching ledger line |
++| `registration_disposition` | DEL-01-04; the review | Occasion (*registration review* · *discovery*), target slot, reviewed content, disposition (SP-4), prior revision, base, lineage, stale-base flag, same name elsewhere with holding libraries and standings, findings, message; CC-WR-RECONFIRM: `reconfirms` with DS-8 | DS-2 names a prior revision and DS-1 none (schema); DS-8 names `reconfirms` and no other disposition does (schema) |
++| `a15_descriptor` | DEL-01-04 act control | RB-4; for DS-8 the re-confirmation form of §4.8 RC-4 (CC-WR-RECONFIRM) | `subject.revision` equals `bound_content.value` (ID-2; prototype P-39); for DS-8, `subject` equals `reconfirms.identity`, and the re-confirm wording, the re-confirm purpose and `reconfirms` go together (schema) |
++| `library_entry` | DEL-02-03 resolver; DEL-09-02 evidence | Ledger line: outcome (*registered* · *not completed*; CC-WR-RECONFIRM adds *re-confirmed*), tuple, sequence, disposition (adds *re-confirmation*), prior revision, reviewed draft, A15 record and capture-evidence references, store path, reason, evidence limits; `reconfirms` on re-confirmation lines | LS-1 needs the A15 record and recomputing bytes as well; re-confirmation lines add nothing to the series and pass §4.8 RC-9 |
+ | `selection_record` | DEL-02-03 (CK-1, A-1), DEL-04-03 (R2 *selected*) | Tuple with revision, holding library, standing, "the person (App interface)", how (*explicit* · *from unqualified name* with candidates), replaces, conversation, time | The tuple's standing is runnable (TT-1) |
+ | `trial_pointer` | App-kept only | Draft key, content identity, conversation, time, the fixed standing sentence | Carries no workflow identity (schema: `additionalProperties` false) |
+ | `a15_multi_descriptor` (v0.2) | DEL-01-04 act control | §4.7: library, entries (subject tuple, bound content, `entry:` ID-3 string), scope, purpose, review | Each entry's subject revision equals its bound content |
+@@ -385,6 +425,8 @@
+ 
+ **The A15 record (RS's format, consumed).** The act control's writer produces an RS `human_act` with act kind A15 in RS-v0.9's form (R18-1 C-01; RB-4a; prototype P-11, P-38, P-47): bound subject the revision (one per entry), bound content its identity, purpose per library, and the relations **reviewed draft** (`relations.reviewedDraft` {`draft`: the ID-3 string, `draft:` or `entry:`; `content`}) and **prior revision** (`relations.priorRevision`, RS `workflowTuple` or null), or `relations.registeredEntries` for a multi-entry act. RS-v0.8's single `derivedFrom` string is refused (P-36). WD's derived-from stays in the subject tuple (C-21).
+ 
++**The A15 record of a re-confirmation (CC-WR-RECONFIRM; RS's format, no RS schema change).** The act control's writer produces the same RS `human_act` A15: bound subject ‹k›, bound content ‹k›'s content identity, `relations.reviewedDraft` {this draft's ID-3 string, content} and `relations.priorRevision` = ‹k›'s own prior revision as its registered line records it ("the revision this one follows in its slot", RS), with the re-confirm purpose of §4.8 RC-4. The *re-confirmed* ledger line cites the record (`act.record_id`) and names ‹k›'s registered line (`reconfirms`). RS's text adoption (HA-10's purposes) is named in the change record. CC-WR-RECONFIRM adds no instance to the two conformance files; its schema cases are WR-VC-20's.
++
+ ## 9. What is never registration, and what is never review
+ 
+ | Situation | Outcome | Source |
+@@ -396,6 +438,7 @@
+ | An earlier revision's A15 | Never carried to new content (RB-8) | FX-56 (c); prototype P-15 |
+ | A draft changed after review | The control refuses capture; review again | K-8; prototype P-09 |
+ | Registration of a revision | Not acceptance, checking, approval or reliance, and not execution compatibility | REQ-005, REQ-006; ACT §2.1 alias exclusions |
++| A re-confirmation (§4.8; CC-WR-RECONFIRM) | Makes revision ‹k› selectable in this App process only; registers no new revision; makes no earlier act, capture or receipt trusted; not cold replay (CI-10 and I3-CUST stay open) | RC-2, RC-3, RC-8; owner decision 2026-10-07 |
+ 
+ ## 10. Reuse account (OUT-004; REQ-007; AC-007)
+ 
+@@ -437,6 +480,11 @@
+ | WR-VC-13 Shipped and multi-entry (v0.2) | VER-002, VER-003 (L-4) | LS-8 recognition (current and earlier release), edited copy not recognized; one act over three entries with a stale entry before and after capture | Library and act-control doubles; on a candidate, the person | **Ran** on doubles (P-42…P-47) |
+ | WR-VC-14 Run text and supply check (v0.2) | VER-001, VER-004 (AC-001, AC-005) | Composition exact and deterministic; no other workflow named; turn/start and turn shapes against the 0.158.0 types; verified, and each mismatch state | Constructed turns, read back as `thread/items/list` pages (R21-4); on a candidate, Codex 0.158.0 or the qualified pin and a model | **Ran** on constructed frames (P-48…P-52, P-50a); live check AWAITING a candidate (OBS-3 W-4 observed the text route at 0.158.0 with one local model) |
+ | WR-VC-15 Chaining (v0.2) | VER-001 (AC-001; R19-2) | One run at a time; (a) A→B with the chain line; end notice once; (b) proposal → offer → confirmation → chained start; proposals not on the last line, naming no origin, of drafts or unknown names give no Start; the finished line names origin and name (RX, R20-9); during a run only "End ‹A› and start ‹B›", recorded *ended to start ‹B›*; line placement and at-most-once (RX2, R20-11) | RunDesk double (stands in for DEL-02-03's run start and end) | **Ran** (P-53…P-65; P-60, P-61 for R20-1 and R20-3; P-62 for R20-9; P-64, P-65 for R20-11) |
++| WR-VC-16 Re-confirm after relaunch, then run (CC-WR-RECONFIRM) | VER-001, VER-002 (AC-001, AC-002) | Register ‹k› in process 1; relaunch; the registered draft, unchanged, reviews as DS-8; A15 at the act control; G-4R *re-confirmed* line citing the new A15 and ‹k›'s registered line; ‹k› selectable in process 2 only; the selection record and the run text name ‹k› (TX-1); after another relaunch ‹k› needs a new re-confirmation | Library and act-control doubles with a modelled native event; on a candidate, the person at DEL-01-04's control | DESIGNED |
++| WR-VC-17 Revision selectable in this process: DS-4 (CC-WR-RECONFIRM) | VER-003 (AC-003) | After a registration or a re-confirmation of ‹k› in the same process, a draft with ‹k›'s bytes reviews as DS-4 "select it instead", with no descriptor; a DS-8 descriptor offered before ‹k› became selectable is withdrawn (RC-5 (d)); a capture after that is *not completed* "already selectable" (G-1R) | Library and act-control doubles | DESIGNED |
++| WR-VC-18 Changed bytes take the ordinary route (CC-WR-RECONFIRM) | VER-002 (AC-002) | After a relaunch a draft differing from ‹k› by one byte reviews as DS-2 (base reaching the slot) or DS-3, never DS-8; a draft with ‹k›'s bytes whose SP-3 fails reviews as DS-3, not DS-8 (SP-4a) | Library double | DESIGNED |
++| WR-VC-19 Dismissal, staleness and loss have no effect (CC-WR-RECONFIRM) | VER-005 (AC-006) | Control closed: nothing captured, ledger unchanged, ‹k› not selectable. Bytes changed between review and act: AX-06, nothing captured. Slot moved on or registered line changed after capture: *not completed* citing the A15. Process lost before G-4R: *not completed* at relaunch, never completed and never selectable. A not-completed re-confirmation is not completed later by the same act | Library double with fault injection; act-control double | DESIGNED |
++| WR-VC-20 Ledger series with re-confirmation lines (CC-WR-RECONFIRM) | R17-1; VER-003 | Registered lines 1 and 2 with *re-confirmed* lines citing 1 (twice) and 2: series and latest unchanged, and 2 is still the prior for the next DS-2. Refused, naming the line: a *re-confirmed* line citing a later line, another slot's line or a *not completed* line; a differing identity, sequence, prior revision or store path; an A15 cited by another line. Refused by the schema: a re-confirmation line without `reconfirms`; a *registered* line with disposition *re-confirmation*; `reconfirms` on a registration; a re-confirmation of an entry reviewed in place; the re-confirm wording with a registration purpose | Schema; ledger reader | Schema cases checked during the change (change record); reader checks DESIGNED |
+ 
+ ## 13. Prototype
+ 
+@@ -481,6 +529,9 @@
+ | U-WR-18 (v0.2) | Contents of the shipped-revision manifest: every v4 release's shipped revisions; whether App v3's shipped workflows are included | Integrator; owner if v3 copies should be recognized | Before the first release | LS-8 recognizes what the manifest lists |
+ | U-WR-19 (v0.2) | Earlier run texts stay in history; dropping the earlier workflow rests on the chain line and recency. OBS-3 W-2 saw a 9B local model follow B and drop A (2/2 replies); other models not observed | Later observation; DEL-09-02 for qualification | Before qualification | The chain line states it explicitly; nothing more is claimed |
+ | U-WR-20 (v0.2) | *Closed (R20-5, R20-9; RX).* The agent-proposal convention was told to the model only in run texts | DEL-02-04 (product guidance) | — | The shipped product guidance states both lines, `Next workflow: ‹origin›:‹name›` and `Workflow finished: ‹origin›:‹name›` (ROLE-v0.2 §4.2 GS-7); the run text repeats them for the run in force (§16.2 line 3) |
++| U-WR-21 (CC-WR-RECONFIRM) | Re-confirmation without a draft: from the listing (the store's bytes), or of an entry registered in place (§4.7); and whether Refine of an LS-1 revision that is not selectable in this process is offered, so that the person can make such a draft | Integrator (WR owner with DEL-01-04) | Before the relaunch journey's interface | Not designed: re-confirmation needs a draft with ‹k›'s bytes that SP-3 admits |
++| U-WR-22 (CC-WR-RECONFIRM) | Whether RS marks a re-confirmation A15 with a structured relation, beside its purpose | DEL-04-03 | RS adoption of CC-WR-RECONFIRM | The WR ledger line is the structured link (`reconfirms`, `act.record_id`); the A15 record carries the re-confirm purpose |
++| U-WR-23 (CC-WR-RECONFIRM) | Whether a draft whose bytes equal registered revision ‹k› but which has no App-kept base reaching the slot (written from scratch, or after the base was lost, U-WR-12) may re-confirm. K-6 as written refuses "a same-name draft with no such origin", so SP-4a keeps DS-3 for it | The owner (K-6 is the owner's) | Before implementation of DS-8 | DS-3; the person recreates the draft with a recorded base where the App offers one |
+ 
+ ---
+ 
+--- a/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.schema.json
++++ b/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.schema.json
+@@ -2,7 +2,7 @@
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "$id": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2",
+   "title": "Workflow workspace and registration records (DEL-02-02 WR-v0.2) - PROPOSED",
+-  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
++  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check; CC-WR-RECONFIRM, in place, adds the DS-8 re-confirmation of a registered revision to registration_disposition, draft_transition, a15_descriptor and library_entry). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
+   "type": "object",
+   "required": [
+     "record_kind"
+@@ -351,6 +351,7 @@
+             "registration refused",
+             "registered",
+             "registration not completed",
++            "re-confirmed",
+             "removed"
+           ]
+         },
+@@ -399,17 +400,17 @@
+           }
+         },
+         "a15_record": {
+-          "description": "C-02 (R18-1): the RS human_act A15 record the App act control wrote; on 'registered' and 'registration not completed' only.",
++          "description": "C-02 (R18-1): the RS human_act A15 record the App act control wrote; on 'registered', 'registration not completed' and (CC-WR-RECONFIRM) 're-confirmed' only.",
+           "$ref": "#/$defs/record_ref"
+         },
+         "revision": {
+-          "description": "C-02 (R18-1): the registered revision identity; on 'registered' only.",
++          "description": "C-02 (R18-1): the registered revision identity; on 'registered' and (CC-WR-RECONFIRM) on 're-confirmed', where it is the re-confirmed revision's own identity, not a new one.",
+           "$ref": "#/$defs/text"
+         }
+       },
+       "allOf": [
+         {
+-          "description": "C-02: a15_record only on 'registered' or 'registration not completed'.",
++          "description": "C-02: a15_record only on 'registered' or 'registration not completed'; CC-WR-RECONFIRM adds 're-confirmed'.",
+           "anyOf": [
+             {
+               "not": {
+@@ -423,7 +424,8 @@
+                 "event": {
+                   "enum": [
+                     "registered",
+-                    "registration not completed"
++                    "registration not completed",
++                    "re-confirmed"
+                   ]
+                 }
+               }
+@@ -431,7 +433,7 @@
+           ]
+         },
+         {
+-          "description": "C-02: revision only on 'registered'.",
++          "description": "C-02: revision only on 'registered'; CC-WR-RECONFIRM adds 're-confirmed'.",
+           "anyOf": [
+             {
+               "not": {
+@@ -443,11 +445,34 @@
+             {
+               "properties": {
+                 "event": {
+-                  "const": "registered"
++                  "enum": [
++                    "registered",
++                    "re-confirmed"
++                  ]
+                 }
+               }
+             }
+           ]
++        },
++        {
++          "description": "CC-WR-RECONFIRM: a 're-confirmed' event names the A15 record and the re-confirmed revision.",
++          "anyOf": [
++            {
++              "properties": {
++                "event": {
++                  "not": {
++                    "const": "re-confirmed"
++                  }
++                }
++              }
++            },
++            {
++              "required": [
++                "a15_record",
++                "revision"
++              ]
++            }
++          ]
+         }
+       ]
+     },
+@@ -460,8 +485,32 @@
+         "refused: identical content",
+         "refused: draft not valid",
+         "refused: changed since review",
+-        "refused: slot moved on"
++        "refused: slot moved on",
++        "re-confirmation"
+       ]
++    },
++    "reconfirmed_revision": {
++      "description": "CC-WR-RECONFIRM (WR section 4.8 RC-3, RC-4, RC-9): the registered revision a re-confirmation names: its full tuple exactly as its registered ledger line records it, and that line's ledger_seq and sequence. A re-confirmation registers no new revision.",
++      "type": "object",
++      "required": [
++        "identity",
++        "ledger_seq",
++        "sequence"
++      ],
++      "additionalProperties": false,
++      "properties": {
++        "identity": {
++          "$ref": "#/$defs/revision_identity"
++        },
++        "ledger_seq": {
++          "type": "integer",
++          "minimum": 1
++        },
++        "sequence": {
++          "type": "integer",
++          "minimum": 1
++        }
++      }
+     },
+     "registration_disposition": {
+       "description": "WR section 4.1 DS-1...DS-7: the registration collision and disposition report, shown in the review and supplied to DEL-01-04. A discovery collision (C-1) uses the same entries list with disposition absent.",
+@@ -542,10 +591,44 @@
+         },
+         "message": {
+           "$ref": "#/$defs/text"
++        },
++        "reconfirms": {
++          "description": "CC-WR-RECONFIRM: DS-8 only, the registered revision the review offers to re-confirm (WR section 4.8 RC-1).",
++          "$ref": "#/$defs/reconfirmed_revision"
+         }
+       },
+       "allOf": [
+         {
++          "description": "CC-WR-RECONFIRM: DS-8 (re-confirmation) names the registered revision it re-confirms; no other disposition does.",
++          "anyOf": [
++            {
++              "properties": {
++                "disposition": {
++                  "const": "re-confirmation"
++                }
++              },
++              "required": [
++                "disposition",
++                "reconfirms"
++              ]
++            },
++            {
++              "properties": {
++                "disposition": {
++                  "not": {
++                    "const": "re-confirmation"
++                  }
++                }
++              },
++              "not": {
++                "required": [
++                  "reconfirms"
++                ]
++              }
++            }
++          ]
++        },
++        {
+           "description": "A registration review states a disposition and the reviewed content; a discovery report does not.",
+           "anyOf": [
+             {
+@@ -623,7 +706,7 @@
+       ]
+     },
+     "a15_descriptor": {
+-      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation.",
++      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation. CC-WR-RECONFIRM (WR section 4.8 RC-4): for DS-8 the descriptor re-confirms a registered revision: disposition 're-confirmation', its own wording and purpose, subject equal to reconfirms.identity (reader check), prior_revision and derived_from as that revision's registered line records them; no new revision is registered.",
+       "type": "object",
+       "required": [
+         "record_kind",
+@@ -650,7 +733,10 @@
+           "const": "A15"
+         },
+         "wording": {
+-          "const": "register workflow revision"
++          "enum": [
++            "register workflow revision",
++            "re-confirm workflow revision for use"
++          ]
+         },
+         "subject": {
+           "$ref": "#/$defs/revision_identity"
+@@ -682,7 +768,8 @@
+           "enum": [
+             "new workflow",
+             "new revision",
+-            "in place"
++            "in place",
++            "re-confirmation"
+           ]
+         },
+         "scope": {
+@@ -691,9 +778,15 @@
+         "purpose": {
+           "enum": [
+             "make it available in the project library",
+-            "make it available in the user library"
++            "make it available in the user library",
++            "make it available again in this App session from the project library",
++            "make it available again in this App session from the user library"
+           ]
+         },
++        "reconfirms": {
++          "description": "CC-WR-RECONFIRM: DS-8 only, the registered revision this act re-confirms (WR section 4.8 RC-4).",
++          "$ref": "#/$defs/reconfirmed_revision"
++        },
+         "review_ref": {
+           "$ref": "#/$defs/text"
+         },
+@@ -724,10 +817,60 @@
+         "act_request_ref": {
+           "$ref": "#/$defs/text"
+         }
+-      }
++      },
++      "allOf": [
++        {
++          "description": "CC-WR-RECONFIRM: a re-confirmation descriptor (disposition 're-confirmation') carries the re-confirm wording and purpose and names the revision it re-confirms; any other descriptor keeps the registration wording and purpose and names none.",
++          "anyOf": [
++            {
++              "properties": {
++                "disposition": {
++                  "const": "re-confirmation"
++                },
++                "wording": {
++                  "const": "re-confirm workflow revision for use"
++                },
++                "purpose": {
++                  "enum": [
++                    "make it available again in this App session from the project library",
++                    "make it available again in this App session from the user library"
++                  ]
++                }
++              },
++              "required": [
++                "disposition",
++                "reconfirms"
++              ]
++            },
++            {
++              "properties": {
++                "disposition": {
++                  "not": {
++                    "const": "re-confirmation"
++                  }
++                },
++                "wording": {
++                  "const": "register workflow revision"
++                },
++                "purpose": {
++                  "enum": [
++                    "make it available in the project library",
++                    "make it available in the user library"
++                  ]
++                }
++              },
++              "not": {
++                "required": [
++                  "reconfirms"
++                ]
++              }
++            }
++          ]
++        }
++      ]
+     },
+     "library_entry": {
+-      "description": "WR section 4.6 and 6 SQ-G: one line of a library's registration ledger (App-kept, R17-4). 'registered' is the commit point of a registration; 'not completed' records an A15 whose registration did not complete. Registered standing also needs the cited A15 record and store bytes that recompute (LS-1).",
++      "description": "WR section 4.6 and 6 SQ-G: one line of a library's registration ledger (App-kept, R17-4). 'registered' is the commit point of a registration; 'not completed' records an A15 whose registration did not complete. Registered standing also needs the cited A15 record and store bytes that recompute (LS-1). CC-WR-RECONFIRM (WR section 4.8): 're-confirmed' is the commit point of a re-confirmation (G-4R): it cites the new A15 and, in reconfirms, the earlier 'registered' line of the same revision; it adds no revision to the slot's series and never changes the slot's latest (reader checks RC-9). A 'not completed' line with disposition 're-confirmation' records a re-confirmation that did not complete.",
+       "type": "object",
+       "required": [
+         "record_kind",
+@@ -751,7 +894,8 @@
+         "outcome": {
+           "enum": [
+             "registered",
+-            "not completed"
++            "not completed",
++            "re-confirmed"
+           ]
+         },
+         "identity": {
+@@ -765,9 +909,10 @@
+           "enum": [
+             "new workflow",
+             "new revision",
+-            "in place"
++            "in place",
++            "re-confirmation"
+           ],
+-          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, §4.7)."
++          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, §4.7). 're-confirmation' (CC-WR-RECONFIRM, DS-8) is carried by 're-confirmed' lines and by 'not completed' lines of a re-confirmation."
+         },
+         "prior_revision": {
+           "$ref": "#/$defs/identity_or_none"
+@@ -823,6 +968,10 @@
+               "$ref": "#/$defs/content_identity"
+             }
+           }
++        },
++        "reconfirms": {
++          "description": "CC-WR-RECONFIRM: on a re-confirmation line only, the earlier 'registered' line this line re-confirms (WR section 4.8 RC-9).",
++          "$ref": "#/$defs/reconfirmed_revision"
+         }
+       },
+       "allOf": [
+@@ -832,6 +981,13 @@
+               "properties": {
+                 "outcome": {
+                   "const": "registered"
++                },
++                "disposition": {
++                  "enum": [
++                    "new workflow",
++                    "new revision",
++                    "in place"
++                  ]
+                 }
+               },
+               "required": [
+@@ -843,11 +999,75 @@
+             {
+               "properties": {
+                 "outcome": {
++                  "const": "re-confirmed"
++                },
++                "disposition": {
++                  "const": "re-confirmation"
++                }
++              },
++              "required": [
++                "sequence",
++                "disposition",
++                "store_path",
++                "reconfirms",
++                "reviewed_draft"
++              ]
++            },
++            {
++              "properties": {
++                "outcome": {
+                   "const": "not completed"
+                 }
+               },
+               "required": [
+                 "reason"
++              ]
++            }
++          ]
++        },
++        {
++          "description": "CC-WR-RECONFIRM: a line names the revision it re-confirms exactly when its disposition is 're-confirmation'.",
++          "anyOf": [
++            {
++              "properties": {
++                "disposition": {
++                  "const": "re-confirmation"
++                }
++              },
++              "required": [
++                "disposition",
++                "reconfirms"
++              ]
++            },
++            {
++              "properties": {
++                "disposition": {
++                  "not": {
++                    "const": "re-confirmation"
++                  }
++                }
++              },
++              "not": {
++                "required": [
++                  "reconfirms"
++                ]
++              }
++            }
++          ]
++        },
++        {
++          "description": "CC-WR-RECONFIRM: a re-confirmation is of a reviewed draft (WR section 4.8 RC-1), never of an entry reviewed in place.",
++          "anyOf": [
++            {
++              "not": {
++                "required": [
++                  "reconfirms"
++                ]
++              }
++            },
++            {
++              "required": [
++                "reviewed_draft"
+               ]
+             }
+           ]

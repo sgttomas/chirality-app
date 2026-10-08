@@ -193,3 +193,21 @@ Effect:
   the owner did not say so (correction from review V12 F1).
 
 This approves no signing, credentials or downloads.
+
+## Native journey witness launch — 2026-10-07
+
+HELP_HUMAN prepared the following and described the steps, including that
+the owner signs in and confirms the native A15 dialog themselves:
+- the unsigned debug bundle "Chirality v4 Journey Witness.app", built offline
+  from `4c77f34ea6`, main binary sha256
+  `23d4f56a9f01b4ed6253b3d07669fa4d16ed3c5d0f9336993f063f8cf5f22e48`,
+  identifier `dev.chirality.v4.witness1113`;
+- a synthetic workspace, a library holding the `coordinated-knowledge-work`
+  development copy, and a fresh scratch Codex home.
+
+Answer: **"Approve, sign in via App"**. Custody: a structured answer in the
+active Claude Code chat.
+
+Scope: this exact artifact and the described steps only. Agents perform no
+positive human act, and never see or handle credentials. The approval covers
+no other artifact, launch or act.
