@@ -6,17 +6,15 @@
       "canonical": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
       "accepted_sha256": "9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85",
       "accepted_exact": true,
-      "successor": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY_CC-HOSTING-DISTRIBUTION-01_PROPOSED.md",
-      "preserved_amendment_sha256": "053809af0ba977e0fed85091b9fe76c06f11d555690628e321dbbb1f5c12eb5b",
-      "amendment_body_exact": true
+      "proposed_sha256": "053809af0ba977e0fed85091b9fe76c06f11d555690628e321dbbb1f5c12eb5b",
+      "reconstructed_exact": true
     },
     {
       "canonical": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md",
       "accepted_sha256": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4",
       "accepted_exact": true,
-      "successor": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION_CC-HOSTING-DISTRIBUTION-01_PROPOSED.md",
-      "preserved_amendment_sha256": "374bb6ff6fb6647e05744640e3ec310b3163cacd0c7bc3b5c8f93e6461c37d4e",
-      "amendment_body_exact": true
+      "proposed_sha256": "374bb6ff6fb6647e05744640e3ec310b3163cacd0c7bc3b5c8f93e6461c37d4e",
+      "reconstructed_exact": true
     }
   ],
   "distribution_identity_technical_body_preserved": true,
@@ -86,5 +84,14 @@
       "sha256": "7978cad14b8eae36f029809a3bb42b176383813f9cbd94b93b8182c7ea130059",
       "extent": "read"
     }
-  ]
+  ],
+  "representation": "base-bound root-relative Git patch; full proposed clones removed",
+  "patch_sha256": "14671f830f59062422ad0e0e958d958e984732233e71064f3a4034f5b4137c3e",
+  "offline_reconstruction": {
+    "git_apply_check_exit": 0,
+    "git_apply_exit": 0,
+    "disposable_tree": true,
+    "all_reconstructed_bytes_equal_source_revision": true
+  },
+  "whitespace_check": "Generated patch has expected Git syntax whitespace; all other staged changes pass."
 }
