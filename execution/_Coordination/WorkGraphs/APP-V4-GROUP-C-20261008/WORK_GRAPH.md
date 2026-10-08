@@ -39,7 +39,7 @@ Provider adapters and persistent route placement require their actual inputs.
 | C1-V independent review and repair | TASK group_c_review; read-only candidate and tests | Exact C1 plus manager graph/evidence candidate | Independent source, full diff and evidence review; no unresolved blocking findings | COMPLETE at 08fcd838d1; independent review READY with no defects; final evidence-only backcheck before merge |
 | C1-I first substantive integration | Manager, parent Git integration coordination | C1-V, affected offline checks and required CI at actual head | Reviewed PR merged; evidence describes partial scope truthfully | COMPLETE; [PR #1127](https://github.com/sgttomas/chirality/pull/1127) merged before successor base 236cbc3c69; Git/PR history retains CI and review |
 | C2 PEC provider receiving join | App receiving owner with PEC owner; DEL-07-01 adapter/tests/presentation | OI-022 actual tool/response agreement; qualified/released/adopted account before reliance; current-pin hosting observation at use | Source pin → actual response → receiving action and limited/absent cases; independent review | BLOCKED for dependent adapter behavior on actual provider terms; definition/preparation remains available |
-| C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: CI-29 merged in PR #1130; CRP-v0.2 technically selected after repaired source review and fleet concurrence; bounded backend implementation may proceed, UI/source reconstruction remain unfinished |
+| C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: CI-29 merged in PR #1130; CRP-v0.2 technically selected after repaired source review and fleet concurrence; repaired bounded backend candidate is in independent review; UI/source reconstruction remain unfinished |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
 | C5 later research-to-design contribution and witness | App method/receiving owner; DEL-08-02; host work remains SWBPIPE | Owner activation of later increment; C4; portable workflow, shared act row, actual host integration and human act | Source → context → candidate → actual decision witness, plus limitations; preparation/rehearsal separate | BLOCKED at activation/input points; no activation inferred from Group C resume |
 | C6 final bounded reconciliation and receipt | Manager; four deliverables and this run, no MEMORY writes | Intended production and required evidence integrated | Commitment↔result comparison under bounded-reconciliation; missing work returns to execution; conditional intake only without a home | PLANNED |
@@ -122,3 +122,20 @@ HELP_HUMAN selected a bounded technical CRP-R2 treatment: exclusive atomic no-re
 These are harness-native TASK descendants under WORKING_ITEMS `/root/group_c_successor`, each using its own managed worktree and branch, `gpt-6-astra` low, bounded instruction fences, and no child delegation. C3-P tests used one private copy-on-write target and the already approved offline dependency cache; no download or supplier/native App launch. Source and code evidence carry exact origins/hashes and execution limits.
 
 CRP-R2 source `3d9a91a988` is now technically selected after independent backcheck `0d1b8c62bb` and fleet concurrence `873f23b906`; the current selection and source hash are in C3_PLACEMENT_ADOPTION.md. Implementation repair is released; code remains NOT READY until exact repaired behavior and original/late-race cases pass independent review.
+
+### C3-P repaired candidate
+
+Author repair `8f1195761d` is integrated unchanged as `f1ff1699e0` against
+current main `00ce2e1074`. Thirty-one offline connector checks passed (24 route
+store and seven standing); the two deliberate abrupt-exit subprocesses are
+separate interruption observations. Exclusive no-replace rename replaces
+link/unlink publication; no automatic unlink remains. Original and late source
+substitution cases, uncertainty and retained temporary entries are explicit.
+Independent actual-repair review is pending, so C3-P remains NOT READY for
+integration. Tests establish macOS backend file behavior only, not Linux
+execution, physical power-loss durability, actual sources, UI or provider acts.
+
+Code and evidence: [C3_PERSISTENCE_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PERSISTENCE_EVIDENCE.md),
+[C3_PERSISTENCE_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PERSISTENCE_BASIS.json),
+[C3_PERSISTENCE_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PERSISTENCE_REVIEW.md).
+The original failure and superseded guarantee are retained for the backcheck.
