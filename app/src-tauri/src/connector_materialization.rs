@@ -23,6 +23,9 @@ pub fn validate_cold(v: &Value) -> Result<(), String> {
     if serde_json::to_vec(v).map_err(|e| e.to_string())?.len() > BYTE_LIMIT {
         return Err("Format0.3 exceeds1MiB serialized bytes".into());
     }
+    validate_common(v)
+}
+pub(crate) fn validate_common(v: &Value) -> Result<(), String> {
     let req = &v["evidence"]["git_request"];
     if v["question"]["at_revision"] != req["at"] || v["question"]["since_revision"] != req["since"]
     {
@@ -229,7 +232,17 @@ pub struct PrepareInput {
     pub duties: Vec<DutyInput>,
 }
 #[cfg(unix)]
-fn compose(
+pub(crate) fn compose(
+    e: &crate::connector_source::MaterializationEvidence,
+    input: &PrepareInput,
+    recorder: &str,
+) -> Result<Value, String> {
+    let account = compose_base(e, input, recorder)?;
+    crate::connector_route_store::validate_account(&account).map_err(|e| e.to_string())?;
+    Ok(account)
+}
+#[cfg(unix)]
+pub(crate) fn compose_base(
     e: &crate::connector_source::MaterializationEvidence,
     input: &PrepareInput,
     recorder: &str,
@@ -413,7 +426,6 @@ fn compose(
             .map(|u| json!({"conclusion":u.conclusion,"why":u.why})),
     );
     let account = json!({"format":"chirality.connector.route-account","formatVersion":"0.3","account_id":format!("ra:{}",opaque_id("")?),"standing":"source_evidence_draft","question":question,"trigger":{"connector":input.connector,"why":format!("Constructed {} trigger; no actual connector standing established",e.trigger),"standing":"constructed","receiving_records":[]},"sources":sources,"facts":[],"interpretations":interpretations,"gaps":gaps,"conclusions":{"supported":[],"unsupported":unsupported,"prohibited":["no_work","ready","permitted","correct_by_presence"]},"duties":duties,"recorder":{"kind":"app","identity":recorder},"written_at":now_rfc3339(),"written_at_source":"observed_clock","evidence":{"kind":"host_observed_git_receipt","project_identity":{"device":identity.device.to_string(),"inode":identity.inode.to_string()},"project_display":project,"association_sha256":sha256_hex(&serde_json::to_vec(&e.association).map_err(|e|e.to_string())?),"engine_sha256":sha256_hex(&serde_json::to_vec(&e.engine).map_err(|e|e.to_string())?),"git_request":{"at":e.request["at"],"since":e.request["since"]},"selection_mechanism":e.mechanism,"verification_limit":"same_engine_consistency_not_truth_authorship_or_authority","custody_limit":"stored_receipt_not_hot_capability_or_independent_reverification"}});
-    crate::connector_route_store::validate_account(&account).map_err(|e| e.to_string())?;
     Ok(account)
 }
 #[cfg(all(test, any(target_os = "macos", target_os = "linux")))]
@@ -482,9 +494,17 @@ mod registry {
                     "Unknown draft identity/generation; cold records cannot revive tokens".into()
                 })
         }
-        pub fn retained(&self,token:&str,generation:&str)->Result<Option<Value>,String>{
-            let e=self.entries.get(token).filter(|e|e.generation==generation).ok_or("Unknown draft identity/generation")?;
-            Ok(if e.status=="prepared"{None}else{Some(self.view())})
+        pub fn retained(&self, token: &str, generation: &str) -> Result<Option<Value>, String> {
+            let e = self
+                .entries
+                .get(token)
+                .filter(|e| e.generation == generation)
+                .ok_or("Unknown draft identity/generation")?;
+            Ok(if e.status == "prepared" {
+                None
+            } else {
+                Some(self.view())
+            })
         }
         pub fn cancel(&mut self, token: &str, generation: &str) -> Result<Value, String> {
             let e = self.entry(token, generation)?;
@@ -526,6 +546,16 @@ mod registry {
         project: &Path,
         hook: impl FnOnce(),
     ) -> Result<Value, String> {
+        prepare_composed(registry, source, input, project, hook, compose)
+    }
+    pub(crate) fn prepare_composed(
+        registry: &Mutex<Registry>,
+        source: &Mutex<Session>,
+        input: PrepareInput,
+        project: &Path,
+        hook: impl FnOnce(),
+        composer: impl FnOnce(&MaterializationEvidence, &PrepareInput, &str) -> Result<Value, String>,
+    ) -> Result<Value, String> {
         let mut registry = registry.lock().map_err(|_| "Draft registry unavailable")?;
         if registry.inflight.is_some() {
             return Err("Publication in flight; no second payload or new preparation".into());
@@ -554,7 +584,7 @@ mod registry {
             &e.relative,
             &sha256_hex(&serde_json::to_vec(&e.association).map_err(|e| e.to_string())?),
         )?;
-        let account = compose(
+        let account = composer(
             &e,
             &input,
             registry.recorder.as_ref().map_err(Clone::clone)?,
@@ -749,6 +779,8 @@ mod registry {
         Ok(r.view())
     }
 }
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+pub(crate) use registry::prepare_composed;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub use registry::{prepare, publish, Registry};
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]

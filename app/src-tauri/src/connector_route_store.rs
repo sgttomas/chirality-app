@@ -16,8 +16,13 @@ const IDS: &[&str] = &[
     "urn:chirality:app-v4:del-07-02:route-account:0.1",
     "urn:chirality:app-v4:del-07-02:route-account:0.2",
     "urn:chirality:app-v4:del-07-02:route-account:0.3",
+    "urn:chirality:app-v4:del-07-02:route-account:0.4",
 ];
 const RESOURCES: &[(&str, &str)] = &[
+    (
+        "connector.route-account.v0.4.schema.json",
+        include_str!("../resources/connector_route/connector.route-account.v0.4.schema.json"),
+    ),
     (
         "connector.route-account.v0.3.schema.json",
         include_str!("../resources/connector_route/connector.route-account.v0.3.schema.json"),
@@ -134,6 +139,7 @@ pub fn validate_account(account: &Value) -> Result<()> {
         (Some("chirality.connector.route-account"), Some("0.1")) => 0,
         (Some("chirality.connector.route-account"), Some("0.2")) => 1,
         (Some("chirality.connector.route-account"), Some("0.3")) => 2,
+        (Some("chirality.connector.route-account"), Some("0.4")) => 3,
         _ => {
             return Err(StoreError::new(
                 ErrorKind::UnsupportedFormat,
@@ -154,6 +160,7 @@ pub fn validate_account(account: &Value) -> Result<()> {
         crate::connector_materialization::validate_cold(account)
             .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e))?;
     }
+    if index == 3 { crate::connector_reconstruction::validate_cold(account).map_err(|e|StoreError::new(ErrorKind::InvalidAccount,e))?; }
     Ok(())
 }
 /// A cold observation of claimed file content. Its binding does not establish
@@ -411,12 +418,12 @@ mod platform {
         let account: Value = serde_json::from_slice(&bytes).map_err(|e| {
             StoreError::new(ErrorKind::InvalidAccount, format!("malformed account: {e}"))
         })?;
-        if account["formatVersion"] == "0.3"
+        if matches!(account["formatVersion"].as_str(), Some("0.3" | "0.4"))
             && bytes.len() > crate::connector_materialization::BYTE_LIMIT
         {
             return Err(StoreError::new(
                 ErrorKind::InvalidAccount,
-                "Identified format0.3 exceeds1MiB original bytes; acquisition already occurred",
+                "Identified format0.3/0.4 exceeds1MiB original bytes; acquisition already occurred",
             ));
         }
         validate_account(&account)?;

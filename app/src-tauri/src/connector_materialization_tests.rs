@@ -337,7 +337,10 @@ fn connector_materialization_once_only_actual_outcome_survives_cancel_and_new_se
     })
     .unwrap();
     assert_eq!(again["entries"][0]["outcomeText"], e["outcomeText"]);
-    assert_eq!(registry.lock().unwrap().retained(t,g).unwrap().unwrap()["entries"][0]["status"],"published");
+    assert_eq!(
+        registry.lock().unwrap().retained(t, g).unwrap().unwrap()["entries"][0]["status"],
+        "published"
+    );
     assert_eq!(
         ProjectRouteStore::open(&r.root)
             .unwrap()
@@ -476,7 +479,12 @@ fn connector_materialization_prepublication_root_duplicate_incomplete_and_cancel
                     .write(&draft["entries"][0]["draft"]["account"])
                     .unwrap();
             }
-            "reread" => { connector_source::select(&s,&i.session_token,&i.generation,||Ok(Some(r.root.join("literal [*].txt")))).unwrap(); },
+            "reread" => {
+                connector_source::select(&s, &i.session_token, &i.generation, || {
+                    Ok(Some(r.root.join("literal [*].txt")))
+                })
+                .unwrap();
+            }
             "incomplete" => {
                 fs::write(r.root.join(".chirality"), b"not a directory").unwrap();
             }
@@ -499,14 +507,529 @@ fn connector_materialization_prepublication_root_duplicate_incomplete_and_cancel
     }
 }
 #[test]
-fn connector_materialization_exact_serialized_limit_and_partial_side(){
-    let(r,s,mut i)=prepared();let e=s.lock().unwrap().materialization_evidence(&i.session_token,&i.generation,&i.git_reference).unwrap();
-    i.gaps.push(GapInput{gap:"x".into(),effect:"Explicit caller gap".into(),responsible:Responsibility{standing:"unassigned".into(),identity:None}});
-    let first=compose(&e,&i,"app-fixture").unwrap();let size=serde_json::to_vec(&first).unwrap().len();i.gaps[0].gap="x".repeat(BYTE_LIMIT-size+1);
-    let exact=compose(&e,&i,"app-fixture").unwrap();assert_eq!(serde_json::to_vec(&exact).unwrap().len(),BYTE_LIMIT);let reference=ProjectRouteStore::open(&r.root).unwrap().write(&exact).unwrap();assert_eq!(ProjectRouteStore::open(&r.root).unwrap().resolve(&reference).unwrap().account,exact);
-    let missing="0".repeat(40);let p=s.lock().unwrap().prepare(&r.root,Question{id:"partial".into(),text:"Known at, missing since".into(),asked_revision:r.id("at").into(),since_revision:Some(missing.clone())},"partial".into(),None).unwrap();
-    i.session_token=p["sessionToken"].as_str().unwrap().into();i.generation=p["generation"].as_str().unwrap().into();
-    let local=connector_source::select(&s,&i.session_token,&i.generation,||Ok(Some(r.root.join("literal [*].txt")))).unwrap();let git=connector_source::git_read(&s,&i.session_token,&i.generation,local["observation"]["reference"].as_str().unwrap(),r.id("at"),Some(&missing)).unwrap();
-    i.git_reference=git["git"]["result"]["reference"].as_str().unwrap().into();i.sources.truncate(1);i.sources[0].reference=git["git"]["result"]["observation"]["at"]["object"]["reference"].as_str().unwrap().into();i.sources[0].anchors.clear();i.interpretations.clear();i.gaps.clear();
-    let partial=account(&s,&i);assert_eq!(partial["sources"].as_array().unwrap().len(),1);assert_eq!(partial["gaps"][0]["context"]["side"],"since");assert_eq!(partial["gaps"][0]["origin"],"observed_git_failure");
+fn connector_materialization_exact_serialized_limit_and_partial_side() {
+    let (r, s, mut i) = prepared();
+    let e = s
+        .lock()
+        .unwrap()
+        .materialization_evidence(&i.session_token, &i.generation, &i.git_reference)
+        .unwrap();
+    i.gaps.push(GapInput {
+        gap: "x".into(),
+        effect: "Explicit caller gap".into(),
+        responsible: Responsibility {
+            standing: "unassigned".into(),
+            identity: None,
+        },
+    });
+    let first = compose(&e, &i, "app-fixture").unwrap();
+    let size = serde_json::to_vec(&first).unwrap().len();
+    i.gaps[0].gap = "x".repeat(BYTE_LIMIT - size + 1);
+    let exact = compose(&e, &i, "app-fixture").unwrap();
+    assert_eq!(serde_json::to_vec(&exact).unwrap().len(), BYTE_LIMIT);
+    let reference = ProjectRouteStore::open(&r.root)
+        .unwrap()
+        .write(&exact)
+        .unwrap();
+    assert_eq!(
+        ProjectRouteStore::open(&r.root)
+            .unwrap()
+            .resolve(&reference)
+            .unwrap()
+            .account,
+        exact
+    );
+    let missing = "0".repeat(40);
+    let p = s
+        .lock()
+        .unwrap()
+        .prepare(
+            &r.root,
+            Question {
+                id: "partial".into(),
+                text: "Known at, missing since".into(),
+                asked_revision: r.id("at").into(),
+                since_revision: Some(missing.clone()),
+            },
+            "partial".into(),
+            None,
+        )
+        .unwrap();
+    i.session_token = p["sessionToken"].as_str().unwrap().into();
+    i.generation = p["generation"].as_str().unwrap().into();
+    let local = connector_source::select(&s, &i.session_token, &i.generation, || {
+        Ok(Some(r.root.join("literal [*].txt")))
+    })
+    .unwrap();
+    let git = connector_source::git_read(
+        &s,
+        &i.session_token,
+        &i.generation,
+        local["observation"]["reference"].as_str().unwrap(),
+        r.id("at"),
+        Some(&missing),
+    )
+    .unwrap();
+    i.git_reference = git["git"]["result"]["reference"].as_str().unwrap().into();
+    i.sources.truncate(1);
+    i.sources[0].reference = git["git"]["result"]["observation"]["at"]["object"]["reference"]
+        .as_str()
+        .unwrap()
+        .into();
+    i.sources[0].anchors.clear();
+    i.interpretations.clear();
+    i.gaps.clear();
+    let partial = account(&s, &i);
+    assert_eq!(partial["sources"].as_array().unwrap().len(), 1);
+    assert_eq!(partial["gaps"][0]["context"]["side"], "since");
+    assert_eq!(partial["gaps"][0]["origin"], "observed_git_failure");
+}
+
+fn reconstruction_input(
+    s: &Mutex<Session>,
+    mut draft: PrepareInput,
+) -> crate::connector_reconstruction::Input {
+    draft.interpretations.clear();
+    let v = connector_source::git_anchor(
+        s,
+        &draft.session_token,
+        &draft.generation,
+        &draft.git_reference,
+        "at",
+        1,
+        1,
+        None,
+    )
+    .unwrap();
+    let anchor = v["git"]["result"]["anchors"]
+        .as_array()
+        .unwrap()
+        .last()
+        .unwrap()["reference"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    draft.sources[0].anchors.push(anchor.clone());
+    let since = draft.sources[1].anchors[0].clone();
+    crate::connector_reconstruction::Input {
+        draft,
+        pairs: vec![crate::connector_reconstruction::PairInput {
+            key: "pair".into(),
+            since_anchor: since.clone(),
+            at_anchor: anchor.clone(),
+        }],
+        claims: vec![crate::connector_reconstruction::ClaimInput {
+            key: "claim".into(),
+            statement: "The selected record text differs; no completion proved".into(),
+            asserted_by: "Caller".into(),
+            asserted_role: "agent".into(),
+            scope: "record_change".into(),
+            anchors: vec![since.clone(), anchor],
+            pairs: vec!["pair".into()],
+        }],
+        contradictions: vec![],
+        reports: vec![crate::connector_reconstruction::ReportInput {
+            duty: "locate_compare".into(),
+            reported_by: "Reporter".into(),
+            reported_actor: Some("Unverified actor".into()),
+            reported_status: "performed".into(),
+            reason: "Record claim only".into(),
+            anchors: vec![since],
+        }],
+    }
+}
+#[test]
+fn connector_reconstruction_joined_private_git_publication_cold() {
+    let (r, s, i) = prepared();
+    let input = reconstruction_input(&s, i);
+    let registry = Mutex::new(Registry::default());
+    let view = crate::connector_reconstruction::prepare(&registry, &s, input, &r.root).unwrap();
+    let entry = &view["entries"][0];
+    assert_eq!(entry["draft"]["account"]["formatVersion"], "0.4");
+    let done = publish(
+        &registry,
+        &s,
+        entry["token"].as_str().unwrap(),
+        entry["generation"].as_str().unwrap(),
+        &r.root,
+    )
+    .unwrap();
+    assert_eq!(done["entries"][0]["status"], "published");
+    let store = ProjectRouteStore::open(&r.root).unwrap();
+    let cold = store.discover();
+    assert_eq!(cold.accounts.len(), 1);
+    let a = &cold.accounts[0].account;
+    assert_eq!(a["formatVersion"], "0.4");
+    assert_eq!(a["facts"].as_array().unwrap().len(), 2);
+    assert_eq!(a["comparisons"][0]["relation"], "different_excerpt_bytes");
+    assert_eq!(
+        a["contribution_reports"][0]["performance_verification"],
+        "not_established"
+    );
+    assert_ne!(a["duties"][0]["standing"], "performed");
+    assert_eq!(
+        publish(
+            &registry,
+            &s,
+            entry["token"].as_str().unwrap(),
+            entry["generation"].as_str().unwrap(),
+            &r.root
+        )
+        .unwrap(),
+        done
+    );
+}
+#[test]
+fn connector_reconstruction_retained_source_negative_shapes() {
+    let good: Value = serde_json::from_str(include_str!(
+        "../resources/connector_route/record_reconstruction_v04.fixture.json"
+    ))
+    .unwrap();
+    connector_route_store::validate_account(&good).unwrap();
+    let mut nul = good.clone();
+    let bytes = b"status:\0pending\n";
+    nul["sources"][0]["excerpts"][0]["text"] = json!(std::str::from_utf8(bytes).unwrap());
+    nul["sources"][0]["excerpts"][0]["byte_end"] = json!(bytes.len());
+    nul["sources"][0]["excerpts"][0]["sha256"] = json!(crate::util::sha256_hex(bytes));
+    assert!(connector_route_store::validate_account(&nul)
+        .unwrap_err()
+        .to_string()
+        .contains("NUL excerpt"));
+    let mut cases = vec![];
+    let mut a = good.clone();
+    a["sources"][0]["excerpts"][0]["anchor"] = json!("L99-L1");
+    a["facts"][0]["anchor"] = json!("L99-L1");
+    cases.push(a);
+    let mut a = good.clone();
+    a["sources"][0]["excerpts"][0]["byte_start"] = json!(1);
+    a["sources"][0]["excerpts"][0]["byte_end"] = json!(17);
+    cases.push(a);
+    let mut a = good.clone();
+    a["evidence"]["selected_path"] = json!("bad\0path");
+    for s in a["sources"].as_array_mut().unwrap() {
+        s["path"] = json!("bad\0path");
+    }
+    cases.push(a);
+    let mut a = good.clone();
+    let gap = json!({"origin":"observed_git_failure","gap":"Invented","effect":"Missing","responsible":{"standing":"unassigned","identity":null},"context":{"side":"at","requested_commit":a["question"]["at_revision"],"path":"record.md"}});
+    a["gaps"].as_array_mut().unwrap().push(gap);
+    cases.push(a);
+    let mut a = good.clone();
+    a["question"]["since_revision"] = json!("c".repeat(64));
+    a["evidence"]["git_request"]["since"] = json!("c".repeat(64));
+    a["sources"][0]["revision"] = json!("c".repeat(64));
+    a["sources"][0]["provenance"]["object_format"] = json!("sha256");
+    for k in ["commit", "root_tree", "blob"] {
+        a["sources"][0]["provenance"][k] = json!("c".repeat(64));
+    }
+    cases.push(a);
+    for (n, a) in cases.iter().enumerate() {
+        assert!(
+            connector_route_store::validate_account(a).is_err(),
+            "source negative {n}"
+        );
+    }
+    for pointer in [
+        "/facts/0/statement",
+        "/claims/0/fact_ids/0",
+        "/contribution_reports/0/fact_ids/0",
+    ] {
+        let mut a = good.clone();
+        *a.pointer_mut(pointer).unwrap() = json!("forged");
+        assert!(connector_route_store::validate_account(&a).is_err());
+    }
+}
+#[test]
+fn connector_reconstruction_hot_forgery_and_contradiction() {
+    let (_r, s, i) = prepared();
+    let mut input = reconstruction_input(&s, i);
+    let e = s
+        .lock()
+        .unwrap()
+        .materialization_evidence(
+            &input.draft.session_token,
+            &input.draft.generation,
+            &input.draft.git_reference,
+        )
+        .unwrap();
+    let mut c = input.claims[0].clone();
+    c.key = "opposing".into();
+    c.statement = "<script>Competing claim</script>".into();
+    input.claims.push(c);
+    input
+        .contradictions
+        .push(crate::connector_reconstruction::ContradictionInput {
+            claims: vec!["claim".into(), "opposing".into()],
+            description: "Unresolved conflict".into(),
+            effect: "Answer unresolved".into(),
+            responsible: Responsibility {
+                standing: "unassigned".into(),
+                identity: None,
+            },
+        });
+    let a = crate::connector_reconstruction::compose(&e, &input, "app-test").unwrap();
+    assert_eq!(a["claims"].as_array().unwrap().len(), 2);
+    assert!(a["gaps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|g| g["gap"] == "Unresolved conflict"));
+    let mut bad = input.clone();
+    bad.reports[0].anchors = vec!["rs:forged-act".into()];
+    assert!(crate::connector_reconstruction::compose(&e, &bad, "app-test").is_err());
+    let mut bad = input.clone();
+    bad.pairs[0].since_anchor = bad.pairs[0].at_anchor.clone();
+    assert!(crate::connector_reconstruction::compose(&e, &bad, "app-test").is_err());
+    let mut bad = input;
+    bad.draft.sources.pop();
+    assert!(crate::connector_reconstruction::compose(&e, &bad, "app-test").is_err());
+}
+#[test]
+fn connector_reconstruction_partial_gaps_only_and_equal_excerpts() {
+    let (_r, s, i) = prepared();
+    let mut input = reconstruction_input(&s, i);
+    let mut e = s
+        .lock()
+        .unwrap()
+        .materialization_evidence(
+            &input.draft.session_token,
+            &input.draft.generation,
+            &input.draft.git_reference,
+        )
+        .unwrap();
+    let since_ref = input.draft.sources[1].reference.clone();
+    // Synthetic completed failure changes only the private test evidence; no missing side source fabricated.
+    e.since = Some(Err(crate::connector_git_process::Failure::side(
+        "missing-object",
+        "Constructed absence",
+    )));
+    input.draft.sources.retain(|x| x.reference != since_ref);
+    input.pairs.clear();
+    input.claims.clear();
+    input.reports.clear();
+    let partial = crate::connector_reconstruction::compose(&e, &input, "app-test").unwrap();
+    assert_eq!(partial["sources"].as_array().unwrap().len(), 1);
+    assert_eq!(partial["comparisons"], json!([]));
+    e.at = Err(crate::connector_git_process::Failure::side(
+        "missing-object",
+        "Constructed absence",
+    ));
+    input.draft.sources.clear();
+    let empty = crate::connector_reconstruction::compose(&e, &input, "app-test").unwrap();
+    for key in ["facts", "comparisons", "claims", "contribution_reports"] {
+        assert_eq!(empty[key], json!([]));
+    }
+    let mut mixed = empty;
+    mixed["question"]["since_revision"] = json!("c".repeat(64));
+    mixed["evidence"]["git_request"]["since"] = json!("c".repeat(64));
+    for g in mixed["gaps"].as_array_mut().unwrap() {
+        if g["context"]["side"] == "since" {
+            g["context"]["requested_commit"] = json!("c".repeat(64));
+        }
+    }
+    assert!(connector_route_store::validate_account(&mixed).is_err());
+    let mut same: Value = serde_json::from_str(include_str!(
+        "../resources/connector_route/record_reconstruction_v04.fixture.json"
+    ))
+    .unwrap();
+    let old = same["sources"][0]["excerpts"][0].clone();
+    for k in ["text", "sha256", "byte_end"] {
+        same["sources"][1]["excerpts"][0][k] = old[k].clone();
+    }
+    same["facts"][1]["statement"] = json!(format!(
+        "Observed excerpt e-at at {}; content SHA-256 {}.",
+        "b".repeat(40),
+        old["sha256"].as_str().unwrap()
+    ));
+    same["comparisons"][0]["relation"] = json!("same_excerpt_bytes");
+    same["conclusions"]["supported"][1]["statement"] = same["facts"][1]["statement"].clone();
+    same["conclusions"]["supported"][2]["statement"]=json!("Selected excerpts f-since and f-at: same_excerpt_bytes; no whole-record or substantive-change conclusion.");
+    connector_route_store::validate_account(&same).unwrap();
+    assert_ne!(same["sources"][0]["sha256"], same["sources"][1]["sha256"]);
+}
+#[test]
+fn connector_reconstruction_shared_capacity_stale_and_uncertainty() {
+    let (r, s, i) = prepared();
+    let input = reconstruction_input(&s, i.clone());
+    let reg = Mutex::new(Registry::default());
+    for n in 0..64 {
+        let v = if n % 2 == 0 {
+            crate::connector_reconstruction::prepare(&reg, &s, input.clone(), &r.root).unwrap()
+        } else {
+            prepare(&reg, &s, i.clone(), &r.root).unwrap()
+        };
+        assert_eq!(v["used"], n + 1);
+        assert_eq!(
+            v["entries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|e| e["status"] == "prepared")
+                .count(),
+            1
+        );
+    }
+    assert!(
+        crate::connector_reconstruction::prepare(&reg, &s, input.clone(), &r.root)
+            .unwrap_err()
+            .contains("capacity")
+    );
+    let reg = Mutex::new(Registry::default());
+    let frozen =
+        crate::connector_reconstruction::prepare(&reg, &s, input.clone(), &r.root).unwrap();
+    let (t, g) = current_draft(&frozen);
+    let uncertain = super::registry::publish_with(&reg, &s, t, g, &r.root, |store, a| {
+        reg.lock().unwrap().cancel(t, g).unwrap();
+        store.test_write_uncertain(a)
+    })
+    .unwrap();
+    assert_eq!(uncertain["entries"][0]["status"], "uncertain");
+    let outcome = uncertain["entries"][0]["outcomeText"].clone();
+    *s.lock().unwrap() = Session::default();
+    assert_eq!(
+        reg.lock().unwrap().reconcile(t, g).unwrap()["entries"][0]["outcomeText"],
+        outcome
+    );
+    assert_eq!(
+        publish(&reg, &s, t, g, &r.root).unwrap()["entries"][0]["outcomeText"],
+        outcome
+    );
+    let (r, s, i) = prepared();
+    let input = reconstruction_input(&s, i);
+    let reg = Mutex::new(Registry::default());
+    let frozen =
+        crate::connector_reconstruction::prepare(&reg, &s, input.clone(), &r.root).unwrap();
+    let (t, g) = current_draft(&frozen);
+    connector_source::select(
+        &s,
+        &input.draft.session_token,
+        &input.draft.generation,
+        || Ok(None),
+    )
+    .unwrap();
+    let refused = super::registry::publish_with(&reg, &s, t, g, &r.root, |_, _| {
+        panic!("stale cancelled source must not write")
+    })
+    .unwrap();
+    assert_eq!(refused["entries"][0]["status"], "refused");
+}
+#[test]
+fn connector_reconstruction_byte_limit_and_cold_forgery_boundary() {
+    let (r, s, i) = prepared();
+    let mut input = reconstruction_input(&s, i);
+    let e = s
+        .lock()
+        .unwrap()
+        .materialization_evidence(
+            &input.draft.session_token,
+            &input.draft.generation,
+            &input.draft.git_reference,
+        )
+        .unwrap();
+    input.draft.gaps.push(GapInput {
+        gap: "x".into(),
+        effect: "Caller gap".into(),
+        responsible: Responsibility {
+            standing: "unassigned".into(),
+            identity: None,
+        },
+    });
+    let initial = crate::connector_reconstruction::compose(&e, &input, "app-test").unwrap();
+    let size = serde_json::to_vec(&initial).unwrap().len();
+    input.draft.gaps[0].gap = "x".repeat(BYTE_LIMIT - size + 1);
+    let exact = crate::connector_reconstruction::compose(&e, &input, "app-test").unwrap();
+    assert_eq!(serde_json::to_vec(&exact).unwrap().len(), BYTE_LIMIT);
+    let store = ProjectRouteStore::open(&r.root).unwrap();
+    let bound = store.write(&exact).unwrap();
+    assert_eq!(store.resolve(&bound).unwrap().account, exact);
+    input.draft.gaps[0].gap.push('x');
+    assert!(crate::connector_reconstruction::compose(&e, &input, "app-test").is_err());
+    input.draft.gaps[0].gap = "\u{1}".repeat(BYTE_LIMIT / 6);
+    assert!(crate::connector_reconstruction::compose(&e, &input, "app-test").is_err());
+    let file = r.root.join(&bound.relative_path);
+    let mut padded = fs::read(&file).unwrap();
+    padded.push(b' ');
+    fs::write(file, padded).unwrap();
+    let read = store.discover();
+    assert!(read.accounts.is_empty());
+    assert!(read
+        .issues
+        .iter()
+        .any(|x| x.detail.contains("acquisition already occurred")));
+    let mut forged = e;
+    let a = &mut forged.anchors[0];
+    a["text"] = json!("forged\n");
+    a["sha256"] = json!(crate::util::sha256_hex(b"forged\n"));
+    input.draft.gaps.clear();
+    assert!(crate::connector_reconstruction::compose(&forged, &input, "app-test").is_err());
+}
+#[test]
+fn connector_reconstruction_prepublication_refusals_and_atomic_stale_freeze() {
+    for cause in ["root", "duplicate", "incomplete", "reread", "cancel"] {
+        let (r, s, i) = prepared();
+        let input = reconstruction_input(&s, i);
+        let reg = Mutex::new(Registry::default());
+        let frozen =
+            crate::connector_reconstruction::prepare(&reg, &s, input.clone(), &r.root).unwrap();
+        let (t, g) = current_draft(&frozen);
+        let moved = r.root.with_extension("moved");
+        match cause {
+            "root" => {
+                fs::rename(&r.root, &moved).unwrap();
+                fs::create_dir(&r.root).unwrap();
+            }
+            "duplicate" => {
+                ProjectRouteStore::open(&r.root)
+                    .unwrap()
+                    .write(&frozen["entries"][0]["draft"]["account"])
+                    .unwrap();
+            }
+            "incomplete" => fs::write(r.root.join(".chirality"), b"not directory").unwrap(),
+            "reread" => {
+                connector_source::select(
+                    &s,
+                    &input.draft.session_token,
+                    &input.draft.generation,
+                    || Ok(Some(r.root.join("literal [*].txt"))),
+                )
+                .unwrap();
+            }
+            _ => {
+                reg.lock().unwrap().cancel(t, g).unwrap();
+            }
+        }
+        let result = super::registry::publish_with(&reg, &s, t, g, &r.root, |_, _| {
+            panic!("refused path called writer")
+        })
+        .unwrap();
+        assert!(matches!(
+            result["entries"][0]["status"].as_str(),
+            Some("refused" | "cancelled")
+        ));
+        if cause == "root" {
+            fs::remove_dir(&r.root).unwrap();
+            fs::rename(&moved, &r.root).unwrap();
+        }
+    }
+    let (r, s, i) = prepared();
+    let input = reconstruction_input(&s, i);
+    let reg = Mutex::new(Registry::default());
+    let failed = super::registry::prepare_composed(
+        &reg,
+        &s,
+        input.draft.clone(),
+        &r.root,
+        || {
+            connector_source::select(
+                &s,
+                &input.draft.session_token,
+                &input.draft.generation,
+                || Ok(None),
+            )
+            .unwrap();
+        },
+        |e, _, recorder| crate::connector_reconstruction::compose(e, &input, recorder),
+    );
+    assert!(failed.is_err());
+    assert_eq!(reg.lock().unwrap().view()["used"], 0);
 }

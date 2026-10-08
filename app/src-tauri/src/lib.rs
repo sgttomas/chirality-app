@@ -16,6 +16,7 @@ pub mod connector_route_store;
 mod connector_route_view;
 mod connector_source;
 mod connector_materialization;
+mod connector_reconstruction;
 mod connector_source_fs;
 #[cfg(unix)] mod connector_git;
 #[cfg(unix)] mod connector_git_process;
@@ -244,6 +245,14 @@ fn anchor_connector_git(state:State<'_,AppState>,session_token:String,generation
     #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
 }
 
+#[tauri::command(async)]
+fn prepare_connector_reconstruction(state:State<'_,AppState>,input:connector_reconstruction::Input)->Result<Value,String>{
+ let project=source_project(&state)?;
+ #[cfg(any(target_os="macos",target_os="linux"))]
+ {connector_reconstruction::prepare(&state.connector_drafts,&state.connector_sources,input,project)}
+ #[cfg(not(any(target_os="macos",target_os="linux")))]
+ {let _=(state,input,project);Err("Reconstruction unavailable on this platform".into())}
+}
 #[tauri::command(async)]
 fn prepare_connector_draft(state:State<'_,AppState>,input:connector_materialization::PrepareInput)->Result<Value,String>{
     let project=source_project(&state)?;
@@ -1245,7 +1254,7 @@ pub fn run() {
             read_connector_routes,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
-            prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
+            prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
             host_status,
             select_home,
             read_home_access,

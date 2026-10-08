@@ -75,7 +75,7 @@ fn embedded_schemas_match_maintained_design_and_validate_exact_versions() {
         validate_account(&mislabeled).unwrap_err().kind,
         ErrorKind::InvalidAccount
     );
-    for bad in ["0.4", "", "1"] {
+    for bad in ["0.5", "", "1"] {
         let mut v = v2.clone();
         v["formatVersion"] = json!(bad);
         assert_eq!(
