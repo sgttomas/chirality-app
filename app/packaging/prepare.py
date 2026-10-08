@@ -180,8 +180,17 @@ def main(argv=None):
     inv=commands.add_parser('inventory'); inv.add_argument('tree'); inv.add_argument('--signature-display',action='store_true')
     prep=commands.add_parser('prepare')
     for field in ('vendor','expected-manifest','pin','candidate-revision','inputs','output'): prep.add_argument('--'+field,required=True)
+    static=commands.add_parser('static-distribution')
+    for field in ('request','scanner'): static.add_argument('--'+field,required=True)
+    for field in ('published-tree','packaged-tree'): static.add_argument('--'+field)
     args=parser.parse_args(argv)
     try:
+        if args.command=='static-distribution':
+            # Separate opted-in successor consumer; legacy commands remain stdlib-only.
+            from static_distribution.check import check
+            result=check(args.request,args.scanner,args.published_tree,args.packaged_tree)
+            print(json.dumps(result,indent=2))
+            return 1 if result['comparison']=='mismatch' else 0
         if args.command=='inventory':
             basis=check_basis(); result=scan(args.tree)
             result.update(source_manifest_sha256=basis,limits=LIMITS)
@@ -191,6 +200,9 @@ def main(argv=None):
         print(json.dumps(result,indent=2))
         return 1 if 'fp0' in result and result['fp0']['outcome']!='pass' else 0
     except (OSError,ValueError,subprocess.TimeoutExpired) as error:
+        if args.command=='static-distribution':
+            print(json.dumps({'format':'chirality.static-distribution-support/1','standing':'refused','error':str(error)},indent=2))
+            return 2
         print(json.dumps({'error':str(error),'preparation_complete':False,'limits':LIMITS},indent=2))
         return 2
 

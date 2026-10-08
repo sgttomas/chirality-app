@@ -1,0 +1,11 @@
+{
+  "record_kind": "distribution_terms",
+  "format": "PKG-v0.2",
+  "record_id": "PKG-TERMS-STATIC-SYNTHETIC",
+  "obligation": "OI-007 / DEP-004 / SOW-117: written supplier position on distributed sign-in, before public release beyond owner use",
+  "supplier": "OpenAI",
+  "state": "unresolved",
+  "recorded_by": "synthetic recorder",
+  "distribution_decision": "not_made",
+  "date": "2026-10-03"
+}

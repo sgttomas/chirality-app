@@ -1,0 +1,141 @@
+{
+  "record_kind": "package_identity",
+  "format": "PKG-v0.2",
+  "record_id": "PKG-STATIC-SYNTHETIC",
+  "app": {
+    "revision": "synthetic-static-revision",
+    "build_identity": "synthetic-static-build",
+    "version": "4.0.0-illustrative",
+    "bundle_id": "ILLUSTRATIVE.bundle.id",
+    "target": "macOS arm64",
+    "signature": {
+      "team": "EXAMPLE001",
+      "authority": "Developer ID Application: ILLUSTRATIVE (EXAMPLE001)",
+      "hardened_runtime": true,
+      "timestamp": true,
+      "entitlements": []
+    },
+    "installer": {
+      "kind": "dmg",
+      "file": "ILLUSTRATIVE.dmg",
+      "sha256_before_notarisation": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "codex": {
+    "pin": "9.9.9",
+    "published": {
+      "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+      "files": 42,
+      "macho_files": 30
+    },
+    "packaged": {
+      "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+      "files": 42,
+      "macho_files": 30
+    },
+    "launcher": {
+      "kind": "vendor_binary",
+      "path_in_bundle": "Contents/Resources/codex/bin/codex",
+      "environment_added": []
+    },
+    "executables": [
+      {
+        "path": "bin/codex",
+        "sha256_published": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+        "sha256_packaged": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+        "signature": {
+          "team": "2DC432GLL2",
+          "authority": "Developer ID Application: OpenAI OpCo, LLC (2DC432GLL2)",
+          "hardened_runtime": true,
+          "timestamp": true,
+          "entitlements": [
+            "com.apple.security.cs.allow-jit",
+            "com.apple.security.cs.allow-unsigned-executable-memory"
+          ]
+        },
+        "supplier_entitlements": [
+          "com.apple.security.cs.allow-jit",
+          "com.apple.security.cs.allow-unsigned-executable-memory"
+        ]
+      }
+    ]
+  },
+  "bundle_contents": [
+    {
+      "item": "bundled_workflows",
+      "supplier": "DEL-02-02",
+      "path_in_bundle": "Contents/Resources/workflows/",
+      "state": "present",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "shipped_revision_manifest",
+      "supplier": "DEL-02-02",
+      "path_in_bundle": "Contents/Resources/workflows/shipped-revisions.json",
+      "state": "present",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "product_guidance",
+      "supplier": "DEL-02-04",
+      "path_in_bundle": "Contents/Resources/instructions/AGENTS.md",
+      "state": "present",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "role_files",
+      "supplier": "DEL-02-04",
+      "path_in_bundle": "Contents/Resources/instructions/agents/",
+      "state": "present",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "role_set",
+      "supplier": "DEL-02-04",
+      "path_in_bundle": "Contents/Resources/instructions/roles.json",
+      "state": "present",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "complete": true,
+  "configuration": {
+    "ref": "ILLUSTRATIVE OUT-001 configuration",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "first_package_checks": {
+    "fp0": {
+      "outcome": "pass",
+      "evidence": "check_pkg.py --tree <0.160.0 published vendor dir>, 2026-10-03"
+    },
+    "fp1a": {
+      "outcome": "not-run",
+      "evidence": "not built (ILLUSTRATIVE)"
+    },
+    "fp1b": {
+      "outcome": "not-run",
+      "evidence": "not built (ILLUSTRATIVE)"
+    },
+    "fp3": {
+      "outcome": "not-run",
+      "evidence": "not submitted (ILLUSTRATIVE)"
+    }
+  },
+  "signing": {
+    "option": "B_supplier_signatures_kept",
+    "app_identity": "Developer ID Application: ILLUSTRATIVE (EXAMPLE001)",
+    "performed_by": "the owner (ILLUSTRATIVE)",
+    "recorded_by": "DEL-01-06 recorder (ILLUSTRATIVE)"
+  },
+  "notarisation": {
+    "state": "not_submitted"
+  },
+  "gatekeeper": {
+    "assessed": false
+  },
+  "support_revision": "EXP-v0.2",
+  "date": "2026-10-03",
+  "limits": [
+    "Entire fixture is invented; signature and packaging fields are value examples, never observed facts.",
+    "option B not yet relied on: FP-1/FP-3 not passed"
+  ]
+}
