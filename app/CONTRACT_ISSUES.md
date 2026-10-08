@@ -1114,3 +1114,34 @@ changed.
   finding; a passing rerun alone does not establish its repair. This backend
   does not reconstruct the question from real sources, establish source truth,
   perform duties, wire providers, or supply UI/connected witness behavior.
+
+## CI-30 Executed SQ dossier/result/review receiving contract
+
+- **Owner and scope:** DEL-09-02 receiving with DEL-09-01 support-method
+  adaptation; Group B manager owns this entry. HELP_HUMAN reserved CI-30 in
+  the active coordination after checking current main and Group C.
+- **Gap:** existing preparation captures canonical support identity, but the
+  six-record EXP/PKG selection does not define executed SQ dossier, direct-step
+  and primary-review byte joins. Reusing it indiscriminately would impose
+  unsupported package/change obligations on native_development.
+- **Named technical change:** CC-SQ-EXP-RECEIVING-01 selects a separate fixed
+  SQ receiving route, exact dossier/direct-step/review mappings, explicit
+  review-set file mapping and citation-conditional package/change attachments.
+  The direct-step case/scenario convention is newly selected for this route,
+  not a retroactive legacy schema rule. Existing six-record consumers remain.
+- **Source disposition:** HELP_HUMAN selected reviewed proposal
+  762d1ba2d03d5d2b809c7631ce009fa8a1b6fdfc as the bounded Design target.
+  Additive DEL-09-02 Design/sq-exp-receiving-v1/RECEIVING.md and DEL-09-01
+  Design/sq-exp-receiving-v1/METHOD_ADAPTATION.md were independently READY at
+  bb10cf3190b1f0593eb871394aae58ce967e22bd, review
+  5517c203162ee1af76e60b6a0b31353413b14192. This is technical disposition
+  conveyed through the parent, not personal owner review or qualification.
+- **Implementation state:** bounded connected receiver authorized after source
+  review; implementation, independent code review and integration remain open.
+  Missing review/attachments stay incomplete or unsupported as specified;
+  contradictory mappings refuse. Failed/not-run/history retain their meaning.
+- **Limits and propagation:** no actual examination, native/supplier witness,
+  package qualification, generic evidence resolver or release. No S3/signing
+  prerequisite is added to native_development. DEL-11-03 handoff rights and
+  DEL-01-06 conditional package contract are unchanged. Exact source/custody
+  records: AgentRuns/APP-V4-GROUP-B-20261008/sq-result-receiver-adoption.
