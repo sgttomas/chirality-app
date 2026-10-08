@@ -2,17 +2,17 @@
   "artifact_kind": "standalone_case_preparation",
   "preparation_version": 1,
   "standing": "test_definition_only",
-  "source_basis_revision": "462f66975d36cd10d5b8455193ada9517d28d353",
+  "source_basis_revision": "d6bcee8ce6c42f132bfb36fdd32fe65f2a4ba7dc",
   "sources": [
     {
       "role": "step_map",
       "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.step-map.json",
-      "sha256": "sha256:e57ff599c169aee2c45fc676fe579d3f2fabdfd4085f15616acf01965e826fc7"
+      "sha256": "sha256:a35592a9fbaa3338c128f765bd59b78021565ce6423ea9b77cce274370f9e7d1"
     },
     {
       "role": "sq_design",
       "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/STANDALONE_QUALIFICATION.md",
-      "sha256": "sha256:3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391"
+      "sha256": "sha256:9f88209d7bac08137d0c92e65b8a344c619248bae683bf70a3137b0f00c5443b"
     },
     {
       "role": "sq_schema",
@@ -22,7 +22,7 @@
     {
       "role": "sq_rules",
       "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/prototype/check_sq.py",
-      "sha256": "sha256:4a141a8c3f36620aec3f54ba5ace6d193c5cbfd00129f0d7e6fff7ef1b7ef2ea"
+      "sha256": "sha256:60ea83a3dff7220a1e95a3f3054c22ec5a11e70a67ee56c10eb29bfe85a9c093"
     },
     {
       "role": "sq_scope",
@@ -164,7 +164,9 @@
           ],
           "core_loop_element": "execution",
           "v3_reference": "J02, J04 (real tool use)",
-          "stimuli": [],
+          "stimuli": [
+            "ST-4"
+          ],
           "counts": true,
           "state": "awaiting_input",
           "missing_input": "candidate_and_configuration",

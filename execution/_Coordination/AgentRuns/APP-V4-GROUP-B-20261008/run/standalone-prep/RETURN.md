@@ -52,3 +52,18 @@ supports B7 and does not complete B7 or open B8.
 Actual later observations belong in accepted EXP/SQ records, not by editing
 this preparation. The strict checker intentionally refuses extra outcome or
 examination fields. Parent supplies independent review before integration.
+
+## Manager consumer adoption after independent Design review
+
+CC-SQ-J2-ST4 b66d0b16f2 was independently READY and integrated as d6bcee8ce6.
+The earlier discrepancy above is historical; the current preparation explicitly
+adopts its corrected J-2/ST-4 map. Manager refreshed sources.json, regenerated
+CASE_PREPARATION/check, and added a J-2 ST-4 omission refusal assertion. Nine
+tests pass; source revision remains separate from the unset executable candidate.
+CONTEXT.json retains the original TASK's supplied context rather than claiming
+that it authored this later refresh. Independent consumer backcheck pending.
+
+Automatic review refused the Design cherry-pick in the consumer child worktree
+because its original scope excludes Design/shared records. No child edit
+occurred. HELP_HUMAN directed the safer manager-side refresh in the already
+authorized integration worktree; the child fence was retained.

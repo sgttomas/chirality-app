@@ -45,6 +45,8 @@ class StandalonePreparationTest(unittest.TestCase):
 
     def test_stimuli_and_supplier_case_omissions(self):
         self.rejects(lambda p: p['stimuli'].pop())
+        self.assertIn('ST-4', self.plan['scenarios'][0]['steps'][1]['stimuli'])
+        self.rejects(lambda p: p['scenarios'][0]['steps'][1]['stimuli'].remove('ST-4'))
         self.rejects(lambda p: p['scenarios'][1]['steps'][5]['stimuli'].remove('ST-5'))
         self.rejects(lambda p: p['scenarios'][0]['steps'][5]['supplier_cases'].pop())
         self.rejects(lambda p: p['stimuli'][4].update(replay_counterpart='constructed VC-R-04 stub'))

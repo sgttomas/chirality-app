@@ -42,8 +42,7 @@ Every planned case then gets an honest EXP result, including unattempted ones,
 and later review/handoff follows SQ. No native launch, account operation,
 download, signing, SEAL-2 implementation or product qualification occurs here.
 
-SQ's prose stages ST-4 at J-2, while the accepted machine map lists no stimulus
-on J-2 (it lists ST-4 at S11-1 and S11-6). Both are preserved: the map is
-unchanged, and J-2's source action and full case text retain delegation.
-This discrepancy is returned to the Design owner; preparation does not amend
-SQ or silently drop J-2's required delegated child.
+CC-SQ-J2-ST4 reconciles the former J-2 prose/map discrepancy by including the
+already required ST-4 in J-2's machine map. This consumer explicitly adopts that
+independently reviewed correction; the source lock and generated preparation
+retain its revision and bytes. No examination outcome follows from the correction.
