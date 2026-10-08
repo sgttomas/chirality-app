@@ -16,6 +16,8 @@ pub mod connector_route_store;
 mod connector_route_view;
 mod connector_source;
 mod connector_source_fs;
+#[cfg(unix)] mod connector_git;
+#[cfg(unix)] mod connector_git_process;
 pub mod decision_view;
 mod file_act_root;
 mod file_act_view;
@@ -221,6 +223,23 @@ fn anchor_connector_source(state:State<'_,AppState>,session_token:String,generat
 #[tauri::command]
 fn revise_connector_source(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,kind:String,label:String,anchor_reference:Option<String>)->Result<Value,String>{
     source_project(&state)?;state.connector_sources.lock().map_err(|_|"Source state unavailable")?.revision(&session_token,&generation,&observation_reference,&kind,&label,anchor_reference.as_deref())
+}
+
+
+#[tauri::command(async)]
+fn read_connector_git(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,at:String,since:Option<String>)->Result<Value,String>{source_project(&state)?;
+    #[cfg(unix)] {connector_source::git_read(&state.connector_sources,&session_token,&generation,&observation_reference,&at,since.as_deref())}
+    #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
+}
+#[tauri::command]
+fn cancel_connector_git(state:State<'_,AppState>,session_token:String,generation:String)->Result<Value,String>{source_project(&state)?;
+    #[cfg(unix)] {connector_source::git_cancel(&state.connector_sources,&session_token,&generation)}
+    #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
+}
+#[tauri::command]
+fn anchor_connector_git(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,side:String,start:usize,end:usize,expected:Option<String>)->Result<Value,String>{source_project(&state)?;
+    #[cfg(unix)] {connector_source::git_anchor(&state.connector_sources,&session_token,&generation,&observation_reference,&side,start,end,expected.as_deref())}
+    #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
 }
 
 fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
@@ -1182,6 +1201,7 @@ pub fn run() {
             read_recovery_custody,
             read_connector_routes,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
+            read_connector_git, cancel_connector_git, anchor_connector_git,
             host_status,
             select_home,
             read_home_access,
@@ -1286,3 +1306,20 @@ mod group_b_fixture_consumer;
 #[cfg(test)]
 #[path = "p3_role_entry_tests.rs"]
 mod p3_role_entry_tests;
+
+#[cfg(all(test,unix))]
+mod connector_git_guard_tests {
+    use super::*;
+    #[test]
+    fn connector_git_shared_command_guard_refuses_unknown_mismatch_and_absent_project() {
+        let(root,mut state,_,_,_,_)=workflow_root_context_tests::fixture();
+        assert!(source_project(&state).is_err());
+        state.project_context_limit=None;
+        assert!(source_project(&state).is_err());
+        state.project_context=recovery::ExplicitAppProjectContext::known(root.to_str().unwrap(),recovery::AppProjectSource::ConfiguredDirectory).unwrap();
+        assert_eq!(source_project(&state).unwrap(),root);
+        state.workspace=Some(root.join("different"));assert!(source_project(&state).is_err());
+        state.workspace=None;assert!(source_project(&state).is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}

@@ -1,0 +1,98 @@
+{
+  "base_revision": "2cbb90e07937a4944ba46dcde25c564d578773f6",
+  "author": "/root/group_c_successor/cfb_design_owner",
+  "parent": "/root/group_c_successor",
+  "role": "TASK",
+  "mechanism": "delegated-harness-native",
+  "reading_limits": "Applicable prior instructions retained; selected Git/source/session/root APIs, manifest and revision schema examined. Hash identifies bytes, not blanket full-file reading.",
+  "sources": [
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "origin": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md",
+      "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_SOURCE_PRODUCER_v0.1.md",
+      "sha256": "fc8fc1dd1277448bf87a4d615eb9a583c6c7bc8011c092c25cf7f640bb97028f"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK_v0.3.md",
+      "sha256": "3b1007357e05571f1f22b09c6bfe1af575ec6549d938f95ab94cf61093bd834d"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md",
+      "sha256": "e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_source.rs",
+      "sha256": "d0368f553d00315d86fc6f9a674bb6c169195e8b99b1c175943961ae074d3969"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_source_fs.rs",
+      "sha256": "274a19fe8f792035bf7f29668dbc81fd95cb5d65c69f5dcabecd1e38cf92e853"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_source_tests.rs",
+      "sha256": "7e278d85c9c65cacd9c62c252e48d5b1e6441f6821693cb537b8f2861a1dac0c"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_view.rs",
+      "sha256": "08b6803366b53148898ed4f997729e09886de95c40119a74fb6ef2aa831a58e0"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "f6e922c4ed5a94d7728f5e4f0edaa4ab81d858183dd7979327475c63487e907f"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.lock",
+      "sha256": "c1910cffc3fc311fc50cae1117d5aa379dc374142c643c3b22ad85998dbf86b2"
+    }
+  ],
+  "technical_references": [
+    {
+      "origin": "https://git-scm.com/docs/git-cat-file",
+      "standing": "mutable official web documentation consulted; not runtime qualification"
+    },
+    {
+      "origin": "https://git-scm.com/docs/git",
+      "standing": "mutable official web documentation consulted; not runtime qualification"
+    },
+    {
+      "origin": "https://git-scm.com/docs/gitrepository-layout",
+      "standing": "mutable official web documentation consulted; not runtime qualification"
+    },
+    {
+      "origin": "https://git-scm.com/docs/git-hash-object",
+      "standing": "official mutable documentation consulted for explicit nonwriting raw-stdin envelope; no runtime qualification"
+    }
+  ],
+  "host_observation": "git version 2.54.0 (Apple Git-157); availability only",
+  "status": "proposed source contract; no implementation/test/native witness",
+  "repairs": [
+    {
+      "id": "CGP-R1",
+      "source_sha256": "d6822a94bf0fcf2793d43ac1d43a848abbbccf772b800ad9690da66e17b6d2e4",
+      "scope": "side/request lifecycle and explicit nonwriting hash-object recomputation",
+      "cache_evidence": "TASK route_persistence active message: zero approved-cache sha1 archives/extracted sources; index only. Relayed evidence, not source-owner cache inspection."
+    }
+  ]
+}

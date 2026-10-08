@@ -1,0 +1,326 @@
+{
+  "assignment": "C3-S3-P bounded transient Git object adapter",
+  "role": "TASK",
+  "agent": "/root/group_c_successor/route_persistence",
+  "parent": "/root/group_c_successor",
+  "mechanism": "delegated-harness-native; no delegation",
+  "authority": "manager release a242c000af after exact source READY78c7648803",
+  "branch": "codex/group-c-git-source-recon",
+  "base_commit": "2cbb90e07937a4944ba46dcde25c564d578773f6",
+  "receiving_main": "f23997d3202375f9d607098731f8d374d019b434",
+  "local_receiving_head": "380e6952f6e6de3f250f2f228dc07c85820c07d8",
+  "scope_enforcement": "instruction fence plus actual host permissions, not per-file enforcement",
+  "inherited_context_basis": "C3_S2_IMPLEMENTATION_BASIS.json",
+  "inherited_context_basis_sha256": "02bf34c822d74170f801a017b6b93357c9462103e56e3959b8b273fc6eab6200",
+  "inherited_sources": [
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/README.md",
+      "sha256": "cdb08450a1cb29bd5e6e10d491efc6f537cc4ca08ba2e0add395e4223e7148b2",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/PAUSE_HANDOFF_HELP_HUMAN_20261008.md",
+      "sha256": "f8788e0bfdc68813b360e690c7e64f1cf0c18c911ed9097c9c92f90fb880be4e",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "21915f34f8608fd540f2bf504e390ef7c24d908f4fa188dad5a09511ddd79e81",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md",
+      "sha256": "428a330de7acfa0687a85f1328b081ccdbc64ded4fc53f9266585b45f9079ca0",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_REVIEW.md",
+      "sha256": "1c9b8513ebec4074bb5190c7a752228369bd77da8aa19035de6bf41cd78c0f5a",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_FLEET_PLACEMENT_CONCURRENCE.md",
+      "sha256": "b357e80fa7e4d791a55549f3a961d313513c8e58f98283659657a229475c1a2e",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/IMPLEMENTATION_BASIS.json",
+      "sha256": "5745706121e428e4534ac71fa87f66f820ca2c8584f405e1fd8a66606ee29005",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.2.md",
+      "sha256": "6552f82f3a574b847e19ed909ac610e4b263f27d6034253488b0d2a314659f12",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md",
+      "sha256": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK_v0.3.md",
+      "sha256": "3b1007357e05571f1f22b09c6bfe1af575ec6549d938f95ab94cf61093bd834d",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.schema.json",
+      "sha256": "a6823eebb2872d0d563b7e77589a0cc2f7cd2545abe654e5b427af7d79365286",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/schema_validation.rs",
+      "sha256": "42545d9d544f0a8ac7be84814bc9285d987888e6c7ef2ca0201041458c2eb3a9",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/util.rs",
+      "sha256": "4c890ed6e57c5ef5a155dfac18133f9a0ab7c5b7ba1a96b5a42631a2ebceb951",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/workflow_record_store.rs",
+      "sha256": "327f2f054e307aceaa5166a9b8d0edd236103b2c92d5dfe9152c9c6aafda4345",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "897dfa625fbb9c3666a92c9cbd6b12ff8bb86083b5ee050313832a71bca3b968",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK.md",
+      "revision": "e24bd8a5a2",
+      "sha256": "f7a817f35a3278f6060ce3e5fb524634685de81968577ff96c5275a1c9e9b6ff",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK_ACCOUNT.json",
+      "revision": "e24bd8a5a2",
+      "sha256": "22038d3adef3681c0c776de5bbc85eef7b4111d8dcb425db809cd3f74c312643",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_WALK_BASIS.json",
+      "revision": "e24bd8a5a2",
+      "sha256": "7f1741a165313ea90a165f6f540d00a8b45af632a96d47ed1504648d3fe9c3e7",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PRESENTATION_REVIEW.md",
+      "revision": "814c5eadd95fdb7b3024f364fe9e305851409b5f",
+      "sha256": "4c71eeb5af0d21495dfd8ce0a174da8b552394c74189202aa0586c3c48fd4e69",
+      "coverage": "continued supplied C3 context; original source identity retained"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_SOURCE_PRODUCER_v0.1.md",
+      "revision": "938f02634908596e7ec71af2392c0170d933efee",
+      "sha256": "fc8fc1dd1277448bf87a4d615eb9a583c6c7bc8011c092c25cf7f640bb97028f",
+      "coverage": "full selected definition/review/technical adoption"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_S2_SOURCE_REVIEW.md",
+      "revision": "c8b71bcef0",
+      "sha256": "4b156c64bfc6987e6b57b1b9c8114ec5569c8415d8935007f4617ba8e68fb488",
+      "coverage": "full selected definition/review/technical adoption"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_S2_TECHNICAL_SELECTION.md",
+      "revision": "15d224d52b",
+      "sha256": "b61261dabe5c2713c87a4019397bfbda6846cb13697e17ab375b3f661ad632c4",
+      "coverage": "full selected definition/review/technical adoption"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/attachments.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "77791e9bb62dd994ff7f0fa12a04acb667834ca3d5132f2a3d7284b308ffa0a5",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/trace_receiving.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "2bbd8b5c4abb6476da3d953770354ba5cffed0c437822fb7201aaebd634e16e1",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "1cf78544f67bf552eab3c3b62d6d0e4a2f07492cf6f3b5610acdc0d72c435a01",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/file_act_root.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "33afb4b1b00324d29f2382515ae9fed0ae02312ab0ad77287ee3bc55ced8e507",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_view.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "08b6803366b53148898ed4f997729e09886de95c40119a74fb6ef2aa831a58e0",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "ace6a925fe32d49754f3a7fbd30eebf1bf144292ef2104e48a9886663b99f160",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/util.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "4c890ed6e57c5ef5a155dfac18133f9a0ab7c5b7ba1a96b5a42631a2ebceb951",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "revision": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+      "sha256": "b7a3f36147968e8802a61fef656d801c2a7fbfc44066e736f72d721ce2ec0971",
+      "coverage": "targeted source-selection, snapshot, identity, explicit-project, setup and test seams; not entire module corpus"
+    }
+  ],
+  "selected_source": {
+    "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_GIT_PROVENANCE_v0.1.md",
+    "commit": "b9de482eed65be54637374c8707efe8e0a224d39",
+    "sha256": "d6822a94bf0fcf2793d43ac1d43a848abbbccf772b800ad9690da66e17b6d2e4"
+  },
+  "read_or_reconsulted_sources": [
+    {
+      "origin": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/README.md",
+      "sha256": "278d53632c7b9559b9f34fe5f2a5beeaea841fa3750c93b7132ace511feac11b"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_S3_TECHNICAL_SELECTION.md",
+      "sha256": "4bb96a524c264e3435c2ffaafae9ae20eb6e99a07f4cda06faa1460eee72d2f0"
+    }
+  ],
+  "implementation_files": [
+    {
+      "path": "projects/chirality-app-v4/app/src/ConnectorSourcePanel.tsx",
+      "sha256": "986f39e9e8e4cb8e78151cf682db1b512f01e9bb8d516a6810e7a463bf3c889f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_git.rs",
+      "sha256": "cd2f07e757c0026edf52a57191e0af9adc390c797e592a232656af7faf45be34"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_git_process.rs",
+      "sha256": "e34b4b1ac36d998eb968ef7d744169fb076ba7f889b4ceaefa3327b6149b2a4a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_git_tests.rs",
+      "sha256": "be7f0a743ec6e5ab6044b3d08aec9192acf79388d4297f38b897250ace9cff87"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_source.rs",
+      "sha256": "6da302e4530cd923272407ccd6e7c500dc70a5ce6700c6fb283c8317eafcb5cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_source_fs.rs",
+      "sha256": "222dd4d8a52e7f8c055ad309df7165bf5ae8cb90d96e21de7885b565abadee95"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_source_tests.rs",
+      "sha256": "6ded3d05908afcd33de67df1433d4206121abea2014b20dc8fc065204a792245"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "afc29eb25e9cd088e76fe9d6b1ef7404c48299e3052cc34484eec5f8d480825c"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/tests/connector-source-presentation.test.mjs",
+      "sha256": "0954c1fc15963f4a196e0b1a568b9901a79a4e5f5d296e41f85e9c5412a30f7d"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/tests/fixtures/connector-git/generate.py",
+      "sha256": "246da1eec4ef992e0142432f64d5755f1371a60ae64c2cd10a884e6e3f1c108c"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/tests/fixtures/connector-git/vectors.json",
+      "sha256": "09e2ba88bb4409545979e17225becea82c2ecfa7aa5555044fac63ad275ad466"
+    }
+  ],
+  "qualification": "constructed repositories with real restricted Git executions; synthetic native-selection/session/renderer handler tests; no actual user-project provenance or native witness",
+  "checks": {
+    "connector_suite": {
+      "passed": 59,
+      "failed": 0
+    },
+    "added_inherited_environment_test": {
+      "passed": 1,
+      "failed": 0
+    },
+    "full_npm_before_final_reply_guard": {
+      "passed": 21,
+      "skipped": 1,
+      "failed": 0,
+      "nested_decide_flow_passed": 4
+    },
+    "final_affected_renderer_tests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "final_frontend_build": "passed"
+  },
+  "offline_boundary": "approved prepared Cargo/npm caches only; existing own private target reused serially as local acceleration; no dependency changes/downloads/supplier/native launch",
+  "limits": [
+    "macOS installed Git 2.54.0 (Apple Git-157) tested; Linux not executed; unsupported capability refuses; non-Unix code path is explicit refusal, not cross-compiled here",
+    "same installed Git computes object IDs; Python hashlib vectors are independent test oracle only",
+    "no OS network sandbox, escaped-descendant exclusion, or continuous same-user substitution immunity",
+    "helper cleanup checks opened metadata before pathname removal; residual check-to-use race, no protected adversarial custody claim",
+    "no source/account/fact/duty/actor authority or source materialization; SEAL2 and external owner holds remain"
+  ]
+}
