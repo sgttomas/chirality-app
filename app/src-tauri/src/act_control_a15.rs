@@ -661,6 +661,63 @@ mod tests {
         ac.present_a15(&offer).unwrap();
         (ac, offer, actor, context, digest)
     }
+    /// J6 D-1 control (written before the repair, kept): the native A15
+    /// statement must fit a readable alert and still name every binding element.
+    /// Limits are literal here so the control does not depend on the repair.
+    #[test]
+    fn control_a15_native_statement_is_bounded_and_names_every_binding() {
+        for (names, in_place) in [(&["sample"][..], false), (&["second", "first"][..], true)] {
+            let (root, session) = library(names, in_place);
+            let mut ac = ActControl::new(&root);
+            let current = session.current().unwrap();
+            let offer = ac.compose_a15(&current).unwrap();
+            let actor = person(Some("Synthetic test person"), Some("fixture-os"));
+            let context = json!({"fixture":"synthetic owning context"});
+            let text = ac
+                .a15_confirmation_text(&offer, &current, &actor, &context)
+                .unwrap();
+            let (lines, chars) = (text.lines().count(), text.chars().count());
+            assert!(
+                lines <= 30 && chars <= 1400,
+                "native A15 statement unbounded: {lines} lines, {chars} chars"
+            );
+            assert!(!text.contains("{\""), "raw JSON in native statement:\n{text}");
+            let wording = ac.a15_offers[offer.id()].offer["wording"].as_str().unwrap().to_owned();
+            assert!(text.starts_with(&wording), "{text}");
+            assert!(text.contains("(A15"), "{text}");
+            for b in current.ordered_bindings() {
+                let s = b.subject();
+                assert!(text.contains(&s.name) && text.contains(&s.origin), "{text}");
+                assert!(text.contains(&s.revision[..12]), "short revision: {text}");
+                assert!(
+                    text.lines().any(|l| l.trim() == s.revision),
+                    "full revision on its own copyable line:\n{text}"
+                );
+                assert!(text.contains(&s.revision_method), "{text}");
+            }
+            assert!(text.contains("Prior revision: none"), "{text}");
+            assert!(text.contains(&root.display().to_string()), "library: {text}");
+            let descriptor = current.descriptor();
+            assert!(text.contains(descriptor["scope"].as_str().unwrap()), "{text}");
+            assert!(text.contains(descriptor["purpose"].as_str().unwrap()), "{text}");
+            assert!(text.contains(current.review_ref()), "{text}");
+            let mut canonical = String::new();
+            crate::canonical::canonical(current.review_presentation(), &mut canonical).unwrap();
+            let review_digest = crate::util::sha256_hex(canonical.as_bytes());
+            assert!(
+                text.lines().any(|l| l.trim() == review_digest),
+                "complete-review digest on its own line:\n{text}"
+            );
+            assert!(text.contains(offer.id()), "{text}");
+            assert!(text.contains("Synthetic test person") && text.contains("fixture-os"));
+            assert!(text.contains("identity not verified"), "{text}");
+            assert!(text.contains("not a check that the workflow can run here"), "{text}");
+            assert!(text.contains("Cancel closes without an act"), "{text}");
+            assert!(text.contains("Accessibility"), "{text}");
+            drop(current);
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
     fn event(
         offer: &A15OfferRef,
         digest: Value,
