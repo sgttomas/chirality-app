@@ -1,7 +1,7 @@
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileActPanel } from "./FileActPanel";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
@@ -329,6 +329,12 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
   },[presentations]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section><h2>Workflow selection and native registration</h2><a href="#file-acts">Review a workspace draft file for a separate standing act</a>
     <p>Development content, native registration, supplied text, model adoption and run standing remain separate observations.</p>
+    <p>Bundle candidate content can be inspected or copied into a draft. It is not runnable as a shipped workflow; release registration remains pending.</p>
+    {(data?.productionCatalog?.entries??[]).map((entry:Json)=><article key={entry.name}>
+      <p>{entry.name} · {entry.revision}</p>
+      <button disabled={busy} onClick={()=>action("workflow_select_production_bundle",{name:entry.name})}>Inspect bundled candidate</button>
+      <button disabled={busy||!data?.activeLibrary} onClick={()=>action("workflow_select_production_copy",{name:entry.name})}>Inspect matching candidate in opened library</button>
+    </article>)}
     <button disabled={busy} onClick={()=>action("workflow_select_development",{})}>Select exact development workflow holding copy…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"project"})}>Open project workflow library…</button>
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"user"})}>Open user workflow library…</button>
@@ -544,6 +550,14 @@ export function App() {
   const [modelProvider, setModelProvider] = useState<string>("");
   const [entryId, setEntryId] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const roleInitialized = useRef(false);
+  useEffect(() => {
+    if (!roleInitialized.current && host?.roleSet?.available) {
+      roleInitialized.current = true;
+      setRole(host.roleSet.defaultRole ?? "");
+    }
+  }, [host?.roleSet]);
+
 
   const refresh = useCallback(async () => {
     setHost(await invoke("host_status"));
@@ -621,7 +635,8 @@ export function App() {
         </p>
         <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{host?.homeRouting?.activeModeHomeClass === "api-key" ? <option value="api-key">API key in separate configured key home</option> : <><option value="chatgpt-account">ChatGPT account in configured account home</option><option value="local-provider">Configured local provider</option></>}</select></label></p>
         <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
-        <p><label>Conversation role <select value={role} onChange={e => setRole(e.target.value)}><option value="">No role selected</option><option value="HELP_HUMAN">HELP_HUMAN</option><option value="HELPS_HUMANS">HELPS_HUMANS</option><option value="WORKING_ITEMS">WORKING_ITEMS</option></select></label></p>
+        <p><label>Conversation role <select value={role} onChange={e => { roleInitialized.current = true; setRole(e.target.value); }}><option value="">No role selected</option>{(host?.roleSet?.roles??[]).filter((entry:Json)=>entry.name!=="TASK").map((entry:Json)=><option key={entry.name} value={entry.name}>{entry.name}</option>)}</select></label></p>
+        <p>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}</p>
         <p>Role guidance: {JSON.stringify(host?.roleSupply)} {host?.instructionsProblem}</p>
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>

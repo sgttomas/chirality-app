@@ -654,6 +654,15 @@ fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>)->R
     state.workflows.lock().unwrap().select_development_copy(path)
 }
 #[tauri::command(async)]
+fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String)->Result<Value,String>{
+    let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join("workflows");
+    state.workflows.lock().unwrap().select_production_bundle(root,&name)
+}
+#[tauri::command]
+fn workflow_select_production_copy(state:State<'_,AppState>,name:String)->Result<Value,String>{
+    state.workflows.lock().unwrap().select_production_copy(&name)
+}
+#[tauri::command(async)]
 fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String)->Result<Value,String>{
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
@@ -1082,7 +1091,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
+            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,
