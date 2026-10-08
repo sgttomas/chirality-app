@@ -36,6 +36,7 @@ pub(crate) struct Store {
     root_id: (u64, u64),
     vendor: PathBuf,
     namespaces: Arc<NativeNamespaceBindings>,
+    selected: Option<crate::distribution_preflight::selection::Selected>,
     #[cfg(test)]
     before_audit: std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
@@ -270,6 +271,7 @@ impl Store {
             root_id: id(&dir)?,
             vendor: vendor.into(),
             namespaces,
+            selected: None,
             #[cfg(test)]
             before_audit: std::sync::Mutex::new(None),
         });
@@ -588,3 +590,7 @@ mod tests {
         assert_eq!(std::fs::read_dir(&f.store.root).unwrap().count(), 0);
     }
 }
+
+#[path = "distribution_store_s1.rs"]
+mod s1;
+pub(crate) use s1::S1Reference;

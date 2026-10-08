@@ -1,0 +1,122 @@
+{
+  "LT-01": [
+    "absent",
+    "start-requested",
+    "verifying"
+  ],
+  "LT-02": [
+    "stopped",
+    "start-requested",
+    "verifying"
+  ],
+  "LT-03": [
+    "refused",
+    "start-requested",
+    "verifying"
+  ],
+  "LT-04": [
+    "verifying",
+    "verification-passed",
+    "spawning"
+  ],
+  "LT-05": [
+    "verifying",
+    "verification-failed",
+    "refused"
+  ],
+  "LT-06": [
+    "spawning",
+    "spawned",
+    "handshaking"
+  ],
+  "LT-07": [
+    "spawning",
+    "spawn-failed",
+    "restart-waiting"
+  ],
+  "LT-08": [
+    "spawning",
+    "spawn-failed",
+    "halted-after-repeated-failure"
+  ],
+  "LT-09": [
+    "handshaking",
+    "handshake-completed",
+    "ready"
+  ],
+  "LT-10": [
+    "handshaking",
+    "handshake-failed",
+    "restart-waiting"
+  ],
+  "LT-11": [
+    "handshaking",
+    "handshake-failed",
+    "halted-after-repeated-failure"
+  ],
+  "LT-12": [
+    "ready",
+    "child-ended-without-stop-record",
+    "exited-unexpectedly"
+  ],
+  "LT-13": [
+    "exited-unexpectedly",
+    "exit-recorded",
+    "restart-waiting"
+  ],
+  "LT-14": [
+    "exited-unexpectedly",
+    "exit-recorded",
+    "halted-after-repeated-failure"
+  ],
+  "LT-15": [
+    "restart-waiting",
+    "restart-delay-elapsed",
+    "verifying"
+  ],
+  "LT-16": [
+    "halted-after-repeated-failure",
+    "explicit-restart-requested",
+    "verifying"
+  ],
+  "LT-17": [
+    "ready",
+    "stop-requested",
+    "stopping"
+  ],
+  "LT-18": [
+    "handshaking",
+    "stop-requested",
+    "stopping"
+  ],
+  "LT-19": [
+    "spawning",
+    "stop-requested",
+    "stopping"
+  ],
+  "LT-20": [
+    "verifying",
+    "stop-requested",
+    "stopped"
+  ],
+  "LT-21": [
+    "restart-waiting",
+    "stop-requested",
+    "stopped"
+  ],
+  "LT-22": [
+    "halted-after-repeated-failure",
+    "stop-requested",
+    "stopped"
+  ],
+  "LT-23": [
+    "stopping",
+    "tree-ended",
+    "stopped"
+  ],
+  "LT-24": [
+    "verifying",
+    "development-start-authorized",
+    "spawning"
+  ]
+}

@@ -1,0 +1,75 @@
+
+> chirality-app-v4-skeleton@0.0.0 test
+> node --test tests/validate-records.test.mjs tests/presentation.test.mjs tests/connector-route-presentation.test.mjs tests/connector-source-presentation.test.mjs
+
+✔ selected manual walk: every recorded field is rendered unchanged for four constructed triggers (11.32725ms)
+✔ all duty states, missing metadata, zero-source gaps, and conflicting claims remain literal (4.194125ms)
+✔ duplicate IDs retain separate cards without winner, all discovery issues and incomplete state (2.793875ms)
+✔ absent, empty, unavailable, and open failure are distinct; absent project disables read (1.467084ms)
+✔ untrusted text stays escaped and source paths are not opened; exact large-number text survives (1.119333ms)
+✔ refresh clears old observation immediately and failure cannot retain stale success (2.531292ms)
+✔ parsed representation and numeric limitations are visible without implying original bytes (1.700125ms)
+✔ source content, anchors, read limits and gaps remain escaped and separate (5.038667ms)
+✔ every revision treatment retains unverified provenance and typed hashes cannot promote it (1.767833ms)
+✔ cancel, pending, failure and edited question label old snapshot historical with unchanged read time (3.474083ms)
+✔ constructed trigger variants preserve question and gaps; assignments are never performed duties (3.382459ms)
+✔ unavailable association disables preparation/selection and exposes no file path/body input (2.0245ms)
+✔ historical excerpts retain separately labeled unresolved read and excerpt causes (1.369958ms)
+✔ review digest equals the vector the native A15 statement names (Rust canonical.rs) (12.348167ms)
+✔ the App states the digest comparison and that it is only a reading aid (0.121291ms)
+✔ native paths read as text; non-UTF-8 is marked; identities are not changed (0.298042ms)
+✔ run summary follows the latest supply check (0.084083ms)
+error: no matching package named `pulldown-cmark` found
+location searched: crates.io index
+required by package `chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/v4-hosting-s1/chirality/projects/chirality-app-v4/app/src-tauri)`
+As a reminder, you're using offline mode (--offline) which can sometimes cause surprising resolution failures, if this error is too confusing you may wish to retry without `--offline`.
+✖ Rust decide flow runs and produces outputs (87.952083ms)
+✖ decision record and act-control objects validate against the Design schemas (140.169959ms)
+﹣ hosting lifecycle events and client-request records validate (0.162542ms) # CHIRALITY_CODEX_BIN not set: the Codex handshake test did not run here
+ℹ tests 20
+ℹ suites 0
+ℹ pass 17
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 377.340583
+
+✖ failing tests:
+
+test at tests/validate-records.test.mjs:69:1
+✖ Rust decide flow runs and produces outputs (87.952083ms)
+  Error: Command failed: cargo test --offline --locked --test decide_flow
+      at genericNodeError (node:internal/errors:985:15)
+      at wrappedFn (node:internal/errors:539:14)
+      at checkExecSyncError (node:child_process:924:11)
+      at execFileSync (node:child_process:960:15)
+      at TestContext.<anonymous> (file:///Users/ryan/.codex/worktrees/v4-hosting-s1/chirality/projects/chirality-app-v4/app/tests/validate-records.test.mjs:70:3)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1081:25)
+      at Test.start (node:internal/test_runner/test:978:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:332:17) {
+    status: 101,
+    signal: null,
+    output: [ null, null, null ],
+    pid: 42124,
+    stdout: null,
+    stderr: null
+  }
+
+test at tests/validate-records.test.mjs:74:1
+✖ decision record and act-control objects validate against the Design schemas (140.169959ms)
+  Error: ENOENT: no such file or directory, open '/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-skeleton-output-KEWxYa/decide-records.jsonl'
+      at readFileSync (node:fs:435:20)
+      at TestContext.<anonymous> (file:///Users/ryan/.codex/worktrees/v4-hosting-s1/chirality/projects/chirality-app-v4/app/tests/validate-records.test.mjs:76:17)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1081:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:763:18)
+      at Test.postRun (node:internal/test_runner/test:1210:19)
+      at Test.run (node:internal/test_runner/test:1138:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:332:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-skeleton-output-KEWxYa/decide-records.jsonl'
+  }

@@ -143,7 +143,8 @@ struct Inner {
     state: String,
     start_attempt: u64,
     successor_status: Option<Value>,
-    successor_reference: Option<crate::distribution_store::Reference>,
+    successor_artifact_error: Option<String>,
+    successor_reference: Option<crate::distribution_store::S1Reference>,
     generation: Value,
     app_session: String,
     home: String,
@@ -411,6 +412,8 @@ pub struct Host {
     after_successor_publish: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_successor_settlement: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    before_s1_lt09_publish: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 impl Default for Host {
@@ -452,6 +455,8 @@ impl Host {
             after_successor_publish: Mutex::new(None),
             #[cfg(test)]
             before_successor_settlement: Mutex::new(None),
+            #[cfg(test)]
+            before_s1_lt09_publish: Mutex::new(None),
         }
     }
 
@@ -494,12 +499,13 @@ impl Host {
         let (attempt, reference) = {
             let i = self.inner.0.lock().unwrap();
             if &i.generation != generation { return json!({"state":"unavailable","reason":"foreign generation"}); }
+            if let Some(error)=&i.successor_artifact_error{return json!({"state":"unavailable","generation":generation,"reason":error});}
             (i.start_attempt, i.successor_reference.clone())
         };
         let Some(reference) = reference else { return Value::Null; };
         let store = self.distribution_store.lock().unwrap().clone();
         let result = match store {
-            Some(Ok(store)) => store.read(generation, &reference),
+            Some(Ok(store)) => store.read_s1(generation, &reference),
             Some(Err(e)) => Err(e), None => Err("distribution store not configured".into()),
         };
         let i = self.inner.0.lock().unwrap();
@@ -798,6 +804,7 @@ impl Host {
             i.start_attempt = i.start_attempt.checked_add(1).ok_or("start attempt exhausted")?;
             i.successor_status = None;
             i.successor_reference = None;
+            i.successor_artifact_error = None;
             i.supplier_standing = None;
             i.version_identity = None;
             let id = match i.state.as_str() {
@@ -824,7 +831,7 @@ impl Host {
         let successor_reference = if let Some(p) = &prepared {
             let store = self.distribution_store.lock().unwrap().clone();
             match store {
-                Some(Ok(store)) => match store.publish_attempt(prospective.as_ref().unwrap(), &p.status) {
+                Some(Ok(store)) => match (|| { p.revalidate()?; let (observation,facts)=p.observation(cfg,prospective.as_ref().unwrap()); store.publish_observed(prospective.as_ref().unwrap(),observation,facts) })() {
                     Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, e),
                 },
                 Some(Err(e)) => return self.refuse_successor(attempt, e),
@@ -1114,7 +1121,18 @@ impl Host {
         self.lt(&mut i,"LT-09","handshake-completed","ready",json!({"versionIdentity":vi,"declaredCapabilities":caps}));
         let held: Vec<Value> = std::mem::take(&mut i.held);
         i.journal.extend(held);
-        drop(i);
+        let event=i.lifecycle.last().cloned().ok_or("actual LT-09 absent")?;
+        let prior=i.successor_reference.clone();
+        drop(i);drop(_gate);
+        #[cfg(test)]
+        { let hook=self.before_s1_lt09_publish.lock().unwrap().take(); if let Some(hook)=hook{hook();} }
+        if let Some(prior)=prior {
+            let store=self.distribution_store.lock().unwrap().clone();
+            let publication=match store {Some(Ok(store))=>store.publish_lt09(generation,&prior,&event),Some(Err(e))=>Err(e),None=>Err("S1 store absent after LT-09".into())};
+            let mut i=self.inner.0.lock().unwrap();
+            if i.start_attempt!=attempt||i.generation!=*generation{return Err("source changed during LT-09 publication; no newer-source mutation".into());}
+            match publication {Ok(reference)=>i.successor_reference=Some(reference),Err(error)=>i.successor_artifact_error=Some(format!("LT-09 evidence unavailable: {error}"))}
+        }
         Ok(self.snapshot())
     }
 
