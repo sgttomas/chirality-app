@@ -74,3 +74,20 @@ registration, role-workflow and FIFO refusal cases. The reader repair checks the
 opened regular-file descriptor with Unix no-follow/nonblocking flags; unsupported
 non-Unix reading fails closed. This is current macOS offline proof only. Review
 requested against this exact code; later evidence-only commits require backcheck.
+
+Latest main `4c24703cf0` was merged non-rewriting at `189cda6`; the delta contains
+Group B runner support/tests and graph/evidence only, with no candidate Rust,
+UI, asset or accepted Design/pin changes. Its offline runner tests passed 3,
+with 1 browser integration skip. Initial sandbox loopback-listen EPERM was
+rerun with scoped permission; no browser was launched. Existing affected Rust
+results still cover the identical candidate code. Final accepted-basis comparison
+against this main also found no Design or three consumer-pin changes.
+
+Independent TASK review `f68f7beb238f16f0564d3e62144d4765823dfba0` found no
+unresolved blocking finding at integration189cda6 / code80560dd. The durable
+record and read origins are included under reviews/. It accepts bounded candidate
+input fan-in, not candidate runnable standing, package qualification or release.
+The final evidence-only head receives a separate read-only backcheck before PR
+handoff. Both directions of the brief are accounted for above: real assets and
+consumer refusals exist; P2 runnable admission remains the precise blocker with
+a named proposal, and P3 owner/default and native qualification limits remain.

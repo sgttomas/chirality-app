@@ -1,0 +1,159 @@
+{
+  "frozenCode": "80560dd60f0d5870aa0b3a132ab6623b99857ff3",
+  "hashBasis": "current frozen bytes; earlier reads retained in tool history at f597ceec07, 0bd3ade5ee, 70bb35690f",
+  "reads": [
+    {
+      "origin": "repository:AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:.agents/skills/software-code-review/SKILL.md",
+      "sha256": "ee085d589c44f912d11a59eead8edac214f0343761d26b0d33e886a979888bca",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+      "readExtent": "headings levels 1-3 only"
+    },
+    {
+      "origin": "repository:docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/OWNER_DECISIONS.md",
+      "sha256": "8a5d11149045770dfcf1a19ebabb86bfe9f04cd3e65ed36166cb8593e2fe20ac",
+      "readExtent": "lines138-186 DECISION-L"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md",
+      "sha256": "6bfb2277006a16e6089e7e862da24e9ed7fe749a08f0e63e35e50f25ea251838",
+      "readExtent": "4.6 lines190-210; targeted release/bundled/runnable/manifest search excerpts"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/ROLE_SUPPLY.md",
+      "sha256": "b279a23a5c8d8b2170618a062b3a5ccc3ea07a1cecdfcec7c61d0320f6559ba9",
+      "readExtent": "4.1/4.2 lines245-291; lines126-160; targeted guidance and unresolved owner search excerpts"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d",
+      "readExtent": "release/shipped/bundled search excerpts incl OS2 and source-root meaning"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BUNDLE-INPUTS-20261008/DECISIONS.md",
+      "sha256": "9c2d147b1f7b8338cd0a055dbacc58be84d87b6ee0533a436e0137dbdc16b8a6",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BUNDLE-INPUTS-20261008/CC-WR-PKG-CANDIDATE-01.md",
+      "sha256": "7a0f0a13bbc049bb4fc98ab9267af2794b63992745e94cb8270439ef54e48813",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BUNDLE-INPUTS-20261008/INTEGRATION.md",
+      "sha256": "e54cd5b510f88fb09df65e3150f9dd21260a213dc16b528aa1bdb4518cd68678",
+      "readExtent": "full; 80560dd..189cda6 delta",
+      "priorSha256": "672a92b888bbb4c2ce4392af3732cb6d6fc12cb1d3eee9a84eaa82d70e79d8e0"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BUNDLE-INPUTS-20261008/p2/READ_SAFETY_REPAIR.md",
+      "sha256": "ee982dc7c16cf2fa95bc7283e5e7ce19f62673836f718143ac4025d76eb4a9fa",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-BUNDLE-INPUTS-20261008/WORK_GRAPH.md",
+      "sha256": "c5f93434360ce898dba185ac5acbc3933dc4469e0a307ab825a94677a3f54301",
+      "readExtent": "entry version full; final change diff; 80560dd..189cda6 delta",
+      "priorSha256": "d8716595b6d3b629ffe89a25bbd26f295260ce21a4c4e530dc87d771ac9608fc"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/workflow_catalog.rs",
+      "sha256": "346216cd9a3feb9c047965e680fa9d9eaa0f701afabd1b59ac8bb2ce3b7d414d",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/workflow_workspace.rs",
+      "sha256": "eaf5987eb1a9903baad8461123317e4fe2dfcad6e3fe4bf7ac7c512c6cdf6365",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/workflow_library.rs",
+      "sha256": "a4ed5c0287f10b095116eff68b9530020069ee048bd3a617ed76e23aa69b84ff",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/role_supply.rs",
+      "sha256": "83e75542baa986924823ebdf7bcefa9d6761c623e536d92eb29fd2d603a81ec2",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "e3f55b01a834e5f7f74b68c62962d5485b475d17be9f3300ad0b1fdb048c295a",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "b8c350157dade0053cd4f9ccd4c613e3e8042bd6479f94b210c6acdd90958ffa",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src/App.tsx",
+      "sha256": "51301a5b504fa12ffed582f2eb31941903407fe1c1269065c33e91cd9b1b5f8c",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "e1e0a12a4c34df133d2d247e2b3302ec95bd89bf13e6484d90724279e815fd27",
+      "readExtent": "bounded changes f597ceec07 through frozen head; relevant caller/helper excerpts, not whole file"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/p2_production_catalog_tests.rs",
+      "sha256": "c63129bea1c6b8425897aa6b9b1faaf110075ab3117b108790abfe4879c9ba69",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/p3_role_set_tests.rs",
+      "sha256": "c22efcc87d093748b8bc3b1849b0247197dd316e0c2d406bfc03086b46cf27c9",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/src/p3_role_entry_tests.rs",
+      "sha256": "522dd9b19296a80ee40f794de8877e49588a20939b184146ecc5273c389c92f6",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/resources/production_workflows/MANIFEST.json",
+      "sha256": "d603629fc2a1574a5f8e79089efdbed9788846dc7eba714ac2d3f99673dc607d",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:projects/chirality-app-v4/app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json",
+      "sha256": "6e5a54ef25077a05f4a42a88c483902ac53cfc44f2f6c718e5267abe9e377a7b",
+      "readExtent": "full"
+    },
+    {
+      "origin": "repository:.agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+      "readExtent": "full; review evidence Git closeout"
+    }
+  ],
+  "integrationBackcheck": "189cda6d908f50c3685e7d13be7188055429aede"
+}
