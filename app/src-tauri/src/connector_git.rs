@@ -582,3 +582,23 @@ pub(crate) fn read_with(
 #[cfg(test)]
 #[path = "connector_git_tests.rs"]
 pub(crate) mod tests;
+
+pub(crate) fn recheck_association(
+    root: &Path,
+    relative: &Path,
+    expected_sha256: &str,
+) -> std::result::Result<(), String> {
+    let c = Control::new(std::sync::Arc::new(std::sync::atomic::AtomicBool::new(
+        false,
+    )));
+    let actual =
+        Association::open(root, relative, &c).map_err(|e| format!("{}: {}", e.kind, e.detail))?;
+    c.check().map_err(|e| e.detail)?;
+    if crate::util::sha256_hex(
+        &serde_json::to_vec(&actual.observations).map_err(|e| e.to_string())?,
+    ) != expected_sha256
+    {
+        return Err("Git association changed since retained observation".into());
+    }
+    Ok(())
+}

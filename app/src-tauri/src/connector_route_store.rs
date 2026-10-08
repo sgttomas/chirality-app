@@ -15,8 +15,13 @@ const PARTS: &[&str] = &[".chirality", "records", "connectors", "route-accounts"
 const IDS: &[&str] = &[
     "urn:chirality:app-v4:del-07-02:route-account:0.1",
     "urn:chirality:app-v4:del-07-02:route-account:0.2",
+    "urn:chirality:app-v4:del-07-02:route-account:0.3",
 ];
 const RESOURCES: &[(&str, &str)] = &[
+    (
+        "connector.route-account.v0.3.schema.json",
+        include_str!("../resources/connector_route/connector.route-account.v0.3.schema.json"),
+    ),
     (
         "connector.route-account.schema.json",
         include_str!("../resources/connector_route/connector.route-account.schema.json"),
@@ -119,7 +124,7 @@ impl std::fmt::Display for StoreError {
 impl std::error::Error for StoreError {}
 type Result<T> = std::result::Result<T, StoreError>;
 
-/// Only declared format 0.1/0.2 shape is verified, against exact embedded schemas.
+/// Declared 0.1/0.2 retain shape validation;0.3 also checks draft internal consistency.
 /// No network/schema fallback; no cross-reference truth or performed-duty claim.
 pub fn validate_account(account: &Value) -> Result<()> {
     let index = match (
@@ -128,6 +133,7 @@ pub fn validate_account(account: &Value) -> Result<()> {
     ) {
         (Some("chirality.connector.route-account"), Some("0.1")) => 0,
         (Some("chirality.connector.route-account"), Some("0.2")) => 1,
+        (Some("chirality.connector.route-account"), Some("0.3")) => 2,
         _ => {
             return Err(StoreError::new(
                 ErrorKind::UnsupportedFormat,
@@ -143,7 +149,12 @@ pub fn validate_account(account: &Value) -> Result<()> {
         .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.clone()))?;
     validators[index]
         .validate(account)
-        .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))
+        .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))?;
+    if index == 2 {
+        crate::connector_materialization::validate_cold(account)
+            .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e))?;
+    }
+    Ok(())
 }
 /// A cold observation of claimed file content. Its binding does not establish
 /// that this store or any recorder successfully published the file.
@@ -400,6 +411,14 @@ mod platform {
         let account: Value = serde_json::from_slice(&bytes).map_err(|e| {
             StoreError::new(ErrorKind::InvalidAccount, format!("malformed account: {e}"))
         })?;
+        if account["formatVersion"] == "0.3"
+            && bytes.len() > crate::connector_materialization::BYTE_LIMIT
+        {
+            return Err(StoreError::new(
+                ErrorKind::InvalidAccount,
+                "Identified format0.3 exceeds1MiB original bytes; acquisition already occurred",
+            ));
+        }
         validate_account(&account)?;
         Ok(ObservedAccount {
             reference: BoundReference {
@@ -463,6 +482,9 @@ mod platform {
             store.check_root()?;
             Ok(store)
         }
+        pub(crate) fn project_identity(&self) -> FileIdentity {
+            self.root_identity.clone()
+        }
         pub fn resolved_project(&self) -> &Path {
             &self.root
         }
@@ -508,6 +530,20 @@ mod platform {
             Ok(())
         }
         /// One explicit attempt; a collision or uncertain outcome is never retried.
+        #[cfg(test)]
+        pub(crate) fn test_write_uncertain(&self, account: &Value) -> Result<BoundReference> {
+            let key = crate::util::opaque_id("").map_err(|e| StoreError::new(ErrorKind::Io, e))?;
+            self.write_inner(account, &key, |stage| {
+                if matches!(stage, Stage::Published) {
+                    Err(StoreError::new(
+                        ErrorKind::Io,
+                        "injected post-publication failure",
+                    ))
+                } else {
+                    Ok(())
+                }
+            })
+        }
         pub fn write(&self, account: &Value) -> Result<BoundReference> {
             validate_account(account)?;
             let key = crate::util::opaque_id("").map_err(|e| StoreError::new(ErrorKind::Io, e))?;

@@ -72,12 +72,16 @@ fn project(discovery: Discovery) -> Value {
     let accounts: Vec<Value> = discovery.accounts.into_iter().map(|observed| json!({
         "relativePath":observed.reference.relative_path,
         "accountId":observed.reference.account_id,
+        "formatVersion":observed.account["formatVersion"],
+        "standing":observed.account.get("standing"),
+        "draftSources":if observed.account["formatVersion"]=="0.3" {observed.account["sources"].clone()}else{Value::Null},
+        "interpretations":observed.account.get("interpretations"),
         "questionText":observed.account["question"]["text"].as_str(),
         "gaps":observed.account["gaps"],
         "duties":observed.account["duties"],
         "bindingText":serde_json::to_string_pretty(&observed.reference).unwrap(),
         "accountText":serde_json::to_string_pretty(&observed.account).unwrap(),
-        "sections":([("Question", "question"), ("Trigger", "trigger"), ("Sources and revisions", "sources"), ("Anchored facts", "facts"), ("Gaps, effects and responsibility", "gaps"), ("Supported, unsupported and prohibited conclusions", "conclusions"), ("Duties", "duties"), ("Recorder", "recorder"), ("Written time", "written_at"), ("Time provenance", "written_at_source")].iter().map(|(label,key)|json!({"label":label,"text":observed.account.get(*key).map(|value|serde_json::to_string_pretty(value).unwrap()).unwrap_or_else(||"Not recorded".into())})).collect::<Vec<_>>()),
+        "sections":([("Question", "question"), ("Trigger", "trigger"), ("Sources and revisions", "sources"), ("Anchored facts", "facts"), ("Gaps, effects and responsibility", "gaps"), ("Supported, unsupported and prohibited conclusions", "conclusions"), ("Duties", "duties"), ("Recorder", "recorder"), ("Written time", "written_at"), ("Time provenance", "written_at_source")].iter().chain(if observed.account["formatVersion"]=="0.3" {[("Draft standing","standing"),("Compact evidence receipt and limits","evidence"),("Unreviewed caller interpretations","interpretations")].as_slice()}else{&[]}).map(|(label,key)|json!({"label":label,"text":observed.account.get(*key).map(|value|serde_json::to_string_pretty(value).unwrap()).unwrap_or_else(||"Not recorded".into())})).collect::<Vec<_>>()),
         "sourceCount":observed.account["sources"].as_array().map_or(0, Vec::len),
     })).collect();
     json!({"status":"observed","projectDisplay":discovery.resolved_project.to_string_lossy(),

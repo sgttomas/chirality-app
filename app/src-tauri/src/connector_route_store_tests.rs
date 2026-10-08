@@ -69,7 +69,13 @@ fn embedded_schemas_match_maintained_design_and_validate_exact_versions() {
     let cold = ProjectRouteStore::open(&p).unwrap();
     assert_eq!(cold.resolve(&r1).unwrap().account, v1);
     assert_eq!(cold.resolve(&r2).unwrap().account, v2);
-    for bad in ["0.3", "", "1"] {
+    let mut mislabeled = v2.clone();
+    mislabeled["formatVersion"] = json!("0.3");
+    assert_eq!(
+        validate_account(&mislabeled).unwrap_err().kind,
+        ErrorKind::InvalidAccount
+    );
+    for bad in ["0.4", "", "1"] {
         let mut v = v2.clone();
         v["formatVersion"] = json!(bad);
         assert_eq!(

@@ -15,6 +15,7 @@ pub mod connector_standing;
 pub mod connector_route_store;
 mod connector_route_view;
 mod connector_source;
+mod connector_materialization;
 mod connector_source_fs;
 #[cfg(unix)] mod connector_git;
 #[cfg(unix)] mod connector_git_process;
@@ -61,6 +62,7 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
 pub struct AppState {
     connector_sources: Mutex<connector_source::Session>,
+    connector_drafts: Mutex<connector_materialization::Registry>,
     workspace: Option<PathBuf>,
     act: Arc<Mutex<Option<ActControl>>>,
     workflows: Mutex<runtime_session::WorkflowRootSession>,
@@ -214,7 +216,7 @@ fn prepare_connector_source(state:State<'_,AppState>,question:connector_source::
 #[tauri::command(async)]
 fn select_connector_source(app:tauri::AppHandle,state:State<'_,AppState>,session_token:String,generation:String)->Result<Value,String>{
     source_project(&state)?;
-    connector_source::select(&state.connector_sources,&session_token,&generation,||app.dialog().file().set_title("Observe one project text file (no send or save)").blocking_pick_file().map(|file|file.into_path().map_err(|e|format!("Selection is not a local file: {e}"))).transpose())
+    connector_source::select_native(&state.connector_sources,&session_token,&generation,||app.dialog().file().set_title("Observe one project text file (no send or save)").blocking_pick_file().map(|file|file.into_path().map_err(|e|format!("Selection is not a local file: {e}"))).transpose())
 }
 #[tauri::command]
 fn anchor_connector_source(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,start:usize,end:usize,expected:Option<String>)->Result<Value,String>{
@@ -240,6 +242,36 @@ fn cancel_connector_git(state:State<'_,AppState>,session_token:String,generation
 fn anchor_connector_git(state:State<'_,AppState>,session_token:String,generation:String,observation_reference:String,side:String,start:usize,end:usize,expected:Option<String>)->Result<Value,String>{source_project(&state)?;
     #[cfg(unix)] {connector_source::git_anchor(&state.connector_sources,&session_token,&generation,&observation_reference,&side,start,end,expected.as_deref())}
     #[cfg(not(unix))] {Err("Git adapter unsupported on this platform".into())}
+}
+
+#[tauri::command(async)]
+fn prepare_connector_draft(state:State<'_,AppState>,input:connector_materialization::PrepareInput)->Result<Value,String>{
+    let project=source_project(&state)?;
+    #[cfg(any(target_os="macos",target_os="linux"))] {connector_materialization::prepare(&state.connector_drafts,&state.connector_sources,input,project)}
+    #[cfg(not(any(target_os="macos",target_os="linux")))] {Err("Materialization unsupported on this platform".into())}
+}
+#[tauri::command(async)]
+fn publish_connector_draft(state:State<'_,AppState>,token:String,generation:String)->Result<Value,String>{
+    #[cfg(any(target_os="macos",target_os="linux"))]
+    if let Some(retained)=state.connector_drafts.lock().map_err(|_|"Draft registry unavailable")?.retained(&token,&generation)?{return Ok(retained);}
+    let project=source_project(&state)?;
+    #[cfg(any(target_os="macos",target_os="linux"))] {connector_materialization::publish(&state.connector_drafts,&state.connector_sources,&token,&generation,project)}
+    #[cfg(not(any(target_os="macos",target_os="linux")))] {Err("Materialization unsupported on this platform".into())}
+}
+#[tauri::command]
+fn cancel_connector_draft(state:State<'_,AppState>,token:String,generation:String)->Result<Value,String>{
+    #[cfg(any(target_os="macos",target_os="linux"))] {state.connector_drafts.lock().map_err(|_|"Draft registry unavailable")?.cancel(&token,&generation)}
+    #[cfg(not(any(target_os="macos",target_os="linux")))] {Err("Materialization unsupported on this platform".into())}
+}
+#[tauri::command(async)]
+fn reconcile_connector_draft(state:State<'_,AppState>,token:String,generation:String)->Result<Value,String>{
+    #[cfg(any(target_os="macos",target_os="linux"))] {state.connector_drafts.lock().map_err(|_|"Draft registry unavailable")?.reconcile(&token,&generation)}
+    #[cfg(not(any(target_os="macos",target_os="linux")))] {Err("Materialization unsupported on this platform".into())}
+}
+#[tauri::command]
+fn inspect_connector_drafts(state:State<'_,AppState>)->Result<Value,String>{
+    // Retained actual outcomes stay inspectable after source/project changes; no new file read.
+    Ok(state.connector_drafts.lock().map_err(|_|"Draft registry unavailable")?.view())
 }
 
 fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
@@ -1109,6 +1141,7 @@ pub fn run() {
     let shared_paths = ["CHIRALITY_SHARED_CONFIG","CHIRALITY_SHARED_AGENTS","CHIRALITY_SHARED_SKILLS"].map(|key|std::env::var_os(key).map(PathBuf::from));
     let state = AppState {
         connector_sources: Mutex::new(connector_source::Session::default()),
+        connector_drafts: Mutex::new(connector_materialization::Registry::default()),
         act: Arc::new(Mutex::new(workspace.as_ref().map(|w| ActControl::new(w)))),
         workflows: Mutex::new(runtime_session::WorkflowRootSession::default()),
         file_acts: Mutex::new(file_act_root::FileActRoot::default()),
@@ -1212,6 +1245,7 @@ pub fn run() {
             read_connector_routes,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
+            prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
             host_status,
             select_home,
             read_home_access,
@@ -1268,7 +1302,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
+        let state=AppState{connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

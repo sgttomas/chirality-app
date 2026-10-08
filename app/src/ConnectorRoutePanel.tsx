@@ -1,6 +1,6 @@
 /** Cold account inspection only. No source URI is opened or interpreted. */
 export type RouteAvailability = { enabled: boolean; status: string; reason: string; detail?: string; projectReference?: string };
-type Account = { questionText?: string; gaps?: {gap:string;effect:string;responsible:string}[]; duties?: {duty:string;actor_role:string;standing:string;actor?:string;evidence?:string;reason?:string}[]; relativePath: string; accountId: string; bindingText: string; accountText: string; sourceCount: number; sections: {label: string; text: string}[] };
+type Account = { draftSources?:any[]; interpretations?:any[]; formatVersion?:string; standing?:string; questionText?: string; gaps?: {gap:string;effect:string;responsible:string|{standing:string;identity:string|null}}[]; duties?: {duty:string;actor_role:string;standing:string;actor?:string;evidence?:string;reason?:string}[]; relativePath: string; accountId: string; bindingText: string; accountText: string; sourceCount: number; sections: {label: string; text: string}[] };
 export type RouteView = {
   status: string; availability?: RouteAvailability; error?: unknown;
   projectDisplay?: string; projectIdentityText?: string; directoryAbsent?: boolean; enumerationComplete?: boolean;
@@ -40,9 +40,11 @@ export function ConnectorRoutePanel({availability, state, onRead}: {availability
       {Object.entries(view.byAccountId ?? {}).filter(([, paths]) => paths.length > 1).map(([id, paths]) => <div key={id} role="alert"><p>Duplicate recorded account ID: {id}. No winner selected.</p><pre>{paths.join("\n")}</pre></div>)}
       {view.accounts?.map(account => <article key={account.relativePath}>
         <h3>Recorded account: {account.accountId}</h3><p>{account.relativePath}</p>
+        {account.formatVersion==="0.3" && <><h4>Source-evidence draft</h4><p>This is not a reconstructed answer. Facts and supported conclusions are empty; duty statuses and interpretation identities are unverified caller reports.</p><p>Compact receipt hashes do not reconstruct omitted objects or revive hot custody. Excerpts are recorded inclusion claims, not source bytes reverified at this read. The 1 MiB format limit is checked after identified bytes have been read; discovery does not promise bounded pre-read allocation.</p></>}
+        {account.formatVersion==="0.3" && <><h4>Recorded source evidence and excerpts</h4>{account.draftSources?.map(s=><div key={s.source_id}><p>{s.path}: {s.revision}; role {s.role} (caller assertion)</p><p>{s.provenance.side}; blob {s.provenance.blob}; content SHA-256 {s.sha256}; {s.provenance.verification}</p>{s.excerpts.map((e:any)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end}); {e.standing}</p><pre>{e.text}</pre></div>)}</div>)}<h4>Recorded unreviewed interpretations</h4>{account.interpretations?.map(i=><div key={i.interpretation_id}><p>{i.statement}</p><p>Asserted by: {i.asserted_by} ({i.attribution_standing}); {i.standing}</p><p>Source references: {i.source_ids.join(", ")}; excerpt references: {i.excerpt_ids.join(", ")}</p></div>)}</>}
         <h4>Recorded question</h4><p>{account.questionText ?? "Not recorded"}</p>
         <h4>Recorded gaps and responsibility</h4>
-        {account.gaps?.map((gap,i)=><div key={i}><p>{gap.gap}</p><p>Effect: {gap.effect}</p><p>Responsible: {gap.responsible}</p></div>)}
+        {account.gaps?.map((gap,i)=><div key={i}><p>{gap.gap}</p><p>Effect: {gap.effect}</p><p>Responsible: {typeof gap.responsible==="string" ? gap.responsible : gap.responsible.standing==="unassigned" ? "Unassigned" : `${gap.responsible.identity} (caller assigned, unverified)`}</p></div>)}
         <h4>Recorded duties</h4>
         {account.duties?.map((duty,i)=><div key={i}><p>{duty.duty}: {duty.standing} ({duty.actor_role})</p><p>Actor: {duty.actor ?? "Not recorded"}</p><p>Evidence: {duty.evidence ?? "Not recorded"}</p><p>{duty.reason ?? "Reason not recorded"}</p></div>)}
         {account.sourceCount === 0 && <p>No sources are recorded. This account does not establish an answer reconstructed from files.</p>}

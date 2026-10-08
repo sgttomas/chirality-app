@@ -83,6 +83,15 @@ mod unix {
             root.verify()?;
             Ok(root)
         }
+        pub(crate) fn project_identity(
+            &self,
+        ) -> Result<crate::connector_route_store::FileIdentity, String> {
+            let m = self.handle.metadata().map_err(|e| e.to_string())?;
+            Ok(crate::connector_route_store::FileIdentity {
+                device: m.dev(),
+                inode: m.ino(),
+            })
+        }
         pub fn verify(&self) -> Result<(), String> {
             let current = self
                 .original

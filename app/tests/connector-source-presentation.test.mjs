@@ -83,3 +83,32 @@ test('actual panel handlers send only opaque session and pin/side arguments, wit
  await button(draw(),'Locate exact Git lines').props.onClick();assert.deepEqual(calls.at(-1),{name:'anchor_connector_git',args:{sessionToken:'host-private-token',generation:'host-generation',observationReference:'host-git-reference',side:'at',start:1,end:1,expected:null}});
  assert.ok(calls.every(c=>!('path' in c.args)&&!('root' in c.args)&&!('text' in c.args)));
 });
+test('draft handlers freeze only explicit refs/claims and keep actual publication result after cancellation reply',async()=>{
+ let cursor=0;const slots=[];const localExports={};const require=createRequire(url);
+ new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
+ const calls=[];let finishPublish;
+ const source=state({...view,sessionToken:'session',generation:'generation',git:{operation:'completed',result:{reference:'git-ref',historical:false,observation:{at:{status:'Git-object-verified',object:{reference:'side-ref',readCommit:'commit'}},since:null},anchors:[]}}});
+ const frozen={revision:'1',used:1,capacity:64,entries:[{token:'draft-token',generation:'draft-generation',accountId:'ra:fixture',status:'prepared',draft:{byteLength:500,sha256:'frozen-hash',account:{question:{text:'Frozen question',at_revision:'commit'},sources:[],interpretations:[],gaps:[],duties:[]}},outcomeText:'null',reconciliationText:'null'}]};
+ const publishing={...frozen,revision:'2',inflight:'draft-token',entries:[{...frozen.entries[0],status:'publishing',draft:null}]};
+ const published={...frozen,revision:'3',entries:[{...frozen.entries[0],status:'published',draft:null,outcomeText:'Exact actual binding'}]};
+ const command=async(name,args)=>{calls.push({name,args});if(name==='publish_connector_draft')return new Promise(resolve=>{finishPublish=resolve;});return name==='cancel_connector_draft'?publishing:frozen;};
+ const draw=()=>{cursor=0;return localExports.ConnectorDraftPanel({source,availability:{enabled:true},command});};
+ const nodes=(node,out=[])=>{if(Array.isArray(node))node.forEach(n=>nodes(n,out));else if(node&&typeof node==='object'){out.push(node);nodes(node.props?.children,out);}return out;};
+ const button=(label)=>nodes(draw()).find(n=>n.type==='button'&&n.props.children===label);
+ const setLabel=(label,value)=>{const n=nodes(draw()).find(n=>n.type==='label'&&Array.isArray(n.props.children)&&n.props.children[0]===label);n.props.children[1].props.onChange({target:{value}});};
+ assert.equal(nodes(draw()).filter(n=>n.type==='select'&&n.props.value==='').length,4,'connector and all duties require explicit input');
+ setLabel('Constructed connector label','pec');
+ const include=nodes(draw()).find(n=>n.type==='label'&&Array.isArray(n.props.children)&&n.props.children[1]==='Include this successfully observed side');include.props.children[0].props.onChange({target:{checked:true}});
+ setLabel('Intended source role (caller assertion)','Caller purpose');
+ for(const duty of ['locate_compare','review_integrate','cross_undertaking_coordination']){
+   const field=()=>nodes(draw()).find(n=>n.type==='fieldset'&&n.props.children?.[0]?.type==='legend'&&n.props.children[0].props.children?.[0]===duty);
+   nodes(field()).find(n=>n.type==='select').props.onChange({target:{value:'outstanding'}});
+   nodes(field()).find(n=>n.type==='input').props.onChange({target:{value:'Explicit outstanding reason'}});
+ }
+ await button('Freeze draft for inspection').props.onClick();
+ const input=calls.at(-1).args.input;assert.equal(input.gitReference,'git-ref');assert.equal(input.sessionToken,'session');assert.deepEqual(input.sources,[{reference:'side-ref',role:'Caller purpose',anchors:[]}]);assert.ok(input.duties.every(d=>d.standing==='outstanding'&&d.reason==='Explicit outstanding reason'));assert.ok(!('account' in input)&&!('path' in input)&&!('recorder' in input));
+ const write=button('Publish this frozen draft once').props.onClick();assert.deepEqual(calls.at(-1).args,{token:'draft-token',generation:'draft-generation'});
+ await button('Cancel draft (started publication may finish)').props.onClick();finishPublish(published);await write;
+ const html=renderToStaticMarkup(draw());assert.match(html,/published/);assert.match(html,/Exact actual binding/);assert.ok(!html.includes('Publish this frozen draft once'));
+ assert.equal(localExports.acceptDraftReply(published,publishing),published,'stale cancellation reply cannot replace actual newer result');
+});

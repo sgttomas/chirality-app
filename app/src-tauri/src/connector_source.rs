@@ -25,6 +25,7 @@ impl Question {
     }
 }
 struct Observation {
+    selection_mechanism: &'static str,
     selected_path: PathBuf,
     reference: String,
     question: Question,
@@ -183,6 +184,23 @@ pub fn select(
     generation: &str,
     pick: impl FnOnce() -> Result<Option<PathBuf>, String>,
 ) -> Result<Value, String> {
+    select_mechanism(state, token, generation, pick, "synthetic_test_callback")
+}
+pub fn select_native(
+    state: &Mutex<Session>,
+    token: &str,
+    generation: &str,
+    pick: impl FnOnce() -> Result<Option<PathBuf>, String>,
+) -> Result<Value, String> {
+    select_mechanism(state, token, generation, pick, "native_picker_callback")
+}
+fn select_mechanism(
+    state: &Mutex<Session>,
+    token: &str,
+    generation: &str,
+    pick: impl FnOnce() -> Result<Option<PathBuf>, String>,
+    mechanism: &'static str,
+) -> Result<Value, String> {
     let root = {
         let mut state = state.lock().map_err(|_| "Source session unavailable")?;
         let a = state.current(token, generation)?;
@@ -221,6 +239,7 @@ pub fn select(
             let reference = opaque_id("source-observation-")?;
             let view = json!({"selectedPath":native_path_identity(&path),"displayPath":path.to_string_lossy(),"pathDisplayLimit":if path.to_str().is_none(){Some("Display is lossy; selectedPath is lossless")}else{None},"text":std::str::from_utf8(&read.bytes).unwrap(),"sha256":sha256_hex(&read.bytes),"byteLength":read.bytes.len(),"lineCount":line_spans(&read.bytes).len(),"openedFileIdentity":read.identity,"observedAt":now_rfc3339(),"timeProvenance":"observed_clock","mechanism":"native-picker callback / descriptor read; injected callbacks are synthetic tests, not person-act evidence","mutationLimit":"Ordinary metadata/path checks matched; transient writes may evade checks. No coherent historical revision or continuous pathname guarantee."});
             a.observation = Some(Observation {
+                selection_mechanism: mechanism,
                 reference,
                 selected_path: path,
                 question: a.question.clone(),
@@ -449,4 +468,62 @@ pub fn git_anchor(
     anchor["reference"] = json!(opaque_id("git-anchor-")?);
     a.git.anchors.push(anchor);
     Ok(s.snapshot())
+}
+
+#[cfg(unix)]
+pub(crate) struct MaterializationEvidence {
+    pub root: Arc<Root>,
+    pub project: PathBuf,
+    pub relative: PathBuf,
+    pub question: Value,
+    pub trigger: String,
+    pub responsible: Option<String>,
+    pub mechanism: &'static str,
+    pub local_reference: String,
+    pub git_reference: String,
+    pub at: Result<crate::connector_git::Side, crate::connector_git_process::Failure>,
+    pub since: Option<Result<crate::connector_git::Side, crate::connector_git_process::Failure>>,
+    pub association: Value,
+    pub engine: Value,
+    pub request: Value,
+    pub anchors: Vec<Value>,
+}
+#[cfg(unix)]
+impl Session {
+    pub(crate) fn materialization_evidence(
+        &mut self,
+        token: &str,
+        generation: &str,
+        reference: &str,
+    ) -> Result<MaterializationEvidence, String> {
+        let a = self.current(token, generation)?;
+        if a.operation != "observed" || a.git.operation != "completed" || a.git.pending.is_some() {
+            return Err("Materialization requires current completed source/Git evidence".into());
+        }
+        let o = a.observation.as_ref().ok_or("Missing current selection")?;
+        let (r, local, result) = a
+            .git
+            .result
+            .as_ref()
+            .filter(|(r, local, _)| r == reference && local == &o.reference)
+            .ok_or("Unknown current Git reference")?;
+        let (project, relative) = a.root.git_location(&o.selected_path)?;
+        Ok(MaterializationEvidence {
+            root: a.root.clone(),
+            project,
+            relative,
+            question: a.question.view(),
+            trigger: a.trigger.clone(),
+            responsible: a.responsible.clone(),
+            mechanism: o.selection_mechanism,
+            local_reference: local.clone(),
+            git_reference: r.clone(),
+            at: result.at.clone(),
+            since: result.since.clone(),
+            association: result.association.clone(),
+            engine: result.engine.clone(),
+            request: result.request.clone(),
+            anchors: a.git.anchors.clone(),
+        })
+    }
 }
