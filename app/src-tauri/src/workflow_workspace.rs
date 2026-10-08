@@ -553,13 +553,90 @@ pub struct UntrustedPageComparison {
     pub adoption: String,
     pub evidence_limits: Vec<String>,
 }
+/// SC-3 location over one turn's item pages, read in order. Data only: the
+/// caller owns whether these pages are genuine native observations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum LocatedTurnText {
+    /// A page could not be read or its shape/cursor progression was not usable.
+    Unreadable,
+    /// No user message, or the selected message has no text element.
+    NotFound {
+        item: Option<String>,
+        by_client: Option<bool>,
+    },
+    /// The first text element of the selected user message.
+    Text {
+        item: Option<String>,
+        by_client: bool,
+        text: String,
+    },
+}
+pub(crate) fn locate_turn_text(
+    turn: &str,
+    client_id: &str,
+    mut read: impl FnMut(Option<&str>) -> Result<serde_json::Value, String>,
+) -> LocatedTurnText {
+    let mut cursor: Option<String> = None;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut messages = vec![];
+    loop {
+        let Ok(page) = read(cursor.as_deref()) else {
+            return LocatedTurnText::Unreadable;
+        };
+        let Some(data) = page["data"].as_array() else {
+            return LocatedTurnText::Unreadable;
+        };
+        for entry in data {
+            if entry["turnId"].as_str() != Some(turn) {
+                continue;
+            }
+            let Some(item) = entry.get("item") else {
+                return LocatedTurnText::Unreadable;
+            };
+            if item["type"] == "userMessage" {
+                messages.push(item.clone());
+            }
+        }
+        match page.get("nextCursor") {
+            None | Some(serde_json::Value::Null) => break,
+            Some(serde_json::Value::String(c)) if !c.is_empty() && seen.insert(c.clone()) => {
+                cursor = Some(c.clone())
+            }
+            _ => return LocatedTurnText::Unreadable,
+        }
+    }
+    let matched = messages.iter().find(|item| item["clientId"] == client_id);
+    let selected = matched.or_else(|| messages.first());
+    let Some(item) = selected else {
+        return LocatedTurnText::NotFound {
+            item: None,
+            by_client: None,
+        };
+    };
+    let id = item["id"].as_str().map(String::from);
+    let text = item["content"]
+        .as_array()
+        .and_then(|a| a.iter().find(|v| v["type"] == "text"))
+        .and_then(|v| v["text"].as_str());
+    match text {
+        Some(text) => LocatedTurnText::Text {
+            item: id,
+            by_client: matched.is_some(),
+            text: text.into(),
+        },
+        None => LocatedTurnText::NotFound {
+            item: id,
+            by_client: Some(matched.is_some()),
+        },
+    }
+}
 /// Compare untrusted purported pages as data only. This route cannot report
 /// native verification/supply; actual supply requires the Core-owned capability.
 pub fn compare_untrusted_pages(
     expected: &str,
     turn: &str,
     client_id: &str,
-    mut read: impl FnMut(Option<&str>) -> Result<serde_json::Value, String>,
+    read: impl FnMut(Option<&str>) -> Result<serde_json::Value, String>,
 ) -> UntrustedPageComparison {
     let cid = |text: &str| serde_json::json!({"method":crate::role_supply::CONTENT_METHOD,"value":sha256_hex(text.as_bytes())});
     let mut result = UntrustedPageComparison {
@@ -572,55 +649,34 @@ pub fn compare_untrusted_pages(
         adoption: "unknown".into(),
         evidence_limits:vec!["untrusted purported pages; byte comparison is not native verification, supplied guidance, active run, A15 or adoption".into()],
     };
-    let mut cursor: Option<String> = None;
-    let mut seen = std::collections::BTreeSet::new();
-    let mut messages = vec![];
-    loop {
-        let Ok(page) = read(cursor.as_deref()) else {
-            return result;
-        };
-        let Some(data) = page["data"].as_array() else {
-            return result;
-        };
-        for entry in data {
-            if entry["turnId"].as_str() != Some(turn) {
-                continue;
-            }
-            let Some(item) = entry.get("item") else {
-                return result;
-            };
-            if item["type"] == "userMessage" {
-                messages.push(item.clone());
-            }
-        }
-        match page.get("nextCursor") {
-            None | Some(serde_json::Value::Null) => break,
-            Some(serde_json::Value::String(c)) if !c.is_empty() && seen.insert(c.clone()) => {
-                cursor = Some(c.clone())
-            }
-            _ => return result,
-        }
-    }
-    let matched = messages.iter().find(|item| item["clientId"] == client_id);
-    let selected = matched.or_else(|| messages.first());
-    let Some(item) = selected else {
-        result.state = UntrustedPageComparisonState::NotFound;
-        return result;
-    };
-    result.item = item["id"].as_str().map(String::from);
-    result.located_by = Some(
-        if matched.is_some() {
+    let by = |client: bool| {
+        if client {
             "client_user_message_id"
         } else {
             "first_user_message"
         }
-        .into(),
-    );
-    let text = item["content"]
-        .as_array()
-        .and_then(|a| a.iter().find(|v| v["type"] == "text"))
-        .and_then(|v| v["text"].as_str());
-    if let Some(text) = text {
+        .to_owned()
+    };
+    let text = match locate_turn_text(turn, client_id, read) {
+        LocatedTurnText::Unreadable => return result,
+        LocatedTurnText::NotFound { item, by_client } => {
+            result.item = item;
+            result.located_by = by_client.map(by);
+            result.state = UntrustedPageComparisonState::NotFound;
+            return result;
+        }
+        LocatedTurnText::Text {
+            item,
+            by_client,
+            text,
+        } => {
+            result.item = item;
+            result.located_by = Some(by(by_client));
+            text
+        }
+    };
+    {
+        let text = text.as_str();
         result.observed_text = Some(cid(text));
         result.state = if text == expected {
             UntrustedPageComparisonState::EqualClaimedText
@@ -633,8 +689,6 @@ pub fn compare_untrusted_pages(
                 UntrustedPageComparisonState::TextDiffersWorkflowBytesDiffer
             }
         };
-    } else {
-        result.state = UntrustedPageComparisonState::NotFound;
     }
     result
 }
@@ -867,6 +921,41 @@ impl PreparedRunText {
         Ok(
             serde_json::json!({"threadId":self.scope.conversation,"clientUserMessageId":client_id,"input":input}),
         )
+    }
+    pub fn workflow(&self) -> &WorkflowIdentity {
+        &self.workflow
+    }
+    /// TX-5: the end notice as a sendable text element for the person's next
+    /// ordinary turn in the same conversation, scoped to the current generation of
+    /// the same home. Composition only; no lifecycle event is created here.
+    pub fn notice_turn(
+        &self,
+        end: &OwnerRunEnd,
+        current_generation: &serde_json::Value,
+    ) -> Result<Self, String> {
+        let (text, record) = self.end_notice(end)?;
+        if current_generation["home"] != self.scope.home {
+            return Err("end notice belongs to another home".into());
+        }
+        let mut scope = self.scope.clone();
+        scope.generation = current_generation.clone();
+        Ok(Self {
+            admission: self.admission.clone(),
+            scope,
+            workflow: self.workflow.clone(),
+            text,
+            record,
+        })
+    }
+    /// The same composed text and record, scoped to a later generation of the
+    /// same home (V10 G-1). Text, record and identities are unchanged.
+    pub fn with_generation(&self, current_generation: &serde_json::Value) -> Result<Self, String> {
+        if current_generation["home"] != self.scope.home {
+            return Err("text belongs to another home".into());
+        }
+        let mut copy = self.clone();
+        copy.scope.generation = current_generation.clone();
+        Ok(copy)
     }
     pub fn end_notice(&self, end: &OwnerRunEnd) -> Result<(String, serde_json::Value), String> {
         if end.home != self.scope.home

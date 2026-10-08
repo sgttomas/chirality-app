@@ -3798,6 +3798,18 @@ struct WorkflowSelectionState {
     reference: String,
     selection: crate::workflow_workspace::Selection,
     package: std::path::PathBuf,
+    /// The person's original selection time (WR selection_record.selected_at).
+    selected_at: String,
+}
+/// WR TT-1 (SETTLED) and TX-1: only registered (LS-1), bundled (LS-5), host-listed
+/// (LS-6) or shipped-held (LS-8) revisions are composed and run. The App holds no
+/// bundled/host/shipped capability yet, so only an actual hot registered revision
+/// runs here. Development evidence is never laundered into a selection (WP-6; CI-18).
+fn run_admission(selection: &crate::workflow_workspace::Selection) -> Result<(), String> {
+    match selection.admission() {
+        crate::workflow_workspace::SelectionAdmission::RegisteredRevision => Ok(()),
+        other => Err(format!("Selected workflow is not runnable ({}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (CONTRACT_ISSUES CI-18).", other.standing())),
+    }
 }
 pub(crate) struct WorkflowRootSession {
     selected: Option<WorkflowSelectionState>,
@@ -3807,6 +3819,16 @@ pub(crate) struct WorkflowRootSession {
         std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<WorkflowReviewContext>>>,
     pub active_review: Option<String>,
     pub runs: std::collections::HashMap<String, std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+    /// Runs prepared in this process per (home, conversation), in order (RE-7).
+    conversations: std::collections::HashMap<(String, String), Vec<String>>,
+    /// Last durable reopen of the explicit project's records (display only).
+    reopened: Option<Value>,
+    /// V10 G-5: per-run "end notice must go first" flags, readable without the
+    /// run's lock, so a busy run never blocks ordinary text by itself.
+    notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    /// V10 R-2: successor run → predecessor whose end it holds. The start call that
+    /// removes an entry owns the hold and releases the end on every outcome.
+    held_successors: std::collections::HashMap<String, String>,
 }
 impl Default for WorkflowRootSession {
     fn default() -> Self {
@@ -3817,16 +3839,21 @@ impl Default for WorkflowRootSession {
             reviews: Default::default(),
             active_review: None,
             runs: Default::default(),
+            conversations: Default::default(),
+            reopened: None,
+            notice_flags: Default::default(),
+            held_successors: Default::default(),
         }
     }
 }
 impl WorkflowRootSession {
     pub fn snapshot(&self) -> Value {
-        json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err()})),
+        json!({"selection":self.selected.as_ref().map(|s|json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err()})),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
-            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>json!({"reference":id,"runText":run.prepared.record(),"source":run.source.as_ref().map(|s|s.evidence()),"turn":run.turn_id,"status":run.status,"supply":run.supply}),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
-            "limit":"closed development/actual hot registrations only; no cold file authority, compatibility or model adoption claim"})
+            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
+            "reopened":self.reopened,
+            "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
     }
     pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
@@ -3836,6 +3863,7 @@ impl WorkflowRootSession {
             reference: crate::util::opaque_id("workflow-selection:")?,
             selection: held.selection().clone(),
             package: path,
+            selected_at: crate::util::now_rfc3339(),
         });
         Ok(self.snapshot())
     }
@@ -3913,6 +3941,7 @@ impl WorkflowRootSession {
             reference: crate::util::opaque_id("workflow-selection:")?,
             selection,
             package: path,
+            selected_at: crate::util::now_rfc3339(),
         });
         drop(review);
         Ok(self.snapshot())
@@ -3979,27 +4008,60 @@ impl WorkflowRootSession {
         self.active_review = Some(reference);
         Ok(self.snapshot())
     }
+    /// Prepares one run's WR records for the explicit App project. Nothing is
+    /// recorded or sent here: publication happens before dispatch in `send`.
     pub fn prepare_run(
         &mut self,
         home: std::sync::Arc<HomeSession>,
         generation: &Value,
         thread: &str,
         person_text: String,
+        project: Option<&std::path::Path>,
+    ) -> Result<String, String> {
+        self.prepare_run_with(home, generation, thread, person_text, project, None)
+    }
+    /// `successor_of`: V10 G-2, B is prepared while A (still live) is about to be
+    /// ended by "End ‹A› and start ‹B›". CH-1 is waived for exactly that run, and
+    /// the chain is composed from A's prospective end.
+    fn prepare_run_with(
+        &mut self,
+        home: std::sync::Arc<HomeSession>,
+        generation: &Value,
+        thread: &str,
+        person_text: String,
+        project: Option<&std::path::Path>,
+        successor_of: Option<(String, crate::workflow_workspace::OwnerRunEnd)>,
     ) -> Result<String, String> {
         current_conversation(&home.host.snapshot(), generation, thread)?;
         let selected = self
             .selected
             .as_ref()
             .ok_or("No actual closed workflow selection")?;
+        run_admission(&selected.selection)?;
+        // WP-1: only the explicitly opened App project owns WR records; no
+        // source-root, library, cwd or user-data fallback.
+        let project_root = project
+            .ok_or("No explicit App project (CHIRALITY_WORKSPACE): WR recording unavailable, so the workflow run is not prepared or sent; no fallback store")?
+            .to_path_buf();
+        let records = crate::workflow_workspace::publication::ProjectRecords::open(&project_root)
+            .map_err(|e| format!("Explicit App project not openable for WR records ({e}); nothing prepared or sent; no fallback store"))?;
         selected.selection.verify_store(&selected.package)?;
-        let run = crate::util::opaque_id("workflow-run:")?;
+        let home_key = generation["home"]
+            .as_str()
+            .ok_or("Native home absent")?
+            .to_owned();
+        // RE-7 / CH-1: one live run per conversation. A run reopened from the
+        // project's records without run_ended is interrupted and still live.
+        let waived = successor_of.as_ref().map(|(run, _)| run.as_str());
+        let prior = self.conversation_prior(&home_key, thread, &records, waived)?;
+        let prior = successor_of.or(prior);
+        // App-local opaque run reference until EXEC supplies its lifecycle identity;
+        // the `run:` form is RS $defs/runId, so R3 can be recorded under it.
+        let run = crate::util::opaque_id("run:workflow:")?;
         let scope = crate::workflow_workspace::RunScope {
             run: run.clone(),
             conversation: thread.into(),
-            home: generation["home"]
-                .as_str()
-                .ok_or("Native home absent")?
-                .into(),
+            home: home_key.clone(),
             generation: generation.clone(),
             source_root: selected.selection.identity().source_root.clone(),
             holding_library: selected
@@ -4016,16 +4078,523 @@ impl WorkflowRootSession {
             &selected.selection,
             scope,
             "selected native workflow holding copy",
-            None,
+            prior.as_ref().map(|(_, end)| end),
+        )?;
+        let publication = crate::workflow_workspace::publication::PreparedRunPublication::new(
+            &records,
+            &selected.selection,
+            prepared,
+            WR_WRITER,
+            &selected.selected_at,
+            &crate::util::now_rfc3339(),
         )?;
         let client_id = crate::util::opaque_id("workflow-message:")?;
-        self.runs.insert(run.clone(),std::sync::Arc::new(std::sync::Mutex::new(WorkflowRun{home,prepared,person_text,client_id,source:None,attempted:false,turn_id:None,status:json!({"state":"prepared; not sent","adoption":"unknown","runStanding":"no active run inferred from text preparation"}),supply:Value::Null})));
+        let mut workflow_run = WorkflowRun {
+            home,
+            project: records,
+            project_root,
+            selection: selected.selection.clone(),
+            publication,
+            published: None,
+            publication_failure: None,
+            person_text,
+            client_id,
+            source: None,
+            attempted: false,
+            turn_id: None,
+            status: json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed"}),
+            supply: Value::Null,
+            checks: Vec::new(),
+            follows: prior.map(|(run, _)| run),
+            lifecycle: RunLifecycle::Prepared,
+            entries: Vec::new(),
+            end: None,
+            notice: NoticeState::None,
+            notice_checks: Vec::new(),
+            compatibility: Vec::new(),
+            held_end: false,
+            hold_open_for: None,
+            withdrawn: None,
+            notice_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            notice_record_failure: None,
+        };
+        // EXEC §3.1 CK-1: the selection is now bound to this conversation for a run.
+        workflow_run.evaluate_compatibility(crate::execution_compatibility::report::Occasion::Selection);
+        self.notice_flags.insert(run.clone(), workflow_run.notice_flag.clone());
+        self.runs.insert(
+            run.clone(),
+            std::sync::Arc::new(std::sync::Mutex::new(workflow_run)),
+        );
+        self.conversations
+            .entry((home_key, thread.to_owned()))
+            .or_default()
+            .push(run.clone());
         Ok(run)
+    }
+    /// CH-1/RE-7 for a new start in this conversation: refuses while a run is
+    /// live (hot, or interrupted in the record), and returns the run this one
+    /// follows with its owner end (the chain line, `follows`, `prior_run`).
+    fn conversation_prior(
+        &self,
+        home: &str,
+        thread: &str,
+        records: &crate::workflow_workspace::publication::ProjectRecords,
+        waived: Option<&str>,
+    ) -> Result<Option<(String, crate::workflow_workspace::OwnerRunEnd)>, String> {
+        let mut prior = None;
+        let hot = self
+            .conversations
+            .get(&(home.to_owned(), thread.to_owned()))
+            .cloned()
+            .unwrap_or_default();
+        // V10 R-5: a held successor and its held predecessor reserve the conversation.
+        if let Some(e) = self.held_step_in(&hot) {
+            return Err(format!("{e}. Nothing prepared"));
+        }
+        for reference in &hot {
+            let run = self.runs.get(reference).ok_or("conversation run index inconsistent")?;
+            let run = run.try_lock().map_err(|_| format!("Run {reference} has an operation pending in this conversation; whether it is live cannot be established now. Nothing prepared"))?;
+            if let Some(e) = run.held_step(reference) {
+                return Err(format!("{e}. Nothing prepared"));
+            }
+            match &run.lifecycle {
+                RunLifecycle::Open if waived == Some(reference.as_str()) => {}
+                RunLifecycle::Open => return Err(format!("A workflow run is live in this conversation ({reference}). End it first, or confirm \"End and start\" (RE-7, CH-1). Nothing prepared")),
+                RunLifecycle::Ended => {
+                    if let Some(end) = &run.end {
+                        prior = Some((reference.clone(), end.clone()));
+                    }
+                }
+                RunLifecycle::Prepared | RunLifecycle::StartNotConfirmed => {}
+            }
+        }
+        let reading = crate::records::supply::read_project_runs(records, &[]);
+        if let Some(cold) = reading
+            .possibly_live_in(thread)
+            .into_iter()
+            .find(|r| !hot.contains(&r.run))
+        {
+            return Err(match &cold.lifecycle {
+                crate::records::supply::RecordedLifecycle::Unknown(reason) => format!("A workflow run recorded in this conversation is in an unknown state ({}: {reason}; record limits: {:?}); it may still be live, so no second run is started (RE-7). Repair the record, then End it with \"End this interrupted run\". Nothing prepared", cold.run, reading.limits),
+                _ => format!("A workflow run recorded in this conversation is still open (interrupted, no run_ended): {}. End it first with \"End this interrupted run\" (RE-4, RE-7). Nothing prepared", cold.run),
+            });
+        }
+        Ok(prior)
+    }
+    fn conversation_run(
+        &self,
+        reference: &str,
+    ) -> Result<std::sync::Arc<std::sync::Mutex<WorkflowRun>>, String> {
+        self.runs
+            .get(reference)
+            .cloned()
+            .ok_or_else(|| format!("Actual run {reference} unavailable in this process"))
+    }
+    /// The ended run in this conversation whose end notice the next ordinary turn
+    /// must carry (TX-5), if any.
+    pub fn pending_notice_for(
+        &self,
+        home: &str,
+        thread: &str,
+    ) -> Result<Option<std::sync::Arc<std::sync::Mutex<WorkflowRun>>>, String> {
+        for reference in self
+            .conversations
+            .get(&(home.to_owned(), thread.to_owned()))
+            .into_iter()
+            .flatten()
+        {
+            // V10 G-5: read the flag, not the run, so a busy run never blocks ordinary text.
+            let pending = self
+                .notice_flags
+                .get(reference)
+                .is_some_and(|f| f.load(std::sync::atomic::Ordering::SeqCst));
+            if pending {
+                return Ok(Some(self.conversation_run(reference)?));
+            }
+        }
+        Ok(None)
+    }
+    /// V10 R-5 (RE-7, CH-1): an "End and start" step whose successor's start outcome
+    /// is not yet known, among these runs of one conversation.
+    fn held_step_in(&self, conversation: &[String]) -> Option<String> {
+        self.held_successors
+            .iter()
+            .find(|(b, a)| conversation.contains(b) || conversation.contains(a))
+            .map(|(b, a)| held_step_reason(a, b))
+    }
+    /// All runs prepared in this process in the conversation of `run`.
+    fn conversation_of(&self, run: &str) -> Vec<String> {
+        self.conversations
+            .values()
+            .find(|runs| runs.iter().any(|r| r == run))
+            .cloned()
+            .unwrap_or_default()
+    }
+    /// Runs in the conversation of `run` that a successor start supersedes (their
+    /// pending end notice is replaced by the successor's chain line, TX-5).
+    fn superseded_notices(&self, run: &str) -> Vec<std::sync::Arc<std::sync::Mutex<WorkflowRun>>> {
+        self.conversations
+            .values()
+            .find(|runs| runs.iter().any(|r| r == run))
+            .into_iter()
+            .flatten()
+            .filter(|r| r.as_str() != run)
+            .filter_map(|r| self.runs.get(r).cloned())
+            .collect()
+    }
+    /// CH-1 "End ‹A› and start ‹B›": the person's one confirmed step. A ends with
+    /// cause "ended to start ‹B›" (no end notice; B's chain line says it), then B
+    /// is prepared in the same conversation, following A. The caller starts B.
+    pub fn end_and_start(
+        &mut self,
+        live: &str,
+        home: std::sync::Arc<HomeSession>,
+        generation: &Value,
+        thread: &str,
+        person_text: String,
+        project: Option<&std::path::Path>,
+    ) -> Result<String, String> {
+        let successor = {
+            let selected = self.selected.as_ref().ok_or("No actual closed workflow selection")?;
+            run_admission(&selected.selection)?;
+            selected.selection.identity().name.clone()
+        };
+        let run = self.conversation_run(live)?;
+        // V10 G-2: establish B's preconditions (admission, verified selection,
+        // project, publication, composition, CK-1) before A is ended.
+        let prospective_end = {
+            let run = run.try_lock().map_err(|_| "Original run operation pending; nothing ended")?;
+            if run.prepared().scope().conversation != thread || generation["home"] != run.prepared().scope().home.as_str() {
+                return Err("The live run belongs to another conversation; nothing ended".into());
+            }
+            if run.lifecycle != RunLifecycle::Open {
+                return Err("Only an open run can be ended and followed; nothing ended".into());
+            }
+            let scope = run.prepared().scope();
+            crate::workflow_workspace::OwnerRunEnd {
+                home: scope.home.clone(),
+                conversation: scope.conversation.clone(),
+                run: scope.run.clone(),
+                workflow: run.prepared().workflow().clone(),
+                reason: crate::workflow_workspace::RunEndReason::ToStart(successor.clone()),
+            }
+        };
+        let next = self
+            .prepare_run_with(home, generation, thread, person_text, project, Some((live.to_owned(), prospective_end)))
+            .map_err(|e| format!("{e}; the live run was not ended"))?;
+        let ended = run
+            .try_lock()
+            .map_err(|_| "Original run operation pending; nothing ended".to_string())
+            .and_then(|mut run| run.end_run(false, Some(&successor)));
+        match ended {
+            Ok(_) => {
+                self.runs[&next].lock().unwrap().hold_open_for = Some(live.to_owned());
+                self.held_successors.insert(next.clone(), live.to_owned());
+                Ok(next)
+            }
+            Err(e) => {
+                // Nothing ended: withdraw the prepared successor rather than leave it startable.
+                self.runs[&next].lock().unwrap().withdrawn = Some(format!("its predecessor could not be ended: {e}"));
+                Err(e)
+            }
+        }
+    }
+    /// After relaunch: the person's explicit end (DEF-4) of a run the project's
+    /// records show open and interrupted. Writes run_ended only. A cold record
+    /// cannot compose a sendable end notice (CI-20 (c)).
+    pub fn end_recorded_run(
+        &mut self,
+        project: &std::path::Path,
+        run: &str,
+        thread: &str,
+        completed: bool,
+    ) -> Result<Value, String> {
+        if self.runs.contains_key(run) {
+            return Err("This run is held by this process; end it from its run".into());
+        }
+        if completed {
+            // V10 G-7 (FN-2): *completed* needs the agent's finished report observed
+            // for the run in force; a reopened run has none in this process.
+            return Err("A reopened run can be ended only as the person's plain end: no finished report was observed for it in this process (FN-2); nothing recorded".into());
+        }
+        let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
+        let reading = crate::records::supply::read_project_runs(&records, &[]);
+        if !reading.possibly_live_in(thread).iter().any(|r| r.run == run) {
+            return Err("The record does not show this run open, or in an unknown state, in this conversation; nothing recorded".into());
+        }
+        let cause = if completed { "completed" } else { "ended by the person" };
+        let mut entry = crate::records::supply::PendingRunEntry::new(
+            "run_ended",
+            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":[]}),
+            crate::util::now_rfc3339(),
+        )?;
+        crate::records::supply::append_run_entry(project, run, &mut entry)?;
+        let view = json!({"run":run,"state":"ended by the person","cause":cause,"endNotice":"not composed: a reopened record cannot compose a sendable notice (CI-20 (c))"});
+        self.reopen(project, &[]).ok();
+        Ok(view)
+    }
+    /// Durable reopen for display: the explicit project's records only.
+    pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
+        let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
+        let view = crate::records::supply::read_project_runs(&records, restart_events).view();
+        self.reopened = Some(view.clone());
+        Ok(view)
+    }
+}
+/// Starts a prepared run (CH-1 rechecked at dispatch). The Root lock is not held
+/// across the native wait. A successor start supersedes the predecessor's pending
+/// end notice: its chain line says the same (TX-5).
+pub(crate) fn start_workflow_run(
+    root: &std::sync::Mutex<WorkflowRootSession>,
+    reference: &str,
+) -> Result<Value, String> {
+    // V10 R-2: the call that claims B's hold (under the Root lock, once) owns A's
+    // held end and releases it on every outcome, including a failure before send.
+    let (run, others, predecessor, reserved) = {
+        let mut root = root.lock().unwrap();
+        let run = root.conversation_run(reference)?;
+        let predecessor = root
+            .held_successors
+            .remove(reference)
+            .and_then(|a| root.runs.get(&a).cloned());
+        // V10 R-5: another "End and start" step in progress reserves the conversation.
+        let reserved = root.held_step_in(&root.conversation_of(reference));
+        (run, root.superseded_notices(reference), predecessor, reserved)
+    };
+    let live_check = |others: &[std::sync::Arc<std::sync::Mutex<WorkflowRun>>]| -> Result<(), String> {
+        for other in others {
+            let other = other.try_lock().map_err(|_| "Another run operation is pending in this conversation; whether a run is live cannot be established; nothing sent")?;
+            if let Some(e) = other.held_step(&other.prepared().scope().run) {
+                return Err(format!("{e}. Nothing sent"));
+            }
+            if other.lifecycle == RunLifecycle::Open {
+                return Err("A workflow run is live in this conversation; end it first (RE-7, CH-1). Nothing sent".into());
+            }
+        }
+        Ok(())
+    };
+    if let Some(predecessor) = predecessor {
+        // A is ended (its end is held), so it needs no live check and its being
+        // busy does not stop B; its end is released once A is free.
+        let others: Vec<_> = others.into_iter().filter(|o| !std::sync::Arc::ptr_eq(o, &predecessor)).collect();
+        let checked = match reserved {
+            Some(e) => Err(format!("{e}. Nothing sent")),
+            None => live_check(&others),
+        };
+        let mut run = run.lock().unwrap();
+        let result = checked.and_then(|()| run.send());
+        // V10 G-2: A's held end is written first, then B's run_opened (RE-7 order).
+        let started = run.lifecycle == RunLifecycle::Open;
+        predecessor.lock().unwrap().release_held_end(started);
+        run.hold_open_for = None;
+        if started {
+            run.flush_records();
+        } else if !run.attempted {
+            run.withdrawn = Some("the successor was not sent; its predecessor was recorded as a plain end with a pending end notice".into());
+        }
+        return result;
+    }
+    if let Some(e) = reserved {
+        return Err(format!("{e}. Nothing sent"));
+    }
+    let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
+    if run.hold_open_for.is_some() {
+        return Err("This successor's start is already in progress; nothing sent".into());
+    }
+    live_check(&others)?;
+    let result = run.send();
+    if run.attempted {
+        for other in others {
+            if let Ok(mut other) = other.try_lock() {
+                other.notice.supersede(reference);
+                other.sync_notice_flag();
+            }
+        }
+    }
+    result
+}
+/// SQ-END / TX-5: the person's next ordinary turn in a conversation whose run
+/// ended without a successor carries the end notice first, exactly once. Returns
+/// None when no notice is pending (ordinary sending applies unchanged).
+pub(crate) fn send_with_pending_notice(
+    root: &std::sync::Mutex<WorkflowRootSession>,
+    generation: &Value,
+    thread: &str,
+    person_text: &str,
+) -> Option<Result<Value, String>> {
+    let home = generation["home"].as_str()?.to_owned();
+    let pending = match root.lock().unwrap().pending_notice_for(&home, thread) {
+        Ok(p) => p?,
+        Err(e) => return Some(Err(e)),
+    };
+    let mut run = match pending.try_lock() {
+        Ok(run) => run,
+        Err(_) => return Some(Err("The end notice of a run in this conversation must go first, and that run is busy (for example checking history); nothing sent. Try again shortly".into())),
+    };
+    Some(run.send_end_notice(generation, person_text))
+}
+// Test seam (V10 G-1): behave as if the Host refused the notice turn before
+// writing any frame, as its own validation and scope refusals do.
+#[cfg(test)]
+thread_local! { pub(crate) static NOTICE_REFUSED_BEFORE_WRITE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+/// V10 R-5: why a conversation is reserved by an "End and start" step in progress.
+fn held_step_reason(predecessor: &str, successor: &str) -> String {
+    format!("\"End and start\" is in progress in this conversation ({predecessor} ended to start {successor}); until the successor's start outcome is known no other run may be prepared or started here (RE-7, CH-1)")
+}
+/// RS run_ended cause for the person's end (WR CH-1/CH-2 wording; R20-11 (4)).
+fn run_end_cause(reason: &crate::workflow_workspace::RunEndReason) -> String {
+    match reason {
+        crate::workflow_workspace::RunEndReason::ByPerson => "ended by the person".into(),
+        crate::workflow_workspace::RunEndReason::Completed => "completed".into(),
+        crate::workflow_workspace::RunEndReason::ToStart(name)
+            if crate::workflow_workspace::valid_name(name) =>
+        {
+            format!("ended to start {name}")
+        }
+        _ => "invalid".into(),
+    }
+}
+/// Runtime lifecycle of one App run (EXEC AE-7, RE-4, RE-6, RE-7).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum RunLifecycle {
+    /// Prepared, not sent. Not a run yet.
+    Prepared,
+    /// The start turn was refused or its outcome is unknown (A-3): the run is
+    /// not opened and is not live.
+    StartNotConfirmed,
+    /// `run_opened`: the start turn was observed. Only an explicit end ends it.
+    Open,
+    /// The person's explicit end (DEF-4), with its cause.
+    Ended,
+}
+/// TX-5 end notice for a run ended with no successor.
+enum NoticeState {
+    None,
+    /// The next ordinary turn in the conversation must carry it.
+    AwaitingTurn,
+    /// Publication failed before send; the original pending bytes are kept.
+    Prepared(crate::workflow_workspace::publication::PreparedEndPublication),
+    /// Dispatched once (never again), with its outcome.
+    Sent {
+        published: crate::workflow_workspace::publication::PublishedEndNotice,
+        client_id: String,
+        turn: Option<String>,
+        generation: Value,
+        outcome: Value,
+    },
+    /// A successor run started in the conversation; its chain line said it.
+    Superseded(String),
+    /// The run ended to start a successor; the chain line carries the end.
+    ByChain,
+    /// V10 G-5: the person sent without it; recorded, never supplied.
+    Skipped,
+}
+impl NoticeState {
+    fn awaiting_turn(&self) -> bool {
+        matches!(self, Self::AwaitingTurn | Self::Prepared(_))
+    }
+    fn supersede(&mut self, successor: &str) {
+        if self.awaiting_turn() {
+            *self = Self::Superseded(successor.to_owned());
+        }
+    }
+    fn view(&self) -> Value {
+        match self {
+            Self::None => Value::Null,
+            Self::AwaitingTurn => json!({"state":"pending: the next ordinary turn in this conversation carries it"}),
+            Self::Prepared(p) => json!({"state":"pending: not yet sent (its record or its send did not complete); the next ordinary turn carries it","record":p.reference()}),
+            Self::Sent{published,turn,outcome,..} => json!({"state":"sent once with the next ordinary turn","record":published.run_text_record().reference(),"turn":turn,"outcome":outcome}),
+            Self::Superseded(run) => json!({"state":"not sent: the successor run's chain line said the run ended","successor":run}),
+            Self::ByChain => json!({"state":"not composed: ended to start a successor; its chain line carries the end"}),
+            Self::Skipped => json!({"state":"not supplied: the person chose to send without it because its record could not be written (recorded in the run log)"}),
+        }
+    }
+}
+/// Advisory compatibility evaluation kept with its occasion and basis (EXEC §3).
+struct CompatibilitySlot {
+    occasion: &'static str,
+    basis: crate::execution_compatibility::report::Basis,
+    result: Result<crate::execution_compatibility::report::Evaluation, String>,
+}
+/// Supplier writer label carried in WR envelopes.
+const WR_WRITER: &str = "app-writer:local";
+/// One native read's check: original pending record, its publication and its R3.
+struct WorkflowCheckSlot {
+    pending: crate::workflow_workspace::publication::PendingSupplyCheck,
+    published: Option<crate::workflow_workspace::publication::PublishedSupplyCheck>,
+    publication_failure: Option<String>,
+    r3: WorkflowR3,
+}
+enum WorkflowR3 {
+    /// The check is not yet published; R3 needs resolvable supplier records.
+    AwaitingCheck,
+    /// R3 could not be prepared from the resolved joins (no entry possible).
+    Unavailable(String),
+    Pending(crate::records::supply::PendingSuppliedGuidance),
+    Recorded(Value),
+}
+impl WorkflowCheckSlot {
+    /// Publish the original check bytes if needed, then prepare/append R3.
+    /// Never re-reads native history and never sends.
+    /// `record_ready`: the lifecycle entry this R3 follows in the run log is
+    /// written (run_opened for the start text, run_ended for the end notice).
+    fn advance(
+        &mut self,
+        project: &crate::workflow_workspace::publication::ProjectRecords,
+        record_ready: bool,
+    ) {
+        if self.published.is_none() {
+            match self.pending.publish(project) {
+                Ok(p) => {
+                    self.published = Some(p);
+                    self.publication_failure = None;
+                }
+                Err(e) => {
+                    self.publication_failure = Some(e);
+                    return;
+                }
+            }
+        }
+        let published = self.published.as_ref().unwrap();
+        if matches!(self.r3, WorkflowR3::AwaitingCheck) {
+            self.r3 = match crate::records::supply::prepare_live(project, published) {
+                Ok(p) => WorkflowR3::Pending(p),
+                Err(e) => WorkflowR3::Unavailable(e.to_string()),
+            };
+        }
+        if !record_ready {
+            return;
+        }
+        if let WorkflowR3::Pending(pending) = &mut self.r3 {
+            if let Ok(entry) = crate::records::supply::append_live(project, published, pending) {
+                self.r3 = WorkflowR3::Recorded(entry);
+            }
+        }
+    }
+    /// Published, and its R3 either recorded or established as unavailable.
+    fn settled(&self) -> bool {
+        self.published.is_some()
+            && matches!(self.r3, WorkflowR3::Recorded(_) | WorkflowR3::Unavailable(_))
+    }
+    fn view(&self) -> Value {
+        let body = self.pending.body();
+        let r3 = match &self.r3 {
+            WorkflowR3::AwaitingCheck => json!({"state":"not recorded; awaits the published check"}),
+            WorkflowR3::Unavailable(e) => json!({"state":"unavailable","limit":e}),
+            WorkflowR3::Pending(p) => json!({"state":"pending write; missing in record","recordId":p.record_id(),"limit":p.failure(),"retry":"retry writes the same identity and observation time"}),
+            WorkflowR3::Recorded(entry) => json!({"state":"recorded","recordId":entry["recordId"],"observedAt":entry["observedAt"],"writtenAt":entry["writtenAt"],"supplyCheck":entry["body"]["supplyCheck"],"adoption":entry["body"]["adoption"]}),
+        };
+        json!({"reference":self.pending.reference(),"check":body["check"],"state":body["state"],"supplyReading":if body["state"]=="verified"{"supplied"}else{"supplied — not verified"},"readAt":body["read_at"],"turn":body["turn"],"locatedBy":body["located_by"],
+            "published":self.published.is_some(),"publicationLimit":self.publication_failure,"r3":r3,"adoption":"unknown"})
     }
 }
 pub(crate) struct WorkflowRun {
     pub home: std::sync::Arc<HomeSession>,
-    pub prepared: crate::workflow_workspace::PreparedRunText,
+    project: crate::workflow_workspace::publication::ProjectRecords,
+    project_root: std::path::PathBuf,
+    publication: crate::workflow_workspace::publication::PreparedRunPublication,
+    published: Option<crate::workflow_workspace::publication::PublishedRunText>,
+    publication_failure: Option<Value>,
     pub person_text: String,
     pub client_id: String,
     pub source: Option<crate::hosting::SourceRequest>,
@@ -4033,6 +4602,30 @@ pub(crate) struct WorkflowRun {
     pub turn_id: Option<String>,
     pub status: Value,
     pub supply: Value,
+    checks: Vec<WorkflowCheckSlot>,
+    selection: crate::workflow_workspace::Selection,
+    /// RS `run_opened.follows`: the run this one follows in the conversation.
+    follows: Option<String>,
+    pub(crate) lifecycle: RunLifecycle,
+    /// Ordered RS lifecycle entries for this run's log (W-2 order kept).
+    entries: Vec<crate::records::supply::PendingRunEntry>,
+    end: Option<crate::workflow_workspace::OwnerRunEnd>,
+    notice: NoticeState,
+    notice_checks: Vec<WorkflowCheckSlot>,
+    compatibility: Vec<CompatibilitySlot>,
+    /// V10 G-2: A's end from "End ‹A› and start ‹B›" is held (not written) until
+    /// B's start outcome decides its truthful cause.
+    held_end: bool,
+    /// V10 G-2: B's run_opened waits for this predecessor's held end to be written.
+    hold_open_for: Option<String>,
+    /// V10 G-2: a successor that never started after its predecessor fell back
+    /// to a plain end; it cannot be sent later (its chain line no longer holds).
+    withdrawn: Option<String>,
+    /// V10 G-5: shared with the Root index; true while an end notice awaits a turn.
+    notice_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    /// V10 R-4: the last actual failure to write this run's end-notice record
+    /// (cleared once it is written). "Send without the end notice" needs it.
+    notice_record_failure: Option<String>,
 }
 impl WorkflowReviewContext {
     pub fn accept_result(
@@ -4085,59 +4678,737 @@ impl WorkflowReviewContext {
     }
 }
 impl WorkflowRun {
+    pub fn prepared(&self) -> &crate::workflow_workspace::PreparedRunText {
+        self.publication.prepared()
+    }
+    fn record_state(&self, reference: &str) -> Value {
+        match self.project.resolve(reference) {
+            Ok(_) => json!({"reference":reference,"state":"recorded (resolves)"}),
+            Err(crate::workflow_workspace::publication::ResolutionError::Missing) => {
+                json!({"reference":reference,"state":"not recorded"})
+            }
+            Err(e) => json!({"reference":reference,"state":"not confirmed","limit":format!("{e:?}")}),
+        }
+    }
+    pub fn view(&self, reference: &str) -> Value {
+        let publication = match &self.published {
+            Some(p) => json!({"state":"selection and run_text recorded before send","selection":p.selection_record().reference(),"runText":p.run_text_record().reference()}),
+            None => json!({"state":"pending; not recorded","selection":self.publication.selection_reference(),"runText":self.publication.run_text_reference(),"lastFailure":self.publication_failure}),
+        };
+        json!({"reference":reference,"runText":self.prepared().record(),"project":crate::attachments::native_path_identity(&self.project_root),"publication":publication,
+            "source":self.source.as_ref().map(|s|s.evidence()),"turn":self.turn_id,"status":self.status,"supply":self.supply,
+            "checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"pendingRecords":self.has_pending_records(),
+            "lifecycle":self.lifecycle_view(),"conversation":self.prepared().scope().conversation,
+            "endNotice":self.notice.view(),"noticeRecordFailure":self.notice_record_failure,"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),
+            "compatibility":self.compatibility_view(),
+            "adoption":"unknown","runStanding":"lifecycle as recorded below; completion is never inferred from a native turn"})
+    }
+    fn lifecycle_view(&self) -> Value {
+        let state = match self.lifecycle {
+            RunLifecycle::Prepared => "prepared; not a run until its start turn is observed",
+            RunLifecycle::StartNotConfirmed => "start not confirmed (turn refused or outcome unknown); not opened, not live",
+            RunLifecycle::Open => "open (live); only the person's explicit end ends it",
+            RunLifecycle::Ended => "ended by the person",
+        };
+        json!({"state":state,"follows":self.follows,"end":self.end.as_ref().map(|e|json!({"run":e.run,"cause":run_end_cause(&e.reason)})),
+            "records":self.entries.iter().map(|e|json!({"kind":e.kind,"recordId":e.record_id,"observedAt":e.observed_at,"written":e.written.is_some(),"limit":e.failure})).collect::<Vec<_>>()})
+    }
+    pub fn has_pending_records(&self) -> bool {
+        let pending_check = |c: &WorkflowCheckSlot| {
+            c.published.is_none() || matches!(c.r3, WorkflowR3::Pending(_) | WorkflowR3::AwaitingCheck)
+        };
+        self.published.is_none()
+            || self.entries.iter().any(|e| e.written.is_none())
+            || self.checks.iter().any(pending_check)
+            || self.notice_checks.iter().any(pending_check)
+    }
+    fn entry_written(&self, kind: &str) -> bool {
+        self.entries
+            .iter()
+            .any(|e| e.kind == kind && e.written.is_some())
+    }
+    /// RS W-2 / WR WP-5 (V9 F-2, V10 G-4): every record of this run's log — the
+    /// lifecycle entries and each check's R3 — is written in observation order.
+    /// The first item that cannot be written stops the flush. Everything behind
+    /// it is marked held, so when it is written late its "record write failed"
+    /// limit follows it. An R3 also waits for its lifecycle entry (run_opened for
+    /// the start text, run_ended for the end notice).
+    fn flush_records(&mut self) {
+        if self.held_end || self.hold_open_for.is_some() {
+            return; // V10 G-2: written when the successor's start outcome is known
+        }
+        const HELD: &str = "held behind an earlier unwritten record of this run (W-2)";
+        let run = self.prepared().scope().run.clone();
+        let read_at = |slot: &WorkflowCheckSlot| slot.pending.body()["read_at"].as_str().unwrap_or("").to_owned();
+        let mut stalled = false;
+        loop {
+            let entry = self.entries.iter().position(|e| e.written.is_none());
+            let check = self.checks.iter().position(|s| !s.settled());
+            let notice = self.notice_checks.iter().position(|s| !s.settled());
+            // Earliest observation first; on a tie a lifecycle entry precedes an R3.
+            let mut next: Option<(u8, usize, String)> = None;
+            for (kind, index, at) in [
+                entry.map(|i| (0u8, i, self.entries[i].observed_at.clone())),
+                check.map(|i| (1u8, i, read_at(&self.checks[i]))),
+                notice.map(|i| (2u8, i, read_at(&self.notice_checks[i]))),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                if next.as_ref().is_none_or(|(_, _, t)| at < *t) {
+                    next = Some((kind, index, at));
+                }
+            }
+            let Some((kind, index, _)) = next else { break };
+            let progressed = match kind {
+                0 => crate::records::supply::append_run_entry(&self.project_root, &run, &mut self.entries[index]).is_ok(),
+                1 => {
+                    let ready = self.entry_written("run_opened");
+                    self.checks[index].advance(&self.project, ready);
+                    self.checks[index].settled()
+                }
+                _ => {
+                    let ready = self.entry_written("run_ended");
+                    self.notice_checks[index].advance(&self.project, ready);
+                    self.notice_checks[index].settled()
+                }
+            };
+            if !progressed {
+                stalled = true;
+                break;
+            }
+        }
+        if stalled {
+            for entry in self.entries.iter_mut().filter(|e| e.written.is_none()) {
+                entry.failure.get_or_insert_with(|| HELD.to_owned());
+            }
+            for slot in self.checks.iter_mut().chain(self.notice_checks.iter_mut()) {
+                if !slot.settled() {
+                    if slot.published.is_none() {
+                        // WR publication of a later check does not wait for RS.
+                        slot.advance(&self.project, false);
+                    }
+                    if let WorkflowR3::Pending(pending) = &mut slot.r3 {
+                        pending.hold(HELD);
+                    }
+                }
+            }
+        }
+    }
+    /// EXEC §3.1 CK-1/CK-2 through J2's seam, from this run's own selection,
+    /// holding library, home, generation and conversation. Advisory only: the
+    /// result never gates a start, and no R14 is written when publication is
+    /// refused (the normal case without an environment collector).
+    fn evaluate_compatibility(
+        &mut self,
+        occasion: crate::execution_compatibility::report::Occasion,
+    ) {
+        use crate::execution_compatibility::report as report;
+        let scope = self.prepared().scope().clone();
+        let basis = report::Basis {
+            home: scope.home.clone(),
+            generation: scope.generation.clone(),
+            conversation: scope.conversation.clone(),
+            acting_pin: "App Codex 0.160.0".into(),
+            surface: "X".into(),
+            environment_observation: None,
+            catalog_edition: None,
+        };
+        // Same-conversation obligation: the role binding is looked up for this
+        // run's own home and conversation; a missing binding stays Unknown.
+        let role = match self.home.history.try_lock() {
+            Ok(history) => history
+                .binding(&scope.home, &scope.conversation)
+                .map(|b| b.role_in_force(&scope.home, &scope.conversation))
+                .unwrap_or(crate::role_lifecycle::RoleInForce::Unknown {
+                    reason: "original App supply binding not established".into(),
+                }),
+            Err(_) => crate::role_lifecycle::RoleInForce::Unknown {
+                reason: "role binding owner busy; not read".into(),
+            },
+        };
+        let label = match occasion {
+            report::Occasion::Selection => "CK-1 selection",
+            report::Occasion::BeforeFirstAction => "CK-2 run start",
+            report::Occasion::EditionChange { .. } => "CK-3 edition change",
+        };
+        let result = report::evaluate(report::Request {
+            selection: &self.selection,
+            holding_library: Some(scope.holding_library.clone()),
+            role,
+            basis: basis.clone(),
+            occasion,
+            evaluated_at: crate::util::now_rfc3339(),
+            inventory: report::Inventory {
+                origin: report::InventoryOrigin::CallerSupplied {
+                    source: "App Root: no environment collector; nothing observed".into(),
+                },
+                host_id: None,
+                observations: report::Observations::default(),
+            },
+            model_destination: None,
+        });
+        self.compatibility.push(CompatibilitySlot {
+            occasion: label,
+            basis,
+            result,
+        });
+    }
+    fn compatibility_view(&self) -> Value {
+        let current = self.prepared().scope();
+        json!(self.compatibility.iter().map(|slot|{
+            let current_basis = crate::execution_compatibility::report::Basis{generation:current.generation.clone(),..slot.basis.clone()};
+            let mut view = match &slot.result {
+                Ok(evaluation) => evaluation.view(&current_basis),
+                Err(e) => json!({"state":"no evaluation","limit":e}),
+            };
+            // J2's own `occasion` and `advisory` fields are kept as J2 wrote them.
+            view["occasionLabel"] = json!(slot.occasion);
+            view["gate"] = json!("informs only; never gates a start (CC-3)");
+            view["r14"] = json!(match &slot.result {
+                Ok(e) if e.published.is_ok() => "EXEC report published in memory only; the App has no allocated report store, so no R14 is written (CI-20)",
+                _ => "no report published; no R14 written (run's R14 stays 'no report evaluated')",
+            });
+            view
+        }).collect::<Vec<_>>())
+    }
+    /// WP-5 pre-send publication of the original selection and run_text. On
+    /// failure nothing is sent and the original pending bytes are kept.
+    fn publish_pre_send(&mut self) -> Result<(), String> {
+        if self.published.is_some() {
+            return Ok(());
+        }
+        match self.publication.publish(&self.project) {
+            Ok(published) => {
+                self.published = Some(published);
+                self.publication_failure = None;
+                Ok(())
+            }
+            Err(error) => {
+                let recorded = json!({"selection":self.record_state(self.publication.selection_reference()),"runText":self.record_state(self.publication.run_text_reference())});
+                self.publication_failure = Some(json!({"limit":error,"recorded":recorded}));
+                self.status = json!({"state":"WR pre-send publication failed; nothing sent","sent":false,"supplied":"not supplied","recorded":recorded,"limit":error,"retry":"Retry publishes the same original records; sending stays a separate once-only step","adoption":"unknown","runStanding":"no active run inferred"});
+                Err(format!("WR selection/run_text not durably recorded; nothing sent: {error}"))
+            }
+        }
+    }
     pub fn send(&mut self) -> Result<Value, String> {
+        if let Some(reason) = &self.withdrawn {
+            return Err(format!("This prepared successor was withdrawn: {reason}. Prepare a new run"));
+        }
         if self.attempted {
             return Err("Original workflow source attempt retained; no resend".into());
         }
         current_conversation(
             &self.home.host.snapshot(),
-            &self.prepared.scope().generation,
-            &self.prepared.scope().conversation,
+            &self.prepared().scope().generation,
+            &self.prepared().scope().conversation,
         )?;
+        self.publish_pre_send()?;
+        let (selection_ref, text_ref) = {
+            let published = self.published.as_ref().unwrap();
+            // WP-3: the exact composed text is rechecked against the published identity.
+            let body = published.run_text_record().body();
+            let text = published.prepared().text();
+            if body["text_identity"] != crate::role_supply::content(text.as_bytes())
+                || body["text_bytes"] != text.len()
+                || published.prepared().record() != body
+            {
+                return Err("Composed text differs from the published run_text; nothing sent".into());
+            }
+            (
+                published.selection_record().reference().to_owned(),
+                published.run_text_record().reference().to_owned(),
+            )
+        };
+        let records = json!({"selection":selection_ref,"runText":text_ref});
+        // EXEC §3.1 CK-2: a new evaluation immediately before the run's first
+        // action. Advisory: its outcome is not consulted below.
+        self.evaluate_compatibility(
+            crate::execution_compatibility::report::Occasion::BeforeFirstAction,
+        );
         self.attempted = true;
-        let source = self.home.host.turn_start_prepared_run_text(
-            &self.prepared.scope().generation,
-            &self.prepared,
+        let prepared = self.publication.prepared().clone();
+        let source = match self.home.host.turn_start_prepared_run_text(
+            &prepared.scope().generation,
+            &prepared,
             &self.person_text,
             &self.client_id,
-        )?;
+        ) {
+            Ok(source) => source,
+            Err(error) => {
+                self.lifecycle = RunLifecycle::StartNotConfirmed;
+                self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not recorded: no Host receipt of a turn/start refusal; outcome not established (CI-20)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
+                return Err(error);
+            }
+        };
         self.source = Some(source.clone());
         match self.home.host.turn_start_prepared_finish(
             &source,
-            &self.prepared,
+            &prepared,
             &self.person_text,
             &self.client_id,
             std::time::Duration::from_secs(20),
         ) {
             Ok(native) => {
                 self.turn_id = Some(native.turn_id().to_owned());
-                self.status = json!({"state":"native workflow-text turn observed","replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"adoption":"unknown","runStanding":"native input/turn observations are separate from workflow execution/adoption/run end"});
+                self.status = json!({"state":"native workflow-text turn observed; run opened","records":records,"replyStatus":native.reply_status(),"observedStatus":native.observed_status(),"supplied":"not yet checked","adoption":"unknown","runStanding":"open until the person ends it; a failed or completed native turn does not end it"});
             }
             Err(error) => {
-                self.status = json!({"state":"native workflow-text send failed/unknown; original source retained","limit":error,"automaticRetry":false,"adoption":"unknown"});
+                self.lifecycle = RunLifecycle::StartNotConfirmed;
+                // V9 F-1: only Codex's definite refusal of this exact turn/start
+                // grounds a supply_check *not found* (WR §16.4, RN-4). An unknown
+                // outcome mints nothing that claims not found (CI-20).
+                let refusal = self.home.host.prepared_turn_refusal(&source);
+                let definite = refusal.is_some();
+                let check = match refusal {
+                    Some(refusal) => self.record_refused_start(refusal),
+                    None => Value::Null,
+                };
+                self.status = json!({"state":if definite {"native workflow-text turn/start refused by Codex; original source retained"} else {"native workflow-text send outcome unknown; original source retained"},
+                    "records":records,"limit":error,"automaticRetry":false,"run":"not opened (EXEC A-3): start not confirmed",
+                    "supplyCheck":if definite {"not found (RN-4): turn/start refused by Codex"} else {"not recorded: turn/start outcome unknown (CI-20)"},
+                    "check":check,"r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err("Original native workflow source outcome unavailable; inspect retained source, no resend".into());
             }
         }
+        self.open_run();
         Ok(self.status.clone())
     }
+    /// V9 F-1: publish the *not found* check for a definitely refused start. R3
+    /// stays unavailable: no source-bound native turn exists (RS §13.6a).
+    fn record_refused_start(&mut self, refusal: crate::hosting::NativeTurnRefusal) -> Value {
+        let minted = (|| {
+            let published = self.published.as_ref().ok_or("run text not published")?;
+            let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::not_found_after_refusal(
+                refusal,
+                published,
+                &self.client_id,
+                &crate::util::opaque_id("workflow-check:")?,
+                &crate::util::now_rfc3339(),
+            )?;
+            crate::workflow_workspace::publication::PendingSupplyCheck::new(&self.project, completed, published, WR_WRITER)
+        })();
+        match minted {
+            Ok(pending) => {
+                self.checks.push(WorkflowCheckSlot {
+                    pending,
+                    published: None,
+                    publication_failure: None,
+                    r3: WorkflowR3::AwaitingCheck,
+                });
+                self.flush_records();
+                self.checks.last().map(WorkflowCheckSlot::view).unwrap_or(Value::Null)
+            }
+            Err(e) => json!({"state":"not found check not minted","limit":e}),
+        }
+    }
+    /// EXEC A-2: the start turn was observed, so the run opens and the App writer
+    /// records `run_opened` (with `follows` for a sequential run, RE-7).
+    fn open_run(&mut self) {
+        let scope = self.prepared().scope().clone();
+        let id = self.prepared().workflow().clone();
+        let mut body = json!({"runId":scope.run,"startedBy":{"kind":"person"},"surface":"App run",
+            "workflow":{"kind":id.kind,"origin":id.origin,"sourceRoot":id.source_root,"name":id.name,"revision":id.revision,"revisionVerification":"verified"},
+            "conversationRef":scope.conversation});
+        if let Some(prior) = &self.follows {
+            body["follows"] = json!(prior);
+        }
+        // R5a: the role in force from this conversation's own App supply binding.
+        if let Ok(history) = self.home.history.try_lock() {
+            if let Some(crate::role_lifecycle::RoleInForce::AppObserved { role, .. }) = history
+                .binding(&scope.home, &scope.conversation)
+                .map(|b| b.role_in_force(&scope.home, &scope.conversation))
+            {
+                body["seatRole"] = json!(role.map(|r| r.name()).unwrap_or("no role"));
+            }
+        }
+        self.lifecycle = RunLifecycle::Open;
+        match crate::records::supply::PendingRunEntry::new(
+            "run_opened",
+            body,
+            crate::util::now_rfc3339(),
+        ) {
+            Ok(entry) => self.entries.push(entry),
+            Err(e) => self.status["recordLimit"] = json!(format!("run_opened identity unavailable: {e}")),
+        }
+        self.flush_records();
+    }
+    /// EXEC AE-7 / A-11: only the person's explicit end ends a run. `successor`
+    /// is set for "End ‹A› and start ‹B›": no end notice, the chain line says it.
+    pub fn end_run(&mut self, completed: bool, successor: Option<&str>) -> Result<Value, String> {
+        if self.lifecycle != RunLifecycle::Open {
+            return Err("Only an open run can be ended; nothing recorded".into());
+        }
+        let scope = self.prepared().scope().clone();
+        let reason = match successor {
+            Some(name) => crate::workflow_workspace::RunEndReason::ToStart(name.to_owned()),
+            None if completed => crate::workflow_workspace::RunEndReason::Completed,
+            None => crate::workflow_workspace::RunEndReason::ByPerson,
+        };
+        let cause = run_end_cause(&reason);
+        if successor.is_some() && cause == "invalid" {
+            return Err("successor workflow name invalid; nothing ended".into());
+        }
+        let entry = crate::records::supply::PendingRunEntry::new(
+            "run_ended",
+            json!({"stoppedBy":"the person","cause":cause,"waitingArrivals":[]}),
+            crate::util::now_rfc3339(),
+        )?;
+        self.end = Some(crate::workflow_workspace::OwnerRunEnd {
+            home: scope.home.clone(),
+            conversation: scope.conversation.clone(),
+            run: scope.run.clone(),
+            workflow: self.prepared().workflow().clone(),
+            reason,
+        });
+        self.lifecycle = RunLifecycle::Ended;
+        self.notice = if successor.is_some() {
+            NoticeState::ByChain
+        } else {
+            NoticeState::AwaitingTurn
+        };
+        self.entries.push(entry);
+        // V10 G-2: for "End ‹A› and start ‹B›" the end is held until B's start
+        // outcome is known; it is then written with its truthful cause.
+        self.sync_notice_flag();
+        self.held_end = successor.is_some();
+        self.flush_records();
+        self.status = json!({"state":"run ended by the person","cause":cause,"recorded":self.entry_written("run_ended"),"endNotice":self.notice.view(),"adoption":"unknown"});
+        Ok(self.status.clone())
+    }
+    /// V10 R-5: this run is the held predecessor or the held successor of an "End
+    /// and start" step whose successor's start outcome is not yet known.
+    fn held_step(&self, reference: &str) -> Option<String> {
+        if let Some(predecessor) = &self.hold_open_for {
+            return Some(held_step_reason(predecessor, reference));
+        }
+        self.held_end.then(|| held_step_reason(reference, "its successor"))
+    }
+    /// V10 G-2: release A's held end once B's start outcome is known. B opened:
+    /// "ended to start ‹B›" is written. B did not start: the end becomes a plain
+    /// end (truthful cause) with a pending end notice for the next ordinary turn.
+    fn release_held_end(&mut self, successor_started: bool) {
+        if !self.held_end {
+            return;
+        }
+        if !successor_started {
+            if let Some(entry) = self
+                .entries
+                .iter_mut()
+                .find(|e| e.kind == "run_ended" && e.written.is_none())
+            {
+                entry.body["cause"] = json!("ended by the person");
+            }
+            if let Some(end) = self.end.as_mut() {
+                end.reason = crate::workflow_workspace::RunEndReason::ByPerson;
+            }
+            self.notice = NoticeState::AwaitingTurn;
+            self.status = json!({"state":"run ended by the person","cause":"ended by the person","limit":"the successor did not start, so this is recorded as a plain end and the next ordinary turn carries the end notice","endNotice":self.notice.view(),"adoption":"unknown"});
+        }
+        self.sync_notice_flag();
+        self.held_end = false;
+        self.flush_records();
+    }
+    /// TX-5: publish the end notice, then send it as the first text element of
+    /// the person's next ordinary turn. Dispatched at most once; a publication
+    /// failure sends nothing and keeps the original pending bytes.
+    pub fn send_end_notice(&mut self, generation: &Value, person_text: &str) -> Result<Value, String> {
+        let result = self.send_end_notice_inner(generation, person_text);
+        self.sync_notice_flag();
+        result
+    }
+    fn sync_notice_flag(&self) {
+        self.notice_flag
+            .store(self.notice.awaiting_turn(), std::sync::atomic::Ordering::SeqCst);
+    }
+    /// V10 G-5: the person sends without the end notice because its record cannot
+    /// be written. The choice is recorded in this run's log (an `evidence_limit`
+    /// naming the notice record) and the notice is never presented as supplied.
+    /// V10 R-4: offered only after an actual failure to write the notice record;
+    /// the recorded limit carries that failure, so it never claims one that did
+    /// not happen.
+    pub fn skip_end_notice(&mut self) -> Result<Value, String> {
+        if !self.notice.awaiting_turn() {
+            return Err("No end notice is pending for this run".into());
+        }
+        let Some(failure) = self.notice_record_failure.clone() else {
+            return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
+        };
+        let subject = match &self.notice {
+            NoticeState::Prepared(p) => p.reference().to_owned(),
+            _ => self.prepared().scope().run.clone(),
+        };
+        let entry = crate::records::supply::PendingRunEntry::new(
+            "evidence_limit",
+            json!({"label":"record write failed","subjectRef":subject,"detail":format!("end notice not supplied: its record could not be written ({failure}) and the person chose to send without it; the App did not tell the model that this run ended (WR TX-5)")}),
+            crate::util::now_rfc3339(),
+        )?;
+        self.entries.push(entry);
+        self.notice = NoticeState::Skipped;
+        self.sync_notice_flag();
+        self.flush_records();
+        self.status = json!({"state":"end notice not supplied by the person's choice; recorded","endNotice":self.notice.view()});
+        Ok(self.status.clone())
+    }
+    fn send_end_notice_inner(&mut self, generation: &Value, person_text: &str) -> Result<Value, String> {
+        if !self.notice.awaiting_turn() {
+            return Err("No end notice is pending for this run; nothing sent".into());
+        }
+        let scope = self.prepared().scope().clone();
+        current_conversation(&self.home.host.snapshot(), generation, &scope.conversation)?;
+        if person_text.is_empty() {
+            return Err("text required".into());
+        }
+        if matches!(self.notice, NoticeState::AwaitingTurn) {
+            let end = self.end.clone().ok_or("owner end absent")?;
+            let start = self.published.as_ref().ok_or("original run start not published")?;
+            let publication = crate::workflow_workspace::publication::PreparedEndPublication::for_turn(
+                &self.project,
+                start.prepared(),
+                &end,
+                start.run_text_record(),
+                WR_WRITER,
+                &crate::util::now_rfc3339(),
+                generation,
+            )?;
+            self.notice = NoticeState::Prepared(publication);
+        }
+        let NoticeState::Prepared(publication) = &self.notice else {
+            unreachable!()
+        };
+        let published = match publication.publish(&self.project) {
+            Ok(p) => {
+                self.notice_record_failure = None;
+                p
+            }
+            Err(e) => {
+                self.notice_record_failure = Some(e.clone());
+                self.status = json!({"state":"end notice not recorded; nothing sent","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]});
+                return Err(format!("End notice not durably recorded; nothing sent: {e}. Retry the end-notice record, or choose \"Send without the end notice\" (recorded as not supplied)"));
+            }
+        };
+        let client_id = crate::util::opaque_id("workflow-message:")?;
+        // V10 G-1: the record and text do not depend on the generation; a notice
+        // left pending across a relaunch is re-scoped to the current one.
+        let notice = crate::workflow_workspace::publication::PublishedText::prepared(&published)
+            .with_generation(generation)?;
+        let begun = {
+            #[cfg(test)]
+            let refused = NOTICE_REFUSED_BEFORE_WRITE.with(|v| v.replace(false));
+            #[cfg(not(test))]
+            let refused = false;
+            if refused {
+                Err("test seam: Host refused before any frame was written".to_string())
+            } else {
+                self.home.host.turn_start_prepared_run_text(generation, &notice, person_text, &client_id)
+            }
+        };
+        let source = match begun {
+            Ok(source) if source.evidence()["actualWriteAttemptObserved"] == true => source,
+            other => {
+                // Nothing was written: the notice stays pending for the next turn.
+                let limit = match other {
+                    Err(e) => e,
+                    Ok(source) => format!("no write attempt observed: {}", source.evidence()["noAttemptCause"]),
+                };
+                self.status = json!({"state":"end notice not sent; it stays pending for the next ordinary turn","limit":limit});
+                return Err(format!("End notice not sent (no frame written); it stays pending: {limit}"));
+            }
+        };
+        let mut outcome;
+        let mut turn = None;
+        match self.home.host.turn_start_prepared_finish(&source, &notice, person_text, &client_id, std::time::Duration::from_secs(20)) {
+            Ok(native) => {
+                turn = Some(native.turn_id().to_owned());
+                outcome = json!({"state":"native turn observed","observedStatus":native.observed_status()});
+            }
+            Err(e) => outcome = json!({"state":"native send failed/unknown after its frame was written; not resent","limit":e}),
+        }
+        outcome["source"] = source.evidence();
+        self.notice = NoticeState::Sent {
+            published,
+            client_id,
+            turn,
+            generation: generation.clone(),
+            outcome: outcome.clone(),
+        };
+        if outcome["state"] == "native turn observed" {
+            Ok(json!({"state":"end notice and the person's text sent once","endNotice":self.notice.view()}))
+        } else {
+            Err(format!("End notice turn outcome unavailable; not resent: {outcome}"))
+        }
+    }
+    /// Retries only pending original records (WP-5): pre-send publication, check
+    /// publication and R3 late writes. Never sends and never re-reads native data.
+    pub fn retry_records(&mut self) -> Result<Value, String> {
+        if self.published.is_none() {
+            self.publish_pre_send()?;
+            if !self.attempted {
+                self.status = json!({"state":"selection and run_text recorded; not sent","sent":false,"supplied":"not supplied","next":"Send remains a separate once-only step","adoption":"unknown","runStanding":"no active run inferred"});
+            }
+        }
+        self.flush_records();
+        let notice = self.retry_notice_record();
+        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"endNoticeRecord":notice,"pendingRecords":self.has_pending_records()}))
+    }
+    /// V10 G-5 "Retry the end-notice record": publish a pending notice's record
+    /// (same identity and bytes) without sending. The next ordinary turn sends it.
+    fn retry_notice_record(&mut self) -> Value {
+        if matches!(self.notice, NoticeState::AwaitingTurn) {
+            let prepared = (|| {
+                let end = self.end.clone().ok_or("owner end absent")?;
+                let start = self.published.as_ref().ok_or("original run start not published")?;
+                crate::workflow_workspace::publication::PreparedEndPublication::for_turn(
+                    &self.project,
+                    start.prepared(),
+                    &end,
+                    start.run_text_record(),
+                    WR_WRITER,
+                    &crate::util::now_rfc3339(),
+                    &start.prepared().scope().generation,
+                )
+            })();
+            match prepared {
+                Ok(p) => self.notice = NoticeState::Prepared(p),
+                Err(e) => return json!({"state":"not prepared","limit":e}),
+            }
+        }
+        let NoticeState::Prepared(publication) = &self.notice else {
+            return Value::Null;
+        };
+        match publication.publish(&self.project) {
+            Ok(p) => {
+                self.notice_record_failure = None;
+                json!({"state":"recorded; not sent; the next ordinary turn carries it","record":p.run_text_record().reference()})
+            }
+            Err(e) => {
+                self.notice_record_failure = Some(e.clone());
+                json!({"state":"still not recorded","limit":e,"choices":["Retry the end-notice record","Send without the end notice (recorded as not supplied)"]})
+            }
+        }
+    }
+    /// SC-3..SC-6: one genuine native read, minted into a new immutable check,
+    /// published and recorded as R3. Each call is a new check (SC-6).
     pub fn check_native_supply(&mut self) -> Result<Value, String> {
+        if self.published.is_none() {
+            return Err("No published run_text; nothing was sent or checked".into());
+        }
         let turn = self
             .turn_id
             .clone()
             .ok_or("Original native turn identity not received; no page guess")?;
-        let generation = self.prepared.scope().generation.clone();
-        let thread = self.prepared.scope().conversation.clone();
-        current_conversation(&self.home.host.snapshot(), &generation, &thread)?;
+        let generation = self.prepared().scope().generation.clone();
+        let client = self.client_id.clone();
+        self.check_text(false, &generation, &turn, &client)
+    }
+    /// SQ-END EN-3: a check of the end notice against Codex's history.
+    pub fn check_end_notice_supply(&mut self) -> Result<Value, String> {
+        let NoticeState::Sent { turn, client_id, generation, .. } = &self.notice else {
+            return Err("No end notice was sent; nothing to check".into());
+        };
+        let turn = turn.clone().ok_or("End-notice turn identity not received; no page guess")?;
+        let (generation, client) = (generation.clone(), client_id.clone());
+        self.check_text(true, &generation, &turn, &client)
+    }
+    fn check_text(
+        &mut self,
+        notice: bool,
+        generation: &Value,
+        turn: &str,
+        client: &str,
+    ) -> Result<Value, String> {
+        let thread = self.prepared().scope().conversation.clone();
+        let mut issued = Vec::new();
+        let outcome = self.read_native_items(generation, &thread, turn, &mut issued);
+        let read_at = crate::util::now_rfc3339();
+        let check = crate::util::opaque_id("workflow-check:")?;
+        let published: &dyn crate::workflow_workspace::publication::PublishedText = if notice {
+            match &self.notice {
+                NoticeState::Sent { published, .. } => published,
+                _ => return Err("end notice not published".into()),
+            }
+        } else {
+            self.published.as_ref().ok_or("run text not published")?
+        };
+        let expected_text = published.prepared().text().to_owned();
+        let (turn, client_id) = (turn.to_owned(), client.to_owned());
+        let (completed, display) = match outcome {
+            Ok((seal, pages)) => {
+                let mut index = 0;
+                let comparison = crate::workflow_workspace::compare_untrusted_pages(
+                    &expected_text,
+                    &turn,
+                    &client_id,
+                    |_| {
+                        let page = pages.get(index).cloned().ok_or("No checked native page")?;
+                        index += 1;
+                        Ok(page)
+                    },
+                );
+                let display = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":generation,"thread":thread,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
+                let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::from_native_coverage(
+                    &self.home.host, seal, &pages, published, &turn, &client_id, &check, &read_at,
+                )?;
+                (completed, display)
+            }
+            Err(error) if !issued.is_empty() => {
+                let completed = crate::workflow_workspace::publication::CompletedSupplyCheck::unreadable_after_dispatch(
+                    &issued, published, &turn, &client_id, &check, &read_at, &error,
+                )?;
+                (completed, json!({"state":"native item read failed after dispatch; recorded as unreadable","limit":error,"turn":turn,"adoption":"unknown","runStanding":"no active/completed workflow run inferred"}))
+            }
+            Err(error) => return Err(error),
+        };
+        let pending = crate::workflow_workspace::publication::PendingSupplyCheck::new(
+            &self.project,
+            completed,
+            published,
+            WR_WRITER,
+        )?;
+        let slot = WorkflowCheckSlot {
+            pending,
+            published: None,
+            publication_failure: None,
+            r3: WorkflowR3::AwaitingCheck,
+        };
+        // R3 follows its lifecycle entry in the run log (run_opened for the start
+        // text, run_ended for the end notice, RS §4 R3) and every earlier pending
+        // R3 of the run (V9 F-2): the new slot joins the ordered list first.
+        if notice {
+            self.notice_checks.push(slot);
+        } else {
+            self.checks.push(slot);
+        }
+        self.flush_records();
+        let slot = if notice { self.notice_checks.last() } else { self.checks.last() };
+        let mut supply = display;
+        supply["check"] = slot.map(WorkflowCheckSlot::view).unwrap_or(Value::Null);
+        if !notice {
+            self.supply = supply.clone();
+        }
+        Ok(supply)
+    }
+    /// The existing source-owned traversal. Every Host-issued dispatch is kept so
+    /// a later failure can still be recorded as *unreadable* against it.
+    fn read_native_items(
+        &self,
+        generation: &Value,
+        thread: &str,
+        turn: &str,
+        issued: &mut Vec<crate::hosting::HistoryDispatch>,
+    ) -> Result<(crate::hosting::NativeItemCoverageSeal, Vec<Value>), String> {
+        current_conversation(&self.home.host.snapshot(), generation, thread)?;
         let query = {
             let mut receiver = self.home.history.lock().unwrap();
             receiver.reconcile(&self.home.host);
             let h = receiver
                 .history_mut()
                 .ok_or("Native History owner unavailable")?;
-            if h.selected_thread() != Some(thread.as_str()) {
+            if h.selected_thread() != Some(thread) {
                 return Err("Select this original conversation in native History and load its turns before checking supply".into());
             }
-            h.items_page(&turn, None, crate::native_history::Direction::Asc)?
+            h.items_page(turn, None, crate::native_history::Direction::Asc)?
         };
         let mut query = query;
         let mut check = None;
@@ -4150,6 +5421,7 @@ impl WorkflowRun {
                     .host
                     .dispatch_next_native_items_supply_page(check, &query)?,
             };
+            issued.push(dispatch.clone());
             self.home
                 .history
                 .lock()
@@ -4180,26 +5452,14 @@ impl WorkflowRun {
             drop(accepted);
             let next = check.as_ref().unwrap().next_cursor().map(str::to_owned);
             if let Some(next) = next {
-                query = h.items_page(&turn, Some(&next), crate::native_history::Direction::Asc)?;
+                query = h.items_page(turn, Some(&next), crate::native_history::Direction::Asc)?;
                 continue;
             }
             let seal = self.home.host.finish_native_items_supply_check(
                 check.take().unwrap(),
                 h.accepted_items_observation(&query)?,
             )?;
-            let mut index = 0;
-            let comparison = crate::workflow_workspace::compare_untrusted_pages(
-                self.prepared.text(),
-                &turn,
-                &self.client_id,
-                |_| {
-                    let page = pages.get(index).cloned().ok_or("No checked native page")?;
-                    index += 1;
-                    Ok(page)
-                },
-            );
-            self.supply = json!({"state":"genuine current native pages checked; text comparison below","comparison":comparison,"generation":generation,"thread":thread,"turn":turn,"pageCount":seal.page_count(),"sourceReceipts":seal.source_receipts().map(|(id,reference,position)|json!({"requestIdentity":id,"sourceRef":reference,"receiptPosition":position})).collect::<Vec<_>>(),"adoption":"unknown","runStanding":"no active/completed workflow run inferred","limits":["final source/owner guard at one check boundary, not permanent authority","native user-message text is not model uptake, workflow registration or successful execution"]});
-            return Ok(self.supply.clone());
+            return Ok((seal, pages));
         }
     }
 }
@@ -4218,6 +5478,29 @@ mod workflow_root_tests {
             Self{root,package}
         }
         fn selected(&self)->WorkflowRootSession{let mut root=WorkflowRootSession::default();root.select_development_copy(self.package.clone()).unwrap();root}
+        /// The ordinary journey (TT-1): development copy -> draft -> review -> A15 -> hot registered selection.
+        fn registered(&self)->WorkflowRootSession{
+            let mut root=self.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&self.root))));
+            root.open_library(self.root.clone(),"project",Some(&self.root),control.clone()).unwrap();
+            root.create_selected_draft("coordinated-knowledge-work").unwrap();
+            let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("supplier intentionally unavailable".into())).unwrap());
+            root.begin_review(home,json!({"hostState":"absent","identityVerified":false}),vec!["coordinated-knowledge-work".into()],false).unwrap();
+            let reference=root.active_review.clone().unwrap();
+            let revision={let review=root.reviews[&reference].clone();let mut review=review.lock().unwrap();
+                let library=review.library.clone();let offer=review.offer.as_ref().unwrap();let current=review.review.as_ref().unwrap().current().unwrap();
+                let actor=crate::act_control::person(Some("synthetic native fixture"),Some("fixture OS"));let context=json!({"library":library.reference,"home":"explicit absent/unknown fixture source","identityVerified":false});
+                let mut owner_guard=control.lock().unwrap();let owner=owner_guard.as_mut().unwrap();
+                owner.a15_confirmation_text(offer,&current,&actor,&context).unwrap();owner.present_a15(offer).unwrap();
+                let event=crate::a15_native::ConfirmedA15Event::synthetic_for_test(offer.id().into(),owner.frozen_a15_offer_digest(offer).unwrap().clone(),actor,context);
+                let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(current);drop(owner_guard);
+                review.attempted_native=true;review.accept_result(result).unwrap();
+                review.registered.values().next().unwrap().identity().revision.clone()};
+            root.select_hot_registered_copy(&reference,&revision,self.root.join(".chirality/workflows/coordinated-knowledge-work")).unwrap();
+            assert_eq!(root.snapshot()["selection"]["standing"],"registered revision");
+            root
+        }
+        fn wr_files(&self)->Vec<String>{let mut v:Vec<String>=std::fs::read_dir(self.root.join(".chirality/records/workflow")).map(|d|d.filter_map(|e|e.ok()).map(|e|e.file_name().to_string_lossy().into_owned()).filter(|n|n.ends_with(".json")&&!n.starts_with('.')).collect()).unwrap_or_default();v.sort();v}
+        fn rs_entries(&self)->Vec<Value>{let(entries,limits)=crate::storage::read_all(&self.root);assert!(limits.is_empty(),"{limits:?}");entries}
     }
     impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
     #[test]
@@ -4265,20 +5548,48 @@ import sys,json,os
 if '--version' in sys.argv:
  print('codex-cli 0.160.0');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
-def thread():return {'id':'thread','cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
+starts=[0]
+def thread(tid='thread'):return {'id':tid,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
 def turn():return {'id':'turn','status':'failed','items':[],'error':None,'itemsView':'summary'}
 text='';client=''
+def mode(name):
+ return open(name).read().strip() if os.path.exists(name) else ''
+def wr():
+ d='.chirality/records/workflow'
+ return sorted(n for n in os.listdir(d) if n.endswith('.json') and not n.startswith('.')) if os.path.isdir(d) else []
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
  method=f.get('method')
  if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
- elif method=='thread/start':result={'thread':thread(),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+ elif method=='thread/start':
+  starts[0]+=1
+  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
  elif method=='turn/start':
+  # Publish-before-send witness: the WR records the peer can see when the turn arrives.
+  with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
+  if mode('turn-mode')=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture refused turn/start'}});continue
+  if mode('turn-mode')=='exit':
+   sys.exit(0)
+  if mode('turn-mode')=='stall':
+   # Stops reading its input (until the Host's stop ends the process).
+   import time;time.sleep(60);continue
   text=f['params']['input'][0]['text'];client=f['params']['clientUserMessageId'];result={'turn':turn()}
- elif method=='thread/list':result={'data':[thread()],'nextCursor':None,'backwardsCursor':None}
+ elif method=='thread/list':result={'data':[thread()]+[thread('thread-%d'%n) for n in range(2,starts[0]+1)],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list':result={'data':[turn()],'nextCursor':None}
- elif method=='thread/items/list':result={'data':[{'turnId':'turn','item':{'type':'userMessage','id':'message','clientId':client,'content':[{'type':'text','text':text}]}}],'nextCursor':None}
+ elif method=='thread/items/list':
+  m=mode('items-mode');seen=text;cid=client
+  if m=='error':
+   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture unreadable items'}});continue
+  if m=='framing':seen=text.replace('[Chirality] Workflow run start:','[Chirality] Workflow run started:',1)
+  if m=='differ':seen=text.replace('\n','\r\n')
+  if m=='noclient':cid='other-client'
+  message={'type':'userMessage','id':'message','clientId':cid,'content':[{'type':'text','text':seen}]}
+  data=[] if m=='absent' else [{'turnId':'turn','item':message}]
+  if m=='finished':data.append({'turnId':'turn','item':{'type':'agentMessage','id':'reply','text':'Done.\nWorkflow finished: project:coordinated-knowledge-work\nNext workflow: project:coordinated-knowledge-work'}})
+  if m=='paged' and f['params'].get('cursor') is None:result={'data':[],'nextCursor':'page-2'}
+  else:result={'data':data,'nextCursor':None}
  else:continue
  emit({'id':f['id'],'result':result})
 "#).unwrap();std::fs::set_permissions(&script,std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -4288,6 +5599,24 @@ for line in sys.stdin:
             let home=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,host,Ok(cfg)).unwrap());Self{fixture,home,generation}
         }
         fn wire(&self)->Vec<Value>{std::fs::read_to_string(self.fixture.root.join("wire.jsonl")).unwrap().lines().map(|line|serde_json::from_str(line).unwrap()).collect()}
+        fn turn_starts(&self)->usize{self.wire().iter().filter(|f|f["method"]=="turn/start").count()}
+        /// WR record files the peer saw at each turn/start, in arrival order.
+        fn wr_at_turn_start(&self)->Vec<Vec<String>>{std::fs::read_to_string(self.fixture.root.join("turn-start-wr.jsonl")).unwrap_or_default().lines().map(|line|serde_json::from_str(line).unwrap()).collect()}
+        fn set_mode(&self,name:&str,value:&str){std::fs::write(self.fixture.root.join(name),value).unwrap();}
+        /// The explicit App project (CHIRALITY_WORKSPACE stand-in) owning WR and RS records.
+        fn project(&self)->Option<&std::path::Path>{Some(&self.fixture.root)}
+        /// A new supplier process (next generation) after a stop; the conversation is loaded again.
+        fn relaunch(&self)->Value{
+            let cfg=self.home.host_config.as_ref().unwrap().clone();self.home.host.start(&cfg,"relaunch fixture").unwrap();
+            self.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
+            self.home.host.snapshot()["generation"].clone()
+        }
+        /// Another conversation in the same generation (a fork receives a new thread id).
+        fn second_thread(&self)->String{
+            let cfg=self.home.host_config.as_ref().unwrap().clone();
+            self.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
+            "thread-2".into()
+        }
         fn select_history(&self){
             let list={let mut receiver=self.home.history.lock().unwrap();receiver.reconcile(&self.home.host);receiver.history_mut().unwrap().list_threads(None,crate::native_history::Direction::Asc).unwrap()};
             self.receive(list);
@@ -4298,20 +5627,798 @@ for line in sys.stdin:
     }
     impl Drop for Peer{fn drop(&mut self){let _=self.home.host.stop("owned fixture cleanup","test ended");}}
     #[test]
+    // CI-18: moved from a development selection to the ordinary registered route; assertions unchanged.
     fn workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages(){
-        let peer=Peer::new();let mut root=peer.fixture.selected();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into()).unwrap();
+        let peer=Peer::new();let mut root=peer.fixture.registered();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
         run.send().unwrap();assert_eq!(run.turn_id.as_deref(),Some("turn"));assert_eq!(run.status["observedStatus"],"failed");
-        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],run.prepared.turn_params("person exact\r\ntext",&run.client_id).unwrap());
+        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],run.prepared().turn_params("person exact\r\ntext",&run.client_id).unwrap());
         assert!(run.send().is_err());assert_eq!(peer.wire().iter().filter(|f|f["method"]=="turn/start").count(),1);
         peer.select_history();let supply=run.check_native_supply().unwrap();assert_eq!(supply["pageCount"],1);assert_eq!(supply["comparison"]["state"],"equal_claimed_text");assert_eq!(supply["adoption"],"unknown");assert_eq!(supply["sourceReceipts"].as_array().unwrap().len(),1);
     }
     #[test]
+    // CI-18: moved from a development selection to the ordinary registered route; assertions unchanged.
     fn workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend(){
-        let peer=Peer::new();let mut root=peer.fixture.selected();let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
-        assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into()).is_err());
-        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
+        let peer=Peer::new();let mut root=peer.fixture.registered();let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
+        assert!(root.prepare_run(peer.home.clone(),&stale,"thread","text".into(),peer.project()).is_err());
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),peer.project()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
         peer.home.host.stop_scoped(&peer.generation,"fixture","source loss").unwrap();assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(run.source.as_ref().unwrap().request_ref(),original);assert_eq!(run.status["adoption"],"unknown");
+    }
+    // J1 control: WR TT-1/TX-1/WP-6. A development selection may be shown, never run.
+    #[test]
+    fn workflow_root_development_selection_run_is_refused_tt1_tx1(){
+        let peer=Peer::new();let mut root=peer.fixture.selected();
+        assert_eq!(root.snapshot()["selection"]["standing"],crate::workflow_workspace::development_catalog::STANDING);
+        let refused=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),peer.project());
+        assert!(refused.as_ref().is_err_and(|e|e.contains("TT-1")&&e.contains("TX-1")),"{refused:?}");
+        assert!(root.runs.is_empty());assert_eq!(peer.turn_starts(),0);assert!(peer.fixture.wr_files().is_empty());
+    }
+    // J1 control: WR SC-1/WP-5 publish-before-send, SC-6 new check per read, RS R3 per check.
+    #[test]
+    fn workflow_root_registered_run_publishes_before_send_and_records_each_check(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();
+        let seen=peer.wr_at_turn_start();assert_eq!(seen.len(),1);assert_eq!(seen[0].len(),2,"selection and run_text must be durable before turn/start: {seen:?}");
+        peer.select_history();run.check_native_supply().unwrap();run.check_native_supply().unwrap();
+        assert_eq!(peer.fixture.wr_files().len(),4,"each native read is a new immutable supply_check");
+        let r3:Vec<Value>=peer.fixture.rs_entries().into_iter().filter(|e|e["kind"]=="supplied_guidance").collect();
+        assert_eq!(r3.len(),2,"{}",run.view("run")["checks"]);for e in &r3{assert_eq!(e["body"]["supplyCheck"],"verified");assert_eq!(e["body"]["adoption"],"unknown");}
+        assert_eq!(peer.turn_starts(),1);
+    }
+    fn item_reads(peer:&Peer)->usize{peer.wire().iter().filter(|f|f["method"]=="thread/items/list").count()}
+    fn wr_dir(peer:&Peer)->PathBuf{peer.fixture.root.join(".chirality/records/workflow")}
+    // WP-5: failed pre-send publication sends nothing; a retry republishes the same original bytes.
+    #[test]
+    fn workflow_root_publication_failure_sends_nothing_and_retry_keeps_original_bytes(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        let pending=run.view(&reference)["publication"].clone();assert_eq!(pending["state"],"pending; not recorded");
+        // Definite failure: the WR directory cannot be created.
+        std::fs::write(wr_dir(&peer),b"not a directory").unwrap();
+        assert!(run.send().unwrap_err().contains("nothing sent"));
+        assert_eq!(peer.turn_starts(),0);assert!(!run.attempted);assert!(run.source.is_none());
+        assert_eq!(run.status["sent"],false);assert_eq!(run.status["supplied"],"not supplied");
+        assert_ne!(run.status["recorded"]["selection"]["state"],"recorded (resolves)");assert_ne!(run.status["recorded"]["runText"]["state"],"recorded (resolves)");
+        assert!(run.retry_records().is_err());assert_eq!(peer.turn_starts(),0);
+        std::fs::remove_file(wr_dir(&peer)).unwrap();
+        // Uncertain failure: the selection is linked, then the result is lost.
+        crate::workflow_workspace::publication::FAIL_AFTER_LINK.with(|v|v.set(true));
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),0);assert!(!run.attempted);
+        assert_eq!(run.status["recorded"]["selection"]["state"],"recorded (resolves)");assert_eq!(run.status["recorded"]["runText"]["state"],"not recorded");
+        let selection_ref=pending["selection"].as_str().unwrap();let text_ref=pending["runText"].as_str().unwrap();
+        let file=|r:&str|wr_dir(&peer).join(format!("{}.json",r.strip_prefix("wr-record:v1:").unwrap()));
+        let original=std::fs::read(file(selection_ref)).unwrap();
+        let retried=run.retry_records().unwrap();assert_eq!(retried["status"]["state"],"selection and run_text recorded; not sent");assert_eq!(peer.turn_starts(),0,"retry publishes only; it never sends");
+        assert_eq!(std::fs::read(file(selection_ref)).unwrap(),original,"same identity, same original bytes");assert!(file(text_ref).exists());
+        let view=run.view(&reference);assert_eq!(view["publication"]["selection"],selection_ref);assert_eq!(view["publication"]["runText"],text_ref);
+        let reopened=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let selection=reopened.resolve(selection_ref).unwrap();assert_eq!(selection.envelope()["observed_at"],root.snapshot()["selection"]["selectedAt"],"original selection time, not retry time");
+        run.send().unwrap();assert_eq!(peer.turn_starts(),1);
+        let name=|r:&str|file(r).file_name().unwrap().to_string_lossy().into_owned();
+        let seen=peer.wr_at_turn_start();assert_eq!(seen.len(),1);assert!(seen[0].contains(&name(selection_ref))&&seen[0].contains(&name(text_ref)),"{seen:?}");
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
+    }
+    // WP-1: an unknown or unopenable project is refused with no fallback store.
+    #[test]
+    fn workflow_root_unknown_project_is_refused_without_fallback(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let none=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),None);
+        assert!(none.as_ref().is_err_and(|e|e.contains("No explicit App project")&&e.contains("no fallback")),"{none:?}");
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),Some(std::path::Path::new("relative-project"))).is_err());
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),Some(peer.fixture.root.join("absent-project").as_path())).is_err());
+        assert!(root.runs.is_empty());assert_eq!(peer.turn_starts(),0);assert!(peer.fixture.wr_files().is_empty());
+        assert!(!peer.fixture.root.join("absent-project").exists());
+    }
+    // SC-3/SC-4 and §16.4: each mode is a new native read and a new immutable check; R3 copies the state.
+    #[test]
+    fn workflow_root_each_read_maps_state_faithfully_into_new_check_and_r3(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let cases=[("","verified",Some("client id")),("noclient","verified",Some("first user message of the turn")),("paged","verified",Some("client id")),
+            ("framing","text differs, workflow bytes equal",Some("client id")),("differ","text differs, workflow bytes differ",Some("client id")),("absent","not found",None),("error","unreadable",None)];
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let text_ref=run.view(&reference)["publication"]["runText"].as_str().unwrap().to_owned();
+        let mut seen=std::collections::BTreeSet::new();
+        for (mode,state,located) in cases {
+            peer.set_mode("items-mode",mode);
+            let supply=run.check_native_supply().unwrap_or_else(|e|panic!("{mode}: {e}"));
+            let check=&supply["check"];assert_eq!(check["state"],state,"{mode}");assert_eq!(check["published"],true,"{mode}");assert_eq!(check["r3"]["state"],"recorded","{mode}: {check}");
+            assert!(seen.insert(check["reference"].as_str().unwrap().to_owned()),"each read is a new check identity");
+            let record=project.resolve(check["reference"].as_str().unwrap()).unwrap();let body=record.body();
+            assert_eq!(body["state"],state);assert_eq!(body["turn"],"turn");assert_eq!(body["client_user_message_id"],run.client_id.as_str());
+            assert_eq!(record.envelope()["basis_records"],json!([text_ref]));assert_eq!(record.envelope()["observed_at"],body["read_at"]);
+            assert!(!record.envelope()["source_references"].as_array().unwrap().is_empty(),"actual native source receipts");
+            match located{Some(by)=>{assert_eq!(body["located_by"],by);assert_eq!(body["item"],"message");assert!(body.get("observed_text").is_some());},None=>assert!(body.get("observed_text").is_none())}
+            if mode=="paged"{assert_eq!(supply["pageCount"],2);}
+            let r3=peer.fixture.rs_entries().into_iter().find(|e|e["recordId"]==check["r3"]["recordId"]).unwrap();
+            assert_eq!(r3["kind"],"supplied_guidance");assert_eq!(r3["body"]["supplyCheck"],state);assert_eq!(r3["body"]["adoption"],"unknown");
+            assert_eq!(r3["body"]["nativeTurn"],"turn");assert_eq!(r3["body"]["thread"],"thread");assert_eq!(r3["body"]["supplyRecord"]["ref"],text_ref.as_str());
+            assert_eq!(r3["body"]["supplyCheckRecord"]["ref"],check["reference"]);assert_eq!(r3["observedAt"],body["read_at"]);assert_eq!(r3["runId"],reference.as_str());
+            assert_eq!(check["supplyReading"],if state=="verified"{"supplied"}else{"supplied — not verified"});
+        }
+        assert_eq!(peer.turn_starts(),1,"checks never resend");
+    }
+    // V9 F-1, WR §16.4 / RN-4: Codex's definite refusal of the exact turn/start mints a
+    // supply_check *not found* grounded in that Host receipt; R3 stays unavailable (RS §13.6a).
+    #[test]
+    fn workflow_root_refused_send_records_not_found_check_and_keeps_r3_unavailable(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","error");
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
+        assert_eq!(peer.wr_at_turn_start()[0].len(),2,"records were durable before the refused send");
+        assert_eq!(run.status["supplyCheck"],"not found (RN-4): turn/start refused by Codex");assert!(run.status["r3"].as_str().unwrap().starts_with("unavailable"));
+        assert_eq!(peer.fixture.wr_files().len(),3,"one supply_check not found");
+        let check=run.view(&reference)["checks"][0].clone();assert_eq!(check["state"],"not found");assert_eq!(check["published"],true);assert_eq!(check["r3"]["state"],"unavailable");
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let record=project.resolve(check["reference"].as_str().unwrap()).unwrap();let body=record.body();
+        assert!(body.get("turn").is_none()&&body.get("item").is_none()&&body.get("observed_text").is_none(),"no turn or item exists for a refused start: {body}");
+        assert_eq!(body["client_user_message_id"],run.client_id.as_str());assert_eq!(body["purpose"],"run start");
+        assert_eq!(record.envelope()["source_references"],json!([run.source.as_ref().unwrap().request_ref()]),"grounded in the exact turn/start receipt");
+        assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
+        assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="supplied_guidance"));
+    }
+    // V9 F-1: a genuinely unknown outcome (transport loss before any response) mints nothing
+    // claiming *not found*; status stays "outcome unknown"; no resend (CI-20).
+    #[test]
+    fn workflow_root_unknown_send_outcome_mints_no_check_and_never_resends(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","exit");
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
+        assert_eq!(run.status["supplyCheck"],"not recorded: turn/start outcome unknown (CI-20)");
+        assert_eq!(peer.fixture.wr_files().len(),2,"no supply_check claims not found for an unknown outcome");
+        assert!(run.view(&reference)["checks"].as_array().unwrap().is_empty());
+        assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
+    }
+    // WP-5/W-2: post-send check publication and R3 failures keep original facts, never resend or re-read.
+    #[test]
+    fn workflow_root_post_send_record_failures_retry_without_resend(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        // 1. RS writer unavailable: WR check published, R3 pending.
+        // Fixture only (J3): run_opened now creates the run-log directory, so it is moved aside
+        // before the blocking file is written, and restored with it below.
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+        let first=run.check_native_supply().unwrap()["check"].clone();
+        assert_eq!(first["published"],true);assert_eq!(first["r3"]["state"],"pending write; missing in record");
+        let r3_id=first["r3"]["recordId"].as_str().unwrap().to_owned();
+        // 2. WR check publication unavailable: the check is pending with its original bytes.
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        let second=run.check_native_supply().unwrap()["check"].clone();
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(second["published"],false);assert!(second["publicationLimit"].is_string());assert_eq!(second["r3"]["state"],"not recorded; awaits the published check");
+        let second_ref=second["reference"].as_str().unwrap().to_owned();assert!(!peer.fixture.wr_files().iter().any(|n|second_ref.ends_with(n.trim_end_matches(".json"))));
+        assert!(run.has_pending_records());
+        let (reads,starts)=(item_reads(&peer),peer.turn_starts());
+        std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+        let retried=run.retry_records().unwrap();assert_eq!(retried["pendingRecords"],false,"{retried}");
+        assert_eq!(item_reads(&peer),reads,"retry never re-reads native history");assert_eq!(peer.turn_starts(),starts);assert_eq!(starts,1);
+        let checks=run.view(&reference)["checks"].clone();assert_eq!(checks[0]["r3"]["recordId"],r3_id.as_str(),"late R3 keeps its reserved identity");
+        assert_eq!(checks[1]["reference"],second_ref.as_str(),"publication retry keeps the check identity");assert_eq!(checks[1]["readAt"],second["readAt"]);
+        let entries=peer.fixture.rs_entries();
+        let late=entries.iter().find(|e|e["recordId"]==r3_id.as_str()).unwrap();assert_eq!(late["observedAt"],first["readAt"],"original observation time");
+        assert!(entries.iter().any(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"&&e["body"]["subjectRef"]==r3_id.as_str()));
+        assert_eq!(entries.iter().filter(|e|e["kind"]=="supplied_guidance").count(),2);
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        assert_eq!(project.resolve(&second_ref).unwrap().body()["read_at"],second["readAt"]);
+        // A further retry is a no-op: no duplicate R3 or limit.
+        run.retry_records().unwrap();assert_eq!(peer.fixture.rs_entries().len(),entries.len());
+    }
+    // V9 F-2, RS W-2 / WR WP-5: after the writer recovers, a later check first writes every
+    // earlier pending R3 of the run, in order, before its own; the log order follows observation.
+    #[test]
+    fn workflow_root_recovered_writer_appends_pending_r3_in_observation_order(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        let had=runs.is_dir();if had{std::fs::rename(&runs,&aside).unwrap();}std::fs::write(&runs,b"blocked").unwrap();
+        let first=run.check_native_supply().unwrap()["check"].clone();assert_eq!(first["r3"]["state"],"pending write; missing in record");
+        std::fs::remove_file(&runs).unwrap();if had{std::fs::rename(&aside,&runs).unwrap();}
+        let second=run.check_native_supply().unwrap()["check"].clone();assert_eq!(second["r3"]["state"],"recorded");
+        let checks=run.view(&reference)["checks"].clone();assert_eq!(checks[0]["r3"]["state"],"recorded","the earlier pending R3 is written at the next check, without a manual retry");
+        let log:Vec<Value>=peer.fixture.rs_entries().into_iter().filter(|e|e["runId"]==reference.as_str()&&(e["kind"]=="supplied_guidance"||e["kind"]=="evidence_limit")).collect();
+        let r3:Vec<&Value>=log.iter().filter(|e|e["kind"]=="supplied_guidance").collect();assert_eq!(r3.len(),2);
+        assert_eq!(r3[0]["recordId"],first["r3"]["recordId"],"earlier observation first in the log");assert_eq!(r3[1]["recordId"],second["r3"]["recordId"]);
+        assert!(r3[0]["seq"].as_u64()<r3[1]["seq"].as_u64());assert!(r3[0]["observedAt"].as_str()<=r3[1]["observedAt"].as_str());
+        let limit=log.iter().find(|e|e["kind"]=="evidence_limit"&&e["body"]["subjectRef"]==first["r3"]["recordId"]).expect("W-2 limit names the late entry");
+        assert!(limit["seq"].as_u64()>r3[0]["seq"].as_u64()&&limit["seq"].as_u64()<r3[1]["seq"].as_u64(),"W-2: late entries, then the limit, then later entries");
+    }
+    // V9 F-2: if an earlier R3 still cannot be written, the later R3 is held pending, never
+    // appended ahead of it.
+    #[test]
+    fn workflow_root_unwritable_earlier_r3_holds_later_r3_pending(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let runs=peer.fixture.root.join(".chirality/records/runs");let aside=peer.fixture.root.join("runs-aside");
+        std::fs::rename(&runs,&aside).unwrap();std::fs::write(&runs,b"blocked").unwrap();
+        let first=run.check_native_supply().unwrap()["check"].clone();let reserved=first["r3"]["recordId"].as_str().unwrap().to_owned();
+        std::fs::remove_file(&runs).unwrap();std::fs::rename(&aside,&runs).unwrap();
+        // Another log already holds the reserved identity with other content: the earlier R3 stays unwritable.
+        crate::records::append_with_id(&crate::storage::project_log(&peer.fixture.root,None,"conflict-fixture"),"evidence_limit",&crate::records::APP_WRITER,json!({"label":"unresolvable reference"}),&reserved).unwrap();
+        let second=run.check_native_supply().unwrap()["check"].clone();
+        assert_eq!(second["published"],true);assert_eq!(second["r3"]["state"],"pending write; missing in record","the later R3 waits for the earlier one");
+        assert!(peer.fixture.rs_entries().iter().all(|e|!(e["runId"]==reference.as_str()&&e["kind"]=="supplied_guidance")),"nothing appended ahead of the earlier pending R3");
+    }
+    // V9 F-3: the pages used to mint a check must be the Host's custody pages of the sealed
+    // traversal, byte for byte; count alone is not a binding.
+    #[test]
+    fn workflow_root_check_minting_binds_pages_to_host_custody(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("items-mode","paged");
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let published=run.published.take().unwrap();let turn=run.turn_id.clone().unwrap();let generation=run.prepared().scope().generation.clone();
+        let mint=|pages:&dyn Fn(Vec<Value>)->Vec<Value>|{let mut issued=Vec::new();let(seal,genuine)=run.read_native_items(&generation,"thread",&turn,&mut issued).unwrap();
+            crate::workflow_workspace::publication::CompletedSupplyCheck::from_native_coverage(&run.home.host,seal,&pages(genuine),&published,&turn,&run.client_id,"check-F3","read-F3")};
+        assert!(mint(&|p|p).is_ok(),"genuine custody pages mint");
+        assert!(mint(&|mut p|{p[1]["data"][0]["item"]["content"][0]["text"]=json!("substituted text of the same page count");p}).is_err(),"same count, other bytes: refused");
+        assert!(mint(&|mut p|{p.swap(0,1);p}).is_err(),"reordered pages: refused");
+        assert!(mint(&|mut p|{p.pop();p}).is_err(),"fewer pages: refused");
+    }
+    // V9 F-4, WR §16.4/SC-6: "a check is never relabelled; a later read is a new check" —
+    // each reread has its own body `check` identity, not only its own envelope id.
+    #[test]
+    fn workflow_root_each_reread_has_a_new_check_identity(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let mut bodies=std::collections::BTreeSet::new();let mut envelopes=std::collections::BTreeSet::new();
+        for _ in 0..3{let check=run.check_native_supply().unwrap()["check"].clone();let record=project.resolve(check["reference"].as_str().unwrap()).unwrap();
+            assert!(bodies.insert(record.body()["check"].as_str().unwrap().to_owned()),"reread reused a check identity: {}",record.body()["check"]);
+            assert!(envelopes.insert(record.reference().to_owned()));assert_eq!(check["check"],record.body()["check"]);}
+    }
+    // Outcome 5: a later process resolves every published record from the project alone.
+    #[test]
+    fn workflow_root_fresh_process_resolves_records_without_run_claims(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let (selection_ref,text_ref,check_ref,orphan_ref)={let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+            let check=run.check_native_supply().unwrap()["check"]["reference"].as_str().unwrap().to_owned();
+            // A stopped writer: R3 for this check never reaches the record (WP-5).
+            let blocked=peer.fixture.root.join(".chirality/records/runs");std::fs::rename(&blocked,peer.fixture.root.join("runs-aside")).unwrap();std::fs::write(&blocked,b"blocked").unwrap();
+            let orphan=run.check_native_supply().unwrap()["check"]["reference"].as_str().unwrap().to_owned();
+            std::fs::remove_file(&blocked).unwrap();std::fs::rename(peer.fixture.root.join("runs-aside"),&blocked).unwrap();
+            let view=run.view(&reference);(view["publication"]["selection"].as_str().unwrap().to_owned(),view["publication"]["runText"].as_str().unwrap().to_owned(),check,orphan)};
+        drop(root); // process state lost; pending R3 for the orphan is gone with it
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let check=project.resolve(&check_ref).unwrap();assert_eq!(check.envelope()["basis_records"],json!([text_ref]));
+        let text=project.resolve(&text_ref).unwrap();assert_eq!(text.envelope()["basis_records"],json!([selection_ref]));
+        let selection=project.resolve(&selection_ref).unwrap();assert_eq!(selection.body()["standing"],"registered");
+        let reading=crate::records::supply::read_project_supply(&project);
+        let records=reading["records"].as_array().unwrap();assert_eq!(records.len(),4);assert!(records.iter().all(|r|r["resolution"]=="resolved"),"{reading}");
+        let find=|r:&str|records.iter().find(|v|v["reference"]==r).unwrap().clone();
+        assert_eq!(find(&check_ref)["r3"][0]["standing"],"HistoricalCorrespondence");assert_eq!(find(&orphan_ref)["r3"],"missing in record");
+        assert!(reading["standing"].as_str().unwrap().contains("no live native witness, model adoption, registration or run lifecycle inferred"));
+        // J3 changes this assertion (intent kept: no completion, no invented active run). J1
+        // asserted no run_opened at all; J3 must record run_opened (EXEC A-2). Now: exactly the
+        // one recorded opening, no run_ended (no completion claim, though the native turn
+        // "failed"), the record reads open-and-interrupted (RE-4), and nothing in a fresh
+        // process becomes an active run.
+        let kinds:Vec<Value>=peer.fixture.rs_entries().iter().filter(|e|e["runId"]==reference.as_str()).map(|e|e["kind"].clone()).collect();
+        assert_eq!(kinds.iter().filter(|k|*k=="run_opened").count(),1,"{kinds:?}");
+        assert!(!kinds.iter().any(|k|k=="run_ended"),"no completion claim: {kinds:?}");
+        let runs=crate::records::supply::read_project_runs(&project,&[]);assert_eq!(runs.runs.len(),1);
+        assert_eq!(runs.runs[0].lifecycle,crate::records::supply::RecordedLifecycle::OpenInterrupted,"open; interrupted, never completed");
+        assert_eq!(runs.view()["runs"][0]["state"],"open; interrupted (no run_ended recorded)");
+        let fresh=WorkflowRootSession::default();assert!(fresh.snapshot()["runs"].as_array().unwrap().is_empty(),"records do not recreate a live run");
+    }
+    fn kinds_for(peer:&Peer,run:&str)->Vec<String>{peer.fixture.rs_entries().iter().filter(|e|e["runId"]==run).map(|e|e["kind"].as_str().unwrap().to_owned()).collect()}
+    // J3 control: EXEC A-2/RE-7 and RS R1. Opening writes run_opened; a second live start is refused.
+    #[test]
+    fn j3_open_writes_run_opened_and_second_live_start_is_refused(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        root.runs[&a].clone().lock().unwrap().send().unwrap();
+        assert_eq!(kinds_for(&peer,&a).first().map(String::as_str),Some("run_opened"),"opening writes run_opened first");
+        let second=root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project());
+        assert!(second.as_ref().is_err_and(|e|e.contains("live")),"{second:?}");assert_eq!(peer.turn_starts(),1);
+    }
+    // J3 control: RE-7 / CH-1 alone, so the refusal is observed independently of run_opened.
+    #[test]
+    fn j3_second_live_start_in_conversation_is_refused(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        root.runs[&a].clone().lock().unwrap().send().unwrap();
+        let second=root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project());
+        assert!(second.as_ref().is_err_and(|e|e.contains("live")&&e.contains(&a)),"{second:?}");assert_eq!(root.runs.len(),1);assert_eq!(peer.turn_starts(),1);
+    }
+    // J3 control: EXEC §3.1 CK-1 at selection for a run and CK-2 before the first action.
+    #[test]
+    fn j3_compatibility_ck1_and_ck2_are_evaluated_advisory_only(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();
+        let view=run.view(&a);let occasions:Vec<Value>=view["compatibility"].as_array().map(|v|v.iter().map(|e|e["occasionLabel"].clone()).collect()).unwrap_or_default();
+        assert_eq!(occasions,vec![json!("CK-1 selection"),json!("CK-2 run start")],"{}",view["compatibility"]);
+    }
+    fn open_run(peer:&Peer,root:&mut WorkflowRootSession,thread:&str)->String{
+        let reference=root.prepare_run(peer.home.clone(),&peer.generation,thread,"person".into(),peer.project()).unwrap();
+        root.runs[&reference].clone().lock().unwrap().send().unwrap();assert_eq!(root.runs[&reference].lock().unwrap().lifecycle,RunLifecycle::Open);reference
+    }
+    fn rs_for(peer:&Peer,run:&str)->Vec<Value>{peer.fixture.rs_entries().into_iter().filter(|e|e["runId"]==run).collect()}
+    fn last_turn_start(peer:&Peer)->Value{peer.wire().into_iter().filter(|f|f["method"]=="turn/start").last().unwrap()}
+    // VC-E-17 (i) and RE-4: a turn interrupt, a Codex stop, an App quit's stop and the loss of
+    // process state never end a run; after relaunch the record shows it open and interrupted,
+    // a new start in that conversation is refused, and only the person's end closes it.
+    #[test]
+    fn j3_vc_e_17_interrupt_stop_quit_and_relaunch_never_end_a_run(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let _=peer.home.host.turn_interrupt(&peer.generation,"thread","turn"); // DEF-3; acknowledgment immaterial
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open,"interrupt is the turn's outcome only");
+        peer.home.host.stop_scoped(&peer.generation,"the person","Codex stop").unwrap(); // DEF-5 (the App quit path stops the same way, DEF-6)
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"),"no run_ended without the person's end");
+        // Window close touches no child or run (DEF-1): there is no App code path for it to call.
+        // Relaunch: process state is lost; the person re-selects the same registered revision.
+        let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+        let generation=peer.relaunch();
+        let reopened=fresh.reopen(&peer.fixture.root,&[]).unwrap();
+        let entry=reopened["runs"].as_array().unwrap().iter().find(|r|r["run"]==a.as_str()).unwrap().clone();
+        assert_eq!(entry["state"],"open; interrupted (no run_ended recorded)");assert_eq!(entry["conversation"],"thread");
+        let second=fresh.prepare_run(peer.home.clone(),&generation,"thread","again".into(),peer.project());
+        assert!(second.as_ref().is_err_and(|e|e.contains("interrupted")&&e.contains(&a)),"an interrupted run is still live (RE-7): {second:?}");
+        // The person ends the recorded run explicitly (DEF-4); then a new start is allowed.
+        let ended=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap();assert_eq!(ended["state"],"ended by the person");
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(end["body"]["stoppedBy"],"the person");assert_eq!(end["body"]["cause"],"ended by the person");
+        assert!(fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).is_err(),"an ended run cannot be ended again");
+        assert!(fresh.prepare_run(peer.home.clone(),&generation,"thread","again".into(),peer.project()).is_ok());
+    }
+    // VC-E-17 (ii), TX-5, SQ-END: the person's End writes run_ended; exactly the next ordinary
+    // turn carries the end notice (published first); the notice is checked and its R3 follows
+    // run_ended in the ended run's log.
+    #[test]
+    fn j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let wr_before=peer.fixture.wr_files().len();
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(end["body"],json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}));
+        let root=Mutex::new(root);
+        let sent=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("a notice is pending").unwrap();assert_eq!(sent["state"],"end notice and the person's text sent once");
+        let turn=last_turn_start(&peer);let notice=turn["params"]["input"][0]["text"].as_str().unwrap().to_owned();
+        assert!(notice.starts_with("[Chirality] Workflow run ended: coordinated-knowledge-work revision ")&&notice.ends_with("ended by the person). No workflow is in force."),"{notice}");
+        assert!(notice.contains(&a));assert_eq!(turn["params"]["input"][1]["text"],"hello");assert_eq!(peer.fixture.wr_files().len(),wr_before+1,"notice record published before the send");
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","later").is_none(),"exactly one turn carries the notice");
+        peer.select_history();let check=root.lock().unwrap().runs[&a].lock().unwrap().check_end_notice_supply().unwrap()["check"].clone();
+        assert_eq!(check["state"],"verified");assert_eq!(check["r3"]["state"],"recorded");
+        let log=rs_for(&peer,&a);let kinds:Vec<&str>=log.iter().map(|e|e["kind"].as_str().unwrap()).collect();
+        assert_eq!(kinds,["run_opened","run_ended","supplied_guidance"],"R3 of the notice follows run_ended in the ended run's log");
+        assert_eq!(log[2]["body"]["supplyForm"],"workflow run end notice (turn text)");assert_eq!(log[2]["body"]["adoption"],"unknown");
+    }
+    // FN-2: ending on a finished report records cause *completed*.
+    #[test]
+    fn j3_end_on_finished_report_records_completed(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(true,None).unwrap();
+        assert_eq!(rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["cause"],"completed");
+    }
+    // VC-E-17 (iii), CH-1, RE-7: End ‹A› and start ‹B›: A's run_ended (cause "ended to start ‹B›")
+    // precedes B's run_opened, which follows A; B's text opens with the exact chain line; no
+    // end notice for A; B inherits nothing.
+    #[test]
+    fn j3_end_and_start_orders_a_end_before_b_open_with_exact_chain(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let refused=root.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());assert!(refused.is_err(),"a plain start is refused while A is live");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B text".into(),peer.project()).unwrap();
+        let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
+        let a_end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(a_end["body"]["cause"],"ended to start coordinated-knowledge-work");
+        let b_open=rs_for(&peer,&b).into_iter().find(|e|e["kind"]=="run_opened").unwrap();assert_eq!(b_open["body"]["follows"],a.as_str());
+        assert!(a_end["observedAt"].as_str().unwrap()<=b_open["observedAt"].as_str().unwrap()&&a_end["writtenAt"].as_str().unwrap()<=b_open["writtenAt"].as_str().unwrap(),"A's end before B's opening");
+        let text=last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().to_owned();let first=text.lines().next().unwrap();
+        let guard=root.lock().unwrap();let a_run=guard.runs[&a].lock().unwrap();let rev=&a_run.prepared().workflow().revision[..12];
+        assert_eq!(first,format!("[Chirality] Previous workflow run ended: coordinated-knowledge-work revision {rev} (run {a}, ended to start coordinated-knowledge-work). Its instructions no longer apply."));
+        assert!(matches!(a_run.notice,NoticeState::ByChain));drop(a_run);
+        let b_run=guard.runs[&b].lock().unwrap();assert!(b_run.checks.is_empty()&&b_run.notice_checks.is_empty(),"B inherits no checks, arrivals or acts");
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let selection=project.resolve(b_run.view(&b)["publication"]["selection"].as_str().unwrap()).unwrap();assert_eq!(selection.body()["prior_run"]["run"],a.as_str());assert_eq!(selection.body()["prior_run"]["ended"],"ended to start coordinated-knowledge-work");
+        drop(b_run);drop(guard);
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","next").is_none(),"the chain line carried A's end; no notice");
+        assert_eq!(peer.turn_starts(),2);
+    }
+    // TX-5: after a plain end, a successor start consumes the pending notice through its chain line.
+    #[test]
+    fn j3_successor_after_plain_end_gets_chain_only_and_no_notice(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();
+        let b=root.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
+        let text=last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().to_owned();
+        assert!(text.starts_with("[Chirality] Previous workflow run ended: coordinated-knowledge-work")&&text.lines().next().unwrap().contains("ended by the person"),"{text}");
+        assert!(matches!(root.lock().unwrap().runs[&a].lock().unwrap().notice,NoticeState::Superseded(_)));
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","next").is_none());assert_eq!(peer.turn_starts(),2);
+        assert_eq!(rs_for(&peer,&b).into_iter().find(|e|e["kind"]=="run_opened").unwrap()["body"]["follows"],a.as_str());
+    }
+    // VC-E-17 (iv), FN-3, PR-4: an agent's finished report and proposal lines change nothing.
+    #[test]
+    fn j3_finished_and_proposal_lines_have_no_lifecycle_effect(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("items-mode","finished");let a=open_run(&peer,&mut root,"thread");
+        peer.select_history();let check=root.runs[&a].lock().unwrap().check_native_supply().unwrap()["check"].clone();assert_eq!(check["state"],"verified","{check}");
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);assert_eq!(root.runs.len(),1);
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"));assert_eq!(peer.turn_starts(),1);
+    }
+    // VC-E-17 (v), RE-7: a fork is another conversation and carries no live run; the original
+    // conversation's run stays live.
+    #[test]
+    fn j3_fork_conversation_has_no_live_run(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let fork=peer.second_thread();
+        let b=root.prepare_run(peer.home.clone(),&peer.generation,&fork,"fork".into(),peer.project()).expect("no live run in the fork");
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);assert_eq!(root.runs[&b].lock().unwrap().lifecycle,RunLifecycle::Prepared);
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project()).is_err());
+    }
+    // A-3 failure boundary: a refused start opens no run, writes no run_opened and blocks nothing.
+    #[test]
+    fn j3_failed_send_opens_no_run_and_does_not_block_a_new_start(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();peer.set_mode("turn-mode","error");
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        assert!(root.runs[&a].lock().unwrap().send().is_err());assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::StartNotConfirmed);
+        assert!(rs_for(&peer,&a).iter().all(|e|e["kind"]!="run_opened"));
+        assert!(root.runs[&a].lock().unwrap().end_run(false,None).is_err(),"nothing to end");
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        assert_eq!(crate::records::supply::read_project_runs(&project,&[]).runs[0].lifecycle,crate::records::supply::RecordedLifecycle::StartNotConfirmed);
+        assert!(root.prepare_run(peer.home.clone(),&peer.generation,"thread","again".into(),peer.project()).is_ok());
+    }
+    // Reopen keeps unknowns unknown: an incomplete record set never yields "ended" or "open"
+    // for a run whose closing entry could be in the unreadable part.
+    #[test]
+    fn j3_reopen_after_state_loss_preserves_ended_and_unknown(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let b=open_run(&peer,&mut root,"thread");drop(root);
+        let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let reading=crate::records::supply::read_project_runs(&project,&[json!({"kind":"app_restart_interruption","threadId":"thread","eventId":"cev:fixture"})]);
+        let state=|r:&str|reading.runs.iter().find(|x|x.run==r).unwrap().clone();
+        assert_eq!(state(&a).lifecycle,crate::records::supply::RecordedLifecycle::Ended{stopped_by:"the person".into(),cause:"ended by the person".into()});
+        assert_eq!(state(&b).lifecycle,crate::records::supply::RecordedLifecycle::OpenInterrupted);assert_eq!(state(&b).follows.as_deref(),Some(a.as_str()));
+        assert_eq!(state(&b).restart_interruptions.len(),1,"REC restart facts naming the conversation are shown");
+        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let incomplete=crate::records::supply::read_project_runs(&project,&[]);
+        let b_state=incomplete.runs.iter().find(|x|x.run==b).unwrap();assert!(matches!(b_state.lifecycle,crate::records::supply::RecordedLifecycle::Unknown(_)),"open run in an incomplete record is unknown");
+        assert!(incomplete.live_in("thread").is_empty(),"unknown is not invented as live");assert!(!incomplete.limits.is_empty());
+    }
+    // EXEC §3.1 CC-3: the advisory report never blocks a start, and with publication refused
+    // (no environment collector) no R14 compatibility_report_ref is written.
+    #[test]
+    fn j3_compatibility_is_advisory_and_writes_no_r14_on_refused_publication(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let view=root.runs[&a].lock().unwrap().view(&a);let compat=view["compatibility"].as_array().unwrap().clone();assert_eq!(compat.len(),2);
+        for c in &compat{assert_eq!(c["publication"]["state"],"not published","{c}");assert!(c["r14"].as_str().unwrap().contains("no R14 written"));assert_eq!(c["gate"],"informs only; never gates a start (CC-3)");assert_eq!(c["advisory"],true,"J2 view field kept");}
+        assert!(peer.fixture.rs_entries().iter().all(|e|e["kind"]!="compatibility_report_ref"),"no R14 from a refused publication");
+        assert_eq!(view["lifecycle"]["state"],"open (live); only the person's explicit end ends it","the start proceeded whatever the advisory said");
+    }
+    // V10 G-1 (reviewer's probe): a notice whose record could not be written stays pending
+    // across a Codex relaunch, is re-scoped to the new generation, and is then sent exactly once.
+    #[test]
+    fn v10_g1_pending_notice_survives_record_failure_and_relaunch_then_sent_once(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        let first=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("notice pending");
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(first.unwrap_err().contains("nothing sent"));
+        peer.home.host.stop_scoped(&peer.generation,"the person","Codex stop").unwrap();let generation=peer.relaunch();
+        let starts=peer.turn_starts();
+        let sent=send_with_pending_notice(&root,&generation,"thread","hello").expect("still pending after relaunch");
+        assert!(sent.is_ok(),"{sent:?}");assert_eq!(peer.turn_starts(),starts+1,"exactly one turn/start carries it");
+        assert!(last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().starts_with("[Chirality] Workflow run ended:"));
+        assert_eq!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"],"sent once with the next ordinary turn");
+        assert!(send_with_pending_notice(&root,&generation,"thread","later").is_none());
+    }
+    // V10 G-1: when the Host refuses before any frame is written, the notice is not marked
+    // sent; it stays pending and the next ordinary turn carries it.
+    #[test]
+    fn v10_g1_notice_refused_before_write_stays_pending(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        let starts=peer.turn_starts();
+        NOTICE_REFUSED_BEFORE_WRITE.with(|v|v.set(true));
+        let refused=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("notice pending");
+        assert!(refused.is_err());assert_eq!(peer.turn_starts(),starts,"no frame written");
+        assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"));
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 R-1: the Host accepts the notice's turn/start (a source is returned) but its
+    // generation closes before the frame is written, so no write attempt is observed. Real
+    // Host behaviour, no seam: the peer stops reading, a large frame holds the Host's writer,
+    // the notice queues behind it, and Codex is stopped. The notice stays pending, never
+    // Sent, and the next ordinary turn after relaunch carries it once.
+    #[test]
+    fn v10_r1_notice_accepted_but_never_written_stays_pending(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Arc::new(Mutex::new(root));
+        let (t2,t3)=(peer.second_thread(),{peer.second_thread();"thread-3".to_owned()});
+        let host=peer.home.host.clone();let g=peer.generation.clone();
+        let reserved=|in_progress:bool|host.snapshot()["reservedNativeRequests"].as_array().unwrap().iter().any(|r|r["method"]=="turn/start"&&r["writeAttemptInProgress"]==in_progress);
+        let wait=|done:&dyn Fn()->bool,what:&str|{let deadline=std::time::Instant::now()+Duration::from_secs(10);while !done(){assert!(std::time::Instant::now()<deadline,"{what}");std::thread::sleep(Duration::from_millis(10));}};
+        peer.set_mode("turn-mode","stall");
+        let (h,gg)=(host.clone(),g.clone());let stall=std::thread::spawn(move||h.turn_start_text(&gg,&t2,"stall"));
+        wait(&||peer.turn_starts()==2,"the peer read the stalling turn and stopped reading");
+        let (h,gg)=(host.clone(),g.clone());let large=std::thread::spawn(move||h.turn_start_text(&gg,&t3,&"x".repeat(1024*1024)));
+        wait(&||reserved(true),"the large frame holds the writer");
+        let (shared,gg)=(root.clone(),g.clone());let notice=std::thread::spawn(move||send_with_pending_notice(&shared,&gg,"thread","hello").expect("notice pending"));
+        wait(&||reserved(false),"the notice turn/start is accepted and queued, not written");
+        host.stop_scoped(&g,"the person","Codex stop").unwrap();
+        let refused=notice.join().unwrap().unwrap_err();
+        assert!(refused.contains("no write attempt observed"),"the Host returned a source with no write attempt: {refused}");
+        let _=(stall.join().unwrap(),large.join().unwrap());
+        assert!(root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"),"never Sent");
+        assert!(!peer.wire().iter().any(|f|f["params"]["input"][0]["text"].as_str().is_some_and(|t|t.starts_with("[Chirality] Workflow run ended:"))),"no notice frame reached the peer");
+        peer.set_mode("turn-mode","");let generation=peer.relaunch();
+        assert!(send_with_pending_notice(&root,&generation,"thread","hello").expect("still pending").is_ok());
+        assert_eq!(peer.wire().iter().filter(|f|f["params"]["input"][0]["text"].as_str().is_some_and(|t|t.starts_with("[Chirality] Workflow run ended:"))).count(),1,"carried exactly once");
+    }
+    // V10 G-2 (reviewer's probe): B's preconditions are established before A is ended; if B
+    // cannot be prepared, A is untouched (still live, no run_ended, no notice).
+    #[test]
+    fn v10_g2_end_and_start_leaves_a_untouched_when_b_cannot_be_prepared(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let copy=peer.fixture.root.join(".chirality/workflows/coordinated-knowledge-work/WORKFLOW.md");
+        let mut bytes=std::fs::read(&copy).unwrap();bytes.extend_from_slice(b"\nedited after selection\n");std::fs::write(&copy,bytes).unwrap();
+        let refused=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
+        assert!(refused.is_err(),"{refused:?}");
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open,"A is not ended when B cannot be prepared");
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"));assert_eq!(root.runs.len(),1,"no B");
+    }
+    // V10 G-2: when B's start does not happen after A's confirmed end, A's end falls back to a
+    // plain end with a truthful cause and a pending end notice; B is not live.
+    #[test]
+    fn v10_g2_end_and_start_falls_back_to_plain_end_when_b_does_not_start(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        peer.set_mode("turn-mode","error");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Mutex::new(root);assert!(start_workflow_run(&root,&b).is_err());
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").expect("A ended");assert_eq!(end["body"]["cause"],"ended by the person","truthful: B did not start");
+        assert!(!rs_for(&peer,&b).iter().any(|e|e["kind"]=="run_opened"));
+        assert_eq!(root.lock().unwrap().runs[&b].lock().unwrap().lifecycle,RunLifecycle::StartNotConfirmed);
+        peer.set_mode("turn-mode","");
+        let notice=send_with_pending_notice(&root,&peer.generation,"thread","next").expect("A's end notice is pending").unwrap();assert_eq!(notice["state"],"end notice and the person's text sent once");
+        assert!(last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().contains("ended by the person). No workflow is in force."));
+    }
+    // V10 R-2: B's start fails before any send because an earlier run of the conversation is
+    // busy. A's confirmed end must not stay only in memory: its plain end is written with a
+    // pending end notice, and B is withdrawn.
+    #[test]
+    fn v10_r2_successor_start_failing_before_send_writes_a_plain_end_with_notice(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let c=open_run(&peer,&mut root,"thread");root.runs[&c].lock().unwrap().end_run(false,None).unwrap();
+        let a=open_run(&peer,&mut root,"thread");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let busy_c=root.runs[&c].clone();let root=Mutex::new(root);let starts=peer.turn_starts();
+        let busy=busy_c.lock().unwrap(); // e.g. C is checking history
+        let refused=start_workflow_run(&root,&b);drop(busy);
+        assert!(refused.is_err(),"{refused:?}");assert_eq!(peer.turn_starts(),starts,"nothing sent");
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").expect("A's confirmed end is written");
+        assert_eq!(end["body"]["cause"],"ended by the person");
+        assert!(root.lock().unwrap().runs[&b].lock().unwrap().send().is_err_and(|e|e.contains("withdrawn")));
+        let notice=send_with_pending_notice(&root,&peer.generation,"thread","next").expect("A's end notice is pending").unwrap();
+        assert_eq!(notice["state"],"end notice and the person's text sent once");
+    }
+    // V10 R-2 (reviewer's probe P5): A is busy when B's start runs. B's start no longer fails
+    // on A's lock: it proceeds, and A's held end is written ("ended to start ‹B›") before B's
+    // run_opened once A is free.
+    #[test]
+    fn v10_r2_busy_predecessor_does_not_leave_its_end_only_in_memory(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let busy_a=root.runs[&a].clone();let root=Arc::new(Mutex::new(root));
+        let busy=busy_a.lock().unwrap();
+        let (shared,b2)=(root.clone(),b.clone());let worker=std::thread::spawn(move||start_workflow_run(&shared,&b2));
+        std::thread::sleep(Duration::from_millis(300));drop(busy);
+        let started=worker.join().unwrap();assert!(started.is_ok(),"{started:?}");
+        let ended=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").expect("A's end written");
+        assert!(ended["body"]["cause"].as_str().unwrap().starts_with("ended to start"),"{ended}");
+        let opened=rs_for(&peer,&b).into_iter().find(|e|e["kind"]=="run_opened").expect("B opened");
+        assert!(ended["writtenAt"].as_str().unwrap()<=opened["writtenAt"].as_str().unwrap(),"A's run_ended is written before B's run_opened");
+    }
+    // V10 R-5 (reviewer's probe P8): between "End and start" returning and B's start, the
+    // held successor reserves its conversation: a third run C is neither prepared there nor
+    // dispatched, so C can never be live while A falls back to "No workflow is in force".
+    #[test]
+    fn v10_r5_held_successor_reserves_its_conversation_at_prepare_and_dispatch(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        // C is prepared before A opens (a prepared run is not live), so its dispatch is checked on its own.
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","A".into(),peer.project()).unwrap();
+        let c=root.prepare_run(peer.home.clone(),&peer.generation,"thread","C".into(),peer.project()).unwrap();
+        root.runs[&a].clone().lock().unwrap().send().unwrap();
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let prepared=root.prepare_run(peer.home.clone(),&peer.generation,"thread","D".into(),peer.project());
+        assert!(prepared.as_ref().is_err_and(|e|e.contains("End and start")&&e.contains(&b)),"prepare refused while B holds the conversation: {prepared:?}");
+        let root=Mutex::new(root);let starts=peer.turn_starts();
+        let dispatched=start_workflow_run(&root,&c);
+        assert!(dispatched.as_ref().is_err_and(|e|e.contains("End and start")),"dispatch refused while B holds the conversation: {dispatched:?}");
+        assert_eq!(peer.turn_starts(),starts,"C not sent");assert!(!rs_for(&peer,&c).iter().any(|e|e["kind"]=="run_opened"));
+        // B's step completes normally; A ended to start B.
+        start_workflow_run(&root,&b).unwrap();
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(end["body"]["cause"],"ended to start coordinated-knowledge-work");
+    }
+    // V10 R-5: once B's start outcome is known the reservation is gone: after B is refused and
+    // A falls back to a plain end, a new run may be prepared in the conversation.
+    #[test]
+    fn v10_r5_reservation_ends_with_the_successor_outcome(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        peer.set_mode("turn-mode","error");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Mutex::new(root);assert!(start_workflow_run(&root,&b).is_err());peer.set_mode("turn-mode","");
+        assert!(root.lock().unwrap().held_successors.is_empty(),"the hold was removed by its start");
+        let next=root.lock().unwrap().prepare_run(peer.home.clone(),&peer.generation,"thread","C".into(),peer.project());assert!(next.is_ok(),"{next:?}");
+    }
+    // V10 R-5 (optional): concurrent starts of one held B claim the hold exactly once: one
+    // turn/start for B, one run_ended for A, and no hold left behind.
+    #[test]
+    fn v10_r5_concurrent_successor_starts_claim_the_hold_once(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Arc::new(Mutex::new(root));let starts=peer.turn_starts();let barrier=Arc::new(std::sync::Barrier::new(2));
+        let workers:Vec<_>=(0..2).map(|_|{let(shared,b,barrier)=(root.clone(),b.clone(),barrier.clone());std::thread::spawn(move||{barrier.wait();start_workflow_run(&shared,&b)})}).collect();
+        let results:Vec<_>=workers.into_iter().map(|w|w.join().unwrap()).collect();
+        assert_eq!(results.iter().filter(|r|r.is_ok()).count(),1,"{results:?}");assert_eq!(peer.turn_starts(),starts+1,"B sent once");
+        assert_eq!(rs_for(&peer,&a).iter().filter(|e|e["kind"]=="run_ended").count(),1);
+        assert!(root.lock().unwrap().held_successors.is_empty(),"the hold was removed, not only read");
+    }
+    // V10 R-2: a start that did not claim B's hold (another call owns it) refuses and sends
+    // nothing; it never releases or rewrites A's held end.
+    #[test]
+    fn v10_r2_unclaimed_start_of_a_held_successor_sends_nothing(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        assert_eq!(root.held_successors.remove(&b).as_deref(),Some(a.as_str()),"claimed elsewhere");
+        let root=Mutex::new(root);let starts=peer.turn_starts();
+        assert!(start_workflow_run(&root,&b).is_err_and(|e|e.contains("already in progress")));
+        assert_eq!(peer.turn_starts(),starts);assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"),"A's end stays with its owner");
+    }
+    // V10 G-3, RE-7: a recorded run whose lifecycle is unknown (incomplete record) may still be
+    // live, so a new start in its conversation is refused with the reason and the end route.
+    #[test]
+    fn v10_g3_unknown_recorded_run_blocks_a_new_start(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+        let torn=peer.fixture.root.join(".chirality/records/runs/torn");std::fs::create_dir_all(&torn).unwrap();std::fs::write(torn.join("w.jsonl"),b"{\"partial\":").unwrap();
+        let refused=fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project());
+        assert!(refused.as_ref().is_err_and(|e|e.contains("unknown")&&e.contains(&a)&&e.contains("End")),"{refused:?}");
+        // The end route: it names the incomplete record while the record stays incomplete...
+        let blocked=fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false);assert!(blocked.as_ref().is_err_and(|e|e.contains("incomplete")),"{blocked:?}");
+        // ...and, once the record is complete, the person's explicit end permits a new start.
+        std::fs::remove_dir_all(&torn).unwrap();fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap();
+        assert!(fresh.prepare_run(peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).is_ok());
+    }
+    fn log_order(peer:&Peer,run:&str)->Vec<String>{
+        let log=rs_for(peer,run);let id=|e:&Value|e["recordId"].as_str().unwrap().to_owned();
+        log.iter().map(|e|match e["kind"].as_str().unwrap(){
+            "evidence_limit"=>{let subject=e["body"]["subjectRef"].as_str().unwrap();format!("limit:{}",log.iter().find(|x|x["recordId"]==subject).map(|x|x["kind"].as_str().unwrap().to_owned()).unwrap_or(subject.to_owned()))}
+            k=>{let _=id(e);k.to_owned()}}).collect()
+    }
+    // V10 G-4, RS W-2: run_opened fails before send; the end and a later check wait behind
+    // it; on recovery the late entries are written in observation order, each with its limit.
+    #[test]
+    fn v10_g4_lifecycle_entries_written_late_in_order_with_limits(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();assert_eq!(run.lifecycle,RunLifecycle::Open);
+        assert!(!run.entry_written("run_opened"));
+        run.end_run(false,None).unwrap();assert!(!run.entry_written("run_ended"),"run_ended waits behind run_opened");
+        std::fs::remove_file(&runs).unwrap();run.retry_records().unwrap();
+        peer.select_history();let check=run.check_native_supply().unwrap()["check"].clone();assert_eq!(check["r3"]["state"],"recorded");
+        assert_eq!(log_order(&peer,&a),["run_opened","limit:run_opened","run_ended","limit:run_ended","supplied_guidance"]);
+    }
+    // V10 G-4: when a check is observed before the end, its R3 is written between run_opened
+    // and run_ended, following observation order, not lifecycle entries first.
+    #[test]
+    fn v10_g4_late_records_follow_observation_order_across_kinds(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let runs=peer.fixture.root.join(".chirality/records/runs");std::fs::write(&runs,b"blocked").unwrap();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let run=root.runs[&a].clone();let mut run=run.lock().unwrap();run.send().unwrap();peer.select_history();
+        let check=run.check_native_supply().unwrap()["check"].clone();assert_eq!(check["published"],true);assert_ne!(check["r3"]["state"],"recorded");
+        run.end_run(false,None).unwrap();
+        std::fs::remove_file(&runs).unwrap();let retried=run.retry_records().unwrap();assert_eq!(retried["pendingRecords"],false,"{retried}");
+        assert_eq!(log_order(&peer,&a),["run_opened","limit:run_opened","supplied_guidance","limit:supplied_guidance","run_ended","limit:run_ended"]);
+    }
+    // V10 G-5: a busy workflow run (for example during a long supply check) does not block
+    // ordinary text in its conversation; only a pending end notice must go first.
+    #[test]
+    fn v10_g5_busy_run_without_pending_notice_does_not_block_ordinary_text(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let run=root.runs[&a].clone();let root=Mutex::new(root);
+        let busy=run.lock().unwrap(); // the run is busy, e.g. waiting on history pages
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"no notice pending: ordinary sending applies");
+        drop(busy);
+        run.lock().unwrap().end_run(false,None).unwrap();
+        let busy=run.lock().unwrap();
+        let blocked=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("the pending notice must go first");
+        assert!(blocked.unwrap_err().contains("end notice"));drop(busy);
+    }
+    // V10 G-5: while the notice record cannot be written, the person is told why and may
+    // retry the record, or send without the notice; that choice is recorded and the notice
+    // is never presented as supplied.
+    #[test]
+    fn v10_g5_unwritable_notice_offers_retry_or_recorded_send_without_it(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        let refused=send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").unwrap_err();
+        assert!(refused.contains("Retry the end-notice record")&&refused.contains("Send without the end notice"),"{refused}");
+        let wr_before=peer.fixture.wr_files().len();
+        assert!(root.lock().unwrap().runs[&a].lock().unwrap().retry_records().is_ok());assert_eq!(peer.fixture.wr_files().len(),wr_before,"still unwritable");
+        let starts=peer.turn_starts();
+        let skipped=root.lock().unwrap().runs[&a].lock().unwrap().skip_end_notice().unwrap();assert!(skipped["endNotice"]["state"].as_str().unwrap().starts_with("not supplied"));
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"ordinary sending proceeds");assert_eq!(peer.turn_starts(),starts);
+        let limit=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="evidence_limit").expect("the choice is recorded");
+        assert!(limit["body"]["detail"].as_str().unwrap().contains("not supplied"));
+        assert!(rs_for(&peer,&a).iter().all(|e|e["body"]["supplyForm"]!="workflow run end notice (turn text)"),"never presented as supplied");
+    }
+    // V10 R-4 (reviewer's probe P3): right after End, before any notice-record failure,
+    // "Send without the end notice" is not offered and is refused; nothing claims a record
+    // failure that did not happen, and the notice stays pending.
+    #[test]
+    fn v10_r4_skip_refused_without_an_actual_notice_record_failure(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let run=root.runs[&a].clone();run.lock().unwrap().end_run(false,None).unwrap();
+        assert_eq!(run.lock().unwrap().view(&a)["noticeRecordFailure"],Value::Null,"no skip choice offered");
+        let skipped=run.lock().unwrap().skip_end_notice();
+        assert!(skipped.as_ref().is_err_and(|e|e.contains("not failed")),"{skipped:?}");
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="evidence_limit"),"no failure claimed");
+        assert!(run.lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"));
+        let root=Mutex::new(root);let starts=peer.turn_starts();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 R-4: after an actual notice-record failure the skip is offered; the recorded limit
+    // carries that failure. Once a retry has written the record, the skip is refused again.
+    #[test]
+    fn v10_r4_skip_records_the_actual_failure_and_is_withdrawn_once_the_record_is_written(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let t2=peer.second_thread();let b=open_run(&peer,&mut root,&t2);
+        for r in [&a,&b]{root.runs[r].lock().unwrap().end_run(false,None).unwrap();}
+        let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_err());
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread-2","hello").unwrap().is_err());
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        let failure=root.lock().unwrap().runs[&a].lock().unwrap().view(&a)["noticeRecordFailure"].as_str().expect("failure kept").to_owned();
+        root.lock().unwrap().runs[&a].lock().unwrap().skip_end_notice().unwrap();
+        let limit=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="evidence_limit").expect("recorded");
+        assert!(limit["body"]["detail"].as_str().unwrap().contains(&failure),"{limit}");
+        // B: the retry writes the notice record, so the record can be written: no skip.
+        root.lock().unwrap().runs[&b].lock().unwrap().retry_records().unwrap();
+        assert_eq!(root.lock().unwrap().runs[&b].lock().unwrap().view(&b)["noticeRecordFailure"],Value::Null);
+        assert!(root.lock().unwrap().runs[&b].lock().unwrap().skip_end_notice().is_err());
+        assert!(!rs_for(&peer,&b).iter().any(|e|e["kind"]=="evidence_limit"));
+    }
+    // V10 G-5: "Retry the end-notice record" publishes the pending notice record without
+    // sending; the next ordinary turn then carries it once.
+    #[test]
+    fn v10_g5_retry_publishes_notice_record_then_next_turn_carries_it(){
+        use std::os::unix::fs::PermissionsExt;
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(false,None).unwrap();let root=Mutex::new(root);
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o500)).unwrap();
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_err());
+        std::fs::set_permissions(wr_dir(&peer),std::fs::Permissions::from_mode(0o700)).unwrap();
+        let (wr_before,starts)=(peer.fixture.wr_files().len(),peer.turn_starts());
+        root.lock().unwrap().runs[&a].lock().unwrap().retry_records().unwrap();
+        assert_eq!(peer.fixture.wr_files().len(),wr_before+1,"notice record published");assert_eq!(peer.turn_starts(),starts,"retry never sends");
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").unwrap().is_ok());assert_eq!(peer.turn_starts(),starts+1);
+    }
+    // V10 G-7 (FN-2): a reopened run has no finished report in this process, so it cannot be
+    // ended as *completed*; only the person's plain end applies.
+    #[test]
+    fn v10_g7_reopened_run_cannot_be_ended_as_completed(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let mut fresh=WorkflowRootSession::default();fresh.selected=root.selected.take();drop(root);
+        assert!(fresh.end_recorded_run(&peer.fixture.root,&a,"thread",true).is_err());
+        assert!(!rs_for(&peer,&a).iter().any(|e|e["kind"]=="run_ended"),"nothing written");
+        assert_eq!(fresh.end_recorded_run(&peer.fixture.root,&a,"thread",false).unwrap()["cause"],"ended by the person");
     }
     #[test]
     fn workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root(){

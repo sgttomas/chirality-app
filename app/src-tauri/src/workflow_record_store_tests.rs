@@ -395,3 +395,200 @@ fn actual_end_notice_requires_original_start_and_preserves_optional_workflow_com
     std::fs::remove_file(start_path).unwrap();
     assert!(f.store().resolve(reopened.reference()).is_err());
 }
+// V9 F-5: listing enumerates the pinned project descriptor and reports a symlinked
+// (including dangling) `.chirality`, `records` or `workflow` explicitly, never as "no records".
+#[test]
+fn listing_refuses_symlinks_and_follows_the_pinned_project() {
+    let f = Fixture::new();
+    let p = f.store();
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "absent store: no records");
+    std::os::unix::fs::symlink(f.0.join("nowhere"), f.0.join(".chirality")).unwrap();
+    assert!(p.list_references().is_err(), "dangling .chirality symlink is not 'no records'");
+    std::fs::remove_file(f.0.join(".chirality")).unwrap();
+    std::fs::create_dir_all(f.0.join(".chirality/records")).unwrap();
+    std::os::unix::fs::symlink(f.0.join("nowhere"), f.0.join(".chirality/records/workflow")).unwrap();
+    assert!(p.list_references().is_err(), "dangling workflow symlink is not 'no records'");
+    std::fs::remove_file(f.0.join(".chirality/records/workflow")).unwrap();
+    let outside = Fixture::new();
+    std::fs::create_dir(outside.0.join("workflow")).unwrap();
+    std::os::unix::fs::symlink(outside.0.join("workflow"), f.0.join(".chirality/records/workflow")).unwrap();
+    assert!(p.list_references().is_err(), "symlinked workflow directory refused");
+    std::fs::remove_file(f.0.join(".chirality/records/workflow")).unwrap();
+    let a = pending(&p);
+    p.publish(&a).unwrap();
+    assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
+    // The path is replaced after open: names still come from the pinned directory.
+    let moved = f.0.with_extension("moved");
+    std::fs::rename(&f.0, &moved).unwrap();
+    std::fs::create_dir_all(f.0.join(".chirality/records/workflow")).unwrap();
+    std::fs::write(
+        f.0.join(".chirality/records/workflow/00000000-0000-4000-8000-000000000000.json"),
+        b"{}",
+    )
+    .unwrap();
+    assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
+    std::fs::remove_dir_all(&f.0).unwrap();
+    std::fs::rename(&moved, &f.0).unwrap();
+}
+// V9 J3 note: PublishedText is sealed. Outside this module no type can name
+// sealed::Sealed, so only the impls in this file exist; this guard fails if the
+// module grows another implementor or loses the seal.
+#[test]
+fn published_text_is_sealed_to_two_types() {
+    let source = include_str!("workflow_record_store.rs");
+    let count = |needle: &str| source.matches(needle).count();
+    assert_eq!(count("pub trait PublishedText: sealed::Sealed {"), 1);
+    assert_eq!(count("    impl Sealed for super::"), 2);
+    assert_eq!(count("impl PublishedText for "), 2);
+    assert_eq!(count("impl PublishedText for PublishedRunText {"), 1);
+    assert_eq!(count("impl PublishedText for PublishedEndNotice {"), 1);
+    assert_eq!(count("pub trait Sealed {}"), 1, "Sealed stays inside the private module");
+}
+fn located(item: Option<&str>, by_client: bool, text: &str) -> Observation<'static> {
+    Observation::Located(crate::workflow_workspace::LocatedTurnText::Text {
+        item: item.map(String::from),
+        by_client,
+        text: text.into(),
+    })
+}
+fn map(run_text: &Value, prepared: &PreparedRunText, o: Observation<'_>) -> Value {
+    supply_check_body(run_text, prepared, o, "turn-A", "client-A", "check-A", "read-A").unwrap()
+}
+// WR §16.4: every state from one pure mapping; all bodies validate as WR supply_check.
+#[test]
+fn live_mapping_covers_every_wr_state_including_incomparable() {
+    let f = Fixture::new();
+    let p = f.store();
+    let (prepared, published) = original_start(&f, &p);
+    let rt = published.run_text_record().body().clone();
+    let text = prepared.text().to_owned();
+    let v = map(&rt, &prepared, located(Some("item-A"), true, &text));
+    assert_eq!(v["state"], "verified");
+    assert_eq!(v["located_by"], "client id");
+    assert_eq!(v["observed_text"], rt["text_identity"]);
+    assert_eq!(v["expected_workflow"], rt["workflow_file"]["content"]);
+    assert_eq!(v["turn"], "turn-A");
+    assert_eq!(v["client_user_message_id"], "client-A");
+    let framing = text.replacen("Workflow run start:", "Workflow run started:", 1);
+    let v = map(&rt, &prepared, located(Some("item-A"), false, &framing));
+    assert_eq!(v["state"], "text differs, workflow bytes equal");
+    assert_eq!(v["located_by"], "first user message of the turn");
+    assert!(v["evidence_limits"].to_string().contains("U-WR-15"));
+    let v = map(
+        &rt,
+        &prepared,
+        located(Some("item-A"), true, &text.replace('\n', "\r\n")),
+    );
+    assert_eq!(v["state"], "text differs, workflow bytes differ");
+    // A preserved historical expected method is incomparable: no equality inference.
+    let mut historical = rt.clone();
+    historical["text_identity"]["method"] = "historical.text/v0".into();
+    let v = map(&historical, &prepared, located(Some("item-A"), true, &text));
+    assert_eq!(v["state"], "incomparable");
+    assert_eq!(v["expected_text"]["method"], "historical.text/v0");
+    assert_ne!(v["observed_text"]["method"], v["expected_text"]["method"]);
+    let v = map(
+        &rt,
+        &prepared,
+        Observation::Located(crate::workflow_workspace::LocatedTurnText::NotFound {
+            item: Some("item-A".into()),
+            by_client: Some(true),
+        }),
+    );
+    assert_eq!(v["state"], "not found");
+    assert!(v.get("observed_text").is_none());
+    let v = map(
+        &rt,
+        &prepared,
+        Observation::Located(crate::workflow_workspace::LocatedTurnText::NotFound {
+            item: None,
+            by_client: None,
+        }),
+    );
+    assert_eq!(v["state"], "not found");
+    assert!(v.get("item").is_none());
+    let v = map(&rt, &prepared, located(None, true, &text));
+    assert_eq!(v["state"], "unreadable", "unattributable text is never verified");
+    assert!(v.get("observed_text").is_none());
+    let v = map(
+        &rt,
+        &prepared,
+        Observation::Located(crate::workflow_workspace::LocatedTurnText::Unreadable),
+    );
+    assert_eq!(v["state"], "unreadable");
+    let v = map(&rt, &prepared, Observation::ReadFailed("fixture read failure"));
+    assert_eq!(v["state"], "unreadable");
+    assert!(v["evidence_limits"]
+        .to_string()
+        .contains("fixture read failure"));
+    // An end notice or an absent identity is not a live run-start check.
+    let mut end = rt.clone();
+    end["purpose"] = "run end notice".into();
+    assert!(supply_check_body(
+        &end,
+        &prepared,
+        located(Some("i"), true, &text),
+        "t",
+        "c",
+        "k",
+        "r"
+    )
+    .is_err());
+    assert!(supply_check_body(
+        &rt,
+        &prepared,
+        located(Some("i"), true, &text),
+        "",
+        "c",
+        "k",
+        "r"
+    )
+    .is_err());
+}
+// Minting needs a Host-issued dispatch; none means nothing was checked.
+#[test]
+fn unreadable_check_requires_issued_native_dispatch() {
+    let f = Fixture::new();
+    let p = f.store();
+    let (_, published) = original_start(&f, &p);
+    let refused = CompletedSupplyCheck::unreadable_after_dispatch(
+        &[], &published, "turn-A", "client-A", "check-A", "read-A", "lost",
+    );
+    assert!(refused
+        .unwrap_err()
+        .contains("no native item read was issued"));
+}
+// A pending live check publishes its original bytes once; the token re-resolves its run_text.
+#[test]
+fn pending_live_check_publishes_original_bytes_and_yields_typed_token() {
+    let f = Fixture::new();
+    let p = f.store();
+    let (prepared, published) = original_start(&f, &p);
+    let body = map(
+        published.run_text_record().body(),
+        &prepared,
+        located(Some("item-A"), true, prepared.text()),
+    );
+    let pending = PendingSupplyCheck::new(
+        &p,
+        CompletedSupplyCheck {
+            body,
+            sources: vec!["receipt-A".into()],
+        },
+        &published,
+        "writer",
+    )
+    .unwrap();
+    let original = pending.bytes().to_vec();
+    FAIL_AFTER_LINK.with(|v| v.set(true));
+    assert!(pending.publish(&p).is_err());
+    let token = pending.publish(&p).unwrap();
+    assert_eq!(token.check().reference(), pending.reference());
+    assert_eq!(token.check().bytes(), &original[..]);
+    assert_eq!(token.check().envelope()["observed_at"], "read-A");
+    assert_eq!(
+        token.run_text().reference(),
+        published.run_text_record().reference()
+    );
+    assert_eq!(p.list_references().unwrap().len(), 3);
+}

@@ -236,6 +236,16 @@ impl PreparedNativeTurnStart<'_> {
     pub(crate) fn observed_status(&self)->&str {&self.observed_status}
 }
 
+/// V9 F-1: Codex's definite refusal of one original prepared `turn/start`,
+/// issued only by `Host::prepared_turn_refusal`. No public constructor, Clone or Serde.
+pub(crate) struct NativeTurnRefusal { request_ref:String, thread:String, client_id:String, error:Value, response_position:u64 }
+impl NativeTurnRefusal {
+    pub(crate) fn request_ref(&self)->&str {&self.request_ref}
+    pub(crate) fn thread(&self)->&str {&self.thread}
+    pub(crate) fn client_id(&self)->&str {&self.client_id}
+    pub(crate) fn error(&self)->&Value {&self.error}
+    pub(crate) fn response_position(&self)->u64 {self.response_position}
+}
 /// A genuine current accepted read, borrowed from NativeHistory; no raw transcript copy.
 /// No public constructor/Serde/Clone: JSON observation is not source authority.
 pub(crate) struct AcceptedNativeItemPage<'a> {
@@ -1338,6 +1348,19 @@ impl Host {
         if e.response.as_ref().unwrap()["result"]!=*observed.page(){return Err("native item final accepted data differs from actual source".into());}
         Ok(NativeItemCoverageSeal{check})
     }
+    /// V9 F-3: every given page equals, in order, the result this Host retained
+    /// for the corresponding sealed source request. Count alone is not a binding.
+    pub(crate) fn native_coverage_pages_match(&self,seal:&NativeItemCoverageSeal,pages:&[Value])->Result<(),String>{
+        if pages.len()!=seal.check.sources.len(){return Err("checked pages differ from the sealed native coverage (count)".into());}
+        let i=self.inner.0.lock().unwrap();
+        for (pin,page) in seal.check.sources.iter().zip(pages){
+            let request=&pin.dispatch.source;
+            let e=i.source_requests.get(&request.request_id().to_string()).ok_or("sealed native page source record unavailable")?;
+            if e.request.request_ref!=request.request_ref||e.request.frame!=request.frame||e.response_position!=Some(pin.receipt_position){return Err("sealed native page source association changed".into());}
+            if e.response.as_ref().and_then(|r|r.get("result"))!=Some(page){return Err("checked page differs from the Host's retained native response".into());}
+        }
+        Ok(())
+    }
 
     pub fn history_admit_resume(&self, history: &NativeHistory, dispatch: &HistoryDispatch) -> Result<Value,String> {
         self.check_source(&dispatch.source)?;
@@ -1561,6 +1584,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let reply_status=native["status"].as_str().ok_or("prepared turn native status unavailable")?;
         let observed_status=observed["nativeTurn"]["status"].as_str().ok_or("prepared turn observed status unavailable")?;
         Ok(PreparedNativeTurnStart{source,turn_id:id.into(),reply_status:reply_status.into(),observed_status:observed_status.into()})
+    }
+    /// V9 F-1: a typed *definite* refusal of this exact prepared `turn/start`.
+    /// Some only when its original frame was completely written and Codex's
+    /// response correlated to that request carries `error` (and no `result`).
+    /// No response, a timeout, a write failure or transport loss is not a
+    /// refusal: the outcome stays unknown and this returns None.
+    pub(crate) fn prepared_turn_refusal(&self,source:&SourceRequest)->Option<NativeTurnRefusal>{
+        if source.frame["method"]!="turn/start"{return None;}
+        let i=self.inner.0.lock().unwrap();
+        let e=i.source_requests.get(&source.request_id().to_string())?;
+        if e.request.request_ref!=source.request_ref||e.request.frame!=source.frame||e.request.generation!=source.generation||!e.written||e.write_attempt_in_progress||e.write_error.is_some(){return None;}
+        let response=e.response.as_ref()?;
+        if response.get("id")!=Some(source.request_id())||response.get("method").is_some()||response.get("result").is_some(){return None;}
+        let error=response.get("error")?.clone();
+        Some(NativeTurnRefusal{request_ref:source.request_ref.clone(),thread:source.frame["params"]["threadId"].as_str()?.into(),client_id:source.frame["params"]["clientUserMessageId"].as_str()?.into(),error,response_position:e.response_position?})
     }
 
     /// Native interrupt acknowledgment is distinct from turn completion.
@@ -2872,6 +2910,21 @@ mod conversation_transport_tests {
         let goal=h.read_goal().unwrap();h.receive(&goal,"conversation-home",&g(),&json!({"goal":null})).unwrap();
         let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&next).unwrap()).unwrap();assert_eq!(seal.page_count(),2);assert_eq!(seal.query(),&next);
     }
+    // V9 F-3: pages bind to the sealed traversal by the Host's retained results, in order.
+    #[test]
+    fn native_coverage_pages_match_only_the_retained_results_in_order(){
+        use crate::native_history::Direction;let mut f=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();let raw=native_page_data(json!("opaque-next"));let d=f.dispatch(&q,&raw);h.receive(&q,"conversation-home",&g(),&raw).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&q).unwrap()).unwrap();let mut check=f.host.begin_native_items_supply_check(&page).unwrap();drop(page);
+        let next=h.items_page("turn",check.next_cursor(),Direction::Asc).unwrap();
+        let d=f.host.dispatch_next_native_items_supply_page(&mut check,&next).unwrap();let tail=json!({"data":[],"nextCursor":null});f.reply(&d,&tail);h.receive(&next,"conversation-home",&g(),&tail).unwrap();
+        let page=f.host.mint_accepted_items_page(&d,h.accepted_items_observation(&next).unwrap()).unwrap();f.host.accept_next_native_items_supply_page(&mut check,&page).unwrap();drop(page);
+        let seal=f.host.finish_native_items_supply_check(check,h.accepted_items_observation(&next).unwrap()).unwrap();
+        f.host.native_coverage_pages_match(&seal,&[raw.clone(),tail.clone()]).unwrap();
+        assert!(f.host.native_coverage_pages_match(&seal,&[tail.clone(),raw.clone()]).is_err(),"order");
+        assert!(f.host.native_coverage_pages_match(&seal,std::slice::from_ref(&raw)).is_err(),"count");
+        let mut altered=raw.clone();altered["data"][0]["item"]["content"][0]["text"]=json!("substituted");
+        assert!(f.host.native_coverage_pages_match(&seal,&[altered,tail]).is_err(),"bytes");
+    }
     #[test]
     fn native_page_mint_omitted_cursor_unknown_and_desc_does_not_seed_supply_check(){
         use crate::native_history::Direction;for direction in [Direction::Asc,Direction::Desc]{
@@ -2960,6 +3013,23 @@ mod conversation_transport_tests {
         let(result,_)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"synthetic native refusal"}})),vec![],||{
             let r=host.turn_start_prepared_run_text(&g(),&f.prepared,"person","client:original")?;assert!(host.turn_start_prepared_finish(&r,&f.prepared,"person","client:original",Duration::from_millis(50)).is_err());Ok(r.evidence())
         });assert_eq!(result.unwrap()["outcome"],"response-observed-error");assert_eq!(host.client_requests().len(),1);assert_eq!(host.snapshot()["conversationTurns"],json!([]));
+    }
+    // V9 F-1: only a correlated native error to the exact written turn/start is a typed
+    // definite refusal; a successful result or no response at all is not.
+    #[test]
+    fn prepared_turn_refusal_is_typed_only_for_a_correlated_native_error(){
+        let f=PreparedTurnFixture::new("thread");
+        let h1=host();let(refused,_)=exchange(&h1,Some(json!({"error":{"code":-32600,"message":"synthetic native refusal"}})),vec![],||{
+            let r=h1.turn_start_prepared_run_text(&g(),&f.prepared,"person","client:original")?;assert!(h1.turn_start_prepared_finish(&r,&f.prepared,"person","client:original",Duration::from_millis(50)).is_err());
+            let refusal=h1.prepared_turn_refusal(&r).ok_or("definite refusal not typed")?;
+            assert_eq!(refusal.request_ref(),r.request_ref());assert_eq!(refusal.thread(),"thread");assert_eq!(refusal.client_id(),"client:original");assert_eq!(refusal.error()["message"],"synthetic native refusal");assert!(refusal.response_position()>0);Ok(json!(true))
+        });assert_eq!(refused.unwrap(),json!(true));
+        let h2=host();let(accepted,_)=exchange(&h2,Some(json!({"result":{"turn":turn("failed")}})),vec![],||{
+            let r=h2.turn_start_prepared_run_text(&g(),&f.prepared,"person","client:original")?;h2.turn_start_prepared_finish(&r,&f.prepared,"person","client:original",Duration::from_millis(50))?;Ok(json!(h2.prepared_turn_refusal(&r).is_none()))
+        });assert_eq!(accepted.unwrap(),json!(true),"a native result is never a refusal");
+        let h3=host();let(unknown,_)=exchange(&h3,None,vec![],||{
+            let r=h3.turn_start_prepared_run_text(&g(),&f.prepared,"person","client:original")?;assert!(h3.turn_start_prepared_finish(&r,&f.prepared,"person","client:original",Duration::from_millis(20)).is_err());Ok(json!(h3.prepared_turn_refusal(&r).is_none()))
+        });assert_eq!(unknown.unwrap(),json!(true),"no response stays unknown, never a refusal");
     }
 
 }

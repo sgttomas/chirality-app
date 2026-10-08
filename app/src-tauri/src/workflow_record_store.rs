@@ -81,6 +81,50 @@ fn child(dir: &File, leaf: &str, create: bool) -> Result<File, String> {
     }
     Ok(f)
 }
+/// Opens `leaf` under `dir` as a plain directory without following symlinks.
+/// Ok(None) only when the entry is absent; a symlink or other entry is an error.
+fn plain_dir_at(dir: &File, leaf: &str) -> Result<Option<File>, String> {
+    match open_at(dir, leaf, libc::O_RDONLY | libc::O_DIRECTORY) {
+        Ok(f) => Ok(Some(f)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            // ENOENT from openat with O_NOFOLLOW means the name itself is absent
+            // (a dangling symlink reports ELOOP or ENOTDIR, not ENOENT).
+            Ok(None)
+        }
+        Err(e) => Err(format!(
+            "WR record path entry '{leaf}' is not a plain directory (symlink or other): {e}"
+        )),
+    }
+}
+/// Names in a directory, read through a duplicate of its pinned descriptor.
+fn dir_names(dir: &File) -> Result<Vec<String>, String> {
+    let fd = unsafe { libc::dup(dir.as_raw_fd()) };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+    let stream = unsafe { libc::fdopendir(fd) };
+    if stream.is_null() {
+        let e = std::io::Error::last_os_error();
+        unsafe { libc::close(fd) };
+        return Err(e.to_string());
+    }
+    unsafe { libc::rewinddir(stream) };
+    let mut names = Vec::new();
+    loop {
+        let entry = unsafe { libc::readdir(stream) };
+        if entry.is_null() {
+            break;
+        }
+        let name = unsafe { std::ffi::CStr::from_ptr((*entry).d_name.as_ptr()) };
+        if let Ok(name) = name.to_str() {
+            if name != "." && name != ".." {
+                names.push(name.to_owned());
+            }
+        }
+    }
+    unsafe { libc::closedir(stream) };
+    Ok(names)
+}
 fn validate(envelope: &Value) -> Result<(), String> {
     let wr: Value = serde_json::from_str(include_str!(
         "../resources/workflow_role/workspace-registration.schema.json"
@@ -137,6 +181,38 @@ impl ProjectRecords {
             directory,
             identity: (m.dev(), m.ino()),
         })
+    }
+    /// The explicit opened-project path this handle was opened from.
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+    /// References of this project's own published WR records (non-recursive;
+    /// no other project or library is searched). Staging files are excluded.
+    /// V9 F-5: every step is relative to the pinned project descriptor and never
+    /// follows a symlink. An absent store is "no records"; a symlinked (even
+    /// dangling) or otherwise non-plain `.chirality`, `records` or `workflow`
+    /// entry is reported as an error, never as "no records".
+    pub fn list_references(&self) -> Result<Vec<String>, String> {
+        let Some(a) = plain_dir_at(&self.directory, ".chirality")? else {
+            return Ok(vec![]);
+        };
+        let Some(b) = plain_dir_at(&a, "records")? else {
+            return Ok(vec![]);
+        };
+        let Some(dir) = plain_dir_at(&b, "workflow")? else {
+            return Ok(vec![]);
+        };
+        let mut references = Vec::new();
+        for name in dir_names(&dir)? {
+            if let Some(stem) = name.strip_suffix(".json") {
+                let reference = format!("{PREFIX}{stem}");
+                if key(&reference).is_ok() {
+                    references.push(reference);
+                }
+            }
+        }
+        references.sort();
+        Ok(references)
     }
     fn records(&self, create: bool) -> Result<File, String> {
         let a = child(&self.directory, ".chirality", create)?;
@@ -309,12 +385,327 @@ impl ResolvedRecord {
         &self.bytes
     }
 }
-/// No production constructor yet: Root must mint at the genuine native
-/// comparison boundary. Neither a coverage seal alone nor JSON can mint this.
+/// Minted only at the genuine native comparison boundary: a consumed Host
+/// coverage seal plus pages the issuing Host confirms are its retained results
+/// for that traversal; for *unreadable*, the Host-issued item dispatches; for a
+/// refused start, the Host's typed refusal. No public constructor, Deserialize
+/// or Clone; JSON or a cold record cannot mint one.
 #[derive(Debug)]
 pub struct CompletedSupplyCheck {
     body: Value,
     sources: Vec<String>,
+}
+const CHECK_LIMIT: &str = "one source-bound native item traversal checked at its final owning guard; not ongoing native authority";
+const SUPPLY_LIMIT: &str = "supplied is not adopted: model uptake unknown; no run opening, run end, A15 or completion inferred";
+impl CompletedSupplyCheck {
+    /// SC-3/SC-4 at the genuine boundary. The seal is consumed: one traversal
+    /// mints at most one check. The pages must equal, byte for byte and in order,
+    /// the results the issuing Host retained for the sealed source requests
+    /// (V9 F-3: `Host::native_coverage_pages_match`), not merely their count.
+    pub(crate) fn from_native_coverage(
+        host: &crate::hosting::Host,
+        seal: crate::hosting::NativeItemCoverageSeal,
+        pages: &[Value],
+        published: &dyn PublishedText,
+        turn: &str,
+        client_id: &str,
+        check: &str,
+        read_at: &str,
+    ) -> Result<Self, String> {
+        let run_text = published.run_text_record().body();
+        let query = seal.query();
+        if query.method() != "thread/items/list"
+            || query.params()["threadId"] != run_text["conversation"]
+            || query.params()["turnId"] != turn
+        {
+            return Err("native coverage belongs to another thread/turn".into());
+        }
+        if pages.is_empty() {
+            return Err("checked pages differ from the sealed native coverage".into());
+        }
+        host.native_coverage_pages_match(&seal, pages)?;
+        let mut index = 0;
+        let located = super::locate_turn_text(turn, client_id, |_| {
+            let page = pages.get(index).cloned().ok_or("no sealed native page")?;
+            index += 1;
+            Ok(page)
+        });
+        let body = check_body(
+            run_text,
+            published.prepared(),
+            Observation::Located(located),
+            turn,
+            client_id,
+            check,
+            read_at,
+        )?;
+        let sources = seal
+            .source_receipts()
+            .map(|(_, reference, _)| reference.to_owned())
+            .collect();
+        Ok(Self { body, sources })
+    }
+    /// SC-3 *unreadable*: an item read was issued for this turn and failed
+    /// before coverage completed. Requires the Host-issued dispatches.
+    pub(crate) fn unreadable_after_dispatch(
+        issued: &[crate::hosting::HistoryDispatch],
+        published: &dyn PublishedText,
+        turn: &str,
+        client_id: &str,
+        check: &str,
+        read_at: &str,
+        error: &str,
+    ) -> Result<Self, String> {
+        let run_text = published.run_text_record().body();
+        if issued.is_empty()
+            || issued.iter().any(|d| {
+                d.query().method() != "thread/items/list"
+                    || d.query().params()["threadId"] != run_text["conversation"]
+                    || d.query().params()["turnId"] != turn
+            })
+        {
+            return Err("no native item read was issued for this thread/turn; nothing checked".into());
+        }
+        let body = check_body(
+            run_text,
+            published.prepared(),
+            Observation::ReadFailed(error),
+            turn,
+            client_id,
+            check,
+            read_at,
+        )?;
+        let sources = issued
+            .iter()
+            .map(|d| d.source().request_ref().to_owned())
+            .collect();
+        Ok(Self { body, sources })
+    }
+}
+impl CompletedSupplyCheck {
+    /// V9 F-1, WR §16.4 / RN-4: Codex definitely refused this exact `turn/start`
+    /// before any item was recorded, so the check is *not found*, with no turn or
+    /// item. Consumes the Host-issued refusal; the source is that request's
+    /// receipt. An unknown outcome has no refusal value and cannot reach here.
+    pub(crate) fn not_found_after_refusal(
+        refusal: crate::hosting::NativeTurnRefusal,
+        published: &dyn PublishedText,
+        client_id: &str,
+        check: &str,
+        read_at: &str,
+    ) -> Result<Self, String> {
+        let run_text = published.run_text_record().body();
+        if run_text["record_kind"] != "run_text"
+            || refusal.thread() != run_text["conversation"]
+            || refusal.client_id() != client_id
+            || published.prepared().record() != run_text
+        {
+            return Err("refusal belongs to another conversation, client message or text".into());
+        }
+        if [client_id, check, read_at].iter().any(|s| s.is_empty()) {
+            return Err("check/client/read identity required".into());
+        }
+        let mut body = json!({"record_kind":"supply_check","check":check,"run":run_text["run"],"conversation":run_text["conversation"],"client_user_message_id":client_id,"purpose":run_text["purpose"],"expected_text":run_text["text_identity"],"state":"not found","read_at":read_at,
+            "evidence_limits":[SUPPLY_LIMIT,format!("turn/start refused by Codex (correlated native error at receipt position {}); no turn or item was recorded (WR §16.4, RN-4); the run start is not confirmed",refusal.response_position()),format!("native error: {}",refusal.error())]});
+        if run_text["purpose"] == "run start" {
+            body["expected_workflow"] = run_text["workflow_file"]["content"].clone();
+        }
+        super::wr_validate("supply_check", &body)?;
+        Ok(Self {
+            body,
+            sources: vec![refusal.request_ref().to_owned()],
+        })
+    }
+}
+enum Observation<'a> {
+    Located(super::LocatedTurnText),
+    ReadFailed(&'a str),
+}
+/// Sealing module: `Sealed` is private to this module, so no type outside it
+/// can implement `PublishedText`, and crate code cannot wrap a cold-read
+/// `ResolvedRecord` or JSON into something the check constructors accept.
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for super::PublishedRunText {}
+    impl Sealed for super::PublishedEndNotice {}
+}
+/// A text this process composed and published before sending: its immutable
+/// run_text record and the typed composed text. Sealed (V9 J3 note): only
+/// `PublishedRunText` and `PublishedEndNotice`, whose only constructors are their
+/// typed publications, implement it; a resolved JSON record alone is neither.
+///
+/// Compile-time note: implementing this trait for a type anywhere outside this file
+/// fails with E0277 (`X: sealed::Sealed` not satisfied) and `sealed::Sealed` is
+/// not nameable there. The test `published_text_is_sealed_to_two_types` guards
+/// that this file implements it for exactly the two typed results.
+pub trait PublishedText: sealed::Sealed {
+    fn run_text_record(&self) -> &ResolvedRecord;
+    fn prepared(&self) -> &PreparedRunText;
+}
+impl PublishedText for PublishedRunText {
+    fn run_text_record(&self) -> &ResolvedRecord {
+        &self.text
+    }
+    fn prepared(&self) -> &PreparedRunText {
+        &self.prepared
+    }
+}
+impl PublishedText for PublishedEndNotice {
+    fn run_text_record(&self) -> &ResolvedRecord {
+        &self.record
+    }
+    fn prepared(&self) -> &PreparedRunText {
+        &self.notice
+    }
+}
+fn check_body(
+    run_text: &Value,
+    prepared: &PreparedRunText,
+    observation: Observation<'_>,
+    turn: &str,
+    client_id: &str,
+    check: &str,
+    read_at: &str,
+) -> Result<Value, String> {
+    if run_text["purpose"] == "run end notice" {
+        notice_check_body(run_text, prepared, observation, turn, client_id, check, read_at)
+    } else {
+        supply_check_body(run_text, prepared, observation, turn, client_id, check, read_at)
+    }
+}
+/// WR §16.4 state mapping for a run-start text. Pure; minting stays with the
+/// constructors above.
+fn supply_check_body(
+    run_text: &Value,
+    prepared: &PreparedRunText,
+    observation: Observation<'_>,
+    turn: &str,
+    client_id: &str,
+    check: &str,
+    read_at: &str,
+) -> Result<Value, String> {
+    if run_text["record_kind"] != "run_text" || run_text["purpose"] != "run start" {
+        return Err("live supply check requires a published run-start run_text".into());
+    }
+    if [turn, client_id, check, read_at].iter().any(|s| s.is_empty()) {
+        return Err("check/turn/client/read identity required".into());
+    }
+    let mut body = json!({"record_kind":"supply_check","check":check,"run":run_text["run"],"conversation":run_text["conversation"],"turn":turn,"client_user_message_id":client_id,"purpose":"run start","expected_text":run_text["text_identity"],"expected_workflow":run_text["workflow_file"]["content"],"read_at":read_at});
+    let mut limits = vec![CHECK_LIMIT.to_owned(), SUPPLY_LIMIT.to_owned()];
+    let state = map_observation(
+        &mut body,
+        &mut limits,
+        observation,
+        prepared,
+        &run_text["text_identity"],
+        &run_text["workflow_file"]["content"],
+    )?;
+    body["state"] = json!(state);
+    body["evidence_limits"] = json!(limits);
+    super::wr_validate("supply_check", &body)?;
+    Ok(body)
+}
+/// SQ-END EN-3: the check of a published end notice (TX-5). The notice has no
+/// workflow bytes, so no expected_workflow is written (WP-2) and a differing
+/// text can only read "text differs, workflow bytes differ".
+fn notice_check_body(
+    run_text: &Value,
+    notice: &PreparedRunText,
+    observation: Observation<'_>,
+    turn: &str,
+    client_id: &str,
+    check: &str,
+    read_at: &str,
+) -> Result<Value, String> {
+    if run_text["record_kind"] != "run_text"
+        || run_text["purpose"] != "run end notice"
+        || notice.record() != run_text
+    {
+        return Err("end-notice check requires the published end notice it was composed as".into());
+    }
+    if [turn, client_id, check, read_at].iter().any(|s| s.is_empty()) {
+        return Err("check/turn/client/read identity required".into());
+    }
+    let mut body = json!({"record_kind":"supply_check","check":check,"run":run_text["run"],"conversation":run_text["conversation"],"turn":turn,"client_user_message_id":client_id,"purpose":"run end notice","expected_text":run_text["text_identity"],"read_at":read_at});
+    let mut limits = vec![
+        CHECK_LIMIT.to_owned(),
+        SUPPLY_LIMIT.to_owned(),
+        "end notice carries no workflow bytes; a differing text is reported as 'text differs, workflow bytes differ' (WR §16.4 has no notice-specific state)".to_owned(),
+    ];
+    let state = map_observation(
+        &mut body,
+        &mut limits,
+        observation,
+        notice,
+        &run_text["text_identity"],
+        &run_text["text_identity"],
+    )?;
+    body["state"] = json!(state);
+    body["evidence_limits"] = json!(limits);
+    super::wr_validate("supply_check", &body)?;
+    Ok(body)
+}
+fn map_observation(
+    body: &mut Value,
+    limits: &mut Vec<String>,
+    observation: Observation<'_>,
+    prepared: &PreparedRunText,
+    expected_text: &Value,
+    expected_body: &Value,
+) -> Result<String, String> {
+    let located_by = |by_client: bool| {
+        if by_client {
+            "client id"
+        } else {
+            "first user message of the turn"
+        }
+    };
+    let state = match observation {
+        Observation::ReadFailed(error) => {
+            limits.push(format!("the App observed its own send; Codex's copy could not be read ({error}); read again later (SC-6)"));
+            "unreadable".to_owned()
+        }
+        Observation::Located(super::LocatedTurnText::Unreadable) => {
+            limits.push("a sealed native page was not usable for location (shape or cursor); read again later (SC-6)".into());
+            "unreadable".to_owned()
+        }
+        Observation::Located(super::LocatedTurnText::NotFound { item, by_client }) => {
+            if let (Some(item), Some(by_client)) = (item, by_client) {
+                body["item"] = json!(item);
+                body["located_by"] = json!(located_by(by_client));
+                limits.push("the located user message has no text element".into());
+            } else {
+                limits.push("no user message in the turn's items".into());
+            }
+            "not found".to_owned()
+        }
+        Observation::Located(super::LocatedTurnText::Text {
+            item,
+            by_client,
+            text,
+        }) => match item {
+            None => {
+                limits.push("the located user message has no item identity; observation not attributable; read again later (SC-6)".into());
+                "unreadable".to_owned()
+            }
+            Some(item) => {
+                if !by_client {
+                    limits.push("client id not matched; first user message of the turn used (clientId echo is an inference, U-WR-15)".into());
+                }
+                let comparison =
+                    prepared.compare_observed_text(expected_text, expected_body, &text)?;
+                limits.extend(comparison.evidence_limits);
+                body["observed_text"] = comparison.observed_text;
+                body["item"] = json!(item);
+                body["located_by"] = json!(located_by(by_client));
+                match comparison.state.as_str() {
+                    "equal composed text" => "verified".to_owned(),
+                    other => other.to_owned(),
+                }
+            }
+        },
+    };
+    Ok(state)
 }
 
 /// Original immutable bytes remain with the owner across failed attempts.
@@ -374,6 +765,65 @@ impl PendingRecord {
         )
     }
 }
+/// One live check's original pending record (WP-5: a retry preserves its
+/// identity, bytes and read_at). Built only from a CompletedSupplyCheck.
+#[derive(Debug)]
+pub struct PendingSupplyCheck {
+    record: PendingRecord,
+    run_text: String,
+}
+/// Typed published-check token for the live R3 writer: no public constructor,
+/// Deserialize or Clone. Only PendingSupplyCheck::publish creates it.
+#[derive(Debug)]
+pub struct PublishedSupplyCheck {
+    run_text: ResolvedRecord,
+    check: ResolvedRecord,
+}
+impl PendingSupplyCheck {
+    pub(crate) fn new(
+        project: &ProjectRecords,
+        completed: CompletedSupplyCheck,
+        published: &dyn PublishedText,
+        writer: &str,
+    ) -> Result<Self, String> {
+        Ok(Self {
+            record: PendingRecord::supply_check(
+                project,
+                completed,
+                published.run_text_record(),
+                writer,
+            )?,
+            run_text: published.run_text_record().reference().into(),
+        })
+    }
+    pub fn reference(&self) -> &str {
+        self.record.reference()
+    }
+    pub fn body(&self) -> &Value {
+        &self.record.envelope["body"]
+    }
+    #[cfg(test)]
+    pub fn bytes(&self) -> &[u8] {
+        &self.record.bytes
+    }
+    /// Publishes the original bytes, then re-resolves the cited run_text in the
+    /// same explicit project. Never re-reads native history or resends.
+    pub fn publish(&self, project: &ProjectRecords) -> Result<PublishedSupplyCheck, String> {
+        let check = project.publish(&self.record)?;
+        let run_text = project
+            .resolve(&self.run_text)
+            .map_err(|e| format!("cited run_text: {e:?}"))?;
+        Ok(PublishedSupplyCheck { run_text, check })
+    }
+}
+impl PublishedSupplyCheck {
+    pub fn run_text(&self) -> &ResolvedRecord {
+        &self.run_text
+    }
+    pub fn check(&self) -> &ResolvedRecord {
+        &self.check
+    }
+}
 /// Owns the original typed prepared text; a cold read cannot construct this.
 #[derive(Debug)]
 pub struct PreparedRunPublication {
@@ -411,6 +861,12 @@ impl PreparedRunPublication {
             return Err("prepared text changed".into());
         }
         let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":"registered","selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
+        // SL-7: a selection for a chained run records prior_run as a relation, from
+        // the same owner end the chain line was composed from (CH-2).
+        let mut body = body;
+        if let Some(chain) = prepared.record["chain"].as_object() {
+            body["prior_run"] = json!({"run":chain["prior_run"],"workflow":chain["prior_workflow"],"ended":chain["ended"]});
+        }
         let selection = PendingRecord::new(project, body, vec![], vec![], writer, selected_at)?;
         let text = PendingRecord::new(
             project,
@@ -425,6 +881,15 @@ impl PreparedRunPublication {
             selection,
             text,
         })
+    }
+    pub fn prepared(&self) -> &PreparedRunText {
+        &self.prepared
+    }
+    pub fn selection_reference(&self) -> &str {
+        self.selection.reference()
+    }
+    pub fn run_text_reference(&self) -> &str {
+        self.text.reference()
     }
     /// On error ownership stays here for an original-byte retry. Success consumes
     /// no native send: Root's separate dispatch owner decides that transition.
@@ -461,7 +926,7 @@ impl PublishedRunText {
 mod tests;
 
 #[cfg(test)]
-thread_local! { static FAIL_AFTER_LINK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+thread_local! { pub(crate) static FAIL_AFTER_LINK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 fn publication_boundary() -> Result<(), String> {
     #[cfg(test)]
     if FAIL_AFTER_LINK.with(|v| v.replace(false)) {
@@ -474,11 +939,13 @@ fn publication_boundary() -> Result<(), String> {
 #[derive(Debug)]
 pub struct PreparedEndPublication {
     text: String,
+    notice: PreparedRunText,
     record: PendingRecord,
 }
 #[derive(Debug)]
 pub struct PublishedEndNotice {
     text: String,
+    notice: PreparedRunText,
     record: ResolvedRecord,
 }
 impl PreparedEndPublication {
@@ -490,7 +957,29 @@ impl PreparedEndPublication {
         writer: &str,
         observed_at: &str,
     ) -> Result<Self, String> {
-        let (text, body) = prepared.end_notice(end)?;
+        Self::for_turn(
+            project,
+            prepared,
+            end,
+            original_start,
+            writer,
+            observed_at,
+            &prepared.scope.generation,
+        )
+    }
+    /// As `new`, with the notice scoped to the current generation of the same
+    /// home, for the person's next ordinary turn (TX-5).
+    pub fn for_turn(
+        project: &ProjectRecords,
+        prepared: &PreparedRunText,
+        end: &super::OwnerRunEnd,
+        original_start: &ResolvedRecord,
+        writer: &str,
+        observed_at: &str,
+        current_generation: &Value,
+    ) -> Result<Self, String> {
+        let notice = prepared.notice_turn(end, current_generation)?;
+        let (text, body) = (notice.text().to_owned(), notice.record().clone());
         if original_start.project != project.identity {
             return Err("original start belongs to another project".into());
         }
@@ -508,11 +997,19 @@ impl PreparedEndPublication {
             writer,
             observed_at,
         )?;
-        Ok(Self { text, record })
+        Ok(Self {
+            text,
+            notice,
+            record,
+        })
+    }
+    pub fn reference(&self) -> &str {
+        self.record.reference()
     }
     pub fn publish(&self, project: &ProjectRecords) -> Result<PublishedEndNotice, String> {
         Ok(PublishedEndNotice {
             text: self.text.clone(),
+            notice: self.notice.clone(),
             record: project.publish(&self.record)?,
         })
     }

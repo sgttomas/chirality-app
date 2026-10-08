@@ -165,6 +165,64 @@ pub fn append_project(
     )
 }
 
+/// W-1/W-2 for an observation whose identity was reserved when it was observed:
+/// the run log keeps the reserved `recordId` and the original `observedAt`,
+/// whether written now or late. W-1 validation still applies.
+pub(crate) fn append_project_reserved(
+    root: &Path,
+    run: &str,
+    writer: &str,
+    kind: &str,
+    recorder: &Recorder,
+    body: Value,
+    id: &str,
+    observed_at: &str,
+) -> Result<Value, String> {
+    if run.is_empty() || id.is_empty() || observed_at.is_empty() {
+        return Err("run, reserved identity and original observation time required".into());
+    }
+    append_reserved(
+        &crate::storage::project_log(root, Some(run), writer),
+        kind,
+        recorder,
+        body,
+        id.to_owned(),
+        Some(run),
+        Some(observed_at),
+        crate::schema_validation::bundled(),
+    )
+}
+/// W-2: after late entries are written, one `evidence_limit` "record write
+/// failed" names the subject. Idempotent: an existing limit for it is kept.
+pub(crate) fn note_project_late_write(
+    root: &Path,
+    run: &str,
+    writer: &str,
+    subject: &str,
+    detail: &str,
+) -> Result<(), String> {
+    let (entries, limits) = crate::storage::read_all(root);
+    if !limits.is_empty() {
+        return Err(format!("late-write evidence record set incomplete: {limits:?}"));
+    }
+    if entries.iter().any(|e| {
+        e["kind"] == "evidence_limit"
+            && e["body"]["label"] == "record write failed"
+            && e["body"]["subjectRef"] == subject
+    }) {
+        return Ok(());
+    }
+    append_project(
+        root,
+        Some(run),
+        writer,
+        "evidence_limit",
+        &APP_WRITER,
+        json!({"label":"record write failed","subjectRef":subject,"detail":detail}),
+    )?;
+    Ok(())
+}
+
 /// Writer owns reservation; this is called only after actual capture publication is durable.
 pub(crate) fn prepare_capture_submission(
     root: &Path,

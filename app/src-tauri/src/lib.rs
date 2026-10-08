@@ -420,6 +420,11 @@ fn conversation_send_text(
     text: String,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    // WR TX-5 / SQ-END: when a run in this conversation ended with no successor,
+    // this next ordinary turn carries its end notice first, exactly once.
+    if let Some(result) = runtime_session::send_with_pending_notice(&state.workflows, &generation, &thread_id, &text) {
+        return result;
+    }
     runtime_session::send_conversation_text(
         &home.host.snapshot(),
         &generation,
@@ -682,12 +687,78 @@ fn workflow_continue_registration(state:State<'_,AppState>,review_ref:String)->R
 #[tauri::command]
 fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    let mut root=state.workflows.lock().unwrap();let reference=root.prepare_run(home,&generation,&thread_id,person_text)?;Ok(json!({"reference":reference,"state":"original closed selection prepared; not sent"}))
+    // WR WP-1: the explicit App project owns WR records; None is refused with no fallback.
+    let mut root=state.workflows.lock().unwrap();let reference=root.prepare_run(home,&generation,&thread_id,person_text,state.workspace.as_deref())?;Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
+}
+#[tauri::command(async)]
+fn workflow_retry_records(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
+    let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual prepared original run unavailable")?;
+    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;run.retry_records()
+}
+/// Durable reading of the explicit project's WR records and R3 entries; writes nothing.
+#[tauri::command(async)]
+fn workflow_read_records(state:State<'_,AppState>)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); no WR records to read and no fallback")?;
+    let project=workflow_workspace::publication::ProjectRecords::open(root)?;
+    Ok(records::supply::read_project_supply(&project))
 }
 #[tauri::command(async)]
 fn workflow_send_run(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
     let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual prepared original run unavailable")?;
-    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;state.validate_home_source(&run.home)?;run.send()
+    {let run=run.try_lock().map_err(|_|"Original run operation pending")?;state.validate_home_source(&run.home)?;}
+    // RE-7 / CH-1 rechecked at dispatch; a successor start supersedes a pending end notice.
+    runtime_session::start_workflow_run(&state.workflows,&run_ref)
+}
+/// EXEC AE-7 / A-11: only the person's explicit end ends a run (FN-2: completed on a finished report).
+#[tauri::command]
+fn workflow_end_run(state:State<'_,AppState>,run_ref:String,completed:bool)->Result<Value,String>{
+    let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
+    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;run.end_run(completed,None)
+}
+/// CH-1 "End ‹A› and start ‹B›" as one confirmed step: A ends, B is prepared and started.
+#[tauri::command(async)]
+fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
+    let next=state.workflows.lock().unwrap().end_and_start(&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
+    let started=runtime_session::start_workflow_run(&state.workflows,&next);
+    Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"successor not started","limit":e})}}))
+}
+/// V10 G-5: the person sends without the pending end notice (its record cannot be
+/// written); the choice is recorded in the run log and never shown as supplied.
+#[tauri::command]
+fn workflow_skip_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
+    let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
+    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;run.skip_end_notice()
+}
+#[tauri::command(async)]
+fn workflow_check_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
+    let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
+    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;state.validate_home_source(&run.home)?;run.check_end_notice_supply()
+}
+/// Reopen: the explicit project's WR/RS records plus the REC restart facts this process holds.
+#[tauri::command(async)]
+fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
+    let home=state.homes.lock().unwrap().active();
+    let recovery=home.recovery_startup.lock().unwrap().snapshot();
+    let events=restart_events(&recovery);
+    state.workflows.lock().unwrap().reopen(root,&events)
+}
+/// The person's explicit end of a run the record shows open and interrupted after relaunch.
+#[tauri::command]
+fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option<String>)->Result<Value,String>{
+    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing recorded and no fallback")?;
+    let thread=thread_id.ok_or("The record names no conversation for this run; it cannot be ended from here")?;
+    // V10 G-7: a reopened run is ended only as the person's plain end (no completed).
+    state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false)
+}
+/// REC `app_restart_interruption` facts, wherever the recovery projection carries them.
+fn restart_events(value:&Value)->Vec<Value>{
+    match value{
+        Value::Object(map)=>{let mut out:Vec<Value>=map.get("restartEvents").and_then(Value::as_array).cloned().unwrap_or_default();for (k,v) in map{if k!="restartEvents"{out.extend(restart_events(v));}}out}
+        Value::Array(items)=>items.iter().flat_map(restart_events).collect(),
+        _=>vec![],
+    }
 }
 #[tauri::command(async)]
 fn workflow_check_supply(state:State<'_,AppState>,run_ref:String)->Result<Value,String>{
@@ -977,7 +1048,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,
+            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,
             decision_view,
             continue_decision_recording,
             compose_offer,
@@ -1028,6 +1099,13 @@ mod workflow_root_context_tests {
         let held=state.person_name.lock().unwrap();assert!(file_act_observe(&state,&home).is_err());drop(held);
         *state.person_name.lock().unwrap()=Some("changed person".into());assert_ne!(file_act_observe(&state,&home).unwrap().1,context);
         std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn j3_reopen_collects_rec_restart_facts_wherever_projected(){
+        let e=|id:&str|json!({"kind":"app_restart_interruption","eventId":id,"threadId":"thread"});
+        let projection=json!({"state":"initialized","projection":{"restartEvents":[e("a")],"historicalConversations":[{"restartEvents":[e("b")]}]},"other":[{"x":1}]});
+        let found=restart_events(&projection);assert_eq!(found.len(),2);assert!(found.contains(&e("a"))&&found.contains(&e("b")));
+        assert!(restart_events(&json!({"state":"not-initialized"})).is_empty());
     }
     #[test]
     fn workflow_root_actual_observe_preserves_offline_context_and_refuses_retarget(){
