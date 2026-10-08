@@ -1,0 +1,23 @@
+{
+  "basis": "7311df06d81ce4d45bb1222080e52731f1ed45ba",
+  "mechanism": "delegated-harness-native descendant /root/group_c_manager/group_c_review; no children",
+  "source_hashes": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+    ".agents/skills/software-code-review/SKILL.md": "ee085d589c44f912d11a59eead8edac214f0343761d26b0d33e886a979888bca",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "docs/alignment-manual/README.md": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+    "projects/chirality-app-dev/AGENTS.md": "41995dfe123041e1d0235a73e532fddb913f2c2124a9e8ec43857a87d7e5822c",
+    "projects/chirality-app-dev/loop/LOOP_INIT.md": "8b975c10acf6c4394f5423d4def20aeb4583159c691e8d3d11a41ce7451e6a25",
+    "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Design/DOMAINS_RECEIVING.md": "7bfa7fc496667652340573e7b50bc3fe94edfc4490e8b83d29a1feea2b558243",
+    "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.schema.json": "a6823eebb2872d0d563b7e77589a0cc2f7cd2545abe654e5b427af7d79365286",
+    "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.standing.schema.json": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
+    "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16",
+    "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Design/PEC_RECEIVING.md": "4abb2c05736ee7cb7f6e67cb387bda7d6aaf3e27348bd0f319765d5e5c433c3e",
+    "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/D/eud1.py": "daaa681415f8fa08bce039c71674e2cc7a59f01eeb6d83af20e59b11f14f2225"
+  },
+  "consultation_notes": "App v3 AGENTS and LOOP_INIT initially read during path discovery, not applicable; App v4 LOOP_INIT explicitly excludes their application. Manual v3 headings only. PEC/Domain design derivation sections and prototype receiving/projection functions read. No MEMORY read or written. No tests or provider acts."
+}

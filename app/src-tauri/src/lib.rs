@@ -11,6 +11,7 @@ pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
 pub mod catalog;
+pub mod connector_standing;
 pub mod decision_view;
 mod file_act_root;
 mod file_act_view;

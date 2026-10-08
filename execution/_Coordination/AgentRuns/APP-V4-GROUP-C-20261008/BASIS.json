@@ -1,0 +1,146 @@
+{
+  "revision": "7311df06d81ce4d45bb1222080e52731f1ed45ba",
+  "reading_limits": "Manager read Field Book, selected workflows and primary Design bodies; Agent User Manual headings and relevant \u00a7\u00a77\u201311; management manual \u00a7\u00a74.2,4.5,4.8,4.10; SoW output/open-input and selected requirement/method sections; dependency rows; targeted A/B graph recovery. Hashes identify consulted files, not a claim that every line of every file was read. Child reading returns supply their own source history.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+    },
+    {
+      "path": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "sha256": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6"
+    },
+    {
+      "path": "workflows/construct-local-work-graph/resources/work-graph-template.md",
+      "sha256": "5661c6097cee51c770b8f1e6bf765c50ebc3e39c3e51df7173cbcb65e40a6fa6"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v8.md",
+      "sha256": "3ce966305415d2b39a444fc1622c5e54633d209b13516cd286442d4eb2afda76"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/GROUPS.md",
+      "sha256": "d96c399755fe2369cab96d29f73744834a98d70678f2f273f9ad01b0b129940f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/GC_RULINGS.md",
+      "sha256": "22187acaffb9a0e2c5ef6ed415cce0c62c6e6db06361405cf8caf642b5a59a92"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_LATEST.md",
+      "sha256": "b9353a41fe9765a3d8e7548fceddc1679e37775611b7665251b6f1cf55d4ca2d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-004/HANDOFF_STATE.md",
+      "sha256": "3c374f5e9fa4cfaa479699cddf5191b69bba2e0fe4707cb17acbe27dddc528ba"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/_LATEST.md",
+      "sha256": "25b882c6e82f6623d3e1434b90e9c196a205a5258b7585c945565270289cff09"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md",
+      "sha256": "6093db7cbfc067d90cec8647ca1cb79bbc8709bb89484b527ec839c759be9605"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md",
+      "sha256": "e62e0a758303e69af7914c5e1641eb8e390f34c3817061446691245ac40cd8bf"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/README.md",
+      "sha256": "cdb08450a1cb29bd5e6e10d491efc6f537cc4ca08ba2e0add395e4223e7148b2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/ScopeOfWork.md",
+      "sha256": "5e2fba1d2191d97832a3f09feeb91f4f4231775a6a99b2b6c769a54c43edc5e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Dependencies.csv",
+      "sha256": "62fc67a92d230f27bb5b3b62d4a65772245dc1810ef0b74f05df749c94308fa3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Design/PEC_RECEIVING.md",
+      "sha256": "4abb2c05736ee7cb7f6e67cb387bda7d6aaf3e27348bd0f319765d5e5c433c3e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md",
+      "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Dependencies.csv",
+      "sha256": "42b737be974b711a72570e910b716a834782ffaba5e693dd23988163170f9122"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md",
+      "sha256": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md",
+      "sha256": "df2795869011f9364d5acf7541d66e2c32ffdd382c757153ad8d1fe8492607d7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Dependencies.csv",
+      "sha256": "69bc284d0f71ed0d13d3c6c49e7267e447bc02f8d5e37df790eff1e2d4432a06"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Design/DOMAINS_RECEIVING.md",
+      "sha256": "7bfa7fc496667652340573e7b50bc3fe94edfc4490e8b83d29a1feea2b558243"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/ScopeOfWork.md",
+      "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv",
+      "sha256": "18b0ab8b79e9faac97161c92f0441197f9f609342c5beb5aa0e241b1158b88de"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Design/RESEARCH_TO_DESIGN.md",
+      "sha256": "3143ee65fbfd1b4dd856aaef8bd516ec84ed2f37e771941fbf43485851a9f059"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md",
+      "sha256": "0d8e5b2774c26cde277fbb98b394fdc74a4bf6c171f1fea89904d7a6062565e8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "6ef9c0ba66ee42f6b786540aa3f26b1104a6fd82c4623d00f28d564d493afabb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/HANDOFF_STATE.md",
+      "sha256": "96a1bb5f220099b15dfe795df37e5e013849dceecc4f7bc67d0b25c4994041db"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md",
+      "sha256": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657"
+    }
+  ]
+}
