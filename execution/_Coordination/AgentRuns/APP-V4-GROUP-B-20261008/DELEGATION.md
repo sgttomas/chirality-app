@@ -127,3 +127,23 @@ adoption after automatic review rejected child-worktree Design placement;
 HELP_HUMAN explicitly selected the manager-worktree route. Child original
 scope remained intact. Integrated 35-test and 119-definition suites pass.
 Final full-candidate review is pending; no native/product standing follows.
+
+## B3 offline admission continuation after PR #1119
+
+HELP_HUMAN assigned continuation from merged 45796bc1159. Manager fetched main
+and created codex/app-v4-group-b-support-admission, clean at entry. Existing
+TASK support_production activated through Codex followup_task, its own new
+codex/app-v4-group-b-admission-author branch from the same base. Requested
+model remains gpt-6-astra/low. Write fence: new app/examination/admission/,
+tests/group_b_admission*, and admission-prep run evidence only. No delegation,
+downloads, credentials, native/browser execution, signing/notary or user Codex
+home. Actual host permission still governs access.
+
+Task covers offline EXP review/change-impact checking and source-faithful route
+admission preparation as grounded by current contracts. It may not manufacture
+examiner observations, admission or qualification. Parent separately owns
+CC-HOSTING-DISTRIBUTION-01 integration/compatibility: existing packaging,
+examination and standalone manifests stay untouched; CI-26 remains unresolved.
+Independent separate-session review follows a frozen candidate. B9 is not
+included: current unresolved terms obligation is already explicit, and adding
+a duplicate record contributes little to this bounded implementation.

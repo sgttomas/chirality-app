@@ -4,7 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS `/root/group_b_manager`
 owns integration under HELP_HUMAN `/root`. Current graph ref:
-`codex/app-v4-group-b-offline-preparation`, now based on merged first slice
+`codex/app-v4-group-b-support-admission`, now based on merged second slice
+`45796bc1159ef7903db37863d0c4a192975c0071` (PR #1119); prior first slice
 `462f66975d36cd10d5b8455193ada9517d28d353` (PR #1117); originally based on Group A closeout merge
 `7b0170ed4d3f0a1a0b4b9cdb2128a60526d74af9` (PR #1116).
 
@@ -59,7 +60,7 @@ authors. Each production slice carries its necessary documentation and checks.
 | P1 first substantive integration | Manager/HELP_HUMAN; B1, graph, checks and slice documentation | V1 READY and actual candidate checks | PR with graph and implementation; required CI; merge coordinated with HELP_HUMAN | COMPLETE PR #1117 merged at 462f66975d; parent-coordinated exact-head review and CI retained in PR |
 | B2 unsigned package configuration and inventory | DEL-01-06 OUT-001/002; packaging TASK, app packaging files and PKG evidence assigned before dispatch | Group A App source/pin, complete approved vendor tree, current WR/ROLE bundle inputs | CF-1…8 represented without credentials; P-0…4 layout; FP-0 at selected pin; FP-1(a) actual tree/mode/link comparison; missing content marks incomplete | PARTIAL reviewed e8c98c423 inventory/staging increment integrated;16 tests; actual42-file staging; no App package |
 | A-IN full distribution verification receiving | DEL-01-01 owning Group A follow-up; HELP_HUMAN coordinates; B manager receives only | Before FP-2/W-4, actual expected full-tree identity and runtime verification/launcher contribution | Reviewed implementation produces verified standing for exact packaged tree; development digest exception never satisfies this | ACTIVE receiving investigation recorded in distribution_input/PROPOSAL.md; CC-HOSTING-DISTRIBUTION-01 separately commissioned by HELP_HUMAN; implementation/qualified identity pending |
-| B3 finish reusable support and route admission | DEL-09-01 OUT-001…004; examination TASK, maintained fixtures/adapters and EXP evidence | B1; identified recordings and installed runner engines; route configuration | Resolve CI-26 full support identity representation through owning Design review; EXP-VC-01…15 relevant checks; five outcomes, actor separation negatives, review/change/criteria checks; EXP-DC-RUNNER WebKit/Chromium sensitivity/isolation; N-1 form; N-2 only if separately admitted | PLANNED; absent recordings/engines stay named gaps, no downloads presumed |
+| B3 finish reusable support and route admission | DEL-09-01 OUT-001…004; examination TASK, maintained fixtures/adapters and EXP evidence | B1; identified recordings and installed runner engines; route configuration | Resolve CI-26 full support identity representation through owning Design review; EXP-VC-01…15 relevant checks; five outcomes, actor separation negatives, review/change/criteria checks; EXP-DC-RUNNER WebKit/Chromium sensitivity/isolation; N-1 form; N-2 only if separately admitted | ACTIVE bounded offline review/change-impact and admission preparation TASK from45796bc; CI26 and successor compatibility pending separately; actual runner/native checks unrun |
 | B4 first-package signing/notary decision package | DEL-01-06; packaging owner prepares exact candidate/configuration/commands and FP record; owner performs account acts | B2 unsigned package + FP-0/FP-1(a); actual App identity/minimum OS chosen; owner point-specific action | Reviewable signing/notarisation subject and consequences; no credential in records; no signature or notary claim before action | PLANNED; owner act needed only at signing/notarisation point |
 | B5 signed package identity and Option B reliance | DEL-01-06 OUT-002; packaging owner/owner act, PKG evidence | B4 execution; unchanged supplier tree and full signatures | FP-1(b), FP-3 pass before Option B reliance; outer deep-strict and Gatekeeper evidence; PK-R1…9; no fallback without cause/CS-1…4 and HELP_HUMAN Design route | PLANNED; SIGN-1 B accepted for design, reliance unestablished |
 | B6 M2 install witness and M3 packaged smoke | DEL-01-06 OUT-003 and DEL-09-01 OUT-004; respective examiners, evidence only | B3 support, B5 package, A-IN verification, quarantine and point-specific native authorization | PKG W-0…6/FP-2/4/5 with WKWebView/config/date; separate EXP native packaged smoke citing same package/support; Gatekeeper refusal is fail, absent unattempted package is not-run | PLANNED; no package/native act supplied |
@@ -172,3 +173,15 @@ this notice changes no receiving authority. Historical FX-RP1 fixtures remain
 frozen. The named change packet records exact scope, source conflict and 119/0
 definition checks. Existing real dossiers require their examiner's EXP §6.2
 impact assessment; no old evidence is upgraded.
+
+## Third increment — offline B3
+
+P2 merged as PR #1119 at 45796bc1159; its reviewed offline preparation retains
+its original limits. Current B3 adds file-level review/change-impact support
+and route-check preparation against current accepted contracts. It does not
+choose or execute a browser/native runner. Parent separately coordinates
+CC-HOSTING-DISTRIBUTION-01 and consumer compatibility; the three existing
+source manifests are out of this slice's write scope. No bare hash adoption.
+Next: frozen author contribution, independent V3 review, integrated checks and
+parent PR/CI integration. B9 unresolved terms already remains explicit and is
+not duplicated merely to create an output.
