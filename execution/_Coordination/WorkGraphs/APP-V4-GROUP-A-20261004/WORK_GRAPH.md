@@ -93,3 +93,23 @@ GC-8 entry recovery inspected all pre-existing WorkGraphs; there are no active B
 The reviewed implementation and its evidence are integrated through PR 1115 (`0e62b8e36b`). The source-to-obligation comparison and limits are in C1; the single run receipt and local pointers are M1. Earlier handoffs, reviews, probes, failed vectors and validation remain in this run directory and Git history. They retain their original candidate scope. A passing unit test, an earlier READY review, a native witness, and the final merge are different warrants.
 
 **Next:** obtain an independent review covering draft PR #1116's actual head, wait for required CI, repair and recheck any blocking finding, then merge under Root's standing Git authorization. Report the produced candidate, residuals and actual merge to the owner for the owner's 90% decision. Do not add the optional V15-R1 R1-1 repair or re-witness observations as hidden F1 gates. No gate claim or product release follows from F1.
+
+
+## A-IN successor receiving notice — CC-HOSTING-DISTRIBUTION-01
+
+HELP_HUMAN's cross-group integration preserves accepted current HOSTING/PKG
+Design bytes while retaining the full distribution method as a separate
+proposed successor. This does not adopt the method or complete Group A's hosting
+input to B. CI-27 remains open. [Group B A-IN-S1…S5](../APP-V4-GROUP-B-20261008/WORK_GRAPH.md#a-in-receiving-continuation--cc-hosting-distribution-01)
+carry executable continuation, with the [integration account](../../AgentRuns/APP-V4-GROUP-B-20261008/distribution_integration/INTEGRATION.md)
+as shared disposition.
+
+DEL-01-01 owns S1 expected/observed/lifecycle successor contracts with DEL-01-06,
+S2 connected resolver/verifier/launcher/lifecycle implementation, and S3 actual
+supplier-reference qualification. Group B owns packaging and S4 receiving
+consumer joins, then S5 package witness. DEL-01-02/03/05 and DEL-04-03 assess
+generation, diagnostics/version and configuration consequences before adopting
+S1/S2 outputs. These are assigned responsibilities, not executed children or
+completed obligations. No runtime evidence is upgraded; missing qualified
+reference still prevents verified/FP-2/W-4 reliance. Existing Group A closeout,
+native evidence, SEAL-2 deferral and owner-reserved acts are unchanged.

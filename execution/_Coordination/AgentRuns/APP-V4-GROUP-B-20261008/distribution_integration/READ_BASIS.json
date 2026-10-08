@@ -1,0 +1,35 @@
+{
+  "candidate": "4c5f691c82d887d943849bf15a5efb9a99eec455",
+  "workflow_identities": [
+    "chirality-root:bundled:workflow:coordinated-knowledge-work",
+    "chirality-root:bundled:workflow:construct-local-work-graph"
+  ],
+  "reading_scope": "Root/role/LOOP_INIT, full Field Book, Agent User Manual headings and coordination/integration/change sections; A/B graphs and relationship search in other graphs; Design packet. Hash binds file origin, not full-read claim where selected sections consulted.",
+  "files": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_WORKING_ITEMS.md": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "docs/alignment-manual/README.md": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+    "workflows/index.json": "2e418cf269853b45b7d09391488447717a82fe68a0ad35b7182539734cee3e2d",
+    "workflows/coordinated-knowledge-work/WORKFLOW.md": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18",
+    "workflows/construct-local-work-graph/WORKFLOW.md": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-2-20260930/WORK_GRAPH.md": "a63ae48c625a286039b666f8011c3479c1a081871421098fbf89d04ca80bca6b",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-3-20261001/WORK_GRAPH.md": "033f7ff5a5c23b8554f21d88c43f707ca5917dd3895178103a503562ece534b8",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-BASIS-ALIGN-20260928/WORK_GRAPH.md": "49ec746460ad24917379abc1ab4d60a6419cc22bbac0b5466f76cdfa0987e8d0",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md": "c780242d82b7f754df52969fb32a05e80aecba6cc21851073312277b77cfab78",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md": "ccb38b4ce671a96e918b41ef60efb6040b94c544411dbbc4b8da6ef6065d1cdb",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md": "a3dbbc363c78c160ee7824cff401a34d7f0a75958a1184e1a4f647dbbb83d573",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GRAPH-CLOSURE-20261004/WORK_GRAPH.md": "89745eda82eb96180d1feef1899fecb705d4f4fa8d295d33d3c8059817143eb6",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-SCA003-20261002/WORK_GRAPH.md": "1031fd82d7b9310345d84b99036cecd3165ecfd1f1e1161c68ae92b753075e0b",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-SCA002-20260929/WORK_GRAPH.md": "2d424274d749ea5e45fa34031ed162704485497b309e6dec42d183bfc5ec9dd0",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-FIRST-INCREMENT-20260928/WORK_GRAPH.md": "b8ecdfe3aeb17a54a4a531bc2340a93494d45ad13774bcfa2e1232bfcf54fe32",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md": "680a1c5e8eb80acaebc282e3c05b1b7f4ba221354bdc0291c5cf6ed0ae5535e0",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-SWBPIPE-INTAKE-20260928/WORK_GRAPH.md": "2ecddfc5267bb72d84c29e031daf7246e3c7f474ab8d26b3d92b3a4f55b98dd5",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/hosting_distribution_design/DESIGN_AMENDMENT.md": "e0f0d9c6f8ee0c97ead8028cb6c3fe3a859d9e7338ad0479eea6ad924040dabe",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/hosting_distribution_design/VALIDATION.md": "8a69bcdfce49fcd71c04afb54fe0705ff14d70ed0a7d3123f555af0c78ca2398",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/hosting_distribution_design/PROPOSAL.md": "24ecff8ec8871eddb15eba79bd1335d90423a5f321077c6ce6b1a0a1066ecd99"
+  }
+}

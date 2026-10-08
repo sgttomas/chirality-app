@@ -1011,6 +1011,17 @@ changed.
   reliance on FP-2. B2 preparation can continue; FP-2/W-4 waits for the reviewed
   Design, qualified expected input and connected implementation.
 
+
+- **Receiving disposition — CC-HOSTING-DISTRIBUTION-01:** the in-place amendment
+  at `4c5f691c82` is superseded for integration by explicit proposed-successor
+  staging. Current HOSTING/PKG contract bytes and all three consumer source locks
+  remain on accepted bytes preserved at `45796bc`; no bare repin or new-method
+  support claim. Proposed inventory schema/model rejects malformed digests.
+  See `execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_integration/INTEGRATION.md`.
+  CI-27 remains OPEN: Group B graph A-IN-S1…S5 assigns versioned contracts,
+  connected implementation, reference qualification, consumer joins and final
+  packaged witness. Staging satisfies none of those successor obligations.
+
 ## CI-28 SQ J-2 omitted its already required ST-4 stimulus
 
 - **Found:** Group B B7 preparation, 2026-10-08. SQ §3.1/§3.4 and ST-4
