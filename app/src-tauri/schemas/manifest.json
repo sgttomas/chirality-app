@@ -27,13 +27,13 @@
     {
       "file": "aac.offer.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.offer.schema.json",
-      "sha256": "f2091fcf2583b6863370ba51d86f4c8671dbae5bbd6fe0e39046154d98c7d066",
+      "sha256": "34e61d5ac20bc4481f43bff3431dbab5e9032bcac966354ce9861c8b7b9d603e",
       "id": "urn:chirality:app-v4:del-01-04:aac:offer:0.3"
     },
     {
       "file": "aac.capture-evidence.schema.json",
       "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/aac.capture-evidence.schema.json",
-      "sha256": "4405a1228e5982d948eb82776aaaf54d966d4305f8829a656473a523ad1ca4ba",
+      "sha256": "53e4a553b765dab705b1dc251c25d9755ddaafb26d762d5f03386ed7047241e4",
       "id": "urn:chirality:app-v4:del-01-04:aac:capture-evidence:0.3"
     }
   ],

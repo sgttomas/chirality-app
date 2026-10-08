@@ -668,3 +668,19 @@ Proposed AAC clarification (for the AAC owner; not applied):
 > the same digest before the person opens the control; the capture binds the
 > reviewed content as before. A statement the surface cannot show whole is
 > refused with its cause and nothing is captured (as §4.1a), for every kind."
+
+## CI-23 RS schema `if` breaks the DEL-04-03 and WR prototypes
+
+Found 2026-10-08 by independent review V13 (CC-WR-RECONFIRM, Q8), and
+reproduced on an unmodified tree. `RS_RECORD.schema.json`
+`#/$defs/suppliedGuidance/allOf/2` uses the keyword `if`. DEL-04-03's
+`minischema` does not support it, so DEL-04-03 `run_prototype.py` and WR
+`wrproto.py` exit 1 ("unsupported keyword 'if'") before running any check.
+The keyword entered with the CC-RS-WR-SUPPLY-FIT candidate (checkpoint
+`0a2ed81b47`), which was checked with the installed `jsonschema` rather
+than `minischema`. The App's validator, `jsonschema`, is unaffected, and
+App tests pass.
+
+Owner: DEL-04-03 (RS). Options: rewrite the rule with `anyOf`/`not`, or add
+`if`/`then` to `minischema`. The App copy must follow either way. Until
+then, the Design prototypes do not run as evidence.
