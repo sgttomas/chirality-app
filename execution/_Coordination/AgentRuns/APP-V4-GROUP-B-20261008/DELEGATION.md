@@ -127,3 +127,41 @@ adoption after automatic review rejected child-worktree Design placement;
 HELP_HUMAN explicitly selected the manager-worktree route. Child original
 scope remained intact. Integrated 35-test and 119-definition suites pass.
 Final full-candidate review is pending; no native/product standing follows.
+
+## B3 offline admission continuation after PR #1119
+
+HELP_HUMAN assigned continuation from merged 45796bc1159. Manager fetched main
+and created codex/app-v4-group-b-support-admission, clean at entry. Existing
+TASK support_production activated through Codex followup_task, its own new
+codex/app-v4-group-b-admission-author branch from the same base. Requested
+model remains gpt-6-astra/low. Write fence: new app/examination/admission/,
+tests/group_b_admission*, and admission-prep run evidence only. No delegation,
+downloads, credentials, native/browser execution, signing/notary or user Codex
+home. Actual host permission still governs access.
+
+Task covers offline EXP review/change-impact checking and source-faithful route
+admission preparation as grounded by current contracts. It may not manufacture
+examiner observations, admission or qualification. Parent separately owns
+CC-HOSTING-DISTRIBUTION-01 integration/compatibility: existing packaging,
+examination and standalone manifests stay untouched; CI-26 remains unresolved.
+Independent separate-session review follows a frozen candidate. B9 is not
+included: current unresolved terms obligation is already explicit, and adding
+a duplicate record contributes little to this bounded implementation.
+
+B3 selected the bounded review/change-impact path: canonical record validation
+and explicit selected-result joins. Author 809a7bfa850c7e6f6e25b48b66521dec8e98507a
+reports 15 tests. Opaque aliases are tooling inputs; other references remain
+unresolved, with no complete affectedness, actual review/repair or admission
+claim. N-1 forms and DC-R/DC-N runner/tool checks remain future B3 work.
+
+Existing separate TASK first_slice_review was activated on its own new
+codex/app-v4-group-b-admission-review branch at 45796bc. It is reviewing code
+while author records exact-candidate evidence; actual Codex harness mechanism
+is followup_task, requested model still gpt-6-astra/low. No family-diversity
+claim. Reviewer may probe offline but cannot edit implementation.
+
+Author final 15594c287d80 returns repair 6acb23613a90 after V3 found the generic
+check/rules import collision. Separate reviewer confirmed original combined
+discovery now 51/0 and both import orders. Manager independently ran 51/0 on
+integration. Original evidence remains historical; F1-repair binds repaired
+module names/bytes and CLI outputs. Whole-candidate docs review pending.

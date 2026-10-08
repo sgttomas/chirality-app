@@ -1,0 +1,165 @@
+diff --git a/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md b/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md
+index 7911590d5be976befafd0618a417f808c7dedd5d..020b3ce038ea4762f198df5b39666e9f056f5012 100644
+--- a/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md	
++++ b/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md	
+@@ -1,5 +1,10 @@
+ # Stock Codex hosting boundary
+ 
++**CC-HOSTING-DISTRIBUTION-01 amendment candidate:** §7.4 supplies the selected
++full-tree method, launcher and qualification-evidence obligations. Pending
++independent Design review and HELP_HUMAN integration/adoption; no pin is qualified.
++Historical version headers and observation records below retain their standing.
++
+ **SUP1 current supplier basis (proposed controlled adoption):** owner-authorized
+ development/definition pin 0.160.0; §7.0/generated/0.160.0 govern maintained
+ identity. Historical 0.158.0 evidence below remains dated; qualification absent.
+@@ -453,8 +458,8 @@ or restart names the home it applies to.
+ ### 4.2 Operating sequence: start
+ 
+ 1. **Resolve** the supplier distribution the App candidate declares as its
+-   pinned supplier, and the launcher (U-17; location is a packaging concern,
+-   DEL-01-06).
++   pinned supplier, and the direct vendor launcher (§7.4, named amendment
++   candidate for U-17; location is a packaging concern, DEL-01-06).
+ 2. **Verify** it (§7.2). Mismatch or unverifiable → `refused` with a reason;
+    no child is started as the pinned supplier.
+ 3. **Spawn** with the recorded launcher/argument/environment set; assign
+@@ -1329,6 +1334,21 @@ binary and has no such effect.
+   answer-validity rules (R2/R5); how much of the type set the Rust side
+   carries is part of OI-008 (§12).
+ 
++### 7.4 Full distribution method (CC-HOSTING-DISTRIBUTION-01; candidate)
++
++[DISTRIBUTION_IDENTITY.md](DISTRIBUTION_IDENTITY.md) defines the exact
++`codex-vendor-tree-v1` manifest plus complete inventory comparison, bounded
++supplier-reference qualification, direct launcher/configuration, and verifier
++obligations. It supplements §7.2 without weakening its label/content/generated
++three-part rule, mismatch precedence, H-probe isolation or LT-24 limits. §7.1
++remains historical; §7.0's expected qualified identity remains absent.
++
++The new inventory schema and pure value prototype establish only representation
++and algorithm checks. Lifecycle/expected/observed-record and PKG schema
++successors, their consumers and the real runtime verifier remain propagation
++work. Old lifecycle and PKG shapes cannot represent this full contract and are
++not silently upgraded. Named review and HELP_HUMAN adoption are still pending.
++
+ ## 8. Seams to receivers
+ 
+ | Seam | Receiver | Supplied by this boundary | Not supplied here |
+@@ -2315,7 +2335,7 @@ v3 code is evidence of behavior, not qualified v4 material.
+ | U-05 Restart bound values and grace period | App implementation owner with DEL-01-02 | Before implementation | Rules defined; numbers open |
+ | U-06 Running an unverified distribution for development, and its label | CC-H candidate LT-24; independent review pending | Before product propagation | Explicit unverified-development route; mismatch refused; no pin qualification |
+ | U-07 Use of the supplier's notification opt-out (`optOutNotificationMethods`) | App implementation owner | Before implementation | Definition uses none (H7) |
+-| U-08 Content-identity algorithm for distribution/output/supplement/guidance records | App implementation owner (with DEL-04-03) | Before qualification records | Spike used SHA-256 as an observation method; not selected for records |
++| U-08 Content-identity algorithm for distribution/output/supplement/guidance records | App implementation owner (with DEL-04-03) | Before qualification records | Distribution portion: CC-HOSTING-DISTRIBUTION-01 candidate selects codex-vendor-tree-v1 (§7.4), pending review/adoption. Output/supplement/guidance portions retain their existing owning decisions; no broader closure |
+ | U-09 Acknowledgment observation mechanism; `serverRequest/resolved` triggers | DEL-01-02 with this deliverable | Before settlement fixtures | Candidate source named; semantics open. v0.8: the PROPOSED reading of §6.2.1 (after a written reply it is an acknowledgment observation; before any reply, `resolved-by-supplier`) is exercised against the double. OBS-1b observed the notification once, 8 ms after a written accept (§10.1 OB-4), consistent with the reading. **v0.9: narrowed.** The RT-12 reading is adopted by DEL-01-02 (RECOVERY-v0.2 §6 U-09); the before-reply trigger is observed for `turn/interrupt` (OBS-2 O-3; §6.2), so that trigger is closed. Open: other before-reply triggers, and whether every kind is followed by a notification after a reply (for *not-observable-at-pin*) |
+ | U-10 Stop-time handling of outstanding entries. **Closed (v0.9)** by RECOVERY-v0.2 §6 U-10: no App decline at stop or quit; entries end `ended-unanswered(process-exit)` (§4.5 step 2) | DEL-01-02 | — | Consistent with OBS-2 O-2 (no re-raise, no resolution sent) |
+ | U-11 Any automatic decline after a period (incl. the native `timed_out` form). **Closed (v0.9)**: none; `timed_out` is never sent (R17-9; RECOVERY-v0.2 §6 U-11; R3) | — | — | R3 |
+@@ -2324,7 +2344,7 @@ v3 code is evidence of behavior, not qualified v4 material.
+ | U-14 DEL-01-01/DEL-01-02 unknown-request split (F-01). **Closed (v0.9)**: RECOVERY-v0.2 §1 accepts §6.5 as written | Both owners | — | §6.5 |
+ | U-15 Reference generator output (O-R1/O-R2/O-R3) | App implementation owner | Before R2/R5 implementation and conformance | Options in §7.3 |
+ | U-16 Supplier descendant handling on stop/restart/overlap | DEL-01-02 with App implementation owner | Before lifecycle implementation | H11 requires detection and recording. **v0.9:** policy PROPOSED in RECOVERY-v0.2 §6 (the whole tree ended at a deliberate stop; after an unexpected exit, survivors recorded and shown with a person's action to end them, not ended by rule; overlap wait a TEST VALUE), still with the App implementation owner. OBS-2 §11 shows why a deliberate stop ends the process group (H11) |
+-| U-17 Distribution-identity composition and launcher (wrapper vs vendor) | App implementation owner with DEL-01-06 | Before verification implementation | Both recorded; composition open |
++| U-17 Distribution-identity composition and launcher (wrapper vs vendor) | App implementation owner with DEL-01-06 | Before verification implementation | CC-HOSTING-DISTRIBUTION-01 candidate selects complete vendor tree and direct launcher with codex-path prefix (§7.4); pending review/adoption |
+ | U-18 Supplier network fetch at start: acceptability (framed up to v0.6 as "under priority 3"; the amended priority 3 speaks of a host's agent, and no accepted text now decides this traffic, L-4); configurability (not addressed by D5, which concerns host content reaching the conversation model) | Owner with DEL-01-05 | Before any local-operation claim; the supplier's start-up fetch is left for the phase review (DECISIONS_PENDING.md Part 3, standing under DECISION-K1) | Observed; no claim of local-only operation. OBS-1 and OBS-1b (§10.1 OB-9): with analytics off and no sign-in, start-up also contacts chatgpt.com (remote control; featured plugins, 401) and syncs github.com/openai/plugins on a warm home. **v0.9: decided for the App** by DECISION-K3 K-12 (as revised) with DECISION-L L-3 and R18-3: the App turns off what Codex's settings allow, plugins follow the person's own setting, the remote-control loop is shown (no internal environment variable is used), and the network view shows and records the rest (ACCESS-v0.2 §9). OBS-2 O-7 filled which setting stops which connection (§8.1 L-4). Still open: the update check (`check_for_update_on_startup` not tested), and the remote-control loop when signed in |
+ | U-19 Unobserved live behaviors (§10 "Still to observe") | App implementation owner (next spike; needs credential or local provider) | Before settlement fixtures, handshake implementation and qualification | Recorded as not observed. v0.8: OBS-1 is briefed for a subset (§10 note; `WAVE_B/OBS-1_BRIEF.md`). OBS-1 and OBS-1b observed part of it at one pair (§10.1); the MCP tool-call items remain unobserved because the local Responses route dropped the MCP tools (OB-1; F-31). **v0.9: narrowed** by OBS-2 and OBS-3 (§10.2, §10.3). What remains: an interrupt while an `agentMessage` streams; the remote-control loop when signed in; a shared home with a separate credential store (M4, M5); writes through a linked `config.toml`; a model-issued MCP tool call and whether it raises an A14 request; delegation on a stock pairing that accepts `namespace` tools, a child without an `agent_type`, and an interrupt reaching a child; whether deleting a fork's source breaks the fork; whether a skill disabled by `skills/config/write` is still injected by a `skill` input; plus the v0.8 items not touched (whether `initialized` is required, relocation, outbound frames without the version member, requested against effective model when they could differ) |
+ | U-20 Partition of the 0.158.0 server-request kinds and their R9 origin classes (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal; R9 classes fixed as INTEGRATION. **v0.9: narrowed** to the App implementation owner's confirmation: DEL-01-04 states the answer path and decline form per kind (NIR-v0.2 §4.1, §4.3), DEL-01-05 confirms `account/chatgptAuthTokens/refresh` as known-app-unsupported (ACCESS-v0.2 §7 CR-9) |
+diff --git a/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md b/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md
+index b8cc489f62fecf8b511f7358c698a4c72c20837c..08ce3d74ea7faac68e3f9f691224fb2a6a2238f2 100644
+--- a/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md	
++++ b/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md	
+@@ -1,5 +1,11 @@
+ # macOS packaging, signing and distribution evidence
+ 
++**CC-HOSTING-DISTRIBUTION-01 amendment candidate:** additions in §§4–5 select
++full-tree comparison and launcher evidence jointly with HOSTING §7.4. Pending
++independent Design review and HELP_HUMAN integration/adoption. The PKG-v0.2
++headers, schemas, examples, prototypes and historical observations retain their
++original standing; they do not implement the new full-record requirements.
++
+ - **Contribution:** DEL-01-06/PKG-v0.2. It supersedes PKG-v0.1 (frozen unit
+   U2, file sha256 `6920cd8c50b770772b15fe9665466cefb158f8c0d82e434b749006e8dc69b411`),
+   repaired for review `reviews/RV2-PKG-U2.md` under R23-22 and R23-26 (see
+@@ -242,13 +248,17 @@ unmodified tree but is not exercised (U-PKG-4).
+ | P-4 `Contents/Info.plist` | Bundle id, version, minimum macOS, no microphone string | App build | Version equals the identity record's |
+ | — App data, project folders | App-owned Codex homes (H-acct, H-key, H-probe), records, seeded guidance | Runtime | **Never in the bundle**; nothing is written into the bundle at run time |
+ 
+-**Launcher (proposed value for HOSTING U-17).** The App starts
++**Launcher (CC-HOSTING-DISTRIBUTION-01 candidate for HOSTING U-17).** The App starts
+ `Contents/Resources/codex/bin/codex` directly (the vendor binary), adding no
+ npm-wrapper environment. Reasons: a Tauri App ships no Node runtime for the
+ npm wrapper; PIN_SPIKE §3 observed the vendor binary started directly gives
+ the same handshake as the wrapper. The identity covers the whole vendor tree
+-(HOSTING §7.1 as written). U-17 stays the App implementation owner's with
+-this deliverable; this is a proposal to it, not an edit of HOSTING.
++(HOSTING §7.1 as written). The candidate HOSTING §7.4 / DISTRIBUTION_IDENTITY.md now supplies the joint
++method: prepend the resolved `codex-path` for probe and server; reject a prefix
++containing `:` or otherwise unrepresentable as one PATH entry; preserve inherited
++PATH remainder semantics; remove inherited npm managed-package variables; record
++actual nonsecret App configuration and separate H-probe/account homes. This
++selection remains pending named review and HELP_HUMAN adoption.
+ 
+ **Relocation (HOSTING §10 P-02; PIN_SPIKE UNRESOLVED).** P-1 keeps the
+ tree's relative layout, so the sibling resources stay where the binary
+@@ -290,6 +300,16 @@ identity record (`configuration.sha256`). It holds:
+ | CF-7 Notarisation | `xcrun notarytool submit --wait --keychain-profile <name>`; the profile is the owner's, stored in the owner's keychain; only its name is configured, no credential enters a file or record |
+ | CF-8 Stapling | `xcrun stapler staple` on the installer |
+ 
++### 4.4 Full-tree configuration addition (CC-HOSTING-DISTRIBUTION-01; candidate)
++
++OUT-001 also identifies method `codex-vendor-tree-v1`, the immutable qualified
++supplier-reference artifact and its exact-byte SHA-256, bundle-relative vendor
++root and direct executable, PATH-prefix convention and wrapper-variable removal.
++The expected artifact is outside the measured tree. App build identity binds its
++bytes; it does not contain a self-referential final package identity. Until a
++qualified reference exists, record that missing input; no development digest
++substitutes. Preserve CF-1…8 and the existing signing/owner-act boundaries.
++
+ ## 5. Package identity record (OUT-002; SCC-003 M2) — `pkg.identity-record.schema.json`
+ 
+ ### 5.1 Elements
+@@ -348,6 +368,35 @@ witness) go under `Evidence/EXP/<candidate key>/` per EXP §8.4.
+ - **PK-R9** Option B with any of FP-1(a), FP-1(b), FP-3 not `pass` carries
+   the limit "option B not yet relied on: FP-1/FP-3 not passed" (§3).
+ 
++### 5.5 Full inventory successor (CC-HOSTING-DISTRIBUTION-01; candidate)
++
++HOSTING §7.4 / DISTRIBUTION_IDENTITY.md defines the authoritative candidate
++method for published and packaged trees: exact file/directory/root-mode inventory,
++file sizes/digests and the unchanged §5.2 file-manifest encoding. Its inventory
++schema and pure-value prototype are maintained in DEL-01-01 Design. Reject
++unsupported links/types, invalid paths, unstable traversal or unavailable comparison
++as specified there; never omit them. The legacy shell pipeline in §5.2 is a
++historical illustration, not the production traversal for arbitrary names.
++
++A versioned successor to PKG-v0.2 must carry both full inventory artifact references
++and their exact-byte digests, method and qualified supplier-reference binding.
++PK-R1's successor must compare exact inventories as well as existing signature
++obligations; v0.2's manifest/counts/executable list alone is insufficient. The
++successor schema, examples, checker and maintained app/examination consumer must
++propagate together. They are not delivered by this text amendment. Existing v0.2
++schema/prototype passes retain historical meaning and cannot satisfy the new rule.
++
++FP-1(a)/(b) compare the actual packaged tree, published tree and qualified reference
++under this method, including root mode and empty directories; packaging preserves
++them or records a mismatch. Their successor evidence binds the observations,
++reference and comparison outcome. Pending qualification may be recorded as missing
++input while offline package preparation proceeds; no Option B reliance or FP-2/W-4
++pass follows from that state. FP-0 signature facts and FP-3 notarisation are
++separate requirements. FP-2/W-4 additionally consumes the complete runtime
++verification artifact for the same installed candidate. Runtime revalidation and
++stable-bundle custody are specified by HOSTING; this packaging text grants no
++execution authority. SIGN-2 remains the required escalation for Option A.
++
+ ## 6. Operating sequence and failure behaviour
+ 
+ | Step | Action | By | Failure → behaviour |
+@@ -513,7 +562,7 @@ and content identities are placeholders, labelled in `limits`.
+ | ID | Item | Owner | Point of need |
+ |---|---|---|---|
+ | U-PKG-1 | G-2, G-5, G-7 confirmed (FP-1, FP-3, FP-4, the witness) | DEL-01-06 at the first package | Before any reliance on B |
+-| U-PKG-2 | HOSTING U-17 launcher value (§4.1 proposes the vendor binary) | App implementation owner with DEL-01-06 (HOSTING U-17) | Before verification implementation |
++| U-PKG-2 | HOSTING U-17 launcher value (CC-HOSTING-DISTRIBUTION-01 candidate, §4.1; review/adoption pending) | App implementation owner with DEL-01-06 (HOSTING U-17) | Before verification implementation |
+ | U-PKG-3 | Qualification pin | **Decided by rule (R23-22):** 0.158.0 stays the definition and generation pin; 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built. FP-0 runs at that pin | When a candidate is built |
+ | U-PKG-4 | Voice host shipped but unused; no microphone string | App implementation owner | If voice is ever offered |
+ | U-PKG-5 | Minimum macOS version (CF-5) | App implementation owner | Before the first package |

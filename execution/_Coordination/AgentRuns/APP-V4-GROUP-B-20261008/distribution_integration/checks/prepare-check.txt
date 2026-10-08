@@ -1,0 +1,5 @@
+{
+  "preparation_matches_basis": true,
+  "errors": [],
+  "qualification_claim": false
+}

@@ -1,0 +1,86 @@
+{
+  "candidate_commit": "6acb23613a905ebd1e0339345f7a49eaf6071e44",
+  "candidate_tree": "5d18b6e0506e106b32c84bef0c8e0e635f596734",
+  "finding": "B3 F1: generic check/rules module names collided with B1 under combined test discovery",
+  "repair": "Only B3 modules renamed to admission_check/admission_rules; both import orders exercised in fresh Python interpreters. Inherited tests unchanged.",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "projects/chirality-app-v4/app/tests",
+        "-p",
+        "group_b_*test.py",
+        "-v"
+      ],
+      "cwd": ".",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "output": "combined-tests.txt",
+      "output_sha256": "dc7e867ae7db9d5da08945167eb79e71627feb194e3f4de057ccc68db14aa236"
+    },
+    {
+      "command": [
+        "python3",
+        "examination/admission/admission_check.py",
+        "review-join",
+        "--review",
+        "tests/group_b_admission_fixtures/review.json",
+        "--result",
+        "tests/group_b_admission_fixtures/rerun.json",
+        "--selection",
+        "tests/group_b_admission_fixtures/review-selection.json"
+      ],
+      "cwd": "projects/chirality-app-v4/app",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "output": "invented-review-join.json",
+      "output_sha256": "5c5b7f7c9a37352edd0c6abd7fb8c8a247b100a149e9af3666d9667fe438f65d"
+    },
+    {
+      "command": [
+        "python3",
+        "examination/admission/admission_check.py",
+        "change-join",
+        "--change",
+        "tests/group_b_admission_fixtures/change.json",
+        "--before",
+        "tests/group_b_admission_fixtures/before.json",
+        "--after",
+        "tests/group_b_admission_fixtures/after.json",
+        "--rerun",
+        "tests/group_b_admission_fixtures/rerun.json",
+        "--selection",
+        "tests/group_b_admission_fixtures/change-selection.json"
+      ],
+      "cwd": "projects/chirality-app-v4/app",
+      "environment": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "exit_code": 0,
+      "output": "invented-change-join.json",
+      "output_sha256": "329925ee9723ca69ab906f10b9dc1fa10b5e27031406837b99e9eddc6cfad1ed"
+    }
+  ],
+  "candidate_files": {
+    "projects/chirality-app-v4/app/examination/admission/sources.json": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511",
+    "projects/chirality-app-v4/app/examination/admission/README.md": "b5052c6affdbf72bee8b03d3487d4b08df8c013eaae6a3de283ae26c681c65a6",
+    "projects/chirality-app-v4/app/examination/admission/admission_check.py": "c51f02c8f4f05361b0a299fb85dfce98228f419913bde967fa22447628a6c49a",
+    "projects/chirality-app-v4/app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
+    "projects/chirality-app-v4/app/tests/group_b_admission_test.py": "f78de9802ceab4651d9fc0608b5be52cdab134aa41644bb01e58a05ef2954f48"
+  },
+  "limits": [
+    "51 passing offline tests and invented fixture joins establish only file-check behavior.",
+    "Original 809a7bfa evidence retained as historical; this record covers its repaired successor.",
+    "No actual review, repair observation, execution, route admission, package qualification or human acceptance established.",
+    "CI26 complete support identity remains pending; opaque aliases remain caller assertions.",
+    "Source origins and instruction consultation are recorded in ../SUPPORT_CHECK.json; this repair changes no canonical source bytes."
+  ]
+}

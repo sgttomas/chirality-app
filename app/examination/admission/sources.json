@@ -1,0 +1,11 @@
+{
+  "basis_revision": "45796bc1159ef7903db37863d0c4a192975c0071",
+  "sources": {
+    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
+    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/prototype/check_exp.py": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210",
+    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
+    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
+    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+  }
+}

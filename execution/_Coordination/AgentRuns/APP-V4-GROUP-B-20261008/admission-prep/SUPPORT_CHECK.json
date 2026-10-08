@@ -1,0 +1,123 @@
+{
+  "kind": "candidate_bound_offline_review_change_support_check",
+  "observed_at": "2026-10-08T05:10:02.959826+00:00",
+  "candidate": {
+    "revision": "809a7bfa850c7e6f6e25b48b66521dec8e98507a",
+    "tree": "ff41ee99cf48e6e1559899e1eab5282adf182d8c",
+    "subject": "maintained offline review/change support; not a native App candidate examination",
+    "files_sha256": {
+      "projects/chirality-app-v4/app/examination/admission/sources.json": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511",
+      "projects/chirality-app-v4/app/examination/admission/check.py": "901b509f47e4d76dc9e34f72f9fc9017bea61d7b4ad9de9ce928906e46f8d7e8",
+      "projects/chirality-app-v4/app/examination/admission/rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
+      "projects/chirality-app-v4/app/examination/admission/README.md": "10b2522819a346c2e442688f989621e01c2221b7a3c66ffbcfc31082646f53f6",
+      "projects/chirality-app-v4/app/tests/group_b_admission_test.py": "26d61c83904e3a1f27e0c21bb2c109afacf68798c69145d3c69ea205c5c9522a",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/before.json": "db617352d714a4d940fece3c0e0f5391d8c0294ace270973158bc8f5f8f151ae",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/rerun.json": "c225162c2ccae84c98626913da5aa8d9423ba8be059157de0ae059b4ce131107",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/change-selection.json": "e311fd785842bbe278eba2d8298f57bfa630fc495161dcc794f011e5fa36c0e0",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/review-selection.json": "4aca4bb84203b5b4ffb59cffe4ad51fa17b81f90c770739cd5f9f84d02f524c1",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/after.json": "47fc92d334219f7cfdb55e3786246df67b2b99f868d13d44f5da56affbc5deec",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/change.json": "176564a5bebab148db7c2f10be3ccec9fd9130793c0960d2f302ec613acc4c51",
+      "projects/chirality-app-v4/app/tests/group_b_admission_fixtures/review.json": "5cf78bef4eef8d86f642b2729a6ecc2cb721a022a04d0eaab76f6ddf33aa8fb2"
+    }
+  },
+  "delegation": {
+    "mechanism": "delegated-harness-native followup_task",
+    "parent": "/root/group_b_manager",
+    "child": "/root/group_b_manager/support_production",
+    "role": "TASK",
+    "descendants": "none",
+    "basis": "Parent bounded B3 brief at45796bc1159ef7903db37863d0c4a192975c0071, exact supplied message in harness history",
+    "model_request": "gpt6astra/low stated in parent brief; runtime identity not separately exposed",
+    "scope": "new app/examination/admission, tests/group_b_admission*, run/admission-prep; no shared manifests or contract edits"
+  },
+  "environment": {
+    "python": "3.13.7",
+    "jsonschema": "4.26.0",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
+  },
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "tests/group_b_admission_test.py"
+      ],
+      "cwd": "projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "tests.txt",
+      "sha256": "99db0f0df9300db7da8cf124fd9cdc3586aa94e2280eabc42035f4451ca814c5"
+    },
+    {
+      "argv": [
+        "python3",
+        "examination/admission/check.py",
+        "review-join",
+        "--review",
+        "tests/group_b_admission_fixtures/review.json",
+        "--result",
+        "tests/group_b_admission_fixtures/rerun.json",
+        "--selection",
+        "tests/group_b_admission_fixtures/review-selection.json"
+      ],
+      "cwd": "projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "invented-review-join.json",
+      "sha256": "6871c17f4ce9ef29d6d597cd787b7b3df032a5b21c53de90f848e825e4d36df4"
+    },
+    {
+      "argv": [
+        "python3",
+        "examination/admission/check.py",
+        "change-join",
+        "--change",
+        "tests/group_b_admission_fixtures/change.json",
+        "--before",
+        "tests/group_b_admission_fixtures/before.json",
+        "--after",
+        "tests/group_b_admission_fixtures/after.json",
+        "--rerun",
+        "tests/group_b_admission_fixtures/rerun.json",
+        "--selection",
+        "tests/group_b_admission_fixtures/change-selection.json"
+      ],
+      "cwd": "projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "invented-change-join.json",
+      "sha256": "7bed1b6f3deb9d3aeaac682ed0a79698fcde302beb0386ded55b1a8b733200f3"
+    }
+  ],
+  "origins_sha256": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+    "docs/alignment-manual/README.md": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md": "680a1c5e8eb80acaebc282e3c05b1b7f4ba221354bdc0291c5cf6ed0ae5535e0",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/prototype/check_exp.py": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+  },
+  "reading_extent": {
+    "root_and_task": "full",
+    "loop": "full",
+    "manual_index": "current editions",
+    "field_book": "full current reread",
+    "agent_manual": "headings to3 levels and section11",
+    "graph": "current B3 dependencies and recovery; parent owns graph maintenance",
+    "EXP": "review/change/result schemas, valid/invalid/rule-violation examples, prototype rules; protocol sections3.5,4,6,7 and current SoW requirements/criteria/methods; inherited earlier protocol/SoW reading retained"
+  },
+  "result": "15 tests passed including canonical review/change vectors and explicit selected-record refusal checks; CLI actual file path checked on invented records",
+  "limits": [
+    "Review/change joins are only selected-record declared-consistency checks, not evidence that review/rerun/repair actually occurred.",
+    "Reviewer aliases, opaque subject/from/to identities and disposition references are explicit caller inputs; no real-world identity or authorization inferred.",
+    "Complete affectedness is not established; other referenced records are unresolved, unreadable reliance remains affected under EXP6.2.",
+    "No browser/native runner executed or admitted, no human act/credentials/download/signing/notary/user Codex home. Git fetch was the authorized source-recovery operation.",
+    "CI26 complete support identity pending; parent owns HOSTING/PKG successor compatibility and shared manifests.",
+    "No canonical schema or source criterion changed. Normal npm test is unchanged; use explicit Python command.",
+    "Independent review pending at author freeze."
+  ]
+}
