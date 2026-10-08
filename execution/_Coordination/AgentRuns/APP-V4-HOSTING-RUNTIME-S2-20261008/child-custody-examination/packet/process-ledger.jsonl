@@ -1,0 +1,6 @@
+{"argv": ["/usr/bin/clang", "-std=c11", "-Wall", "-Wextra", "-Werror", "-pthread", "/private/tmp/child-custody-examination-can9q7/examine.c", "-o", "/private/tmp/child-custody-examination-can9q7/examine"], "event": "directChildCreated", "monotonic": 98674.161451791, "pid": 94635, "role": "compile", "timeoutSeconds": 30}
+{"event": "directChildWaited", "monotonic": 98674.562525708, "pid": 94635, "returnCode": 0, "role": "compile"}
+{"argv": ["/private/tmp/child-custody-examination-can9q7/examine", "native"], "event": "directChildCreated", "monotonic": 98684.966547333, "pid": 94773, "role": "native", "timeoutSeconds": 20}
+{"event": "directChildWaited", "monotonic": 98685.5170655, "pid": 94773, "returnCode": 0, "role": "native"}
+{"argv": ["/private/tmp/child-custody-examination-can9q7/examine", "model"], "event": "directChildCreated", "monotonic": 98685.51911, "pid": 94785, "role": "model", "timeoutSeconds": 15}
+{"event": "directChildWaited", "monotonic": 98685.52312075, "pid": 94785, "returnCode": 0, "role": "model"}

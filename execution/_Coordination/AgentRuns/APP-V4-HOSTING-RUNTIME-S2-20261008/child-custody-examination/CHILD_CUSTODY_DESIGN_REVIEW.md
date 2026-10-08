@@ -1,0 +1,29 @@
+# Child custody Step 1 — independent design review
+
+Exact proposal SHA256: 3b408153091967c97148328fcae68af70309ca5f47254df9d88fd8f386fc221b. Repository basis: bf795b99d1f7093178b41ca93e638450eca2d8e0. Independent TASK under /root/hosting_runtime_manager; delegated harness-native review, no delegation. Read-only design/source review; no code, build, process probe or signal performed.
+
+## Production verdict: NOT READY
+
+The proposal correctly refuses production authority. Its isolated custody lock supplies a sound conditional serialization outline: no consuming observer, same guard through signal, irreversible revocation before final reap, and source settlement only after releasing custody. It does not establish current-kernel support, exclusion of external reapers/disposition changes, retained-group continuity, complete descendant knowledge or a warranted final reap point. Earlier pinned XNU source and SDK declarations cannot close those gaps. This review does not independently authenticate the external platform research; its stated limits remain part of the input.
+
+Source inspection confirms the consequential callers: hosting.rs legacy verify uses Command.output; on_eof consumes Child.wait; handshake failure/kill_group/Stop perform numeric signals and group_alive probes. Successor probe calls terminate on fcntl failure and after every observation outcome; terminate issues group kill, Child.kill and Child.wait. All of these must migrate together before any all-child or no-post-reap-signal claim. In particular legacy output is not merely a later inventory footnote: it consumes status internally and must either be included explicitly or excluded from the claimed custody coverage before production release. Test helpers with waits/watchdog numeric cleanup cannot be reused as proof of the new protocol without separate inspection.
+
+Required production refinements:
+
+- Specify how all-waiter and SIGCHLD/automatic-reap exclusions are enforced for the actual App and dependencies. A private Child field only excludes cooperating Rust callers. ECHILD must preserve unavailability; it cannot justify fallback numeric cleanup.
+- Name the App-lifetime owner of unresolved installed AND unpublished/probe cells, its atomic per-home reservation, and exact admission check through spawn. Host drop/reopen must not discard the association or permit a second child; no unbounded retired-cell list. A timeout or poison must not remove that reservation.
+- Resolve first terminal observation versus EOF scheduling: WNOHANG can yield no event when a live child closes stdout. Preserve one eventual observation owner without blocking under global locks, inventing exit status, silently losing later LT12, or adding unbounded polling threads. Step 2 summary repair need not be bundled, but the existing event obligation cannot simply disappear.
+- Choose a cleanup-completion/final-reap policy with explicit availability consequences. Holding an unreaped cell is not census; reaping revokes group action permanently. The proposed fail-closed stopping/unavailable/no-restart behavior is a material change requiring parent/source-owner disposition, including retry behavior and existing LT11/Stop result semantics.
+- Resolve App exit explicitly. Current lib.rs handles RunEvent::Exit, ignores Stop errors and records session end; a retention promise cannot outlive process exit by retaining an Arc alone. Preventing exit needs a separately accepted earlier interception policy; allowing exit must truthfully disclose responsibility loss. Closing publication is not by itself an all-start-admissions fence. No hidden shutdown join or supervisor transfer.
+
+These are blocking production gaps, already substantially acknowledged by the proposal. No canonical row, REC summary, supplier wrapper or restart change is approved.
+
+## Synthetic examination verdict: READY only for the following narrowed envelope
+
+Parent may release a standalone examination of naturally exiting invented direct children using zeroed WNOWAIT observation, repeated nonconsuming observation, one deliberate consuming wait, and explicit no-later-group-action traces. Record exact platform/SDK/executable, syscall return/errno/status and chronology; results establish observed behavior only. Also release inert-backend deterministic lock/reap/reuse/error/poison/closing interleavings. Intentionally reused numeric identities, migration/escape and unsupported-ownership cases must remain inert in this first examination.
+
+For any real multi-process fixture, require a concrete teardown design before running it: cooperative control pipes, known bounded child creation, each process's actual parent retaining exclusive wait ownership, and individual completion acknowledgments/status. Parent/fixture crash or timeout must have an independently specified cleanup route; it must not call the existing unconditional terminate helper, kill a cached group after reap, or infer no survivors from a closed pipe. If that teardown cannot be provided, omit real descendant/migration experiments and retain them as inert simulations. Merely calling descendants controlled or owned is insufficient.
+
+Run the SIGCHLD/auto-reap experiment only in its isolated helper, with no subsequent numeric signal on an ownership error and no mutation of the outer harness disposition. No process enumeration, PID reuse stress, arbitrary groups, supplier/native App, production module connection, or both-feature Host integration is authorized by this examination verdict. Numbered plan items involving actual Host integration belong to later implementation release.
+
+The narrow direct-child and inert experiments can proceed without pretending they settle production group continuity or census. Actual descendant cleanup needs the teardown refinement above first. Parent retains the execution release; this report itself runs nothing.
