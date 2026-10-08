@@ -1,0 +1,39 @@
+{
+  "method": "EXP-SUPPORT-BINDING-v1",
+  "adoption_merge": "5d562a1f11bdad3f6794f6ff4ca25e665e9f5e06",
+  "pins_ref": "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json",
+  "pins_sha256": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4",
+  "sources_verified": [
+    {
+      "path": "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/support-identity-v1/METHOD.md",
+      "sha256": "acbdb61f2301462a802aefe72c6d73953624b206e3a8c66fac6338ca19928588"
+    },
+    {
+      "path": "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/support-identity-v1/declaration.json",
+      "sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248"
+    },
+    {
+      "path": "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/support-identity-v1/binding.schema.json",
+      "sha256": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27"
+    },
+    {
+      "path": "execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/SUPPORT_IDENTITY_BINDING_V1.md",
+      "sha256": "7affbb8cea544a29bbf485e4fc6b1e0c15d5666e9c3614110580d912ff344e5f"
+    },
+    {
+      "path": "app/examination/support_identity/support_identity.py",
+      "sha256": "38f1008e47b4e924b6725b4e2901762e1c149f5bdedaec17e8357bed046bd109"
+    },
+    {
+      "path": "app/examination/support_identity/declaration.v1.json",
+      "sha256": "abc7142f3c8ec6b42ee70fd5ccdbe5a2688683608b21f735211217b9e32aad44"
+    },
+    {
+      "path": "app/examination/support_identity/binding.v1.schema.json",
+      "sha256": "aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0"
+    }
+  ],
+  "standing": "Selected current preparation basis only; no historical producer-use or actual EXP/package result asserted",
+  "sidecars_created": false,
+  "reason": "No new EXP result/review/change or PKG identity record is produced. Canonical terms record is outside the six-role binding cohort."
+}

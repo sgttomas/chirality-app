@@ -1,0 +1,15 @@
+{
+  "existing_exact_canonical_record_before_write": false,
+  "record_ref": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Evidence/PKG/terms/OpenAI.json",
+  "sha256": "d57ab4d4c3704c99294af73e862008589603e27c8d63bc8cba5b3d5be4cc13fd",
+  "schema_ref": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/pkg.terms-record.schema.json",
+  "schema_sha256": "46ee0d3c0072fd3a94c45749fd8da14ad05e6322367f2df51500e754eb6e6af9",
+  "prototype_ref": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype/check_pkg.py",
+  "prototype_sha256": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
+  "schema_errors": [],
+  "rule_violations": [],
+  "written_response_supplied": false,
+  "supplier_contact_claimed": false,
+  "owner_decision_claimed": false,
+  "standing": "Actual unresolved record on parent-supplied no-response/not-made basis; no legal conclusion"
+}
