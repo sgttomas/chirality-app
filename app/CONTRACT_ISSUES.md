@@ -979,7 +979,7 @@ changed.
   all three schema IDs and the prototype digest. The EXP result schema carries
   its own `schema_id` and optional `prototype_digest`; PKG's identity schema
   carries only the EXP version in `support_revision`.
-- **Current bounded behavior:** schema validation preserves those exact fields
+- **Preserved legacy behavior:** schema validation preserves those exact fields
   and optionality. The new package-link check additionally requires the pinned
   prototype digest under §4.4, checks result schema/version and matching package
   version, and reports maintained tool/rule/source identities separately. It
@@ -989,6 +989,30 @@ changed.
   M1 support identity is bound across package and result records before full M1
   reliance (Group B B3). Any changed interface uses a named reviewed change and
   consumer propagation; no schema or Design change is made by this slice.
+
+- **CC-EXP-SUPPORT-IDENTITY-01 scoped disposition:** additive
+  `EXP-SUPPORT-BINDING-v1` is implemented for independent review and named
+  technical adoption. Its canonical EXP Design supplement is
+  `DEL-09-01/Design/support-identity-v1/METHOD.md`; PKG receives it through
+  `DEL-01-06/Design/SUPPORT_IDENTITY_BINDING_V1.md`. The unchanged EXP-v0.2
+  tuple and canonical source bytes are identified at prior publication merge
+  `09106477e351c6e5bde85259c55a00cc8fc5f7f5` (PR #1077). The new method has a
+  distinct version and becomes effective at the reviewed merge of this named
+  contribution; authoring or checking it before merge does not adopt it.
+- **Initial consumer cohort:** `app/examination/support_identity/canonical.py`
+  fixes declaration/method/schema/PKG supplement selection outside record
+  input and performs complete exact-byte result/review/change/current-package
+  joins through unchanged validators. A record writer cannot mint publication.
+  Current producer declaration and historical correspondence remain distinct;
+  neither authenticates actual producer use. All prior schemas, prototypes,
+  proposed checker bytes and source locks are preserved.
+- **Closure boundary:** the reviewed named technical merge closes CI-26's
+  representational gap and this explicit consumer cohort, recorded in
+  `AgentRuns/APP-V4-GROUP-B-20261008/support-identity-adoption/`. It does not
+  establish complete M1 runner/native qualification, M2/M3 witnesses, or
+  SQ/native-form/S4 receiving adoption. Those consumers retain their existing
+  partial basis until their separately identified receiving work; no blanket
+  adoption or qualification follows from a consistent file join.
 
 ## CI-27 Full-distribution verification identity and PKG record coverage
 
