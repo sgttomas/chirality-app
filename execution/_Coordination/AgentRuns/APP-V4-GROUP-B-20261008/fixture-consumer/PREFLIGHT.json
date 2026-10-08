@@ -1,0 +1,90 @@
+{
+  "checks": [
+    {
+      "expected_tests_executed": true,
+      "consumer": "actual App crate",
+      "exit_code": 0,
+      "test_output": [
+        "test group_b_fixture_consumer::group_b_fixture_collisions_keep_origin_and_revision_without_registration ... ok",
+        "test group_b_fixture_consumer::group_b_fixture_stale_and_misnamed_reviews_refuse ... ok",
+        "test group_b_fixture_consumer::group_b_fixture_duplicate_declaration_is_not_established ... ok",
+        "test group_b_fixture_consumer::group_b_fixture_compatibility_never_infers_tools_from_valid_draft ... ok",
+        "test group_b_fixture_consumer::group_b_fixture_all_declarations_reach_maintained_reader_and_review ... ok",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 405 filtered out; finished in 0.16s"
+      ]
+    },
+    {
+      "expected_tests_executed": true,
+      "consumer": "invented tally tools",
+      "exit_code": 0,
+      "test_output": [
+        "test_duplicate_negative_and_missing_input_refuse_without_output (group_b_fixture_tools_test.FixtureToolTest.test_duplicate_negative_and_missing_input_refuse_without_output) ... ok",
+        "test_reuse_refinements_and_collision_have_distinct_results (group_b_fixture_tools_test.FixtureToolTest.test_reuse_refinements_and_collision_have_distinct_results) ... ok",
+        "Ran 2 tests in 0.448s",
+        "OK"
+      ]
+    }
+  ],
+  "fixture_preflight_passed": true,
+  "native_examination_performed": false,
+  "candidate_build_supplied": false,
+  "standing": "offline fixture consumption only; ST-1/2/3 unperformed",
+  "files": [
+    {
+      "path": "examination/standalone/fixtures/README.md",
+      "sha256": "403d9c06b27714e015e2f7a6514ab1c1957336a4f8b9b437e08a38c8d8a5f092"
+    },
+    {
+      "path": "examination/standalone/fixtures/inputs/duplicate-negative.csv",
+      "sha256": "91b77746e5172194ae79af9b9db9a20d800775cd31bd9d1f442e49fca35ce8ec"
+    },
+    {
+      "path": "examination/standalone/fixtures/inputs/initial.csv",
+      "sha256": "0fbee944c7bfb763f440e712eff28853da19cc34e171c2450d3d147848e0b844"
+    },
+    {
+      "path": "examination/standalone/fixtures/inputs/refinement-2.csv",
+      "sha256": "75dfe90d012a77897a88340912fdc968c2dc9e692a15c9730341a6d55974bdbd"
+    },
+    {
+      "path": "examination/standalone/fixtures/inputs/refinement-3.csv",
+      "sha256": "b0f887268f401cffab28dc80cf2d0ec641aa3ad5d97af6fcc6651126a1bca086"
+    },
+    {
+      "path": "examination/standalone/fixtures/inputs/reuse.csv",
+      "sha256": "c45cf5efb99246bca123405992e1ad17c7509d38c9343885ad4ba6cec7c7081b"
+    },
+    {
+      "path": "examination/standalone/fixtures/revision-1/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "4e80c92e011d47ac5ebd0514266701aa6e697e2ab2d4c76f9a4a86cbd1ef3fb1"
+    },
+    {
+      "path": "examination/standalone/fixtures/revision-1/invented-pipe-inventory/tally.py",
+      "sha256": "030d9e5f4ce80a77d977cdee978395221ace984b47fd59d47295d3ee4cb43897"
+    },
+    {
+      "path": "examination/standalone/fixtures/revision-2/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "e6f63268b22d7f3b2ef2ee6f12cdc1e0b5d7114ac8710b686564b8d0870de9d8"
+    },
+    {
+      "path": "examination/standalone/fixtures/revision-2/invented-pipe-inventory/tally.py",
+      "sha256": "41cc47e00889f31b1afb7f3891d94271511a6ec3d5098bb176e17854a5a3ef1e"
+    },
+    {
+      "path": "examination/standalone/fixtures/revision-3/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "4a559bd1bc5e5427435f51d6cd3f448dcf2e6c96bba94c08ff55691f41e5eccf"
+    },
+    {
+      "path": "examination/standalone/fixtures/revision-3/invented-pipe-inventory/tally.py",
+      "sha256": "57a83df469eec4b4fcf5add1221f2ea64a21313a22f76ea1f227e38b504c153c"
+    },
+    {
+      "path": "examination/standalone/fixtures/user-collision/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "d4f16033331b16d00285829d80ff7f7b785a33e46917a229c8dda68e8276ac3c"
+    },
+    {
+      "path": "examination/standalone/fixtures/user-collision/invented-pipe-inventory/tally.py",
+      "sha256": "e81b36590fc6f438b838319711c44f4858d71591f6dbe7a094168c9b9151573e"
+    }
+  ]
+}

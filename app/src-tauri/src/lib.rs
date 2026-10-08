@@ -1154,3 +1154,7 @@ mod workflow_root_context_tests {
 
 #[cfg(all(test,unix))]
 mod file_act_consumer_tests;
+
+#[cfg(test)]
+#[path = "../../tests/group_b_fixture_consumer.rs"]
+mod group_b_fixture_consumer;
