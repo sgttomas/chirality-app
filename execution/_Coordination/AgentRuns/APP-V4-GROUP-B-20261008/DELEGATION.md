@@ -193,3 +193,26 @@ private-term --staged --from-host validation, pushes require current-main range
 validation. No machine host names or junit hostname attributes in outputs.
 A-IN-S1 is separately owned by distribution_successor_design; no contract
 adoption is implied by concurrent Group B work.
+
+HELP_HUMAN additionally requested independently ready B2 unsigned Tauri
+configuration/inventory alongside B3/B7. Existing TASK sq_st4_design now has a
+bounded implementation assignment on its own new unsigned-candidate branch
+from f2e7a2a9ff: new packaging/unsigned, group_b_unsigned tests and run evidence.
+Existing config edits need an exact proposed fence. It must inspect Tauri's
+auto/ad-hoc signing behavior before bundling and stop unauthorized signing,
+keep P2/P3 missing content explicit, and produce an actual incomplete bundle
+only if permitted current cached inputs support it. A preparation directory
+never counts as a package candidate. No A-IN Design contract writes.
+
+### Offline compiler boundary clarification
+
+B2 inspected local ld documentation and found automatic Apple Silicon ad-hoc
+signatures on executable outputs. Manager raised the exact consequence before
+package compilation and briefly held further B7 compilation/testing. HELP_HUMAN
+explicitly clarified in active chat that automatic linker ad-hoc signatures are
+incidental artifacts within authorized offline build/test compilation. B2 may
+use inspected --no-sign bundling, and B7 may run its ordinary synthetic tests.
+Neither establishes SIGN-1/FP-1(b), owner act, native App execution or
+qualification. Manual codesign mutation, Developer ID/account signing,
+credentials, notarisation and release remain excluded. No global linker
+opt-out bypass was applied. Any interrupted operation retains its actual log.
