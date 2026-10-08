@@ -110,6 +110,7 @@ C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-202610
 | C3-S4-P durable source-evidence draft | COMPLETE bounded implementation in merged PR #1151 (`c9bfde5269`), independent review `bae0f320a4` and final exact-head READY `1dae398f03`; required CI passed. CAM-R1 technical confirmation retained | Current private Git side/anchor → attributed composition → CRP publication → cold view; same opened project identity and uncertainty preserved. 64 lifetime identities/one payload is a development bound requiring later product capacity assessment, not 90% evidence; native witness remains separate |
 | C3-S4-R1 bounded record comparison source | READY source-only candidate `f0d0b6f41a22`, independent review `0298ebdd3a`; HELP_HUMAN technically selected for bounded implementation; external adoption remains held | CRR-v0.1 proposes additive format0.4: checked record excerpts/comparisons, attributed claims, unresolved contradictions and unverified contribution reports. Actual duty performance/authority remains unestablished; no typed RS consumption or capacity-policy change |
 | C3-S4-R1-P record comparison implementation | COMPLETE bounded implementation in PR #1155, merged `953d8c94466db5543426a2de7b26a591564e4dca`; exact final-head READY `fceaa0a4eb`, required CI passed | Constructed Git/injected selection through composition/publication/cold view; original UI remount collision retained and repaired. 77 default/78 distribution, cold matrix and actual handler tests; no native/actor-authority claim |
+| C3-S4-R2 contribution evidence source proposal | READY AS REVIEWABLE PROPOSAL `fcfdfee7eb5b`, review `d74468568d`; implementation held | CCE-v0.1 binds answer/review and observed authorized graph integration; scoped RS concurrence retained. Lifecycle A/PM-05 recovery, authorization bridge and new live Host join remain explicit holds; no actual duties or authority inferred |
 | C3-S4-R full question reconstruction and actor contributions | UNFINISHED | Source evidence alone supplies no factual interpretation, supported conclusion, manager integration or person coordination; actual native witness remains separately point-held |
 
 Current publication uses exclusive no-replace rename with no automatic pathname
@@ -158,3 +159,7 @@ C3_S4_RECONSTRUCTION_INTEGRATION.md retains the source-only assignment, exact
 candidate/review, five repaired definition findings and consumer boundaries.
 Exact source now technically selected in C3_S4_R1_TECHNICAL_SELECTION.md; implementation/review is active, not format0.4 production or
 full C3-S4-R closure. The prepared c9bfde5269 native artifact remains frozen.
+
+C3_CONTRIBUTION_EVIDENCE_INTEGRATION.md retains the CCE source-only proposal,
+scoped RS concurrence, five repaired findings and exact open choices. Proposal
+review is not technical selection or implementation release. No new native act.
