@@ -227,5 +227,14 @@
     "No persistence/send/provider input",
     "Unix capability implementation; macOS execution only",
     "No continuous pathname or coherent concurrent-read guarantee"
-  ]
+  ],
+  "repair_basis": {
+    "finding": "independent executed P2 communicated by reviewer and bounded manager repair brief",
+    "reviewed_candidate": "7f3492a",
+    "author_candidate": "917e58de59cb752543c015deb26b420f32df479b",
+    "reproduction": "successful read; failed selection/read; successful or mismatched anchor of historical buffer must preserve read cause",
+    "before_log_sha256": "f3dc0f464ba7df9b789aa654b089ab54f61918ce3eb0b45abf1e8c02a62b2b5a",
+    "after_log_sha256": "fbca682902c9bb737ede3aededbffa9bf731ad644199c9b2e7c04473d8397021",
+    "logs": "retained private scratch; hashes identify executed local evidence, not portable artifacts or host witness"
+  }
 }

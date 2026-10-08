@@ -45,3 +45,10 @@ test('unavailable association disables preparation/selection and exposes no file
  assert.match(html,/No explicit project/);assert.ok((html.match(/<button disabled=""/g)||[]).length>=2);
  assert.ok(!html.includes('type="file"'));assert.ok(!html.includes('name="path"'));assert.match(html,/262144/);assert.match(html,/no NUL or symlink descendants/);
 });
+
+test('historical excerpts retain separately labeled unresolved read and excerpt causes',()=>{
+ const v=structuredClone(view);v.operation='failed';v.observation.historical=true;
+ v.gaps.push({kind:'Selection/read',reason:'DISTINCT_READ_FAILURE',effect:'No new source observation',responsible:null},{kind:'Excerpt',reason:'Expected excerpt mismatch',effect:'No new anchor',responsible:null});
+ const html=render(state(v));for(const value of ['Selection/read gap','DISTINCT_READ_FAILURE','Excerpt gap','Expected excerpt mismatch','No new source observation','No new anchor'])assert.ok(html.includes(value),value);
+ assert.match(html,/Prior\/historical observation/);assert.match(html,/fixture-time/);
+});

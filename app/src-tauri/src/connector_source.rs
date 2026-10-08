@@ -40,7 +40,8 @@ struct Prepared {
     trigger: String,
     responsible: Option<String>,
     operation: String,
-    gap: Option<String>,
+    read_gap: Option<String>,
+    excerpt_gap: Option<String>,
     observation: Option<Observation>,
 }
 #[derive(Default)]
@@ -75,7 +76,8 @@ impl Session {
             trigger,
             responsible: responsible.filter(|s| !s.trim().is_empty()),
             operation: "prepared".into(),
-            gap: None,
+            read_gap: None,
+            excerpt_gap: None,
             observation: None,
         });
         Ok(self.snapshot())
@@ -93,10 +95,13 @@ impl Session {
             return json!({"state":"unprepared"});
         };
         let mut gaps = vec![
-            json!({"reason":"No verified source revision or Git binding is established","effect":"No source entry, account or revision-qualified reconstruction can be emitted","responsible":a.responsible,"assignmentStanding":"caller-assigned route; null means unassigned"}),
+            json!({"kind":"Revision","reason":"No verified source revision or Git binding is established","effect":"No source entry, account or revision-qualified reconstruction can be emitted","responsible":a.responsible,"assignmentStanding":"caller-assigned route; null means unassigned"}),
         ];
-        if let Some(reason) = &a.gap {
-            gaps.push(json!({"reason":reason,"effect":"This operation produced no successful evidence; independent work is not blocked","responsible":a.responsible,"assignmentStanding":"caller-assigned route; null means unassigned"}));
+        if let Some(reason) = &a.read_gap {
+            gaps.push(json!({"kind":"Selection/read","reason":reason,"effect":"No new source observation was produced; a retained prior buffer does not resolve this read failure","responsible":a.responsible,"assignmentStanding":"caller-assigned route; null means unassigned"}));
+        }
+        if let Some(reason) = &a.excerpt_gap {
+            gaps.push(json!({"kind":"Excerpt","reason":reason,"effect":"This excerpt request produced no anchor; independent supported work is not blocked","responsible":a.responsible,"assignmentStanding":"caller-assigned route; null means unassigned"}));
         }
         json!({"state":"prepared","sessionToken":a.token,"generation":a.generation,"question":a.question.view(),"trigger":{"kind":a.trigger,"standing":"constructed caller context, no connector observation"},"operation":a.operation,"gaps":gaps,
         "observation":a.observation.as_ref().map(|o|json!({"reference":o.reference,"question":o.question.view(),"read":o.view,"revision":o.revision,"anchors":o.anchors.values().collect::<Vec<_>>(),"historical":a.operation!="observed"})),
@@ -125,10 +130,10 @@ impl Session {
                 anchor["reference"] = json!(id);
                 anchor["observationReference"] = json!(o.reference);
                 o.anchors.insert(id, anchor);
-                a.gap = None;
+                a.excerpt_gap = None;
             }
             Err(reason) => {
-                a.gap = Some(reason);
+                a.excerpt_gap = Some(reason);
             }
         }
         Ok(self.snapshot())
@@ -172,11 +177,11 @@ pub fn select(
         }
         if let Err(error) = a.root.verify() {
             a.operation = "failed".into();
-            a.gap = Some(error);
+            a.read_gap = Some(error);
             return Ok(state.snapshot());
         }
         a.operation = "selecting".into();
-        a.gap = None;
+        // Pending or cancelled selection does not resolve a prior read failure.
         a.root.clone()
     };
     let selected = pick();
@@ -193,7 +198,7 @@ pub fn select(
         }
         Some(Err(error)) => {
             a.operation = "failed".into();
-            a.gap = Some(error);
+            a.read_gap = Some(error);
         }
         Some(Ok((path, read))) => {
             let reference = opaque_id("source-observation-")?;
@@ -207,7 +212,8 @@ pub fn select(
                 revision: json!({"kind":"unavailable","limit":"No revision evidence supplied"}),
             });
             a.operation = "observed".into();
-            a.gap = None;
+            a.read_gap = None;
+            a.excerpt_gap = None; // A new buffer retires the old excerpt operation.
         }
     };
     Ok(state.snapshot())

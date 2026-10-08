@@ -24,7 +24,7 @@ export function SourceObservationView({state}:{state:SourceUiState}) {
       <p>Trigger: {view.trigger?.kind} — {view.trigger?.standing}</p>
       <p>Latest selection/read operation: {view.operation}</p>
       <h3>Gaps and responsibility</h3>
-      {view.gaps?.map((gap:Json,i:number)=><div key={i}><p>{gap.reason}</p><p>Effect: {gap.effect}</p><p>Responsible route: {gap.responsible ?? "Unassigned"} (caller assignment, not performed responsibility)</p></div>)}
+      {view.gaps?.map((gap:Json,i:number)=><div key={i}>{gap.kind && <h4>{gap.kind} gap</h4>}<p>{gap.reason}</p><p>Effect: {gap.effect}</p><p>Responsible route: {gap.responsible ?? "Unassigned"} (caller assignment, not performed responsibility)</p></div>)}
       <p>{view.dutiesStanding}</p>
       {view.limits?.map((limit:string)=><p key={limit}>{limit}</p>)}
     </>}

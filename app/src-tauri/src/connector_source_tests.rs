@@ -358,3 +358,78 @@ fn connector_source_failure_continuity_and_lossless_selected_name() {
     ))
     .is_err());
 }
+
+#[test]
+fn connector_source_failed_read_gap_survives_successful_historical_anchor() {
+    let t = Scratch::new();
+    let p = t.file("source", b"old\n");
+    let (s, token, generation) = prepare(&t.0);
+    let first = select(&s, &token, &generation, || Ok(Some(p.clone()))).unwrap();
+    let r = first["observation"]["reference"].as_str().unwrap();
+    let failed = select(&s, &token, &generation, || {
+        Err("DISTINCT_READ_FAILURE".into())
+    })
+    .unwrap();
+    assert!(failed.to_string().contains("DISTINCT_READ_FAILURE"));
+    let anchored = s
+        .lock()
+        .unwrap()
+        .anchor(&token, &generation, r, 1, 1, None)
+        .unwrap();
+    assert!(
+        anchored.to_string().contains("DISTINCT_READ_FAILURE"),
+        "historical anchor erased unresolved failed-read reason"
+    );
+    assert_eq!(anchored["operation"], "failed");
+    assert_eq!(anchored["observation"]["historical"], true);
+    assert_eq!(
+        anchored["observation"]["read"],
+        first["observation"]["read"]
+    );
+    let cancelled = select(&s, &token, &generation, || Ok(None)).unwrap();
+    assert!(cancelled.to_string().contains("DISTINCT_READ_FAILURE"));
+    let recovered = select(&s, &token, &generation, || Ok(Some(p))).unwrap();
+    assert!(!recovered.to_string().contains("DISTINCT_READ_FAILURE"));
+    assert_eq!(recovered["operation"], "observed");
+}
+#[test]
+fn connector_source_failed_read_and_anchor_mismatch_keep_independent_gaps() {
+    let t = Scratch::new();
+    let p = t.file("source", b"old\n");
+    let (s, token, generation) = prepare(&t.0);
+    let first = select(&s, &token, &generation, || Ok(Some(p.clone()))).unwrap();
+    let r = first["observation"]["reference"].as_str().unwrap();
+    fs::remove_file(&p).unwrap();
+    let failed = select(&s, &token, &generation, || Ok(Some(p))).unwrap();
+    let read_reason = failed["gaps"][1]["reason"].as_str().unwrap().to_owned();
+    let mismatch = s
+        .lock()
+        .unwrap()
+        .anchor(&token, &generation, r, 1, 1, Some("new\n"))
+        .unwrap();
+    assert!(
+        mismatch["gaps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|g| g["reason"] == read_reason),
+        "anchor mismatch replaced failed-read cause"
+    );
+    assert!(mismatch.to_string().contains("Expected excerpt mismatch"));
+    assert_eq!(mismatch["operation"], "failed");
+    let anchored = s
+        .lock()
+        .unwrap()
+        .anchor(&token, &generation, r, 1, 1, Some("old\n"))
+        .unwrap();
+    assert!(anchored["gaps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|g| g["reason"] == read_reason));
+    assert!(!anchored.to_string().contains("Expected excerpt mismatch"));
+    assert_eq!(
+        anchored["observation"]["read"],
+        first["observation"]["read"]
+    );
+}
