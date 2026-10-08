@@ -223,13 +223,24 @@ impl ActControl {
             FileActKind::Approve=>"Choosing approve is your statement that you are the accountable person. It records engineering approval only.",
             FileActKind::Rely=>"Choosing rely is your own statement that you are the accountable professional. Professional standing is not verified; no certification is inferred.",
         };
-        let text=format!("{}\n\nApp file: {}\nContent identity: {}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor (identity not verified): {}\n{}\n\n{}\nDecline records only a decline of this kind; Cancel records nothing.",slot.kind.wording(),slot.offer["subject"]["ref"],slot.offer["subject"]["contentIdentity"],slot.offer["scope"],slot.offer["purpose"],slot.kind.requirement(),actor,STANDING,statement);
-        // Bound native text; do not silently truncate a confirmation surface.
-        if text.len() > 24_000 {
-            return Err(
-                "File act confirmation exceeds native display budget; nothing presented".into(),
-            );
-        }
+        // Readable lines (V14 F3), composed from the frozen offer only.
+        let identity = &slot.offer["subject"]["contentIdentity"];
+        let text = format!(
+            "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\nDecline records only a decline of this kind; Cancel records nothing.",
+            slot.kind.wording(),
+            slot.offer["subject"]["ref"].as_str().unwrap_or(""),
+            identity["method"].as_str().unwrap_or(""),
+            identity["value"].as_str().unwrap_or(""),
+            slot.offer["scope"].as_str().unwrap_or(""),
+            slot.offer["purpose"].as_str().unwrap_or(""),
+            slot.kind.requirement(),
+            super::native_statement::actor_line(actor),
+            STANDING,
+            statement
+        );
+        // Bounded before anything is frozen or the offer is Presented: a
+        // refused statement leaves the offer Composed and unfrozen (V14 F3).
+        let text = super::native_statement::bounded("File act native confirmation", text)?;
         slot.actor = Some(actor.clone());
         slot.context = Some(context.clone());
         slot.state = FileActState::Presented;

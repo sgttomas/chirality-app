@@ -72,19 +72,11 @@ fn confirm_with_adapter(
     choose: impl FnOnce(String, FileActKind) -> MessageDialogResult,
 ) -> Result<Option<Value>, String> {
     let (actor, context) = observe()?;
+    // The statement is bounded inside freeze_file_native, before the offer is
+    // frozen or Presented (V14 F3). File acts keep [act] [decline] [Cancel]:
+    // the owner excluded them from the three-button layout because an aborted
+    // dialog maps to the third slot, which here would be a decline (CI-22).
     let (text, digest, kind) = control.freeze_file_native(offer, &actor, &context)?;
-    // J6: a statement that would not fit a readable native alert is refused
-    // with its cause before it is shown; nothing is captured.
-    let text = match crate::act_control::native_statement::bounded(
-        "File act native confirmation",
-        text,
-    ) {
-        Ok(text) => text,
-        Err(error) => {
-            control.dismiss_file_act(offer);
-            return Err(error);
-        }
-    };
     let result = choose(text, kind);
     let choice = match result {
         MessageDialogResult::Custom(label) if label == kind.wording() => "act",
@@ -161,9 +153,13 @@ mod presentation_tests {
                 .unwrap();
             assert!(out.is_none(), "Cancel captures nothing");
             assert!(shown.lines().count() <= MAX_LINES && shown.chars().count() <= MAX_CHARS, "{shown}");
-            for needle in [kind.wording(), "one identified output", "test the selected act", "identity not verified", "Cancel records nothing"] {
+            for needle in [kind.wording(), "one identified output", "test the selected act", "identity not verified", "Cancel records nothing",
+                "Actor: Synthetic person · OS account synthetic-os (identity not verified)", "Content identity (", &format!("App file: {}", path.display())] {
                 assert!(shown.contains(needle), "{needle} in\n{shown}");
             }
+            // V14 F3: readable lines, no raw JSON.
+            assert!(!shown.contains('{') && !shown.contains('"'), "{shown}");
+            assert!(shown.lines().any(|l| l == crate::util::sha256_hex(b"reviewed App output\n")), "{shown}");
             std::fs::remove_dir_all(root).unwrap();
         }
     }
@@ -185,6 +181,10 @@ mod presentation_tests {
         assert!(!shown, "never presented");
         assert!(err.contains("exceeds the readable native confirmation"), "{err}");
         assert!(control.native_captures.is_empty());
+        // V14 F3: refused before anything is frozen; the offer stays Composed.
+        let slot = &control.file_offers[&offer.id];
+        assert_eq!(slot.state, FileActState::Composed);
+        assert!(slot.actor.is_none() && slot.context.is_none());
         let (entries, _) = storage::read_all(&root);
         assert!(entries.is_empty());
         std::fs::remove_dir_all(root).unwrap();

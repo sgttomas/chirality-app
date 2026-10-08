@@ -289,14 +289,35 @@ pub(super) struct A15OfferSlot {
 }
 /// sha-256 (lowercase hex) of the complete review presentation in the
 /// `aac-offer-digest/0.1` canonical serialization (canonical.rs). The native
-/// statement names it; the App computes the same value beside the review it
-/// shows, so the person can tie the statement to the complete review.
+/// statement names it; the host reports it to the App beside the review it
+/// shows (a reading aid; the binding is checked host-side at capture). A
+/// review holding a non-integer number is refused with the number's location
+/// (AAC §5.1 defines the form over integers only).
 pub(crate) fn review_digest(presentation: &Value) -> Result<String, String> {
-    let mut canonical = String::new();
-    crate::canonical::canonical(presentation, &mut canonical).map_err(|e| {
-        format!("A15 complete review digest unavailable ({e}); nothing presented or captured")
-    })?;
-    Ok(crate::util::sha256_hex(canonical.as_bytes()))
+    super::native_statement::content_digest("The A15 complete review", presentation)
+}
+pub(crate) const REGISTER: &str = "Register";
+pub(crate) const DONT_REGISTER: &str = "Don't register";
+pub(crate) const RECONFIRM: &str = "Re-confirm";
+pub(crate) const DONT_RECONFIRM: &str = "Don't re-confirm";
+/// The act button labels and consequence of one A15 statement, chosen by the
+/// descriptor's kind and disposition (V14 F7). Re-confirmation follows AAC
+/// §4.2 as adopted by CC-WR-RECONFIRM: "Re-confirm revision ‹k› of
+/// ‹origin›:‹name› for use in this App session. This registers no new revision."
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct A15Variant {
+    pub(crate) act: &'static str,
+    pub(crate) dont: &'static str,
+    reconfirm: bool,
+}
+fn a15_variant(bound: &BoundReview) -> A15Variant {
+    if bound.descriptor_kind == "a15_descriptor"
+        && bound.descriptor["disposition"] == "re-confirmation"
+    {
+        A15Variant { act: RECONFIRM, dont: DONT_RECONFIRM, reconfirm: true }
+    } else {
+        A15Variant { act: REGISTER, dont: DONT_REGISTER, reconfirm: false }
+    }
 }
 /// The bounded native A15 statement (J6 D-1). It names the act, every entry's
 /// workflow identity (short and full revision), the prior revision, the
@@ -375,9 +396,23 @@ fn a15_statement(o: &Value, bound: &BoundReview, actor: &Value, review_digest: &
         short(o["offerDigest"]["value"].as_str().unwrap_or(""))
     ));
     t.push(String::new());
-    t.push("Registering makes these reviewed bytes available in this library; earlier revisions are kept. It is not a check that the workflow can run here.".into());
+    let variant = a15_variant(bound);
+    if variant.reconfirm {
+        let s = &bound.bindings[0].subject;
+        t.push(format!(
+            "Re-confirm revision {} of {}:{} for use in this App session. This registers no new revision.",
+            short(&s.revision),
+            s.origin,
+            s.name
+        ));
+    } else {
+        t.push("Registering makes these reviewed bytes available in this library; earlier revisions are kept. It is not a check that the workflow can run here.".into());
+    }
     t.push(format!("Actor: {}. Required: {}.", actor_line(actor), o["actorRequirement"].as_str().unwrap_or("the person")));
-    t.push("Register records this act. Cancel closes without an act: nothing is captured or registered.".into());
+    t.push(format!(
+        "Only {} records this act. {} (the default) records nothing. Cancel closes without an act: nothing is captured or registered.",
+        variant.act, variant.dont
+    ));
     t.push("Native confirmation; apps with Accessibility access could press these buttons.".into());
     t.join("\n")
 }
@@ -390,6 +425,9 @@ impl ActControl {
         if self.workspace != bound.library_root {
             return Err("A15 control belongs to another owning library".into());
         }
+        // V14 F2: a review the native statement cannot name by digest is
+        // refused at review time, with the number's location.
+        review_digest(&bound.presentation)?;
         let id = crate::util::opaque_id("offer:")?;
         let entries = bound
             .bindings
@@ -465,6 +503,24 @@ impl ActControl {
         slot.context = Some(context.clone());
         slot.review_digest = Some(digest);
         Ok(text)
+    }
+    /// The act and default labels for this offer's native confirmation.
+    pub(crate) fn a15_variant(&self, offer: &A15OfferRef) -> Result<A15Variant, String> {
+        let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
+        Ok(a15_variant(slot.bound.as_ref().ok_or("A15 binding absent")?))
+    }
+    /// The frozen complete review and the digest the statement named, for the
+    /// App to show while the native confirmation is open.
+    pub(crate) fn a15_in_app(
+        &self,
+        offer: &A15OfferRef,
+    ) -> Result<super::native_statement::InApp, String> {
+        let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
+        Ok(super::native_statement::InApp {
+            kind: "A15 complete review",
+            digest: slot.review_digest.clone().ok_or("A15 statement not composed")?,
+            content: slot.bound.as_ref().ok_or("A15 binding absent")?.presentation.clone(),
+        })
     }
     pub(crate) fn frozen_a15_offer_digest(&self, offer: &A15OfferRef) -> Result<&Value, String> {
         let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
@@ -840,7 +896,42 @@ mod tests {
             review_digest(&vector).unwrap(),
             "f0320f0cb802f23b0ca96ae972832215676a3c76e825efceb37c941e8e0e6d6b"
         );
-        assert!(review_digest(&json!({"x":1.5})).unwrap_err().contains("nothing presented"));
+        // V14 F2: a non-integer is refused with its location and the right
+        // cause; an integer above 2^53 is digested exactly (the App then uses
+        // the host's digest, as it cannot recompute it).
+        let err = review_digest(&json!({"entries":[{"declaration":{"raw":{"x":1.5}}}]})).unwrap_err();
+        assert!(err.contains("non-integer number at /entries/0/declaration/raw/x") && err.contains("integers only"), "{err}");
+        assert!(!err.contains("offer is not offered"), "{err}");
+        let big = review_digest(&json!({"n": 9007199254740993u64})).unwrap();
+        let mut canonical = String::new();
+        crate::canonical::canonical(&json!({"n": 9007199254740993u64}), &mut canonical).unwrap();
+        assert_eq!(canonical, "{\"n\":9007199254740993}");
+        assert_eq!(big, crate::util::sha256_hex(canonical.as_bytes()));
+    }
+    /// V14 F2: the refusal happens when the review is opened (compose), with
+    /// the number's location, not later at the native confirmation.
+    #[test]
+    fn review_with_a_non_integer_number_is_refused_at_review_time_with_its_location() {
+        let root = std::env::temp_dir().join(crate::util::opaque_id("aac-a15-float-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let path = root.join(".chirality/workflow-drafts/sample");
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(
+            path.join("WORKFLOW.md"),
+            "---\nname: sample\n---\n# Method\nDo bounded work.\n\n```workflow-declaration\n{\"x\": 1.5}\n```\n",
+        )
+        .unwrap();
+        let owner = LibraryOwner::open(root.clone(), "project", "fixture-library").unwrap();
+        let rev = Snapshot::capture(&path).unwrap();
+        let session = owner.review_draft("sample", rev.revision()).unwrap();
+        let mut ac = ActControl::new(&root);
+        let err = ac.compose_a15(&session.current().unwrap()).err().unwrap();
+        assert!(err.contains("non-integer number at /entries/0/declaration"), "{err}");
+        assert!(err.contains("integers only") && !err.contains("offer is not offered"), "{err}");
+        assert!(ac.a15_offers.is_empty(), "no offer composed");
+        drop(session);
+        std::fs::remove_dir_all(root).unwrap();
     }
     /// A realistic large single registration (long library path used as scope,
     /// prior revision, derived-from base, full actor) still fits the bound; a
@@ -917,43 +1008,115 @@ mod tests {
             json!({"fixture":"synthetic owning context"}),
         )
     }
+    /// Owner decision "Native confirmation default key — 2026-10-08": the A15
+    /// alert is [Don't register (default)] [Register] [Cancel]; Return, the
+    /// third button and every abort record nothing; only the middle captures.
     #[test]
-    fn native_adapter_only_explicit_register_captures_and_sees_bounded_statement() {
+    fn native_adapter_three_buttons_only_the_middle_captures() {
+        use super::super::native_statement::dialog_model;
         use tauri_plugin_dialog::MessageDialogResult as R;
-        for result in [R::Custom("Cancel".into()), R::Cancel, R::Ok, R::Yes, R::No, R::Custom("register".into())] {
+        let mut ends = vec![];
+        {
+            let (root, session) = library(&["sample"], false);
+            let mut ac = ActControl::new(&root);
+            let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+            let _ = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_, buttons| {
+                ends = dialog_model::outcomes(&buttons);
+                R::Custom(DONT_REGISTER.into())
+            });
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        assert_eq!(
+            ends.iter().map(|(how, r)| (*how, r.clone())).collect::<Vec<_>>(),
+            vec![
+                ("default (Return)", R::Custom(DONT_REGISTER.into())),
+                ("middle", R::Custom(REGISTER.into())),
+                ("third", R::Custom("Cancel".into())),
+                ("abort or failure", R::Custom("Cancel".into())),
+            ]
+        );
+        let others = [R::Cancel, R::Ok, R::Yes, R::No, R::Custom("register".into())];
+        for (how, result) in ends.into_iter().map(|(h, r)| (h.to_owned(), r)).chain(others.into_iter().map(|r| ("other".to_owned(), r))) {
             let (root, session) = library(&["sample"], false);
             let mut ac = ActControl::new(&root);
             let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
             let mut shown = String::new();
-            let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |text| {
+            let mut in_app = Value::Null;
+            let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |text, _| {
                 shown = text;
+                in_app = super::super::native_statement::shown_in_app();
                 result
             })
             .unwrap();
-            assert!(out.is_none());
             assert!(shown.lines().count() <= super::super::native_statement::MAX_LINES);
+            assert!(shown.contains("Only Register records this act. Don't register (the default) records nothing."), "{shown}");
             assert!(shown.contains("Cancel closes without an act"));
-            assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Dismissed);
-            assert!(ac.native_captures.is_empty());
-            assert!(!storage::library_log(&root).exists());
-            assert!(!root.join(CAPTURE_STORE).exists() || std::fs::read_dir(root.join(CAPTURE_STORE)).unwrap().next().is_none());
+            // The complete review is shown in the App while the alert is open.
+            let named = ac.a15_offers[offer.id()].review_digest.clone().unwrap();
+            assert!(in_app.as_array().unwrap().iter().any(|c| c["digest"] == named.as_str()
+                && c["content"] == *session.current().unwrap().review_presentation()), "{in_app}");
+            assert!(shown.contains(&named));
+            assert!(!super::super::native_statement::shown_in_app().as_array().unwrap().iter()
+                .any(|c| c["digest"] == named.as_str()), "withdrawn from the App after the alert");
+            if how == "middle" {
+                assert!(matches!(out, Some(HotA15Result::Recorded(_))), "{how}");
+                assert_eq!(records::read_log(&storage::library_log(&root)).0.len(), 1);
+            } else {
+                assert!(out.is_none(), "{how} must not capture");
+                assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Dismissed);
+                assert!(ac.native_captures.is_empty());
+                assert!(!storage::library_log(&root).exists());
+            }
             std::fs::remove_dir_all(root).unwrap();
         }
-        let (root, session) = library(&["sample"], false);
-        let mut ac = ActControl::new(&root);
-        let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
-        let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_| {
-            R::Custom(crate::a15_native::REGISTER.into())
-        })
-        .unwrap();
-        assert!(matches!(out, Some(HotA15Result::Recorded(_))));
-        assert_eq!(records::read_log(&storage::library_log(&root)).0.len(), 1);
-        std::fs::remove_dir_all(root).unwrap();
-        // The act label stays out of the cancel slot, which the dialog plugin
-        // also returns for an unmatched or aborted modal result.
-        assert!(matches!(crate::a15_native::a15_buttons(),
-            tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom(ok, cancel)
-                if ok == crate::a15_native::REGISTER && cancel == "Cancel"));
+    }
+    /// V14 F7: a re-confirmation descriptor (AAC §4.2, CC-WR-RECONFIRM) gets
+    /// its own statement and act label without restructuring.
+    #[test]
+    fn reconfirmation_descriptor_has_its_own_statement_and_act_label() {
+        let library = PathBuf::from("/tmp/lib");
+        let subject = WorkflowIdentity {
+            kind: "workflow".into(),
+            origin: "project".into(),
+            source_root: "/tmp/lib".into(),
+            name: "sample".into(),
+            revision: "k".repeat(64),
+            revision_method: crate::workflow_workspace::SNAPSHOT_METHOD.into(),
+            derived_from: None,
+        };
+        let b = BoundReview {
+            review_ref: "review:r".into(),
+            descriptor_id: "descriptor:r".into(),
+            descriptor_kind: "a15_descriptor".into(),
+            library_root: library.clone(),
+            act_log: library.join(".chirality/records/acts.jsonl"),
+            descriptor: json!({"disposition":"re-confirmation"}),
+            presentation: json!({}),
+            bindings: vec![A15Binding {
+                content_method: subject.revision_method.clone(),
+                content_value: subject.revision.clone(),
+                reviewed_id3: format!("entry:project:sample@{}", subject.revision),
+                reviewed_content_method: subject.revision_method.clone(),
+                reviewed_content_value: subject.revision.clone(),
+                prior: None,
+                subject,
+            }],
+        };
+        let offer = json!({"wording":"re-confirm workflow revision for use","scope":"/tmp/lib","purpose":"use it in this App session",
+            "answers":{"standing":STANDING},"offerId":"offer:r","offerDigest":{"value":"d".repeat(64)},"actorRequirement":"the person"});
+        let text = a15_statement(&offer, &b, &person(Some("P"), Some("p")), &"e".repeat(64));
+        assert!(text.starts_with("re-confirm workflow revision for use (A15)"), "{text}");
+        assert!(text.contains("Re-confirm revision kkkkkkkkkkkk of project:sample for use in this App session. This registers no new revision."), "{text}");
+        assert!(!text.contains("Registering makes"), "{text}");
+        assert!(text.contains("Only Re-confirm records this act. Don't re-confirm (the default) records nothing."), "{text}");
+        assert_eq!(a15_variant(&b), A15Variant { act: RECONFIRM, dont: DONT_RECONFIRM, reconfirm: true });
+        assert!(matches!(crate::a15_native::a15_buttons(a15_variant(&b)),
+            tauri_plugin_dialog::MessageDialogButtons::YesNoCancelCustom(d, a, c)
+                if d == DONT_RECONFIRM && a == RECONFIRM && c == "Cancel"));
+        let mut plain = b;
+        plain.descriptor = json!({"disposition":"new revision"});
+        assert_eq!(a15_variant(&plain).act, REGISTER);
+        assert!(super::super::native_statement::bounded("A15", text).is_ok());
     }
     #[test]
     fn over_long_statement_is_refused_before_presentation_with_its_cause() {
@@ -962,9 +1125,9 @@ mod tests {
         let mut ac = ActControl::new(&root);
         let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
         let mut called = false;
-        let err = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_| {
+        let err = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_, _| {
             called = true;
-            tauri_plugin_dialog::MessageDialogResult::Custom(crate::a15_native::REGISTER.into())
+            tauri_plugin_dialog::MessageDialogResult::Custom(REGISTER.into())
         })
         .err()
         .unwrap();

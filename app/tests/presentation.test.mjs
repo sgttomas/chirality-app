@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   canonicalJson,
+  DIGEST_LIMIT,
+  digestComparison,
   nativePathText,
   readablePaths,
   reviewDigest,
@@ -16,7 +18,23 @@ test("review digest equals the vector the native A15 statement names (Rust canon
   const text = canonicalJson(vector);
   assert.ok(text.indexOf('"\uffff":') < text.indexOf('"😀":'), "code-point key order, not UTF-16 order");
   assert.equal(await reviewDigest(vector), "f0320f0cb802f23b0ca96ae972832215676a3c76e825efceb37c941e8e0e6d6b");
-  assert.throws(() => canonicalJson({ x: 1.5 }));
+  // V14 F2: refusals name the location and the right cause.
+  assert.throws(() => canonicalJson({ a: [{ "b~/c": 1.5 }] }), /non-integer number at \/a\/0\/b~0~1c; .*integers only/);
+  // Above 2^53 JSON parsing here has already rounded; only the host digest is
+  // exact (Rust digests 9007199254740993 exactly: act_control_a15 tests).
+  const parsed = JSON.parse('{"n":9007199254740993}');
+  assert.throws(() => canonicalJson(parsed), /integer at \/n is beyond 2\^53.*host/);
+  assert.equal(canonicalJson({ n: Number.MAX_SAFE_INTEGER }), '{"n":9007199254740991}');
+});
+
+test("the App states the digest comparison and that it is only a reading aid", () => {
+  const same = digestComparison({ host: "a".repeat(64), app: "a".repeat(64) });
+  assert.ok(same.includes("reported by the host") && same.includes("recomputed the same digest") && same.includes(DIGEST_LIMIT), same);
+  assert.ok(DIGEST_LIMIT.includes("reading aid") && DIGEST_LIMIT.includes("checked by the host at capture"));
+  const differs = digestComparison({ host: "a".repeat(64), app: "b".repeat(64) });
+  assert.ok(differs.includes("different digest") && differs.includes("do not rely on this view"), differs);
+  const big = digestComparison({ host: "a".repeat(64), appUnavailable: "integer at /n is beyond 2^53" });
+  assert.ok(big.includes("a".repeat(64)) && big.includes("cannot recompute it (integer at /n"), big);
 });
 
 test("native paths read as text; non-UTF-8 is marked; identities are not changed", () => {
@@ -49,4 +67,7 @@ test("run summary follows the latest supply check", () => {
   run.checks.push({ state: "verified", supplyReading: "supplied", readAt: "T2" });
   assert.equal(suppliedSummary(run), "verified (supplied) at T2 (latest of 2 checks)");
   assert.equal(suppliedSummary({}), "see checks");
+  // V14 F10: a pending check record stays visible in the summary.
+  run.checks.push({ state: "verified", supplyReading: "supplied", readAt: "T3", published: false, publicationLimit: "disk full" });
+  assert.equal(suppliedSummary(run), "verified (supplied) at T3 (latest of 3 checks); check record pending — disk full");
 });

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FileActPanel } from "./FileActPanel";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
-import { readablePaths, reviewDigest, suppliedSummary } from "./presentation";
+import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -260,7 +260,41 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
+// V14 F1/F5: while a native confirmation is open and names content by digest
+// (a logout assessment, an A16 alternative, a request answer, an attachment
+// comparison or an A15 review), the host publishes that content here so the
+// person can read it whole. Read-only; it is withdrawn when the alert closes.
+function NativeConfirmationContent() {
+  const [shown, setShown] = useState<Json[]>([]);
+  const [checks, setChecks] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let live = true;
+    const poll = () => invoke<Json[]>("native_confirmation_content").then(async (rows) => {
+      if (!live) return;
+      setShown(rows ?? []);
+      const next: Record<string, string> = {};
+      for (const row of rows ?? []) {
+        try { next[row.digest] = (await reviewDigest(row.content)) === row.digest ? "This view recomputed the same digest from the content below." : "This view recomputed a different digest: do not rely on this view; cancel the native confirmation."; }
+        catch (e) { next[row.digest] = `This view cannot recompute it (${e instanceof Error ? e.message : String(e)}).`; }
+      }
+      if (live) setChecks(next);
+    }).catch(() => undefined);
+    poll();
+    const t = setInterval(poll, 1000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  if (!shown.length) return null;
+  return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
+    <h2>Content named by an open native confirmation</h2>
+    {shown.map((row: Json) => <article key={row.digest}>
+      <h3>{row.kind}</h3>
+      <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
+      <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(readablePaths(row.content), null, 2)}</pre>
+    </article>)}
+  </section>;
+}
+
+export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
   const [name,setName]=useState("coordinated-knowledge-work");
   const [inPlace,setInPlace]=useState(false);
   const [thread,setThread]=useState("");
@@ -269,19 +303,24 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
   const [message,setMessage]=useState("");
   const action=async(command:string,args:Record<string,unknown>)=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));}catch(e){setMessage(String(e));}finally{setBusy(false);}};
   const entries:Json[]=data?.reviews??[];
-  // J6 D-1: the digest of each complete review, as the native A15 statement
-  // names it. Kept per review so it stays readable while the native
-  // confirmation holds the review (the host then reports it as pending).
-  const [digests,setDigests]=useState<Record<string,string>>({});
+  // J6 D-1 / V14 F2, F8: the digest of each complete review as the host
+  // reports it (the native A15 statement names the same value), and this
+  // view's own recomputation as a check. Kept per review so it stays readable
+  // while the native confirmation holds the review.
+  const [digests,setDigests]=useState<Record<string,ReviewDigestView>>({});
   const presentations=JSON.stringify(entries.map(review=>[review.reference,review.status?.presentation??null]));
   useEffect(()=>{
     let live=true;
     (async()=>{
-      const next:Record<string,string>={};
+      const next:Record<string,ReviewDigestView>={};
       for(const review of entries){
         if(!review.status?.presentation)continue;
-        try{next[review.reference]=await reviewDigest(review.status.presentation);}
-        catch(e){next[review.reference]=`unavailable (${String(e)})`;}
+        const row:ReviewDigestView={};
+        try{const host=await invoke<Json>("workflow_review_digest",{reviewRef:review.reference});if(host.digest)row.host=host.digest;else row.hostUnavailable=String(host.unavailable);}
+        catch(e){row.hostUnavailable=String(e);}
+        try{row.app=await reviewDigest(review.status.presentation);}
+        catch(e){row.appUnavailable=e instanceof Error?e.message:String(e);}
+        next[review.reference]=row;
       }
       if(live&&Object.keys(next).length)setDigests(old=>({...old,...next}));
     })();
@@ -300,7 +339,7 @@ export function WorkflowRootPanel({ data, host, act }: { data: Json; host: Json;
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace})}>Read actual library entry for review</button>
     {entries.map(review=><article key={review.reference}>
       <h3>{review.reference}</h3>
-      {digests[review.reference]&&<p>Complete review digest (sha-256), named in the native A15 confirmation: <code style={{userSelect:"all",overflowWrap:"anywhere"}}>{digests[review.reference]}</code>{review.status?.presentation?"":" (as last shown with the review; while the native confirmation is open the host reports the review as pending)"}. Read the complete review below before choosing Register: the native confirmation shows the act statement and this digest, not the review itself.</p>}
+      {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?"":" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}. Read the complete review below before choosing Register: the native confirmation shows the act statement and this digest, not the review itself.</p>}
       <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre>
       <button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>Register this review through native A15 confirmation…</button>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
@@ -556,6 +595,7 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
+      <NativeConfirmationContent />
       <FileActPanel command={(name,args)=>invoke(name,args)} />
 
       <WorkflowRootPanel data={host?.workflowRoot} host={host} act={async(command,args)=>{const result=await invoke<Json>(command,args);await refresh();return result;}} />

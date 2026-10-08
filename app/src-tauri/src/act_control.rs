@@ -25,7 +25,7 @@ pub(crate) use file_act::{FileActKind, FileActOfferRef, confirm_file_native};
 
 #[path = "act_control_a15.rs"]
 mod a15;
-pub(crate) use a15::{A15OfferRef, HotA15Receipt, HotA15Result};
+pub(crate) use a15::{review_digest, A15OfferRef, A15Variant, HotA15Receipt, HotA15Result};
 use crate::canonical::{offer_digest, OFFER_DIGEST_METHOD};
 use crate::recorder::LOG;
 use crate::records;
@@ -158,15 +158,15 @@ pub fn person(display_name: Option<&str>, os_account: Option<&str>) -> Value {
     p
 }
 
-/// Presentation only (J6 D-1/D-3): native confirmation statements a person can
-/// read whole, with the act and Cancel buttons on screen. A macOS alert has no
-/// scrolling, so an over-long statement is refused with its cause before it is
-/// presented (AAC §4.1a: "if the surface cannot do so, it refuses presentation
-/// with the cause and captures nothing"); it is never silently truncated.
-/// Nothing here changes what an offer or capture binds.
+/// Presentation only (J6 D-1/D-3, V14 repairs): native confirmation statements
+/// a person can read whole, with every button on screen. The alert has no
+/// scrolling. A statement that does not fit is never truncated: where the
+/// content can be named, the App shows it whole while the alert is open and the
+/// alert names its digest; otherwise presentation is refused with its cause
+/// (AAC §4.1a). Nothing here changes what an offer or capture binds.
 pub(crate) mod native_statement {
     use serde_json::Value;
-    use tauri_plugin_dialog::MessageDialogResult;
+    use tauri_plugin_dialog::{MessageDialogButtons, MessageDialogResult};
 
     /// Logical lines in one native statement. Tunable after a native re-witness.
     pub(crate) const MAX_LINES: usize = 30;
@@ -337,54 +337,98 @@ pub(crate) mod native_statement {
     fn text_or<'a>(v: &'a Value, absent: &'a str) -> &'a str {
         v.as_str().unwrap_or(absent)
     }
-    /// Native logout confirmation: a fixed-size summary of the frozen
-    /// assessment (counts, account observation, coverage and its warning). The
-    /// complete assessment is returned to the App with the result.
-    pub(crate) fn logout_statement(view: &Value) -> Result<String, String> {
+    fn rows<'a>(v: &'a Value) -> impl Iterator<Item = &'a Value> {
+        v.as_array().into_iter().flatten()
+    }
+    fn cell(v: &Value) -> String {
+        scalar(v).unwrap_or_else(|| v.to_string())
+    }
+    /// One short line per item the assessment observed (DEL-01-05 AE-12,
+    /// KE-13, Q-5: live turns, outstanding requests and active delegated
+    /// children are all listed), plus the items it could not resolve.
+    fn live_work_lines(view: &Value) -> Vec<String> {
+        let mut t = Vec::new();
+        for r in rows(&view["observedLiveTurns"]) {
+            t.push(format!("Live turn: {} / {} ({})", cell(&r["threadId"]), cell(&r["turnId"]), cell(&r["status"])));
+        }
+        for r in rows(&view["observedOutstandingRequests"]) {
+            t.push(format!(
+                "Outstanding request: {} #{} in {}",
+                cell(&r["method"]),
+                cell(&r["requestIdentity"]),
+                cell(&r["threadId"])
+            ));
+        }
+        for r in rows(&view["observedActiveChildren"]) {
+            t.push(format!(
+                "Active child: {} (parent {}; {})",
+                cell(&r["threadId"]),
+                cell(&r["parentThreadId"]),
+                cell(&r["reportedStatus"])
+            ));
+        }
+        for r in rows(&view["knownChildActivityUnknown"]) {
+            t.push(format!(
+                "Child, activity unknown: {} (parent {})",
+                cell(&r["threadId"]),
+                cell(&r["parentThreadId"])
+            ));
+        }
+        for r in rows(&view["coverage"]["turns"]["unresolved"]) {
+            t.push(format!(
+                "Turn observation unresolved: {} / {}",
+                cell(&r["threadId"]),
+                r["turnId"].as_str().unwrap_or("turn not reported")
+            ));
+        }
+        t
+    }
+    /// Native logout or key-removal confirmation. Every observed item is listed
+    /// one per line. When the list does not fit, the App shows the frozen
+    /// assessment in full while the alert is open, and the alert gives the
+    /// counts and names that assessment by digest; counts alone are never the
+    /// whole statement.
+    pub(crate) fn logout_statement(view: &Value) -> Result<NativeStatement, String> {
         let account = &view["account"];
         let generation = &view["generation"];
-        let text = [
+        let head = vec![
             "Log out through Codex for this exact native home?".to_owned(),
             format!(
                 "Home: {} · App session {} · Codex process start {}",
                 text_or(&view["modeHomeClass"], "not reported"),
                 text_or(&generation["appSession"], "not reported"),
-                scalar(&generation["spawnCounter"]).unwrap_or_default()
+                cell(&generation["spawnCounter"])
             ),
-            format!(
-                "Account: {}; native type {}",
-                scalar(&account["state"]).unwrap_or_default(),
-                scalar(&account["nativeType"]).unwrap_or_default()
-            ),
+            format!("Account: {}; native type {}", cell(&account["state"]), cell(&account["nativeType"])),
             format!("Account read: {}", text_or(&account["readAvailability"], "not reported")),
             format!("Current report: {}", text_or(&account["currentReport"]["state"], "not reported")),
-            format!("Observed live turns: {}", count(&view["observedLiveTurns"])),
             format!(
-                "Observed outstanding requests: {}",
-                count(&view["observedOutstandingRequests"])
-            ),
-            format!("Observed active children: {}", count(&view["observedActiveChildren"])),
-            format!(
-                "Known children with unknown activity: {}",
-                count(&view["knownChildActivityUnknown"])
-            ),
-            format!(
-                "Unresolved turn observations: {}",
+                "Observed: {} live turns, {} outstanding requests, {} active children, {} children with unknown activity, {} unresolved turn observations.",
+                count(&view["observedLiveTurns"]),
+                count(&view["observedOutstandingRequests"]),
+                count(&view["observedActiveChildren"]),
+                count(&view["knownChildActivityUnknown"]),
                 count(&view["coverage"]["turns"]["unresolved"])
             ),
-            "Coverage of turns, requests and children is not complete.".into(),
+        ];
+        let tail = vec![
+            "Coverage of turns, requests and children is not complete.".to_owned(),
             text_or(&view["warning"], "").to_owned(),
-            format!(
-                "Observed at {}. The complete assessment, with every identity, is returned to the App with the result.",
-                text_or(&view["observedAt"], "not reported")
-            ),
+            format!("Observed at {}.", text_or(&view["observedAt"], "not reported")),
             "OK sends the logout request once; Cancel sends nothing.".into(),
-        ]
-        .join("\n");
-        bounded("Logout confirmation", text)
+        ];
+        let listed = live_work_lines(view);
+        let whole = [head.clone(), listed, tail.clone()].concat().join("\n");
+        whole_or_in_app("Logout confirmation", "logout assessment", whole, view, |digest| {
+            [head, vec![format!("Each of these is listed in the frozen assessment, {IN_APP}"), digest.to_owned()], tail]
+                .concat()
+                .join("\n")
+        })
     }
     /// Native cancellation of a pending sign-in: the safe observation as lines.
-    pub(crate) fn oauth_cancel_statement(safe: &Value) -> Result<String, String> {
+    /// The observation is a fixed set of short fields, so it is shown whole or
+    /// refused with its cause (reported as a refusal, V14 F4).
+    pub(crate) fn oauth_cancel_statement(safe: &Value) -> Result<NativeStatement, String> {
         bounded(
             "Sign-in cancellation confirmation",
             format!(
@@ -392,6 +436,7 @@ pub(crate) mod native_statement {
                 readable(safe)
             ),
         )
+        .map(|text| NativeStatement { text, in_app: None })
     }
     fn source_lines(label: &str, s: &Value, out: &mut Vec<String>) {
         out.push(format!("{label}: {}", text_or(&s["displayName"], "name not reported")));
@@ -409,68 +454,327 @@ pub(crate) mod native_statement {
     }
     /// Native confirmation of a refreshed attachment source: both selections
     /// with readable paths and full content identities.
-    pub(crate) fn attachment_source_statement(comparison: &Value) -> Result<String, String> {
+    pub(crate) fn attachment_source_statement(comparison: &Value) -> Result<NativeStatement, String> {
         let (old, new) = (&comparison["oldSelection"], &comparison["tentativeSelection"]);
-        let mut t = vec!["Confirm current attachment source".to_owned(), String::new()];
-        source_lines("Original selection", old, &mut t);
-        source_lines("Current source", new, &mut t);
-        t.push(format!(
+        let changed = format!(
             "Content: {}",
             if old["identityAtSelection"] == new["identityAtSelection"] {
                 "unchanged"
             } else {
                 "changed"
             }
-        ));
-        t.push(format!("Standing: {}", text_or(&comparison["standing"], "not reported")));
-        t.push(String::new());
-        t.push("This changes only the selected source. Nothing is sent or registered.".into());
-        bounded("Attachment source confirmation", t.join("\n"))
+        );
+        let standing = format!("Standing: {}", text_or(&comparison["standing"], "not reported"));
+        let footer = "This changes only the selected source. Nothing is sent or registered.";
+        let mut t = vec!["Confirm current attachment source".to_owned(), String::new()];
+        source_lines("Original selection", old, &mut t);
+        source_lines("Current source", new, &mut t);
+        t.extend([changed.clone(), standing.clone(), String::new(), footer.into()]);
+        whole_or_in_app("Attachment source confirmation", "attachment source comparison", t.join("\n"), comparison, |digest| {
+            [
+                "Confirm current attachment source".to_owned(),
+                format!("Original selection: {}", text_or(&old["displayName"], "name not reported")),
+                format!("Current source: {}", text_or(&new["displayName"], "name not reported")),
+                changed,
+                standing,
+                format!("Both selections, with full paths and content identities, are {IN_APP}"),
+                digest.to_owned(),
+                footer.into(),
+            ]
+            .join("\n")
+        })
     }
-    /// Native confirmation of a request answer: the masked preview as lines.
-    pub(crate) fn request_answer_statement(preview: &Value) -> Result<String, String> {
-        bounded(
+    /// Labels of the request-answer confirmation (owner's three-button layout).
+    pub(crate) const SEND_ANSWER: &str = "Send answer";
+    pub(crate) const DONT_SEND: &str = "Don't send";
+    /// Native confirmation of a request answer: the masked preview as lines,
+    /// or, when it does not fit, named by digest and shown whole in the App.
+    pub(crate) fn request_answer_statement(preview: &Value) -> Result<NativeStatement, String> {
+        let footer = "Send answer sends it once; Don't send (the default) and Cancel send nothing.";
+        whole_or_in_app(
             "Request answer confirmation",
-            format!(
-                "Send this native request answer?\n\n{}\n\nSend answer sends it once; Keep waiting sends nothing.",
-                readable(preview)
-            ),
+            "request answer",
+            format!("Send this native request answer?\n\n{}\n\n{footer}", readable(preview)),
+            preview,
+            |digest| {
+                format!(
+                    "Send this native request answer?\n\nRequest: {} #{}\nThe complete answer, as it will be sent (secret values masked), is {IN_APP}\n{digest}\n\n{footer}",
+                    cell(&preview["method"]),
+                    cell(&preview["requestIdentity"])
+                )
+            },
         )
+    }
+
+    /// The default-safe layout the owner chose for act confirmations
+    /// (OWNER_DECISIONS "Native confirmation default key — 2026-10-08"):
+    /// slot 1 "Don't ‹act›" is the default (Return); slot 2 is the act; slot 3
+    /// is "Cancel", which tauri-plugin-dialog 2.7.2 also reports for any
+    /// unmatched, failed or aborted dialog. Only slot 2 acts (see `chose`).
+    /// Used for A15, A16 and request answers; not for file acts, whose three
+    /// slots are act, decline and cancel.
+    pub(crate) fn act_buttons(dont: &str, act: &str) -> MessageDialogButtons {
+        MessageDialogButtons::YesNoCancelCustom(dont.into(), act.into(), CANCEL.into())
+    }
+    pub(crate) const CANCEL: &str = "Cancel";
+    /// Labels of the A16 confirmation.
+    pub(crate) const DECIDE: &str = "Decide";
+    pub(crate) const DONT_DECIDE: &str = "Don't decide";
+
+    /// Content the App shows in full while an open native confirmation names
+    /// it by digest. A reading aid: the binding is checked host-side.
+    pub(crate) struct InApp {
+        pub(crate) kind: &'static str,
+        pub(crate) digest: String,
+        pub(crate) content: Value,
+    }
+    /// What a native confirmation shows, and what the App shows beside it.
+    pub(crate) struct NativeStatement {
+        pub(crate) text: String,
+        pub(crate) in_app: Option<InApp>,
+    }
+    const IN_APP: &str = "shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest:";
+
+    fn non_integer_at(v: &Value, at: &str) -> Option<String> {
+        match v {
+            Value::Number(n) if n.as_i64().is_none() && n.as_u64().is_none() => {
+                Some(if at.is_empty() { "/".into() } else { at.into() })
+            }
+            Value::Array(items) => items
+                .iter()
+                .enumerate()
+                .find_map(|(i, x)| non_integer_at(x, &format!("{at}/{i}"))),
+            Value::Object(members) => members.iter().find_map(|(k, x)| {
+                non_integer_at(x, &format!("{at}/{}", k.replace('~', "~0").replace('/', "~1")))
+            }),
+            _ => None,
+        }
+    }
+    /// sha-256 (lowercase hex) of `v` in the `aac-offer-digest/0.1` canonical
+    /// form (canonical.rs). AAC §5.1 defines that form over integers only, so a
+    /// non-integer number is refused with its JSON Pointer location.
+    pub(crate) fn content_digest(what: &str, v: &Value) -> Result<String, String> {
+        if let Some(at) = non_integer_at(v, "") {
+            return Err(format!(
+                "{what} holds a non-integer number at {at}; the aac-offer-digest/0.1 canonical form (AAC §5.1) defines integers only, so it cannot be named by digest; nothing presented, captured or sent"
+            ));
+        }
+        let mut canonical = String::new();
+        crate::canonical::canonical(v, &mut canonical).map_err(|e| format!("{what}: {e}"))?;
+        Ok(crate::util::sha256_hex(canonical.as_bytes()))
+    }
+    /// `whole` when it fits; otherwise the App shows `content` in full while the
+    /// alert is open, and the alert shows `summary` naming its digest. Refused
+    /// with its cause only when even the summary does not fit.
+    pub(crate) fn whole_or_in_app(
+        what: &str,
+        kind: &'static str,
+        whole: String,
+        content: &Value,
+        summary: impl FnOnce(&str) -> String,
+    ) -> Result<NativeStatement, String> {
+        if let Ok(text) = bounded(what, whole) {
+            return Ok(NativeStatement { text, in_app: None });
+        }
+        let digest = content_digest(what, content)?;
+        let text = bounded(what, summary(&digest))?;
+        Ok(NativeStatement {
+            text,
+            in_app: Some(InApp {
+                kind,
+                digest,
+                content: content.clone(),
+            }),
+        })
+    }
+
+    static SHOWN: std::sync::Mutex<Vec<(u64, Value)>> = std::sync::Mutex::new(Vec::new());
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    struct Shown(u64);
+    impl Drop for Shown {
+        fn drop(&mut self) {
+            if let Ok(mut shown) = SHOWN.lock() {
+                shown.retain(|(id, _)| *id != self.0);
+            }
+        }
+    }
+    /// Publishes `in_app` for the App to show while `present` runs (the native
+    /// alert is open), and withdraws it afterwards, also on unwind.
+    pub(crate) fn showing_in_app<T>(in_app: Option<&InApp>, present: impl FnOnce() -> T) -> T {
+        let _shown = in_app.map(|c| {
+            let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let entry = serde_json::json!({"kind":c.kind,"digest":c.digest,"digestMethod":"sha-256 of the aac-offer-digest/0.1 canonical form","content":c.content,
+                "standing":"reading aid while a native confirmation is open; the host checks the binding at capture"});
+            SHOWN.lock().unwrap_or_else(|e| e.into_inner()).push((id, entry));
+            Shown(id)
+        });
+        present()
+    }
+    /// What the App shows now (read-only; empty when no confirmation names content).
+    pub(crate) fn shown_in_app() -> Value {
+        Value::Array(
+            SHOWN
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .iter()
+                .map(|(_, v)| v.clone())
+                .collect(),
+        )
+    }
+    /// F4: a host refusal is reported as a refusal with its cause, never as the
+    /// person's cancel. `refused` is set when the statement was not presented.
+    pub(crate) fn refusal_or(
+        refused: Option<String>,
+        result: Result<Value, String>,
+    ) -> Result<Value, String> {
+        match refused {
+            Some(cause) => Err(cause),
+            None => result,
+        }
+    }
+
+    /// How tauri-plugin-dialog 2.7.2 (desktop.rs `show_message_dialog`) with
+    /// rfd 0.16 reports each way an alert can end: the default (Return) is
+    /// slot 1; an unmatched, failed or aborted alert (rfd `Cancel`) is
+    /// reported as the cancel-slot label. Test model of the dependency only.
+    #[cfg(test)]
+    pub(crate) mod dialog_model {
+        use tauri_plugin_dialog::{MessageDialogButtons as B, MessageDialogResult as R};
+        pub(crate) fn outcomes(b: &B) -> Vec<(&'static str, R)> {
+            match b {
+                B::YesNoCancelCustom(y, n, c) => vec![
+                    ("default (Return)", R::Custom(y.clone())),
+                    ("middle", R::Custom(n.clone())),
+                    ("third", R::Custom(c.clone())),
+                    ("abort or failure", R::Custom(c.clone())),
+                ],
+                B::OkCancelCustom(o, c) => vec![
+                    ("default (Return)", R::Custom(o.clone())),
+                    ("second", R::Custom(c.clone())),
+                    ("abort or failure", R::Custom(c.clone())),
+                ],
+                _ => panic!("layout not modelled"),
+            }
+        }
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
         use serde_json::json;
-        #[test]
-        fn operational_dialogs_are_bounded_readable_and_complete_in_kind() {
-            let generation = json!({"appSession":"app-session:0123456789abcdef","home":"home-a","spawnCounter":3});
-            let row = json!({"generation":generation,"threadId":"t","turnId":"u","status":"inProgress","source":"s"});
-            let many = json!((0..200).map(|_| row.clone()).collect::<Vec<_>>());
-            let view = json!({"modeHomeClass":"account","generation":generation,"observedAt":"2026-10-08T00:00:00Z",
+        fn generation() -> Value {
+            json!({"appSession":"app-session:0123456789abcdef","home":"home-a","spawnCounter":3})
+        }
+        fn assessment(turns: usize, requests: usize, children: usize) -> Value {
+            let g = generation();
+            json!({"modeHomeClass":"account","generation":g,"observedAt":"2026-10-08T00:00:00Z",
                 "account":{"state":"signed in","nativeType":"chatgpt","readAvailability":"typed native account read observed","currentReport":{"state":"native type reported; identity not established"}},
-                "observedLiveTurns":many,"observedOutstandingRequests":many,"observedActiveChildren":[],"knownChildActivityUnknown":many,
-                "coverage":{"turns":{"unresolved":many}},"warning":"None observed is not none."});
-            let text = logout_statement(&view).unwrap();
-            for needle in ["Observed live turns: 200", "Observed active children: 0", "Known children with unknown activity: 200", "None observed is not none.", "Cancel sends nothing", "account", "0123456789ab"] {
-                assert!(text.contains(needle), "{needle} in\n{text}");
+                "observedLiveTurns":(0..turns).map(|i| json!({"generation":g,"threadId":format!("thread-{i}"),"turnId":format!("turn-{i}"),"status":"inProgress","source":"s"})).collect::<Vec<_>>(),
+                "observedOutstandingRequests":(0..requests).map(|i| json!({"generation":g,"requestIdentity":i,"method":"item/tool/requestUserInput","state":"outstanding","threadId":"thread-r","turnId":"t"})).collect::<Vec<_>>(),
+                "observedActiveChildren":(0..children).map(|i| json!({"generation":g,"threadId":format!("child-{i}"),"parentThreadId":"thread-0","reportedStatus":"running"})).collect::<Vec<_>>(),
+                "knownChildActivityUnknown":[{"generation":g,"threadId":"child-u","parentThreadId":"thread-0","reportedStatus":null}],
+                "coverage":{"turns":{"unresolved":[{"threadId":"thread-x","limit":"l"}]}},"warning":"None observed is not none."})
+        }
+        /// V14 F1: each live turn, request and child is listed (DEL-01-05
+        /// AE-12, KE-13, Q-5); counts are never the whole statement.
+        #[test]
+        fn logout_lists_every_item_or_names_the_whole_assessment_by_digest() {
+            let view = assessment(2, 1, 1);
+            let s = logout_statement(&view).unwrap();
+            assert!(s.in_app.is_none());
+            for needle in ["Live turn: thread-0 / turn-0 (inProgress)", "Live turn: thread-1 / turn-1", "Outstanding request: item/tool/requestUserInput #0 in thread-r",
+                "Active child: child-0 (parent thread-0; running)", "Child, activity unknown: child-u (parent thread-0)", "Turn observation unresolved: thread-x / turn not reported",
+                "Observed: 2 live turns, 1 outstanding requests, 1 active children", "None observed is not none.", "Cancel sends nothing", "0123456789abcdef"] {
+                assert!(s.text.contains(needle), "{needle} in\n{}", s.text);
             }
-            assert!(!text.contains('{'), "{text}");
+            assert!(!s.text.contains('{'), "{}", s.text);
+            // Too many to list: the App shows the frozen assessment whole while
+            // the alert is open; the alert gives the counts and names it by digest.
+            let view = assessment(60, 30, 30);
+            let s = logout_statement(&view).unwrap();
+            let shown = s.in_app.as_ref().expect("named by digest, shown in the App");
+            assert_eq!(shown.content, view);
+            assert_eq!(shown.digest, content_digest("x", &view).unwrap());
+            assert!(s.text.lines().any(|l| l == shown.digest), "{}", s.text);
+            assert!(s.text.contains("Observed: 60 live turns, 30 outstanding requests, 30 active children"));
+            assert!(s.text.contains("Each of these is listed in the frozen assessment, shown in full in the App now"), "{}", s.text);
+            assert!(bounded("x", s.text.clone()).is_ok());
+        }
+        #[test]
+        fn operational_dialogs_are_readable_and_route_overflow_to_the_app() {
             let path = |p: &str| json!({"encoding":"unix_bytes","bytes":p.as_bytes()});
             let old = json!({"displayName":"notes.txt","nativePath":path("/work/notes.txt"),"displayPath":"/work/notes.txt","identityAtSelection":{"method":"sha256","value":"a".repeat(64)}});
             let mut new = old.clone();
             new["identityAtSelection"]["value"] = json!("b".repeat(64));
-            let text = attachment_source_statement(&json!({"oldSelection":old,"tentativeSelection":new,"standing":"explicit refresh"})).unwrap();
-            assert!(text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{text}");
-            assert!(!text.contains("bytes") && !text.contains("47,"), "{text}");
-            let safe = json!({"generation":generation,"requestIdentity":7,"phase":"Pending","cancelAvailable":true,"standing":"source observation"});
-            let text = oauth_cancel_statement(&safe).unwrap();
+            let s = attachment_source_statement(&json!({"oldSelection":old,"tentativeSelection":new,"standing":"explicit refresh"})).unwrap();
+            assert!(s.in_app.is_none());
+            assert!(s.text.contains("  Path: /work/notes.txt") && s.text.contains(&"b".repeat(64)) && s.text.contains("Content: changed"), "{}", s.text);
+            assert!(!s.text.contains("bytes") && !s.text.contains("47,"), "{}", s.text);
+            let deep = format!("/{}", "deep/".repeat(150));
+            let mut far = old.clone();
+            far["nativePath"] = path(&deep);
+            let comparison = json!({"oldSelection":far,"tentativeSelection":far,"standing":"explicit refresh"});
+            let s = attachment_source_statement(&comparison).unwrap();
+            let shown = s.in_app.as_ref().expect("deep paths: shown in the App");
+            assert_eq!(shown.content, comparison);
+            assert!(s.text.contains("Content: unchanged") && s.text.lines().any(|l| l == shown.digest), "{}", s.text);
+            let safe = json!({"generation":generation(),"requestIdentity":7,"phase":"Pending","cancelAvailable":true,"standing":"source observation"});
+            let text = oauth_cancel_statement(&safe).unwrap().text;
             assert!(text.contains("cancelAvailable: true") && text.contains("spawnCounter: 3") && !text.contains('{'), "{text}");
-            let preview = json!({"method":"item/tool/requestUserInput","generation":generation,"requestIdentity":9,"answer":{"answers":{"q1":{"answers":["yes"]}}},"actorRef":"R"});
-            let text = request_answer_statement(&preview).unwrap();
-            assert!(text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
-            let long = json!({"answer":{"text":"x".repeat(MAX_CHARS)}});
-            assert!(request_answer_statement(&long).unwrap_err().contains("nothing presented"));
+            let preview = json!({"method":"item/tool/requestUserInput","generation":generation(),"requestIdentity":9,"answer":{"answers":{"q1":{"answers":["yes"]}}},"actorRef":"R"});
+            let s = request_answer_statement(&preview).unwrap();
+            assert!(s.in_app.is_none());
+            assert!(s.text.contains("q1:") && s.text.contains("answers: yes") && s.text.contains("Don't send (the default) and Cancel send nothing"), "{}", s.text);
+            // A long free-text answer is no longer impossible to send (V14 F5).
+            let long = json!({"method":"item/tool/requestUserInput","requestIdentity":9,"answer":{"text":"x".repeat(MAX_CHARS * 3)}});
+            let s = request_answer_statement(&long).unwrap();
+            let shown = s.in_app.as_ref().unwrap();
+            assert_eq!(shown.content, long);
+            assert!(s.text.contains("Request: item/tool/requestUserInput #9") && s.text.lines().any(|l| l == shown.digest), "{}", s.text);
+        }
+        #[test]
+        fn content_digest_refuses_non_integers_with_location_and_keeps_big_integers_exact() {
+            let err = content_digest("The answer", &json!({"a":[{"b~/c":2.5}]})).unwrap_err();
+            assert!(err.contains("non-integer number at /a/0/b~0~1c") && err.contains("integers only"), "{err}");
+            assert!(content_digest("x", &json!(1.0)).unwrap_err().contains("at /"));
+            assert!(content_digest("x", &json!({"n":u64::MAX,"m":i64::MIN})).is_ok());
+            // whole_or_in_app: a non-integer in content that must go to the App
+            // is a refusal with that cause, not a silent fallback.
+            let long = json!({"text":"x".repeat(MAX_CHARS * 2),"f":0.5});
+            let err = whole_or_in_app("W", "k", "x".repeat(MAX_CHARS * 2), &long, |d| d.to_owned()).err().unwrap();
+            assert!(err.contains("non-integer number at /f"), "{err}");
+            // Summary still too long: refused with the bound's cause.
+            let err = whole_or_in_app("W", "k", "x".repeat(MAX_CHARS * 2), &json!(1), |_| "y".repeat(MAX_CHARS * 2)).err().unwrap();
+            assert!(err.contains("exceeds the readable native confirmation"), "{err}");
+        }
+        /// The owner's layout: [Don't ‹act› (default)] [‹Act›] [Cancel]. The
+        /// default (Return), the third button and any abort never act.
+        #[test]
+        fn act_buttons_only_the_middle_slot_acts() {
+            for (dont, act) in [(DONT_DECIDE, DECIDE), (DONT_SEND, SEND_ANSWER), ("Don't register", "Register")] {
+                let ends = dialog_model::outcomes(&act_buttons(dont, act));
+                assert_eq!(ends.len(), 4);
+                for (how, result) in ends {
+                    assert_eq!(chose(&result, act), how == "middle", "{act}: {how} {result:?}");
+                }
+                assert!(matches!(act_buttons(dont, act), MessageDialogButtons::YesNoCancelCustom(d, a, c) if d == dont && a == act && c == CANCEL));
+            }
+        }
+        /// V14 F4: a host refusal is reported as a refusal with its cause.
+        #[test]
+        fn refusal_is_reported_as_refusal_not_as_the_persons_cancel() {
+            let cancelled = Ok(json!({"state":"native confirmation cancelled; no logout request"}));
+            assert_eq!(refusal_or(Some("Logout confirmation: too long".into()), cancelled.clone()).unwrap_err(), "Logout confirmation: too long");
+            assert_eq!(refusal_or(None, cancelled.clone()).unwrap(), cancelled.unwrap());
+        }
+        #[test]
+        fn shown_in_app_only_while_the_alert_is_open() {
+            let c = InApp { kind: "test content", digest: "f".repeat(64) + "-shown-test", content: json!({"a":1}) };
+            let during = showing_in_app(Some(&c), shown_in_app);
+            assert!(during.as_array().unwrap().iter().any(|e| e["digest"] == c.digest.as_str() && e["content"] == c.content && e["standing"].as_str().unwrap().contains("reading aid")));
+            assert!(!shown_in_app().as_array().unwrap().iter().any(|e| e["digest"] == c.digest.as_str()));
+            let _ = std::panic::catch_unwind(|| showing_in_app(Some(&c), || panic!("alert failed")));
+            assert!(!shown_in_app().as_array().unwrap().iter().any(|e| e["digest"] == c.digest.as_str()), "withdrawn on unwind");
         }
         #[test]
         fn bound_refuses_with_cause_and_never_truncates() {
@@ -642,6 +946,19 @@ impl ActControl {
         alternative: &str,
         actor: &Value,
     ) -> Result<String, String> {
+        self.confirmation_statement(offer_id, alternative, actor)
+            .map(|s| s.text)
+    }
+    /// The native statement, and the App-shown content when the chosen
+    /// alternative's statement and consequences do not fit the alert whole
+    /// (then the alert names them by digest; the capture still binds the frozen
+    /// offer and its digest, unchanged).
+    pub(crate) fn confirmation_statement(
+        &mut self,
+        offer_id: &str,
+        alternative: &str,
+        actor: &Value,
+    ) -> Result<native_statement::NativeStatement, String> {
         let workspace = self.workspace.clone();
         let s = self.offers.get_mut(offer_id).ok_or("no such offer")?;
         if let Err(error) = check_request_binding(&workspace, &s.request_record, &s.offer["requestRef"]) {
@@ -675,28 +992,48 @@ impl ActControl {
             .filter_map(|v| v.and_then(|x| x.as_str()))
             .collect::<Vec<_>>()
             .join(" / ");
-        let cons = alt["consequences"]
-            .as_array()
-            .unwrap()
+        let consequences = alt["consequences"].as_array().unwrap();
+        let cons = consequences
             .iter()
             .filter_map(|c| c.as_str())
             .map(|c| format!("  - {c}"))
             .collect::<Vec<_>>()
             .join("\n");
-        let text = format!(
-            "Decide (A16)\n\nPackage: {}\nContent identity: {}\nPurpose: {}\nScope: {}\n\nChosen alternative: {} — {}\nConsequences:\n{}\n\nActor: {} (identity not verified)\nAnswers: {}\nNo decline exists for A16; Cancel closes the control.",
+        let head = format!(
+            "Decide (A16)\n\nPackage: {}\nContent identity: {}\nPurpose: {}\nScope: {}\n",
             o["subject"]["ref"].as_str().unwrap_or(""),
             o["subject"]["contentIdentity"]["value"].as_str().unwrap_or(""),
             o["purpose"].as_str().unwrap_or(""),
-            o["scope"].as_str().unwrap_or(""),
-            alternative, alt["statement"].as_str().unwrap_or(""), cons, who, STANDING);
-        // AAC §4.1a: all selected text without silent truncation, or refuse
-        // presentation with the cause; nothing is frozen for a refused text.
-        let text = native_statement::bounded("A16 native confirmation", text)?;
+            o["scope"].as_str().unwrap_or("")
+        );
+        let tail = format!(
+            "\nActor: {who} (identity not verified)\nAnswers: {STANDING}\nOnly Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control."
+        );
+        let whole = format!(
+            "{head}\nChosen alternative: {alternative} — {}\nConsequences:\n{cons}\n{tail}",
+            alt["statement"].as_str().unwrap_or("")
+        );
+        // AAC §4.1a: all selected text without silent truncation. When the alert
+        // cannot hold it, the App shows the chosen alternative whole (CI-22);
+        // nothing is frozen for a refused statement.
+        let content = json!({"package":o["subject"]["ref"],"contentIdentity":o["subject"]["contentIdentity"],
+            "offerId":o["offerId"],"offerDigest":o["offerDigest"],"chosenAlternative":alt});
+        let statement = native_statement::whole_or_in_app(
+            "A16 native confirmation",
+            "A16 chosen alternative",
+            whole,
+            &content,
+            |digest| {
+                format!(
+                    "{head}\nChosen alternative: {alternative}. Its statement and all {} consequences are shown in full in the App now, under \"Content named by an open native confirmation\". Their sha-256 digest:\n{digest}\n{tail}",
+                    consequences.len()
+                )
+            },
+        )?;
         s.selected = Some(alternative.into());
         s.frozen_offer = Some(o.clone());
         s.frozen_actor = Some(actor.clone());
-        Ok(text)
+        Ok(statement)
     }
 
     /// AX-04, AX-06, AX-08, then AX-12/AX-13. Returns {state, capture, record?}.
@@ -1312,28 +1649,56 @@ mod persistence_tests {
     }
     #[test]
     fn a16_statement_is_bounded_and_an_over_long_one_is_refused_before_presentation() {
-        let root = scratch();
-        let package = root.join("project/decisions/PKG-1.json");
-        let mut p: Value = serde_json::from_slice(&std::fs::read(&package).unwrap()).unwrap();
-        p["alternatives"][1]["consequences"] =
-            json!((0..40).map(|i| format!("invented consequence {i}")).collect::<Vec<_>>());
-        std::fs::write(&package, serde_json::to_vec_pretty(&p).unwrap()).unwrap();
-        let request = crate::recorder::identify_packages(&root).unwrap().remove(0);
-        let mut control = ActControl::new(&root);
-        let offer = control.compose_a16(request["recordId"].as_str().unwrap()).unwrap();
-        let id = offer["offerId"].as_str().unwrap().to_owned();
+        let edited = |edit: &dyn Fn(&mut Value)| {
+            let root = scratch();
+            let package = root.join("project/decisions/PKG-1.json");
+            let mut p: Value = serde_json::from_slice(&std::fs::read(&package).unwrap()).unwrap();
+            edit(&mut p);
+            std::fs::write(&package, serde_json::to_vec_pretty(&p).unwrap()).unwrap();
+            let request = crate::recorder::identify_packages(&root).unwrap().remove(0);
+            let mut control = ActControl::new(&root);
+            let offer = control.compose_a16(request["recordId"].as_str().unwrap()).unwrap();
+            let id = offer["offerId"].as_str().unwrap().to_owned();
+            (root, control, id, p)
+        };
         let actor = person(Some("Fixture person"), Some("fixture"));
+        // V14 F5: forty consequences do not fit the alert. The App shows the
+        // chosen alternative whole and the alert names it by digest; the
+        // decision is still possible and binds the frozen offer as before.
+        let (root, mut control, id, p) = edited(&|p| {
+            p["alternatives"][1]["consequences"] =
+                json!((0..40).map(|i| format!("invented consequence {i}")).collect::<Vec<_>>());
+        });
+        let s = control.confirmation_statement(&id, "ALT-2", &actor).unwrap();
+        let shown = s.in_app.as_ref().expect("shown whole in the App");
+        assert_eq!(shown.content["chosenAlternative"], p["alternatives"][1]);
+        assert_eq!(shown.content["offerDigest"], control.offers[&id].offer["offerDigest"]);
+        assert_eq!(shown.digest, native_statement::content_digest("x", &shown.content).unwrap());
+        assert!(s.text.lines().any(|l| l == shown.digest), "{}", s.text);
+        assert!(s.text.contains("Chosen alternative: ALT-2. Its statement and all 40 consequences are shown in full in the App now"), "{}", s.text);
+        assert!(s.text.contains("Only Decide records this decision.") && s.text.contains("Cancel closes the control"));
+        assert!(native_statement::bounded("x", s.text.clone()).is_ok());
+        control.present(&id).unwrap();
+        let out = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone()).unwrap();
+        assert_eq!(out["capture"]["alternativeChosen"], "ALT-2");
+        assert_eq!(out["capture"]["offerDigest"], control.offers[&id].offer["offerDigest"]);
+        std::fs::remove_dir_all(root).unwrap();
+        // Every consequence of a shorter alternative is shown whole.
+        let (root, mut control, id, _) = edited(&|_| {});
+        let s = control.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        assert!(s.in_app.is_none());
+        assert!(s.text.lines().count() <= native_statement::MAX_LINES);
+        assert!(s.text.contains("Stage 2 starts today; any changed supplier fact reopens the affected parts"));
+        std::fs::remove_dir_all(root).unwrap();
+        // Hard refusal only where even the summary cannot fit (a purpose longer
+        // than the alert): nothing frozen, nothing captured.
+        let (root, mut control, id, _) = edited(&|p| p["purpose"] = json!("invented purpose ".repeat(120)));
         let err = control.confirmation_text(&id, "ALT-2", &actor).unwrap_err();
         assert!(err.contains("exceeds the readable native confirmation"), "{err}");
         assert!(control.offers[&id].selected.is_none() && control.offers[&id].frozen_offer.is_none());
         let refused = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone());
         assert!(refused.is_err() || refused.unwrap()["recorded"] != true);
         assert!(control.native_captures.is_empty());
-        // Every consequence of a shorter alternative is shown whole.
-        let text = control.confirmation_text(&id, "ALT-1", &actor).unwrap();
-        assert!(text.lines().count() <= native_statement::MAX_LINES);
-        assert!(text.contains("Stage 2 starts today; any changed supplier fact reopens the affected parts"));
-        assert!(text.contains("Cancel closes the control"));
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

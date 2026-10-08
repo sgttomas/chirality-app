@@ -104,22 +104,55 @@ function canonicalString(s: string): string {
   return out + '"';
 }
 
+const pointer = (at: string, key: string | number) =>
+  `${at}/${String(key).replace(/~/g, "~0").replace(/\//g, "~1")}`;
+
 /** The `aac-offer-digest/0.1` canonical serialization (canonical.rs): keys in
- * code-point order, no whitespace, the listed escapes, integers only. */
-export function canonicalJson(v: Json): string {
+ * code-point order, no whitespace, the listed escapes, integers only. A
+ * non-integer is refused with its location (AAC §5.1 defines integers only).
+ * An integer beyond 2^53 is refused too: JSON parsing in this view has
+ * already rounded it, so only the host's digest is exact (V14 F2). */
+export function canonicalJson(v: Json, at = ""): string {
   if (v === null) return "null";
   if (typeof v === "boolean") return v ? "true" : "false";
   if (typeof v === "number") {
-    if (!Number.isSafeInteger(v)) throw new Error("not an exactly representable integer");
+    if (!Number.isInteger(v)) {
+      throw new Error(`non-integer number at ${at || "/"}; the aac-offer-digest/0.1 canonical form (AAC §5.1) defines integers only`);
+    }
+    if (!Number.isSafeInteger(v)) {
+      throw new Error(`integer at ${at || "/"} is beyond 2^53, which this view cannot hold exactly; use the digest the host reports`);
+    }
     return String(v);
   }
   if (typeof v === "string") return canonicalString(v);
-  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(",")}]`;
+  if (Array.isArray(v)) return `[${v.map((x, i) => canonicalJson(x, pointer(at, i))).join(",")}]`;
   if (typeof v === "object") {
     const keys = Object.keys(v).sort(compareCodePoints);
-    return `{${keys.map((k) => `${canonicalString(k)}:${canonicalJson(v[k])}`).join(",")}}`;
+    return `{${keys.map((k) => `${canonicalString(k)}:${canonicalJson(v[k], pointer(at, k))}`).join(",")}}`;
   }
-  throw new Error(`unsupported value ${typeof v}`);
+  throw new Error(`unsupported value ${typeof v} at ${at || "/"}`);
+}
+
+/** The digest of one review: as the host reports it (named by the native A15
+ * statement), and as this view recomputed it from the review it shows. */
+export type ReviewDigestView = { host?: string; hostUnavailable?: string; app?: string; appUnavailable?: string };
+
+/** V14 F8: the digest is a reading aid. The binding is checked host-side. */
+export const DIGEST_LIMIT =
+  "The digest is a reading aid: this view could show other bytes beside it, so the binding is checked by the host at capture, not here.";
+
+export function digestComparison(d: ReviewDigestView): string {
+  const host = d.host
+    ? `Complete review digest reported by the host (sha-256, named in the native confirmation): ${d.host}.`
+    : `Host digest unavailable: ${d.hostUnavailable ?? "not reported"}.`;
+  const app = d.app
+    ? d.host
+      ? d.app === d.host
+        ? "This view recomputed the same digest from the review it shows."
+        : `This view recomputed a different digest (${d.app}) from the review it shows: do not rely on this view; compare in the native confirmation and review again.`
+      : `This view recomputed ${d.app}.`
+    : `This view cannot recompute it (${d.appUnavailable ?? "no review"}).`;
+  return `${host} ${app} ${DIGEST_LIMIT}`;
 }
 
 export async function sha256Hex(text: string): Promise<string> {
@@ -133,13 +166,17 @@ export function reviewDigest(presentation: Json): Promise<string> {
 }
 
 /** D-2: the run summary's supply reading follows the latest supply check, as
- * its check row does; before any check it keeps the run's own status. */
+ * its check row does, including a pending check record (V14 F10); before any
+ * check it keeps the run's own status. */
 export function suppliedSummary(run: Json): string {
   const checks: Json[] = Array.isArray(run?.checks) ? run.checks : [];
   const latest = checks[checks.length - 1];
   if (latest) {
     const of = checks.length > 1 ? ` (latest of ${checks.length} checks)` : "";
-    return `${latest.state} (${latest.supplyReading}) at ${latest.readAt}${of}`;
+    const record = latest.published === false
+      ? `; check record pending${latest.publicationLimit ? ` — ${typeof latest.publicationLimit === "string" ? latest.publicationLimit : JSON.stringify(latest.publicationLimit)}` : ""}`
+      : "";
+    return `${latest.state} (${latest.supplyReading}) at ${latest.readAt}${of}${record}`;
   }
   return run?.status?.supplied ?? "see checks";
 }
