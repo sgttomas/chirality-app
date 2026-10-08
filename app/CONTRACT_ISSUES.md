@@ -617,6 +617,134 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
     exactly the copied bytes. The refusal says that the copy was removed.
     Otherwise the draft is kept and the refusal names the folder to remove.
 
+## CI-22 (J6) Readable native confirmations: what the A15 alert shows
+
+Found 2026-10-08 by the J6 TASK of `APP-V4-GROUP-A-20261004`, repairing the
+native journey witness defect D-1 (PR 1113 witness). The A15 alert embedded the
+complete review and offer JSON. It grew taller than the screen, so the person
+could not read the statement or reach the buttons, and pressed Return unseen.
+No Design file was changed. The A15 repair uses only what AAC already
+permits (below). The A16 App route and the three-button layout, added after
+review V14 by HELP_HUMAN direction and the owner's decision, go beyond the
+committed §4.1a and §6.2 text; the adoption text they need is at the end.
+
+- §6.2 P-2 lists what the native confirmation shows: "the act wording, subject
+  and its identity, scope, purpose, the arrival or 'standing act', and the
+  buttons". It does not require the review itself.
+- §4.2 step 1: "DEL-02-02 shows the review package". §6.2: "The interface may
+  show the offer in the webview too, for reading; only the native confirmation
+  captures."
+- §4.1a (A16): "The host must display all selected text without silent
+  truncation; if the surface cannot do so, it refuses presentation with the
+  cause and captures nothing."
+
+What the code now does (J6, revised after independent review V14):
+
+- **(a) A15 statement.** The alert carries a bounded statement: the wording;
+  each entry's name, origin, disposition, short revision and full revision on
+  its own line, revision method and prior revision; the library, scope,
+  purpose and standing; the review reference and the sha-256 digest of the
+  complete review (`aac-offer-digest/0.1` canonical form); the offer and its
+  short digest; the consequence; the actor with "identity not verified"; and
+  what each button does. The App shows the complete review beside the digest
+  the host reports, before the alert and, while the alert is open, under
+  "Content named by an open native confirmation". Capture still binds the
+  frozen offer (digest checked) and the frozen review (full equality). It now
+  also checks that the review digest equals the one the statement named.
+  The wording, consequence and act label follow the descriptor's kind and
+  disposition (V14 F7). A *re-confirmation* descriptor (AAC §4.2 as adopted
+  by CC-WR-RECONFIRM) gets "Re-confirm revision ‹k› of ‹origin›:‹name› for use
+  in this App session. This registers no new revision." and the buttons
+  [Don't re-confirm] [Re-confirm] [Cancel]. WR does not yet compose such a
+  descriptor (J8); the statement is tested with a synthetic one.
+- **(b) Bound, and the App route.** Each native statement is limited to 30
+  lines and 1500 characters (not natively witnessed). Nothing is truncated.
+  - When a logout/key-removal assessment, an A16 chosen alternative, a request
+    answer or an attachment comparison does not fit, the App shows that
+    content whole while the alert is open, and the alert names it by sha-256
+    digest (V14 F1, F5). The logout alert always gives the counts and, when
+    they fit, one line per live turn, outstanding request, active child,
+    child with unknown activity and unresolved turn observation (DEL-01-05
+    AE-12, KE-13, Q-5: "listing all three"). Counts alone are never the whole
+    statement. The binding of each operation is unchanged and host-side: the
+    frozen A16 offer and digest; the logout assessment's material recheck;
+    the answer preview's recheck; the attachment owner/revision recheck.
+  - A hard refusal with its cause remains only where no such route exists:
+    an A15 whose entries' identities do not fit (with a ~120-character
+    library path: a single draft fits; two in-place entries fit; a third is
+    refused, so the person registers fewer entries per act); a statement
+    whose fixed parts alone exceed the bound (for example a package purpose
+    longer than the alert); a sign-in cancellation (a short fixed field set);
+    and file acts (below).
+  - A refusal is reported to the App as a refusal with its cause, never as
+    the person's cancel (V14 F4).
+- **(c) Default key: owner decision.** OWNER_DECISIONS "Native confirmation
+  default key — 2026-10-08", answer "Three buttons; Return is safe
+  (Recommended)". A15, A16 and request-answer confirmations use
+  `YesNoCancelCustom("Don't ‹act›", "‹Act›", "Cancel")`: Return chooses
+  "Don't ‹act›", which records nothing; tauri-plugin-dialog 2.7.2 reports any
+  unmatched, failed or aborted alert as the third label, "Cancel"; only the
+  middle label acts. Escape: not yet observed. Which button Escape
+  triggers in the parentless macOS alert (CFUserNotification) is
+  unestablished, and the act now sits in the alternate slot, so Escape must
+  be witnessed natively before any person relies on the build for an act;
+  if Escape reaches the middle slot the layout is revisited (V14-R1 R1-1). **Known limit: file acts are excluded.** Their three slots are
+  act, decline and Cancel; under the three-button layout an aborted alert
+  would map to the third slot, which there would be a decline. They keep
+  [act (default)] [Decline this act] [Cancel], so Return still performs a
+  file act, until a custom dialog exists. Logout, sign-in cancellation and
+  attachment source keep their two-button layouts (the owner's decision
+  names A15, A16 and request answers).
+- **(d) File acts (V14 F3).** The file-act statement is bounded inside the
+  freeze, before the actor and context are frozen and the offer is
+  Presented; a refused statement leaves the offer Composed. The dead
+  24 000-byte check is removed. The statement is readable lines (file path,
+  content identity in full, scope, purpose, requirement, actor, standing),
+  with no raw JSON.
+- **(e) Numbers (V14 F2).** AAC §5.1 defines `aac-offer-digest/0.1` over
+  integers only. Content holding a non-integer number cannot be named by
+  digest: it is refused with the number's JSON Pointer location and that
+  cause ("defines integers only"), not "the offer is not offered". A review is
+  refused when it is opened for A15 (compose), so the person learns it at
+  review time. Integers above 2^53 are digested exactly by the host. The
+  App's own JSON parsing has already rounded them, so the App shows the
+  host's digest and says it cannot recompute it.
+- **(f) The App's digest is a reading aid (V14 F8).** The App shows the digest
+  reported by the host and its own recomputation from the content it shows.
+  A compromised webview could show other bytes beside the right digest; the
+  binding is checked by the host at capture, never by the view. The App
+  states this beside every digest.
+
+AAC adoption text needed (for the AAC owner; the code above implements it
+ahead of adoption, as directed by HELP_HUMAN after V14; not applied to the
+Design):
+
+> §6.2, after "the buttons": "The native confirmation shows a statement the
+> person can read whole with its buttons on screen. Where content the act or
+> operation binds is too large for that surface (an A15 review; an A16
+> alternative and its consequences), the statement names it by reference and
+> digest (`aac-offer-digest/0.1` form, integers only) and the App shows the
+> complete content with the same digest before and while the confirmation is
+> open; the capture binds that content as before, and the App's display is a
+> reading aid only. A statement the surface cannot show whole and that has no
+> such route is refused with its cause and nothing is captured. The act
+> confirmations for A15 and A16 present [Don't ‹act›] [‹Act›] [Cancel], with
+> the first the default; only ‹Act› captures, and an aborted or failed
+> confirmation captures nothing (OWNER_DECISIONS 2026-10-08). A file act's
+> confirmation keeps [‹act›] [Decline] [Cancel] until a surface exists whose
+> abort cannot be read as a decline."
+>
+> §4.1a, replace "if the surface cannot do so, it refuses presentation with
+> the cause and captures nothing" with "if the surface cannot do so, the App
+> shows the selected alternative's statement and every consequence whole and
+> the native statement names them by digest (§6.2); only when that is not
+> possible is presentation refused with the cause, capturing nothing".
+
+DEL-01-05 (AE-12, KE-13, Q-5) and NIR are met as written: the logout list is
+shown in full (in the alert or in the App while the alert is open), and a
+request answer of any length can be confirmed unless its content holds a
+non-integer number, which is refused with its location (V14-R1 R1-1).
+
 ## CI-23 RS schema `if` breaks the DEL-04-03 and WR prototypes
 
 Found 2026-10-08 by independent review V13 (CC-WR-RECONFIRM, Q8), and

@@ -208,7 +208,9 @@ fn logout_home(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value,mo
     if home.class()!=home_class(&mode_home_class)? {return Err("Logout mode differs from its actual source; no other-home fallback".into());}
     state.validate_home_source(&home)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
-    runtime_session::logout_native_home(&home,bootstrap.as_deref(),&generation,|assessment|app.dialog().message(format!("Log out through Codex for this exact native home?\n{}",serde_json::to_string_pretty(assessment).unwrap_or_else(|_|"Assessment unavailable".into()))).title("Native home logout / remove key").buttons(MessageDialogButtons::OkCancel).blocking_show())
+    let mut refused=None;
+    let result=runtime_session::logout_native_home(&home,bootstrap.as_deref(),&generation,|assessment|confirm_bounded(&app,"Native home logout / remove key",act_control::native_statement::logout_statement(assessment),MessageDialogButtons::OkCancel,&mut refused));
+    act_control::native_statement::refusal_or(refused,result)
 }
 
 #[tauri::command(async)]
@@ -232,7 +234,9 @@ fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)-
     let home=state.homes.lock().unwrap().for_generation(&generation)?;
     state.validate_home_source(&home)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().as_ref().ok().cloned();
-    runtime_session::cancel_native_oauth(&home,&generation,bootstrap.as_deref(),|safe|app.dialog().message(format!("Cancel this original Codex sign-in?\n{}",serde_json::to_string_pretty(safe).unwrap_or_else(|_|"Original safe observation unavailable".into()))).title("Cancel original pending sign-in").buttons(MessageDialogButtons::OkCancel).blocking_show())
+    let mut refused=None;
+    let result=runtime_session::cancel_native_oauth(&home,&generation,bootstrap.as_deref(),|safe|confirm_bounded(&app,"Cancel original pending sign-in",act_control::native_statement::oauth_cancel_statement(safe),MessageDialogButtons::OkCancel,&mut refused));
+    act_control::native_statement::refusal_or(refused,result)
 }
 
 #[tauri::command(async)]
@@ -492,11 +496,12 @@ fn reorder_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u
 }
 #[tauri::command(async)]
 fn reconfirm_attachment(app:tauri::AppHandle,state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_ref:String)->Result<Value,String>{
-    runtime_session::reconfirm_attachment_source(&state.attachment_selection,&owner_ref,list_revision,&selection_ref,|comparison| {
-        app.dialog().message(format!("Confirm current attachment source\n\n{}\n\nThis changes only the selected source. Nothing is sent or registered.",serde_json::to_string_pretty(comparison).unwrap()))
-            .title("Chirality — confirm current attachment source").kind(MessageDialogKind::Info)
-            .buttons(MessageDialogButtons::OkCancelCustom("Use current source".into(),"Keep original selection".into())).blocking_show()
-    })
+    let mut refused=None;
+    let result=runtime_session::reconfirm_attachment_source(&state.attachment_selection,&owner_ref,list_revision,&selection_ref,|comparison| {
+        confirm_bounded(&app,"Chirality — confirm current attachment source",act_control::native_statement::attachment_source_statement(comparison),
+            MessageDialogButtons::OkCancelCustom("Use current source".into(),"Keep original selection".into()),&mut refused)
+    });
+    act_control::native_statement::refusal_or(refused,result)
 }
 
 /// The IPC accepts declared kinds only. Path and bytes originate exclusively
@@ -587,20 +592,20 @@ fn answer_native_request(
     );
     let preview =
         runtime_session::answer_preview(&snapshot, &generation, &request_id, &answer, &actor)?;
-    let confirmed = app
-        .dialog()
-        .message(format!(
-            "Send this native request answer?\n{}",
-            serde_json::to_string_pretty(&preview).map_err(|e| e.to_string())?
-        ))
-        .title("Chirality — answer native request")
-        .kind(MessageDialogKind::Warning)
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            "Send answer".into(),
-            "Keep waiting".into(),
-        ))
-        .blocking_show();
-    if !confirmed {
+    // Owner's three-button layout: Return chooses "Don't send"; an abort maps
+    // to "Cancel"; only the middle "Send answer" sends. A statement too long for
+    // the alert names the preview by digest while the App shows it whole.
+    use act_control::native_statement::{self as ns, DONT_SEND, SEND_ANSWER};
+    let statement = ns::request_answer_statement(&preview)?;
+    let result = ns::showing_in_app(statement.in_app.as_ref(), || {
+        app.dialog()
+            .message(statement.text.clone())
+            .title("Chirality — answer native request")
+            .kind(MessageDialogKind::Warning)
+            .buttons(ns::act_buttons(DONT_SEND, SEND_ANSWER))
+            .blocking_show_with_result()
+    });
+    if !ns::chose(&result, SEND_ANSWER) {
         return Ok(json!({"state":"dismissed","replyWriteResult":"not-attempted"}));
     }
     let (snapshot, current) = current_actor_context_for(&state, &home);
@@ -617,6 +622,29 @@ fn answer_native_request(
     )
 }
 
+/// J6: a native confirmation shows a bounded, readable statement, with any
+/// content it names by digest shown whole in the App while it is open. When no
+/// statement can be presented, the alert says why, nothing is chosen, and the
+/// cause is kept in `refused` so the command reports a refusal, never the
+/// person's cancel (V14 F4).
+fn confirm_bounded(app:&tauri::AppHandle,title:&str,statement:Result<act_control::native_statement::NativeStatement,String>,buttons:MessageDialogButtons,refused:&mut Option<String>)->bool{
+    match statement {
+        Ok(s)=>act_control::native_statement::showing_in_app(s.in_app.as_ref(),||app.dialog().message(s.text.clone()).title(title).kind(MessageDialogKind::Info).buttons(buttons).blocking_show()),
+        Err(cause)=>{app.dialog().message(cause.clone()).title(title).kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();*refused=Some(cause);false}
+    }
+}
+/// Content an open native confirmation names by digest (read-only).
+#[tauri::command]
+fn native_confirmation_content()->Value{act_control::native_statement::shown_in_app()}
+/// The host's digest of a review's complete presentation, as the A15
+/// statement names it. A reading aid: the binding is checked host-side.
+#[tauri::command(async)]
+fn workflow_review_digest(state:State<'_,AppState>,review_ref:String)->Result<Value,String>{
+    let review=state.workflows.lock().unwrap().reviews.get(&review_ref).cloned().ok_or("Review unavailable")?;
+    let review=review.try_lock().map_err(|_|"Review held by an open native confirmation; its content is shown under the confirmation")?;
+    let presentation=review.status.get("presentation").ok_or("Review presentation not available in this state")?;
+    Ok(match act_control::review_digest(presentation){Ok(d)=>json!({"reviewRef":review_ref,"digest":d}),Err(cause)=>json!({"reviewRef":review_ref,"unavailable":cause})})
+}
 fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathBuf>,String>{
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
@@ -824,19 +852,20 @@ fn decide(
     }
     let mut g = state.act.lock().unwrap();
     let ac = g.as_mut().ok_or("CHIRALITY_WORKSPACE is not set")?;
-    let text = ac.confirmation_text(&offer_id, &alternative, &actor)?;
+    let statement = ac.confirmation_statement(&offer_id, &alternative, &actor)?;
     ac.present(&offer_id)?;
-    let confirmed = app
-        .dialog()
-        .message(text)
-        .title("Chirality — decide")
-        .kind(MessageDialogKind::Warning)
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            "Decide".into(),
-            "Cancel".into(),
-        ))
-        .blocking_show();
-    if !confirmed {
+    // Owner's three-button layout: Return chooses "Don't decide"; an abort maps
+    // to "Cancel"; only the middle "Decide" captures.
+    use act_control::native_statement::{self as ns, DECIDE, DONT_DECIDE};
+    let result = ns::showing_in_app(statement.in_app.as_ref(), || {
+        app.dialog()
+            .message(statement.text.clone())
+            .title("Chirality — decide")
+            .kind(MessageDialogKind::Warning)
+            .buttons(ns::act_buttons(DONT_DECIDE, DECIDE))
+            .blocking_show_with_result()
+    });
+    if !ns::chose(&result, DECIDE) {
         ac.dismiss(&offer_id);
         return Ok(json!({"state": "AC-5 dismissed", "recorded": false}));
     }
@@ -1053,7 +1082,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,
+            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,

@@ -1,0 +1,17 @@
+m1-default-slot-is-act KILLED | test act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures ... FAILED; test act_control::a15::tests::reconfirmation_descriptor_has_its_own_statement_and_act_label ... FAILED; test act_control::native_statement::tests::act_buttons_only_the_middle_slot_acts ... FAILED
+m2-abort-is-act KILLED | test act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures ... FAILED; test act_control::a15::tests::reconfirmation_descriptor_has_its_own_statement_and_act_label ... FAILED; test act_control::native_statement::tests::act_buttons_only_the_middle_slot_acts ... FAILED
+m3-default-result-captures KILLED | test act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures ... FAILED
+m4-abort-result-captures KILLED | test act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures ... FAILED
+m5-logout-counts-only KILLED | test act_control::native_statement::tests::logout_lists_every_item_or_names_the_whole_assessment_by_digest ... FAILED
+m6-no-app-route KILLED | test act_control::native_statement::tests::content_digest_refuses_non_integers_with_location_and_keeps_big_integers_exact ... FAILED; test act_control::native_statement::tests::logout_lists_every_item_or_names_the_whole_assessment_by_digest ... FAILED; test act_control::native_statement::tests::operational_dialogs_are_readable_and_route_overflow_to_the_app ... FAILED; test act_control::persistence
+m7-file-act-frozen-before-bound KILLED | test act_control::file_act::native::presentation_tests::over_long_file_act_statement_is_refused_before_it_is_shown ... FAILED
+m8-refusal-reported-as-cancel KILLED | test act_control::native_statement::tests::refusal_is_reported_as_refusal_not_as_the_persons_cancel ... FAILED
+m9-no-number-location KILLED | test act_control::a15::tests::review_digest_vector_is_shared_with_the_app_view ... FAILED; test act_control::a15::tests::review_with_a_non_integer_number_is_refused_at_review_time_with_its_location ... FAILED; test act_control::native_statement::tests::content_digest_refuses_non_integers_with_location_and_keeps_big_integers_exact ... FAILED
+m10-no-reconfirm-variant KILLED | test act_control::a15::tests::reconfirmation_descriptor_has_its_own_statement_and_act_label ... FAILED
+m11-content-not-shown-in-app KILLED | test act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures ... FAILED; test act_control::native_statement::tests::shown_in_app_only_while_the_alert_is_open ... FAILED
+m12-no-review-time-refusal KILLED | test act_control::a15::tests::review_with_a_non_integer_number_is_refused_at_review_time_with_its_location ... FAILED
+m13-ts-pending-record-dropped KILLED | ✖ failing tests:; ✖ run summary follows the latest supply check (0.514625ms)
+m14-ts-big-integer-accepted KILLED | ✖ failing tests:; ✖ review digest equals the vector the native A15 statement names (Rust canonical.rs) (3.402542ms)
+m15-ts-digest-limit-dropped KILLED | ✖ failing tests:; ✖ the App states the digest comparison and that it is only a reading aid (0.283042ms)
+
+[exited with code 0]

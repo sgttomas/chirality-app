@@ -211,3 +211,29 @@ active Claude Code chat.
 Scope: this exact artifact and the described steps only. Agents perform no
 positive human act, and never see or handle credentials. The approval covers
 no other artifact, launch or act.
+
+## Native confirmation default key — 2026-10-08
+
+Context: the native witness's blind registration (D-1), and review V14 Q4 /
+CI-22(c). With tauri-plugin-dialog 2.7.2 and rfd 0.16, the act button is the
+default, so Return performs the act. Swapping the slots is unsafe, because
+an aborted or failed dialog reports its cancel-slot label.
+
+HELP_HUMAN offered: three buttons with Return safe (recommended); a custom
+native NSAlert; or keeping Return as the act. Answer: **"Three buttons;
+Return is safe (Recommended)"**. Custody: a structured answer in the active
+Claude Code chat.
+
+Effect: registration (A15), decisions (A16) and request-answer
+confirmations use [Don't ‹act› (default)] [‹Act›] [Cancel]. Return and
+Escape never act, an abort maps to Cancel, and only the middle button acts.
+File acts are excluded, because an abort there would record a decline; they
+keep their current layout until a custom dialog exists, recorded as a known
+limit. The AAC wording follows through CI-22. This answer approves no
+launch or act.
+
+Correction (V14-R1 R1-1, 2026-10-08): HELP_HUMAN's effect line above
+overstated "Return and Escape never act". Return chooses "Don't ‹act›" and
+an abort maps to Cancel, by the dialog plugin's mapping. Which button Escape
+triggers in the parentless macOS alert is not yet observed; it is a gating
+step of the native re-witness. The owner's answer is unchanged.
