@@ -1,3 +1,4 @@
+import { ReconstructionFields, ReconstructionView, emptyReconstruction, reconstructionPayload } from "./ConnectorReconstruction";
 import { useEffect, useRef, useState } from "react";
 import type { RouteAvailability } from "./ConnectorRoutePanel";
 type Json = any;
@@ -156,6 +157,7 @@ export function acceptDraftReply(previous:Json,next:Json){return !previous||BigI
 export function ConnectorDraftPanel({source,availability,command}:{source:SourceUiState;availability?:RouteAvailability;command:(name:string,args:Record<string,unknown>)=>Promise<Json>}){
  const [registry,setRegistry]=useState<Json>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(false),[dirty,setDirty]=useState(true);
  const [connector,setConnector]=useState("");
+ const [format,setFormat]=useState("0.3"),[reconstruction,setReconstruction]=useState<any>(emptyReconstruction);
  const [choices,setChoices]=useState<Record<string,{selected:boolean;role:string;anchors:string[]}>>({});
  const [statement,setStatement]=useState(""),[assertedBy,setAssertedBy]=useState(""),[linkEvidence,setLinkEvidence]=useState(false);
  const [gap,setGap]=useState(""),[effect,setEffect]=useState(""),[assigned,setAssigned]=useState(false),[responsible,setResponsible]=useState("");
@@ -168,21 +170,22 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  useEffect(()=>{if(prepared&&!eligible)void action("cancel_connector_draft",{token:prepared.token,generation:prepared.generation});},[eligible,source.view?.generation,source.view?.git?.result?.reference,prepared?.token]);
  useEffect(()=>{setChoices({});setDirty(true);if(prepared)void action("cancel_connector_draft",{token:prepared.token,generation:prepared.generation});},[result?.reference,source.view?.generation]);
  const choose=(reference:string,change:Partial<{selected:boolean;role:string;anchors:string[]}>)=>{invalidate();setChoices(old=>({...old,[reference]:{...(old[reference]??{selected:false,role:"",anchors:[]}),...change}}));};
- const prepare=()=>{const selected=Object.entries(choices).filter(([,c])=>c.selected),references=selected.map(([ref])=>ref),anchors=selected.flatMap(([,c])=>c.anchors);return action("prepare_connector_draft",{input:{sessionToken:source.view.sessionToken,generation:source.view.generation,gitReference:result.reference,connector,sources:selected.map(([reference,c])=>({reference,role:c.role,anchors:c.anchors})),interpretations:statement?[{statement,assertedBy,sourceReferences:linkEvidence?references:[],anchorReferences:linkEvidence?anchors:[]}]:[],gaps:gap?[{gap,effect,responsible:{standing:assigned?"caller_assigned":"unassigned",identity:assigned?responsible:null}}]:[],unsupported:unsupported?[{conclusion:unsupported,why:unsupportedWhy}]:[],duties:Object.entries(duties).map(([duty,value])=>({duty,...value}))}},true);};
+ const prepare=()=>{const selected=Object.entries(choices).filter(([,c])=>c.selected),references=selected.map(([ref])=>ref),anchors=selected.flatMap(([,c])=>c.anchors);const draft={sessionToken:source.view.sessionToken,generation:source.view.generation,gitReference:result.reference,connector,sources:selected.map(([reference,c])=>({reference,role:c.role,anchors:c.anchors})),interpretations:format==="0.3"&&statement?[{statement,assertedBy,sourceReferences:linkEvidence?references:[],anchorReferences:linkEvidence?anchors:[]}]:[],gaps:gap?[{gap,effect,responsible:{standing:assigned?"caller_assigned":"unassigned",identity:assigned?responsible:null}}]:[],unsupported:unsupported?[{conclusion:unsupported,why:unsupportedWhy}]:[],duties:Object.entries(duties).map(([duty,value])=>({duty,...value}))};return format==="0.4"?action("prepare_connector_reconstruction",{input:{draft,...reconstructionPayload(reconstruction)}},true):action("prepare_connector_draft",{input:draft},true);};
  return <section aria-label="Source evidence draft materialization">
- <h2>Prepare a source-evidence draft</h2><p>Evidence and separately attributed interpretations only; not a reconstructed answer. Facts and supported conclusions stay empty. No performed duty is recorded.</p>
+ <h2>Prepare a bounded route account</h2>{format==="0.3"&&<p>Evidence and separately attributed interpretations only; not a reconstructed answer. Facts and supported conclusions stay empty. No performed duty is recorded.</p>}
  {!eligible&&<p>Preparation requires current local selection and completed Git evidence with matching frozen question pins. Partial and gaps-only results remain explicit.</p>}
  <p>Editing these inputs cancels an unsubmitted frozen draft. Publication already started may finish; its actual outcome remains below.</p>
- <fieldset disabled={!eligible||busy||!!registry?.inflight}><legend>Explicit caller inputs</legend>
+ <fieldset disabled={!eligible||busy||!!registry?.inflight}><legend>Explicit caller inputs</legend><label>Account format<select value={format} onChange={e=>{invalidate();setFormat(e.target.value);}}><option value="0.3">Source-evidence draft (0.3)</option><option value="0.4">Bounded record comparison (0.4, two pins)</option></select></label>
  <label>Constructed connector label<select value={connector} onChange={e=>{invalidate();setConnector(e.target.value);}}><option value="">Choose…</option><option value="pec">PEC</option><option value="domains">Domains</option></select></label>
  {(["at","since"] as const).map(side=>{const item=result?.observation?.[side];if(item?.status!=="Git-object-verified")return null;const ref=item.object.reference,c=choices[ref]??{selected:false,role:"",anchors:[]};return <fieldset key={ref}><legend>{side}: {item.object.readCommit}</legend>
  <label><input type="checkbox" checked={c.selected} onChange={e=>choose(ref,{selected:e.target.checked})}/>Include this successfully observed side</label>
  <label>Intended source role (caller assertion)<input value={c.role} onChange={e=>choose(ref,{role:e.target.value})}/></label>
  {result.anchors?.filter((a:Json)=>a.sideObservationReference===ref).map((a:Json)=><label key={a.reference}><input type="checkbox" checked={c.anchors.includes(a.reference)} onChange={e=>choose(ref,{anchors:e.target.checked?[...c.anchors,a.reference]:c.anchors.filter(x=>x!==a.reference)})}/>Include checked excerpt {a.anchor}: {a.text}</label>)}
  </fieldset>;})}
- <label>Optional caller interpretation<textarea value={statement} onChange={e=>{invalidate();setStatement(e.target.value);}}/></label>
+ {format==="0.3"&&<><label>Optional caller interpretation<textarea value={statement} onChange={e=>{invalidate();setStatement(e.target.value);}}/></label>
  <label>Asserted by (unverified caller identity)<input value={assertedBy} onChange={e=>{invalidate();setAssertedBy(e.target.value);}}/></label>
- <label><input type="checkbox" checked={linkEvidence} onChange={e=>{invalidate();setLinkEvidence(e.target.checked);}}/>Reference explicitly selected evidence in this interpretation</label>
+ <label><input type="checkbox" checked={linkEvidence} onChange={e=>{invalidate();setLinkEvidence(e.target.checked);}}/>Reference explicitly selected evidence in this interpretation</label></>}
+ {format==="0.4"&&<ReconstructionFields value={reconstruction} onChange={v=>{invalidate();setReconstruction(v);}} anchors={(result?.anchors??[]).filter((a:Json)=>Object.values(choices).some(c=>c.selected&&c.anchors.includes(a.reference)))}/> }
  <label>Optional caller gap<input value={gap} onChange={e=>{invalidate();setGap(e.target.value);}}/></label><label>Caller gap effect<input value={effect} onChange={e=>{invalidate();setEffect(e.target.value);}}/></label>
  <label><input type="checkbox" checked={assigned} onChange={e=>{invalidate();setAssigned(e.target.checked);}}/>Assign responsibility for this caller gap</label>
  {assigned&&<label>Caller-assigned identity<input value={responsible} onChange={e=>{invalidate();setResponsible(e.target.value);}}/></label>}
@@ -195,7 +198,8 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  {registry?.entries?.map((entry:Json)=><article key={entry.token}><h3>{entry.accountId}: {entry.status}</h3>
  {entry.draft&&<><h4>Frozen question</h4><p>{entry.draft.account.question.text}</p><p>At: {entry.draft.account.question.at_revision}; since: {entry.draft.account.question.since_revision??"not requested"}</p><p>Exact serialized draft: {entry.draft.byteLength} bytes; SHA-256 {entry.draft.sha256}</p>
  <h4>Selected source evidence</h4>{entry.draft.account.sources.map((s:Json)=><div key={s.source_id}><p>{s.path} — {s.revision}; {s.role} (caller assertion)</p><p>Blob: {s.provenance.blob}; content hash: {s.sha256}</p>{s.excerpts.map((e:Json)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end})</p><pre>{e.text}</pre></div>)}</div>)}
- <h4>Unreviewed caller interpretations</h4>{entry.draft.account.interpretations.map((i:Json)=><p key={i.interpretation_id}>{i.statement} — {i.asserted_by} (caller asserted identity)</p>)}
+ <h4>Unreviewed caller interpretations</h4>{entry.draft.account.interpretations?.map((i:Json)=><p key={i.interpretation_id}>{i.statement} — {i.asserted_by} (caller asserted identity)</p>)}
+ {entry.draft.account.formatVersion==="0.4"&&<ReconstructionView account={entry.draft.account}/>}
  <h4>Gaps and responsibility</h4>{entry.draft.account.gaps.map((g:Json,i:number)=><p key={i}>{g.origin}: {g.gap}. {g.effect}. Responsible: {g.responsible.identity??"Unassigned"}</p>)}
  <h4>Reported duties</h4>{entry.draft.account.duties.map((d:Json)=><p key={d.duty}>{d.duty}: {d.standing}; {d.reason} (unverified)</p>)}
  <details><summary>Complete frozen draft and compact receipt limits</summary><pre>{JSON.stringify(entry.draft.account,null,2)}</pre></details>

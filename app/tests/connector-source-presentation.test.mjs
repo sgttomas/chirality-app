@@ -7,7 +7,11 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const url=new URL('../src/ConnectorSourcePanel.tsx',import.meta.url);
 const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});
-const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);
+const reconstructionUrl=new URL('../src/ConnectorReconstruction.tsx',import.meta.url);
+const reconstructionCode=ts.transpileModule(readFileSync(reconstructionUrl,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+const reconstructionExports={};new Function('require','exports',reconstructionCode)(createRequire(reconstructionUrl),reconstructionExports);
+const connectedRequire=name=>name==='./ConnectorReconstruction'?reconstructionExports:createRequire(url)(name);
+const exports={};new Function('require','exports',compiled.outputText)(connectedRequire,exports);
 const {SourceObservationView,ConnectorSourcePanel,sourceUiTransition,emptySourceUi}=exports;
 const question={id:'Q-fixture',text:'What can be read?',askedRevision:'typed-commit',sinceRevision:'typed-since'};
 const view={question,trigger:{kind:'absent',standing:'constructed caller context'},operation:'observed',gaps:[{reason:'Revision unverified',effect:'No source/account',responsible:null}],limits:['No continuous pathname guarantee','No coherent historical revision'],dutiesStanding:'Unperformed/outstanding; no duty authored',observation:{reference:'opaque',question,historical:false,read:{displayPath:'fixture.txt',selectedPath:{encoding:'fixture'},openedFileIdentity:{inode:'18446744073709551615'},text:'<script>do not run</script>\r\né\n',sha256:'host-buffer-hash',byteLength:32,lineCount:2,observedAt:'fixture-time',timeProvenance:'fixture-only',mechanism:'injected picker fixture, not person evidence',mutationLimit:'Transient writes can evade metadata checks'},revision:{kind:'unavailable',limit:'No revision evidence supplied'},anchors:[{reference:'anchor-id',anchor:'L1',byteStart:0,byteEnd:3,interval:'zero-based half-open',text:'é\n',sha256:'excerpt-hash',standing:'Inclusion only, not truth'}]}};
@@ -60,8 +64,8 @@ test('Git sides and gaps render separately without promoting local text, and his
  v.git.result.observation.at={status:'gap',kind:'type',reason:'not a commit'};v.git.result.observation.status='gaps-only';assert.match(render(state(v)),/gaps-only/);
 });
 test('actual panel handlers send only opaque session and pin/side arguments, with a separate cancellation action',async()=>{
- let cursor=0;const slots=[];const localExports={};const require=createRequire(url);
- new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
+ let cursor=0;const slots=[];const localExports={};const require=connectedRequire;
+ new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
  const calls=[];let pendingRead;
  const observed={...structuredClone(view),sessionToken:'host-private-token',generation:'host-generation'};
  const gitView={...observed,git:{operation:'completed',result:{reference:'host-git-reference',historical:false,observation:{status:'complete',at:{status:'Git-object-verified',object:{text:'committed'}}},anchors:[]}}};
@@ -84,8 +88,8 @@ test('actual panel handlers send only opaque session and pin/side arguments, wit
  assert.ok(calls.every(c=>!('path' in c.args)&&!('root' in c.args)&&!('text' in c.args)));
 });
 test('draft handlers freeze only explicit refs/claims and keep actual publication result after cancellation reply',async()=>{
- let cursor=0;const slots=[];const localExports={};const require=createRequire(url);
- new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
+ let cursor=0;const slots=[];const localExports={};const require=connectedRequire;
+ new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
  const calls=[];let finishPublish;
  const source=state({...view,sessionToken:'session',generation:'generation',git:{operation:'completed',result:{reference:'git-ref',historical:false,observation:{at:{status:'Git-object-verified',object:{reference:'side-ref',readCommit:'commit'}},since:null},anchors:[]}}});
  const frozen={revision:'1',used:1,capacity:64,entries:[{token:'draft-token',generation:'draft-generation',accountId:'ra:fixture',status:'prepared',draft:{byteLength:500,sha256:'frozen-hash',account:{question:{text:'Frozen question',at_revision:'commit'},sources:[],interpretations:[],gaps:[],duties:[]}},outcomeText:'null',reconciliationText:'null'}]};
@@ -111,4 +115,36 @@ test('draft handlers freeze only explicit refs/claims and keep actual publicatio
  await button('Cancel draft (started publication may finish)').props.onClick();finishPublish(published);await write;
  const html=renderToStaticMarkup(draw());assert.match(html,/published/);assert.match(html,/Exact actual binding/);assert.ok(!html.includes('Publish this frozen draft once'));
  assert.equal(localExports.acceptDraftReply(published,publishing),published,'stale cancellation reply cannot replace actual newer result');
+});
+test('record-comparison handler carries explicit references and edits invalidate the frozen token',async()=>{
+ let cursor=0;const slots=[];const local={};new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];}}:connectedRequire(name),local);
+ const calls=[];const source=state({...view,sessionToken:'private-session',generation:'private-generation',git:{operation:'completed',result:{reference:'git-reference',historical:false,observation:{at:{status:'Git-object-verified',object:{reference:'at-ref',readCommit:'at-pin'}},since:{status:'Git-object-verified',object:{reference:'since-ref',readCommit:'since-pin'}}},anchors:[{reference:'at-anchor',side:'at',sideObservationReference:'at-ref',anchor:'L1',text:'after'},{reference:'since-anchor',side:'since',sideObservationReference:'since-ref',anchor:'L1',text:'before'}]}}});
+ const response={revision:'1',used:1,capacity:64,entries:[{token:'frozen',generation:'frozen-generation',status:'prepared',accountId:'ra:test',draft:null}]};const command=async(name,args)=>{calls.push({name,args});return response;};const draw=()=>{cursor=0;return local.ConnectorDraftPanel({source,availability:{enabled:true},command});};
+ const nodes=(x,out=[])=>{if(Array.isArray(x))x.forEach(n=>nodes(n,out));else if(x&&typeof x==='object'){out.push(x);nodes(x.props?.children,out);}return out;};
+ const label=(name)=>nodes(draw()).find(x=>x.type==='label'&&x.props.children?.[0]===name);
+ label('Account format').props.children[1].props.onChange({target:{value:'0.4'}});
+ const data={pairs:[{key:'pair',sinceAnchor:'since-anchor',atAnchor:'at-anchor'}],claims:[{key:'claim',statement:'Record reports a change',assertedBy:'Caller',assertedRole:'agent',scope:'record_change',anchors:['at-anchor'],pairs:['pair']}],contradictions:[],reports:[{key:'local-only',duty:'locate_compare',reportedBy:'Caller',reportedActor:'Reported actor',reportedStatus:'performed',reason:'Unverified',anchors:['at-anchor']}]};
+ const fields=()=>nodes(draw()).find(x=>x.type===reconstructionExports.ReconstructionFields);fields().props.onChange(data);
+ await nodes(draw()).find(x=>x.type==='button'&&x.props.children==='Freeze draft for inspection').props.onClick();const sent=calls.at(-1);assert.equal(sent.name,'prepare_connector_reconstruction');assert.equal(sent.args.input.draft.sessionToken,'private-session');assert.deepEqual(sent.args.input.pairs,data.pairs);assert.ok(!('key'in sent.args.input.reports[0]));assert.deepEqual(sent.args.input.draft.interpretations,[]);assert.ok(!('facts'in sent.args.input)&&!('account'in sent.args.input)&&!('path'in sent.args.input));
+ fields().props.onChange({...data,claims:[{...data.claims[0],statement:'Edited'}]});assert.equal(calls.at(-1).name,'cancel_connector_draft');assert.deepEqual(calls.at(-1).args,{token:'frozen',generation:'frozen-generation'});
+ const html=renderToStaticMarkup(React.createElement(reconstructionExports.ReconstructionFields,{value:data,onChange(){},anchors:source.view.git.result.anchors}));assert.match(html,/not prove truth, entailment, authorship, permission or performance/);assert.match(html,/Reported status/);assert.match(html,/Record change/);
+});
+test('format toggle remount preserves unique pair and claim keys and existing citations',()=>{
+ const nodes=(x,out=[])=>{if(Array.isArray(x))x.forEach(n=>nodes(n,out));else if(x&&typeof x==='object'){out.push(x);nodes(x.props?.children,out);}return out;};
+ let parentCursor=0,childCursor=0,childSlots=[];const parentSlots=[],child={},parent={};
+ new Function('require','exports',reconstructionCode)(name=>name==='react'?{...React,useRef(initial){const i=childCursor++;if(!(i in childSlots))childSlots[i]={current:initial};return childSlots[i];}}:createRequire(reconstructionUrl)(name),child);
+ new Function('require','exports',compiled.outputText)(name=>name==='./ConnectorReconstruction'?child:name==='react'?{...React,useEffect(){},useState(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]=typeof initial==='function'?initial():initial;return[parentSlots[i],v=>parentSlots[i]=typeof v==='function'?v(parentSlots[i]):v];}}:connectedRequire(name),parent);
+ const draw=()=>{parentCursor=0;return parent.ConnectorDraftPanel({source:state(),availability:{enabled:true},command:async()=>({})});};
+ const toggle=version=>{nodes(draw()).find(n=>n.type==='label'&&n.props.children?.[0]==='Account format').props.children[1].props.onChange({target:{value:version}});if(version==='0.3')childSlots=[];};
+ const element=()=>nodes(draw()).find(n=>n.type===child.ReconstructionFields);
+ const fields=()=>{childCursor=0;return child.ReconstructionFields(element().props);};
+ const add=label=>nodes(fields()).find(n=>n.type==='button'&&n.props.children===label).props.onClick();
+ toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');
+ let value=element().props.value;const pair=value.pairs[0].key,claim=value.claims[0].key;
+ element().props.onChange({...value,claims:[{...value.claims[0],pairs:[pair]}],contradictions:[{key:'retained-conflict',claims:[claim],description:'retained',effect:'unresolved',responsible:{standing:'unassigned',identity:null}}]});
+ toggle('0.3');assert.equal(element(),undefined);toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');
+ value=element().props.value;assert.equal(new Set(value.pairs.map(x=>x.key)).size,2);assert.equal(new Set(value.claims.map(x=>x.key)).size,2);assert.deepEqual(value.claims[0].pairs,[pair]);assert.deepEqual(value.contradictions[0].claims,[claim]);
+ element().props.onChange({...value,pairs:value.pairs.slice(1),claims:value.claims.slice(1).map(c=>({...c,pairs:[pair]}))});
+ toggle('0.3');toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');value=element().props.value;
+ assert.ok(value.pairs.every(p=>p.key!==pair));assert.ok(value.claims.every(c=>c.key!==claim));assert.deepEqual(value.contradictions[0].claims,[claim]);
 });

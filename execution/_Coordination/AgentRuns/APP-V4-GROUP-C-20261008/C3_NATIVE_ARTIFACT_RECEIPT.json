@@ -1,0 +1,231 @@
+{
+  "status": "Prepared witness-only native executable; unlaunched; point approval for native acts remains required",
+  "role": "TASK",
+  "agent": "/root/group_c_successor/route_persistence",
+  "parent": "/root/group_c_successor",
+  "authority": "Parent authorized exact merged-source offline artifact preparation, then explicitly selected the identifier-only TAURI_CONFIG overlay after cached mechanism inspection. No launch authorization.",
+  "source_commit": "c9bfde526912b7da933c89f956ecc43489178a09",
+  "app_tree": "caf5b5202a8b3c563895c1fe268bf811af27a60d",
+  "branch": "codex/group-c-native-artifact",
+  "repository_source_changes": false,
+  "build_inputs": [
+    {
+      "origin": "package.json",
+      "bytes": 762,
+      "sha256": "cca70184c2faf5b981cc36eebd223b2555d66f5057711429df67765075a68029"
+    },
+    {
+      "origin": "package-lock.json",
+      "bytes": 70346,
+      "sha256": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa"
+    },
+    {
+      "origin": "src-tauri/Cargo.toml",
+      "bytes": 954,
+      "sha256": "f6e922c4ed5a94d7728f5e4f0edaa4ab81d858183dd7979327475c63487e907f"
+    },
+    {
+      "origin": "src-tauri/Cargo.lock",
+      "bytes": 122943,
+      "sha256": "c1910cffc3fc311fc50cae1117d5aa379dc374142c643c3b22ad85998dbf86b2"
+    },
+    {
+      "origin": "src-tauri/build.rs",
+      "bytes": 39,
+      "sha256": "487059eaf8a947b80f20a9aacac038a5047b2ad69d2401b827376c67d6fe847f"
+    },
+    {
+      "origin": "src-tauri/tauri.conf.json",
+      "bytes": 573,
+      "sha256": "5f848cc760814808e8013aac972c1ecf90251818b41f4358ee0f342359c4b3ec"
+    }
+  ],
+  "frontend_files": [
+    {
+      "origin": "dist/assets/index-DYG3SiqJ.js",
+      "bytes": 297265,
+      "sha256": "e7555b6a3abf058b8910d6f40dd975deaecb5ed1b2fa7f4b4e316f3e82b835c8"
+    },
+    {
+      "origin": "dist/index.html",
+      "bytes": 336,
+      "sha256": "084bf15ceaf9356b41ad4388465f804850071a865869500dc1c71da241b52b52"
+    }
+  ],
+  "effective_config": {
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "Chirality App v4 (skeleton)",
+    "version": "0.0.0",
+    "identifier": "dev.chirality.app-v4.c3-witness-20261008",
+    "build": {
+      "beforeDevCommand": "npm run dev",
+      "devUrl": "http://127.0.0.1:1420",
+      "beforeBuildCommand": "npm run build",
+      "frontendDist": "../dist"
+    },
+    "app": {
+      "windows": [
+        {
+          "title": "Chirality App v4 \u2014 walking skeleton",
+          "width": 1100,
+          "height": 800
+        }
+      ],
+      "security": {
+        "csp": null
+      }
+    },
+    "bundle": {
+      "active": false,
+      "icon": [
+        "icons/icon.png"
+      ]
+    }
+  },
+  "effective_config_hash_basis": "SHA256 of UTF-8 compact sorted-key JSON serialization of effective_config",
+  "effective_config_sha256": "a712af9fa482fc915da9fff3d0ce0193743759cbf1666331b5a987800c0dee84",
+  "overlay_exact": "{\"identifier\":\"dev.chirality.app-v4.c3-witness-20261008\"}",
+  "overlay_mechanism": [
+    {
+      "origin": "approved Cargo cache/tauri-build-2.6.1/src/lib.rs",
+      "bytes": 24430,
+      "sha256": "562607e65dca4377ef4a33ade8527990c54fe176514ae460ca00260d1ca2211f"
+    },
+    {
+      "origin": "approved Cargo cache/tauri-codegen-2.6.1/src/lib.rs",
+      "bytes": 5117,
+      "sha256": "facc097b626a2d2facc4088f9e16e835425c68924950add20fd06545ec4577d5"
+    },
+    {
+      "origin": "approved Cargo cache/tauri-2.11.1/src/path/desktop.rs",
+      "bytes": 11499,
+      "sha256": "11bb4f74c6053cc0eca33a54da00a4a31aff85c5164e7260cd573b5efec18ebc"
+    },
+    {
+      "origin": "approved Cargo cache/dirs-6.0.0/src/mac.rs",
+      "bytes": 1610,
+      "sha256": "40de270051a116ca35f95f065db3a5d8020bc911619846a9a67c222973b2e5ad"
+    }
+  ],
+  "commands": [
+    "npm run build",
+    "CARGO_HOME=\"$HOME/Library/Caches/chirality-dev/cargo-home-group-a\" CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0 CHIRALITY_SKIP_CODEX=1 CARGO_TARGET_DIR=/private/tmp/chirality-route-presentation-target.L13TDM TAURI_CONFIG='{\"identifier\":\"dev.chirality.app-v4.c3-witness-20261008\"}' cargo build --offline --locked --manifest-path src-tauri/Cargo.toml --features custom-protocol"
+  ],
+  "command_cwd": "projects/chirality-app-v4/app",
+  "inputs_note": "Existing approved cached dependencies only. custom-protocol embeds dist; no distribution-successor feature, bundle, download, credential signing, HOME or CODEX_HOME redirection. CHIRALITY_SKIP_CODEX is a test convention, not a runtime supplier suppression switch.",
+  "checked_absent_build_overrides": [
+    "RUSTFLAGS",
+    "CARGO_ENCODED_RUSTFLAGS",
+    "RUSTC_WRAPPER",
+    "RUSTC_WORKSPACE_WRAPPER",
+    "TAURI_CONFIG before selected overlay",
+    "MACOSX_DEPLOYMENT_TARGET",
+    "SDKROOT",
+    "CC",
+    "CXX",
+    "CARGO_BUILD_TARGET"
+  ],
+  "tools": {
+    "rustc": "1.92.0 (ded5c06cf 2025-12-08)",
+    "cargo": "1.92.0 (344c4567c 2025-10-21)",
+    "node": "v24.5.0",
+    "npm": "11.5.2",
+    "clang": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+    "git": "/usr/bin/git 2.54.0 (Apple Git-157)",
+    "git_sha256": "b8763cf250e607a778bb4603cecb5b90338814d0a3dfcba0d57b1de242f610e9"
+  },
+  "artifact": {
+    "origin": "/private/tmp/chirality-c3-native-witness-artifact/chirality-app-v4",
+    "bytes": 57979152,
+    "sha256": "c8b42e12901be2f72d1b3927bbd8249d26f0b3d1945fbdfbfef8fe92f361a583",
+    "preservation": "Single bounded copy outside mutable build target; copy hash and read-only signature verification matched. Not immutable storage; reverify before launch."
+  },
+  "artifact_kind": "Mach-O thin arm64 native debug executable, unoptimized with debug info; not a test harness; not a bundled application",
+  "codesign": {
+    "signature": "ad hoc, linker-signed",
+    "verification": "valid on disk; satisfies its Designated Requirement",
+    "identifier": "chirality_app_v4-6e273ec84d8d6a40",
+    "team_identifier": null,
+    "info_plist": "not bound",
+    "sealed_resources": "none",
+    "limits": "Read-only inspection, no signing command or credentials. Linker signature identifier differs from the embedded Tauri application identifier; neither proves notarization or release qualification."
+  },
+  "embedded_identifier_check": {
+    "selected_identifier_occurrences": 1,
+    "default_identifier_occurrences": 0,
+    "limit": "Static byte inspection, not observed runtime path"
+  },
+  "historical_default_build": {
+    "selected_for_witness": false,
+    "launched": false,
+    "sha256": "8b004a76493d2cd78ac7970e7c89c9c6620fde34dc4f81d79ac683d2f4edd209",
+    "bytes": 57979152,
+    "duration_seconds": 17.92,
+    "note": "Built under initial artifact-only authorization, then superseded in the same output path by explicitly selected overlay. Default App-data identity was unsuitable; hash retained without duplicate binary."
+  },
+  "results": {
+    "frontend": "passed",
+    "witness_native_build": "passed; 15.31 seconds; 40 compiler warnings; no automatic fixes",
+    "launch": "not performed",
+    "bundle": "not produced",
+    "final_free_space": "3.9 GiB; no further build or cleanup; concurrent activity may contribute to change"
+  },
+  "logs": [
+    {
+      "origin": "/private/tmp/chirality-native-artifact-frontend.log",
+      "bytes": 355,
+      "sha256": "a7bd386c7b70b677cb92d742eee16db54ef79149aee5e5c3549bf7ec61ee331a"
+    },
+    {
+      "origin": "/private/tmp/chirality-native-artifact-build.log",
+      "bytes": 13324,
+      "sha256": "317aa4b71018f22073939421c6e217da02a4695c1e472c72400c2ca70e17aa2a"
+    },
+    {
+      "origin": "/private/tmp/chirality-native-artifact-witness-build.log",
+      "bytes": 13188,
+      "sha256": "80be592ac6878e36d2a43ab7ea81fbb45e7fae22b2e73df2f5b0bd11b6ba9bf1"
+    }
+  ],
+  "proposed_runtime_boundary": {
+    "project": "/private/tmp/chirality-c3-native-witness/project (proposal only; not created)",
+    "project_association": "Explicit CHIRALITY_WORKSPACE, absolute existing project; no renderer-chosen root",
+    "expected_app_data": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.c3-witness-20261008",
+    "expected_app_data_basis": "Cached Tauri app_data_dir joins dirs::data_dir with config identifier; cached macOS dirs uses home/Library/Application Support. Not runtime observed; existing user-data path not inspected.",
+    "supplier_avoidance": "Proposed launch must explicitly omit CHIRALITY_CODEX_BIN and CHIRALITY_CODEX_HOME and distribution overrides. In inspected default-feature startup, missing configuration returns before probe allocation and no supplier-start thread is spawned. Source commands/panels do not require supplier sign-in/model act. Not a sandbox guarantee.",
+    "startup_effects": [
+      "Native window/WebView and platform storage effects, not fully enumerated by source inspection",
+      "App-data instruction seeding or existing seeded-instruction read",
+      "Project decision-writer continuation and capture recovery; choose clean scratch project without decision packages",
+      "App-data/workflow references configured; recovery/attachment namespace initialization attempted (missing host config prevents establishing valid namespaces)",
+      "Renderer initial host_status/decision_view and periodic host_status reads"
+    ],
+    "witness_actions_requiring_point_selection": [
+      "Launch exact hashed artifact with explicit environment and project",
+      "Native picker/read and excerpt controls",
+      "Restricted local Git commit/blob observation",
+      "Explicit draft preparation and one-use publication into scratch project",
+      "Cold discovery/reconciliation and cleanup scope, if selected"
+    ],
+    "limits": [
+      "Identifier separation is not OS sandboxing or proof of all WebView/user-data isolation",
+      "No native/person act, supplier process, sign-in, model, actual-source provenance or full reconstruction witness occurred",
+      "No cleanup performed; retained target and original C3 logs preserved",
+      "Artifact remains mutable local storage; verify hash again before any approved launch"
+    ],
+    "launch_environment_proposal": {
+      "status": "Proposal only; not executed or runtime verified",
+      "construction": "Explicit fresh environment allowlist; do not pass inherited variables outside this list. HOME and TMPDIR retain the current normal values; no redirection.",
+      "allowlist": {
+        "HOME": "unchanged normal user home",
+        "TMPDIR": "unchanged normal platform temporary directory",
+        "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+        "LANG": "en_US.UTF-8",
+        "CHIRALITY_WORKSPACE": "/private/tmp/chirality-c3-native-witness/project"
+      },
+      "absent": "All other variables, particularly CHIRALITY_CODEX_BIN, CHIRALITY_CODEX_HOME, CHIRALITY_DISTRIBUTION_SUCCESSOR, CHIRALITY_KEY_HOME, CHIRALITY_SHARED_CONFIG, CHIRALITY_SHARED_AGENTS, CHIRALITY_SHARED_SKILLS, CHIRALITY_ALLOW_UNVERIFIED, CHIRALITY_CODEX_EXPECTED_SHA256, CODEX_HOME, TAURI_CONFIG and inherited Git overrides.",
+      "limit": "This prevents configured startup supplier path in inspected code; it is not an OS network/process sandbox. Native GUI startup under this environment is not yet witnessed."
+    }
+  },
+  "build_output_path": "/private/tmp/chirality-route-presentation-target.L13TDM/debug/chirality-app-v4"
+}
