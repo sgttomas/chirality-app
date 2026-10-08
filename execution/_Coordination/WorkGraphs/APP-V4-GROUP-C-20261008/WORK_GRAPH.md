@@ -82,14 +82,14 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 ## Current state and recovery
 
 Successor basis: `236cbc3c693423499120b4abeadfdcc5fb670477` (includes merged PRs #1127 and #1128), isolated branch
-`codex/group-c-placement`; this branch is the designated graph ref while ahead of
+`codex/group-c-persistence-integration`; this branch is the designated graph ref while ahead of
 main. WORKING_ITEMS `/root/group_c_successor` now owns C3 continuation under HELP_HUMAN `/root`. Manager owns graph/evidence/integration; children own isolated worktrees.
 Basis identities and reading limits: [BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/BASIS.json). Actual assignments: [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/DELEGATION.md).
 Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-Next: integrate CRP-v0.2 placement after combined review and required CI, then implement and independently test the selected bounded persistence/recovery seam; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
+Next: review the named CRP-R2 successor, then repair and independently backcheck C3-P temporary-name publication before integration; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
 MEMORY write or human decision is authorized by this graph. SEAL-2 remains
 deferred. External SWBPIPE, PEC and Domains implementation stays in its own
 sessions and cross-project relay belongs to the owner. No 90% claim.
@@ -110,3 +110,13 @@ Actual harness-native children are TASK `/root/group_c_successor/cfb_design_owne
 C3-D source successor `96791613ed` was integrated unchanged as `4f610ba4a3`; independent review at `8a24e3bf2f` is READY with 16 maintained and 14 independent constructed checks. [C3_DESIGN_TREATMENT.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md) contains consumer notices and O-D alternatives; [C3_DESIGN_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_REVIEW.md) states exact reviewed scope. Source format 0.2 is proposed, old 0.1 bytes and consumer pins remain intact. The initial canonical descendant proposal returned through HELP_HUMAN and is now refined and technically selected by the exact CRP-v0.2 adoption below. No persistent behavior or 90% claim follows from source review.
 
 C3-I source-only [PR #1130](https://github.com/sgttomas/chirality/pull/1130) merged as `44ade85d955e45e2c1fbba8a9ae1a9be675c18dd`, source `2a7eaf4548`, after exact-head review and all selected CI passed. C3-PLACE-01 technical adoption is recorded in [C3_PLACEMENT_ADOPTION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md); fleet concurrence and repaired independent review are linked by that account. The initial overbroad containment READY is withdrawn. C3-P now has a selected namespace/custody contract; implementation and race/durability evidence are not yet established.
+
+## C3-P implementation and blocking review
+
+CRP-v0.2 placement merged through PR #1132 as `dd512ec4319dbd61531917f0f1762bdf6ef46601` after exact-head review and all selected CI passed. TASK `/root/group_c_successor/route_persistence` produced author `e660d7431de`, integrated unchanged as `03cfa1e77d` onto main `ce2d7adaed`. Its 25 offline connector checks passed (18 store, seven standing). This is backend persistence of caller accounts, not source reconstruction or UI.
+
+Independent TASK `/root/group_c_successor/cfb_design_review` found a blocking temporary-name substitution defect. All 25 existing checks passed while two new reproduction checks failed: cleanup can delete a replacement entry, and publication can link foreign bytes before detecting them. [C3_PERSISTENCE_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PERSISTENCE_REVIEW.md) preserves the exact failing sequence. C3-P is **NOT READY**; passing prior checks does not repair it.
+
+HELP_HUMAN selected a bounded technical CRP-R2 treatment: exclusive atomic no-replace rename, no automatic pathname unlink on errors, exact postpublication intended identity/bytes/path checks, and preserved uncertain outcomes without rollback or retry. The same-user source-name substitution residual must be explicit. DEL-07-02 source owner is preparing the named successor; DEL-06-01 source owner and the independent reviewer assess its exact bytes before adoption and code changes. Unsupported filesystem capability must refuse. No new owner act, grouping change or provider activation follows.
+
+These are harness-native TASK descendants under WORKING_ITEMS `/root/group_c_successor`, each using its own managed worktree and branch, `gpt-6-astra` low, bounded instruction fences, and no child delegation. C3-P tests used one private copy-on-write target and the already approved offline dependency cache; no download or supplier/native App launch. Source and code evidence carry exact origins/hashes and execution limits.
