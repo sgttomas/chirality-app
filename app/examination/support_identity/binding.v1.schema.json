@@ -1,0 +1,95 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "standing",
+    "declaration_sha256",
+    "support_identity",
+    "artifact"
+  ],
+  "properties": {
+    "format": {
+      "const": "exp-support-binding.v1"
+    },
+    "standing": {
+      "const": "frozen_candidate_not_published"
+    },
+    "declaration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "support_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exp_version",
+        "schema_ids",
+        "prototype_sha256"
+      ],
+      "properties": {
+        "exp_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_ids": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "review",
+            "change"
+          ],
+          "properties": {
+            "result": {
+              "type": "string",
+              "minLength": 1
+            },
+            "review": {
+              "type": "string",
+              "minLength": 1
+            },
+            "change": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "prototype_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "record_id",
+        "kind"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "result",
+            "review",
+            "change",
+            "package"
+          ]
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:staged:exp-support-binding:1",
+  "description": "CI-26 proposed offline binding only; no publication, adoption or qualification."
+}

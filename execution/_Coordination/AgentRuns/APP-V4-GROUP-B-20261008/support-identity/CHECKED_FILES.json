@@ -1,0 +1,7 @@
+{
+  "app/examination/support_identity/README.md": "13beaab3a9db60af9e995624b657499bed95a8d2f6f44aecc47608d718e0ddd6",
+  "app/examination/support_identity/binding.v1.schema.json": "aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0",
+  "app/examination/support_identity/declaration.v1.json": "abc7142f3c8ec6b42ee70fd5ccdbe5a2688683608b21f735211217b9e32aad44",
+  "app/examination/support_identity/support_identity.py": "38f1008e47b4e924b6725b4e2901762e1c149f5bdedaec17e8357bed046bd109",
+  "app/tests/group_b_support_identity_test.py": "de38a72ee5425152dd0900cbd37c4bb1a1fbc5c535e72fb4ecffd536e14522b4"
+}
