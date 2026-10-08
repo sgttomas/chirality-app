@@ -75,7 +75,7 @@ authors. Each production slice carries its necessary documentation and checks.
 | V4 integrated consuming-path review | Separate reviewer first_slice_review; manager fan-in | Frozen B7-FX/B3-N1 code/evidence, current main | Independent contract/consumer review, affected integration tests, private-term checks and parent PR | COMPLETE PR #1126 merged 7311df06d8; exact-head review and CI retained in PR; 61 integrated Python checks |
 | B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | COMPLETE bounded support merged PR #1128; author ea75b4b412, exact-head review READY; successor/reviews/RUNNER.md |
 | B2-CONTENT complete-content unsigned development candidate | DEL-01-06 OUT-001/002; complete_content_build TASK; unsigned overlay/tests and complete-content evidence | Merged P2/P3 at f79317be; approved cached P1/toolchain; explicit custom-protocol/no-sign | Actual offline build; P0…4 physical bytes/modes/links, exact source/resource equality; independent exact-artifact review; no package qualification | COMPLETE bounded physical increment merged PR #1134 at 00ce2e1074; 56 files, exact P1/P2/P3; complete-content/RETURN.md |
-| B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | ACTIVE proposal plus offline support; CI-26 remains open pending adoption |
+| B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | READY bounded proposal/tool author 37b41df42a; review 453ab46c38; 77 integrated tests; CI-26 remains open pending adoption |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -130,11 +130,15 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** B3-ID prepares the named CI-26 complete support-identity proposal
-and bounded offline joins. Current canonical Design/schema/source locks stay
+**Next:** integrate the independently reviewed B3-ID tool/proposal, then
+DEL-09-01/DEL-01-06 assess named CC-EXP-SUPPORT-IDENTITY-01 for canonical
+publication/selection and consumer adoption. Actual offline joins bind the full
+identity and use unchanged legacy validators; independent 42 checks pass and
+manager combined 77 checks pass. Current canonical Design/schema/source locks stay
 unchanged until owning reviewed adoption. No record writer may mint a published
-support revision. Actual
-unsigned development .app binds f79317be plus the unsigned-overlay patch; all
+support revision.
+
+The retained unsigned development .app binds f79317be plus the unsigned-overlay patch; all
 406 App input entries (350 files) were checked against sealed source and scratch. Physical
 P0…4 are present (56 regular files), with exact P1/P2/P3 bytes/modes/links.
 Build used explicit custom-protocol and --no-sign. Independent physical review
