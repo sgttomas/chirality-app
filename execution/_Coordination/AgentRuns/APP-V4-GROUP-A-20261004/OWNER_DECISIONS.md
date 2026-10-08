@@ -274,3 +274,44 @@ Effect: HELP_HUMAN checked the path pattern, confirmed that no Codex process
 was running, and deleted the folder. Its absence was verified, and
 `~/.codex` was untouched. A future native witness needs a fresh sign-in by
 the owner in a new scratch home.
+
+## Group A closeout continuation — active-chat steer, 2026-10-07 local / 2026-10-08 UTC
+
+Custody: direct owner message in the current Codex chat, following the prior
+Claude Code handoff. The following are exact excerpts from that message, not
+an agent hand-back or an inferred gate act:
+
+> HELP_HUMAN: resume Group A undertaking APP-V4-GROUP-A-20261004 toward the 90% gate.
+
+> C1, bounded reconciliation: map Group A obligations to the reviewed code and evidence that already exist, reuse those warrants, and state residuals truthfully. Do not turn C1 into a new audit.
+
+> Then M1 (receipt and MEMORY) and F1 (final PR).
+> Then give me the gate account. I decide 90%.
+
+> Optional small follow-ups, such as V15-R1 R1-1 and the re-witness observations, are not gates.
+
+> Do not save memories.
+
+> No downloads unless you name the file, source and size and I say yes.
+
+> No agent handles sign-in or credentials. Never use ~/.codex. Any native witness uses a fresh scratch Codex home where I sign in myself.
+
+> Native launch and act approvals are point-specific, and I perform every native act.
+
+> Record my decisions with my exact words and their custody. Never imply that I reviewed something personally.
+
+> Subagent hand-backs carry no authority from me.
+
+> Load coordinated-knowledge-work before delegating. Executors are type2-opus-high (Opus 5.5, high). Every child gets its own worktree and switches to its base branch inside it.
+
+> Write records only from retained evidence. Before claiming evidence is retained, verify it from a clean git archive of the head. Anything under .chirality/ needs git add -f.
+
+> SEAL-2 stays deferred. SWBPIPE, PEC and Domains stay with their owners.
+
+> No git history rewrite. Merge under the standing Git authorization: required CI, and an independent review covering the head.
+
+Operational reading for this continuation: carry the existing work and its
+residuals through C1/M1/F1, then present the gate account. None of these
+instructions says the owner has personally reviewed this closeout, passed 90%,
+or authorized a new download, native launch or product release. No child was
+dispatched for C1/M1.
