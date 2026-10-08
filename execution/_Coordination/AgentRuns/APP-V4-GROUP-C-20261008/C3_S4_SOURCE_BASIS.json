@@ -95,7 +95,7 @@
   "candidate_artifacts": [
     {
       "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ACCOUNT_MATERIALIZATION_v0.1.md",
-      "sha256": "c7ddbac2e4ea3c25631ec97c7dcc8b34df8b91fe3ebb32b01a9c7fe72f882cce"
+      "sha256": "627581f503ebf8f7752d8f099215f73f25358e8b7ecef4702186125640e8f4aa"
     },
     {
       "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.3.schema.json",
@@ -110,5 +110,12 @@
     "command": "python3 <DEL-07-02 Design>/check_account_materialization_v03.py",
     "result": "31 constructed schema shape checks passed offline",
     "limits": "No producer implementation, byte-cap/root/identity/lifecycle/connected or native witness checks claimed"
+  },
+  "registry_amendment": {
+    "id": "CAM-R1",
+    "basis_commit": "e57dec1c3149b866f466af398d6ae47f14482d5d",
+    "scope": "64 App-instance identities, one full payload, retained exact outcomes/tombstones; no source/schema/implementation change",
+    "feasibility": "TASK route_persistence active message confirmed mechanism; no code pass inferred",
+    "status": "pending independent review and parent technical confirmation"
   }
 }

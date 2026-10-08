@@ -28,3 +28,19 @@ obligations. This proposal does not close Group C or alter group order.
 Performed definition validation: maintained schema check ran offline, 31/31
 constructed shape cases passed. No semantic/producer/native test pass is
 inferred. Exact candidate artifact hashes are recorded in the basis.
+
+## CAM-R1 registry retention amendment
+
+Implementation identified that consumed outcome custody must survive source
+sessions without indefinite payload retention. Proposed bound: 64 identities
+per App instance, one full prepared/in-flight payload, compact retained outcomes
+and tombstones thereafter. Cancel/supersede consumes a slot; capacity refuses
+without eviction/restart/retry. Started-write outcomes survive session changes;
+uncertainty retains original Attempt even after explicit reconciliation.
+
+TASK route_persistence confirmed feasibility in the active task exchange,
+including refusal of prepare while publishing and atomic replacement only after
+final bytes validate. Internal discarded preflight IDs are not exposed registry
+identities. No code is changed by this amendment. Exact independent review and
+parent technical confirmation remain required before adoption; account/schema
+meaning, 1 MiB cap and cold-reader limits are unchanged.

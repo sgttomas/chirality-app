@@ -193,6 +193,71 @@ draft requires explicit user intent and must not be disguised as retry of the
 uncertain draft. Published bytes are immutable; corrections are new identities.
 Cold records neither revive draft tokens nor establish a successful prior write.
 
+### CAM-R1: bounded App-instance draft/outcome registry
+
+Named technical amendment, pending exact independent review and parent
+technical confirmation. The registry belongs to the App instance, independently
+of source sessions. Keep at most **64 materialization identities** for that
+instance. A successfully validated/frozen preparation reserves one slot;
+preflight, stale-input or capacity refusal reserves/exposes no draft identity
+or registry slot and does not
+silently invalidate an existing draft. Consumed/cancelled/superseded entries
+continue to count. At capacity, refuse new preparation visibly; never reuse
+a slot, evict an outcome, clear the registry or restart automatically.
+
+Retain at most one full immutable account payload, of at most the existing
+1 MiB serialized cap, across prepared and in-flight states. An explicit new
+preparation may replace the prior unconsumed draft only after its own preflight
+and capacity checks pass; atomically install the new identity and convert the
+previous draft into a superseded, unpublishable tombstone without its payload.
+Explicit prepublish cancel likewise drops payload and retains a cancelled,
+consumed tombstone. Neither cancellation nor supersession releases its slot.
+Internal discarded candidate/placeholder IDs used to validate serialized size
+are not exposed identities. Mint final IDs and revalidate the exact final
+bytes before freezing/reserving a slot; RNG or final validation failure exposes
+no draft and leaves the prior entry intact. There is no silent forgetting of
+a formerly usable token. A failed replacement
+request leaves the old registry status unchanged, though source changes may
+independently make that old draft ineligible to publish.
+
+When publication starts, mark its identity consumed/in-flight immediately and
+hold its sole payload until the writer returns. Refuse new preparation during
+that interval; do not release/reuse memory required by the write. Cancellation
+or source-session changes do not evict the entry, undo publication or manufacture
+a cancellation outcome. Retain the actual result when returned, then release
+the full account payload. Keep the token tombstone, identity, status and exact
+BoundReference for success, Attempt for uncertainty, or failure/recovery outcome
+for definite refusal. Do not keep another account copy inside diagnostic text.
+The count/payload limits do not claim an exact global memory-byte bound for
+all metadata/diagnostics; retain compact structured outcome fields and existing
+bounded diagnostic mechanisms without truncating a recovery-critical binding.
+
+Repeated token operations report that retained state without invoking another
+write. An unresolved Attempt remains present until explicitly reconciled; a
+reconciliation result is added to that same entry, preserving the original
+Attempt/outcome rather than replacing uncertainty with fictitious prior success.
+Reconciliation never frees its slot or revives publication capability. Success,
+definite refusal, cancellation and supersession are likewise retained for the
+instance lifetime. No source-session reset is a registry reset.
+
+Process exit/restart loses this transient registry and hot tokens, as already
+stated for CSP/CGP capabilities; this is a limit, not an automatic recovery step
+or direction to restart. Cold records cannot revive tokens or prove a prior
+publication result. Existing explicit cold CRP inspection/reconciliation remains
+available where its required evidence exists. On capacity exhaustion, show the
+limit and retained outcomes so the caller can inspect/reconcile; do not promise
+that retrying or restarting recovers uncertainty. Adding durable outcome storage
+or a reset/eviction operation is outside this amendment.
+
+Required implementation checks: exactly 64 successful preparations consume
+64 slots even if each is cancelled/superseded; the next refuses without clearing
+history. Failed preflights reserve/expose none. At most one full payload during edit,
+cancel and publication; new prepare during write refuses. Source-session change
+retains actual started-write result. Repeated publish/cancel/reconcile cannot
+write again or reclaim slots; original uncertain Attempt survives reconciliation
+and capacity pressure. New process has no restored hot tokens. This amendment
+changes no account schema, persisted meaning or external consumer contract.
+
 ## 7. Required checks and retained obligations
 
 Maintain schema positive/negative tests for the distinct format and no facts/
