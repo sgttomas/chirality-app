@@ -6,7 +6,7 @@ WORKING_ITEMS `/root/distribution_integration_manager`, parent HELP_HUMAN `/root
 
 The full amendment failed independent review R1 (three maintained consumers correctly reject changed source bytes) and R2 (trailing-LF digests admitted). This increment stages the reviewed successor proposal and repairs its value contract; it does not adopt the successor or close A-IN. HELP_HUMAN explicitly confirmed this route in the dispatch conversation provided accepted Design and freshness guards remain intact and executable successor nodes retain owners and inputs. This is technical integration direction, not owner acceptance.
 
-Current HOSTING and PKG paths retain exact `45796bc` bytes. Packaging, examination and standalone keep their manifests, guards, product code and historical v0.2 schemas unchanged. Proposed successors are separate visibly proposed files. Earlier `hosting_distribution_design/DESIGN_AMENDMENT.md`, hashes and checks describe the earlier candidate only; this record supplies current disposition without rewriting history.
+Current HOSTING and PKG paths retain exact `45796bc` bytes. Packaging, examination and standalone keep their manifests, guards, product code and historical v0.2 schemas unchanged. The proposed HOSTING/PKG amendment is retained as a base-bound patch with exact preimage/postimage hashes in `stage/PROPOSED_DESIGN.patch` and `stage/CHECKS.json`; the concise DISTRIBUTION_IDENTITY proposal carries the method. Earlier `hosting_distribution_design/DESIGN_AMENDMENT.md`, hashes and checks describe the earlier candidate only; this record supplies current disposition without rewriting history.
 
 The smallest coherent bounded behavior is strict validation of the new proposed inventory value model with negative regressions. Adopting that model into production packaging alone would not supply a versioned PKG record, expected-reference qualification or runtime lifecycle/launcher chain; partial migration would create misleading mixed-method standing. No current consumer claims new-method support. Current preparation and legacy validation remain usable at existing narrow standing. No freshness check or test is removed or weakened.
 
@@ -30,3 +30,17 @@ This receiving increment requires accepted-byte preservation, all affected offli
 ## Assembled offline results
 
 All pass: packaging 16 tests; examination support 10; standalone preparation 9; proposed inventory values 10; legacy PKG 59 checks. Standalone prepare→check also passes. `checks/CHECKS.json` and raw logs preserve commands, exits, exact accepted-contract/source-lock digests and tested source hashes. Independent final-head backcheck remains required; HELP_HUMAN will retain its separate exact-revision verdict. No broader native/product build was run because product implementation is unchanged.
+
+## Focused representation cleanup
+
+Independent reviewer returned READY for staged-proposal integration at exact
+`a4f1d49fb76684835082ebae3b6c20691500d2b4`, relayed by HELP_HUMAN in the active
+conversation. That backcheck has no separate durable review file; it is not the
+earlier `e821305e70` NOT READY review of `4c5f691`. HELP_HUMAN then directed a
+nonsemantic cleanup: replace full proposed HOSTING/PKG clones with a focused
+patch tied to exact accepted source hashes. Original staging TASK returned cleanup `3e683220158514761ff6c3ce43ac4ad2b65dd388`,
+integrated as `e3800f0e85`; it performed the cleanup, preserving the proposed amendment deterministically without creating
+parallel maintained contract copies. Raw check logs remain unchanged. The
+cleaned head requires its own independent backcheck before PR integration.
+
+Cleanup rerun: all 16 packaging, 10 examination, 9 standalone and 10 proposed inventory tests pass. Parent independently reconstructed both proposed documents from accepted bytes and patch and confirmed exact4c5 postimages. Canonical contracts, three source locks and all previously tested source hashes are unchanged; see `checks/CLEANUP_CHECKS.json`. The generated patch preserves syntax whitespace; all other delta files pass `git diff --check`.

@@ -199,8 +199,8 @@ under HELP_HUMAN, branch `codex/app-v4-distribution-integration`; current Group 
 manager retains the rest of this graph. [Integration disposition](../../AgentRuns/APP-V4-GROUP-B-20261008/distribution_integration/INTEGRATION.md)
 records the named staged route. The in-place Design candidate `4c5f691c82` did
 not preserve runnable source-pinned consumers. Accepted HOSTING/PKG bytes remain
-at their existing paths; separate proposed successor documents retain the full
-method. Source locks and freshness refusals are unchanged. Current B2/B7 remain
+at their existing paths; the base-bound `distribution_integration/stage/PROPOSED_DESIGN.patch`
+and concise DISTRIBUTION_IDENTITY proposal retain the full proposed amendment. Source locks and freshness refusals are unchanged. Current B2/B7 remain
 preparation only. A-IN is not complete, CI-27 stays open, and this is no method
 adoption, qualified expected reference, FP-2/W-4 or Group B completion.
 

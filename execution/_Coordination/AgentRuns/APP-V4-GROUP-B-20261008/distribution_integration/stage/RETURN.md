@@ -1,6 +1,6 @@
 # Distribution Design staging return
 
-TASK `/root/distribution_integration_manager/stage_design`, parent WORKING_ITEMS `/root/distribution_integration_manager`, harness-native child; no descendants. Chirality-change skill applied; no workflow selected. Parent retains integration, graph/MEMORY, notices, consumer checks and independent review.
+TASK `/root/distribution_integration_manager/stage_design`, parent WORKING_ITEMS `/root/distribution_integration_manager`, harness-native child; no descendants. Chirality-change skill applied; no workflow selected. Parent retains integration, graph, notices, consumer checks and independent review. The owner instructed no memory writes for this run.
 
 Following HELP_HUMAN-authorized cleanup relayed by the parent after independent READY at assembled a4f1d49, the two full proposed clones are replaced by PROPOSED_DESIGN.patch. It is PROPOSED STAGING ONLY, NOT ADOPTED, and permits NO CONSUMER RELIANCE. Any “selected” language in the reconstructed proposal describes proposed choices only; U-08/U-17 are not selected or closed. DISTRIBUTION_IDENTITY retains that boundary and points here.
 

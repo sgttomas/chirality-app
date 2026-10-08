@@ -98,8 +98,8 @@ The reviewed implementation and its evidence are integrated through PR 1115 (`0e
 ## A-IN successor receiving notice — CC-HOSTING-DISTRIBUTION-01
 
 HELP_HUMAN's cross-group integration preserves accepted current HOSTING/PKG
-Design bytes while retaining the full distribution method as a separate
-proposed successor. This does not adopt the method or complete Group A's hosting
+Design bytes while retaining the proposed amendment as a base-bound patch and
+concise distribution method proposal. This does not adopt the method or complete Group A's hosting
 input to B. CI-27 remains open. [Group B A-IN-S1…S5](../APP-V4-GROUP-B-20261008/WORK_GRAPH.md#a-in-receiving-continuation--cc-hosting-distribution-01)
 carry executable continuation, with the [integration account](../../AgentRuns/APP-V4-GROUP-B-20261008/distribution_integration/INTEGRATION.md)
 as shared disposition.
