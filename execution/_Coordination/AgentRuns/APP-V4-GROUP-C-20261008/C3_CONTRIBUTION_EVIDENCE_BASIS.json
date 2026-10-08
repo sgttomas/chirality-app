@@ -1,0 +1,154 @@
+{
+  "basis_revision": "cd79d9b477f7f33aa4d7a3683e26e6337039d412",
+  "status": "source candidate; lifecycle A PROPOSED OPEN; no implementation release",
+  "role": "TASK",
+  "delegation": "existing harness-native child of WORKING_ITEMS; no descendants",
+  "consulted_sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/PRD.md",
+      "sha256": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md",
+      "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md",
+      "sha256": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK_v0.3.md",
+      "sha256": "3b1007357e05571f1f22b09c6bfe1af575ec6549d938f95ab94cf61093bd834d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ACCOUNT_MATERIALIZATION_v0.1.md",
+      "sha256": "627581f503ebf8f7752d8f099215f73f25358e8b7ecef4702186125640e8f4aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md",
+      "sha256": "e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_RECORD_RECONSTRUCTION_v0.1.md",
+      "sha256": "40de3420103f9109b611615d10a3335213742a95ca973fd26a5bac94393b9179"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.4.schema.json",
+      "sha256": "7fa9002696c62bd1300763f88e0381d120907ee1de8f4fbe15b1e4aba489246c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_record_reconstruction_v04.py",
+      "sha256": "a55cb0edfae2c82f69cd261b88b72946d13e40d876d651931dc6175efb8005dd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/record_reconstruction_v04.fixture.json",
+      "sha256": "1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_lifecycle.rs",
+      "sha256": "549fe28fe8155217ac961a29bf3dfe43b9103de12ccad585f609894e411bf7b3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/execution_custody.rs",
+      "sha256": "a9d95f8fb19efe5072a07fd090f34e2f2d90444e3838fbc47594d8ac637bbffd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "sha256": "910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_v0.1.md",
+      "sha256": "71bdbfa0538ed335bef97e0ab11f3180b2b49628174f285dc9f9dbd32e329bc4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.1.schema.json",
+      "sha256": "3c11053965d864b78d274993629564d77ee90baf8da63049692f8744627c8b87"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.5.schema.json",
+      "sha256": "327ca15977a73a6b6d2f72ed27fde07259f4ba6c4ea9781d4ca17ad72b860108"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_evidence_v01.fixture.json",
+      "sha256": "08b5fa515b35a92c889a1b69ed71e9d9c1a613598bf9c4933e5e8e807ad434cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_contribution_evidence_v01.py",
+      "sha256": "f7895b1778141235c0d71c407254c1aa26a590413557ce00cbdf9234b5c67ba9"
+    }
+  ],
+  "scoped_concurrence": {
+    "origin": "manager-routed DEL-04-03 report; read from temporary retained copy",
+    "retained_manager_commit": "7465b7def1",
+    "name": "C3_RS_MESSAGE_ORIGIN_CONCURRENCE.md",
+    "sha256": "b9041b59c2b84e63ec14c681b346283b33ab5b896c67c56fb04117be9c1e40c3",
+    "limit": "bounded conditional interface concurrence, no existing combined API or implementation selection"
+  },
+  "checks": {
+    "definition_cases": 51,
+    "result": "pass",
+    "scope": "cold consistency and constructed negative cases only; inherited CRR owner semantic checks executed",
+    "native_mint_or_lifecycle_execution": false
+  },
+  "retained_preliminary_findings": [
+    {
+      "finding": "parsed Host Value frames are not original wire bytes",
+      "repair": "explicit pinned parsed-Value serialization method; exact input/emitted text UTF8 separately"
+    },
+    {
+      "finding": "source closure at final freeze could strand actual graph outcome",
+      "repair": "same-process previously minted historical observations may archive; no new mint/write/retry; unknown operation remains uncertain"
+    },
+    {
+      "finding": "rebound base containing INVENTED invalid CRR fact accepted by shape-only validator",
+      "repair": "unchanged owning CRR semantic validator now required; retained negative mutation"
+    },
+    {
+      "finding": "same generation reused positions 2/3 with different event hashes; conflicting locator accepted",
+      "repair": "fixture sequential stages; per-generation source/position consistency and causal floors; retained mutations"
+    },
+    {
+      "finding": "preintegration source closure conflated with explicit cancellation",
+      "repair": "historical answer/review-only archival allowed on closure; explicit predispatch cancel discards; postdispatch outcome retained"
+    }
+  ],
+  "open_choice": {
+    "A": "one active set shares one payload/1MiB and final freeze one existing slot; proposed only",
+    "B": "intermediate durable historical records spend slots and do not restore hot authority; not selected",
+    "PM05": "prefreeze restart loses answer/review/status; final cold readability does not qualify recoverable whole workflow"
+  },
+  "boundaries": [
+    "No old0.1\u20130.4/CAM/CRP modification",
+    "No App code or native actions",
+    "No target write authorized by source proposal",
+    "No truth, acceptance, human performance or actual identity inferred",
+    "No typed governed act/run invented",
+    "PEC/Domains/fleet remain external adoption owners"
+  ]
+}
