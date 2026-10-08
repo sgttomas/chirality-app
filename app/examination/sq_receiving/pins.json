@@ -10,7 +10,7 @@
     "app/examination/check.py": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
     "app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
     "app/examination/sources.json": "4284cebd7cfdfebbaaf87338db629f6cb6f5ed3c0cc054adb11124d0e80a2059",
-    "app/examination/sq_receiving/worker.py": "68bc134ae7faea91b1faf6e23abee1a77f43f666c5386d48cafb4546e18f3520",
+    "app/examination/sq_receiving/worker.py": "b6f9a436cedc697aa3b2ddd1e81c293f902796da8d876d0041b0c0dccb3cf6cf",
     "app/examination/support_identity/binding.v1.schema.json": "aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0",
     "app/examination/support_identity/canonical-pins.v1.json": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4",
     "app/examination/support_identity/canonical.py": "320728cdebdd87cadeac4621ce100807fbe228bff1787f04ca625b4a2873cb20",

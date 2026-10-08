@@ -161,6 +161,32 @@ class SQReceivingTests(unittest.TestCase):
         entry['target']={'slot':'before-J-1'}
         self.refused('different snapshot than the direct result')
 
+    def historical_package_pair(self, supplied=False):
+        before=self.value('result-J-1');before['record_id']='INVENTED-OLD-J-1'
+        before['subject']['app_candidate'].update(revision='INVENTED-OLD-REV',build_identity='INVENTED-OLD-BUILD',packaged=True,package_record='MISSING-HIST-PACKAGE')
+        before['configuration']['route']['kind']='native_packaged'
+        self.add('historical-before','result',before)
+        after=copy.deepcopy(before);after['currency']={'state':'historical','change_ref':'INVENTED-OLD-CHANGE'};self.add('historical-after','result',after)
+        change={'record_kind':'exam_change_impact','format':'EXP-v0.2','record_id':'INVENTED-OLD-CHANGE','change':{'kind':'candidate_code','description':'INVENTED candidate change','evidence':'INVENTED change evidence'},'from':'INVENTED-old','to':'INVENTED-current','affected':[{'case_id':'J-1','prior_result':before['record_id'],'reason':'INVENTED affected old candidate'}],'unaffected_basis':'INVENTED unaffected other cases','date':'2026-10-08'}
+        self.add('historical-change','change',change)
+        self.selected['changes']=[{'slot':'historical-change','from_alias':'INVENTED-old','to_alias':'INVENTED-current','pairs':[{'before_slot':'historical-before','after_slot':'historical-after','rerun_slot':None,'before_basis':{k:before[k] for k in ('subject','configuration','criterion')},'rerun_basis':None}]}]
+        if supplied:
+            pkg=json.loads((APP/'tests/group_b_fixtures/package.json').read_bytes());pkg['record_id']='MISSING-HIST-PACKAGE';pkg['app'].update(revision='INVENTED-OLD-REV',build_identity='INVENTED-OLD-BUILD')
+            self.add('historical-package','package',pkg);self.selected['packages']=[{'ref':pkg['record_id'],'slot':'historical-package','result_slots':['historical-before','historical-after']}]
+
+    def test_missing_historical_package_is_incomplete(self):
+        self.historical_package_pair();self.incomplete('cited package selection missing')
+
+    def test_supplied_historical_package_uses_its_own_candidate(self):
+        self.historical_package_pair(True);r=self.check();self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['coverage'],'unsupported')
+        self.assertIn('package-link not evaluated: historical-after',r['unsupported_joins'])
+        self.assertIn('package-link not evaluated: historical-before',r['unsupported_joins'])
+        self.assertFalse(r['qualification_established'])
+
+    def test_historical_package_cannot_use_current_candidate_identity(self):
+        self.historical_package_pair(True);pkg=self.value('historical-package');pkg['app'].update({k:self.selected['candidate'][k] for k in ('revision','build_identity')});self.save('historical-package',pkg)
+        self.refused('package candidate/reference mismatch')
+
     def test_ce11_false_independence_refused(self):
         v=self.value('review');v['reported_as_independent']=True;self.save('review',v);self.selected['review']['reported_as_independent']=True;self.refused('EXP-R6')
 

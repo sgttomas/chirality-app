@@ -256,12 +256,14 @@ def check(selection_path, expected):
     package_refs = {}
     if 'package_record' in dossier['candidate']:
         package_refs[dossier['candidate']['package_record']] = set()
-    for slot in direct:
-        value = records.get(slot)
-        if value:
+    for slot, value in records.items():
+        if value.get('record_kind') == 'exam_result' and value['run_basis'] == 'candidate':
             ref = value['subject']['app_candidate'].get('package_record')
             if ref:
                 package_refs.setdefault(ref, set()).add(slot)
+    # A pre-change snapshot's old 'current' flag is not current package reliance.
+    before_slots = {pair['before_slot'] for item in array(selected['changes'], 'changes')
+                    for pair in array(item['pairs'], 'change pairs')}
     seen_packages = set()
     for item in array(selected['packages'], 'packages'):
         exact(item, ('ref', 'slot', 'result_slots'), 'package selection')
@@ -271,16 +273,22 @@ def check(selection_path, expected):
         seen_packages.add(ref); pkg = record(item['slot'], 'package')
         if pkg is None:
             continue
-        require(pkg['record_id'] == ref and all(pkg['app'][k] == candidate[k] for k in ('revision', 'build_identity')) and
-                pkg['codex']['pin'] == candidate['codex_pin'], 'package candidate/reference mismatch')
+        require(pkg['record_id'] == ref, 'package candidate/reference mismatch')
+        if dossier['candidate'].get('package_record') == ref:
+            require(all(pkg['app'][k] == candidate[k] for k in ('revision', 'build_identity')) and
+                    pkg['codex']['pin'] == candidate['codex_pin'], 'package candidate/reference mismatch')
         for slot in slots:
             value = records.get(slot)
             if value is None:
                 continue
-            if value['configuration']['route']['kind'] != 'native_packaged' or value['currency']['state'] != 'current' or value['subject']['app_candidate'].get('packaged') is not True:
+            app_identity = value['subject']['app_candidate']
+            result_pin = value['configuration']['codex_pin']
+            require(all(pkg['app'][k] == app_identity[k] for k in ('revision', 'build_identity')) and
+                    pkg['codex']['pin'] == result_pin, 'package candidate/reference mismatch')
+            if slot in before_slots or value['configuration']['route']['kind'] != 'native_packaged' or value['currency']['state'] != 'current' or app_identity.get('packaged') is not True:
                 unsupported.append('package-link not evaluated: ' + slot)
                 continue
-            found, gaps = package.package_link(value, pkg, candidate['revision'], candidate['build_identity'], candidate['codex_pin'], ref)
+            found, gaps = package.package_link(value, pkg, app_identity['revision'], app_identity['build_identity'], result_pin, ref)
             existing('package/' + slot, found)
             checks[-1]['reported_prerequisite_gaps'] = gaps
         if not slots:
