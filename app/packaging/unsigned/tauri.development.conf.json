@@ -1,0 +1,18 @@
+{
+  "productName": "Chirality App v4 (development candidate)",
+  "version": "0.0.0",
+  "identifier": "dev.chirality.app-v4.skeleton",
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "resources": {
+      "resources/instructions/": "instructions/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "15.0",
+      "signingIdentity": null
+    }
+  }
+}
