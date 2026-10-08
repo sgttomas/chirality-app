@@ -1,0 +1,150 @@
+{
+  "candidate": "5410dee2fcb9ff9b33032e25949bd60009b545fa",
+  "basis": "f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1",
+  "role": "TASK",
+  "parent": "/root/group_b_manager",
+  "mechanism": "delegated harness native descendant",
+  "workflow": "chirality-root:bundled:workflow:coordinated-knowledge-work",
+  "reading": "Root/TASK/loop; method; manual headings to3 and Field Book; Group B graph; EXP SoW and section8.2; SQ step map and B7 implementation/lock; app README overview. Canonical source hashes also retained in preparation.json.",
+  "hashes": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "workflows/coordinated-knowledge-work/WORKFLOW.md": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18",
+    "docs/alignment-manual/README.md": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+    "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md": "c9b4f7737e2861c118441a982a9df421bb4e915453a735497595381e25e87202",
+    "projects/chirality-app-v4/app/examination/native_forms/sources.json": "7d22f5f0ba1cfa1226c545964a23e3578be5910a16f7c3942575c83d7b701ca8",
+    "projects/chirality-app-v4/app/examination/native_forms/README.md": "7fd2c18f6f887623256d70351980f77073a0cec56b9673c494ef8e2f86dc7303",
+    "projects/chirality-app-v4/app/examination/native_forms/native_form.py": "509017abe056bdac96eee9b7012ee2c6cb7b9b942a1c6ab6840efd02bdcd6f2b",
+    "projects/chirality-app-v4/app/tests/group_b_native_forms_test.py": "c07428c0af4753a5a26e9a51b80138a384b170d3db5d5d49728fb325007d1073"
+  },
+  "outputs": {
+    "preparation.json": "95f06193ef1bdd3379c7246145d7ecccb100bddc7bc4673ef7812df7de248322",
+    "V4-EXM-10-N1-blank.md": "ab143b1184823a25b9a653f93204c7504c7b2086f9b0e2bf75218221ba0f1cf8",
+    "V4-EXM-10-check.json": "c67e31b907460c18b70e49f7a6ec423851703757b0a3c44e7393efa84140e8cc",
+    "tests.txt": "2a19ced6b2243f15195fe8a0ec1256764603d2d8bacd5d9b01a5a553b6657192",
+    "V4-EXM-12-check.json": "c67e31b907460c18b70e49f7a6ec423851703757b0a3c44e7393efa84140e8cc",
+    "V4-EXM-11-check.json": "c67e31b907460c18b70e49f7a6ec423851703757b0a3c44e7393efa84140e8cc",
+    "V4-EXM-11-N1-blank.md": "7d0aa1ae88bea2b1069713a5855cf736a335f5bd576c84d5cdbe2fb3c29de7f3",
+    "V4-EXM-12-N1-blank.md": "4ace79c2960f013be455639242d90e54f02ba70038c78f318632de0155c1d8c5"
+  },
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/standalone/prepare.py",
+        "prepare"
+      ],
+      "exit_code": 0,
+      "output": "preparation.json"
+    },
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/native_forms/native_form.py",
+        "generate",
+        "--plan",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/preparation.json",
+        "--case",
+        "V4-EXM-10"
+      ],
+      "exit_code": 0,
+      "output": "V4-EXM-10-N1-blank.md"
+    },
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/native_forms/native_form.py",
+        "check-blank",
+        "--plan",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/preparation.json",
+        "--case",
+        "V4-EXM-10",
+        "--form",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/V4-EXM-10-N1-blank.md"
+      ],
+      "exit_code": 0,
+      "output": "V4-EXM-10-check.json"
+    },
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/native_forms/native_form.py",
+        "generate",
+        "--plan",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/preparation.json",
+        "--case",
+        "V4-EXM-11"
+      ],
+      "exit_code": 0,
+      "output": "V4-EXM-11-N1-blank.md"
+    },
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/native_forms/native_form.py",
+        "check-blank",
+        "--plan",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/preparation.json",
+        "--case",
+        "V4-EXM-11",
+        "--form",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/V4-EXM-11-N1-blank.md"
+      ],
+      "exit_code": 0,
+      "output": "V4-EXM-11-check.json"
+    },
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/native_forms/native_form.py",
+        "generate",
+        "--plan",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/preparation.json",
+        "--case",
+        "V4-EXM-12"
+      ],
+      "exit_code": 0,
+      "output": "V4-EXM-12-N1-blank.md"
+    },
+    {
+      "command": [
+        "python3",
+        "projects/chirality-app-v4/app/examination/native_forms/native_form.py",
+        "check-blank",
+        "--plan",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/preparation.json",
+        "--case",
+        "V4-EXM-12",
+        "--form",
+        "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/native-forms/V4-EXM-12-N1-blank.md"
+      ],
+      "exit_code": 0,
+      "output": "V4-EXM-12-check.json"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "projects/chirality-app-v4/app/tests",
+        "-p",
+        "group_b_*test.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "output": "tests.txt"
+    }
+  ],
+  "limitations": [
+    "Blank preparation only;59 offline tests do not establish a native run.",
+    "No candidate assigned; B7 null candidate preserved.",
+    "No observations, actors, timestamps, captures or examiner statement manufactured.",
+    "No record or examination opened; no admission, qualification, acceptance or complete support identity established.",
+    "CI26 and A-IN remain separate pending work."
+  ]
+}
