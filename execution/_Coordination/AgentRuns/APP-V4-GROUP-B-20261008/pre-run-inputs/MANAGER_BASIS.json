@@ -1,0 +1,11 @@
+{
+  "base": "31cdbc9e17b9e8d510c2421d37387bc93f43d150",
+  "sources": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_WORKING_ITEMS.md": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "workflows/coordinated-knowledge-work/WORKFLOW.md": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18",
+    "workflows/construct-local-work-graph/WORKFLOW.md": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+  }
+}

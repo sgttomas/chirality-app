@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-signing-preparation`, based on verified
-PR #1138 merge `5d562a1f11bdad3f6794f6ff4ca25e665e9f5e06`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-next-preparation`, based on verified
+PR #1141 merge `31cdbc9e17b9e8d510c2421d37387bc93f43d150`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -78,6 +78,7 @@ authors. Each production slice carries its necessary documentation and checks.
 | B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | COMPLETE bounded proposal/tool merged PR #1136 at d35b29f813; 77 integrated tests; B3-ID-ADOPT owns CI-26 disposition |
 | B3-ID-ADOPT canonical full support identity | DEL-09-01/DEL-01-06 technical receiving; support_identity TASK; additive Design supplements, new canonical reader/pins/tests, CI-26 only | Merged proposed tool, unchanged prior publication, independent source assessment | Published tuple provenance; canonical selection outside record input; joined positive/false-authority/history/mutation tests; scoped adoption and recipient notices; independent review | COMPLETE scoped method adopted at PR #1138 merge 5d562a1f11; CI-26 narrowly closed, later SQ/native/S4 and full M1 remain open |
 | B4-PREP exact signing decision preparation and B9 record | DEL-01-06 OUT-001/004; complete_content_build TASK; signing-preparation evidence and exact terms/OpenAI.json only | Retained unsigned f793 artifact, approved cached P1, accepted CF/FP/SIGN/terms source | Exact artifact-bound proposed sequence, passive checks with limits, missing owner/qualification inputs; real unresolved terms schema/rules; independent review | BOUNDED PREPARATION PRODUCED; exact retained bundle and passive checks, unresolved terms record; no signing-ready or owner-act claim |
+| B7-PRE exact pre-run materials and support preparation | DEL-09-02/01; support_identity TASK; new standalone input helper and native-form wrapper/tests | Existing validated B7 plan, maintained invented fixtures, fixed canonical support source | Exact-byte complete material selection and fail-closed checking connected to unobserved blank form; no actual result sidecar or package requirement | BOUNDED PREPARATION READY; author20b08d62 independently reviewed; 40 current-main tests pass, no examination or qualification claim |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -132,7 +133,10 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** B4 execution requires a selected intended source/build, actual CF-1/CF-5/CF-7
+**Next:** B7-PRE supplies exact maintained fixture/support preparation and blank
+forms. Actual candidate/configuration, ST-4/ST-5 evidence, person/modes and later
+examiner pre-run definition remain unsupplied. Changed drafts require fresh
+binding; fixtures remain unregistered examples and J-1 begins empty. B4 execution requires a selected intended source/build, actual CF-1/CF-5/CF-7
 inputs, applicable entitlements and selected implementation/reference/qualification
 inputs. The reviewed preparation packet binds the historical f793 unsigned candidate;
 ten compiled-source paths differ at the preparation basis. It does not authorize

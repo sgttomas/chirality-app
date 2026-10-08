@@ -28,3 +28,36 @@ fidelity. Edited or completed forms return 1; this command does not judge their
 observations. It supplies no result schema validation, N-1 execution, route
 admission, full support identity (CI26), qualification or acceptance. No new
 canonical schema or identity encoding is introduced.
+
+## Connected exact-input preparation wrapper
+
+`pre_run_form.py` consumes the separate frozen selection from
+`standalone/pre_run_inputs.py`. It calls the unchanged blank-form producer and
+preserves its entire output as the prefix, appending a clearly labelled
+**preparation attachment** with exact plan/selection/source identities, all
+selected fixture roles and the complete selected EXP tuple. This is not a
+result sidecar or completed form; every original field stays blank.
+
+From `app/`, with the exact plan and frozen input selection prepared as described
+in `../standalone/README.md`:
+
+```sh
+python3 -B examination/native_forms/pre_run_form.py generate \
+  --plan /private/tmp/b7-plan.json --selection /private/tmp/b7-inputs.json \
+  --selection-sha256 <previously-frozen-selection-sha256> --case V4-EXM-10 \
+  > /private/tmp/b7-form.md
+shasum -a 256 /private/tmp/b7-form.md
+python3 -B examination/native_forms/pre_run_form.py check-blank \
+  --plan /private/tmp/b7-plan.json --selection /private/tmp/b7-inputs.json \
+  --selection-sha256 <previously-frozen-selection-sha256> --case V4-EXM-10 \
+  --form /private/tmp/b7-form.md --form-sha256 <previously-frozen-form-sha256>
+```
+
+V4-EXM-11 and V4-EXM-12 use the same selection with their own case argument.
+A changed plan, selection, fixture/source or form refuses. An edited or completed
+form is outside `check-blank`; its observations require the later examination
+route. A successful check means preparation fidelity only, with native run,
+result and qualification flags false. The wrapper uses new fixed dependency
+pins; it leaves the original blank helper and source lock byte-for-byte intact.
+J-1 remains empty and examples are not installed or registered. Actual drafting,
+trial, review, A15, candidate selection and native observations remain ahead.
