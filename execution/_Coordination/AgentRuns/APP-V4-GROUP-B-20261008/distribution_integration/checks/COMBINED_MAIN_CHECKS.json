@@ -1,0 +1,53 @@
+{
+  "candidate": "c638cbced6f59e2cb36fa46acda29e4bcc59f170",
+  "upstream": "99ca5d6fe6b1c0e4ff15e09f070cdd646df31114",
+  "review_record_added": "2212ed9c851bc925573271379797b65bf01cd997 cherry-picked as3ce2493a41",
+  "merge_conflict": "Only Group B graph; preserves exact upstream B3 row/section and distribution A-IN row/section; asserted mechanically",
+  "accepted_design_and_three_source_pins": "exact prior hashes unchanged",
+  "prior_tested_sources": "all unchanged",
+  "upstream_admission_files": "all exact upstream bytes",
+  "commands": [
+    {
+      "name": "group-b-combined",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "group_b*test.py",
+        "-v"
+      ],
+      "cwd": "projects/chirality-app-v4/app",
+      "exit": 0,
+      "summary": "_before_record_validation (group_b_support_test.GroupBSupport.test_source_drift_refuses_before_record_validation) ... ok\n\n----------------------------------------------------------------------\nRan 51 tests in 4.210s\n\nOK"
+    },
+    {
+      "name": "inventory",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "test_inventory.py"
+      ],
+      "cwd": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/distribution_identity",
+      "exit": 0,
+      "summary": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.065s\n\nOK"
+    },
+    {
+      "name": "legacy-pkg",
+      "command": [
+        "python3",
+        "check_pkg.py",
+        "--self-test"
+      ],
+      "cwd": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype",
+      "exit": 0,
+      "summary": "ed\nPASS  TREE P6 differing file-link targets detected\nPASS  TREE P7 a directory link is recorded and detected\nPASS  TREE P8 a stripped executable bit is detected\nPASS  TREE identical trees compare equal\nTOTAL 59, FAIL 0"
+    }
+  ],
+  "diff_check": "Pass excluding preserved literal generated patch syntax",
+  "limits": "No product/Design edits beyond prior reviewed staged proposal; no supplier/native/signing/owner acts; final independent head backcheck pending"
+}

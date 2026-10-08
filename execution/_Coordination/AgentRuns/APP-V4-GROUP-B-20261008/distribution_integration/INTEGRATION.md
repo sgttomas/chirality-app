@@ -44,3 +44,19 @@ parallel maintained contract copies. Raw check logs remain unchanged. The
 cleaned head requires its own independent backcheck before PR integration.
 
 Cleanup rerun: all 16 packaging, 10 examination, 9 standalone and 10 proposed inventory tests pass. Parent independently reconstructed both proposed documents from accepted bytes and patch and confirmed exact4c5 postimages. Canonical contracts, three source locks and all previously tested source hashes are unchanged; see `checks/CLEANUP_CHECKS.json`. The generated patch preserves syntax whitespace; all other delta files pass `git diff --check`.
+
+## Current-main receiving integration
+
+The concise independent READY record for `5a50030` is preserved at
+`hosting_distribution_review/exact-5a50030/REVIEW.md`, author commit
+`2212ed9c851bc925573271379797b65bf01cd997`, cherry-picked as `3ce2493a41`.
+PR #1121 then merged B3 at `99ca5d6fe6b1c0e4ff15e09f070cdd646df31114`.
+Non-rewriting merge `c638cbced6f59e2cb36fa46acda29e4bcc59f170` incorporates it.
+The only conflict was the shared Group B graph: exact upstream B3 row/section
+and this branch's A-IN row/section are both preserved. No product conflict;
+all admission code/fixtures/source manifest match upstream exactly. Accepted
+HOSTING/PKG, three existing pins and prior tested source hashes are unchanged.
+Combined tests pass: 51 Group B tests, 10 proposed inventory tests and 59 legacy
+PKG checks. `checks/COMBINED_MAIN_CHECKS.json` binds commands, identities and
+comparison results. This integration-only update awaits the final independent
+exact-head backcheck; earlier READY applies only to its named candidate.
