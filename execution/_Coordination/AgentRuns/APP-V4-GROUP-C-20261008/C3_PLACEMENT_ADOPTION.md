@@ -1,6 +1,7 @@
 # C3 named technical placement adoption
 
-WORKING_ITEMS `/root/group_c_successor`, under HELP_HUMAN `/root`, selects
+Initial CRP-v0.2 selection (superseded for publication by the CRP-R2 selection below):
+WORKING_ITEMS `/root/group_c_successor`, under HELP_HUMAN `/root`, selected
 C3-PLACE-01 / CRP-v0.2 for the bounded App connector account persistence
 implementation. Exact source: `CONNECTOR_ROUTE_PLACEMENT_v0.2.md`, SHA-256
 `6552f82f3a574b847e19ed909ac610e4b263f27d6034253488b0d2a314659f12`,
@@ -45,3 +46,31 @@ research activation retain their existing points of need. Full source
 reconstruction, presentation, connected witness and Group C completion remain
 unfinished; this is no 90% act. MEMORY, downloads, credentials/sign-in,
 native/person/provider acts and SEAL-2 remain outside the grant.
+
+## Current selection — CRP-R2 / CRP-v0.3
+
+WORKING_ITEMS selects the named successor `CONNECTOR_ROUTE_PLACEMENT_v0.3.md`,
+source `3d9a91a98872fda1837aad1a91e710345c614f28`, SHA-256
+`e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e`.
+The historical v0.2 bytes remain unchanged. Independent source backcheck
+`0d1b8c62bb` is READY; affected DEL-06-01 concurrence `873f23b906` binds
+these exact bytes and reports no fleet reference/recovery conflict.
+
+HELP_HUMAN's active task-message direction selects exclusive atomic no-replace
+rename, no automatic pathname unlink on any error, and no successful binding
+without intended inode/bytes/account/path checks. This is a relayed technical
+selection, not a new owner act. The successor prohibits automatic unlink on
+any path; normal successful rename consumes its source name atomically.
+An external replacement after the last precheck can still move foreign bytes
+to the final name. The result must remain an uncertain commit with preserved
+entries and no rollback/retry. Unsupported capabilities refuse; mode bits,
+random names and advisory locks establish no same-user exclusion.
+
+This releases the implementation owner to repair the confirmed temporary-name
+finding against the exact successor, including original reproduction tests and
+substitution after the final precheck. Existing passing tests are insufficient
+until the actual defect is repaired and independently backchecked. Current
+code remains NOT READY until that evidence exists. Retained temporary files
+and cold inspected files establish no successful publication, source truth,
+performed duty or need satisfaction. Reference formats and group order remain
+unchanged; no provider/native/person act is authorized.

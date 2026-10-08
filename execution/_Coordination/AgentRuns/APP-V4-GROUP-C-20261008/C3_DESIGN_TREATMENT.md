@@ -157,3 +157,30 @@ concurrence before selection/persistence. If continuous containment despite
 external rename is required, production remains held until enforceable
 exclusion exists. No CI-29 schema, source semantics or historical evidence is
 changed. CRP-v0.1 remains recoverable at its original Git revision.
+
+## CRP-R2: exclusive rename and no pathname cleanup
+
+WORKING_ITEMS relayed HELP_HUMAN's selection of option A as a bounded technical
+repair: macOS exclusive rename, no automatic pathname unlink on errors,
+verified successful binding only, and preserved/reported uncertain outcomes.
+The source owner prepared CRP-v0.3 as a new file; CRP-v0.2 and all CI-29 source
+bytes remain unchanged. The successor also avoids automatic unlink on normal
+success, because exclusive rename consumes the temporary name directly.
+
+This prevents cleanup from deleting a foreign replacement. It does not
+prevent source-name replacement immediately before rename: foreign bytes may
+move to the final name, disrupting their former name. Exact inode plus bytes,
+account/version, path and durability checks gate a successful binding; any
+mismatch yields uncertainty without rollback or retry. No immunity from
+same-user mutation is claimed. Unsupported filesystem/flag fails closed.
+
+Canonical location, schema versions, relative-reference fields and discovery
+mechanism are unchanged. Receiving consumers need no new serialized field,
+but must preserve the existing distinction between discovered file and verified
+publication; discovery never proves a writer succeeded. DEL-06-01 should give
+affected concurrence on uncertainty/reference behavior, without a D production
+prerequisite. Source independent backcheck precedes code backcheck, including
+after-final-precheck substitution. Code remains NOT READY pending those checks.
+No changed provider, fleet allocation, source recovery obligation, or new
+owner act is inferred; any contrary consumer interpretation returns to the
+manager before adoption.

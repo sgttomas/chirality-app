@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-07-02:route-account:0.1",
+  "title": "Source-file route account (DEL-07-02 CFB-v0.2 §4; PROPOSED)",
+  "description": "One affected question answered from ordinary project files when connector material is absent or does not support reliance (REQ-002, REQ-004). It names the sources and revisions read, the facts found, the gaps, the conclusions supported and not supported, and each duty with its actual standing. A performed duty cites its evidence; a prepared or outstanding duty claims no performance (REQ-004; RS OF-1). Reading files establishes no authority by itself (REQ-002).",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "account_id",
+    "question",
+    "trigger",
+    "sources",
+    "facts",
+    "gaps",
+    "conclusions",
+    "duties",
+    "recorder",
+    "written_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "chirality.connector.route-account"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "account_id": {
+      "type": "string",
+      "pattern": "^ra:[A-Za-z0-9._-]+$"
+    },
+    "question": {
+      "type": "object",
+      "required": [
+        "id",
+        "text",
+        "at_revision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "since_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "required": [
+        "connector",
+        "why"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "connector": {
+          "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/connector"
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The standing that sent the question here, or 'route walked independently of any connector'."
+        },
+        "receiving_records": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "path",
+          "revision",
+          "sha256",
+          "role"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repository commit, or the source's own stated revision for a non-repository source."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Content identity of the bytes read."
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fact_id",
+          "statement",
+          "source_id",
+          "anchor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "anchor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "gap",
+          "effect",
+          "responsible"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "gap": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responsible": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "conclusions": {
+      "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/conclusions"
+    },
+    "duties": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "duty",
+          "actor_role",
+          "standing",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "duty": {
+            "enum": [
+              "locate_compare",
+              "review_integrate",
+              "cross_undertaking_coordination"
+            ]
+          },
+          "actor_role": {
+            "enum": [
+              "agent",
+              "manager",
+              "person"
+            ]
+          },
+          "actor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standing": {
+            "enum": [
+              "prepared",
+              "performed",
+              "outstanding",
+              "not_required"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "standing": {
+                  "const": "performed"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "actor",
+                "evidence"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "duty": {
+                  "const": "locate_compare"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "actor_role": {
+                  "const": "agent"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "duty": {
+                  "const": "review_integrate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "actor_role": {
+                  "const": "manager"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "duty": {
+                  "const": "cross_undertaking_coordination"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "actor_role": {
+                  "const": "person"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "recorder": {
+      "type": "object",
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "agent",
+            "person",
+            "app",
+            "tool"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "written_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "written_at_source": {
+      "enum": [
+        "observed_clock",
+        "build_constant"
+      ],
+      "description": "How written_at was obtained (RV2 EUD1-R5): a build constant is never a clock observation."
+    }
+  }
+}

@@ -1069,7 +1069,7 @@ changed.
 - **Consumer and placement account:** Group C
   `AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md` identifies
   PEC, Domains, fleet, examination and later research receiving work. O-D
-  placement stays open before persistent writing; this correction adds no
+  placement was subsequently selected through C3-PLACE-01; this correction adds no
   requirement for Group D software and changes no accepted group order.
 - **Placement follow-through:** C3-PLACE-01 / CRP-v0.2 is technically selected
   in the Group C `C3_PLACEMENT_ADOPTION.md` after repaired independent review
@@ -1077,3 +1077,15 @@ changed.
   opened-directory capability containment with explicit rename residuals;
   no continuous-path safety or finished persistence is claimed. CI-29's
   source-only successor merged in PR #1130; backend behavior remains C3-P.
+- **Persistence implementation:** the bounded C3-P backend now has a tested
+  writer, cold discovery and reference reconciliation for caller-supplied
+  schema-valid accounts; independent repair review is READY at `f1ff1699e0`,
+  with final combined-head review and CI still required for PR #1137. Initial code passed 25 checks but failed two independent temporary-name
+  substitution checks. Named CRP-R2 / CRP-v0.3 selects exclusive no-replace
+  rename with no automatic unlink, exact intended binding checks and explicit
+  late-substitution uncertainty. The repaired author candidate `8f1195761d`
+  passed 31 connector checks; independent review passed those plus three
+  substitution probes. `C3_PERSISTENCE_REVIEW.md` preserves the original
+  finding; a passing rerun alone does not establish its repair. This backend
+  does not reconstruct the question from real sources, establish source truth,
+  perform duties, wire providers, or supply UI/connected witness behavior.
