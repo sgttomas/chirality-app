@@ -433,3 +433,104 @@ fn connector_source_failed_read_and_anchor_mismatch_keep_independent_gaps() {
         first["observation"]["read"]
     );
 }
+
+#[test]
+fn connector_source_git_separate_binding_and_failed_selection_eligibility() {
+    use crate::connector_git::tests::Repo;
+    let r = Repo::new("sha1");
+    let (s, t, g) = prepare(&r.root);
+    let local = select(&s, &t, &g, || Ok(Some(r.root.join("literal [*].txt")))).unwrap();
+    let lr = local["observation"]["reference"].as_str().unwrap();
+    let v = git_read(&s, &t, &g, lr, r.id("at"), Some(r.id("since"))).unwrap();
+    assert_eq!(v["observation"]["read"], local["observation"]["read"]);
+    let gr = v["git"]["result"]["reference"].as_str().unwrap();
+    let anchored = git_anchor(&s, &t, &g, gr, "since", 1, 1, Some("old\r\n")).unwrap();
+    assert_eq!(anchored["git"]["result"]["anchors"][0]["blob"], r.id("old"));
+    assert!(git_anchor(&s, &t, &g, gr, "at", 1, 1, Some("old\r\n")).is_err());
+    let unicode=git_anchor(&s,&t,&g,gr,"since",2,2,Some("é\n")).unwrap();
+    assert_eq!(unicode["git"]["result"]["anchors"][1]["byteStart"],5);
+    assert_eq!(unicode["git"]["result"]["anchors"][1]["byteEnd"],8);
+    let blank=git_anchor(&s,&t,&g,gr,"at",2,2,Some("\n")).unwrap();
+    assert_eq!(blank["git"]["result"]["anchors"][2]["byteStart"],4);
+    assert_eq!(blank["git"]["result"]["anchors"][2]["byteEnd"],5);
+    assert_ne!(blank["git"]["result"]["anchors"][2]["sideObservationReference"],blank["git"]["result"]["anchors"][1]["sideObservationReference"]);
+
+    for failure in [false, true] {
+        let v = select(&s, &t, &g, || {
+            if failure {
+                Err("DISTINCT_READ_FAILURE".into())
+            } else {
+                Ok(None)
+            }
+        })
+        .unwrap();
+        assert_eq!(v["git"]["result"]["historical"], true);
+        assert!(git_read(&s, &t, &g, lr, r.id("at"), None).is_err());
+        s.lock().unwrap().anchor(&t, &g, lr, 1, 1, None).unwrap();
+        assert!(git_read(&s, &t, &g, lr, r.id("at"), None).is_err());
+    }
+}
+#[test]
+fn connector_source_git_whole_abort_after_side_retains_only_prior_result() {
+    use crate::connector_git::tests::Repo;
+    use crate::connector_git_process::Failure;
+    for cause in ["cancel", "deadline", "supervision", "selection", "prepare"] {
+        let r = Repo::new("sha1");
+        let (s, t, g) = prepare(&r.root);
+        let local = select(&s, &t, &g, || Ok(Some(r.root.join("literal [*].txt")))).unwrap();
+        let lr = local["observation"]["reference"].as_str().unwrap();
+        let prior = git_read(&s, &t, &g, lr, r.id("at"), None).unwrap();
+        let result = git_read_with(&s, &t, &g, lr, r.id("since"), Some(r.id("at")), |phase| {
+            if phase == "after_at" {
+                match cause {
+                    "cancel" => {
+                        git_cancel(&s, &t, &g).unwrap();
+                    }
+                    "selection" => {
+                        select(&s, &t, &g, || Ok(None)).unwrap();
+                    }
+                    "prepare" => {
+                        s.lock()
+                            .unwrap()
+                            .prepare(&r.root, question(), "absent".into(), None)
+                            .unwrap();
+                    }
+                    _ => return Err(Failure::abort(cause, "injected after completed at side")),
+                }
+            }
+            Ok(())
+        });
+        if cause == "prepare" {
+            assert!(result.is_err());
+            assert!(s.lock().unwrap().snapshot()["git"]["result"].is_null());
+        } else {
+            let v = result.unwrap();
+            assert_eq!(
+                v["git"]["result"]["reference"],
+                prior["git"]["result"]["reference"]
+            );
+            assert_eq!(v["git"]["result"]["historical"], true);
+        }
+    }
+}
+#[test]
+fn connector_source_git_root_replacement_selection_marks_prior_historical() {
+    use crate::connector_git::tests::Repo;
+    let r = Repo::new("sha1");
+    let (s, t, g) = prepare(&r.root);
+    let local = select(&s, &t, &g, || Ok(Some(r.root.join("literal [*].txt")))).unwrap();
+    let lr = local["observation"]["reference"].as_str().unwrap();
+    let prior = git_read(&s, &t, &g, lr, r.id("at"), None).unwrap();
+    let moved = r.root.with_extension("moved");
+    fs::rename(&r.root, &moved).unwrap();
+    fs::create_dir(&r.root).unwrap();
+    let failed = select(&s, &t, &g, || panic!("invalid root must not invoke picker")).unwrap();
+    assert_eq!(failed["operation"], "failed");
+    assert_eq!(failed["git"]["result"]["historical"], true);
+    assert_eq!(
+        failed["git"]["result"]["reference"],
+        prior["git"]["result"]["reference"]
+    );
+    fs::remove_dir(&r.root).unwrap();
+    fs::rename(moved, &r.root).unwrap();
+}

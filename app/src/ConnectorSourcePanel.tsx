@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { RouteAvailability } from "./ConnectorRoutePanel";
 type Json = any;
 export type SourceUiState = {view: Json; busy: boolean; error: string | null; draftChanged: boolean};
@@ -41,11 +41,43 @@ export function SourceObservationView({state}:{state:SourceUiState}) {
       <details><summary>Escaped snapshot text (makes line endings visible)</summary><pre>{JSON.stringify(observation.read.text)}</pre></details>
       <h4>Revision standing</h4><p>{observation.revision.kind}</p><p>{observation.revision.label ?? observation.revision.callerInterpretation}</p><p>{observation.revision.limit}</p>
       {observation.revision.anchor && <p>Located revision excerpt: {observation.revision.anchor.anchor}; interpretation is caller-supplied and unverified.</p>}
-      <p>Git verification is unavailable. A typed commit, source statement, or working-tree coincidence does not establish a Git revision. No source entry or saved route account is produced.</p>
+      <p>This local snapshot is not a Git binding. A typed commit, source statement, or working-tree coincidence does not establish a Git revision. No source entry or saved route account is produced.</p>
       <h4>Checked excerpts</h4>
       {observation.anchors?.map((anchor:Json)=><div key={anchor.reference}><p>{anchor.anchor}: [{anchor.byteStart}, {anchor.byteEnd}) — {anchor.interval}</p><pre>{anchor.text}</pre><pre>{JSON.stringify(anchor.text)}</pre><p>Excerpt SHA-256: {anchor.sha256}</p><p>{anchor.standing}</p></div>)}
     </article>}
+    <p>Git gap responsibility: {view?.gaps?.[0]?.responsible ?? "Unassigned"}; caller assignment only, no performed responsibility.</p>
+    <GitObservationView git={view?.git} historical={state.busy || !!state.error || state.draftChanged}/>
   </div>;
+}
+export function GitObservationView({git,historical=false}:{git:Json;historical?:boolean}) {
+  if(!git)return null;
+  const result=git.result, observation=result?.observation;
+  return <section aria-label="Separate Git object observations">
+    <h3>Git object evidence</h3><p>Operation: {git.operation}</p>
+    {git.error && <p role="alert">Git request gap: {git.error}. No new result from this failed or cancelled request.</p>}
+    {!result && <p>No Git object result is retained.</p>}
+    {result && <>
+      <h4>{result.historical || historical ? "Prior/historical Git result" : "Frozen Git result"}: {observation.status}</h4>
+      <p>Requested at: {observation.request?.at}; since: {observation.request?.since ?? "not requested"}.</p>
+      <p>Local preview stays separate. This result concerns exact requested commits and stored object bytes.</p>
+      {(["at","since"] as const).map(side=>observation[side] && <article key={side}>
+        <h4>{side === "at" ? "At requested commit" : "Since requested commit"}: {observation[side].status}</h4>
+        {observation[side].status === "gap" ? <p>{observation[side].kind}: {observation[side].reason}. This side has no verified text.</p> : <>
+          <p>Commit: {observation[side].object.readCommit}</p><p>Blob: {observation[side].object.blob}</p>
+          <p>Content SHA-256: {observation[side].object.sha256}; bytes: {observation[side].object.byteLength}</p>
+          <p>Observed: {observation[side].object.observedAt} ({observation[side].object.timeProvenance})</p>
+          <p>{observation[side].object.standing}</p>
+          <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{observation[side].object.text}</pre>
+          <details><summary>Object path, raw commit and tree evidence</summary><pre>{JSON.stringify(observation[side].object,null,2)}</pre></details>
+        </>}
+      </article>)}
+      {observation.comparison && <p>{observation.comparison}</p>}
+      {observation.limits?.map((limit:string)=><p key={limit}>{limit}</p>)}
+      <details><summary>Repository association and restricted Git mechanism</summary><pre>{JSON.stringify({association:observation.association,engine:observation.engine},null,2)}</pre></details>
+      <h4>Checked Git excerpts</h4>
+      {result.anchors?.map((a:Json)=><div key={a.reference}><p>{a.side}: {a.anchor}, [{a.byteStart}, {a.byteEnd})</p><p>Commit: {a.commit}; blob: {a.blob}</p><pre>{a.text}</pre><p>{a.standing}</p></div>)}
+    </>}
+  </section>;
 }
 export function ConnectorSourcePanel({availability,command}:{availability?:RouteAvailability;command:(name:string,args:Record<string,unknown>)=>Promise<Json>}) {
   const [state,setState]=useState<SourceUiState>(emptySourceUi);
@@ -53,6 +85,9 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
   const [trigger,setTrigger]=useState("absent"),[responsible,setResponsible]=useState("");
   const [start,setStart]=useState("1"),[end,setEnd]=useState("1"),[expected,setExpected]=useState(""),[checkExpected,setCheckExpected]=useState(false);
   const [kind,setKind]=useState("unavailable"),[label,setLabel]=useState(""),[anchor,setAnchor]=useState("");
+  const [gitAt,setGitAt]=useState(""),[gitSince,setGitSince]=useState(""),[gitSide,setGitSide]=useState("at");
+  const [gitPending,setGitPending]=useState(false);
+  const gitRequest=useRef(0);
   const ready=availability?.enabled && !state.busy, prepared=ready && !state.draftChanged && state.view?.sessionToken;
   const observation=state.view?.observation;
   const bindings=()=>({sessionToken:state.view.sessionToken,generation:state.view.generation});
@@ -60,6 +95,17 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
     setState(s=>sourceUiTransition(s,{type:preparing?"prepare":"start"}));
     try{const view=await command(name,args);setState(s=>sourceUiTransition(s,{type:"success",view}));if(name!=="revise_connector_source" && name!=="anchor_connector_source")setAnchor("");}
     catch(error){setState(s=>sourceUiTransition(s,{type:"failure",error:String(error)}));}
+  };
+  const readGit=async()=>{
+    const request=++gitRequest.current;setGitPending(true);setState(s=>sourceUiTransition(s,{type:"start"}));
+    try{const view=await command("read_connector_git",{...bindings(),observationReference:observation.reference,at:gitAt,since:gitSince||null});if(request===gitRequest.current)setState(s=>sourceUiTransition(s,{type:"success",view}));}
+    catch(error){if(request===gitRequest.current)setState(s=>sourceUiTransition(s,{type:"failure",error:String(error)}));}
+    finally{if(request===gitRequest.current)setGitPending(false);}
+  };
+  const cancelGit=async()=>{
+    const request=++gitRequest.current;setGitPending(false);
+    try{const view=await command("cancel_connector_git",bindings());if(request===gitRequest.current)setState(s=>sourceUiTransition(s,{type:"success",view}));}
+    catch(error){if(request===gitRequest.current)setState(s=>sourceUiTransition(s,{type:"failure",error:String(error)}));}
   };
   const edit=()=>setState(s=>sourceUiTransition(s,{type:"edit"}));
   return <section aria-label="Local source observation preparation">
@@ -73,6 +119,23 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
     <button disabled={!prepared} onClick={()=>act("select_connector_source",bindings())}>Select / reread through native picker…</button>
     <p>One regular project-contained UTF-8 text file, at most 262144 bytes, no NUL or symlink descendants. Cancelling retains only prior evidence; rereading creates a new observation.</p>
     <SourceObservationView state={state}/>
+    <fieldset disabled={!prepared || state.view?.operation!=="observed"}>
+      <legend>Inspect exact Git commits for the selected source path</legend>
+      <p>Lowercase full commit IDs only (40 or 64 hex characters). No branch, tag, path or repository input. The local preview remains separate from committed bytes.</p>
+      <label>At commit<input value={gitAt} onChange={e=>setGitAt(e.target.value)}/></label>
+      <label>Since commit (optional)<input value={gitSince} onChange={e=>setGitSince(e.target.value)}/></label>
+      <button onClick={readGit}>Read Git objects</button>
+    </fieldset>
+    {gitPending && <button onClick={cancelGit}>Cancel Git request</button>}
+    {state.view?.git?.result && <fieldset disabled={!prepared}>
+      <legend>Locate exact lines in a Git side</legend>
+      <label>Git side<select value={gitSide} onChange={e=>setGitSide(e.target.value)}><option value="at">At</option><option value="since">Since</option></select></label>
+      <label>First line<input type="number" min="1" value={start} onChange={e=>setStart(e.target.value)}/></label>
+      <label>Last line<input type="number" min="1" value={end} onChange={e=>setEnd(e.target.value)}/></label>
+      <label><input type="checkbox" checked={checkExpected} onChange={e=>setCheckExpected(e.target.checked)}/>Check expected text exactly</label>
+      {checkExpected && <textarea aria-label="Expected Git excerpt" value={expected} onChange={e=>setExpected(e.target.value)}/>}
+      <button onClick={()=>act("anchor_connector_git",{...bindings(),observationReference:state.view.git.result.reference,side:gitSide,start:Number(start),end:Number(end),expected:checkExpected?expected:null})}>Locate exact Git lines</button>
+    </fieldset>}
     {observation && <fieldset disabled={!prepared}>
       <legend>Locate an excerpt in this frozen observation</legend>
       <label>First line<input type="number" min="1" value={start} onChange={e=>setStart(e.target.value)}/></label>

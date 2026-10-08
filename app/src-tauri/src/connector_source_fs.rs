@@ -96,6 +96,21 @@ mod unix {
             }
             Ok(())
         }
+        pub fn git_location(&self, path: &Path) -> Result<(PathBuf, PathBuf), String> {
+            self.verify()?;
+            let relative = path
+                .strip_prefix(&self.original)
+                .or_else(|_| path.strip_prefix(&self.resolved))
+                .map_err(|_| "Selection is outside retained project")?;
+            if relative.as_os_str().is_empty()
+                || relative
+                    .components()
+                    .any(|c| !matches!(c, std::path::Component::Normal(_)))
+            {
+                return Err("Invalid private relative selection".into());
+            }
+            Ok((self.resolved.clone(), relative.to_path_buf()))
+        }
         pub fn read(&self, path: &Path) -> Result<ReadBuffer, String> {
             self.read_with(path, |_| {})
         }
