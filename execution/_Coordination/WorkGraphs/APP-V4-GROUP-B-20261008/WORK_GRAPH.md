@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-next-preparation`, based on verified
-PR #1141 merge `31cdbc9e17b9e8d510c2421d37387bc93f43d150`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-input-hold`, based on verified
+PR #1142 merge `5c1b258db0645e422d8896bce9d02bf8a7cd04d5`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -78,7 +78,7 @@ authors. Each production slice carries its necessary documentation and checks.
 | B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | COMPLETE bounded proposal/tool merged PR #1136 at d35b29f813; 77 integrated tests; B3-ID-ADOPT owns CI-26 disposition |
 | B3-ID-ADOPT canonical full support identity | DEL-09-01/DEL-01-06 technical receiving; support_identity TASK; additive Design supplements, new canonical reader/pins/tests, CI-26 only | Merged proposed tool, unchanged prior publication, independent source assessment | Published tuple provenance; canonical selection outside record input; joined positive/false-authority/history/mutation tests; scoped adoption and recipient notices; independent review | COMPLETE scoped method adopted at PR #1138 merge 5d562a1f11; CI-26 narrowly closed, later SQ/native/S4 and full M1 remain open |
 | B4-PREP exact signing decision preparation and B9 record | DEL-01-06 OUT-001/004; complete_content_build TASK; signing-preparation evidence and exact terms/OpenAI.json only | Retained unsigned f793 artifact, approved cached P1, accepted CF/FP/SIGN/terms source | Exact artifact-bound proposed sequence, passive checks with limits, missing owner/qualification inputs; real unresolved terms schema/rules; independent review | BOUNDED PREPARATION PRODUCED; exact retained bundle and passive checks, unresolved terms record; no signing-ready or owner-act claim |
-| B7-PRE exact pre-run materials and support preparation | DEL-09-02/01; support_identity TASK; new standalone input helper and native-form wrapper/tests | Existing validated B7 plan, maintained invented fixtures, fixed canonical support source | Exact-byte complete material selection and fail-closed checking connected to unobserved blank form; no actual result sidecar or package requirement | BOUNDED PREPARATION READY; author20b08d62 independently reviewed; 40 current-main tests pass, no examination or qualification claim |
+| B7-PRE exact pre-run materials and support preparation | DEL-09-02/01; support_identity TASK; new standalone input helper and native-form wrapper/tests | Existing validated B7 plan, maintained invented fixtures, fixed canonical support source | Exact-byte complete material selection and fail-closed checking connected to unobserved blank form; no actual result sidecar or package requirement | COMPLETE bounded preparation merged PR #1142 at 5c1b258db0; 40 tests and exact-head independent review; no examination or qualification claim |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -133,18 +133,38 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** B7-PRE supplies exact maintained fixture/support preparation and blank
-forms. Actual candidate/configuration, ST-4/ST-5 evidence, person/modes and later
-examiner pre-run definition remain unsupplied. Changed drafts require fresh
-binding; fixtures remain unregistered examples and J-1 begins empty. B4 execution requires a selected intended source/build, actual CF-1/CF-5/CF-7
-inputs, applicable entitlements and selected implementation/reference/qualification
-inputs. The reviewed preparation packet binds the historical f793 unsigned candidate;
-ten compiled-source paths differ at the preparation basis. It does not authorize
-signing or upgrade that artifact. Actual installed FP-2/W-4 witnesses follow
-signing and are required before qualified-package reliance, not before signing.
-B9's actual unresolved terms record is produced; no response or distribution
-decision is invented. H3B/S3, native examination, LS-5/LS-8 admission and M1
-remain open at their existing owner/input boundaries.
+**Current hold and resumption:** Parent HELP_HUMAN directed this bounded hold
+after PR #1142. Independent read-only readiness assessment by separate TASK
+`complete_content_review` at 5c1b258db0 found no further material Group B
+production slice with sufficient supplied inputs. This is a dependency hold,
+not a new approval gate, undertaking completion or abandonment. No additional
+preparation layer, missing-only test suite or transient package rebuild is
+commissioned merely to keep the lane active.
+
+| Held node | Missing usable input / exact point of resumption |
+|---|---|
+| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. Current reported full-S1/closure work is not frozen. |
+| B2 current package and B4–B6 signing/package witness | Select intended current source/build after applicable implementation/reference readiness; preserve the #1134 f793 artifact as historical. Current-source and applicable supplier reference/configuration inputs remain absent. CF1/CF7 names alone do not justify an Apple-account request. FP2/W4 actual installed witnesses follow signing and installation; they are not pre-sign prerequisites. |
+| B7/B8 actual standalone journey | B7 exact-example preparation is supplied. Actual candidate/configuration, examiner pre-run definition, ST4/ST5 contributions, people/modes, genuine registrations/refinements and applicable native authority remain missing. Resume the eligible case when its actual inputs arrive. SQ permits native_development; signed packaging or S3 is not a blanket gate on every eligible SQ step. |
+| B3 full M1 / native support and A-IN-S5 reliance | Actual connected runner/native qualification and package/reference evidence remain required at their existing points. Scoped CI-26 closure and offline preparation do not supply them. |
+
+The reviewed #1133 decision package recommends genuine A15-registered copies
+under existing contracts and requires no new A/B owner decision before
+independent work. LS-5/LS-8 remain explicit gaps; ask about a new candidate
+standing only if bundled-candidate execution becomes a required objective.
+B9's actual unresolved supplier-terms record is supplied; a response is not a
+new development gate. No concrete owner decision blocks the next useful S4
+receiving step now. CF5 and applicable entitlements/identity choices stay at
+the selected package's real points of need; no names, decisions or acts are
+invented here.
+
+Readiness sources: this graph's B4–B8/A-IN-S1…S5; reviewed
+`signing-preparation/DECISION_PACKET.md` candidate prerequisites;
+`pre-run-inputs/RETURN.md` governing boundary; and
+APP-V4-CANDIDATE-ADMISSION-20261008/DECISION_PACKAGE.md point-of-need and decision
+interface. The Host manager's current report is coordination status, not an
+independently accepted implementation artifact. HELP_HUMAN will resume this
+lane when the frozen Host receipt or another genuine input arrives.
 
 CI-26 representation/initial EXP-PKG cohort is narrowly closed through merged
 EXP-SUPPORT-BINDING-v1. SQ/native-form/S4 receiving and full M1 support remain
