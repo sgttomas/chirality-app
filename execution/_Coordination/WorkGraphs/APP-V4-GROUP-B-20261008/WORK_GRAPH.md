@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-s4-receiving`, based on verified
-PR #1146 merge `fa71b93432612a3615d0c2db0e5767811818454a`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-post-s4-hold`, based on verified
+PR #1147 merge `f23997d3202375f9d607098731f8d374d019b434`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -133,18 +133,30 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Prior hold and current resumption:** Parent HELP_HUMAN directed this bounded hold
-after PR #1142. S4 resumed after reviewed Host PR #1145 merged; the remaining
-package/native holds below persist. Independent read-only readiness assessment by separate TASK
-`complete_content_review` at 5c1b258db0 found no further material Group B
-production slice with sufficient supplied inputs. This is a dependency hold,
-not a new approval gate, undertaking completion or abandonment. No additional
-preparation layer, missing-only test suite or transient package rebuild is
-commissioned merely to keep the lane active.
+**Post-S4 dependency hold:** Bounded S4 file correspondence merged through
+PR #1147 at f23997d320. Its 43 tests and independent exact-head review establish
+only the recorded synthetic producer-to-consumer path. Parent HELP_HUMAN
+requested this readiness checkpoint; no further material B production input is
+currently supplied. No additional preparation layer, missing-only suite or
+transient package rebuild is commissioned merely to keep the lane active.
+
+The Host manager reports secondary-home/namespace work still at the reviewed
+proposal boundary, with no new implementation receipt. Prospective Store/Host
+changes affect the current receiver's selected-source identities. This report
+is coordination status, not accepted successor bytes. Group B retains its
+intentional current-source drift refusal; old matching fixtures do not excuse
+a changed reader. The precise resumption contract is a named successor receipt,
+fresh selected/unselected exchanges from committed and recompiled source, and
+B-owned independent receiving adoption of the actual changed consumer path.
+Coordinate those contributions before relying on a new-source consistency
+claim; do not bare-repin the 26 sources or reinterpret the historical f267
+fixtures. Preserve their exact original bytes and provenance. A future B
+adoption still cannot establish S3, live native authority or qualification by
+file correspondence alone.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|
-| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. BOUNDED CORRESPONDENCE READY: reader.s3/closure received at #1145; exporter received at #1146. Actual selected/unselected synthetic Host exports join the unchanged canonical six-record EXP/PKG checker. 43 tests and independent review pass; this is file correspondence only. Production/native receiving and canonical successor adoption remain open; no S3 or native authority is supplied. |
+| A-IN-S4 receiving implementation | Hosting manager's frozen exact S1/S2 reader and transport identities, complete closure fields and independent whole-connected verdict. Receive that contribution, assess its positive consumer contract, then commission bounded S4 integration. S4 implementation can precede S3; verified claims still require S3. BOUNDED CORRESPONDENCE MERGED #1147: reader.s3/closure received at #1145; exporter received at #1146. Actual selected/unselected synthetic Host exports join the unchanged canonical six-record EXP/PKG checker. 43 tests and independent review pass; this is file correspondence only. Next source-changing Host increment requires the successor receipt/fresh exchanges/independent B adoption above. Production/native receiving and canonical successor adoption remain open; no S3 or native authority is supplied. |
 | B2 current package and B4–B6 signing/package witness | Select intended current source/build after applicable implementation/reference readiness; preserve the #1134 f793 artifact as historical. Current-source and applicable supplier reference/configuration inputs remain absent. CF1/CF7 names alone do not justify an Apple-account request. FP2/W4 actual installed witnesses follow signing and installation; they are not pre-sign prerequisites. |
 | B7/B8 actual standalone journey | B7 exact-example preparation is supplied. Actual candidate/configuration, examiner pre-run definition, ST4/ST5 contributions, people/modes, genuine registrations/refinements and applicable native authority remain missing. Resume the eligible case when its actual inputs arrive. SQ permits native_development; signed packaging or S3 is not a blanket gate on every eligible SQ step. |
 | B3 full M1 / native support and A-IN-S5 reliance | Actual connected runner/native qualification and package/reference evidence remain required at their existing points. Scoped CI-26 closure and offline preparation do not supply them. |
@@ -154,8 +166,8 @@ under existing contracts and requires no new A/B owner decision before
 independent work. LS-5/LS-8 remain explicit gaps; ask about a new candidate
 standing only if bundled-candidate execution becomes a required objective.
 B9's actual unresolved supplier-terms record is supplied; a response is not a
-new development gate. No concrete owner decision blocks the next useful S4
-receiving step now. CF5 and applicable entitlements/identity choices stay at
+new development gate. No new owner choice is required merely to wait for the
+named technical inputs. CF5 and applicable entitlements/identity choices stay at
 the selected package's real points of need; no names, decisions or acts are
 invented here.
 
@@ -164,12 +176,14 @@ Readiness sources: this graph's B4–B8/A-IN-S1…S5; reviewed
 `pre-run-inputs/RETURN.md` governing boundary; and
 APP-V4-CANDIDATE-ADMISSION-20261008/DECISION_PACKAGE.md point-of-need and decision
 interface. The Host manager's current report is coordination status, not an
-independently accepted implementation artifact. HELP_HUMAN resumed S4 on the named Host merge; other nodes await their own
-actual inputs. Current assignment/evidence is in s4-receiving/COORDINATION.md.
+independently accepted implementation artifact. The bounded S4 return is in
+s4-receiving/COORDINATION.md. Resume dependent
+B production only when the successor receipt or another genuine case/package
+input arrives; the other nodes retain their separate points of need.
 
 CI-26 representation/initial EXP-PKG cohort is narrowly closed through merged
-EXP-SUPPORT-BINDING-v1. SQ/native-form/S4 receiving and full M1 support remain
-open. Prior source publication and new method adoption remain distinct.
+EXP-SUPPORT-BINDING-v1. SQ/native-form and production/native S4 receiving, canonical successor
+adoption and full M1 support remain open. Prior source publication and new method adoption remain distinct.
 
 The retained unsigned development .app binds f79317be plus the unsigned-overlay patch; all
 406 App input entries (350 files) were checked against sealed source and scratch. Physical
