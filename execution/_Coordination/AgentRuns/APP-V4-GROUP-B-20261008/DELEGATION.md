@@ -216,3 +216,11 @@ Neither establishes SIGN-1/FP-1(b), owner act, native App execution or
 qualification. Manual codesign mutation, Developer ID/account signing,
 credentials, notarisation and release remain excluded. No global linker
 opt-out bypass was applied. Any interrupted operation retains its actual log.
+
+Final B7-FX 54db725c, B3-N1 79154910 and B2-U a0e3a9dd returned independently
+READY on exact contributions. Reviewer repeated five actual Rust/two fixture
+tool tests, 59 pre-integration Python tests, exact N1 regeneration, and actual
+unsigned bundle/source inventories. Manager combined Python suite passes 61;
+all checked contribution bytes preserved. Current-main CI routing merged
+without product changes; full App/PEC hosted checks selected. Final exact-head
+review remains a read-only return, avoiding a review-record commit cycle.
