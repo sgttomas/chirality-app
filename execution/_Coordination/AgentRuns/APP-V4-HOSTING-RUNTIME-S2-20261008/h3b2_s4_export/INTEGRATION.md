@@ -1,0 +1,5 @@
+# S4 test-export integration
+
+Receiving main37feb501bbb23cc2932e0101a51a2ae63edbd489. Manager verified the frozen manifest before applying the nine-path author delta; all three maintained files remain byte-identical. Independent review READY with refusal and actual selected/unselected synthetic export plus separate raw-byte audit. Group B independently reported both precursor exports pass its actual receiving path through the canonical package/review/change checks, with truthful unverifiable standing accepted only as correspondence.
+
+This integration commit contains test-only code and evidence. Final committed-source rebuild/export remains the next operation; all existing exports are explicitly uncommitted precursors. Source revision is checked-out Git HEAD, not an authenticated attestation. No production authority or restored native reference is created. Exact-head review and CI remain required. Secondary-home setup/namespace rebind is separately assessed; restart hydration and other lifecycle mapping remain open. Current production absence of selected S3 and installed custody still refuses verified standing.

@@ -1,0 +1,37 @@
+{
+  "receiving": "37feb501bbb23cc2932e0101a51a2ae63edbd489",
+  "role": "WORKING_ITEMS",
+  "parent": "/root",
+  "mechanism": "delegated-harness-native followup_task; separate TASK author and reviewer",
+  "read_scope": "Selective continuing context retained; Root supplied, role/skill/loop and bounded lib/export seam read. Earlier workflow/manual provenance remains in this run. No claimed new full source audit.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "0d28e14e58827b47f94a453885709ecba8e8002ce1bf5cf1223dc18c68b2e50a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "sha256": "d82b4729d549547dd82ece12d2427e0adf521d5e72e00748d5418c52b192fd64"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/S1_READER_TRANSPORT.md",
+      "sha256": "a5fafe584043c0921d8ef412d1c887693204f30c92aad84851541665dfe0abec"
+    }
+  ]
+}
