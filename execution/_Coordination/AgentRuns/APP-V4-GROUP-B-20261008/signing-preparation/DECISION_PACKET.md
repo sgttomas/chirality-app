@@ -64,14 +64,16 @@ No current-main implementation or runtime-witness claim is made.
 | CF5 bundle identity/version/minimum OS | Actual `dev.chirality.app-v4.skeleton`, `0.0.0`, minimum `15.0` | App owner must select/confirm the intended values. Skeleton/debug defaults and proposed 15.0 are not release decisions; identity change also affects SEAL-2 continuity. |
 | CF7 notary profile name | **Absent; not inspected** | Owner supplies the intended profile name and authority for submission when the candidate is ready; no credential enters evidence. |
 | R23-22 qualified pin and applicable S3 reference | **Absent for this retained candidate** | Hosting/supplier owner supplies actual version-advance selection, identified distribution and qualified expected reference. Cached 0.160.0 is insufficient. |
-| H3B actual runtime/witness | **Absent** | Hosting/examination owners supply the actual joined witness on the selected candidate. No helper implementation or this packet substitutes for it. |
+| H3B implementation/reference readiness before signing | **Not established for this retained candidate** | Hosting owner supplies the intended implementation and applicable reference readiness for the selected source. The actual post-sign FP2/W4 runtime qualification witness follows signing and installation; it is not a prerequisite to signing. No helper implementation or this packet substitutes for that later witness. |
 | P2 LS5/LS8 runnable registration | Candidate content is physically present but remains non-runnable | Workflow owner/source decision and valid admission remain separate. Signing cannot change admission. |
 | SIGN-3 App entitlements / SEAL-2 applicability | No needed App entitlement established; possible SEAL-2 dependency remains open | App/SEAL owner identifies required entitlements/profile, if applicable, before relying on signed continuity. Never transplant v3 entitlements. |
 | FP3/notary and quarantine/installation route | Not executed; no installer exists | Only after concrete candidate/account prerequisites may owner-directed signing/notary and qualified native examination be proposed for action. |
 
 No request to use an Apple account is ready merely because two non-secret names
-are missing. Candidate intent, source, qualification and applicable entitlement
-inputs must be settled and joined first. This packet asks for no point-action
+are missing. Candidate intent, source, supplier pin/reference readiness and applicable
+entitlement inputs must be settled and joined first. Actual FP2/W4 and H3B
+runtime qualification on the signed installed candidate remain later checks,
+required before qualified-package reliance and not prerequisites to signing. This packet asks for no point-action
 approval, and supplies no release or package-complete standing.
 
 ## CF1–CF8 concrete disposition
@@ -108,10 +110,14 @@ is the selected published tree, not an inferred cache identity. `DEVELOPER_ID`,
 
    ```sh
    codesign --sign "$DEVELOPER_ID" --options runtime --timestamp "$APP_EXECUTABLE"
-   codesign --sign "$DEVELOPER_ID" --options runtime --timestamp "$APP"
+   codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp "$APP"
    ```
 
-   These commands have no --deep and currently name no entitlement file. If a
+   The outer-App command uses --force only on the explicit App target to replace
+   the ordinary signature established when P0 was signed first. It does not
+   authorize replacing supplier signatures or recursively signing nested code.
+   Both commands omit --deep and currently name no entitlement file. FP1(b)
+   below still requires exact supplier content/mode/link equality. If a
    reviewed App entitlement file is required, record its hash and apply its
    selected use explicitly before execution. Stop for missing name/team,
    entitlement uncertainty affecting the selected purpose, signing error or
