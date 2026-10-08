@@ -1,0 +1,27 @@
+✖ review digest equals the vector the native A15 statement names (Rust canonical.rs) (3.402542ms)
+✔ the App states the digest comparison and that it is only a reading aid (0.30975ms)
+✔ native paths read as text; non-UTF-8 is marked; identities are not changed (0.252083ms)
+✔ run summary follows the latest supply check (0.082709ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.050166
+
+✖ failing tests:
+
+test at tests/presentation.test.mjs:15:1
+✖ review digest equals the vector the native A15 statement names (Rust canonical.rs) (3.402542ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-ad91335d51d4650ca/projects/chirality-app-v4/app/tests/presentation.test.mjs:26:10)
+      at async Test.run (node:internal/test_runner/test:1088:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:332:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /integer at \/n is beyond 2\^53.*host/,
+    operator: 'throws'
+  }

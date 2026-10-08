@@ -1,0 +1,441 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-ad91335d51d4650ca/projects/chirality-app-v4/app/src-tauri)
+error[E0425]: cannot find value `REGISTER` in module `crate::a15_native`
+    --> src/act_control_a15.rs:1002:42
+     |
+1002 |             R::Custom(crate::a15_native::REGISTER.into())
+     |                                          ^^^^^^^^ not found in `crate::a15_native`
+     |
+help: consider importing this constant through its public re-export
+     |
+ 774 +     use crate::act_control::REGISTER;
+     |
+help: if you import `REGISTER`, refer to it directly
+     |
+1002 -             R::Custom(crate::a15_native::REGISTER.into())
+1002 +             R::Custom(REGISTER.into())
+     |
+
+error[E0425]: cannot find value `REGISTER` in module `crate::a15_native`
+    --> src/act_control_a15.rs:1012:45
+     |
+1012 |                 if ok == crate::a15_native::REGISTER && cancel == "Cancel"));
+     |                                             ^^^^^^^^ not found in `crate::a15_native`
+     |
+help: consider importing this constant through its public re-export
+     |
+ 774 +     use crate::act_control::REGISTER;
+     |
+help: if you import `REGISTER`, refer to it directly
+     |
+1012 -                 if ok == crate::a15_native::REGISTER && cancel == "Cancel"));
+1012 +                 if ok == REGISTER && cancel == "Cancel"));
+     |
+
+error[E0425]: cannot find value `REGISTER` in module `crate::a15_native`
+    --> src/act_control_a15.rs:1023:81
+     |
+1023 |             tauri_plugin_dialog::MessageDialogResult::Custom(crate::a15_native::REGISTER.into())
+     |                                                                                 ^^^^^^^^ not found in `crate::a15_native`
+     |
+help: consider importing this constant through its public re-export
+     |
+ 774 +     use crate::act_control::REGISTER;
+     |
+help: if you import `REGISTER`, refer to it directly
+     |
+1023 -             tauri_plugin_dialog::MessageDialogResult::Custom(crate::a15_native::REGISTER.into())
+1023 +             tauri_plugin_dialog::MessageDialogResult::Custom(REGISTER.into())
+     |
+
+warning: unused imports: `DONT_REGISTER` and `REGISTER`
+  --> src/act_control.rs:30:22
+   |
+30 | pub(crate) use a15::{DONT_REGISTER, REGISTER};
+   |                      ^^^^^^^^^^^^^  ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+error[E0593]: closure is expected to take 2 arguments, but it takes 1 argument
+   --> src/act_control_a15.rs:984:23
+    |
+984 |               let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |text| {
+    |                         ^                                                                                  ------ takes 1 argument
+    |  _______________________|
+    | |
+985 | |                 shown = text;
+986 | |                 result
+987 | |             })
+    | |______________^ expected closure that takes 2 arguments
+
+error[E0593]: closure is expected to take 2 arguments, but it takes 1 argument
+    --> src/act_control_a15.rs:1001:19
+     |
+1001 |           let out = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_| {
+     |                     ^                                                                                  --- takes 1 argument
+     |  ___________________|
+     | |
+1002 | |             R::Custom(crate::a15_native::REGISTER.into())
+1003 | |         })
+     | |__________^ expected closure that takes 2 arguments
+
+error[E0061]: this function takes 1 argument but 0 arguments were supplied
+    --> src/act_control_a15.rs:1010:26
+     |
+1010 |         assert!(matches!(crate::a15_native::a15_buttons(),
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-- argument #1 of type `A15Variant` is missing
+     |
+note: function defined here
+    --> src/a15_native.rs:47:15
+     |
+  47 | pub(crate) fn a15_buttons(variant: A15Variant) -> MessageDialogButtons {
+     |               ^^^^^^^^^^^ -------------------
+help: provide the argument
+     |
+1010 |         assert!(matches!(crate::a15_native::a15_buttons(/* A15Variant */),
+     |                                                         ++++++++++++++++
+
+error[E0593]: closure is expected to take 2 arguments, but it takes 1 argument
+    --> src/act_control_a15.rs:1021:19
+     |
+1021 |           let err = crate::a15_native::synthetic_a15_native(&mut ac, &session, &offer, || Ok(facts()), |_| {
+     |                     ^                                                                                  --- takes 1 argument
+     |  ___________________|
+     | |
+1022 | |             called = true;
+1023 | |             tauri_plugin_dialog::MessageDialogResult::Custom(crate::a15_native::REGISTER.into())
+1024 | |         })
+     | |__________^ expected closure that takes 2 arguments
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:650:30
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+650 |                 assert!(text.contains(needle), "{needle} in\n{text}");
+    |                              ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+650 |                 assert!(text.text.contains(needle), "{needle} in\n{text}");
+    |                              +++++
+
+error[E0277]: `NativeStatement` doesn't implement `std::fmt::Display`
+   --> src/act_control.rs:650:62
+    |
+650 |                 assert!(text.contains(needle), "{needle} in\n{text}");
+    |                                                              ^^^^^^ `NativeStatement` cannot be formatted with the default formatter
+    |
+help: the trait `std::fmt::Display` is not implemented for `NativeStatement`
+   --> src/act_control.rs:531:5
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:652:27
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+652 |             assert!(!text.contains('{'), "{text}");
+    |                           ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+652 |             assert!(!text.text.contains('{'), "{text}");
+    |                           +++++
+
+error[E0277]: `NativeStatement` doesn't implement `std::fmt::Display`
+   --> src/act_control.rs:652:43
+    |
+652 |             assert!(!text.contains('{'), "{text}");
+    |                                           ^^^^^^ `NativeStatement` cannot be formatted with the default formatter
+    |
+help: the trait `std::fmt::Display` is not implemented for `NativeStatement`
+   --> src/act_control.rs:531:5
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:658:26
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+658 |             assert!(text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{te...
+    |                          ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+658 |             assert!(text.text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{text}");
+    |                          +++++
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:658:70
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+658 |             assert!(text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{te...
+    |                                                                      ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+658 |             assert!(text.contains("  Path: /work/notes.txt") && text.text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{text}");
+    |                                                                      +++++
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:658:104
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+658 |             assert!(text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.contains("Content: changed"), "{te...
+    |                                                                                                        ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+658 |             assert!(text.contains("  Path: /work/notes.txt") && text.contains(&"b".repeat(64)) && text.text.contains("Content: changed"), "{text}");
+    |                                                                                                        +++++
+
+error[E0277]: `NativeStatement` doesn't implement `std::fmt::Display`
+   --> src/act_control.rs:658:135
+    |
+658 | ...contains("Content: changed"), "{text}");
+    |                                   ^^^^^^ `NativeStatement` cannot be formatted with the default formatter
+    |
+help: the trait `std::fmt::Display` is not implemented for `NativeStatement`
+   --> src/act_control.rs:531:5
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:659:27
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+659 |             assert!(!text.contains("bytes") && !text.contains("47,"), "{text}");
+    |                           ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+659 |             assert!(!text.text.contains("bytes") && !text.contains("47,"), "{text}");
+    |                           +++++
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:659:54
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+659 |             assert!(!text.contains("bytes") && !text.contains("47,"), "{text}");
+    |                                                      ^^^^^^^^ method not found in `NativeStatement`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+659 |             assert!(!text.contains("bytes") && !text.text.contains("47,"), "{text}");
+    |                                                      +++++
+
+error[E0277]: `NativeStatement` doesn't implement `std::fmt::Display`
+   --> src/act_control.rs:659:72
+    |
+659 |             assert!(!text.contains("bytes") && !text.contains("47,"), "{text}");
+    |                                                                        ^^^^^^ `NativeStatement` cannot be formatted with the default formatter
+    |
+help: the trait `std::fmt::Display` is not implemented for `NativeStatement`
+   --> src/act_control.rs:531:5
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:665:26
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+665 |             assert!(text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+    |                          ^^^^^^^^ method not found in `NativeStatement`
+    |
+note: there's an earlier shadowed binding `text` of type `std::string::String` that has method `contains` available
+   --> src/act_control.rs:661:17
+    |
+661 |             let text = oauth_cancel_statement(&safe).unwrap();
+    |                 ^^^^ `text` of type `std::string::String` that has method `contains` defined earlier here
+...
+664 |             let text = request_answer_statement(&preview).unwrap();
+    |                 ---- earlier `text` shadowed here with type `NativeStatement`
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+665 |             assert!(text.text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+    |                          +++++
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:665:50
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+665 |             assert!(text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+    |                                                  ^^^^^^^^ method not found in `NativeStatement`
+    |
+note: there's an earlier shadowed binding `text` of type `std::string::String` that has method `contains` available
+   --> src/act_control.rs:661:17
+    |
+661 |             let text = oauth_cancel_statement(&safe).unwrap();
+    |                 ^^^^ `text` of type `std::string::String` that has method `contains` defined earlier here
+...
+664 |             let text = request_answer_statement(&preview).unwrap();
+    |                 ---- earlier `text` shadowed here with type `NativeStatement`
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+665 |             assert!(text.contains("q1:") && text.text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+    |                                                  +++++
+
+error[E0599]: no method named `contains` found for struct `NativeStatement` in the current scope
+   --> src/act_control.rs:665:83
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     --------------------------------- method `contains` not found for this struct
+...
+665 |             assert!(text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+    |                                                                                   ^^^^^^^^ method not found in `NativeStatement`
+    |
+note: there's an earlier shadowed binding `text` of type `std::string::String` that has method `contains` available
+   --> src/act_control.rs:661:17
+    |
+661 |             let text = oauth_cancel_statement(&safe).unwrap();
+    |                 ^^^^ `text` of type `std::string::String` that has method `contains` defined earlier here
+...
+664 |             let text = request_answer_statement(&preview).unwrap();
+    |                 ---- earlier `text` shadowed here with type `NativeStatement`
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `contains`, perhaps you need to implement one of them:
+            candidate #1: `RangeBounds`
+            candidate #2: `bitflags::traits::Flags`
+            candidate #3: `option_ext::OptionExt`
+help: one of the expressions' fields has a method of the same name
+    |
+665 |             assert!(text.contains("q1:") && text.contains("answers: yes") && text.text.contains("Keep waiting sends nothing"), "{text}");
+    |                                                                                   +++++
+
+error[E0277]: `NativeStatement` doesn't implement `std::fmt::Display`
+   --> src/act_control.rs:665:124
+    |
+665 |             assert!(text.contains("q1:") && text.contains("answers: yes") && text.contains("Keep waiting sends nothing"), "{text}");
+    |                                                                                                                            ^^^^^^ `NativeStatement` cannot be formatted with the default formatter
+    |
+help: the trait `std::fmt::Display` is not implemented for `NativeStatement`
+   --> src/act_control.rs:531:5
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0277]: `NativeStatement` doesn't implement `Debug`
+   --> src/act_control.rs:667:53
+    |
+667 |             assert!(request_answer_statement(&long).unwrap_err().contains("nothing presented"));
+    |                                                     ^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `Debug` is not implemented for `NativeStatement`
+   --> src/act_control.rs:531:5
+    |
+531 |     pub(crate) struct NativeStatement {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: add `#[derive(Debug)]` to `NativeStatement` or manually `impl Debug for NativeStatement`
+note: required by a bound in `Result::<T, E>::unwrap_err`
+   --> /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/result.rs:1324:5
+
+error[E0308]: mismatched types
+   --> src/lib.rs:238:153
+    |
+238 | ...,|safe|confirm_bounded(&app,"Cancel original pending sign-in",act_control::native_statement::oauth_cancel_statement(safe),MessageDialo...
+    |           ---------------                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Result<NativeStatement, String>`, found `Result<String, String>`
+    |           |
+    |           arguments to this function are incorrect
+    |
+    = note: expected enum `Result<NativeStatement, _>`
+               found enum `Result<std::string::String, _>`
+note: function defined here
+   --> src/lib.rs:630:4
+    |
+630 | fn confirm_bounded(app:&tauri::AppHandle,title:&str,statement:Result<act_control::native_statement::NativeStatement,String>,buttons:Messa...
+    |    ^^^^^^^^^^^^^^^                                  -----------------------------------------------------------------------
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `chirality-app-v4` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+Some errors have detailed explanations: E0061, E0277, E0308, E0425, E0593, E0599.
+For more information about an error, try `rustc --explain E0061`.
+warning: `chirality-app-v4` (lib test) generated 3 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 24 previous errors; 3 warnings emitted

@@ -89,3 +89,18 @@ implementer's account, not review evidence. Independent review V15 was
 dispatched to a fresh harness-native Type 2 reviewer (Opus 5.5, high) at
 `1a74f7f307`, read-only on the candidate, offline, writing only
 `reviews/V15-J8-RECONFIRM.md` in its own worktree.
+
+V15 and J6 repairs (2026-10-08):
+- V15 returned NOT READY for J8. The reviewer was dispatched without
+  worktree isolation, so it wrote `reviews/V15-J8-RECONFIRM.md` directly in
+  the HELP_HUMAN checkout (sha256 `16c99a2c…6366`). HELP_HUMAN retained its
+  `$TMPDIR` logs in `validation/V15_1a74f7f3/` (SHA256SUMS verified). The
+  repairs (F1 MAJOR; F2–F8) were routed to the J5 owner on the same branch.
+- J6's owner returned the V14 repairs and the owner's three-button layout at
+  `5a6af1cfa7`. The ancestry of `8868614f93` was confirmed and the logs were
+  retained in `validation/J6_5a6af1cf/`. HELP_HUMAN sent the return to the
+  V14 reviewer for confirmation (R1). The hand-back is the implementer's
+  account. The implementer reports that it overwrote an earlier `mutate.py`
+  in the shared session scratchpad before renaming its own copy, so that
+  file's earlier content was not preserved; it was a scratch helper, not
+  retained evidence.
