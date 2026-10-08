@@ -1,0 +1,61 @@
+{
+  "run": "APP-V4-GROUP-C-20261008",
+  "slice": "C3-S3",
+  "base": "2cbb90e07937a4944ba46dcde25c564d578773f6",
+  "manager": "/root/group_c_successor",
+  "steering": "HELP_HUMAN resumed independently ready Git/provenance and later account-reconstruction work; native witness remains point-held. Parent permits reviewed bounded same-engine Git hash-object consistency, labelled honestly; Python stdlib hashing is an available independent test oracle.",
+  "route": "Source-owner CGP treatment and independent review before bounded optional installed-Git producer; no account materialization or source/actor authority promotion.",
+  "delegation": {
+    "mechanism": "harness-native TASK descendants in isolated managed worktrees",
+    "model": "gpt-6-astra",
+    "effort": "low",
+    "source_owner": "cfb_design_owner",
+    "implementation_owner": "route_persistence",
+    "reviewer": "cfb_design_review",
+    "limits": "No child delegation; instruction fences do not claim per-file host enforcement"
+  },
+  "reading": "Existing CFB/CSP/CRP and manuals retained in earlier manager/child basis records; CGP initial source read at4bf25aeb8699eb8d9008bd2300814a885ede0497. Git-helper search found no existing App adapter. Cargo manifest/lock SHA1 availability inspected selectively; approved cache recon belongs to code owner.",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "sha256": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "527abf1c80cf3f0603bcf4f1d316185eafcf602066cc955d36c8751711d91ff0"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "f6e922c4ed5a94d7728f5e4f0edaa4ab81d858183dd7979327475c63487e907f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/Cargo.lock",
+      "sha256": "c1910cffc3fc311fc50cae1117d5aa379dc374142c643c3b22ad85998dbf86b2"
+    }
+  ],
+  "holds": [
+    "No MEMORY/download/credentials/native launch",
+    "C2 OI-022",
+    "C4 OI-023/OI-026",
+    "C5 activation",
+    "SEAL-2",
+    "No account materialization or complete reconstruction inferred from Git objects"
+  ],
+  "coordination": "H3B-2 shared lib setup remains separately owned; exact code fence and latest main integration required."
+}
