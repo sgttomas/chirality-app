@@ -8,7 +8,8 @@
       "app"
     ],
     "resources": {
-      "resources/instructions/": "instructions/"
+      "resources/instructions/": "instructions/",
+      "resources/production_workflows/": "workflows/"
     },
     "macOS": {
       "minimumSystemVersion": "15.0",
