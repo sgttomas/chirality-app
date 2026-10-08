@@ -46,5 +46,5 @@ Independent review remains for the parent to commission before integration.
   reliance. OI-011's SWB co-owner part remains open.
 
 The implementation commit used the host's existing Git identity. Git reported
-its automatically inferred committer (`Ryan Tufts <ryan@Ryans-MacBook-Air.local>`);
+its automatically inferred committer (`Ryan Tufts <ryan@<host>.local>`);
 this task did not change account configuration or claim owner review.
