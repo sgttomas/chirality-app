@@ -24,6 +24,8 @@
 
 #[path = "execution_custody.rs"]
 mod execution_custody;
+#[path = "hosting_successor.rs"]
+pub(crate) mod successor;
 #[path = "attachment_custody.rs"]
 pub mod attachment_custody;
 use attachment_custody::AttachmentCustody;
@@ -113,6 +115,7 @@ pub struct HostConfig {
     pub session_flags: Vec<String>,
     /// Wait limit for the handshake and for requests (value unselected in HOSTING).
     pub wait_limit: Duration,
+    pub(crate) distribution: Option<successor::Distribution>,
 }
 
 impl HostConfig {
@@ -128,6 +131,7 @@ impl HostConfig {
             // person's own setting (L-3), so the App passes nothing for them.
             session_flags: vec!["analytics.enabled=false".into()],
             wait_limit: Duration::from_secs(20),
+            distribution: None,
         }
     }
 }
@@ -135,6 +139,8 @@ impl HostConfig {
 #[derive(Default)]
 struct Inner {
     state: String,
+    start_attempt: u64,
+    successor_status: Option<Value>,
     generation: Value,
     app_session: String,
     home: String,
@@ -393,6 +399,14 @@ pub struct Host {
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    before_successor_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    after_successor_check: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    after_successor_publish: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    before_successor_settlement: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 impl Default for Host {
@@ -425,6 +439,14 @@ impl Host {
             before_turn_result: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
+            #[cfg(test)]
+            before_successor_gate: Mutex::new(None),
+            #[cfg(test)]
+            after_successor_check: Mutex::new(None),
+            #[cfg(test)]
+            after_successor_publish: Mutex::new(None),
+            #[cfg(test)]
+            before_successor_settlement: Mutex::new(None),
         }
     }
 
@@ -471,6 +493,7 @@ impl Host {
             "declaredCapabilities": i.declared_capabilities,
             "configurationIdentity": i.configuration_identity,
             "lifecycle": i.lifecycle,
+            "distributionSuccessor": i.successor_status,
             "clientRequests": i.client_requests.iter().filter(|r|r.is_object()).cloned().collect::<Vec<_>>(),
             "clientRequestObservationStanding": "Canonical rows are last observations; an in-flight native write has unknown current outcome, never a current no-send or complete-write proof.",
             "reservedNativeRequests": i.source_requests.values().filter(|e|!i.client_requests[e.index].is_object()).map(|e|json!({"generation":e.request.generation,"requestIdentity":e.request.request_id(),"method":e.request.frame["method"],"effectiveOutcome":"unknown/reserved; no complete write proof","writeAttemptInProgress":e.write_attempt_in_progress,"waitingEnded":e.observation_base.get("waitingEnded").and_then(Value::as_bool).unwrap_or(false)})).collect::<Vec<_>>(),
@@ -652,6 +675,25 @@ impl Host {
         self.inner.0.lock().unwrap().journal.clone()
     }
 
+    fn successor_prospective(&self, i: &Inner, cfg: &HostConfig) -> Result<Value, String> {
+        if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some()) {
+            return Err("App session ended; successor start refused".into());
+        }
+        let home = format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let counter = self.spawn_counters.lock().unwrap().get(&home).copied().unwrap_or(0)
+            .checked_add(1).ok_or("home spawn counter exhausted")?;
+        Ok(json!({"appSession":i.app_session,"home":home,"spawnCounter":counter}))
+    }
+    fn refuse_successor(&self, attempt: u64, reason: String) -> Result<Value, String> {
+        let mut i = self.inner.0.lock().unwrap();
+        if i.start_attempt != attempt || i.state != "verifying" { return Err(format!("stale start attempt; {reason}")); }
+        let result = json!({"result":if reason.starts_with("mismatch:") { "mismatch" } else { "unverifiable" },"reason":reason});
+        i.verification = Some(result.clone());
+        i.supplier_standing = None;
+        self.lt(&mut i,"LT-05","verification-failed","refused",json!({"verificationResult":result}));
+        Err(reason)
+    }
+
     /// HOSTING §7.1/§7.2: label probe in the probe home, content identity of the binary,
     /// generated-output identity naming the pin.
     fn verify(cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
@@ -713,12 +755,14 @@ impl Host {
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
-        {
+        let attempt = {
             let mut i = self.inner.0.lock().unwrap();
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
                 return Err(format!("start not accepted in state {}", i.state));
             }
             if i.app_session.is_empty() { i.app_session = opaque_id("app-session:")?; }
+            i.start_attempt = i.start_attempt.checked_add(1).ok_or("start attempt exhausted")?;
+            i.successor_status = None;
             i.supplier_standing = None;
             i.version_identity = None;
             let id = match i.state.as_str() {
@@ -727,13 +771,63 @@ impl Host {
                 _ => "LT-03",
             };
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
+            i.start_attempt
+        };
+        // Successor preparation is outside the shared App writer: scanning and
+        // the bounded probe must not stall other homes or App-session ending.
+        let prospective = if cfg.distribution.is_some() {
+            let _writer = self.recovery_writer.lock().unwrap();
+            let i = self.inner.0.lock().unwrap();
+            self.successor_prospective(&i, cfg).map(Some)
+        } else { Ok(None) };
+        let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, e) };
+        let prepared = if let Some(distribution) = &cfg.distribution {
+            match successor::prepare(distribution, cfg, prospective.as_ref().unwrap()) {
+                Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
+            }
+        } else { None };
+        let (result, label, dist) = match &prepared {
+            Some(p) => (p.verification.clone(), Some(p.label.clone()), p.legacy_inventory()),
+            None => Self::verify(cfg),
+        };
+        if let Some(p) = &prepared {
+            if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, e); }
         }
-        // Steps 1-2: resolve and verify.
-        let (result, label, dist) = Self::verify(cfg);
+        #[cfg(test)]
+        if prepared.is_some() { if let Some(hook) = self.before_successor_gate.lock().unwrap().take() { hook(); } }
+        let app_writer=Arc::clone(&self.recovery_writer);
+        // Never wait behind unrelated ledger IO after the final tree audit.
+        // Refusal preserves the next counter for a fresh explicit attempt.
+        let app_spawn_guard = if prepared.is_some() {
+            match app_writer.try_lock() {
+                Ok(guard) => guard,
+                Err(_) => return self.refuse_successor(attempt, "App writer busy after revalidation; no spawn".into()),
+            }
+        } else { app_writer.lock().unwrap() };
+        // Same ordering as publication: App writer -> source gate -> Inner.
+        // Stop owns this source gate, so it either wins before the final check
+        // or observes a completely published child. No scan/probe under it.
+        let successor_gate = if prepared.is_some() {
+            match self.attachment_gate.try_lock() {
+                Ok(guard) => Some(guard),
+                Err(_) => return self.refuse_successor(attempt, "source gate busy after revalidation; no spawn".into()),
+            }
+        } else { None };
+        if let Some(expected) = &prospective {
+            let i = self.inner.0.lock().unwrap();
+            let current = self.successor_prospective(&i, cfg);
+            if i.start_attempt != attempt || i.state != "verifying" || current.as_ref().ok() != Some(expected) {
+                drop(i); drop(app_spawn_guard);
+                return self.refuse_successor(attempt, "prospective generation or start attempt changed; no spawn".into());
+            }
+        }
+        #[cfg(test)]
+        if prepared.is_some() { if let Some(hook) = self.after_successor_check.lock().unwrap().take() { hook(); } }
         let verified = result["result"] == "verified";
         let dev_ok = !verified && cfg.allow_unverified_dev && result["result"] == "unverifiable" && label.is_some();
         {
             let mut i = self.inner.0.lock().unwrap();
+            i.successor_status = prepared.as_ref().map(|p|p.status.clone());
             i.verification = Some(result.clone());
             if !(verified || dev_ok) {
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": result}));
@@ -753,7 +847,7 @@ impl Host {
                 "declaredPin": DECLARED_PIN,
                 "observedVersionLabel": label.clone().unwrap_or_default(),
                 "distributionContentIdentity": dist,
-                "launcherRecord": {"launcher": "vendor-binary", "addedEnvironment": []},
+                "launcherRecord": {"launcher": "vendor-binary", "addedEnvironment": if prepared.is_some() { vec!["PATH"] } else { vec![] }},
                 "handshakeReportedIdentity": {},
                 "handshakeConsistency": "no-version-found",
                 "generatedOutputIdentity": GENERATED_OUTPUT_IDENTITY,
@@ -767,7 +861,9 @@ impl Host {
             args.push(f.clone());
         }
         args.push("app-server".into());
-        let mut cmd = Command::new(&cfg.codex_bin);
+        let executable = prepared.as_ref().map(|p| &p.plan.executable).unwrap_or(&cfg.codex_bin);
+        let mut cmd = Command::new(executable);
+        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
         cmd.args(&args)
             .current_dir(&cfg.cwd)
             .env("CODEX_HOME", &cfg.codex_home)
@@ -778,7 +874,6 @@ impl Host {
         for v in CREDENTIAL_VARS {
             cmd.env_remove(v);
         }
-        let app_writer=Arc::clone(&self.recovery_writer);let app_spawn_guard=app_writer.lock().unwrap();
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
@@ -792,9 +887,25 @@ impl Host {
                 return Err(format!("spawn failed: {e}"));
             }
         };
+        if prospective.is_some() {
+            // Retain local child ownership until exact prospective allocation.
+            let allocation = {
+                let mut i = self.inner.0.lock().unwrap();
+                self.allocate_home_spawn(&mut i, home_identity.clone()).and_then(|_| {
+                    let allocated = json!({"appSession":i.app_session,"home":i.home,"spawnCounter":i.spawn_counter});
+                    if prospective.as_ref() != Some(&allocated) { Err("allocated generation contradicted prospective tuple".into()) } else { Ok(()) }
+                })
+            };
+            if let Err(e) = allocation {
+                successor::terminate(&mut child);
+                let mut i = self.inner.0.lock().unwrap();
+                self.lt(&mut i,"LT-08","spawn-failed","halted-after-repeated-failure",json!({"failure":format!("{e}; child reaped"),"failureCount":1}));
+                return Err(e);
+            }
+        }
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
-        let source_gate = self.attachment_gate.lock().unwrap();
+        let source_gate = match successor_gate { Some(guard) => guard, None => self.attachment_gate.lock().unwrap() };
         *self.stdin.lock().unwrap() = child.stdin.take();
         let pid = child.id() as i32;
         *self.child.lock().unwrap() = Some(child);
@@ -802,7 +913,7 @@ impl Host {
             let mut i = self.inner.0.lock().unwrap();
             // Allocate only after actual spawn, preserving home counter across
             // recreated Hosts within this same genuine App custody.
-            self.allocate_home_spawn(&mut i,home_identity)?;
+            if prospective.is_none() { self.allocate_home_spawn(&mut i,home_identity)?; }
             i.attachment_pipe_epoch += 1;
             i.generation = json!({"appSession": i.app_session, "home": i.home, "spawnCounter": i.spawn_counter});
             i.receipt_position = 0;
@@ -810,10 +921,10 @@ impl Host {
             i.child_pid = Some(pid);
             i.stop_record = None;
             let conf = json!({
-                "launcher": cfg.codex_bin.display().to_string(),
+                "launcher": executable.display().to_string(),
                 "arguments": args,
                 "environment": {"CODEX_HOME": "App-owned home (path recorded by the App, not here)"},
-                "removedEnvironment": CREDENTIAL_VARS,
+                "removedEnvironment": CREDENTIAL_VARS.iter().copied().chain(prepared.as_ref().into_iter().flat_map(|p|p.plan.removed)).collect::<Vec<_>>(),
                 "sessionFlags": cfg.session_flags,
             });
             i.configuration_identity = Some(conf.clone());
@@ -822,10 +933,13 @@ impl Host {
             }
             self.lt(&mut i, "LT-06", "spawned", "handshaking", json!({}));
         }
-        drop(source_gate);drop(app_spawn_guard);
+        // Capture while custody is still protected, never borrow a later start.
         let generation = self.inner.0.lock().unwrap().generation.clone();
+        drop(source_gate);drop(app_spawn_guard);
         self.spawn_reader(stdout, generation.clone());
-        self.spawn_stderr(stderr, generation);
+        self.spawn_stderr(stderr, generation.clone());
+        #[cfg(test)]
+        if prepared.is_some() { if let Some(hook) = self.after_successor_publish.lock().unwrap().take() { hook(); } }
 
         // Step 4: handshake.
         let caps = json!({"experimentalApi": true, "requestAttestation": false, "explicitGatewayOauth": true});
@@ -833,6 +947,18 @@ impl Host {
             "clientInfo": {"name": "chirality-app-v4", "title": "Chirality App v4 (walking skeleton)", "version": env!("CARGO_PKG_VERSION")},
             "capabilities": caps,
         });
+        if prepared.is_some() {
+            {
+                let _gate = self.attachment_gate.lock().unwrap();
+                let mut i = self.inner.0.lock().unwrap();
+                Self::check_successor_handshake(&i, &generation, attempt)?;
+                i.declared_capabilities = Some(caps.clone());
+            }
+            let response = self.request_inner_scoped("initialize", params, json!({"kind":"app-rule","name":"handshake"}), cfg.wait_limit, true, Some(&generation));
+            #[cfg(test)]
+            if let Some(hook) = self.before_successor_settlement.lock().unwrap().take() { hook(); }
+            return self.finish_successor_handshake(&generation, attempt, caps, response);
+        }
         self.inner.0.lock().unwrap().declared_capabilities = Some(caps.clone());
         let resp = self.request_inner("initialize", params, json!({"kind": "app-rule", "name": "handshake"}), cfg.wait_limit, true);
         match resp {
@@ -890,6 +1016,61 @@ impl Host {
         }
     }
 
+    fn check_successor_handshake(i: &Inner, generation: &Value, attempt: u64) -> Result<(), String> {
+        if i.start_attempt != attempt || i.generation != *generation || i.state != "handshaking" || i.server_requests.is_closed(generation) {
+            return Err("successor handshake source stopped or superseded; no state mutation".into());
+        }
+        Ok(())
+    }
+    fn successor_handshake_failed(&self, generation: &Value, attempt: u64, failure: String) -> Result<Value, String> {
+        let _gate = self.attachment_gate.lock().unwrap();
+        let mut i = self.inner.0.lock().unwrap();
+        Self::check_successor_handshake(&i, generation, attempt)?;
+        if let Some(pid) = i.child_pid {
+            // The checked current source remains under the same gate as Stop/EOF.
+            unsafe { libc::killpg(pid, libc::SIGKILL); }
+        }
+        Self::deliver_never_ready(&mut i);
+        let counts = Self::close_generation(&mut i);
+        self.lt(&mut i,"LT-11","handshake-failed","halted-after-repeated-failure",json!({"failure":failure,"failureCount":1,"closedGeneration":counts}));
+        Err(failure)
+    }
+    fn finish_successor_handshake(&self, generation: &Value, attempt: u64, caps: Value, response: Result<Value,String>) -> Result<Value,String> {
+        let result = match response {
+            Ok(r) if r.get("result").is_some() => r["result"].clone(),
+            Ok(r) => return self.successor_handshake_failed(generation,attempt,format!("initialize error: {}",r.get("error").cloned().unwrap_or(Value::Null))),
+            Err(e) => return self.successor_handshake_failed(generation,attempt,e),
+        };
+        let reported = result.get("userAgent").and_then(Value::as_str).unwrap_or("");
+        let reported_version = reported.split('/').nth(1).and_then(|v|v.split_whitespace().next());
+        {
+            let _gate = self.attachment_gate.lock().unwrap();
+            let mut i = self.inner.0.lock().unwrap();
+            Self::check_successor_handshake(&i,generation,attempt)?;
+            if let Some(vi) = i.version_identity.as_mut() {
+                vi["handshakeReportedIdentity"] = result.clone();
+                vi["handshakeConsistency"] = json!(match reported_version { Some(v) if v != DECLARED_PIN => "contradicts-declared-pin", Some(_) => "consistent", None => "no-version-found" });
+            }
+        }
+        if reported_version.is_some_and(|v|v != DECLARED_PIN) {
+            return self.successor_handshake_failed(generation,attempt,"handshake reported version contradicts declared pin".into());
+        }
+        // Capture the intended pipe before waiting; never send an old initialized
+        // notification on a later generation's pipe. Native IO stays outside gate.
+        if let Err(e) = self.write_frame_scoped(&json!({"jsonrpc":"2.0","method":"initialized"}),Some(generation)) {
+            return self.successor_handshake_failed(generation,attempt,e);
+        }
+        let _gate = self.attachment_gate.lock().unwrap();
+        let mut i = self.inner.0.lock().unwrap();
+        Self::check_successor_handshake(&i,generation,attempt)?;
+        let vi = i.version_identity.clone().unwrap();
+        self.lt(&mut i,"LT-09","handshake-completed","ready",json!({"versionIdentity":vi,"declaredCapabilities":caps}));
+        let held: Vec<Value> = std::mem::take(&mut i.held);
+        i.journal.extend(held);
+        drop(i);
+        Ok(self.snapshot())
+    }
+
     fn deliver_never_ready(i: &mut Inner) {
         // Receipt order and every native frame survive a failed handshake and later spawn.
         i.journal.extend(std::mem::take(&mut i.held).into_iter().map(|mut frame| {
@@ -945,8 +1126,9 @@ impl Host {
     }
     fn frame_bytes(frame:&Value)->Result<Vec<u8>,String>{let mut bytes=serde_json::to_vec(frame).map_err(|e|e.to_string())?;bytes.push(b'\n');Ok(bytes)}
     fn write_complete(file:&mut std::fs::File,bytes:&[u8])->Result<(),String>{file.write_all(bytes).and_then(|_|file.flush()).map_err(|e|e.to_string())}
-    fn write_frame(&self,frame:&Value)->Result<(),String>{
-        let mut bound={let i=self.inner.0.lock().unwrap();self.capture_pipe(&i)?};let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
+    fn write_frame(&self,frame:&Value)->Result<(),String>{ self.write_frame_scoped(frame,None) }
+    fn write_frame_scoped(&self,frame:&Value,expected:Option<&Value>)->Result<(),String>{
+        let mut bound={let i=self.inner.0.lock().unwrap();if expected.is_some_and(|g|g!=&i.generation){return Err("frame source generation changed; nothing sent".into());}self.capture_pipe(&i)?};let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
         {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;}
         let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result
     }

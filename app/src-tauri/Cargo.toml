@@ -30,3 +30,5 @@ opt-level = 3
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+# Staged native successor dispatch; canonical legacy production remains default.
+distribution-successor = []

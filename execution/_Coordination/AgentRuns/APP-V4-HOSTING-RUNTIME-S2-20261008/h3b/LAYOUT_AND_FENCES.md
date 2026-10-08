@@ -1,0 +1,21 @@
+# H3B released production-path contribution
+
+HELP_HUMAN released H3B after PR #1129 merged at `601ba408e4d1e2734bdcbe54b9249b4653431e03`. The same work graph carries the next actual-path increment; this is not a new undertaking, new stage gate or S3 qualification. Implementation TASK production_runtime is an actual harness-native descendant of hosting_runtime_manager, in its own current-main worktree. No descendants. Manager owns this record/current graph; independent runtime_review remains separate.
+
+## Technical layout concurrence
+
+DEL-01-06 owner `/root/group_b_successor` concurred in the parent-coordinated chat on 2026-10-08: native `resource_dir/codex` preserves accepted PKG P-1 verbatim, direct `bin/codex` plus `codex-path`; sibling `distribution-reference` lies outside measured vendor P-1 and is an immutable signed-bundle resource, mapped/digested as `bundle_contents` kind `other`, supplier DEL-01-01, plus successor exact selection/pair joins. External per-attempt `app_data/runtime/distribution` evidence avoids bundle writes and package self-digest cycles. Preserve relative tree and exact bytes; check at copying and every use against original compiled anchor. Official PKG/EXP Evidence locations stay unchanged. This is bounded implementation-layout concurrence, not actual signed-resource evidence, canonical migration, S3, FP-2/W-4, completeness or Option B reliance.
+
+DEL-04-03 concurrence is retained unchanged in RS_PLACEMENT_CONCURRENCE.md. S1 checks.reference.evidence can carry a separately named reviewed transport payload without changing the closed S1 shapes. The payload records original source and mirror separately, preserves exact artifact closure and compiled-anchor association, and cannot issue trust. Creation evidence never proves future checks. Each reliance validates the copied bytes and retained original selection association again. Provisional verification H5 is not live child custody, and all non-null joined generation tuples must be exactly equal.
+
+## Implementation and shared fences
+
+TASK owns hosting/native config, bounded probe and direct launcher, exact external observation publication, explicit successor lifecycle/version adapter and affected tests/resources. No canonical Design/source pins, packaging/EXP/SQ changes, MEMORY, downloads, credentials, actual supplier/App execution, signing or release. Synthetic process fixtures are authorized test substitutes, not supplier/native qualification. Without actual S3/build-integrity/stable-custody authority production stays refused/unverified; no caller-controlled boolean creates trust.
+
+P2/P3 manager confirms its lib.rs writes are thread_start role preparation/status, host_status role-set metadata and workflow command/handler entries; runtime_session writes are role-set start receipts and WorkflowRootSession methods/tests. H3B reserves lib imports/run/setup and native resource resolution, hosting.rs and native_items/version/generation receiving sections. Preserve and later recheck their merged feature/mode wiring; no WIP is accepted by reference. Group C confirms only connector_standing module export in lib.rs, now in main, with no other shared writes dispatched.
+
+Short guarded H5 sequence: capture prospective next tuple/session/attempt under existing guard without allocating live custody; hash/probe outside global recovery writer; reacquire and check the same attempt/session/next counter; refuse any change; spawn/allocate exact tuple under guard with kill/reap on exceptional postspawn failure. Final filesystem observation remains bounded, not a snapshot or hostile same-user guarantee. Long probe/scan IO must not hold the global recovery writer.
+
+## Return and next review
+
+Return the first coherent actual Host route, exact candidate/tests and explicit residuals. H3B-1 review covers the actual Host route, genuine connecting tests, missing-trust/mismatch refusals, bounded probe cleanup, home/environment exclusions and provisional versus live generation. The named transport payload, durable observation/lifecycle writer and successor reference display remain H3B-2 work and require their own joined review; H3B-1 in-memory status is not an S1 artifact. Parent coordinates PR/CI/merge; full S2 and FP-2 remain unclaimed until their actual obligations are supplied.
