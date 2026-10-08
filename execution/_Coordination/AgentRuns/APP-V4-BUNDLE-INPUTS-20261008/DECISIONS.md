@@ -41,3 +41,16 @@ controls. production_workflows owns P2 files; production_roles owns P3 including
 role startup in runtime_session. Manager owns graph/run/shared integration and
 communicates GC-8 through Group B manager, never edits that graph. Independent
 review is separate from both producers and manager.
+
+## Independent release-registration finding and parent disposition
+
+Reviewer TASK bundle_review distinguished public distribution (not explicitly
+required by WR) from release registration (required by LS-5/LS-8). HELP_HUMAN
+read the sources and selected conservative B: current candidate assets and
+mechanics may be prepared, but runtime must not admit LS-5/LS-8 from candidate
+self-assertion. No canonical Design or pins change. The parent expressly
+commissioned CC-WR-PKG-CANDIDATE-01 to prepare a viable pre-release examination
+route and exact consumers for independent/source-owner review. Until adopted,
+actual catalog inspection remains non-runnable; existing development catalog
+standing remains separate. This is a precise unfinished input, not a claim of
+complete production workflow admission.
