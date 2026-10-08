@@ -195,3 +195,79 @@ fn installed_bundle_is_actual_resolution_and_manifest_changes_refuse_at_use() {
     std::fs::write(package.join("REVIEW-NOTES.md"), b"edited").unwrap();
     assert!(selected.verify_store(&package).is_err());
 }
+
+#[cfg(unix)]
+fn p2_fifo_refuses_without_blocking(
+    path: &std::path::Path,
+    check: impl FnOnce() -> Result<(), String> + Send + 'static,
+) {
+    use std::os::unix::{ffi::OsStrExt, fs::OpenOptionsExt};
+    let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    // The anchor bounds even a regression: a blocking read is released when the
+    // deadline drops this writer. A healthy reader refuses before that happens.
+    let anchor = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(path)
+        .unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let thread = std::thread::spawn(move || {
+        tx.send(check()).unwrap();
+    });
+    let answer = rx.recv_timeout(std::time::Duration::from_secs(2));
+    drop(anchor);
+    thread.join().unwrap();
+    let error = answer
+        .expect("FIFO read blocked until its writer was released")
+        .unwrap_err();
+    assert!(error.contains("not a regular file"), "{error}");
+}
+#[cfg(unix)]
+#[test]
+fn p2_fifo_manifest_is_refused_at_selection_and_use_without_blocking() {
+    let library = Library::new();
+    let catalog = ProductionCatalog::load().unwrap();
+    let root = library.0.join("bundle");
+    std::fs::create_dir(&root).unwrap();
+    let path = root.join("MANIFEST.json");
+    std::fs::write(&path, catalog.manifest()).unwrap();
+    catalog
+        .select_embedded()
+        .snapshot()
+        .publish_new(&root.join("coordinated-knowledge-work"))
+        .unwrap();
+    let selected = catalog
+        .select_bundle_package(&root, "coordinated-knowledge-work")
+        .unwrap();
+    std::fs::remove_file(&path).unwrap();
+    p2_fifo_refuses_without_blocking(&path, move || {
+        let error = ProductionCatalog::load()?
+            .select_bundle_package(&root, "coordinated-knowledge-work")
+            .err()
+            .unwrap();
+        assert!(error.contains("not a regular file"), "{error}");
+        selected.verify_current()
+    });
+}
+#[cfg(unix)]
+#[test]
+fn p2_fifo_registry_is_refused_at_recognition_and_use_without_blocking() {
+    let library = Library::new();
+    library.populate();
+    let catalog = ProductionCatalog::load().unwrap();
+    let selected = catalog
+        .recognize_holding_copy(&library.0, "coordinated-knowledge-work")
+        .unwrap();
+    let path = library.0.join(".chirality/workflow-registry.jsonl");
+    let root = library.0.clone();
+    p2_fifo_refuses_without_blocking(&path, move || {
+        let error = ProductionCatalog::load()?
+            .recognize_holding_copy(&root, "coordinated-knowledge-work")
+            .err()
+            .unwrap();
+        assert!(error.contains("not a regular file"), "{error}");
+        selected.verify_current()
+    });
+}

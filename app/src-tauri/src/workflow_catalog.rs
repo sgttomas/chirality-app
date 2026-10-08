@@ -290,7 +290,8 @@ pub(super) fn verify_bundle_manifest(root: &Path) -> Result<(), String> {
     }
     let manifest = root.join("MANIFEST.json");
     crate::storage::check_path(&manifest)?;
-    if std::fs::read(&manifest).map_err(|e| format!("bundle manifest not resolvable: {e}"))?
+    if super::read_regular_file(&manifest)
+        .map_err(|e| format!("bundle manifest not resolvable: {e}"))?
         != MANIFEST
     {
         return Err("bundle manifest differs from admitted release candidate".into());

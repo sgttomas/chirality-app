@@ -20,6 +20,46 @@ pub mod production_catalog {
 #[path = "workflow_library.rs"]
 pub(crate) mod registration;
 
+/// Read only a regular file through the opened descriptor. Nonblocking/no-follow
+/// open prevents a substituted FIFO or final-component link from hanging or
+/// redirecting candidate manifest/registry checks before descriptor validation.
+fn read_regular_file(path: &Path) -> std::io::Result<Vec<u8>> {
+    use std::io::Read;
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "regular no-follow workflow read unavailable on this platform",
+        ));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        // Avoid opening known special files at all; the descriptor check below
+        // still governs if the final component changes after this preflight.
+        if !fs::symlink_metadata(path)?.file_type().is_file() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "workflow input is not a regular file",
+            ));
+        }
+        let mut file = fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(path)?;
+        if !file.metadata()?.file_type().is_file() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "workflow input is not a regular file",
+            ));
+        }
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        Ok(bytes)
+    }
+}
+
 /// Reviewed CC-CONTENT-IDENTITY App-only package method; no host/global adoption.
 pub const SNAPSHOT_METHOD: &str = "chirality.app.workflow-package.sha256/v1";
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

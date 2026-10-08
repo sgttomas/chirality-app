@@ -756,7 +756,7 @@ pub(super) fn read_ledger(root: &Path) -> Result<Vec<Value>, String> {
     let path = root.join(".chirality/workflow-registry.jsonl");
     storage::check_path(&path)?;
     let shown = path.display();
-    let bytes = match fs::read(&path) {
+    let bytes = match super::read_regular_file(&path) {
         Ok(b) => b,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
         Err(e) => return Err(format!("registration ledger unreadable: {shown}: {e}")),
