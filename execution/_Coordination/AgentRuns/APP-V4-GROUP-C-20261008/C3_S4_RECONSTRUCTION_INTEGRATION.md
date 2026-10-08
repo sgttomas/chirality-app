@@ -76,3 +76,14 @@ Graph/receipts and review integration are metadata-only after that App tree;
 final-head metadata backcheck and required CI remain before merge. Prior text
 records the earlier source-only return, superseded only by the exact technical
 selection above. Native/capacity/actor/external-adoption boundaries remain.
+
+## Merge receipt
+
+HELP_HUMAN coordinated merge of PR #1155 at 2026-10-08 14:40:13Z, after all
+selected CI succeeded or expected skips and independent exact-head READY at
+`fceaa0a4ebabbfdbc433e302fac14dcf1c2b4f99`. Merge commit
+`953d8c94466db5543426a2de7b26a591564e4dca` is verified in fetched Git history.
+This closes the bounded R1 implementation only. Native witness, actual actor
+performance/full reconstruction, product-capacity assessment and external-owner
+receiving/activation obligations remain. This receipt is retained for the next
+substantive integration; no receipt-only PR or new Group C lane is opened.
