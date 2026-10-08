@@ -1,6 +1,6 @@
 # C3 fleet placement concurrence — DEL-06-01 consultation
 
-Current affected concurrence is the CRP-v0.2 addendum below. The original
+Current affected concurrence is the CRP-v0.3 addendum below. The original
 CRP-v0.1 assessment remains historical and does not establish final adoption.
 
 ## Result and responsibility
@@ -206,3 +206,51 @@ All original write, authority and SEAL-2 limits remain. The only change is this
 evidence update. Staged private-term screening with `--from-host` and diff
 checking precede the affected concurrence commit; their actual results are
 returned to the manager. No push, merge, persistence or native witness occurs.
+
+## Affected concurrence — CRP-v0.3 / CRP-R2
+
+Read in full: `projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md` at
+`3d9a91a98872fda1837aad1a91e710345c614f28`;
+SHA-256 `e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e`.
+
+**Concur from DEL-06-01 ownership with these exact successor bytes for fleet
+namespace, reference and recovery compatibility.** Earlier assessments remain
+historical; this affected concurrence does not establish independent source
+review, reviewed selection, implementation readiness or consumer adoption.
+
+CRP-R2 changes publication and error custody, not the normal account format
+or path/account ID/version/hash reference mechanism. Exclusive no-replace
+rename consumes the temporary name on ordinary success. No automatic pathname
+unlink, rollback or retry is permitted on errors; retained temporary entries
+remain visible unresolved recovery conditions and are excluded from accounts.
+This has no adverse fleet meaning change: absence, incomplete discovery and
+uncertain publication never establish no work, need satisfaction or readiness.
+
+The source-name race is explicit: a foreign entry may be moved to the final
+name after the final precheck, disrupting its previous pathname even though
+its underlying bytes remain. This is not a no-mutation guarantee. The writer
+must compare the final inode with the retained original, as well as bytes,
+account identity/version, path identity and durability, before returning a
+successful binding. A failed check yields an uncertain/tampered commit and
+explicit reconciliation; unsupported exclusive-rename capability fails closed.
+The selected repair and its residual are relayed HELP_HUMAN direction in the
+parent assignment, not a newly witnessed human act by this consultation.
+
+Fleet consumers must retain the distinction between the normal durable
+reference and writer-operation evidence. The normal reference is not silently
+extended with an inode field here. An unbound cold-discovered schema-valid
+file, including a foreign file with identical account bytes, cannot prove
+that the writer succeeded or that a recorder performed a duty. Existing
+reference resolution checks its actual binding; failed or uncertain operation
+evidence must not be promoted to success by later discovery alone. Explicit
+reconciliation remains necessary for unresolved identity/location outcomes.
+These distinctions preserve RF-5a/RF-5b and require no common reader/service,
+fleet directory selection or D-first production prerequisite.
+
+The §6 substitution injections, including identical-byte foreign inodes and
+post-precheck substitution, are appropriate required implementation evidence;
+none was executed by this consultation. The source's external API citation
+was not independently verified here: API/platform feasibility belongs to the
+independent source and implementation examination, not this fleet concurrence.
+No fleet conflict is identified within the bounded reference/recovery scope.
+Only this evidence file changes; all original limits and SEAL-2 hold remain.
