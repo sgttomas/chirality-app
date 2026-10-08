@@ -132,3 +132,28 @@ anchored no-follow containment, write-once atomic publication, uncertain-commit
 recovery, durable references and cold discovery. Fleet concurrence and exact
 independent review are pending; persistence and consumer adoption remain held.
 No new owner act or group-order change is recorded by this definition.
+
+## CRP-R1: explicit opened-identity containment proposal
+
+Independent review found that CRP-v0.1's unconditional requirement to fail on
+any changed ancestor was not established by directory handles/no-follow:
+pre/post checks leave a race. CRP-v0.1 was proposed, not accepted. The named
+CRP-v0.2 successor explicitly replaces that promise with opened-directory
+identity containment. An operation cannot be redirected to a replacement
+pathname's directory, but an external rename can move the already opened
+directory while the operation follows it. Pre/post identity comparisons detect
+observed changes only; transient moves and later changes remain possible.
+Detected post-publication change reports uncertain location and preserves
+published bytes for explicit reconciliation, without automatic retry or
+relocation. A successful return attests publication, durability and the
+observed identity check, not continuous path membership.
+
+This is a material clarification of the proposed guarantee, not merely an
+implementation workaround or silent weakening. It preserves the intent of
+explicit project-local storage against path substitution, while disclosing
+that concurrent external renames can temporarily or persistently move that
+storage. It must be independently backchecked and receive affected fleet
+concurrence before selection/persistence. If continuous containment despite
+external rename is required, production remains held until enforceable
+exclusion exists. No CI-29 schema, source semantics or historical evidence is
+changed. CRP-v0.1 remains recoverable at its original Git revision.
