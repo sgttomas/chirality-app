@@ -20,3 +20,21 @@ remain unchanged. This is technical source selection, not personal owner review,
 actual examination, supplier/native witness, package qualification or release.
 No generic resolver, downloads, credentials, MEMORY or native acts. Contradiction
 or a reserved choice stops affected implementation for parent disposition.
+
+## Connected implementation return
+
+Author29f390b7c586da94eef4a408ea70bb04dd5a04b4 connected the new receiver
+to unchanged SQ/EXP validators and canonical bindings. Independent review found
+a historical-package false-completeness defect. Repair7d33c40ce96e17e062b970bf24c1ed63bd496401
+collects citations across all selected candidate results and compares historical
+packages with their own candidate identity. Original failures and repair evidence
+are retained. Independent code review784a529ec12a528857cf238b17c72c20eb655eaf
+is READY:46tests, actual23-result CLI and12 independent probes;41source pins
+verify. Manager repeated35receiver tests after repair and65 unchanged
+S4/support compatibility tests before that receiver-only repair; all pass.
+
+The schema-valid invented dossier includes unsuccessful outcomes. Complete
+means selected file correspondence, not actual examination/review, producer use,
+native observation, package qualification or release. Current six-record/S4
+consumers and historical source pins remain unchanged. Required CI and parent
+merge coordination follow exact combined-head review.
