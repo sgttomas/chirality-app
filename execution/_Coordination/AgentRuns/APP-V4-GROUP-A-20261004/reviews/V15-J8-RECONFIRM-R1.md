@@ -190,3 +190,32 @@ both files compared byte-equal to the candidate (`cmp`).
   add P6 as a test, or correct the CI-24 (b) text.
 - NOTEs R1-N1…N5 are optional.
 - No owner question. CI-25 goes to the WR owner.
+
+## R1-1 confirmation (2026-10-08)
+
+This is a read-only check; nothing was run.
+
+- **The integrated app bytes equal the reviewed candidate.**
+  `git diff 7f0300cfe2 6889359941 -- projects/chirality-app-v4/app` is
+  empty.
+- **The CI-24 (b) edit touches only the new bullet.**
+  `git diff 6889359941 8cd69ff7fc -- projects/chirality-app-v4/app` changes
+  only `app/CONTRACT_ISSUES.md`, with 11 added lines and none removed. They
+  form one new CI-24 (b) bullet, "Exception (V15-R1 R1-1, open)", placed
+  after the P2 test line.
+- **The bullet describes probe P6 accurately.** It names each part of the
+  finding:
+  - the condition: the attempt is *Intended* after an append that wrote
+    nothing;
+  - the behaviour: on every Continue, the intended path is refused on
+    `ledger_seq` and reports "registration ledger durability uncertain; same
+    hot attempt retained";
+  - the safety facts: one line for the act, a readable ledger, ‹k› not held;
+  - the gap: the definite *not completed* line already in the ledger is
+    never shown;
+  - the repair, with P6 as its test, left open as a follow-up.
+- The bullet's "for as long as the process runs" is a fair reading of
+  "indefinitely".
+
+**Verdict: R1-1 is resolved as a recorded open limit, which was my stated
+minimum.** The code repair remains the recommended follow-up.
