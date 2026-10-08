@@ -53,3 +53,26 @@ The frozen c9bfde5269 native witness artifact was not read, modified or launched
 in this source assignment. Its existing held proposal/receipt/review remain on
 this manager branch. No receipt-only PR, source push or CI run was created for
 this return; staged private-term screening and whitespace checks passed.
+
+## Selected implementation and repaired exact-code review
+
+HELP_HUMAN subsequently technically selected the exact source, as recorded in
+C3_S4_R1_TECHNICAL_SELECTION.md. Author code `ce1bc1948c` integrated unchanged at
+`30f214d63c`; narrow repair `3597f32bba` integrated unchanged at `cfbd16b30a`.
+Receiving main is `3d73db745edd3378e0bb254a1b263215ef0861e9`, including Host Exit
+closing hook. Combined App tree is `165fa9eae21184a4c22541ac14c1189ab18a2826`.
+
+Independent review first found a P2 actual-component remount ID collision;
+`3e873c874f` preserves NOT READY. Local key allocation now excludes retained
+rows and citations, including dangling targets after deletion/remount. Reviewer
+`f14b9be159` records exact repaired READY at `cfbd16b30a`: original failure now
+passes, and actual parent format-toggle/claim-citation regression passes.
+Default77 and distribution78 checks include independent production cold-validator
+replay of58 definition cases. Repaired full App tests26 passed/1 supplier skip
+(including20 UI checks and nested4); frontend build passed. Backend/schema were
+unchanged by UI repair. No native source witness or actual duty is established.
+
+Graph/receipts and review integration are metadata-only after that App tree;
+final-head metadata backcheck and required CI remain before merge. Prior text
+records the earlier source-only return, superseded only by the exact technical
+selection above. Native/capacity/actor/external-adoption boundaries remain.
