@@ -118,3 +118,17 @@ An initial constructed fixture used wrong existing field spellings; corrected
 to the unchanged standing schema before final validation. Checks establish
 schema behavior, not source truth or product completion. Independent review
 and final validation are recorded by their actual performers.
+
+## C3-PLACE-01 definition preparation follow-up
+
+HELP_HUMAN's relayed clarification treats O-D placement as a named technical
+design selection within DEL-07-02/DEL-06-01 ownership, not a new human gate.
+The source owner has prepared `Design/CONNECTOR_ROUTE_PLACEMENT_v0.1.md` as
+an additive definition; it does not revise the independently reviewed CI-29
+source amendment or schema. The earlier alternatives remain the proposal
+history, not extra approval requirements. Proposed canonical location is
+`.chirality/records/connectors/route-accounts/`, with separate storage identity,
+anchored no-follow containment, write-once atomic publication, uncertain-commit
+recovery, durable references and cold discovery. Fleet concurrence and exact
+independent review are pending; persistence and consumer adoption remain held.
+No new owner act or group-order change is recorded by this definition.
