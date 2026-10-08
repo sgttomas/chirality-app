@@ -239,3 +239,27 @@ heads `2e2a02844a` and `8d98de95a8`:
 The integrated suite reproduces exactly (677 + 4 passed, 0 failed), and a main
 merge touches no App v4 path. F1 and F2 are small record corrections and do not
 block the merge.
+
+## Repair confirmation — 2026-10-07
+
+Same reviewer. Read-only, local refs only, no fetch. Checked `8c5e3156c6`
+(record repairs) and merge `46736839db` (PR 1113 head). This append is my only
+write.
+
+**Scope.** `git diff f1ec8d5589 46736839db -- projects/chirality-app-v4`
+touches four files only: `OWNER_DECISIONS.md`, `WORK_GRAPH.md`,
+`validation/INTEGRATED_e653f93a/SUMMARY.md` and this review. The committed
+review is byte-identical to the one I returned (`fd498d59…9a85`). No App path
+changed: `git diff e653f93a1d 46736839db -- projects/chirality-app-v4/app` is
+empty. The `origin/main` merge brings only `projects/chirality-piping` paths,
+and nothing under `projects/chirality-app-v4`.
+
+| Finding | Repair | Status |
+|---|---|---|
+| F1 | The Effect line now cites the owner's words, "Keep SEAL-2 deferred; continue other work". It marks weighing SEAL-2 at the 90% gate as HELP_HUMAN's *proposal*, which the owner did not state. | Resolved |
+| F2 | The J1 row now says `integrated d91fc9a360`. The J2 row now says it is wired by J3 at CK-1/CK-2 (`evaluate_compatibility`), integrated at `d91fc9a360`. | Resolved |
+| F6 | `SUMMARY.md` names the merge, the reviewed heads, the environment and each step's result. All four log hashes match the files. The counts match `rust.log`: 40 targets, 681 = 677 + 4 nested, 0 failed, 3 ignored. They also match `node.log` (3/3) and `sync.log` (6 matches). One small caveat: the logs do not record exit codes or the `--no-fail-fast` flag, so the Exit column rests on the author's account. The log contents are consistent with exit 0. | Resolved (NOTE) |
+
+F3, F4, F5 and F7 were NOTEs and stand as written.
+
+**Updated verdict: MERGE** at `46736839db`.
