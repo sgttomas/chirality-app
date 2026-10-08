@@ -1,0 +1,34 @@
+[
+  {
+    "path": "/private/tmp/H3B_LT12_PROPOSAL.md",
+    "sha256": "e0d605da4829bb49c9093fa26708523369e426e926d58be0963a5822c632d1f5"
+  },
+  {
+    "path": "/private/tmp/H3B_LT12_DESIGN_REVIEW.md",
+    "sha256": "c693296976a184c10320165a870da99075693573ab87e4e4b4986f22270518aa"
+  },
+  {
+    "path": "/private/tmp/H3B_LT12_RS_CONCURRENCE.md",
+    "sha256": "2bcaad0835ae238981d8dfbb5b3ed921f4b05c5103222cd4b630e22d8ec08b16"
+  },
+  {
+    "path": "/private/tmp/H3B_LT12_REC_CONCURRENCE.md",
+    "sha256": "4bf0ce500ddf44f239a368415034c04bf8604e33ecfb227a6d9cf3ecdc5264ac"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/AGENTS.md",
+    "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/agents/AGENT_TASK.md",
+    "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/loop/LOOP_INIT.md",
+    "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+  },
+  {
+    "path": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/.agents/skills/chirality-change/SKILL.md",
+    "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+  }
+]

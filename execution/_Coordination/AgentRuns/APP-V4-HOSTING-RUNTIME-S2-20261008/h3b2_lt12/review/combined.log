@@ -1,0 +1,102 @@
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3375:13
+     |
+3375 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `admin` and `common` are never read
+  --> src/connector_git.rs:44:5
+   |
+42 | struct Association {
+   |        ----------- fields in this struct
+43 |     root: PathBuf,
+44 |     admin: PathBuf,
+   |     ^^^^^
+45 |     common: PathBuf,
+   |     ^^^^^^
+   |
+   = note: `Association` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1523:19
+     |
+ 507 | impl Host {
+     | --------- method in this implementation
+...
+1523 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3876:9
+     |
+3875 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3876 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: `chirality-app-v4` (lib test) generated 8 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.36s
+     Running unittests src/lib.rs (/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-f1370c3026348f93)
+
+running 15 tests
+test hosting::successor::tests::lt12::lt12_actual_selected_eof_retains_whole_event_and_original_lt09 ... ok
+test hosting::successor::tests::lt12::lt12_captured_request_closure_counts_survive_repeated_eof ... ok
+test hosting::successor::tests::lt12::lt12_closing_before_and_during_worker_disables_install ... ok
+test hosting::successor::tests::lt12::lt12_exact_row_state_tuple_sequence_predecessor_and_repeated_eof ... ok
+test hosting::successor::tests::lt12::lt12_late_lt09_success_and_error_cannot_override_ineligible_eof ... ok
+test hosting::successor::tests::lt12::lt12_missing_private_predecessor_or_app_custody_refuses ... ok
+test hosting::successor::tests::lt12::lt12_one_app_permit_refuses_other_home_without_queue ... ok
+test hosting::successor::tests::lt12::lt12_pending_stop_invalidates_before_terminal_and_late_result_cannot_install ... ok
+test hosting::successor::tests::lt12::lt12_restart_invalidates_late_success_error_and_panic ... ok
+test hosting::successor::tests::lt12::lt12_selected_source_or_predecessor_tamper_refuses ... ok
+test hosting::successor::tests::lt12::lt12_spawn_failure_panic_and_immediate_completion_settle ... ok
+test hosting::successor::tests::lt12::lt12_stop_wins_eof_gate_and_emits_only_lt23 ... ok
+test hosting::successor::tests::lt12::lt12_store_lease_and_replaced_root_controls ... ok
+test hosting::successor::tests::lt12::lt12_superseded_eof_after_gate_does_not_close_new_source ... ok
+test hosting::successor::tests::lt12::lt12_then_lt23_uses_original_predecessor_without_repairing_legacy_gap ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 596 filtered out; finished in 34.99s
+

@@ -147,6 +147,7 @@ struct Inner {
     successor_reference: Option<crate::distribution_store::S1Reference>,
     successor_publication_sequence: u64,
     successor_lt09_installed: bool,
+    successor_lt09_reference: Option<crate::distribution_store::S1Reference>,
     successor_terminal_pending: bool,
     generation: Value,
     app_session: String,
@@ -359,12 +360,18 @@ struct TerminalPermit(Arc<TerminalPublicationController>);
 impl Drop for TerminalPermit {
     fn drop(&mut self) { self.0.lock_state().active=false; }
 }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TerminalKind { UnexpectedExit, Stopped }
+impl TerminalKind {
+    fn row(self)->&'static str {match self {Self::UnexpectedExit=>"LT-12",Self::Stopped=>"LT-23"}}
+    fn state(self)->&'static str {match self {Self::UnexpectedExit=>"exited-unexpectedly",Self::Stopped=>"stopped"}}
+}
 #[derive(Clone)]
-struct TerminalToken { attempt: u64, generation: Value, sequence: u64 }
+struct TerminalToken { attempt: u64, generation: Value, sequence: u64, kind: TerminalKind }
 impl TerminalToken {
     fn matches(&self, i:&Inner)->bool {
         i.start_attempt==self.attempt && i.generation==self.generation
-            && i.successor_publication_sequence==self.sequence && i.state=="stopped"
+            && i.successor_publication_sequence==self.sequence && i.state==self.kind.state()
     }
     fn unavailable(&self, inner:&Arc<(Mutex<Inner>,Condvar)>, reason:String) {
         let mut i=inner.0.lock().unwrap();
@@ -384,7 +391,7 @@ impl TerminalPublicationController {
             let mut i=inner.0.lock().unwrap();
             if !token.matches(&i)||!i.successor_terminal_pending { return; }
             i.successor_terminal_pending=false;
-            match result { Ok(reference)=>{i.successor_reference=Some(reference);i.successor_artifact_error=None;}, Err(e)=>i.successor_artifact_error=Some(format!("LT-23 evidence unavailable: {e}")) }
+            match result { Ok(reference)=>{i.successor_reference=Some(reference);i.successor_artifact_error=None;}, Err(e)=>i.successor_artifact_error=Some(format!("{} evidence unavailable: {e}",token.kind.row())) }
         }
     }
 }
@@ -581,7 +588,7 @@ impl Host {
         let (attempt, sequence, reference) = {
             let i = self.inner.0.lock().unwrap();
             if &i.generation != generation { return json!({"state":"unavailable","reason":"foreign generation"}); }
-            if i.successor_terminal_pending { return json!({"state":if closing {"unavailable"} else {"pending"},"generation":generation,"reason":if closing {"App closing; terminal installation disabled"} else {"LT-23 publication pending; not durable evidence"}}); }
+            if i.successor_terminal_pending { return json!({"state":if closing {"unavailable"} else {"pending"},"generation":generation,"reason":if closing {"App closing; terminal installation disabled"} else {if i.state=="exited-unexpectedly" {"LT-12 publication pending; not durable evidence"} else {"LT-23 publication pending; not durable evidence"}}}); }
             if let Some(error)=&i.successor_artifact_error{return json!({"state":"unavailable","generation":generation,"reason":error});}
             (i.start_attempt, i.successor_publication_sequence, i.successor_reference.clone())
         };
@@ -888,7 +895,7 @@ impl Host {
             i.successor_status = None;
             i.successor_reference = None;
             i.successor_artifact_error = None;
-            i.successor_lt09_installed=false;
+            i.successor_lt09_installed=false;i.successor_lt09_reference=None;
             i.successor_terminal_pending=false;
             i.successor_publication_sequence=0;
             i.supplier_standing = None;
@@ -1223,7 +1230,7 @@ impl Host {
             if publication_state.as_ref().is_some_and(|s|s.closing){return Err("App closing; LT-09 installation disabled".into());}
             if i.start_attempt!=attempt||i.generation!=*generation{return Err("source changed during LT-09 publication; no newer-source mutation".into());}
             if i.successor_publication_sequence==sequence {
-                match publication {Ok(reference)=>{i.successor_reference=Some(reference);i.successor_lt09_installed=true;},Err(error)=>i.successor_artifact_error=Some(format!("LT-09 evidence unavailable: {error}"))}
+                match publication {Ok(reference)=>{i.successor_lt09_reference=Some(reference.clone());i.successor_reference=Some(reference);i.successor_lt09_installed=true;},Err(error)=>i.successor_artifact_error=Some(format!("LT-09 evidence unavailable: {error}"))}
             }
         }
         Ok(self.snapshot())
@@ -2241,12 +2248,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             self.inner.1.notify_all();drop(i);drop(_source_gate);self.flush_recovery_observations();
             return;
         }
-        if i.state == "ready" {
+        let terminal=if i.state == "ready" {
             // LT-12: ended with no App stop record, whatever the exit status (S-F-07).
             self.lt(&mut i, "LT-12", "child-ended-without-stop-record", "exited-unexpectedly",
                     json!({"exitFacts": exit, "closedGeneration": counts}));
-        }
-        drop(i);drop(_source_gate);self.flush_recovery_observations();
+            Self::capture_terminal(&mut i,TerminalKind::UnexpectedExit)
+        }else{None};
+        drop(i);drop(_source_gate);
+        if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
+        self.flush_recovery_observations();
     }
 
     fn kill_group(&self) {
@@ -2269,16 +2279,26 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     pub fn stop_scoped(&self,expected_generation:&Value,actor:&str,reason:&str)->Result<Value,String>{
         crate::recovery::generation_ref(expected_generation)?;self.stop_inner(Some(expected_generation),actor,reason)
     }
+    fn capture_terminal(i:&mut Inner,kind:TerminalKind)->Option<(TerminalToken,Value,Option<crate::distribution_store::S1Reference>)> {
+        if i.successor_status.is_none(){return None;}
+        let event=i.lifecycle.last().unwrap().clone();let sequence=event["sequence"].as_u64().unwrap();
+        i.successor_publication_sequence=sequence;
+        i.successor_terminal_pending=false;
+        let token=TerminalToken{attempt:i.start_attempt,generation:i.generation.clone(),sequence,kind};
+        let prior=if i.successor_lt09_installed {i.successor_lt09_reference.clone()} else {None};
+        i.successor_artifact_error=Some(format!("{} evidence unavailable: publication not admitted",kind.row()));
+        Some((token,event,prior))
+    }
     fn schedule_terminal_publication(&self, token:TerminalToken, event:Value, prior:Option<crate::distribution_store::S1Reference>) {
-        let Some(prior)=prior else { token.unavailable(&self.inner,"LT-23 evidence unavailable: installed same-source LT-09 absent".into());return; };
-        // Do not manufacture App custody or acquire its REC writer from Stop.
+        let Some(prior)=prior else { token.unavailable(&self.inner,format!("{} evidence unavailable: installed same-source LT-09 absent",token.kind.row()));return; };
+        // Do not manufacture App custody or acquire its REC writer from EOF/Stop.
         let controller=self.runtime_custody.lock().unwrap().as_ref().map(|c|c.terminal_publication.clone());
-        let Some(controller)=controller else {token.unavailable(&self.inner,"LT-23 evidence unavailable: App custody absent".into());return;};
+        let Some(controller)=controller else {token.unavailable(&self.inner,format!("{} evidence unavailable: App custody absent",token.kind.row()));return;};
         let store=self.distribution_store.lock().unwrap().clone();
-        let store=match store {Some(Ok(store))=>store,Some(Err(e))=>{token.unavailable(&self.inner,e);return;},None=>{token.unavailable(&self.inner,"LT-23 store absent".into());return;}};
+        let store=match store {Some(Ok(store))=>store,Some(Err(e))=>{token.unavailable(&self.inner,e);return;},None=>{token.unavailable(&self.inner,format!("{} store absent",token.kind.row()));return;}};
         {
-            let mut state=match controller.state.try_lock() {Ok(state)=>state,Err(_)=>{token.unavailable(&self.inner,"LT-23 publisher busy; no queued retry".into());return;}};
-            if state.closing||state.active {token.unavailable(&self.inner,"LT-23 publisher closing or busy; no queued retry".into());return;}
+            let mut state=match controller.state.try_lock() {Ok(state)=>state,Err(_)=>{token.unavailable(&self.inner,format!("{} publisher busy; no queued retry",token.kind.row()));return;}};
+            if state.closing||state.active {token.unavailable(&self.inner,format!("{} publisher closing or busy; no queued retry",token.kind.row()));return;}
             let mut i=self.inner.0.lock().unwrap();
             if !token.matches(&i) {return;}
             i.successor_terminal_pending=true;i.successor_artifact_error=None;
@@ -2291,12 +2311,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if controller.fail_spawn.swap(false,std::sync::atomic::Ordering::SeqCst) {
             controller.complete(&weak,&token,Err("injected thread spawn failure".into()));drop(permit);return;
         }
-        let spawn=std::thread::Builder::new().name("distribution-lt23".into()).spawn(move||{
+        let spawn=std::thread::Builder::new().name("distribution-terminal".into()).spawn(move||{
             let _permit=permit;
             let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
                 #[cfg(test)]
                 {let hook=worker_controller.before_work.lock().unwrap().take();if let Some(hook)=hook{hook();}}
-                store.publish_lt23(&worker_token.generation,&prior,&event)
+                match worker_token.kind {TerminalKind::UnexpectedExit=>store.publish_lt12(&worker_token.generation,&prior,&event),TerminalKind::Stopped=>store.publish_lt23(&worker_token.generation,&prior,&event)}
             })).unwrap_or_else(|_|Err("terminal publication panicked".into()));
             // All Store/namespace guards have unwound before installation.
             worker_controller.complete(&worker_weak,&worker_token,result);
@@ -2304,7 +2324,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if let Err(e)=spawn {controller.complete(&weak,&token,Err(format!("thread spawn failed: {e}")));}
         #[cfg(test)]
         {let hook=controller.after_spawn.lock().unwrap().take();if let Some(hook)=hook{hook();}}
-        // Detached: Stop, restart and shutdown never join or wait for this job.
+        // Detached: EOF, Stop, restart and shutdown never join or wait for this job.
     }
     fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str) -> Result<Value, String> {
         let source_gate = self.attachment_gate.lock().unwrap();
@@ -2325,8 +2345,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 "handshaking" => "LT-18",
                 _ => "LT-19",
             };
+            let invalidate_lt12=i.state=="exited-unexpectedly" && i.successor_publication_sequence!=0;
             Self::oauth_lost(&mut i,&target_generation);
             self.lt(&mut i, id, "stop-requested", "stopping", json!({"actor": actor, "stopRecord": stop_record}));
+            if invalidate_lt12 {
+                i.successor_publication_sequence=i.lifecycle.last().unwrap()["sequence"].as_u64().unwrap();
+                i.successor_terminal_pending=false;
+                i.successor_artifact_error=Some("LT-12 evidence unavailable: later Stop transition in progress".into());
+            }
             pid = i.child_pid;
             i.attachment_pipe_epoch += 1;
         }
@@ -2367,14 +2393,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             "exitFacts": exit,
             "descendants": {"checked": true, "surviving": surviving, "handling": if surviving > 0 { "recorded; not ended" } else { "none surviving" }},
             "closedGeneration": counts}));
-        let terminal=if i.successor_status.is_some() {
-            let event=i.lifecycle.last().unwrap().clone();let sequence=event["sequence"].as_u64().unwrap();
-            i.successor_publication_sequence=sequence;
-            let token=TerminalToken{attempt:i.start_attempt,generation:i.generation.clone(),sequence};
-            let prior=if i.successor_lt09_installed {i.successor_reference.clone()} else {None};
-            i.successor_artifact_error=Some("LT-23 evidence unavailable: publication not admitted".into());
-            Some((token,event,prior))
-        }else{None};
+        let terminal=Self::capture_terminal(&mut i,TerminalKind::Stopped);
         let response=json!({"state":i.state});drop(i);
         if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
         self.flush_recovery_observations();Ok(response)
