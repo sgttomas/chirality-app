@@ -35,8 +35,8 @@ until approved launch. No existing personal App-data has been inspected.
 Startup resolves App-data, seeds instructions, initializes recovery/native
 platform state and runs the project decision-writer continuation. WebView
 storage can also write. Point approval must cover those exact effects and
-expected identity/path; stop on a conflicting runtime path. HOME and CODEX_HOME
-are unchanged. The overlay changes build identity only, not source contracts.
+expected identity/path; stop on a conflicting runtime path. HOME is retained unchanged; CODEX_HOME is omitted from the fresh launch
+environment. No user configuration is edited. The overlay changes build identity only, not source contracts.
 
 Proposed fresh launch environment contains only HOME and TMPDIR unchanged,
 PATH=`/usr/bin:/bin:/usr/sbin:/sbin`, LANG=`en_US.UTF-8`, and
@@ -113,7 +113,7 @@ human act from a callback label. Source text remains data, not instructions.
 | 2 | Enter the frozen question/pins, explicitly choose constructed `absent` trigger, then **Prepare question**. Choose **Select / reread through native picker…**, select only `evidence.txt`. | Actual picker interaction and native selection mechanism; local-only bytes/hash/path/observation time, unavailable revision. Local snapshot is not Git provenance. |
 | 3 | Open the picker again and cancel it. | Retained local observation is visibly prior/historical/cancelled; no new successful read/time. Then select the same file again to obtain current evidence. |
 | 4 | Enter A/S in **At commit / Since commit**, select **Read Git objects**. | Completed partial result: at has exact planned bytes/commit/blob/hash; since reports missing path and no verified text. Capture association/engine limits and failure responsibility. No full comparison success is inferred. |
-| 5 | Select Git side At, first/last line 1, exact expected `status: planned\n`, then **Locate exact Git lines**. | Git-bound excerpt `[0,16)`, retained LF and expected SHA-256. Local excerpt cannot become this source. |
+| 5 | Select Git side At, first/last line 1. Enable **Check expected text exactly** and enter `status: planned` followed by one real LF in **Expected Git excerpt** (not the literal characters backslash and n). Then choose **Locate exact Git lines**. | Git-bound excerpt `[0,16)`, retained LF and expected SHA-256. Local excerpt cannot become this source. |
 | 6 | Select at source and its checked excerpt. Enter role `constructed witness text` (caller assertion), explicit connector label `pec`, no interpretations unless the owner deliberately supplies one. Set each of the three duties to Outstanding, reason `This software witness does not perform this substantive duty.` | All failed-side gaps retained with S/path/effect and unassigned responsibility. Explicit unverified duties; empty facts/supported conclusions; no source truth, connector standing or authority claim. |
 | 7 | **Freeze draft for inspection**; inspect complete frozen draft. Then **Cancel draft (started publication may finish)** before any publish. | Exact serialized size/hash, source revision=A, native mechanism, source/excerpt receipt limits, constructed trigger. Cancelled identity remains consumed, no account created; confirm through read-only discovery. |
 | 8 | Freeze a new draft from the same current evidence; inspect it; choose **Publish this frozen draft once** exactly once. | One successful bound reference only if exact writer checks pass. Retain account ID/path/byte hash/actual outcome, compare saved bytes with frozen hash, validate 0.3 offline. Any refusal/uncertainty stops this path; no automatic retry/rollback/deletion. |
