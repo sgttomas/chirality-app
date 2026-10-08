@@ -66,3 +66,11 @@ GIT_COMMITTER_EMAIL overrides absent. Official staged privacy checks and diff
 checks are required at final freeze; no hostname values or junit hostname were
 recorded. Final independent review and any required repairs remain separate from
 mechanical pass results. Parent coordinates PR and actual-head CI/review gate.
+
+
+Joined code freeze `80560dd` passed `cargo test --offline --locked --lib workflow_`:
+156 passed, zero failed, including the candidate catalog, actual root selection,
+registration, role-workflow and FIFO refusal cases. The reader repair checks the
+opened regular-file descriptor with Unix no-follow/nonblocking flags; unsupported
+non-Unix reading fails closed. This is current macOS offline proof only. Review
+requested against this exact code; later evidence-only commits require backcheck.
