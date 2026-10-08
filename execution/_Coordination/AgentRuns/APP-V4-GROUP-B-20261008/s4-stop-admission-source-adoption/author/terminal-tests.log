@@ -1,0 +1,19 @@
+test_actual_selected_unselected_pairs_and_full_canonical_join (__main__.TerminalReceivingTests.test_actual_selected_unselected_pairs_and_full_canonical_join) ... ok
+test_distinct_publication_source_and_reader_identity (__main__.TerminalReceivingTests.test_distinct_publication_source_and_reader_identity) ... ok
+test_every_original_publication_and_source_byte_is_bound (__main__.TerminalReceivingTests.test_every_original_publication_and_source_byte_is_bound) ... ok
+test_false_terminal_native_and_verified_authority_refuse (__main__.TerminalReceivingTests.test_false_terminal_native_and_verified_authority_refuse) ... ok
+test_lt12_source_adoption_refuses_previous_source_mixed_reader_and_lt12 (__main__.TerminalReceivingTests.test_lt12_source_adoption_refuses_previous_source_mixed_reader_and_lt12) ... ok
+test_malformed_missing_refs_and_duplicate_manifest (__main__.TerminalReceivingTests.test_malformed_missing_refs_and_duplicate_manifest) ... ok
+test_paths_links_extra_members_and_duplicate_json_refuse (__main__.TerminalReceivingTests.test_paths_links_extra_members_and_duplicate_json_refuse) ... ok
+test_pending_unavailable_and_diagnostic_markers_refuse (__main__.TerminalReceivingTests.test_pending_unavailable_and_diagnostic_markers_refuse) ... ok
+test_rehashed_observation_reference_and_shared_closure_changes_refuse (__main__.TerminalReceivingTests.test_rehashed_observation_reference_and_shared_closure_changes_refuse) ... ok
+test_same_generation_event_sequence_and_actual_event_joins (__main__.TerminalReceivingTests.test_same_generation_event_sequence_and_actual_event_joins) ... ok
+test_stale_format_source_candidate_and_selection_controls (__main__.TerminalReceivingTests.test_stale_format_source_candidate_and_selection_controls) ... ok
+test_standalone_v1_and_cross_source_predecessor_are_not_terminal_pairs (__main__.TerminalReceivingTests.test_standalone_v1_and_cross_source_predecessor_are_not_terminal_pairs) ... ok
+test_stop_admission_source_refuses_prior_cohort_and_rehashed_lt20 (__main__.TerminalReceivingTests.test_stop_admission_source_refuses_prior_cohort_and_rehashed_lt20) ... ok
+test_terminal_source_guard_and_cli (__main__.TerminalReceivingTests.test_terminal_source_guard_and_cli) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 10.257s
+
+OK
