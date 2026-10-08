@@ -35,7 +35,9 @@ The renderer supplies only a session token/generation and a select action.
 The native picker returns the path privately to the host. No IPC filename,
 path, file body, digest, source DTO or imported saved account can mint a read
 capability. Display paths and old selection references cannot reopen a source.
-Cancel retains the previous observation with cancelled standing; stale session
+Cancel retains the previous observation explicitly labelled prior/historical
+and the latest operation cancelled; it creates no new observation, read time
+or successful-selection result. Stale session
 completion cannot replace newer state. Selection observes bytes; it does not
 supply them to Codex, a connector or any external destination.
 
@@ -106,6 +108,31 @@ not an additional selectable line. No Unicode normalization or whitespace
 trimming changes the buffer. Empty files have zero selectable lines. Refuse
 zero/reversed/out-of-range intervals. Return `L<n>` or `L<n>-L<m>`, the exact
 selected text and its byte interval/hash relative to the whole snapshot.
+Byte intervals are **zero-based, half-open `[start, end)`**, measured in the
+original UTF-8 buffer, not character indices. A selected interval spans complete
+selected lines: include each selected line's terminating LF when present,
+including the last selected line's LF. Preserve the preceding CR in CRLF.
+The last unterminated line includes all its remaining bytes. The excerpt hash
+is SHA-256 of precisely `buffer[start:end]`; decoded excerpt text comes from
+that same slice. Never append a missing newline. A terminal LF belongs to its
+preceding line; it creates no additional selectable empty line. An LF-only
+line is selectable and its excerpt includes that LF.
+
+Examples below use JSON string escaping solely to display exact bytes; offsets
+count decoded UTF-8 bytes, not characters in the displayed escape spelling.
+
+| Original text | Selection | Byte interval | Exact excerpt |
+|---|---|---|---|
+| `"a\nb\n"` | L1 | [0, 2) | `"a\n"` |
+| `"a\nb\n"` | L2 | [2, 4) | `"b\n"` |
+| `"a\r\nb\n"` | L1 | [0, 3) | `"a\r\n"` |
+| `"a\r\nb\n"` | L1-L2 | [0, 5) | `"a\r\nb\n"` |
+| `"a\nb"` | L2 | [2, 3) | `"b"` |
+| `"\n"` | L1 | [0, 1) | `"\n"` |
+| `"é\nb"` | L1 | [0, 3) | `"é\n"` |
+| `""` | L1 | refused: zero lines | none |
+
+For `"a\n"`, L2 is refused: there is one selectable line, not two.
 Check any caller-supplied expected excerpt against those exact bytes; mismatch
 is explicit, never approximate matching. Escaped rendering is required.
 
@@ -166,7 +193,9 @@ callbacks, never labelled an actual native selection witness. Check:
 - Same frozen preview after file changes; explicit reread yields new identity;
   no cold recreation from exported DTO, no send or persistence side effect.
 - Exact line/byte anchors for LF/CRLF, Unicode, terminal newline and empty file;
-  out-of-range and changed/mismatched expected excerpt refuse.
+  every §5 example must assert exact zero-based half-open offsets, retained
+  last-line LF/CRLF and excerpt hash; out-of-range and changed/mismatched
+  expected excerpt refuse.
 - Typed Git hash, source revision text and worktree HEAD coincidence never
   produce Git-verified standing or a source/account entry.
 - Same question under constructed absent/stale/partial/failing triggers;

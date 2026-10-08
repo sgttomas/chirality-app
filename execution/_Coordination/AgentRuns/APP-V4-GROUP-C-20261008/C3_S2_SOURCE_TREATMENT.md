@@ -32,3 +32,15 @@ preview distinctions; preserve CFB-v0.3/CRP-v0.3 bytes; retain read-only reader'
 literal-anchor boundary. Offline implementation test matrix is in §8; no test
 pass is claimed from this document. Source review pending. Staged private-term
 screening precedes commit; source origins/hashes are in C3_S2_SOURCE_BASIS.json.
+
+## CSP-R1 anchor/cancellation precision repair
+
+Independent source review of 5c14fe5bdf found that §5 did not specify whether
+the last selected LF was included or the byte-offset convention. CSP-R1 now
+requires zero-based half-open UTF-8 byte intervals spanning full selected
+lines, including the final selected line's LF when present; CR is retained,
+and final unterminated lines do not acquire LF. Exact LF/CRLF/empty/Unicode
+examples bind the future tests. This changes no source authority or schema.
+Cancellation is also explicit: latest operation cancelled, prior observation
+historical, no new read/time/success. Same reviewer backcheck remains required;
+no implementation or native witness is claimed.

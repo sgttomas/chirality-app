@@ -75,5 +75,14 @@
       "sha256": "ace6a925fe32d49754f3a7fbd30eebf1bf144292ef2104e48a9886663b99f160"
     }
   ],
-  "status": "proposed definition; no implementation/native witness/test pass"
+  "status": "proposed definition; no implementation/native witness/test pass",
+  "candidate_repairs": [
+    {
+      "id": "CSP-R1",
+      "finding_basis": "5c14fe5bdf4cf0ff1ab733dd1e316eaceae12385",
+      "scope": "\u00a72 cancellation standing; \u00a75 exact line/byte convention and examples; \u00a78 corresponding tests",
+      "source_sha256": "fc8fc1dd1277448bf87a4d615eb9a583c6c7bc8011c092c25cf7f640bb97028f",
+      "checks": "definition/example arithmetic only; not production tests"
+    }
+  ]
 }
