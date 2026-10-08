@@ -564,14 +564,18 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
   forged record can still place a false `derived_from` on a first revision.
   The `state`, `content` and `findings` fields record what the App saw when it
   wrote the record (V11 J5-6). They are not refreshed on later edits.
-- **(b) Identical bytes cannot run again after relaunch.** DS-4 refuses content
+- **(b) Identical bytes cannot run again after relaunch.** *Closed by adoption
+  (J8, 2026-10-08).* The owner chose "A15 re-confirmation now (Recommended)",
+  and the WR change CC-WR-RECONFIRM is adopted (commit `007489e72b`). After a
+  relaunch, identical bytes review as DS-8. A new genuine A15 re-confirms the
+  registered revision with no new revision, and the result is selectable in
+  that process only (WR §4.8). DS-4 still applies while the revision is
+  selectable in the process, or when it is not LS-1. App implementation and its
+  limits: CI-24. The original text follows, for history: "DS-4 refuses content
   identical to a registered revision ("select it instead"). Cold selection of
   that revision stays refused (SEAL-2). After relaunch, the person can run the
   workflow from the same library only by registering changed content (a
-  refinement, DS-2). The exact bytes registered in a lost process cannot be run
-  from that library until SEAL-2 or a WR ruling. For the owner and WR owner:
-  either accept this as the SEAL-2 boundary, or rule on a route (for example,
-  re-registering identical content under a new A15 as a new ledger line).
+  refinement, DS-2)."
 - **(c) Base freshness.** RB-3 names two freshness conditions: the live draft
   and the slot's latest revision. Following the I2 owner plan ("disclosed,
   frozen and checked under lock"), the App also freezes its App-kept base
@@ -628,3 +632,77 @@ App tests pass.
 Owner: DEL-04-03 (RS). Options: rewrite the rule with `anyOf`/`not`, or add
 `if`/`then` to `minischema`. The App copy must follow either way. Until
 then, the Design prototypes do not run as evidence.
+
+## CI-24 (J8) Re-confirmation and Refine without a selection: implementation notes
+
+Found 2026-10-08 by the J8 TASK of `APP-V4-GROUP-A-20261004`, implementing
+the adopted CC-WR-RECONFIRM: WR §4.8 RC-1…RC-10, §4.6 RF-1, and the change
+record's "App implementation items". No Design or schema file was changed.
+
+- **(a) Where "selectable in this process" lives.** RC-2 makes ‹k› selectable
+  only while the App holds the result of its registration (G-4) or
+  re-confirmation (G-4R). The library owner keeps an in-memory set, filled only
+  by its own hot commits. Root's `WorkflowReviewContext.registered` values hold
+  the selectable revisions. Both end with the process, and neither is rebuilt
+  from disk. DS-4 "select it instead" and RC-5 (d) read the owner's set. LS-1
+  "as read" (ledger line, A15 record with the same bound content, store
+  recompute) only gates the DS-8 offer (V13 R2-N2).
+- **(b) Attempt journal placement (X-1, X-2).** WR §5.2 names an "attempt
+  journal (App-kept)" without a location, and X-1 reads "each library's
+  attempt journal". The App writes one journal file per *stored*
+  re-confirmation at
+  `<library>/.chirality/.workflow-staging/attempts/<sha256 of the A15 record id>.json`.
+  This is inside §3's App-written, temporary staging area. The file is
+  removed when the attempt closes. X-2 runs when a library owner is opened (in
+  Root, once per library per process). Under the ledger lock it rereads the
+  ledger for a line citing the A15. If one exists it writes nothing; otherwise
+  it writes *not completed* "process lost before re-confirmation committed".
+  It never completes a re-confirmation. Its outcomes appear in the Root
+  snapshot's `libraries[].reconciliation`. Limit: a second App process that
+  opens the same library while an attempt is live in the first would close
+  that attempt as lost. For the WR owner: name the journal location.
+- **(c) Registration X-2 is still absent.** The App keeps no attempt journal
+  for a *registration* (F15). A registration lost after G-3 and before G-4
+  leaves its store folder and no ledger line, as before J8.
+- **(d) F14, rollback and version skew.** G-1, G-1R and RB-3 (b) now compare
+  the slot's latest *registered* revision, not the whole slot. *Re-confirmed*
+  and *not completed* lines therefore never fail a concurrent attempt or stale
+  a review. Once a *re-confirmed* line exists, an App binary built on the
+  preimage WR schema refuses the whole ledger (`read_ledger` →
+  `wr_validate("library_entry")`). That is acceptable for development builds.
+  Rolling back to such a binary needs the *re-confirmed* lines set aside by
+  hand.
+- **(e) A single in-place registration is refused by the AAC offer schema
+  (found, not introduced).** WR's single in-place entry (DS-7) goes out as an
+  `a15_descriptor` with an `entry:` reviewed reference. The adopted
+  `aac.offer.schema.json` `allOf/6` requires the `draft:` form for an
+  `a15_descriptor`, so `compose_a15` refuses it. Two or more in-place entries
+  (`a15_multi_descriptor`) work. The RF-1 test therefore registers in place
+  with two entries. For the AAC and WR owners: admit `entry:` for a single
+  in-place `a15_descriptor`, or route DS-7 through another form.
+- **(f) Native statement placement (AAC §4.2 re-confirmation).** The wording
+  and offer come from WR's descriptor unchanged (`compose_a15`). The effect
+  sentence of the statement comes from a new helper, `a15_effect_statement`
+  in `act_control_a15.rs`; for a re-confirmation it names ‹k› and says "This
+  registers no new revision." `a15_native.rs` titles the dialog "re-confirm
+  workflow revision" with a "Re-confirm" button when the statement's first
+  line is the re-confirm wording.
+- **(g) Capture outcome not written.** `aac.capture-evidence` now admits the
+  entry outcome *re-confirmed*. The App writes no capture entry outcome for
+  any registration, so none is written for a re-confirmation either. The
+  ledger line and Root status carry the outcome.
+- **(h) Base freshness interacts with G-6R (CI-21 (c)).** G-6R rewrites the
+  draft's App-kept base record. A second review of the same draft taken
+  before that commit then goes stale ("App-kept base changed since review").
+  At G-1R the WR checks run first, so a concurrent re-confirmation of an
+  already selectable ‹k› reports "already selectable in this App session".
+- **(i) RF-1 Root route.** `WorkflowRootSession::refine_registered(name,
+  revision)` and the `workflow_refine_registered` command call
+  `LibraryOwner::refine_from_store`. The owner recomputes the store, makes the
+  draft (D-1: never overwrites), and records ‹k› as the App-kept base (on
+  failure the copy is removed, as in V11 J5-2). It makes no selection.
+  `create_selected_draft` (from a hot selection) is kept.
+- **(j) Not touched.** V13 R2-N1: WR's LS-4 row still offers "Review to
+  register", while a draft with an LS-4 revision's bytes reviews as DS-4 with
+  the restore route. That is left to the WR owner. U-WR-21 (re-confirmation
+  from the listing without a draft) stays deferred.

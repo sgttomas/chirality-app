@@ -60,13 +60,15 @@ pub(crate) fn confirm_native(
     let offer_id = offer.id().to_owned();
     let offer_digest = control.frozen_a15_offer_digest(offer)?.clone();
     control.present_a15(offer)?;
+    // J8 (WR §4.8 RC-4): the statement's first line is the offer wording.
+    let reconfirm = text.starts_with("re-confirm workflow revision for use");
     let confirmed = app
         .dialog()
         .message(text)
-        .title("Chirality — register workflow")
+        .title(if reconfirm { "Chirality — re-confirm workflow revision" } else { "Chirality — register workflow" })
         .kind(MessageDialogKind::Warning)
         .buttons(MessageDialogButtons::OkCancelCustom(
-            "Register".into(),
+            if reconfirm { "Re-confirm" } else { "Register" }.into(),
             "Cancel".into(),
         ))
         .blocking_show();
