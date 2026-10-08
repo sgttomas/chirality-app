@@ -1,0 +1,7 @@
+{
+  "result": "pass",
+  "check": "Merged overlay validates against installed Tauri CLI 2.11.1 schema",
+  "schema_sha256": "fff78eb68796e13a836ef42d188492232c3ff1f39174ea4f615a94bd65f7797c",
+  "method": "JSON merge patch then jsonschema.validate; actual CLI build separately verifies consumption",
+  "signature_null_semantics": "null removes any base signingIdentity; explicit --no-sign still required"
+}

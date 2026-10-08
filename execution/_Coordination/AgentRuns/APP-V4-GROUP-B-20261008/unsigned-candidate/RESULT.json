@@ -1,0 +1,45 @@
+{
+  "standing": "actual incomplete development App bundle; not a production package identity",
+  "source_revision": "f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1",
+  "build_exit": 0,
+  "bundle_exit": 0,
+  "input_files_match": 307,
+  "bundle": "/private/tmp/chirality-b2-unsigned-build/target/debug/bundle/macos/Chirality App v4 (development candidate).app",
+  "bundle_manifest_sha256": "233ac5fdb7358d8120343751b02302f3864ada9b6b72f396ec76bf3d149e7eab",
+  "files": 51,
+  "macho_files": 31,
+  "package_complete": false,
+  "composition": {
+    "P-0": "present: debug executable; compiler ad-hoc signature, not Developer ID",
+    "P-1": "present: cached 0.160.0 vendor tree; byte/mode/link equality observed after Tauri --no-sign bundling",
+    "P-2": "missing: production workflows and shipped-revision manifest",
+    "P-3": "partial: AGENTS.md and four role files equal source; roles.json missing",
+    "P-4": "present: actual generated Info.plist with proposal min15.0, skeleton id/version"
+  },
+  "checks": {
+    "P1_equal": true,
+    "P3_present_files_equal": true,
+    "no_microphone_usage_string": true,
+    "app_signature_display_exit": 0,
+    "bundler_reported_skip": true,
+    "P2_absent": true,
+    "roles_json_absent": true
+  },
+  "unperformed": [
+    "native launch",
+    "supplier execution",
+    "Developer ID signing",
+    "manual codesign mutation",
+    "notarisation",
+    "installation",
+    "quarantine witness",
+    "FP-1(b)",
+    "FP-2/W-4",
+    "FP-3",
+    "FP-4",
+    "FP-5",
+    "M2/M3",
+    "candidate qualification",
+    "public release"
+  ]
+}

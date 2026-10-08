@@ -1,0 +1,18 @@
+test_all_schemas_and_positive_join (__main__.Cases.test_all_schemas_and_positive_join) ... ok
+test_early_event_and_transition_table (__main__.Cases.test_early_event_and_transition_table) ... ok
+test_exact_bytes (__main__.Cases.test_exact_bytes) ... ok
+test_generation_and_schema_versions (__main__.Cases.test_generation_and_schema_versions) ... ok
+test_lt24_cannot_waive_mismatch (__main__.Cases.test_lt24_cannot_waive_mismatch) ... ok
+test_lt24_missing_label (__main__.Cases.test_lt24_missing_label) ... ok
+test_lt24_requires_pre_spawn (__main__.Cases.test_lt24_requires_pre_spawn) ... ok
+test_missing_and_known_mismatch_precedence (__main__.Cases.test_missing_and_known_mismatch_precedence) ... ok
+test_no_caller_qualified_flag (__main__.Cases.test_no_caller_qualified_flag) ... ok
+test_package_full_tree_and_old_rules (__main__.Cases.test_package_full_tree_and_old_rules) ... ok
+test_package_pending_and_candidate_join (__main__.Cases.test_package_pending_and_candidate_join) ... ok
+test_tree_mode_and_generated_mutations (__main__.Cases.test_tree_mode_and_generated_mutations) ... ok
+test_unselected_attestation (__main__.Cases.test_unselected_attestation) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.241s
+
+OK

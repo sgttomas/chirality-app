@@ -1,0 +1,36 @@
+{
+  "basis": "f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1",
+  "checks": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
+      "sha256": "9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85",
+      "equal_to_basis": true
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "sha256": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4",
+      "equal_to_basis": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/packaging/sources.json",
+      "sha256": "ae9c55bb43f29ce9454c23e33504bfa2d827e66d209f3fb35a8860ae2bf8bf03",
+      "equal_to_basis": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/sources.json",
+      "sha256": "4284cebd7cfdfebbaaf87338db629f6cb6f5ed3c0cc054adb11124d0e80a2059",
+      "equal_to_basis": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/sources.json",
+      "sha256": "53f1cbd7055395825323b4bfdeee0b23b12d71a43ae491e9e0398e41f1d37e08",
+      "equal_to_basis": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/admission/sources.json",
+      "sha256": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511",
+      "equal_to_basis": true
+    }
+  ],
+  "scope": "canonical contracts and current production source guards unchanged"
+}

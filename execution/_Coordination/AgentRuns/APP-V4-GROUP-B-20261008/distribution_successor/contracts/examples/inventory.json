@@ -1,0 +1,44 @@
+{
+  "format": "inventory-artifact.s1",
+  "inventory": {
+    "method": "codex-vendor-tree-v1",
+    "algorithm": "sha-256",
+    "entries": [
+      {
+        "path": ".",
+        "kind": "dir",
+        "mode": 493
+      },
+      {
+        "path": "bin",
+        "kind": "dir",
+        "mode": 493
+      },
+      {
+        "path": "codex-path",
+        "kind": "dir",
+        "mode": 493
+      },
+      {
+        "path": "codex-resources",
+        "kind": "dir",
+        "mode": 493
+      },
+      {
+        "path": "bin/codex",
+        "kind": "file",
+        "mode": 493,
+        "size": 1,
+        "sha256": "11748b0b4d6aca4e2cd01306657de841ba87d5576dd6976aa89beb853047b680"
+      },
+      {
+        "path": "codex-package.json",
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "0cc4e0168500cec353cb5fff0f08aa1ea88e160030f50b7d6c7dd9536f5487fb"
+      }
+    ],
+    "manifest_sha256": "76965bf87ccdf17d1fca3bd9ebd8edd6bb5851fcb1a79242b8e3fbf3cb96821f"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "base": "f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1",
+  "consultation": "Root/role/loop and selected methods read; current graph and A-IN receiving disposition read. Manual editions and prior full Field Book/manual headings consultation retained: no changes since45796bc. SQ3/4 and actual preparation inputs examined for this consumer slice.",
+  "sources": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_WORKING_ITEMS.md": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "workflows/construct-local-work-graph/WORKFLOW.md": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6",
+    "workflows/coordinated-knowledge-work/WORKFLOW.md": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+    "docs/alignment-manual/README.md": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+  }
+}

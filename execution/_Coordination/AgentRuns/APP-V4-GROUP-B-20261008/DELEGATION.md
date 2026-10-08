@@ -165,3 +165,62 @@ check/rules import collision. Separate reviewer confirmed original combined
 discovery now 51/0 and both import orders. Manager independently ran 51/0 on
 integration. Original evidence remains historical; F1-repair binds repaired
 module names/bytes and CLI outputs. Whole-candidate docs review pending.
+
+## Resumed actual consumer production
+
+Owner steering “resume work on App v4” was relayed by HELP_HUMAN to this
+WORKING_ITEMS manager. Base f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1 includes
+PRs #1117/#1119/#1121/#1122. Current graph replaces superseded next states;
+resumed-production/PRIOR_GRAPH.md preserves the prior checkpoint. No MEMORY
+writes under the later owner instruction. Correct shared author/committer
+identity and absence of email environment overrides were checked before work.
+
+Existing harness-native TASKs activated via followup_task, requested model
+gpt-6-astra/low, each with its own new branch/worktree on current main:
+- standalone_preparation owns B7-FX, new standalone/fixtures and
+  group_b_fixture consumer tests. Manager additionally authorized exactly the
+  cfg(test) module declaration in src-tauri/src/lib.rs needed to test actual
+  crate-private parser/Snapshot/Review consumers; no API widening or acts.
+- support_production owns B3-N1, new native_forms module/tests/evidence,
+  consuming existing source-bound B7 preparation to make unobserved blank forms.
+- first_slice_review owns read-only independent review on next-review branch;
+  no authored production or machine/person observations.
+
+No child may delegate, amend Design/pins, write MEMORY, download, use credentials
+or user Codex home, launch native/browser processes or sign/notarise. Actual
+host enforcement remains separate from these brief limits. Each commit requires
+private-term --staged --from-host validation, pushes require current-main range
+validation. No machine host names or junit hostname attributes in outputs.
+A-IN-S1 is separately owned by distribution_successor_design; no contract
+adoption is implied by concurrent Group B work.
+
+HELP_HUMAN additionally requested independently ready B2 unsigned Tauri
+configuration/inventory alongside B3/B7. Existing TASK sq_st4_design now has a
+bounded implementation assignment on its own new unsigned-candidate branch
+from f2e7a2a9ff: new packaging/unsigned, group_b_unsigned tests and run evidence.
+Existing config edits need an exact proposed fence. It must inspect Tauri's
+auto/ad-hoc signing behavior before bundling and stop unauthorized signing,
+keep P2/P3 missing content explicit, and produce an actual incomplete bundle
+only if permitted current cached inputs support it. A preparation directory
+never counts as a package candidate. No A-IN Design contract writes.
+
+### Offline compiler boundary clarification
+
+B2 inspected local ld documentation and found automatic Apple Silicon ad-hoc
+signatures on executable outputs. Manager raised the exact consequence before
+package compilation and briefly held further B7 compilation/testing. HELP_HUMAN
+explicitly clarified in active chat that automatic linker ad-hoc signatures are
+incidental artifacts within authorized offline build/test compilation. B2 may
+use inspected --no-sign bundling, and B7 may run its ordinary synthetic tests.
+Neither establishes SIGN-1/FP-1(b), owner act, native App execution or
+qualification. Manual codesign mutation, Developer ID/account signing,
+credentials, notarisation and release remain excluded. No global linker
+opt-out bypass was applied. Any interrupted operation retains its actual log.
+
+Final B7-FX 54db725c, B3-N1 79154910 and B2-U a0e3a9dd returned independently
+READY on exact contributions. Reviewer repeated five actual Rust/two fixture
+tool tests, 59 pre-integration Python tests, exact N1 regeneration, and actual
+unsigned bundle/source inventories. Manager combined Python suite passes 61;
+all checked contribution bytes preserved. Current-main CI routing merged
+without product changes; full App/PEC hosted checks selected. Final exact-head
+review remains a read-only return, avoiding a review-record commit cycle.
