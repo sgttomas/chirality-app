@@ -27,6 +27,7 @@ pub mod hosting;
 pub mod distribution_preflight;
 pub mod distribution_semantics;
 mod distribution_store;
+mod distribution_s1;
 pub mod home_resources;
 pub mod native_items;
 pub mod native_history;
@@ -1131,7 +1132,13 @@ pub fn run() {
                     let store = (|| {
                         let data = data.as_ref().map_err(Clone::clone)?;
                         let vendor = cfg.distribution.as_ref().unwrap().vendor_root();
-                        crate::distribution_store::Store::open(data, &vendor, namespaces.clone()?)
+                        match cfg.distribution.as_ref().unwrap() {
+                            hosting::successor::Distribution::Production { resources } => {
+                                let selected=distribution_preflight::selection::Selected::production(&resources.join("distribution-reference"))?;
+                                crate::distribution_store::Store::open_selected(data,&vendor,namespaces.clone()?,selected)
+                            },
+                            hosting::successor::Distribution::Development { .. } => crate::distribution_store::Store::open(data,&vendor,namespaces.clone()?),
+                        }
                     })();
                     host.configure_distribution_store(store);
                 }

@@ -1,0 +1,3 @@
+Independent command: cargo test --lib distribution_ --features distribution-successor -- --test-threads=1
+
+Run at frozen author tree with prepared offline Cargo home, CHIRALITY_SKIP_CODEX=1 and released shared target. Escalated bounded synthetic execution. Exit 0: 28 passed, 0 failed, 490 filtered out; 5.11 seconds test time. Output observed in tool transcript; unlike Host/independent controls, this initial run was not redirected to a raw log. Included exhaustive pinned scalar/mixed parity, metadata/mapping drift, sealed selection Unicode identity, exact closure/source relocation, scanner mutation and existing store/label controls.

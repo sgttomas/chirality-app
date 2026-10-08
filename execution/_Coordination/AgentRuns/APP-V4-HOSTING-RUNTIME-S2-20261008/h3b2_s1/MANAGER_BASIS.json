@@ -1,0 +1,33 @@
+{
+  "manager": "/root/hosting_runtime_manager",
+  "parent": "/root",
+  "role": "WORKING_ITEMS",
+  "receiving": "31cdbc9e17b9e8d510c2421d37387bc93f43d150",
+  "reading_limits": "Root supplied; role/skill/RS/treatment read earlier in continuing session and retained by these current unchanged source identities; current graph read and advanced. No claim of rereading all implementation source. Existing run preserves earlier selective context.",
+  "reads": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-HOSTING-RUNTIME-S2-20261008/WORK_GRAPH.md",
+      "sha256": "11f2c15deffafd59366509a40b2c6fe0f92474f51526a4122aa6a3de587275ee"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b/RS_PLACEMENT_CONCURRENCE.md",
+      "sha256": "bba7fc756b45dd80f0a175148e454bd2df5d85ce06d168c5a2d0e7f38539559d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2/TECHNICAL_TREATMENT.md",
+      "sha256": "c68d266b6a9fb7b47ada92878554a2b4a176bd2ff99964a1ab6817dbbbce7277"
+    }
+  ]
+}
