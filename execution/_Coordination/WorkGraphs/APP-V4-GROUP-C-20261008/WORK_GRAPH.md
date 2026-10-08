@@ -37,9 +37,9 @@ Provider adapters and persistent route placement require their actual inputs.
 | C0 recovered Group C route | Manager; this graph and run evidence | Accepted grouping, live contracts, other group graphs, actual code | GC-7/8 relations and owner-held points explicit | COMPLETE recovery for first slice; basis and reading limits recorded in the run |
 | C1 shared connector standing and per-part route projection | TASK connector_slice; new app/src-tauri/src/connector_standing.rs and minimal module registration | CFB §§2–3; exact connector tiers; simulated inputs explicitly marked | Condition precedence/reasons, non-vacuous per-part coverage, absence/unknown refusal, PEC/Domains independence, serialized output, no owner act; targeted offline tests | COMPLETE bounded code/tests: c3174f5846 integrated a99ae55; 7/7 targeted Rust tests; source and coverage verification remain outside slice |
 | C1-V independent review and repair | TASK group_c_review; read-only candidate and tests | Exact C1 plus manager graph/evidence candidate | Independent source, full diff and evidence review; no unresolved blocking findings | COMPLETE at 08fcd838d1; independent review READY with no defects; final evidence-only backcheck before merge |
-| C1-I first substantive integration | Manager, parent Git integration coordination | C1-V, affected offline checks and required CI at actual head | Reviewed PR merged; evidence describes partial scope truthfully | ACTIVE; [PR #1127](https://github.com/sgttomas/chirality/pull/1127), required CI and final backcheck pending |
+| C1-I first substantive integration | Manager, parent Git integration coordination | C1-V, affected offline checks and required CI at actual head | Reviewed PR merged; evidence describes partial scope truthfully | COMPLETE; [PR #1127](https://github.com/sgttomas/chirality/pull/1127) merged before successor base 236cbc3c69; Git/PR history retains CI and review |
 | C2 PEC provider receiving join | App receiving owner with PEC owner; DEL-07-01 adapter/tests/presentation | OI-022 actual tool/response agreement; qualified/released/adopted account before reliance; current-pin hosting observation at use | Source pin → actual response → receiving action and limited/absent cases; independent review | BLOCKED for dependent adapter behavior on actual provider terms; definition/preparation remains available |
-| C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | PLANNED; first slice does not implement persistence or UI |
+| C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE source treatment: named Design owner and independent reviewer for CI-29; persistence and UI remain held on placement and actual inputs |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
 | C5 later research-to-design contribution and witness | App method/receiving owner; DEL-08-02; host work remains SWBPIPE | Owner activation of later increment; C4; portable workflow, shared act row, actual host integration and human act | Source → context → candidate → actual decision witness, plus limitations; preparation/rehearsal separate | BLOCKED at activation/input points; no activation inferred from Group C resume |
 | C6 final bounded reconciliation and receipt | Manager; four deliverables and this run, no MEMORY writes | Intended production and required evidence integrated | Commitment↔result comparison under bounded-reconciliation; missing work returns to execution; conditional intake only without a home | PLANNED |
@@ -80,17 +80,15 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-Basis: `7311df06d8` (PR #1126 merge), isolated branch
-`codex/app-v4-group-c`; this branch is the designated graph ref while ahead of
-main. Manager owns graph/evidence/integration; children own isolated worktrees.
+Successor basis: `236cbc3c693423499120b4abeadfdcc5fb670477` (includes merged PRs #1127 and #1128), isolated branch
+`codex/group-c-ci29`; this branch is the designated graph ref while ahead of
+main. WORKING_ITEMS `/root/group_c_successor` now owns C3 continuation under HELP_HUMAN `/root`. Manager owns graph/evidence/integration; children own isolated worktrees.
 Basis identities and reading limits: [BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/BASIS.json). Actual assignments: [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/DELEGATION.md).
 Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-Next: finish required CI and evidence-only exact-head backcheck, then merge
-PR #1127. Continue C3 from its recorded source-owner design questions after
-this bounded integration; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
+Next: independently review the named CI-29 successor source treatment and its PEC, Domains, fleet and examination effects. Resolve O-D project placement through its source owner before persistent writing; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
 MEMORY write or human decision is authorized by this graph. SEAL-2 remains
 deferred. External SWBPIPE, PEC and Domains implementation stays in its own
 sessions and cross-project relay belongs to the owner. No 90% claim.
@@ -101,3 +99,9 @@ CI-29 records the mismatch. Resolve by named reviewed contract treatment before 
 no account and does not weaken that schema. This issue has a current C3 home.
 
 C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C1_EVIDENCE.md). C1 is a programmatic library contribution; no App view or actual source recovery is complete.
+
+## C3 successor route
+
+C3-D named source treatment → C3-V independent source/consumer review → C3-I source integration. O-D placement remains open before C3-P persistence; only reviewed placement and actual source/custody inputs release that slice. Any product meaning or cross-group order change returns through HELP_HUMAN. No caller-selected or canonical path is silently chosen.
+
+Actual harness-native children are TASK `/root/group_c_successor/cfb_design_owner` (DEL-07-02 Design and named C3 source evidence only) and TASK `/root/group_c_successor/cfb_design_review` (independent read/review evidence only). Both use `gpt-6-astra` low, separate managed worktrees and branches based on main. The write fences are supplied instructions, not claims of host per-file enforcement. Manager basis and reading limits: [C3_MANAGER_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_MANAGER_BASIS.json). No MEMORY writes or additional owner acts are authorized.
