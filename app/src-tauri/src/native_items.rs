@@ -82,6 +82,7 @@ pub struct NativeView {
     types_pin: String,
     version: Value,
     supplier_standing: Value,
+    distribution_evidence: Value,
     items: BTreeMap<String, Value>,
     turns: BTreeMap<(String, String), Value>,
     revisions: Vec<Value>,
@@ -102,6 +103,7 @@ impl NativeView {
             types_pin: "0.160.0".into(),
             version: Value::Null,
             supplier_standing: Value::Null,
+            distribution_evidence: Value::Null,
             items: BTreeMap::new(),
             turns: BTreeMap::new(),
             revisions: Vec::new(),
@@ -109,6 +111,13 @@ impl NativeView {
             goals: BTreeMap::new(),
             checklist_gaps: Vec::new(),
         })
+    }
+    /// Display adapter only. The Host owns exact-byte at-use checks; this value
+    /// grants no supplier standing or live custody and remains outside legacy identity.
+    pub(crate) fn receive_distribution_evidence(&mut self, value: &Value) {
+        self.distribution_evidence = if value.is_null() || self.generation.as_ref() == Some(&value["generation"]) {
+            value.clone()
+        } else { json!({"state":"unavailable","reason":"foreign generation evidence"}) };
     }
     pub fn ready(
         &mut self,
@@ -441,7 +450,7 @@ impl NativeView {
         snapshot
     }
     pub fn snapshot(&self) -> Value {
-        json!({"home":self.home,"generation":self.generation,"position":self.position,"supplierStanding":self.supplier_standing,
+        json!({"home":self.home,"generation":self.generation,"position":self.position,"supplierStanding":self.supplier_standing,"distributionEvidence":self.distribution_evidence,
             "items":self.items.values().collect::<Vec<_>>(),"revisions":self.revisions,"descendants":self.descendants.values().collect::<Vec<_>>(),
             "turns":self.turns.values().collect::<Vec<_>>(),"goals":self.goals,"checklistGaps":self.checklist_gaps,
             "limits":["Tool success is not checking, acceptance or reliance.","Parent completion says nothing about children.","Child completion, return, review and integration are not inferred.","Plan item references require this receiving home namespace; standalone cross-home export remains unsupported."]})

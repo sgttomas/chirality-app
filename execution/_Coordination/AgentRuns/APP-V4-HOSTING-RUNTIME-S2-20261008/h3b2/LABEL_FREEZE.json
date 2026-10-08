@@ -1,0 +1,12 @@
+{
+  "basis": "c9a2b2d3f3e5e48130b15da988c74948f2ce290a",
+  "semantic_revision": "lifecycle-label-join.s2",
+  "files": {
+    "projects/chirality-app-v4/app/src-tauri/src/distribution_semantics.rs": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9",
+    "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs": "c8c946201b112a914c9914338d046fba4a65a09f591d26059ee0d7eaf636ea51",
+    "projects/chirality-app-v4/app/src-tauri/src/lib.rs": "d47c98958c64935d07992b6adada35ba2d9b7902e7fa4a11889aa44db8a17139",
+    "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+    "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1",
+    "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/LIFECYCLE_LABEL_JOIN.md": "f7d9dd292aaa3a3144c052f5b8f994783f8cfea61a34d8c062dd49071776944e"
+  }
+}

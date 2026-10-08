@@ -22,6 +22,8 @@ pub mod trace_receiving;
 pub mod hosting;
 #[cfg(unix)]
 pub mod distribution_preflight;
+pub mod distribution_semantics;
+mod distribution_store;
 pub mod home_resources;
 pub mod native_items;
 pub mod native_history;
@@ -1037,6 +1039,7 @@ pub fn run() {
             Ok(hosting::successor::production_config(resources, home, probe_home()?, workspace.clone().unwrap_or(data)))
         })()
     };
+    let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
     let project = runtime_session::freeze_configured_project(workspace.as_deref());
     let project_context_limit = project.as_ref().err().cloned();
     let project_context = project.unwrap_or_else(|_|recovery::ExplicitAppProjectContext::unknown());
@@ -1089,6 +1092,16 @@ pub fn run() {
                 runtime_session::freeze_root_home_descriptors(data,cfg,None,shared_paths.clone())?.native_namespaces(false)
             })();
             *state.native_namespaces.lock().unwrap()=namespaces.clone();
+            if let Ok(cfg) = &home.host_config {
+                if cfg.distribution.is_some() {
+                    let store = (|| {
+                        let data = data.as_ref().map_err(Clone::clone)?;
+                        let vendor = cfg.distribution.as_ref().unwrap().vendor_root();
+                        crate::distribution_store::Store::open(data, &vendor, namespaces.clone()?)
+                    })();
+                    host.configure_distribution_store(store);
+                }
+            }
             *home.attachment_custody.lock().unwrap()=data.as_ref().map_err(Clone::clone).and_then(|data|hosting::attachment_custody::AttachmentCustody::open_with_namespaces(data,namespaces.clone()?).map(Arc::new));
             home.recovery_startup.lock().unwrap().initialize_with_namespaces(
                 &host,

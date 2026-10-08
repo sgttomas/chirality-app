@@ -1,0 +1,19 @@
+
+added 136 packages, and audited 137 packages in 697ms
+
+13 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> chirality-app-v4-skeleton@0.0.0 build
+> tsc --noEmit && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 33 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  0.34 kB │ gzip:  0.24 kB
+dist/assets/index-CD9lahxU.js  267.80 kB │ gzip: 81.05 kB
+✓ built in 420ms

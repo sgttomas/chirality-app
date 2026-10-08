@@ -1,0 +1,19 @@
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling label-independent-review v0.1.0 (/private/tmp/hosting-h3b2-label-review/harness)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.36s
+     Running unittests src/lib.rs (/private/tmp/hosting-s2-target/debug/deps/label_independent_review-47af24e71edd59b6)
+
+running 6 tests
+test distribution_semantics::tests::exact_optional_one_lf_and_no_other_normalization ... ok
+test independent::independent_valid_forms_preserve_input_bytes ... ok
+test distribution_semantics::tests::rejects_every_contradictory_or_missing_join_member ... ok
+test independent::independent_full_label_grammar_matrix ... ok
+test independent::independent_no_coercion_missing_wrong_types_and_mismatch ... ok
+test independent::independent_reader_identity_binds_exact_compiled_sources ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,48 @@
+{
+  "agent": "/root/hosting_runtime_manager/runtime_review",
+  "parent": "/root/hosting_runtime_manager",
+  "role": "independent TASK",
+  "mechanism": "delegated-harness-native",
+  "basis": "c9a2b2d3f3e5e48130b15da988c74948f2ce290a",
+  "reads": [
+    {
+      "origin": "/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri/src/distribution_semantics.rs",
+      "sha256": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "sha256": "c8c946201b112a914c9914338d046fba4a65a09f591d26059ee0d7eaf636ea51"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "d47c98958c64935d07992b6adada35ba2d9b7902e7fa4a11889aa44db8a17139"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json",
+      "sha256": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json",
+      "sha256": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/LIFECYCLE_LABEL_JOIN.md",
+      "sha256": "f7d9dd292aaa3a3144c052f5b8f994783f8cfea61a34d8c062dd49071776944e"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-artifacts/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2/RS_LABEL_CONCURRENCE.md",
+      "sha256": "57a85af3572f6a5007cc09693b02e92c686e15b0ad5bd68cf0a44cd2f03e3224"
+    },
+    {
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-artifacts/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/h3b2/PKG_LABEL_CONCURRENCE.md",
+      "sha256": "68ad5015eb79c71bd699c79cd3ffe8fd8dfebe310f351fd70abe11149576aa13"
+    }
+  ],
+  "scope": "minimal label join only; Root/TASK/software-code-review/loop instruction readings reused from prior review packets",
+  "tests": {
+    "maintained_semantic": 2,
+    "independent_semantic": 4,
+    "actual_synthetic_Host_LT09": 1,
+    "failures": 0
+  }
+}

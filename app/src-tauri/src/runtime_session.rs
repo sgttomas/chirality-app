@@ -74,6 +74,9 @@ impl RuntimeSession {
                 self.account = AccountObservation::new(home.into(), generation.clone()).ok();
             }
         }
+        if let Some(view) = &mut self.view {
+            view.receive_distribution_evidence(&snapshot["distributionEvidence"]);
+        }
         // Deliver admitted unseen frames of the known open generation before its
         // terminal close. Already-closed generations are never replayed as live.
         if self.view.is_some() && !self.closed {
