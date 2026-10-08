@@ -104,3 +104,11 @@ V15 and J6 repairs (2026-10-08):
   in the shared session scratchpad before renaming its own copy, so that
   file's earlier content was not preserved; it was a scratch helper, not
   retained evidence.
+
+J6 integrated (2026-10-08): V14-R1 returned READY at `5a6af1cfa7`. HELP_HUMAN
+merged it into `claude/app-v4-group-a-resume` as `745f09397c`, whose `app/`
+bytes equal `5a6af1cfa7` (`git diff` empty), so V14-R1's suite covers it.
+R1-1 was corrected in `9d1e0bb0cd` (CI-22 (c) and an appended
+OWNER_DECISIONS correction). J8's owner was told to merge the integration
+head and resolve the `lib.rs`/`App.tsx` overlap within its V15 repairs, so
+that the V15 confirmation review covers the combined candidate.
