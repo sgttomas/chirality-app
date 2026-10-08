@@ -979,6 +979,8 @@ pub fn run() {
                 *state.decision_writer_status.lock().unwrap() = runtime_session::continue_decision_writer(ws, control.as_mut(), "app-startup-writer");
             }
             *state.app_user_data_root.lock().unwrap() = data.clone();
+            // WR §3: App-kept draft bases live in the App data folder.
+            if let Ok(data) = data.as_ref() { state.workflows.lock().unwrap().set_app_user_data(data.clone()); }
             // Current account/probe protection is independent of a bad new key
             // candidate; do not create/adopt K or replace an existing L binding.
             let namespaces=(|| {

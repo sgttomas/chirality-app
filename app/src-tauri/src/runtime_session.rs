@@ -3829,6 +3829,8 @@ pub(crate) struct WorkflowRootSession {
     /// V10 R-2: successor run → predecessor whose end it holds. The start call that
     /// removes an entry owns the hold and releases the end on every outcome.
     held_successors: std::collections::HashMap<String, String>,
+    /// App user-data root: libraries opened later keep App-kept draft bases there (WR §3).
+    app_user_data: Option<std::path::PathBuf>,
 }
 impl Default for WorkflowRootSession {
     fn default() -> Self {
@@ -3843,6 +3845,7 @@ impl Default for WorkflowRootSession {
             reopened: None,
             notice_flags: Default::default(),
             held_successors: Default::default(),
+            app_user_data: None,
         }
     }
 }
@@ -3854,6 +3857,10 @@ impl WorkflowRootSession {
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "reopened":self.reopened,
             "limit":"closed development/actual hot registrations only; development selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
+    }
+    /// Startup wiring (lib.rs setup): the App user-data root for App-kept draft bases.
+    pub fn set_app_user_data(&mut self, data: std::path::PathBuf) {
+        self.app_user_data = Some(data);
     }
     pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
@@ -3892,11 +3899,14 @@ impl WorkflowRootSession {
             Some(ws) if std::fs::canonicalize(ws).ok().as_ref()==Some(&root)=>return Err("Existing workspace writer uses an alias of this library root; no second control or silent relocation".into()),
             _=>std::sync::Arc::new(std::sync::Mutex::new(Some(crate::act_control::ActControl::new(&root)))),
         };
-        let owner = crate::workflow_workspace::registration::LibraryOwner::open(
+        let mut owner = crate::workflow_workspace::registration::LibraryOwner::open(
             root.clone(),
             origin,
             &source_root,
         )?;
+        if let Some(data) = &self.app_user_data {
+            owner.attach_app_kept_bases(data)?;
+        }
         let id = crate::util::opaque_id("workflow-library:")?;
         self.libraries.insert(
             id.clone(),
@@ -3971,7 +3981,13 @@ impl WorkflowRootSession {
             }
             std::fs::write(path, bytes).map_err(|e| e.to_string())?;
         }
-        owner.record_base(name, &selected.selection)?;
+        // V11 J5-2: a copy whose App-kept base was not recorded would be a dead end.
+        if let Err(error) = owner.record_base(name, &selected.selection) {
+            return Err(match owner.discard_unbased_copy(name, selected.selection.snapshot()) {
+                Ok(()) => format!("App-kept base not recorded ({error}); the draft copy was removed, nothing kept; create the draft again"),
+                Err(kept) => format!("Draft copied but App-kept base not recorded ({error}); the copy was not removed ({kept}); remove {} and create the draft again", crate::attachments::native_path_identity(&target)),
+            });
+        }
         Ok(
             json!({"state":"draft copied from actual closed selection","library":library.reference,"name":name,"base":selected.selection.identity(),"registration":"not captured/registered; edit then Review"}),
         )
@@ -6446,3 +6462,4 @@ for line in sys.stdin:
     }
 
 }
+#[cfg(test)] #[path = "workflow_journey_tests.rs"] mod workflow_journey_tests;

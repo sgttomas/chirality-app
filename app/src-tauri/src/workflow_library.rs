@@ -17,6 +17,8 @@ pub(crate) struct LibraryOwner {
     origin: String,
     source_root: String,
     bases: std::sync::Arc<std::sync::Mutex<HashMap<String, WorkflowIdentity>>>,
+    /// WR §3 "Draft bases": the App data folder, once Root attaches it.
+    base_store: Option<PathBuf>,
 }
 impl LibraryOwner {
     pub(crate) fn open(root: PathBuf, origin: &str, source_root: &str) -> Result<Self, String> {
@@ -33,18 +35,64 @@ impl LibraryOwner {
             origin: origin.into(),
             source_root: source_root.into(),
             bases: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+            base_store: None,
         })
+    }
+    /// WR §3 "Draft bases | App data folder, keyed by draft key | The App only |
+    /// App-kept pointer (R17-4); lost if the App data is lost — then the draft has
+    /// no base (U-WR-12)". Root supplies its App user-data root; without it the
+    /// pointer lives in process memory only and does not survive process loss.
+    pub(crate) fn attach_app_kept_bases(&mut self, app_user_data: &Path) -> Result<(), String> {
+        if !app_user_data.is_absolute() {
+            return Err("App user-data root not established; App-kept bases not attached".into());
+        }
+        storage::check_path(app_user_data)?;
+        self.base_store = Some(app_user_data.join(BASE_STORE));
+        Ok(())
+    }
+    fn base_custody(&self) -> BaseCustody {
+        BaseCustody {
+            memory: self.bases.clone(),
+            store: self.base_store.clone(),
+            draft_root: self.root.join(".chirality/workflow-drafts"),
+            origin: self.origin.clone(),
+        }
     }
     /// Records only an actual closed source selection; draft-file tuples are not bases.
     pub(crate) fn record_base(&mut self, name: &str, selection: &Selection) -> Result<(), String> {
         if !super::valid_name(name) {
             return Err("invalid draft name".into());
         }
-        self.bases
-            .lock()
-            .map_err(|_| "App-kept base state unavailable")?
-            .insert(name.into(), selection.identity().clone());
-        Ok(())
+        self.base_custody().put(name, selection.identity(), false)
+    }
+    /// V11 J5-2: undo the App's own just-written draft copy when its base could
+    /// not be recorded, so no draft is left that can only be DS-3 and that D-1
+    /// forbids the App to overwrite. Only exactly the copied bytes are removed;
+    /// anything else in the folder keeps the whole draft.
+    pub(crate) fn discard_unbased_copy(&self, name: &str, copied: &Snapshot) -> Result<(), String> {
+        if !super::valid_name(name) {
+            return Err("invalid draft name".into());
+        }
+        let draft = self.root.join(".chirality/workflow-drafts").join(name);
+        storage::check_path(&draft)?;
+        if Snapshot::capture(&draft)?.files() != copied.files() {
+            return Err("the draft folder differs from the App's copy; kept".into());
+        }
+        let mut directories = std::collections::BTreeSet::new();
+        for relative in copied.files().keys() {
+            let path = draft.join(relative);
+            fs::remove_file(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let mut parent = path.parent();
+            while let Some(directory) = parent.filter(|d| d.starts_with(&draft) && *d != draft) {
+                directories.insert(directory.to_path_buf());
+                parent = directory.parent();
+            }
+        }
+        for directory in directories.iter().rev() {
+            fs::remove_dir(directory).map_err(|e| format!("{}: {e}", directory.display()))?;
+        }
+        fs::remove_dir(&draft).map_err(|e| format!("{}: {e}", draft.display()))?;
+        storage::sync_dir(draft.parent().ok_or("draft has no parent")?)
     }
     /// WR D-2/RB-1 listing observation: actual package bytes, not request identity.
     /// This digest is comparison data; it grants no review/capture/registration.
@@ -54,6 +102,7 @@ impl LibraryOwner {
         }
         let path = self.root.join(".chirality/workflow-drafts").join(name);
         storage::check_path(&path)?;
+        self.base_custody().drop_if_removed(name, &path)?;
         Ok(Snapshot::capture(&path)?.revision().to_string())
     }
     pub(crate) fn review_draft(
@@ -94,19 +143,24 @@ impl LibraryOwner {
                 })
                 .join(&name);
             storage::check_path(&live)?;
+            if !in_place {
+                self.base_custody().drop_if_removed(&name, &live)?;
+            }
             let snapshot = Snapshot::capture(&live)?;
             let reread = Snapshot::capture(&live)?;
             let slot = slot_lines(&ledger, &self.origin, &self.source_root, &name);
             let prior = latest(&slot)?;
-            let base = if in_place {
+            // The App-kept base is an observed claim: disclosed, frozen here and
+            // rechecked at current() and under the ledger lock (G1). It is
+            // freshness evidence, never proof that an earlier act occurred.
+            let base_observed = if in_place {
                 None
             } else {
-                self.bases
-                    .lock()
-                    .map_err(|_| "App-kept base state unavailable")?
-                    .get(&name)
-                    .cloned()
+                Some(self.base_custody().get(&name).map_err(|cause| {
+                    format!("App-kept base for draft {name} not established: {cause}")
+                })?)
             };
+            let base = base_observed.as_ref().and_then(|o| o.base.clone());
             let identity =
                 snapshot.identity(&self.origin, &self.source_root, &name, base.clone())?;
             let published = self.root.join(".chirality/workflows").join(&name);
@@ -119,9 +173,7 @@ impl LibraryOwner {
             let disposition = if in_place {
                 "in place"
             } else if let Some(prior) = &prior {
-                if !base.as_ref().is_some_and(|b| lineage_reaches(b, prior)) {
-                    return Err("DS-3: name taken; draft has no App-kept base in this slot".into());
-                }
+                lineage_reaches(base.as_ref(), prior, &slot)?;
                 if slot.iter().any(|e| {
                     e["outcome"] == "registered" && e["identity"]["revision"] == snapshot.revision()
                 }) {
@@ -168,6 +220,7 @@ impl LibraryOwner {
                 review,
                 live,
                 slot,
+                base: base_observed,
                 disposition: disposition.into(),
                 reference,
                 in_place,
@@ -182,7 +235,7 @@ impl LibraryOwner {
         };
         let mut session = ReviewSession {
             root: self.root.clone(),
-            bases: self.bases.clone(),
+            custody: self.base_custody(),
             act_log: storage::library_log(&self.root),
             origin: self.origin.clone(),
             source_root: self.source_root.clone(),
@@ -201,12 +254,35 @@ impl LibraryOwner {
         Ok(session)
     }
 }
-fn lineage_reaches(base: &WorkflowIdentity, target: &WorkflowIdentity) -> bool {
-    base.same_slot(target)
-        || base
-            .derived_from
-            .as_deref()
-            .is_some_and(|p| lineage_reaches(p, target))
+/// SP-3: a draft is made from the slot when its App-kept base "is a revision of
+/// that slot", or the base's derived-from lineage reaches one. The first tuple in
+/// that lineage naming this slot must be a revision the ledger registered in it;
+/// otherwise the lineage is not established (DS-3), shown as ID-4's "lineage
+/// incomplete at ‹tuple›". The App-kept record is a claim, not proof (CI-21).
+fn lineage_reaches(
+    base: Option<&WorkflowIdentity>,
+    target: &WorkflowIdentity,
+    slot: &[Value],
+) -> Result<(), String> {
+    let mut node = base;
+    while let Some(n) = node {
+        if n.same_slot(target) {
+            let registered = slot.iter().any(|v| {
+                v["outcome"] == "registered"
+                    && v["identity"]["revision"] == n.revision.as_str()
+                    && v["identity"]["revision_method"] == n.revision_method.as_str()
+            });
+            if registered {
+                return Ok(());
+            }
+            return Err(format!(
+                "DS-3: name taken; App-kept base lineage incomplete at {}:{}@{} (not a revision registered in this slot; WR SP-3, ID-4)",
+                n.origin, n.name, n.revision
+            ));
+        }
+        node = n.derived_from.as_deref();
+    }
+    Err("DS-3: name taken; draft has no App-kept base in this slot".into())
 }
 #[derive(Clone, Copy)]
 enum ReviewMode {
@@ -218,12 +294,14 @@ struct ReviewedEntry {
     review: Review,
     live: PathBuf,
     slot: Vec<Value>,
+    /// Frozen App-kept base observation (draft entries only).
+    base: Option<BaseObservation>,
     disposition: String,
     reference: String,
     in_place: bool,
 }
 pub(crate) struct ReviewSession {
-    bases: std::sync::Arc<std::sync::Mutex<HashMap<String, WorkflowIdentity>>>,
+    custody: BaseCustody,
     root: PathBuf,
     act_log: PathBuf,
     origin: String,
@@ -265,8 +343,25 @@ impl ReviewSession {
                 self.withdrawn.set(true);
                 return Err("changed since review; review again".into());
             }
+            if let Some(frozen) = &e.base {
+                if let Err(cause) = self.base_unchanged(&e.review.identity.name, frozen) {
+                    self.withdrawn.set(true);
+                    return Err(format!("changed since review ({cause}); review again"));
+                }
+            }
         }
         Ok(CurrentReviewView { session: self })
+    }
+    /// Rereads the App-kept base and compares it with the frozen observation.
+    fn base_unchanged(&self, name: &str, frozen: &BaseObservation) -> Result<(), String> {
+        let now = self
+            .custody
+            .get(name)
+            .map_err(|cause| format!("App-kept base not established: {cause}"))?;
+        if &now != frozen {
+            return Err("App-kept base changed since review".into());
+        }
+        Ok(())
     }
     fn compose_descriptor(&self) -> Value {
         if matches!(self.mode, ReviewMode::MultiInPlace) {
@@ -285,7 +380,7 @@ impl ReviewSession {
                 let path=store_path(&self.root,id);
                 match Snapshot::capture(&path){Ok(previous)=>json!({"identity":id,"files":previous.manifest(),"changes":diff(previous.files(),e.review.snapshot().files()),"limit":"comparison with stored bytes; old native origin not authenticated"}),Err(error)=>json!({"identity":id,"comparison":"unavailable","reason":error})}
             }}};
-            json!({"identity":e.review.identity,"disposition":e.disposition,"message":format!("Registers {} in the {} library; earlier revisions are kept",e.disposition,self.origin),"content":content(e),"files":e.review.snapshot().manifest(),"workflow_text":e.review.snapshot().workflow_text(),"declaration":e.review.snapshot().declaration().map(|d|serde_json::to_value(d).unwrap_or(Value::Null)).unwrap_or_else(|error|json!({"unavailable":error})),"hygiene":e.review.snapshot().hygiene_findings(),"prior_revision":e.review.prior,"base":e.review.identity.derived_from,"lineage":e.review.identity.derived_from,"stale_base":e.review.prior.as_ref()!=e.review.identity.derived_from.as_deref(),"prior_comparison":comparison(e.review.prior.as_ref()),"base_comparison":comparison(e.review.identity.derived_from.as_deref()),"reviewed_reference":e.reference,"evidence_limits":["prior/base ledger facts are disclosed observations; no earlier native-act authentication"],"registration_notice":"Registering makes this revision available in the library. It is not a check that the workflow can run here."})
+            json!({"identity":e.review.identity,"disposition":e.disposition,"message":format!("Registers {} in the {} library; earlier revisions are kept",e.disposition,self.origin),"content":content(e),"files":e.review.snapshot().manifest(),"workflow_text":e.review.snapshot().workflow_text(),"declaration":e.review.snapshot().declaration().map(|d|serde_json::to_value(d).unwrap_or(Value::Null)).unwrap_or_else(|error|json!({"unavailable":error})),"hygiene":e.review.snapshot().hygiene_findings(),"prior_revision":e.review.prior,"base":e.review.identity.derived_from,"lineage":e.review.identity.derived_from,"stale_base":e.review.prior.as_ref()!=e.review.identity.derived_from.as_deref(),"prior_comparison":comparison(e.review.prior.as_ref()),"base_comparison":comparison(e.review.identity.derived_from.as_deref()),"reviewed_reference":e.reference,"evidence_limits":["prior/base ledger facts are disclosed observations; no earlier native-act authentication"],"ledger_observation":{"ledger":".chirality/workflow-registry.jsonl","slot_lines":e.slot.len(),"standing":"schema-readable registration ledger claim, frozen at review and rechecked under the ledger lock; equality is freshness evidence, not replay proof; the earlier native A15 is not authenticated and the earlier revision is not made selectable"},"base_observation":e.base.as_ref().map(|b|json!({"observed":b.source,"standing":"App-kept pointer (WR §3, R17-4), frozen at review and rechecked under the ledger lock; freshness evidence, not native-authenticated and not replay proof"})),"registration_notice":"Registering makes this revision available in the library. It is not a check that the workflow can run here."})
         }).collect::<Vec<_>>(),"same_name_elsewhere":{"standing":"not observed by this library owner; receiving catalog must supply collision inventory"},"compatibility":"not established; separate environment check"})
     }
     pub(crate) fn begin_hot_registration(
@@ -394,23 +489,40 @@ fn diff(
 ) -> Vec<Value> {
     before.keys().chain(after.keys()).collect::<std::collections::BTreeSet<_>>().into_iter().filter(|p|before.get(*p)!=after.get(*p)).map(|p|json!({"path":p,"before":before.get(p).map(|b|crate::util::sha256_hex(b)),"after":after.get(p).map(|b|crate::util::sha256_hex(b))})).collect()
 }
+/// Reads the registration ledger. Each refusal names its exact cause (unreadable,
+/// malformed or ambiguous) with the ledger path and line; nothing is skipped.
 fn read_ledger(root: &Path) -> Result<Vec<Value>, String> {
     let path = root.join(".chirality/workflow-registry.jsonl");
     storage::check_path(&path)?;
-    let bytes = match fs::read(path) {
+    let shown = path.display();
+    let bytes = match fs::read(&path) {
         Ok(b) => b,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(format!("registration ledger unreadable: {shown}: {e}")),
     };
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
-        return Err("registration ledger has incomplete tail".into());
+        return Err(format!(
+            "registration ledger malformed: {shown}: incomplete final line (no newline) at line {}",
+            bytes.split(|b| *b == b'\n').count()
+        ));
     }
     let mut rows = Vec::new();
-    for line in bytes.split(|b| *b == b'\n').filter(|b| !b.is_empty()) {
-        let value: Value = serde_json::from_slice(line).map_err(|e| e.to_string())?;
-        super::wr_validate("library_entry", &value)?;
+    for (index, line) in bytes.split(|b| *b == b'\n').enumerate() {
+        let number = index + 1;
+        if line.is_empty() {
+            continue;
+        }
+        let value: Value = serde_json::from_slice(line).map_err(|e| {
+            format!("registration ledger malformed: {shown}: line {number} is not JSON: {e}")
+        })?;
+        super::wr_validate("library_entry", &value)
+            .map_err(|e| format!("registration ledger malformed: {shown}: line {number}: {e}"))?;
         if value["ledger_seq"].as_u64() != Some(rows.len() as u64 + 1) {
-            return Err("registration ledger sequence ambiguous".into());
+            return Err(format!(
+                "registration ledger ambiguous: {shown}: line {number} has ledger_seq {}, expected {}",
+                value["ledger_seq"],
+                rows.len() + 1
+            ));
         }
         rows.push(value);
     }
@@ -426,11 +538,51 @@ fn slot_lines(rows: &[Value], origin: &str, source: &str, name: &str) -> Vec<Val
         .cloned()
         .collect()
 }
+/// The slot's latest registered revision. The slot's registered lines must form
+/// one series (SP-1, G-4): sequence 1, 2, … in ledger order, each naming the
+/// previous registered revision as its prior, no revision twice. Otherwise the
+/// latest is ambiguous and the exact break is named.
 fn latest(rows: &[Value]) -> Result<Option<WorkflowIdentity>, String> {
-    rows.iter()
-        .rev()
-        .find(|v| v["outcome"] == "registered")
-        .map(|v| serde_json::from_value(v["identity"].clone()).map_err(|e| e.to_string()))
+    let mut previous: Option<&Value> = None;
+    let mut seen = std::collections::HashSet::new();
+    for (k, v) in rows
+        .iter()
+        .filter(|v| v["outcome"] == "registered")
+        .enumerate()
+    {
+        let at = format!(
+            "registration ledger ambiguous for slot {}:{}: ledger_seq {}",
+            v["identity"]["origin"].as_str().unwrap_or("?"),
+            v["identity"]["name"].as_str().unwrap_or("?"),
+            v["ledger_seq"]
+        );
+        if v["sequence"].as_u64() != Some(k as u64 + 1) {
+            return Err(format!(
+                "{at} has sequence {}, expected {}",
+                v["sequence"],
+                k + 1
+            ));
+        }
+        let expected_prior = previous.map(|p| &p["identity"]).unwrap_or(&Value::Null);
+        if &v["prior_revision"] != expected_prior {
+            return Err(format!(
+                "{at} names prior revision {}, but the slot's latest before it is {}",
+                v["prior_revision"]["revision"], expected_prior["revision"]
+            ));
+        }
+        if !seen.insert(v["identity"]["revision"].to_string()) {
+            return Err(format!(
+                "{at} registers revision {} a second time",
+                v["identity"]["revision"]
+            ));
+        }
+        previous = Some(v);
+    }
+    previous
+        .map(|v| {
+            serde_json::from_value(v["identity"].clone())
+                .map_err(|e| format!("registration ledger malformed: latest identity: {e}"))
+        })
         .transpose()
 }
 fn store_path(root: &Path, id: &WorkflowIdentity) -> PathBuf {
@@ -564,6 +716,22 @@ impl HotRegistrationAttempt {
         {
             return self.fail_entry(index, "slot moved on; review again".into(), &rows);
         }
+        // G1 (under the ledger lock): the frozen App-kept base is still the one
+        // observed. A changed base ends this attempt; an unreadable one keeps it
+        // pending with its exact cause.
+        if let Some(frozen) = &e.base {
+            let name = e.review.identity.name.clone();
+            let now = self.session.custody.get(&name).map_err(|cause| {
+                format!("App-kept base not established at registration: {cause}")
+            })?;
+            if &now != frozen {
+                return self.fail_entry(
+                    index,
+                    "App-kept base changed since review; review again".into(),
+                    &rows,
+                );
+            }
+        }
         if e.in_place
             && !Snapshot::capture(&e.live)
                 .is_ok_and(|live| live.files() == e.review.snapshot().files())
@@ -649,14 +817,16 @@ impl HotRegistrationAttempt {
             snapshot: e.review.snapshot().clone(),
             act_ref: self.receipt.record_id().into(),
         };
-        let base_update = self
-            .session
-            .bases
-            .lock()
-            .map(|mut bases| {
-                bases.insert(e.review.identity.name.clone(), e.review.identity.clone());
-            })
-            .map_err(|_| "App-kept base update pending".to_string());
+        // G-6 / §5.1: "the App records the new revision as the draft's base".
+        // An in-place entry has no draft, so no draft base is recorded for it.
+        let base_update = if e.in_place {
+            Ok(())
+        } else {
+            self.session
+                .custody
+                .put(&e.review.identity.name, &e.review.identity, true)
+                .map_err(|error| format!("App-kept base update pending: {error}"))
+        };
         let mut publication = match self.publish_copy(index) {
             Ok(()) => PublicationOutcome::Current,
             Err(error) => PublicationOutcome::RepairPending(error),
@@ -742,6 +912,177 @@ fn sync_package(path: &Path) -> Result<(), String> {
         }
     }
     storage::sync_dir(path)
+}
+
+/// Where App-kept draft bases live under the App user-data root (WR §3 names the
+/// App data folder; this sub-path is the implementation's, CONTRACT_ISSUES CI-21).
+pub(crate) const BASE_STORE: &str = "runtime/wr/draft-bases";
+
+/// WR §3 "Draft bases": written by the App only, keyed by draft key
+/// {draft location, draft root, name}. Each pointer is one WR `draft_reference`
+/// record (§8 "App-recorded base"; schema: `base` only when `base_recorded_by`
+/// is *app*), validated before it is written and when it is read back. Without
+/// an attached App data folder the pointer is held in process memory only.
+#[derive(Clone)]
+struct BaseCustody {
+    memory: std::sync::Arc<std::sync::Mutex<HashMap<String, WorkflowIdentity>>>,
+    store: Option<PathBuf>,
+    draft_root: PathBuf,
+    origin: String,
+}
+/// One observation of a draft's App-kept base: the base and where it was read.
+#[derive(Clone, Debug, PartialEq)]
+struct BaseObservation {
+    base: Option<WorkflowIdentity>,
+    source: Value,
+}
+impl BaseCustody {
+    fn key(&self, name: &str) -> Value {
+        json!({"draft_location":self.origin,"draft_root":self.draft_root.display().to_string(),"name":name})
+    }
+    fn file(&self, store: &Path, name: &str) -> PathBuf {
+        store.join(format!(
+            "{}.json",
+            storage::key(&self.key(name).to_string())
+        ))
+    }
+    fn get(&self, name: &str) -> Result<BaseObservation, String> {
+        let Some(store) = &self.store else {
+            let base = self
+                .memory
+                .lock()
+                .map_err(|_| "App-kept base state unavailable")?
+                .get(name)
+                .cloned();
+            return Ok(BaseObservation {
+                base,
+                source: json!({"source":"process memory only; App data folder not attached","limit":"lost with this process (WR §3, U-WR-12)"}),
+            });
+        };
+        let path = self.file(store, name);
+        storage::check_path(&path)?;
+        let shown = path.display();
+        let bytes = match fs::read(&path) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(BaseObservation {
+                    base: None,
+                    source: json!({"source":"App data folder","record":"none for this draft key"}),
+                })
+            }
+            Err(e) => return Err(format!("App-kept base record unreadable: {shown}: {e}")),
+        };
+        let record: Value = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("App-kept base record malformed: {shown}: not JSON: {e}"))?;
+        super::wr_validate("draft_reference", &record)
+            .map_err(|e| format!("App-kept base record malformed: {shown}: {e}"))?;
+        if record["draft"] != self.key(name) {
+            return Err(format!(
+                "App-kept base record ambiguous: {shown} names draft key {}, not this draft",
+                record["draft"]
+            ));
+        }
+        let base = if record["base_recorded_by"] == "app" {
+            let base: WorkflowIdentity = serde_json::from_value(record["base"].clone())
+                .map_err(|e| format!("App-kept base record malformed: {shown}: base: {e}"))?;
+            base.validate()
+                .map_err(|e| format!("App-kept base record malformed: {shown}: base: {e}"))?;
+            Some(base)
+        } else {
+            None
+        };
+        Ok(BaseObservation {
+            base,
+            source: json!({"source":"App data folder","record":record}),
+        })
+    }
+    /// Records `base` for the draft. `registered`: the draft's content was just
+    /// registered as `base` (§5.1 *registered, unchanged since*, when it still is).
+    fn put(&self, name: &str, base: &WorkflowIdentity, registered: bool) -> Result<(), String> {
+        let Some(store) = &self.store else {
+            self.memory
+                .lock()
+                .map_err(|_| "App-kept base state unavailable")?
+                .insert(name.into(), base.clone());
+            return Ok(());
+        };
+        let draft = self.draft_root.join(name);
+        storage::check_path(&draft)?;
+        let mut record = json!({"record_kind":"draft_reference","draft":self.key(name),"base":base,"base_recorded_by":"app","observed_at":crate::util::now_rfc3339()});
+        match Snapshot::capture(&draft) {
+            Ok(snapshot) => {
+                let findings: Vec<Value> = snapshot
+                    .hygiene_findings()
+                    .iter()
+                    .filter_map(|f| finding(f))
+                    .collect();
+                record["state"] = json!(if !findings.is_empty() {
+                    "not valid"
+                } else if registered && snapshot.revision() == base.revision {
+                    "registered, unchanged since"
+                } else {
+                    "draft"
+                });
+                record["content"] = json!({"method":SNAPSHOT_METHOD,"value":snapshot.revision()});
+                record["file_count"] = json!(snapshot.files().len());
+                record["findings"] = json!(findings);
+            }
+            Err(error) => {
+                let findings: Vec<Value> = finding(&error).into_iter().collect();
+                record["state"] = json!(if findings.is_empty() {
+                    "draft"
+                } else {
+                    "not valid"
+                });
+                record["content"] = json!({ "not_established": error });
+                record["findings"] = json!(findings);
+            }
+        }
+        super::wr_validate("draft_reference", &record)?;
+        storage::ensure_directory(store)?;
+        storage::replace_json(&self.file(store, name), &record)
+    }
+    /// §5.1 "Folder removed → the App's base pointer is dropped", when the App
+    /// observes the draft folder absent. The App does not watch the folder
+    /// between its own observations (D3).
+    fn drop_if_removed(&self, name: &str, draft: &Path) -> Result<(), String> {
+        match fs::symlink_metadata(draft) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            _ => return Ok(()),
+        }
+        let Some(store) = &self.store else {
+            self.memory
+                .lock()
+                .map_err(|_| "App-kept base state unavailable")?
+                .remove(name);
+            return Ok(());
+        };
+        let path = self.file(store, name);
+        storage::check_path(&path)?;
+        match fs::remove_file(&path) {
+            Ok(()) => storage::sync_dir(store),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(e) => Err(format!(
+                "App-kept base pointer not dropped: {}: {e}",
+                path.display()
+            )),
+        }
+    }
+}
+/// A WR `finding` for a hygiene refusal or finding, by its HY code.
+fn finding(detail: &str) -> Option<Value> {
+    let code = [
+        ("HY-1", "HY-1 no WORKFLOW.md"),
+        ("HY-2", "HY-2 name"),
+        ("HY-3", "HY-3 non-regular entry"),
+        ("HY-4", "HY-4 operating-system file"),
+        ("HY-5", "HY-5 size bound"),
+        ("HY-7", "HY-7 not UTF-8"),
+    ]
+    .iter()
+    .find(|(prefix, _)| detail.starts_with(prefix))?
+    .1;
+    Some(json!({"code":code,"detail":detail}))
 }
 
 #[cfg(test)]
