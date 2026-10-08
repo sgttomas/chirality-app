@@ -20,3 +20,8 @@ The 1 MiB limit covers exact serialized UTF-8 bytes, including escaping and meta
 One nonblocking inherited schema description mentions nonrepository source revisions; CAM §3 explicitly narrows this producer to readCommit equality and Git provenance. It supplies no permission to materialize arbitrary stated revisions. Implementations must follow the explicit mapping and preserve old source meanings.
 
 Parent technical release/authority analysis remains separate from this source verdict. Subsequent exact code review must exercise the complete injected selection → real Git/anchor → compose → CRP save → cold-view path, including the semantic negatives above, post-start cancellation/edits, stale references, same-root replacement, uncertain outcomes and oversized serialized escaping. Actual native witness, external adoption and complete source reconstruction remain unfinished.
+
+
+## Description amendment backcheck: READY
+
+Exact amended source `e57dec1c3149b866f466af398d6ae47f14482d5d` replaces the inherited 0.3 revision description with exact host-observed Git readCommit equality and non-authority limits, resolving the nonblocking wording note above. Only that description and its basis hash changed. Independently compared parsed schemas after normalizing this one description: all validation structure is identical. Verified amended schema SHA-256 `f220695f8f8f28651508ae9f5a471c35aa37f26a55d287eb05ebe90af93fe50b`. Prior 31 maintained and 15 independent shape/boundary checks remain applicable; no broad rerun warranted. Source remains READY at this exact amendment, with semantic implementation gates and parent technical release unchanged.
