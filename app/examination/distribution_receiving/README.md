@@ -1,5 +1,9 @@
 # Staged S4 file receiving
 
+Current source: [Stop-admission renewal](STOP_ADMISSION_SOURCE_ADOPTION.md) at127d.
+Existing LT09 and LT09/LT23 contracts remain fixed; earlier cohort descriptions
+below are historical.
+
 Current source: [combined-source renewal](LT12_COMBINED_SOURCE_ADOPTION.md) at2377.
 It preserves existing LT09 and LT09/LT23 contracts; preceding cohort descriptions
 below remain historical.

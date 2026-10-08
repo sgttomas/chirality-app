@@ -1,0 +1,23 @@
+{
+  "format": "group-b-stop-admission-terminal-fixture-provenance.v1",
+  "adoption": "B-S4-STOP-ADMISSION-TERMINAL-v1",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected",
+      "--exact",
+      "--ignored",
+      "--nocapture"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "90f76ee159433fd4b41439b38e5ec40badd3709e39ef3030d03673f2690d3feb",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "127d48f61d91b70d00d0670d2150c79b8ac26d1f"
+  },
+  "exchange_sha256": {
+    "selected": "023060d6ceda74baf68f07c48ab6029358efcf2ca382b730ed9c82b39f64434b",
+    "unselected": "a0b7d65f63fb9491b8d1c636df339177f295e6542b5a4ba78ac22d130a54f75c"
+  },
+  "standing": "Actual synthetic existing-row exports; no LT20 exchange/native authority/qualification",
+  "receipt_sha256": "4f4ece8f398fc0d04b52eef6848d750d7fd8560cf49d6fac4f267fe2c19f02e0"
+}
