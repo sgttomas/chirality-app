@@ -140,6 +140,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
         s["configurationProblem"] = json!(e);
     }
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
+    s["roleSet"] = role_set_metadata();
     let mut history = home.history.lock().unwrap();
     history.reconcile(&home.host);
     let root = state.instructions_root.lock().unwrap().clone();
@@ -311,8 +312,36 @@ fn host_stop(state: State<'_, AppState>, generation:Value) -> Result<Value, Stri
     home.host.stop_scoped(&generation,"the person", "Stop Codex")
 }
 
+fn role_set_metadata() -> Value {
+    let identity = role_supply::content(role_supply::BUNDLED_ROLE_SET);
+    match role_supply::bundled_role_set() {
+        Ok(set) => json!({"available":true,"roles":set.roles,"defaultRole":set.default_role(),"identity":identity,"standing":"candidate; U-R6/U-R11 open"}),
+        Err(reason) => json!({"available":false,"reason":reason,"identity":identity}),
+    }
+}
+/// Native build mode chooses the source, never file existence or a failed package check.
+fn prepare_role_entry(
+    root: &std::path::Path,
+    role: Option<role_supply::Role>,
+    development: bool,
+    resource_root: impl FnOnce() -> Result<PathBuf, String>,
+) -> Result<(role_supply::Composition, Value), String> {
+    let package = if development {
+        role_supply::bundled_role_set()?;
+        json!({"standing":"development-embedded-candidate","roleSet":role_supply::content(role_supply::BUNDLED_ROLE_SET),"releaseQualified":false})
+    } else {
+        runtime_session::verify_production_instructions_root(&resource_root()?)?
+    };
+    let composition = runtime_session::compose_role(root, role)?;
+    Ok((composition, package))
+}
+fn refused_role_entry(role: Option<role_supply::Role>, reason: &str) -> Value {
+    json!({"state":"refused-before-send","selection":role,"roleSet":role_supply::content(role_supply::BUNDLED_ROLE_SET),"reason":reason,"adoption":"unknown"})
+}
+
 #[tauri::command(async)]
 fn thread_start(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     model: String,
     model_provider: String,
@@ -329,8 +358,20 @@ fn thread_start(
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
     if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
     else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
-    let root = state.instructions_root.lock().unwrap().clone()?;
-    let composition = runtime_session::compose_role(&root, role)?;
+    let prepared = (|| {
+        let root = state.instructions_root.lock().unwrap().clone()?;
+        prepare_role_entry(&root, role, tauri::is_dev(), || {
+            app.path().resource_dir().map(|path| path.join("instructions"))
+                .map_err(|error| format!("Production instruction resource directory unavailable: {error}"))
+        })
+    })();
+    let (composition, package_correspondence) = match prepared {
+        Ok(prepared) => prepared,
+        Err(reason) => {
+            *home.role_supply_status.lock().unwrap() = refused_role_entry(role, &reason);
+            return Err(reason);
+        }
+    };
     composition.verify()?;
     let generation = home.host.snapshot()["generation"].clone();
     let attempt_id = util::opaque_id("conversation:")?;
@@ -344,7 +385,7 @@ fn thread_start(
     let supply_ref = {
         let mut slot = home.access_selection.lock().unwrap();
         let supply_ref = runtime_session::claim_start(&mut slot, selection, || util::opaque_id("sup:"))?;
-        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+        *home.role_supply_status.lock().unwrap() = json!({"state":"starting","attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
         supply_ref
     };
     // Freeze the verified original composition before native dispatch. Actual
@@ -373,7 +414,7 @@ fn thread_start(
         };
         let mut status = home.role_supply_status.lock().unwrap();
         if status["attemptId"] == attempt_id && status["generation"] == generation {
-            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
+            *status = json!({"state":if result.is_ok(){"response-observed"}else{"start-failed-or-unknown"},"attemptId":attempt_id,"selection":role,"roleSet":composition.role_set_identity(),"packageCorrespondence":package_correspondence,"generation":generation,"carried":composition.carried,"adoption":"unknown","nativeChildRoles":composition.child_status(None,false)});
         }
         result
     };
@@ -655,6 +696,15 @@ fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathB
 fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
     let Some(path)=workflow_native_folder(&app,"Select exact coordinated-knowledge-work development holding copy")? else{return Ok(json!({"state":"native selection dismissed"}));};
     state.workflows.lock().unwrap().select_development_copy(path)
+}
+#[tauri::command(async)]
+fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String)->Result<Value,String>{
+    let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join("workflows");
+    state.workflows.lock().unwrap().select_production_bundle(root,&name)
+}
+#[tauri::command]
+fn workflow_select_production_copy(state:State<'_,AppState>,name:String)->Result<Value,String>{
+    state.workflows.lock().unwrap().select_production_copy(&name)
 }
 #[tauri::command(async)]
 fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String)->Result<Value,String>{
@@ -1085,7 +1135,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
+            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,
@@ -1161,3 +1211,7 @@ mod file_act_consumer_tests;
 #[cfg(test)]
 #[path = "../../tests/group_b_fixture_consumer.rs"]
 mod group_b_fixture_consumer;
+
+#[cfg(test)]
+#[path = "p3_role_entry_tests.rs"]
+mod p3_role_entry_tests;
