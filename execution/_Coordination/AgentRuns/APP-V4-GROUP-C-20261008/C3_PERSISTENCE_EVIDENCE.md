@@ -1,113 +1,150 @@
-# C3-P bounded route-account persistence
+# C3-P bounded route-account persistence — CRP-R2 repair
 
-TASK `/root/group_c_successor/route_persistence` returns the backend contribution
-under WORKING_ITEMS `/root/group_c_successor`. Basis and exact source/output
-hashes are in `C3_PERSISTENCE_BASIS.json`. The commit carrying this record is the
-author candidate; the manager supplies independent review and integration.
+TASK `/root/group_c_successor/route_persistence` returns the repaired backend
+under WORKING_ITEMS `/root/group_c_successor`. Exact source/output hashes and
+historical observations are in `C3_PERSISTENCE_BASIS.json`. This commit is an
+author candidate; independent backcheck and manager integration remain required.
 No push or merge was performed by this child.
 
-## Implemented boundary
+## Selected source and original finding
 
-`connector_route_store` accepts schema-valid caller accounts in format 0.1 or
-0.2 through an explicit opened project. Exact maintained copies of the two
-route schemas and standing dependency compile with external retrieval disabled;
-a regression check compares their complete bytes to the maintained Design.
-The caller's account fields, recorder/time provenance and duty standing survive
-serialization. No source read, source truth, semantic reference validation,
-performed duty or authority follows from this shape check.
+The original candidate `e660d7431de637da7e8dbe9d9bddc0c6847838c8` implemented
+CRP-v0.2 and passed 25 connector checks. Independent review reproduced two
+blocking failures on its integrated equivalent: after the writer's temporary
+name was replaced, cleanup deleted the foreign replacement and publication
+linked foreign bytes before detecting a final mismatch. Those original passes
+did not cover or disprove the defect. The original candidate and its evidence
+remain in Git; no earlier result is recast as a safety pass.
 
-New records use independently generated UUID-v4 names under
-`.chirality/records/connectors/route-accounts/`. All descendants are opened
-relative to retained directory handles with no-follow flags. Canonical root and
-ancestor identities are compared before writing and after publication. Private
-exclusive temporary files are written/flushed/synced; macOS additionally calls
-`F_FULLFSYNC`. `linkat` publishes atomically without replacement, the private
-name is removed and the directory synced. Readback checks regular-file identity,
-exact byte hash, account ID and version. Collision is visible, with no retry.
-A later failure exposes an uncertain attempt, target/hash and original directory
-and file identities. Published targets are never silently repaired or removed.
-Cleanup failure retains a separately visible temporary-file issue.
+An intermediate identity-check repair passed 27 checks but retained a final
+check-to-unlink race. It was not claimed READY or committed. HELP_HUMAN's
+relayed technical selection, source owner, independent source review and fleet
+concurrence produced the now-adopted CRP-v0.3:
 
-Cold discovery enumerates through an independent directory handle and preserves
-malformed, unknown-version, noncanonical, symlink/nonregular/hard-link, temporary,
-duplicate and unreadable conditions. Duplicate IDs retain all paths, with no
-winner. Missing directories mean only that no accounts were found there;
-incomplete discovery remains distinct. A held reference carries relative path,
-account/version/hash and observed filesystem identities. Resolution refuses
-changed bindings and duplicate identities; read-only reconciliation checks the
-exact attempted binding without searching outside the selected project. An
-explicit legacy relative binding uses the same anchored checks, without a crawl.
-Whole-project relocation can retain the binding when directory/file identities
-remain the same. Copying bytes into a distinct directory does not silently adopt
-that new identity or transfer authority.
+- Source `3d9a91a98872fda1837aad1a91e710345c614f28`, file
+  `Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md`, SHA-256
+  `e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e`.
+- Independent source READY `0d1b8c62bb`; affected concurrence `873f23b906`;
+  technical adoption `0a77c18972`.
 
-The public surface is a Rust library seam, not a Tauri command or UI. Full source
-reconstruction, broader semantic checking, native presentation, provider joins
-and consumer adoption remain C3/receiving-owner work. All fields required to
-show account claims/gaps/duties remain in the returned account value.
+These exact successor records were read from Git. This implementation return
+contains no Design/schema-semantic or manager-graph changes. The successor
+consciously changes the late-source-substitution criterion; the old stronger
+promise is not represented as having been implemented.
+
+## Current implementation
+
+The public Rust library accepts schema-valid caller accounts in format 0.1 or
+0.2 through an explicit opened project. Exact maintained route/standing schema
+resources compile with retrieval disabled and are byte-compared to Design.
+The caller's content, recorder/time provenance and duty standing survive
+serialization. Shape validity establishes no source truth/custody, semantic
+reference truth, actual performance or authority.
+
+UUID-v4 filenames are independent of account identities. Descendants of
+`.chirality/records/connectors/route-accounts/` are opened no-follow relative to
+retained handles. Root/ancestor identities are compared before writing and
+after publication. The private exclusively created temporary is flushed and
+synced (including macOS `F_FULLFSYNC`); immediately before publication its
+name must still identify the original regular-file inode and exact intended
+hash. Observed substitution refuses publication.
+
+Publication uses macOS `renameatx_np(RENAME_EXCL)` or Linux
+`renameat2(RENAME_NOREPLACE)`, with no replacing-rename or link/unlink fallback.
+Ordinary success consumes the temporary name atomically and preserves its inode.
+The directory sync and final regular-file identity/hash/account/version checks
+must pass before a binding returns. **There is no automatic pathname unlink
+on any path.** Definite failures retain the known temporary name for explicit
+reconciliation. Collision preserves the destination. Unsupported capability
+refuses; ambiguous syscall outcomes remain uncertain.
+
+Exclusive rename still resolves a mutable source name. A replacement after the
+last check can move a foreign entry to the final name, disrupting its former
+name. Postchecks reject that foreign inode even if bytes are identical. Error
+attempts retain original temp/final paths, intended account/version/hash,
+root/directory/file identities and explicit observed/absent/unreadable final
+observations. The store preserves entries and never rolls back, relocates or
+retries. Observed hash/type details describe only the safely read buffer or
+metadata, not a stable snapshot. This is the selected CRP-R2 residual, not an
+excluded race.
+
+Cold discovery retains distinct invalid-name, malformed, unknown-version,
+symlink/nonregular/hard-link, temporary, duplicate and unreadable issues.
+Duplicate identities retain every path with no winner. Missing and incomplete
+discovery remain distinct. Held-reference resolution checks path, account,
+version, hash and filesystem identity; reconciliation rechecks the intended
+binding without searching elsewhere. An explicit legacy relative reference
+uses the same checks, without a crawl. A relocated whole project can preserve
+identities; copying bytes into a different directory does not silently adopt
+new identities or transfer authority.
+
+An unbound discovered account is inspected claimed content, **not evidence
+that this writer successfully committed it**. A foreign schema-valid file can
+be discovered after the late race while reconciliation of the original attempt
+still refuses. This is a backend seam only: no Tauri command, UI, actual source
+reconstruction, provider joining or receiving-owner adoption is supplied.
 
 ## Executed checks
 
-One private APFS copy-on-write clone of the inactive C1 Cargo target was used;
-its existing objects are a local acceleration, not portable proof. Actual
-candidate files were rebuilt and tested with the approved Group A offline
-Cargo home, `CARGO_NET_OFFLINE=true` and `CHIRALITY_SKIP_CODEX=1`. No download,
-supplier launch or native App launch occurred. Rust/Cargo 1.92.0; macOS 26.6.2
-arm64. From `app/src-tauri`:
+One private APFS copy-on-write target clone from inactive C1 artifacts was
+reused; actual candidate files were rebuilt and executed. The approved Group A
+Cargo home, `CARGO_NET_OFFLINE=true` and `CHIRALITY_SKIP_CODEX=1` were used.
+No download, supplier/native App launch or credentials. Rust/Cargo 1.92.0;
+macOS 26.6.2 arm64. From `app/src-tauri`:
 
 ```text
 cargo test --offline --locked connector_ --lib -- --nocapture
-25 passed; 0 failed; 0 ignored; 423 filtered out
+31 passed; 0 failed; 0 ignored; 423 filtered out
 ```
 
-The 25 top-level checks comprise 18 route-store checks and 7 pre-existing
-connector-standing checks. Two child processes additionally exit deliberately
-with code 73 before/after publication; these are interruption observations,
-not top-level passes or supplier executions.
+24 route-store checks and 7 existing connector-standing checks passed. Two
+nested processes additionally exited deliberately with code 73 at interruption
+boundaries; they are not extra top-level passes or supplier executions.
 
-| Requirement | Observed result |
+| Requirement | Actual observation |
 |---|---|
-| Exact 0.1/0.2 schema dispatch; CI-29; performed evidence-field presence | Both versions round-trip under distinct supplied IDs; source-free 0.1 and unsupported versions fail; invalid zero-read facts/support/gaps and unsupported performed-duty shape fail. A complete evidence-field claim remains unverified content. |
-| Restart, project move, selected-root symlink | Cold resolve reproduces caller content and exact bytes; explicit relocated project resolves the same binding; stale old project path refuses. The initial root alias displays its resolved path. |
-| UUID paths and input containment | Account ID is never the filename; malformed accounts leave no canonical store. Absolute/parent/backslash/empty-component reference paths refuse. |
-| Collision and unchanged originals | Repeated identical-target writes fail with Collision, original bytes unchanged and no retained temporary. Eight distinct writers all succeed; eight same-target contenders yield exactly one success and seven collisions. |
-| Cold malformed/unknown/duplicate/link/temp evidence | Issues are separate; duplicate IDs expose both paths and refuse reference reliance. Files, directories, links, FIFO and unreadable entries do not become accounts or an empty-success claim. |
-| Permission and cleanup failure | Read-only directory refuses new publication; existing account remains. Failed temporary cleanup reports its name and cold discovery finds the leftover. An unreadable directory reports incomplete discovery. |
-| Ancestor substitution | Each canonical ancestor as symlink/non-directory refuses. Outside replacement directory remains empty. |
-| CRP-R1 rename race | Writer is paused after temporary sync/precheck; each root/ancestor/account directory is moved away and replaced. Publication follows the original capability only; replacement stays empty; postcheck returns uncertain location and no durable-success reference. Restoring the exact directory allows explicit cold reconciliation. No retry occurs. |
-| Transient move and later mismatch | Move outside the current project tree, publish there, then restore before postcheck: success is an observed comparison only. Test explicitly observes the outside publication. A subsequent move/replacement refuses reference reliance. Continuous pathname containment is not claimed. |
-| Interruption and tampering | Injected before/after-publication failures distinguish definite from uncertain outcomes. Abrupt process exit leaves visible private temporaries; after-publication exit also leaves the temporary hard link, so reading is held until explicit test-caller cleanup. Published byte and same-byte inode substitutions return uncertainty and fail reconciliation. |
-| Explicit legacy read | Only a supplied relative binding resolves; discovery does not search historical paths elsewhere. |
+| Exact versions and CI-29 | Both versions round-trip with distinct supplied IDs; unsupported versions, invalid source-free claims and performed-duty shapes refuse. Complete evidence-field shape is still only a claim. |
+| Restart/move/root alias | Cold content and bytes match; relocated project resolves the same bound identities; stale root refuses; selected root alias displays its resolved path. |
+| Identity/path containment | IDs never become filenames; invalid account creates no store. Escape/non-normal references refuse. Every symlink/non-directory ancestor refuses. |
+| No-replace and concurrency | Repeated collision preserves original bytes and retains visible temp entries. Eight distinct writers succeed; eight same-target contenders yield one success/seven collisions with seven recovery temporaries. |
+| Cold conflicts and permission failure | Malformed/unknown/duplicate/link/FIFO/unreadable entries remain distinct. Read-only directory refuses; an unreadable directory is incomplete, not empty. Retained temporaries never become accounts. |
+| CRP-R1 root/ancestor race | Moving/replacing each opened ancestor or root never directs publication into replacement. Mismatch is uncertain. Restoring exact identities permits explicit read-only reconciliation, with no retry. |
+| Transient directory movement | Test observes publication outside current project tree followed by restore-before-postcheck success; this proves only the bounded observed comparison. A later mismatch refuses reliance. |
+| Original temp substitution finding | After temporary sync, different or identical foreign bytes/new inode refuse before publication; injected failure leaves foreign replacement and moved-aside intended bytes intact. Observed symlink/directory/disappearance also refuses with no cleanup. |
+| CRP-R2 after-final-check residual | Foreign account, same-byte foreign inode, symlink and directory are injected immediately after final precheck. Exclusive rename moves foreign entry; postcheck returns uncertainty; original moved-aside content and foreign content remain; no rollback/retry occurs. Existing-target variants preserve both destination and substituted source. |
+| No late cleanup | Success consumes temp; a foreign entry recreated at the old name followed by injected failure remains untouched. No unlink helper/syscall remains in production. |
+| Unsupported and ambiguous outcome | Real exclusive-rename syscall with an injected unsupported flag returns refusal with source retained and no fallback. Injected EIO yields uncertainty, explicit absent-final observation, and retained temp. This EIO is not an actual storage-device failure. |
+| Interruption and readback | Before-publication abrupt exit leaves visible temp; after-exclusive-rename exit leaves no temp alias and a cold-inspectable final file, without proving writer completion. Content/inode tampering fails intended reference reconciliation. |
+| Legacy | Only explicitly supplied legacy binding resolves; no broad discovery/migration. |
 
-Initial test result was 14 passed/1 failed: the version-roundtrip fixture used
-the same account ID twice and correctly triggered duplicate refusal. Giving
-those distinct version fixtures distinct IDs repaired the test; no duplicate
-rule was weakened. Initial sandboxed compilation could not write Tauri's
-worktree permission metadata; scoped host escalation enabled the authorized
-offline build. No automatic approval rejection occurred.
+Test expectation changes follow the reviewed successor: collision/error
+leftovers are now required, and successful exclusive rename has no temporary
+hard-link alias. Original safety assertions (no deletion of observed foreign
+replacement; observed precheck substitution refuses) are retained. Late foreign
+movement is asserted honestly, not hidden by a weakened assertion of success.
 
-`rustfmt` was applied to the two new Rust files; `git diff --check` passed.
-The staged private-term validator with `--from-host` is run immediately before
-the commit and its result returned with the exact candidate revision.
+The installed SDK rename manual/headers and approved libc declarations were
+consulted. A separate scratch probe observed ordinary inode-preserving rename,
+EEXIST preserving both names and late source substitution moving foreign bytes.
+The maintained tests above now exercise those behaviors through the actual
+product seam, plus its error/return handling.
 
-## Limits and return
+`rustfmt` and `git diff --check` pass. Staged private-term screening with
+`--from-host` precedes the repair commit; exact result accompanies the return.
 
-macOS operations were exercised on real temporary directories. The Linux
-implementation is present but not compiled/run here; other platforms refuse
-opening the store. Successful sync calls are observed, but physical power-loss,
-hardware durability and actual fsync failure injection were not witnessed.
-Partial enumeration has errno-aware failure handling; an induced mid-stream
-readdir failure was not witnessed. Controlled operation-boundary failures do
-not pretend to be those unperformed platform qualifications.
+## Remaining limits
 
-Opened-directory containment does not guarantee continuously current pathname
-membership against external renames. Pre/post checks cannot eliminate the
-transient-move residual selected in CRP-v0.2. Cold observations likewise are
-not a filesystem snapshot or a promise against changes after return.
+macOS real-file behavior is tested. Linux is implemented but not compiled/run
+here; other platforms refuse opening. Successful sync calls are observed,
+not physical power-loss/hardware qualification. Actual device fsync failure
+and induced mid-stream readdir failure were not witnessed. The invalid-flag
+negative exercises a real syscall refusal, not a separately mounted filesystem
+without exclusive-rename support.
 
-This contribution does not change any Design/schema semantics, CI, instruction,
-work graph, other runtime implementation, frontend or previously integrated
-CI-29 source file. The maintained resource copies are exact. SEAL-2 remains
-held. No credentials, sign-in, provider/person act, MEMORY write, external
-owner work, new human decision, acceptance, qualification, release or 90% claim
-was performed. Independent candidate review and manager integration remain.
+Pre/post checks do not exclude transient directory moves or source-name
+replacement after the final check. Cold reads are not filesystem snapshots or
+proof of past successful writer operations. Broader source reconstruction,
+semantic/custody verification, native UI, provider acts and consumer adoption
+remain outside this contribution. SEAL-2 stays held. No instruction, graph,
+frontend, other runtime module, Design semantics, MEMORY, credentials, sign-in,
+provider/person act, qualification, acceptance, release or 90% claim changed.

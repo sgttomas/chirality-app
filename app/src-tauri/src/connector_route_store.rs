@@ -1,4 +1,4 @@
-//! CRP-v0.2 bounded caller-account persistence. No source recovery, truth/custody
+//! CRP-v0.3 bounded caller-account persistence. No source recovery, truth/custody
 //! verification, duty performance, authority, UI or provider adoption is implied.
 //! Handles constrain which directories receive writes, not their mutable location.
 //! Even matching pre/post observations cannot exclude a transient external rename.
@@ -49,8 +49,21 @@ pub struct BoundReference {
     pub file: FileIdentity,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FinalObservation {
+    /// observed, absent, or unreadable; never a successful-commit assertion.
+    pub state: String,
+    pub file: Option<FileIdentity>,
+    pub file_type: Option<String>,
+    pub sha256: Option<String>,
+    pub account_id: Option<String>,
+    pub format_version: Option<String>,
+    pub detail: Option<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attempt {
     pub resolved_project: PathBuf,
+    pub temporary_relative_path: String,
+    pub observed_final: Option<FinalObservation>,
     pub relative_path: String,
     pub account_id: String,
     pub format_version: String,
@@ -61,6 +74,7 @@ pub struct Attempt {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ErrorKind {
     UnsupportedPlatform,
+    UnsupportedCapability,
     InvalidInput,
     UnsupportedFormat,
     InvalidAccount,
@@ -82,7 +96,8 @@ pub struct StoreError {
     /// True means bytes may be published. Never retry or relocate implicitly.
     pub uncertain_commit: bool,
     pub attempt: Option<Attempt>,
-    /// Cleanup failure is visible; this name is never a route account.
+    /// Known temporary name requiring reconciliation; it can have been moved or
+    /// substituted externally. Never an account, and never automatically unlinked.
     pub temporary_leftover: Option<String>,
 }
 impl StoreError {
@@ -130,6 +145,8 @@ pub fn validate_account(account: &Value) -> Result<()> {
         .validate(account)
         .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))
 }
+/// A cold observation of claimed file content. Its binding does not establish
+/// that this store or any recorder successfully published the file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObservedAccount {
     pub reference: BoundReference,
@@ -260,16 +277,89 @@ mod platform {
         }
         Ok(dir)
     }
-    fn unlink(parent: &File, name: &str) -> Result<()> {
-        let n = CString::new(name).unwrap();
-        if unsafe { libc::unlinkat(parent.as_raw_fd(), n.as_ptr(), 0) } < 0 {
-            Err(ioerr(
-                "unlink own temporary",
-                std::io::Error::last_os_error(),
-            ))
-        } else {
+    fn publish(dir: &File, temporary: &str, target: &str) -> std::io::Result<()> {
+        let from = CString::new(temporary).unwrap();
+        let to = CString::new(target).unwrap();
+        // Atomic destination exclusion, but source is still a mutable name.
+        // Never substitute replacing rename or link-plus-unlink on failure.
+        #[cfg(target_os = "macos")]
+        let rc = unsafe {
+            libc::renameatx_np(
+                dir.as_raw_fd(),
+                from.as_ptr(),
+                dir.as_raw_fd(),
+                to.as_ptr(),
+                libc::RENAME_EXCL,
+            )
+        };
+        #[cfg(target_os = "linux")]
+        let rc = unsafe {
+            libc::renameat2(
+                dir.as_raw_fd(),
+                from.as_ptr(),
+                dir.as_raw_fd(),
+                to.as_ptr(),
+                libc::RENAME_NOREPLACE,
+            )
+        };
+        if rc == 0 {
             Ok(())
+        } else {
+            Err(std::io::Error::last_os_error())
         }
+    }
+    fn observe_final(dir: &File, name: &str) -> FinalObservation {
+        let mut observation = FinalObservation {
+            state: "unreadable".into(),
+            file: None,
+            file_type: None,
+            sha256: None,
+            account_id: None,
+            format_version: None,
+            detail: None,
+        };
+        let result = (|| -> Result<()> {
+            let mut file = open_at(dir, OsStr::new(name), libc::O_RDONLY)?;
+            observation.file = Some(identity(&file)?);
+            let metadata = file
+                .metadata()
+                .map_err(|e| ioerr("observe final metadata", e))?;
+            observation.file_type = Some(
+                if metadata.is_file() {
+                    "regular"
+                } else {
+                    "nonregular"
+                }
+                .into(),
+            );
+            if !metadata.is_file() {
+                observation.state = "observed".into();
+                return Ok(());
+            }
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes)
+                .map_err(|e| ioerr("observe final bytes", e))?;
+            observation.sha256 = Some(crate::util::sha256_hex(&bytes));
+            if let Ok(value) = serde_json::from_slice::<Value>(&bytes) {
+                observation.account_id = value["account_id"].as_str().map(str::to_owned);
+                observation.format_version = value["formatVersion"].as_str().map(str::to_owned);
+            }
+            observation.state = "observed".into();
+            observation.detail = Some(
+                "read-only observed buffer, not a stable snapshot or successful commit".into(),
+            );
+            Ok(())
+        })();
+        if let Err(e) = result {
+            observation.state = if e.kind == ErrorKind::Missing {
+                "absent"
+            } else {
+                "unreadable"
+            }
+            .into();
+            observation.detail = Some(e.to_string());
+        }
+        observation
     }
     fn read_account(
         dir: &File,
@@ -344,6 +434,7 @@ mod platform {
     pub(super) enum Stage {
         BeforeWrite,
         TempSynced,
+        TempChecked,
         Published,
         Verified,
     }
@@ -426,7 +517,16 @@ mod platform {
             &self,
             account: &Value,
             key: &str,
+            hook: impl FnMut(Stage) -> Result<()>,
+        ) -> Result<BoundReference> {
+            self.write_using(account, key, hook, publish)
+        }
+        pub(super) fn write_using(
+            &self,
+            account: &Value,
+            key: &str,
             mut hook: impl FnMut(Stage) -> Result<()>,
+            publisher: impl FnOnce(&File, &str, &str) -> std::io::Result<()>,
         ) -> Result<BoundReference> {
             validate_account(account)?;
             let name = format!("{key}.json");
@@ -440,8 +540,14 @@ mod platform {
                 .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))?;
             self.check_root()?;
             let chain = self.chain(PARTS, true)?;
+            let temporary = format!(
+                ".route-{}.tmp",
+                crate::util::opaque_id("").map_err(|e| StoreError::new(ErrorKind::Io, e))?
+            );
             let mut attempt = Attempt {
                 resolved_project: self.root.clone(),
+                temporary_relative_path: format!("{DIRECTORY}/{temporary}"),
+                observed_final: None,
                 relative_path: format!("{DIRECTORY}/{name}"),
                 account_id: account["account_id"].as_str().unwrap().to_owned(),
                 format_version: account["formatVersion"].as_str().unwrap().to_owned(),
@@ -449,10 +555,6 @@ mod platform {
                 directories: chain.ids.clone(),
                 file: None,
             };
-            let temporary = format!(
-                ".route-{}.tmp",
-                crate::util::opaque_id("").map_err(|e| StoreError::new(ErrorKind::Io, e))?
-            );
             let mut temp_created = false;
             let mut published = false;
             let operation = (|| {
@@ -479,30 +581,49 @@ mod platform {
                     ));
                 }
                 hook(Stage::TempSynced)?;
-                let from = CString::new(temporary.as_str()).unwrap();
-                let to = CString::new(name.as_str()).unwrap();
-                // linkat is atomic no-replace: existing destinations (including
-                // links) return EEXIST. Both names are in the same pinned dir.
-                let rc = unsafe {
-                    libc::linkat(
-                        chain.last().as_raw_fd(),
-                        from.as_ptr(),
-                        chain.last().as_raw_fd(),
-                        to.as_ptr(),
-                        0,
-                    )
-                };
-                if rc < 0 {
-                    let e = std::io::Error::last_os_error();
-                    // EEXIST is definite non-publication. Other filesystem errors
-                    // can have ambiguous outcomes (e.g. remote filesystem replay).
-                    published = e.raw_os_error() != Some(libc::EEXIST);
-                    return Err(ioerr("no-replace publication", e));
+                // Exclusive rename resolves a name, not the retained descriptor.
+                // Refuse observed inode/content substitution before publication;
+                // a later concurrent name change remains a platform residual.
+                let temporary_observation =
+                    read_account(chain.last(), &temporary, &temporary, chain.ids.clone())?;
+                if Some(&temporary_observation.reference.file) != attempt.file.as_ref()
+                    || temporary_observation.reference.sha256 != attempt.sha256
+                {
+                    return Err(StoreError::new(ErrorKind::ChangedContent,
+                        "temporary identity/hash changed before publication; no publication attempted"));
+                }
+                hook(Stage::TempChecked)?;
+                if let Err(e) = publisher(chain.last(), &temporary, &name) {
+                    let code = e.raw_os_error();
+                    let unsupported = matches!(
+                        code,
+                        Some(libc::ENOSYS) | Some(libc::EINVAL) | Some(libc::EOPNOTSUPP)
+                    );
+                    // These documented refusals precede publication. I/O or
+                    // otherwise ambiguous outcomes require explicit recovery.
+                    let definite = unsupported
+                        || matches!(
+                            code,
+                            Some(libc::EEXIST)
+                                | Some(libc::ENOENT)
+                                | Some(libc::EACCES)
+                                | Some(libc::EPERM)
+                                | Some(libc::EROFS)
+                                | Some(libc::EXDEV)
+                                | Some(libc::ENOTDIR)
+                                | Some(libc::EISDIR)
+                                | Some(libc::ENOTEMPTY)
+                        );
+                    published = !definite;
+                    let mut error = ioerr("exclusive no-replace publication", e);
+                    if unsupported {
+                        error.kind = ErrorKind::UnsupportedCapability;
+                    }
+                    return Err(error);
                 }
                 published = true;
+                temp_created = false; // rename consumed this source name atomically.
                 hook(Stage::Published)?;
-                unlink(chain.last(), &temporary)?;
-                temp_created = false;
                 sync(chain.last(), "sync published account directory")?;
                 self.compare(PARTS, &chain.ids)?;
                 let observed = read_account(
@@ -526,16 +647,12 @@ mod platform {
             })();
             operation.map_err(|mut e| {
                 e.uncertain_commit = published;
-                e.attempt = Some(attempt);
                 if temp_created {
-                    if let Err(cleanup) = unlink(chain.last(), &temporary)
-                        .and_then(|_| sync(chain.last(), "sync temporary cleanup"))
-                    {
-                        e.temporary_leftover = Some(temporary);
-                        e.detail
-                            .push_str(&format!("; temporary cleanup uncertain: {cleanup}"));
-                    }
+                    e.temporary_leftover = Some(temporary);
+                    e.detail.push_str("; temporary name retained for explicit reconciliation; no automatic cleanup");
                 }
+                if published { attempt.observed_final = Some(observe_final(chain.last(), &name)); }
+                e.attempt = Some(attempt);
                 e
             })
         }

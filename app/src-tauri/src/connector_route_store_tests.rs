@@ -175,11 +175,19 @@ fn collision_and_failed_repeated_writes_preserve_original_bytes() {
             .unwrap_err();
         assert_eq!(err.kind, ErrorKind::Collision);
         assert!(!err.uncertain_commit);
-        assert!(err.temporary_leftover.is_none());
+        assert!(err.temporary_leftover.is_some());
         assert_eq!(fs::read(p.join(&reference.relative_path)).unwrap(), bytes);
     }
     assert_eq!(store.discover().accounts.len(), 1);
-    assert!(store.discover().issues.is_empty());
+    assert_eq!(
+        store
+            .discover()
+            .issues
+            .iter()
+            .filter(|i| i.kind == ErrorKind::TemporaryLeftover)
+            .count(),
+        2
+    );
 }
 #[test]
 fn malformed_unknown_duplicate_temporary_and_link_entries_stay_visible() {
@@ -432,7 +440,7 @@ fn injected_failures_before_and_after_publication_preserve_recovery_details() {
             })
             .unwrap_err();
         assert!(e.attempt.is_some());
-        assert!(e.temporary_leftover.is_none());
+        assert_eq!(e.temporary_leftover.is_some(), stage == Stage::TempSynced);
         let after_publish = matches!(stage, Stage::Published | Stage::Verified);
         assert_eq!(e.uncertain_commit, after_publish);
         assert_eq!(store.discover().accounts.len(), usize::from(after_publish));
@@ -481,7 +489,13 @@ fn concurrent_distinct_writers_and_identical_target_contention() {
         }
         let store = ProjectRouteStore::open(&p).unwrap();
         let d = store.discover();
-        assert!(d.issues.is_empty());
+        assert_eq!(
+            d.issues
+                .iter()
+                .filter(|i| i.kind == ErrorKind::TemporaryLeftover)
+                .count(),
+            if same { 7 } else { 0 }
+        );
         assert_eq!(d.accounts.len(), if same { 1 } else { 8 });
         for r in results.into_iter().filter_map(|r| r.ok()) {
             store.resolve(&r).unwrap();
@@ -521,28 +535,20 @@ fn abrupt_process_exit_leaves_visible_pre_and_post_publication_evidence() {
         assert_eq!(status.code(), Some(73));
         let store = ProjectRouteStore::open(&p).unwrap();
         let d = store.discover();
-        assert!(d
-            .issues
-            .iter()
-            .any(|i| i.kind == ErrorKind::TemporaryLeftover));
+        assert_eq!(
+            d.issues
+                .iter()
+                .any(|i| i.kind == ErrorKind::TemporaryLeftover),
+            phase == "before"
+        );
         let target = p.join(DIRECTORY).join(format!("{KEY}.json"));
         assert_eq!(target.exists(), phase == "after");
         if phase == "after" {
-            assert!(d.issues.iter().any(|i| i.kind == ErrorKind::UnsafeEntry)); // interrupted hard-link cleanup.
-            let bytes = fs::read(&target).unwrap();
-            // Explicit test-caller reconciliation removes its known temporary;
-            // the production reader itself never repairs or deletes records.
-            for entry in fs::read_dir(p.join(DIRECTORY)).unwrap() {
-                let entry = entry.unwrap();
-                if entry.file_name().to_string_lossy().ends_with(".tmp") {
-                    fs::remove_file(entry.path()).unwrap();
-                }
-            }
-            let d = store.discover();
             assert!(d.issues.is_empty());
             assert_eq!(d.accounts.len(), 1);
-            assert_eq!(fs::read(target).unwrap(), bytes);
             store.resolve(&d.accounts[0].reference).unwrap();
+            // Cold inspection is not proof that the interrupted writer completed
+            // its sync/postcheck or ever returned a successful binding.
         }
     }
 }
@@ -624,7 +630,7 @@ fn postpublication_symlink_substitution_never_follows_replacement() {
 }
 
 #[test]
-fn failed_temporary_cleanup_and_unreadable_directory_are_not_empty_discovery() {
+fn retained_temporary_and_unreadable_directory_are_not_empty_discovery() {
     let scratch = Scratch::new();
     let p = scratch.project();
     let store = ProjectRouteStore::open(&p).unwrap();
@@ -655,4 +661,317 @@ fn failed_temporary_cleanup_and_unreadable_directory_are_not_empty_discovery() {
     assert!(!unreadable.enumeration_complete);
     assert!(!unreadable.directory_absent);
     assert!(!unreadable.issues.is_empty());
+}
+
+// Independent review R1 reproduction retained with corrected expectations:
+// an observed foreign temporary is never a source or cleanup destination.
+#[test]
+fn substituted_temporary_is_neither_published_nor_removed() {
+    for fail_before_publication in [false, true] {
+        for same_bytes in [false, true] {
+            let scratch = Scratch::new();
+            let p = scratch.project();
+            let store = ProjectRouteStore::open(&p).unwrap();
+            let original = account("ra:original");
+            let foreign = serde_json::to_vec(&account(if same_bytes {
+                "ra:original"
+            } else {
+                "ra:foreign"
+            }))
+            .unwrap();
+            let mut replacement = None;
+            let error = store
+                .write_inner(&original, KEY, |stage| {
+                    if stage == Stage::TempSynced {
+                        let temp = fs::read_dir(p.join(DIRECTORY))
+                            .unwrap()
+                            .map(|e| e.unwrap().path())
+                            .find(|p| p.extension().is_some_and(|e| e == "tmp"))
+                            .unwrap();
+                        fs::rename(&temp, p.join("original-private-bytes")).unwrap();
+                        fs::write(&temp, &foreign).unwrap();
+                        replacement = Some(temp);
+                        if fail_before_publication {
+                            return Err(failure());
+                        }
+                    }
+                    Ok(())
+                })
+                .unwrap_err();
+            assert!(!error.uncertain_commit);
+            assert!(error.temporary_leftover.is_some());
+            assert_eq!(fs::read(replacement.unwrap()).unwrap(), foreign);
+            assert_eq!(
+                fs::read(p.join("original-private-bytes")).unwrap(),
+                serde_json::to_vec(&original).unwrap()
+            );
+            assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
+            if !fail_before_publication {
+                assert_eq!(error.kind, ErrorKind::ChangedContent);
+            }
+        }
+    }
+}
+
+#[test]
+fn publication_consumes_temp_and_preserves_later_same_name_entry() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open(&p).unwrap();
+    let mut temporary = None;
+    let original = account("ra:original");
+    let error = store
+        .write_inner(&original, KEY, |stage| {
+            if stage == Stage::TempChecked {
+                temporary = Some(
+                    fs::read_dir(p.join(DIRECTORY))
+                        .unwrap()
+                        .map(|e| e.unwrap().path())
+                        .find(|p| p.extension().is_some_and(|e| e == "tmp"))
+                        .unwrap(),
+                );
+            }
+            if stage == Stage::Published {
+                let temp = temporary.as_ref().unwrap();
+                assert!(!temp.exists());
+                fs::write(temp, b"unrelated later entry").unwrap();
+                return Err(failure());
+            }
+            Ok(())
+        })
+        .unwrap_err();
+    assert!(error.uncertain_commit);
+    assert!(error.temporary_leftover.is_none());
+    assert_eq!(
+        fs::read(temporary.unwrap()).unwrap(),
+        b"unrelated later entry"
+    );
+    assert_eq!(
+        fs::read(p.join(DIRECTORY).join(format!("{KEY}.json"))).unwrap(),
+        serde_json::to_vec(&original).unwrap()
+    );
+    assert_eq!(
+        error
+            .attempt
+            .as_ref()
+            .unwrap()
+            .observed_final
+            .as_ref()
+            .unwrap()
+            .state,
+        "observed"
+    );
+}
+
+#[test]
+fn source_name_race_after_final_check_is_exposed_without_rollback_or_retry() {
+    for variant in ["foreign", "identical", "symlink", "directory"] {
+        for collision in [false, true] {
+            let scratch = Scratch::new();
+            let p = scratch.project();
+            let store = ProjectRouteStore::open(&p).unwrap();
+            let original = account("ra:original");
+            let intended = serde_json::to_vec(&original).unwrap();
+            let foreign = serde_json::to_vec(&account(if variant == "identical" {
+                "ra:original"
+            } else {
+                "ra:foreign"
+            }))
+            .unwrap();
+            let target = p.join(DIRECTORY).join(format!("{KEY}.json"));
+            let saved = p.join("original-aside");
+            let mut temporary = None;
+            let error = store
+                .write_inner(&original, KEY, |stage| {
+                    if stage == Stage::TempChecked {
+                        let temp = fs::read_dir(p.join(DIRECTORY))
+                            .unwrap()
+                            .map(|e| e.unwrap().path())
+                            .find(|p| p.extension().is_some_and(|e| e == "tmp"))
+                            .unwrap();
+                        fs::rename(&temp, &saved).unwrap();
+                        match variant {
+                            "symlink" => {
+                                fs::write(p.join("foreign-source"), b"link target preserved")
+                                    .unwrap();
+                                symlink(p.join("foreign-source"), &temp).unwrap();
+                            }
+                            "directory" => {
+                                fs::create_dir(&temp).unwrap();
+                                fs::write(temp.join("preserved"), b"directory content").unwrap();
+                            }
+                            _ => fs::write(&temp, &foreign).unwrap(),
+                        }
+                        if collision {
+                            fs::write(&target, b"prior target preserved").unwrap();
+                        }
+                        temporary = Some(temp);
+                    }
+                    Ok(())
+                })
+                .unwrap_err();
+            assert_eq!(fs::read(&saved).unwrap(), intended);
+            let temp = temporary.unwrap();
+            if collision {
+                assert_eq!(error.kind, ErrorKind::Collision);
+                assert!(!error.uncertain_commit);
+                assert!(error.temporary_leftover.is_some());
+                assert!(fs::symlink_metadata(&temp).is_ok());
+                assert_eq!(fs::read(&target).unwrap(), b"prior target preserved");
+            } else {
+                assert!(error.uncertain_commit);
+                assert!(error.temporary_leftover.is_none());
+                assert!(fs::symlink_metadata(&temp).is_err()); // exclusive rename moved the foreign source name.
+                let observation = error
+                    .attempt
+                    .as_ref()
+                    .unwrap()
+                    .observed_final
+                    .as_ref()
+                    .unwrap();
+                match variant {
+                    "symlink" => {
+                        assert!(fs::symlink_metadata(&target)
+                            .unwrap()
+                            .file_type()
+                            .is_symlink());
+                        assert_eq!(
+                            fs::read(p.join("foreign-source")).unwrap(),
+                            b"link target preserved"
+                        );
+                        assert_eq!(observation.state, "unreadable");
+                    }
+                    "directory" => {
+                        assert_eq!(
+                            fs::read(target.join("preserved")).unwrap(),
+                            b"directory content"
+                        );
+                        assert_eq!(observation.file_type.as_deref(), Some("nonregular"));
+                    }
+                    _ => {
+                        assert_eq!(fs::read(&target).unwrap(), foreign);
+                        assert_eq!(
+                            observation.sha256.as_deref(),
+                            Some(crate::util::sha256_hex(&foreign).as_str())
+                        );
+                        assert_ne!(observation.file, error.attempt.as_ref().unwrap().file);
+                        let discovered = store.discover();
+                        assert_eq!(discovered.accounts.len(), 1);
+                        // A schema-valid foreign discovery is only inspected content;
+                        // it cannot reconcile the original writer's binding.
+                    }
+                }
+                assert!(store.reconcile(error.attempt.as_ref().unwrap()).is_err());
+            }
+        }
+    }
+}
+
+#[test]
+fn observed_nonregular_source_substitutions_refuse_before_publication() {
+    for variant in ["symlink", "directory", "missing"] {
+        let scratch = Scratch::new();
+        let p = scratch.project();
+        let store = ProjectRouteStore::open(&p).unwrap();
+        let mut replacement = None;
+        let error = store
+            .write_inner(&account("ra:original"), KEY, |stage| {
+                if stage == Stage::TempSynced {
+                    let temp = fs::read_dir(p.join(DIRECTORY))
+                        .unwrap()
+                        .map(|e| e.unwrap().path())
+                        .find(|p| p.extension().is_some_and(|e| e == "tmp"))
+                        .unwrap();
+                    fs::rename(&temp, p.join("original-aside")).unwrap();
+                    match variant {
+                        "symlink" => symlink(p.join("original-aside"), &temp).unwrap(),
+                        "directory" => fs::create_dir(&temp).unwrap(),
+                        _ => {}
+                    }
+                    replacement = Some(temp);
+                }
+                Ok(())
+            })
+            .unwrap_err();
+        assert!(!error.uncertain_commit);
+        assert!(error.temporary_leftover.is_some());
+        assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
+        assert_eq!(
+            fs::symlink_metadata(replacement.unwrap()).is_ok(),
+            variant != "missing"
+        );
+        assert!(p.join("original-aside").exists());
+    }
+}
+
+#[test]
+fn unsupported_exclusive_rename_flag_refuses_without_fallback() {
+    use std::os::fd::AsRawFd;
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open(&p).unwrap();
+    let error = store
+        .write_using(
+            &account("ra:unsupported"),
+            KEY,
+            |_| Ok(()),
+            |dir, from, to| {
+                let from = std::ffi::CString::new(from).unwrap();
+                let to = std::ffi::CString::new(to).unwrap();
+                #[cfg(target_os = "macos")]
+                let rc = unsafe {
+                    libc::renameatx_np(
+                        dir.as_raw_fd(),
+                        from.as_ptr(),
+                        dir.as_raw_fd(),
+                        to.as_ptr(),
+                        0x8000_0000,
+                    )
+                };
+                #[cfg(target_os = "linux")]
+                let rc = unsafe {
+                    libc::renameat2(
+                        dir.as_raw_fd(),
+                        from.as_ptr(),
+                        dir.as_raw_fd(),
+                        to.as_ptr(),
+                        0x8000_0000,
+                    )
+                };
+                assert_eq!(rc, -1);
+                Err(std::io::Error::last_os_error())
+            },
+        )
+        .unwrap_err();
+    assert_eq!(error.kind, ErrorKind::UnsupportedCapability);
+    assert!(!error.uncertain_commit);
+    assert!(error.temporary_leftover.is_some());
+    assert!(!p.join(DIRECTORY).join(format!("{KEY}.json")).exists());
+    assert_eq!(fs::read_dir(p.join(DIRECTORY)).unwrap().count(), 1);
+}
+
+#[test]
+fn ambiguous_syscall_failure_reports_absent_observation_and_retains_temporary() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open(&p).unwrap();
+    let error = store
+        .write_using(
+            &account("ra:ambiguous"),
+            KEY,
+            |_| Ok(()),
+            |_, _, _| Err(std::io::Error::from_raw_os_error(libc::EIO)),
+        )
+        .unwrap_err();
+    assert!(error.uncertain_commit);
+    assert!(error.temporary_leftover.is_some());
+    let attempt = error.attempt.as_ref().unwrap();
+    assert_eq!(attempt.observed_final.as_ref().unwrap().state, "absent");
+    assert!(p.join(&attempt.temporary_relative_path).exists());
+    assert!(attempt.file.is_some());
+    assert!(!p.join(&attempt.relative_path).exists());
+    assert_eq!(
+        store.reconcile(attempt).unwrap_err().kind,
+        ErrorKind::Missing
+    );
 }

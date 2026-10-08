@@ -6,7 +6,7 @@
   "mechanism": "harness-native delegated child; no delegation by TASK",
   "base_commit": "fbf16537a2502f15bc1a0a8ae07ce508e9bdbbe7",
   "branch": "codex/group-c-route-persistence",
-  "authority": "Parent brief and C3_PLACEMENT_ADOPTION; no new human act or gate",
+  "authority": "Parent repair brief and exact reviewed/adopted CRP-v0.3 in manager 0a77c18972; no new human act or gate",
   "scope_enforcement": "instruction fence plus actual host permissions, not per-file host isolation",
   "read_coverage": "Root instructions supplied in entry; TASK/change/loop, Field Book in full; manual edition index and Agent User Manual headings plus section 11; exact placement, CFB and route/standing schemas; repaired review/concurrence/adoption; Group C graph (TASK does not resume or revise manager graph); Group A offline handoff; relevant existing schema/filesystem/identity helpers. IMPLEMENTATION_BASIS index excerpt inspected, not its entire listed source corpus.",
   "sources": [
@@ -110,11 +110,11 @@
   "tested_outputs": [
     {
       "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
-      "sha256": "d2a90218452a815e982b5851fc257e70db3f830f0ab013cfce3457cc7921187b"
+      "sha256": "ace6a925fe32d49754f3a7fbd30eebf1bf144292ef2104e48a9886663b99f160"
     },
     {
       "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store_tests.rs",
-      "sha256": "d760aaf09eb526de1cd6fd02b5c7797c4befc0511a9c43e6a93cf50eafc1cfae"
+      "sha256": "4ec5ceb945f01f89ecdc5ae778a3a443824521c4131f90a636ca51bf76636334"
     },
     {
       "origin": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
@@ -141,14 +141,101 @@
     "supplier": "explicitly disabled with CHIRALITY_SKIP_CODEX=1",
     "target": "one private temporary target, cloned with APFS copy-on-write from inactive C1 integration cache; actual candidate rebuilt and executed",
     "command": "cargo test --offline --locked connector_ --lib -- --nocapture",
-    "result": "25 passed, 0 failed, 0 ignored, 423 filtered out; 18 route-store and 7 connector-standing top-level checks; two nested abrupt-exit subprocesses intentionally return 73",
-    "initial_observations": "First sandboxed build could not write Tauri generated permissions, then authorized scoped escalation ran offline. First test run: 14 passed, 1 failed because two test versions shared one account identity; fixture repaired with distinct IDs. Final run above passes."
+    "result": "31 passed, 0 failed, 0 ignored, 423 filtered out; 24 route-store and 7 connector-standing top-level checks; two nested abrupt-exit processes intentionally return 73",
+    "initial_observations": "First sandboxed build could not write Tauri generated permissions, then authorized scoped escalation ran offline. First test run: 14 passed, 1 failed because two test versions shared one account identity; fixture repaired with distinct IDs. Final run above passes.",
+    "repair_observations": "Original independent repro reproduced foreign temporary publication and deletion despite 25 passes. Exact CRP-v0.3 deliberately selects exclusive rename, retains late source-name relocation residual, and prohibits all automatic unlink. New tests cover original detected substitutions, late substitutions of foreign account/same bytes/symlink/directory, destination collision, same-name reappearance, real invalid-flag refusal, and injected ambiguous EIO with absent final observation."
   },
   "limits": [
     "macOS execution only; Linux branch not compiled or run here",
     "No physical power-loss, hardware durability or real fsync failure witness",
     "Pre/post identity observations cannot disprove transient external directory moves",
     "Schema-valid caller account is not source truth, source custody, actual performance or authority",
-    "No full source reconstruction, UI/native/provider acts, supplier launch, credentials, downloads, MEMORY, SEAL-2, push or merge"
+    "No full source reconstruction, UI/native/provider acts, supplier launch, credentials, downloads, MEMORY, SEAL-2, push or merge",
+    "Exclusive rename resolves a mutable source name: a late replacement can be moved to final and its prior name consumed; mismatches are uncertain, with no unlink/rollback/retry. This selected residual is not claimed to be eliminated."
+  ],
+  "repair_parent_commit": "e660d7431de637da7e8dbe9d9bddc0c6847838c8",
+  "validation_history": [
+    {
+      "platform": "macOS 26.6.2 arm64",
+      "rustc": "1.92.0",
+      "cargo": "1.92.0",
+      "offline": true,
+      "supplier": "explicitly disabled with CHIRALITY_SKIP_CODEX=1",
+      "target": "one private temporary target, cloned with APFS copy-on-write from inactive C1 integration cache; actual candidate rebuilt and executed",
+      "command": "cargo test --offline --locked connector_ --lib -- --nocapture",
+      "result": "25 passed, 0 failed, 0 ignored, 423 filtered out; 18 route-store and 7 connector-standing top-level checks; two nested abrupt-exit subprocesses intentionally return 73",
+      "initial_observations": "First sandboxed build could not write Tauri generated permissions, then authorized scoped escalation ran offline. First test run: 14 passed, 1 failed because two test versions shared one account identity; fixture repaired with distinct IDs. Final run above passes."
+    },
+    {
+      "result": "Provisional observed-substitution checks: 27 passed; not accepted as eliminating check-to-unlink race; no commit/READY claim."
+    }
+  ],
+  "historical_tested_outputs": [
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "sha256": "d2a90218452a815e982b5851fc257e70db3f830f0ab013cfce3457cc7921187b"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store_tests.rs",
+      "sha256": "d760aaf09eb526de1cd6fd02b5c7797c4befc0511a9c43e6a93cf50eafc1cfae"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "d0ddcec7301e6641b6ad29f319c7ea26da5371319630d9846f8a9dda45cfe30c"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.route-account.schema.json",
+      "sha256": "a6823eebb2872d0d563b7e77589a0cc2f7cd2545abe654e5b427af7d79365286"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719"
+    }
+  ],
+  "successor_sources": [
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md",
+      "revision": "3d9a91a98872fda1837aad1a91e710345c614f28",
+      "sha256": "e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e",
+      "read_coverage": "full"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md",
+      "revision": "0a77c18972f475e444d1b31e5b4cc0ba6daf6a91",
+      "sha256": "0585f960b1aa901ec1dbfc8a7565ef9d7c1cf3f9f8b08acad4343f115004a336",
+      "read_coverage": "CRP-R2 current selection"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_REVIEW.md",
+      "revision": "0d1b8c62bb77417cf5ba85049e10130ddd80c233",
+      "sha256": "dd0b19e57b4084dbb55cf8b168609f7ce1013bb824ee78effb114f3b99ca8ac7",
+      "read_coverage": "CRP-R2 source successor backcheck"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_FLEET_PLACEMENT_CONCURRENCE.md",
+      "revision": "873f23b906fbd259cd6680aeadf9bff1f9aa2551",
+      "sha256": "2c035e1fd7f33ee7585c5fc2b9b17e9e89103f519a78fc917c323537b54eac74",
+      "read_coverage": "CRP-v0.3 affected concurrence"
+    }
+  ],
+  "platform_sources": [
+    {
+      "origin": "installed macOS SDK usr/share/man/man2/rename.2",
+      "sha256": "896c6a278dcfd14601147661cf2a4588d85b271ec8798bbec7913c1d17967033",
+      "read_coverage": "exclusive flag, dirfd, symlink and error sections"
+    },
+    {
+      "origin": "installed macOS SDK usr/include/sys/stdio.h",
+      "sha256": "a8078ae1cba1a46a66d0de6fe7f13bbc969cdb7e78fc2d4b9a5c5cdaaf16126b",
+      "read_coverage": "exclusive/no-follow flag definitions and renameatx_np availability"
+    },
+    {
+      "origin": "approved offline Cargo cache libc-0.2.189",
+      "read_coverage": "macOS renameatx_np/RENAME_EXCL and Linux GNU/musl renameat2/RENAME_NOREPLACE declarations"
+    }
   ]
 }
