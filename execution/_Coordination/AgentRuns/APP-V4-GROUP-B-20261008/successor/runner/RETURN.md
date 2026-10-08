@@ -1,0 +1,13 @@
+# B3 runner support return
+
+Bounded TASK under WORKING_ITEMS `/root/group_b_successor`; delegated-harness-native execution, no further delegation. Base: `7311df06d81ce4d45bb1222080e52731f1ed45ba`. Branch: `codex/app-v4-b3-runner-support`.
+
+Produced maintained offline fixture runner, instructions and regression tests in the assigned fence. Existing Design, schemas, source locks, contracts, graph and MEMORY are unchanged. Host enforcement required sandbox escalation for the managed worktree and browser launch. No downloads, supplier calls, sign-in, credential use or native App launch were performed.
+
+Actual cached Chromium and WebKit executed the invented interface seam. Both produced known-pass/pass, wrong-expectation/fail and missing-target/blocked, captured screenshots, verified SHA-256 references, and observed a local request plus an aborted off-origin guard probe. Four maintained tests passed with no skips in this execution (`tests.txt`). The normal invocation without browser configuration explicitly skips its browser integration test.
+
+`observed/report.json` binds exact runner and fixture bytes, selected launch-entry bytes and Playwright package metadata. Explicit cached-executable overrides were necessary because installed Playwright 1.57.0 defaults target different cache revisions. Chromium queried version: 148.0.7778.96. WebKit reports module label 26.0: inspection of the installed WebKit adapter found `version()` returns its BROWSER_VERSION constant. Therefore WebKit DC-R1 is inconclusive, not actual engine identity. The WebKit launcher digest binds the wrapper only; dependency compatibility/full engine identity is not qualified.
+
+DC-R2/R3/R4 support checks pass in both engines. Chromium DC-R1 uses the queried Browser.getVersion identity. DC-R5 remains inconclusive because browser page interception does not observe all process traffic. The CLI returned 1, intentionally signaling incomplete admission despite successful probes. No canonical EXP admission record, actual App route admission, candidate execution, package/native qualification, shipping-history assertion, human act or SEAL-2 result is supplied. Whole-process isolation and engine identity evidence belong to the remaining runner-admission work. No contract issue or amendment was required.
+
+Captures and reports are path-neutral. Source hashes and actual instruction origins are in `supplied-basis.json`; maintained tests do not depend on this dated evidence. Independent review and manager integration remain required. No push performed.
