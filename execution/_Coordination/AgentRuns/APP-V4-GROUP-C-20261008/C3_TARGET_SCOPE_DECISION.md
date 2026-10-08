@@ -1,6 +1,6 @@
 # C3 target scope: classification and original-input decision packet
 
-DRAFT for independent source review and parent decision. No alternative selected.
+Independently reviewed proposal awaiting parent/owner decision. No alternative selected.
 Basis: dd50b1692c7d3c710ade07a5c344cc16fafeee77. This packet requests a design
 classification/producer direction, not an actual graph write or human act in the
 App. No A16 capture is claimed by preparing this package.

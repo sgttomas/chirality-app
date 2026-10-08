@@ -21,11 +21,15 @@
     },
     {
       "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_R1.md",
-      "sha256": "7c10127d8f714d29ce0b5539662b40a357c4f76af38e7ebe1d6646e4fb871ce1"
+      "sha256": "7c10127d8f714d29ce0b5539662b40a357c4f76af38e7ebe1d6646e4fb871ce1",
+      "source_revision": "3c59d92f3ffe380d923af4ae881ec7e318041db4",
+      "provenance": "historical bytes consulted for PM05 assessment; hash intentionally not rebound to later status-only edits"
     },
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_TARGET_SCOPE_DECISION.md",
-      "sha256": "30329086eee0e67f0405a500fe11a8764afdbb83aba6caa05e4dd14f53bf0ff4"
+      "sha256": "30329086eee0e67f0405a500fe11a8764afdbb83aba6caa05e4dd14f53bf0ff4",
+      "source_revision": "3c59d92f3ffe380d923af4ae881ec7e318041db4",
+      "provenance": "historical bytes consulted for PM05 assessment; hash intentionally not rebound to later status-only edits"
     },
     {
       "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",

@@ -1,6 +1,7 @@
 # CCE-v0.1 R1 — lifecycle target and scoped integration bridge
 
-Status: DRAFT source amendment for independent review. Basis: merged CCE source
+Status: independently reviewed proposed amendment; not an adopted contract or
+implementation release. Basis: merged CCE source
 at dd50b1692c7d3c710ade07a5c344cc16fafeee77. Preserve CCE-v0.1 and all existing
 schemas, CAM-R1, CRP-v0.3 and earlier account formats unchanged. This named
 amendment records the parent's technical selection of lifecycle A as an

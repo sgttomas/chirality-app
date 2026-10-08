@@ -1,6 +1,6 @@
 {
   "basis": "dd50b1692c7d3c710ade07a5c344cc16fafeee77",
-  "status": "DRAFT; classification route owner selection outstanding; no implementation release",
+  "status": "independently reviewed proposal; parent/owner decisions outstanding; no adopted contract or implementation release",
   "role": "TASK DEL-07-02 source owner; deliberate wider DEL-04-01 policy consultation for interface comparison, not policy-owner acceptance",
   "sources": [
     {
@@ -71,9 +71,9 @@
   },
   "artifact": {
     "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_R1.md",
-    "sha256": "7c10127d8f714d29ce0b5539662b40a357c4f76af38e7ebe1d6646e4fb871ce1"
+    "sha256": "deb89a6d982912623b15886b0348c5a887c71fa637258dffdc9c48f4a2133610"
   },
-  "checks": "draft source comparison only; no production/native examination",
+  "checks": "source comparison and independent proposal review completed; no production/native examination or implementation release",
   "selected": "Lifecycle A incremental target only; unchanged 64 identities/one payload/1MiB; prefreeze loss PM05 residual",
   "unselected": [
     "S original task-scope admission route",
@@ -83,7 +83,7 @@
   ],
   "decision_packet": {
     "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_TARGET_SCOPE_DECISION.md",
-    "sha256": "30329086eee0e67f0405a500fe11a8764afdbb83aba6caa05e4dd14f53bf0ff4"
+    "sha256": "d1f7da9cf10c03f698c92bcb7a6e6f4673eb56171db4f0655aa57779ebfad73f"
   },
   "retained_review_findings": [
     {
