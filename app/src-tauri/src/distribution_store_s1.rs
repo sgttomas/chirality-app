@@ -170,10 +170,20 @@ impl Store {
         prior: &S1Reference,
         event: &Value,
     ) -> Result<S1Reference, String> {
+        self.publish_actual_lifecycle(g,prior,event,"LT-09")
+    }
+    pub(crate) fn publish_lt23(&self,g:&Value,prior:&S1Reference,event:&Value)->Result<S1Reference,String>{
+        self.publish_actual_lifecycle(g,prior,event,"LT-23")
+    }
+    fn publish_actual_lifecycle(&self,g:&Value,prior:&S1Reference,event:&Value,row:&str)->Result<S1Reference,String>{
         let lease=self.authority.lease()?;
-        self.read_s1_leased(&lease,g, prior)?;
-        if event["transitionId"] != "LT-09" || event["generation"] != *g {
-            return Err("only actual same-generation LT-09 supported".into());
+        let preceding=self.read_s1_leased(&lease,g, prior)?;
+        if row=="LT-23" && (preceding["lifecycle"]["legacy_event"]["transitionId"]!="LT-09"
+            || event["sequence"].as_u64().zip(preceding["lifecycle"]["legacy_event"]["sequence"].as_u64()).is_none_or(|(a,b)|a<=b)) {
+            return Err("LT-23 requires earlier same-source LT-09 reference".into());
+        }
+        if event["transitionId"] != row || event["generation"] != *g {
+            return Err("only actual same-generation supported lifecycle row permitted".into());
         }
         let mut files = prior.files.clone();
         files.remove(TRANSPORT);
@@ -325,7 +335,7 @@ impl Store {
         self.guard_s1(&lease)?;
         self.generation(&lease,g)?;
         Ok(
-            json!({"reference":reference,"artifact":observed,"lifecycle":lifecycle,"transport":transport,"outcome":outcome,"standing":"unverified-development","readStanding":"S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion","unsupportedEnvelopes":"Only actual LT-09 is published; pre-spawn/restart/other legacy envelopes unavailable"}),
+            json!({"reference":reference,"artifact":observed,"lifecycle":lifecycle,"transport":transport,"outcome":outcome,"standing":"unverified-development","readStanding":"S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion","unsupportedEnvelopes":"Actual LT-09 and eligible same-H5 LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"}),
         )
     }
 }

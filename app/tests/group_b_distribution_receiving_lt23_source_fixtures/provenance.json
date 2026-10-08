@@ -1,0 +1,27 @@
+{
+  "format": "group-b-s4-lt23-source-fixture-provenance.v1",
+  "adoption": "B-S4-LT23-SOURCE-ADOPTION-v1",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "export_group_b_s4_selected_and_unselected",
+      "--ignored",
+      "--exact",
+      "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+      "--test-threads=1"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "8bacd4da9b3f392631fd2ade76c3b1335847d2d19e9505b556a2d3e4c9d7dd5b",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "5c9aabcfb400bab3ef1e283362dc378414621da7"
+  },
+  "exchange_sha256": {
+    "selected": "81dc753b49d58abc6ec976f5ec5221dc8eb970eb0b8d8432e43afe64ed7e3402",
+    "unselected": "2aae7c973b0841d7ce43c684466cbfa1fcc0ebc971d46a00b1a919aa95daa55a"
+  },
+  "predecessor_export_source": "b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0",
+  "standing": "Actual synthetic LT09 exports from LT23-capable source; no terminal evidence or authority",
+  "committed_export_receipt_sha256": "d867129601e61a40c42d7d121023d8f336db24865de17e316c481cc8d4a0b827",
+  "exporter_source_sha256": "3114efc75f4c2ca9b3118d82b63d30d25e48455f053bff2c8a75f0ec8c7b1d4c",
+  "custody": "Host manager supplied committed/recompiled exports; B verified copied raw bytes and actual harness digest passively."
+}

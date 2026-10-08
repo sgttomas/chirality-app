@@ -1,5 +1,10 @@
 # Staged S4 file receiving
 
+Current standalone source selection: [B-S4-TERMINAL-SOURCE-LT09-v1](TERMINAL_SOURCE_LT09_ADOPTION.md),
+with pins.terminal-source-lt09-v1.json and fresh9af LT09 fixtures. Earlier active-cohort
+descriptions below are historical. The separate [terminal receiver](TERMINAL_RECEIVING.md)
+checks completed LT09/LT23 exported pairs under its own fixed contract.
+
 `receive.py` joins a specifically selected synthetic Host export to the existing
 canonical EXP/PKG six-record cohort. A successful report means exact exported
 file correspondence. It does not mean native S1 semantics were rerun, that a
@@ -43,7 +48,7 @@ Arbitrary caller-supplied claims about either remain unauthenticated.
 ## What is checked
 
 The receiver fixes the full `observed-lifecycle-reader.s3` receipt and selected
-source hashes in `pins.namespace-v1.json`; callers cannot supply an alternative method.
+source hashes in `pins.lt23-source-v1.json`; callers cannot supply an alternative method.
 It reuses the unchanged S1 schemas for shapes, then resolves exact observation,
 actual LT09 envelope, transport and declared selected-source references. It
 checks projection/raw equality, complete manifest inventory, source/mirror
@@ -90,11 +95,20 @@ receiver still requires its pinned producer source revision and full receipt.
 
 ## Named namespace successor
 
-The active cohort is `B-S4-NAMESPACE-ADOPTION-v1`, described in
+The preceding cohort is `B-S4-NAMESPACE-ADOPTION-v1`, described in
 [NAMESPACE_ADOPTION.md](NAMESPACE_ADOPTION.md). It selects committed Host source
 `b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0` and its fresh actual synthetic exports.
 The previous `pins.json` and f267 fixture cohort remain historical exact bytes;
 the current consumer refuses them and offers no caller-selectable fallback.
-The active fixtures are in `group_b_distribution_receiving_namespace_fixtures`.
+Its preserved fixtures are in `group_b_distribution_receiving_namespace_fixtures`.
 A receipt's namespace source digest is an identity, not a namespace capability:
 `namespace_authority_authenticated` remains false on success and failure.
+
+## Active LT23-source successor
+
+[B-S4-LT23-SOURCE-ADOPTION-v1](LT23_SOURCE_ADOPTION.md) fixes the new source and
+store-reader identity through `pins.lt23-source-v1.json`. Its actual exports
+remain LT09; this consumer still refuses LT23 envelopes and terminal authority
+claims. Active fixtures live in `group_b_distribution_receiving_lt23_source_fixtures`.
+Both preceding cohorts/pin files remain historical unchanged bytes. Success and
+failure report terminal_evidence_received=false and terminal_authority_authenticated=false.

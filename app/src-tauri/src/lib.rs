@@ -1283,6 +1283,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 let st: State<'_, AppState> = app.state();
                 let homes=st.homes.lock().unwrap().entries();
+                if let Some(account)=homes.iter().find(|home|home.class()==home_resources::HomeClass::Account){if let Ok(custody)=account.host.app_runtime_custody(){custody.close_distribution_publication();}}
                 for home in &homes { let _=home.host.stop("the person","App quit"); }
                 // DEF-5 native process-stop facts remain in each actual Host's
                 // lifecycle. They are not DEF-3 REC stopRequestId references.

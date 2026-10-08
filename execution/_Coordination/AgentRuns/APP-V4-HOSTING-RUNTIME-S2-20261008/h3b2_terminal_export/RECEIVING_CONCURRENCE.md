@@ -1,0 +1,5 @@
+# Group B receiving concurrence and technical release
+
+Group B manager /root/group_b_successor concurs with exact proposal SHA256 ad932d92ba9d0739459e3b541862747a76bc38de91b83e5d06d3ce5c785eddcb and four merged source hashes. New closed terminal format/raw predecessor+terminal+source layout preserves v1. Consumer joins both events/observations/generations/source closure to the same explicit App revision/build/pin and unchanged canonical six-record selection, rejects old/mixed/unsupported rows or malformed nonnull references, and preserves provenance/authority limits. No field correction or new owner decision required; code/export/consumer acceptance remains separately reviewed.
+
+HELP_HUMAN explicitly technically released producer-only implementation under that exact reviewed contract after independent design READY, RS concurrence and B receiving concurrence. Actual LT09/LT23 same-H5 raw closures, selected/unselected; no v1 fallback or production semantic change. Reuse existing agents/worktrees. Targeted both-feature tests, frozen independent source review, fresh committed/recompiled exports then B adoption. Native/S3 owner-held paths remain separate.

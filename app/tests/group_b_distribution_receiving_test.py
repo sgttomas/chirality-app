@@ -13,7 +13,9 @@ from unittest.mock import patch
 
 APP = Path(__file__).resolve().parents[1]
 HISTORICAL = APP / 'tests/group_b_distribution_receiving_fixtures'
-FIXTURES = APP / 'tests/group_b_distribution_receiving_namespace_fixtures'
+NAMESPACE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_namespace_fixtures'
+LT23_SOURCE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_lt23_source_fixtures'
+FIXTURES = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
 
 
 def load(name, path):
@@ -235,6 +237,7 @@ class DistributionReceivingTests(unittest.TestCase):
                                     receiver.sha(self.selection.read_bytes()))
         old = receiver.parse((HISTORICAL / 'selected/exchange.json').read_bytes())
         old['producer']['sourceRevision'] = self.receiver.pins['producer_source_revision']
+        old['readback']['evidence']['unsupportedEnvelopes'] = self.receiver.pins['unsupported_envelopes']
         self.exchange = old
         self.refused('reader identity differs')
 
@@ -264,9 +267,48 @@ class DistributionReceivingTests(unittest.TestCase):
         with patch.object(receiver, 'relative', changed):
             with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
         report = self.check()
-        self.assertEqual(report['receiving_adoption'], 'B-S4-NAMESPACE-ADOPTION-v1')
+        self.assertEqual(report['receiving_adoption'], 'B-S4-TERMINAL-SOURCE-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
+
+    def test_namespace_historical_source_and_mixed_store_identity_refuse(self):
+        provenance = receiver.parse((NAMESPACE_HISTORICAL / 'provenance.json').read_bytes())
+        for case in ('selected', 'unselected'):
+            path = NAMESPACE_HISTORICAL / case / 'exchange.json'
+            self.assertEqual(receiver.sha(path.read_bytes()), provenance['exchange_sha256'][case])
+            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection,
+                                    receiver.sha(self.selection.read_bytes()))
+        old = receiver.parse((NAMESPACE_HISTORICAL / 'selected/exchange.json').read_bytes())
+        for field in ('reference', 'transport'):
+            self.select('selected')
+            self.exchange['readback']['evidence'][field]['reader']['storeReaderSha256'] = old['readback']['evidence'][field]['reader']['storeReaderSha256']
+            self.rebind_publication()
+            self.refused('reader identity differs|transport reader/boundary differs')
+
+    def test_lt23_substitution_and_terminal_authority_claims_refuse(self):
+        self.exchange['actualLt09']['transitionId'] = 'LT-23'
+        self.exchange['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(self.exchange['actualLt09'])
+        self.rebind_publication(); self.refused('unsupported envelope|artifact shape differs')
+        for target in ('exchange', 'evidence', 'reference'):
+            self.select('selected')
+            value = self.exchange if target == 'exchange' else self.exchange['readback']['evidence']
+            if target == 'reference': value = value['reference']
+            value['terminalAuthority'] = {'established': True}
+            self.refused('fields differ')
+        self.select('selected'); report = self.check()
+        self.assertFalse(report['terminal_evidence_received'])
+        self.assertFalse(report['terminal_authority_authenticated'])
+        self.assertFalse(report['qualification_established'])
+
+    def test_prior_lt23_source_and_terminal_exchange_are_not_standalone_v1(self):
+        for case in ('selected', 'unselected'):
+            path = LT23_SOURCE_HISTORICAL / case / 'exchange.json'
+            with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+                self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+        path = APP / 'tests/group_b_terminal_receiving_fixtures/selected/exchange.json'
+        with self.assertRaisesRegex(ValueError, 'exchange fields differ'):
+            self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
 
     def test_cli_uses_actual_export_and_preserves_limits(self):
         result = subprocess.run([sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),

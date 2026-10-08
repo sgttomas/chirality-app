@@ -20,7 +20,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '5eaecd0f2e97a3ddb45474666320152ae382260bd6a67cec41e53225fdd09794'
+PINS_SHA256 = '830f33ec63baa0bcac4af92a33e7b2a9b1c1236c2af7a6527549cdcdd17ea9f2'
 FORMAT = 'group-b-s1-reader-exchange.v1'
 MAX_BYTES = 32 * 1024 * 1024
 LIMITS = [
@@ -136,10 +136,10 @@ def referenced(files, ref):
 
 class Receiver:
     def __init__(self):
-        raw = read_file(HERE / 'pins.namespace-v1.json')
+        raw = read_file(HERE / 'pins.terminal-source-lt09-v1.json')
         require(sha(raw) == PINS_SHA256, 'receiver pins changed')
         self.pins = parse(raw)
-        require(sha(read_file(HERE / 'pins.json')) == self.pins['predecessor_pins_sha256'],
+        require(sha(read_file(HERE / 'pins.lt23-source-v1.json')) == self.pins['predecessor_pins_sha256'],
                 'historical predecessor pins changed')
         require(self.pins['reader']['namespaceAuthoritySourceSha256'] ==
                 self.pins['sources']['app/src-tauri/src/attachment_custody.rs'],
@@ -299,6 +299,7 @@ class Receiver:
                 'selection_sha256': selection_sha256, 'receiving_adoption': self.pins['adoption'], 'case': exchange['case'], 'producer': producer,
                 'application_candidate': candidate, 'reader': ref['reader'], 'generation': generation,
                 'canonical_support': report, 'native_reference_authority': False,
+                'terminal_evidence_received': False, 'terminal_authority_authenticated': False,
                 'namespace_authority_authenticated': False, 'semantic_reader_reexecuted': False, 'producer_history_authenticated': False,
                 'application_build_authenticated': False, 'qualification_established': False, 'limits': LIMITS}
 
@@ -313,7 +314,8 @@ def main(argv=None):
         print(json.dumps(report, indent=2)); return 0
     except (OSError, ValueError, TypeError, KeyError, AttributeError, subprocess.TimeoutExpired) as error:
         print(json.dumps({'file_correspondence_passed': False, 'input_error': str(error),
-                          'native_reference_authority': False, 'namespace_authority_authenticated': False, 'semantic_reader_reexecuted': False,
+                          'native_reference_authority': False, 'terminal_evidence_received': False, 'terminal_authority_authenticated': False,
+                'namespace_authority_authenticated': False, 'semantic_reader_reexecuted': False,
                           'producer_history_authenticated': False, 'application_build_authenticated': False,
                           'qualification_established': False,
                           'limits': LIMITS}, indent=2)); return 2

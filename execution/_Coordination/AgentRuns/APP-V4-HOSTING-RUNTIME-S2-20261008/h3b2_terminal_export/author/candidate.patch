@@ -1,0 +1,1209 @@
+diff --git a/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/TERMINAL_EXCHANGE.md b/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/TERMINAL_EXCHANGE.md
+new file mode 100644
+index 0000000000..8cd31a1abb
+--- /dev/null
++++ b/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/TERMINAL_EXCHANGE.md
+@@ -0,0 +1,33 @@
++# Synthetic terminal reader exchange v1
++
++`group-b-s1-terminal-reader-exchange.v1` is a separate cfg(test)-only transport for Group B receiving tests. It leaves `group-b-s1-reader-exchange.v1` and its LT-09 exporter unchanged. This route uses an invented offline child, not the native App or supplier.
++
++A completed case has `exchange.json`, `predecessor/publication/`, `terminal/publication/`, and, only for a selected case, `selected-source/`. Publication directories contain every untouched raw member, including transport. Original source/mirror locator strings are preserved as historical provenance; they are not rebased to exchange paths or instructions to read ambient paths.
++
++The exchange top object is closed:
++
++| Field | Value |
++|---|---|
++| format | `group-b-s1-terminal-reader-exchange.v1` |
++| case | `selected` or `unselected` |
++| producer | Same closed producer fields as the LT-09 exchange: sourceRevision, harnessExecutableSha256, command, features, kind |
++| applicationCandidate | Explicit `INVENTED-S4-APP-REVISION`, `INVENTED-S4-APP-BUILD`, standing `invented-consumer-fixture` |
++| predecessor | Closed object: readback, actualLt09, members |
++| terminal | Closed object: readback, actualLt23, members |
++| selectedSourceMembers | Complete original selected-source member array, or null with no selected-source directory |
++
++Producer sourceRevision is lowercase 40-hex; harnessExecutableSha256 is lowercase 64-hex; command is the actual nonempty argv array; features are sorted unique strings; kind is `synthetic-host-test`. Member arrays are sorted by contained POSIX-relative path, with exact lowercase64 sha256 and integer byte size. Empty, absolute, dot/dotdot, backslash, duplicate and ancestor-collision paths refuse. Each publication's member paths resolve only within its own publication directory.
++
++The producer captures an already installed LT-09 native reference, actual full event, successful Host read and raw closure before actual Stop. It retains native capabilities in memory, never reconstructs them from JSON. After the actual worker settles successfully, it obtains LT-23 through Host and re-reads the original predecessor through its retained Store/reference. It requires full H5 equality, increasing actual event sequence, distinct publication names, unchanged observation bytes/reference, exact whole legacy events, unchanged source association and complete original source bytes. Pending, unavailable, busy, worker failure or test deadline expiry cannot issue a completed exchange. No queue, retry or worker join is added.
++
++The output is a fresh private directory under an explicitly supplied physical temporary parent. Descriptor-based no-follow traversal and exclusive creation remain associated through final marker publication. Copied bytes, full directory membership/modes, original native reads and actual source/event are rechecked. The final marker is created without overwrite only after these checks; partial output remains diagnostic. These are bounded observations, not an atomic snapshot or future integrity guarantee. Test waiting uses a finite polling deadline; filesystem calls are not thereby cancellable or given a product SLA.
++
++## Invocation and source standing
++
++Use the ignored Rust test `hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected` with `CHIRALITY_TERMINAL_EXPORT_ROOT` set to an existing physical private temporary directory. Use the prepared offline Cargo environment and the shared target authorized by the owning run. It creates fresh `selected` and `unselected` children and refuses existing destinations.
++
++A clean checkout plus byte equality between committed/current and compiled exporter, Host, fixture, Store and selection source is required for `exchange.json`. The actual harness executable digest and argv are retained. Usable receiving exports are rerun after reviewed source commit and recompilation. These checks do not authenticate the commit, build history, or an invented application candidate.
++
++An explicitly requested `CHIRALITY_TERMINAL_DIAGNOSTIC=1` dirty-source run writes only `exchange.diagnostic.json`, never `exchange.json`. Its outer `DIAGNOSTIC_SOURCE.json` identifies the checkout base and compiled exporter hash and explicitly states that the base does not contain uncommitted work. Such output is a diagnostic precursor, not a completed receiving exchange. Group B must not accept the diagnostic filename as the completion marker.
++
++No production semantics, canonical schemas/pins, supplier selection, issuer, S3, SEAL-2, restart hydration, history index or qualification is introduced. Independent source review and Group B named consumer adoption remain separate from producer test success.
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs b/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs
+index a868d31138..a3546d94a5 100644
+--- a/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs
++++ b/projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs
+@@ -273,6 +273,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
+ 
+ #[cfg(test)]
+ mod tests {
++    mod terminal_export { include!("hosting_terminal_export.rs"); }
+     mod lt23 { include!("hosting_lt23_tests.rs"); }
+     mod s4_export { include!("hosting_s4_export.rs"); }
+     use super::*;
+diff --git a/projects/chirality-app-v4/app/src-tauri/src/hosting_terminal_export.rs b/projects/chirality-app-v4/app/src-tauri/src/hosting_terminal_export.rs
+new file mode 100644
+index 0000000000..e32fb6fdee
+--- /dev/null
++++ b/projects/chirality-app-v4/app/src-tauri/src/hosting_terminal_export.rs
+@@ -0,0 +1,1152 @@
++// cfg(test) only. A terminal exchange carries historical bytes, never native authority.
++use super::*;
++use crate::{
++    distribution_store::{S1Reference, Store},
++    hosting::AppRuntimeCustody,
++};
++use std::{
++    collections::{BTreeMap, BTreeSet},
++    ffi::CString,
++    fs::{self, File},
++    io::{Read, Write},
++    os::{
++        fd::{AsRawFd, FromRawFd},
++        unix::fs::{MetadataExt, PermissionsExt},
++    },
++    path::{Component, Path},
++};
++type Files = BTreeMap<String, Vec<u8>>;
++const FORMAT: &str = "group-b-s1-terminal-reader-exchange.v1";
++fn err(e: impl std::fmt::Display) -> String {
++    e.to_string()
++}
++fn hex(s: &str, n: usize) -> bool {
++    s.len() == n
++        && s.bytes()
++            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
++}
++fn closed(v: &Value, keys: &[&str]) -> Result<(), String> {
++    let o = v.as_object().ok_or("object required")?;
++    if o.len() != keys.len() || keys.iter().any(|k| !o.contains_key(*k)) {
++        return Err("closed fields differ".into());
++    }
++    Ok(())
++}
++fn safe(p: &str) -> Result<(), String> {
++    if p.is_empty()
++        || p.starts_with('/')
++        || p.contains('\\')
++        || p.split('/').any(|c| c.is_empty() || c == "." || c == "..")
++    {
++        Err("unsafe member path".into())
++    } else {
++        Ok(())
++    }
++}
++fn paths(files: &Files) -> Result<(), String> {
++    for p in files.keys() {
++        safe(p)?;
++        let mut parent = Path::new(p).parent();
++        while let Some(a) = parent {
++            if files.contains_key(a.to_str().ok_or("non UTF8 path")?) {
++                return Err("ancestor collision".into());
++            }
++            parent = a.parent();
++        }
++    }
++    Ok(())
++}
++fn members(files: &Files) -> Value {
++    json!(files
++        .iter()
++        .map(|(p, b)| json!({"path":p,"sha256":tree::digest(b),"size":b.len()}))
++        .collect::<Vec<_>>())
++}
++fn snapshot(root: &Path) -> Result<Files, String> {
++    let before = tree::scan(root)?;
++    let mut files = Files::new();
++    for e in &before.entries {
++        if e.kind == "file" {
++            safe(&e.path)?;
++            let b = fs::read(root.join(&e.path)).map_err(err)?;
++            if Some(tree::digest(&b)) != e.sha256 || Some(b.len() as u64) != e.size {
++                return Err("copy observation changed".into());
++            }
++            files.insert(e.path.clone(), b);
++        }
++    }
++    if tree::scan(root)? != before {
++        return Err("copy inventory changed".into());
++    }
++    paths(&files)?;
++    Ok(files)
++}
++fn exact(files: &Files, r: &Value) -> Result<(), String> {
++    closed(r, &["path", "sha256"])?;
++    let p = r["path"].as_str().ok_or("reference path absent")?;
++    safe(p)?;
++    let hash = r["sha256"].as_str().ok_or("reference digest absent")?;
++    if !hex(hash, 64) || files.get(p).is_none_or(|b| tree::digest(b) != hash) {
++        return Err("reference bytes differ".into());
++    }
++    Ok(())
++}
++fn publication(
++    read: &Value,
++    files: &Files,
++    source: Option<&Files>,
++    event: &Value,
++    row: &str,
++) -> Result<(), String> {
++    if read["state"] != "read"
++        || event["transitionId"] != row
++        || read["evidence"]["lifecycle"]["legacy_event"] != *event
++    {
++        return Err("actual successful row read required".into());
++    }
++    let e = &read["evidence"];
++    let g = &read["generation"];
++    crate::recovery::generation_ref(g)?;
++    for other in [
++        &e["reference"]["generation"],
++        &e["artifact"]["generation"],
++        &e["lifecycle"]["verification_generation"],
++        &event["generation"],
++    ] {
++        if other != g {
++            return Err("full H5 differs".into());
++        }
++    }
++    for (key, value) in [
++        ("observed", &e["artifact"]),
++        ("lifecycle", &e["lifecycle"]),
++        ("transport", &e["transport"]),
++    ] {
++        exact(files, &e["reference"][key])?;
++        let b = &files[e["reference"][key]["path"].as_str().unwrap()];
++        if serde_json::from_slice::<Value>(b).map_err(err)? != *value {
++            return Err("raw/readback differ".into());
++        }
++    }
++    let entries = e["transport"]["entries"]
++        .as_array()
++        .ok_or("transport members absent")?;
++    let mut declared = BTreeSet::new();
++    for r in entries {
++        exact(files, r)?;
++        if !declared.insert(r["path"].as_str().unwrap().to_string()) {
++            return Err("duplicate transport member".into());
++        }
++    }
++    let transport = e["reference"]["transport"]["path"].as_str().unwrap();
++    if !declared.insert(transport.into()) || declared != files.keys().cloned().collect() {
++        return Err("publication set differs".into());
++    }
++    let selected: Files = files
++        .iter()
++        .filter(|(p, _)| !p.starts_with(".chirality-s1/"))
++        .map(|(p, b)| (p.clone(), b.clone()))
++        .collect();
++    match source {
++        Some(s) if !e["transport"]["sourceAssociation"].is_null() && s == &selected => (),
++        None if e["transport"]["sourceAssociation"].is_null() && selected.is_empty() => (),
++        _ => return Err("source closure differs".into()),
++    }
++    Ok(())
++}
++fn validate(
++    packet: &Value,
++    prior: &Files,
++    terminal: &Files,
++    source: Option<&Files>,
++) -> Result<(), String> {
++    closed(
++        packet,
++        &[
++            "format",
++            "case",
++            "producer",
++            "applicationCandidate",
++            "predecessor",
++            "terminal",
++            "selectedSourceMembers",
++        ],
++    )?;
++    if packet["format"] != FORMAT
++        || packet["case"]
++            != if source.is_some() {
++                "selected"
++            } else {
++                "unselected"
++            }
++    {
++        return Err("unsupported exchange case/format".into());
++    }
++    closed(
++        &packet["producer"],
++        &[
++            "sourceRevision",
++            "harnessExecutableSha256",
++            "command",
++            "features",
++            "kind",
++        ],
++    )?;
++    let p = &packet["producer"];
++    if !hex(p["sourceRevision"].as_str().unwrap_or(""), 40)
++        || !hex(p["harnessExecutableSha256"].as_str().unwrap_or(""), 64)
++        || p["kind"] != "synthetic-host-test"
++        || p["command"]
++            .as_array()
++            .is_none_or(|a| a.is_empty() || a.iter().any(|v| !v.is_string()))
++    {
++        return Err("producer identity malformed".into());
++    }
++    let features = p["features"].as_array().ok_or("features absent")?;
++    if features.iter().any(|v| !v.is_string())
++        || features.windows(2).any(|w| w[0].as_str() >= w[1].as_str())
++    {
++        return Err("features not sorted unique".into());
++    }
++    if packet["applicationCandidate"]
++        != json!({"revision":"INVENTED-S4-APP-REVISION","buildIdentity":"INVENTED-S4-APP-BUILD","standing":"invented-consumer-fixture"})
++    {
++        return Err("explicit invented application identity required".into());
++    }
++    let a = &packet["predecessor"];
++    let b = &packet["terminal"];
++    closed(a, &["readback", "actualLt09", "members"])?;
++    closed(b, &["readback", "actualLt23", "members"])?;
++    paths(prior)?;
++    paths(terminal)?;
++    if a["members"] != members(prior)
++        || b["members"] != members(terminal)
++        || packet["selectedSourceMembers"] != source.map(members).unwrap_or(Value::Null)
++    {
++        return Err("member manifest differs".into());
++    }
++    publication(&a["readback"], prior, source, &a["actualLt09"], "LT-09")?;
++    publication(&b["readback"], terminal, source, &b["actualLt23"], "LT-23")?;
++    let x = &a["readback"]["evidence"];
++    let y = &b["readback"]["evidence"];
++    if a["readback"]["generation"] != b["readback"]["generation"]
++        || x["reference"]["publication"] == y["reference"]["publication"]
++        || x["reference"]["observed"] != y["reference"]["observed"]
++        || x["artifact"] != y["artifact"]
++        || x["transport"]["sourceAssociation"] != y["transport"]["sourceAssociation"]
++        || a["actualLt09"]["sequence"]
++            .as_u64()
++            .zip(b["actualLt23"]["sequence"].as_u64())
++            .is_none_or(|(a, b)| a >= b)
++    {
++        return Err("predecessor/terminal join differs".into());
++    }
++    let observed = x["reference"]["observed"]["path"].as_str().unwrap();
++    if prior[observed] != terminal[observed] {
++        return Err("observation bytes changed".into());
++    }
++    Ok(())
++}
++
++// Output descriptors stay bound from physical parent traversal through final marker.
++fn name(s: &str) -> Result<CString, String> {
++    CString::new(s).map_err(err)
++}
++fn open_at(dir: &File, p: &str, flags: i32) -> Result<File, String> {
++    let n = name(p)?;
++    let fd = unsafe {
++        libc::openat(
++            dir.as_raw_fd(),
++            n.as_ptr(),
++            flags | libc::O_NOFOLLOW | libc::O_CLOEXEC,
++            0o600,
++        )
++    };
++    if fd < 0 {
++        return Err(std::io::Error::last_os_error().to_string());
++    }
++    Ok(unsafe { File::from_raw_fd(fd) })
++}
++fn id(f: &File) -> Result<(u64, u64), String> {
++    let m = f.metadata().map_err(err)?;
++    Ok((m.dev(), m.ino()))
++}
++struct Dir {
++    fd: File,
++    path: PathBuf,
++    private: bool,
++}
++impl Dir {
++    fn physical(path: &Path) -> Result<Self, String> {
++        if !path.is_absolute() {
++            return Err("absolute physical path required".into());
++        }
++        let mut fd = File::open("/").map_err(err)?;
++        for c in path.components() {
++            match c {
++                Component::RootDir => (),
++                Component::Normal(n) => {
++                    fd = open_at(
++                        &fd,
++                        n.to_str().ok_or("non UTF8 path")?,
++                        libc::O_RDONLY | libc::O_DIRECTORY,
++                    )?
++                }
++                _ => return Err("nonphysical component".into()),
++            }
++        }
++        Ok(Self {
++            fd,
++            path: path.into(),
++            private: false,
++        })
++    }
++    fn guard(&self) -> Result<(), String> {
++        let now = Self::physical(&self.path)?;
++        let m = self.fd.metadata().map_err(err)?;
++        if self.private && (m.mode() & 0o777 != 0o700 || m.uid() != unsafe { libc::geteuid() }) {
++            return Err("output no longer private".into());
++        }
++        if id(&now.fd)? != id(&self.fd)? {
++            return Err("output directory replaced".into());
++        }
++        Ok(())
++    }
++    fn fresh(&self, part: &str) -> Result<Self, String> {
++        safe(part)?;
++        if part.contains('/') {
++            return Err("one directory component required".into());
++        }
++        self.guard()?;
++        let n = name(part)?;
++        if unsafe { libc::mkdirat(self.fd.as_raw_fd(), n.as_ptr(), 0o700) } != 0 {
++            return Err(std::io::Error::last_os_error().to_string());
++        }
++        let d = Self {
++            fd: open_at(&self.fd, part, libc::O_RDONLY | libc::O_DIRECTORY)?,
++            path: self.path.join(part),
++            private: true,
++        };
++        d.guard()?;
++        Ok(d)
++    }
++    fn write(&self, p: &str, b: &[u8]) -> Result<(), String> {
++        safe(p)?;
++        let mut fd = self.fd.try_clone().map_err(err)?;
++        let mut iter = p.split('/').peekable();
++        while let Some(c) = iter.next() {
++            if iter.peek().is_none() {
++                let mut f = open_at(&fd, c, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)?;
++                f.write_all(b).map_err(err)?;
++                f.sync_all().map_err(err)?;
++            } else {
++                let n = name(c)?;
++                if unsafe { libc::mkdirat(fd.as_raw_fd(), n.as_ptr(), 0o700) } != 0
++                    && std::io::Error::last_os_error().raw_os_error() != Some(libc::EEXIST)
++                {
++                    return Err(std::io::Error::last_os_error().to_string());
++                }
++                fd = open_at(&fd, c, libc::O_RDONLY | libc::O_DIRECTORY)?;
++            }
++        }
++        Ok(())
++    }
++    fn files(&self, files: &Files) -> Result<(), String> {
++        paths(files)?;
++        for (p, b) in files {
++            self.guard()?;
++            self.write(p, b)?;
++        }
++        self.guard()
++    }
++    fn marker(&self, marker: &str, raw: &[u8]) -> Result<(), String> {
++        if !matches!(marker, "exchange.json" | "exchange.diagnostic.json") {
++            return Err("unsupported marker".into());
++        }
++        self.guard()?;
++        self.write(".exchange.pending", raw)?;
++        let from = name(".exchange.pending")?;
++        let to = name(marker)?;
++        self.guard()?;
++        if unsafe {
++            libc::linkat(
++                self.fd.as_raw_fd(),
++                from.as_ptr(),
++                self.fd.as_raw_fd(),
++                to.as_ptr(),
++                0,
++            )
++        } != 0
++        {
++            return Err(std::io::Error::last_os_error().to_string());
++        }
++        unsafe {
++            libc::unlinkat(self.fd.as_raw_fd(), from.as_ptr(), 0);
++        }
++        let result = (|| {
++            self.fd.sync_all().map_err(err)?;
++            self.guard()?;
++            let mut f = open_at(&self.fd, marker, libc::O_RDONLY)?;
++            let mut actual = Vec::new();
++            f.read_to_end(&mut actual).map_err(err)?;
++            if actual != raw {
++                return Err("marker changed".into());
++            }
++            Ok(())
++        })();
++        if result.is_err() {
++            unsafe {
++                libc::unlinkat(self.fd.as_raw_fd(), to.as_ptr(), 0);
++            }
++        }
++        result
++    }
++}
++fn copied(root: &Dir, files: &Files) -> Result<(), String> {
++    root.guard()?;
++    if snapshot(&root.path)? != *files {
++        return Err("copied byte set differs".into());
++    }
++    let mut names = BTreeMap::new();
++    names.insert(".".to_string(), false);
++    for p in files.keys() {
++        names.insert(p.clone(), true);
++        let mut parent = Path::new(p).parent();
++        while let Some(a) = parent {
++            if !a.as_os_str().is_empty() {
++                names.insert(a.to_str().ok_or("non UTF8 path")?.into(), false);
++            }
++            parent = a.parent();
++        }
++    }
++    let inventory = tree::scan(&root.path)?;
++    if inventory.entries.len() != names.len() {
++        return Err("output directory membership differs".into());
++    }
++    for e in inventory.entries {
++        match names.get(&e.path) {
++            Some(true) if e.kind == "file" && e.mode == 0o600 => (),
++            Some(false) if e.kind == "dir" && e.mode == 0o700 => (),
++            _ => return Err("output kind/mode differs".into()),
++        }
++    }
++    root.guard()
++}
++struct Capture {
++    generation: Value,
++    attempt: u64,
++    reference: S1Reference,
++    store: Arc<Store>,
++    read: Value,
++    event: Value,
++    files: Files,
++    source: Option<Files>,
++}
++impl Capture {
++    fn before_stop(host: &Host, data: &Path, source: Option<&Path>) -> Result<Self, String> {
++        let (g, attempt, reference) = {
++            let i = host.inner.0.lock().unwrap();
++            if i.state != "ready" || !i.successor_lt09_installed {
++                return Err("installed ready LT09 required".into());
++            }
++            (
++                i.generation.clone(),
++                i.start_attempt,
++                i.successor_reference.clone().ok_or("reference absent")?,
++            )
++        };
++        let store = host
++            .distribution_store_for_admission(true)?
++            .ok_or("Store absent")?;
++        let read = host.distribution_evidence(&g);
++        let event = host
++            .lifecycle_events()
++            .into_iter()
++            .find(|e| e["transitionId"] == "LT-09" && e["generation"] == g)
++            .ok_or("actual LT09 absent")?;
++        source_locator(&read, source)?;
++        let files = publication_files(data, &read)?;
++        let originals = source.map(snapshot).transpose()?;
++        publication(&read, &files, originals.as_ref(), &event, "LT-09")?;
++        if store.read_s1(&g, &reference)? != read["evidence"]
++            || host.distribution_evidence(&g) != read
++        {
++            return Err("predecessor changed".into());
++        }
++        Ok(Self {
++            generation: g,
++            attempt,
++            reference,
++            store,
++            read,
++            event,
++            files,
++            source: originals,
++        })
++    }
++    fn current(&self, host: &Host, event: &Value) -> Result<(), String> {
++        let i = host.inner.0.lock().unwrap();
++        if i.start_attempt != self.attempt
++            || i.generation != self.generation
++            || i.state != "stopped"
++            || i.successor_publication_sequence
++                != event["sequence"].as_u64().ok_or("event sequence absent")?
++            || !i.lifecycle.iter().any(|e| e == event)
++        {
++            return Err("native source/event changed".into());
++        }
++        Ok(())
++    }
++}
++fn source_locator(read: &Value, source: Option<&Path>) -> Result<(), String> {
++    match source {
++        Some(path)
++            if read["evidence"]["transport"]["sourceAssociation"]["originalSource"].as_str()
++                == path.to_str()
++                && path.canonicalize().map_err(err)? == path =>
++        {
++            Dir::physical(path)?;
++            Ok(())
++        }
++        None if read["evidence"]["transport"]["sourceAssociation"].is_null() => Ok(()),
++        _ => Err("original selected source locator differs".into()),
++    }
++}
++fn publication_files(data: &Path, read: &Value) -> Result<Files, String> {
++    if read["state"] != "read" {
++        return Err("native held read unavailable".into());
++    }
++    let p = read["evidence"]["reference"]["publication"]
++        .as_str()
++        .ok_or("publication absent")?;
++    safe(p)?;
++    if p.contains('/') {
++        return Err("invalid publication leaf".into());
++    }
++    snapshot(&data.join("runtime/distribution").join(p))
++}
++fn settled(host: &Host, g: &Value, limit: Duration) -> Result<Value, String> {
++    let deadline = std::time::Instant::now() + limit;
++    loop {
++        let read = host.distribution_evidence(g);
++        match read["state"].as_str() {
++            Some("read")
++                if read["evidence"]["lifecycle"]["legacy_event"]["transitionId"] == "LT-23" =>
++            {
++                return Ok(read)
++            }
++            Some("pending") => (),
++            _ => return Err("terminal native read unavailable".into()),
++        }
++        if std::time::Instant::now() >= deadline {
++            return Err("finite test wait expired; worker not joined or cancelled".into());
++        }
++        std::thread::sleep(Duration::from_millis(5));
++    }
++}
++fn export(
++    host: &Host,
++    c: &Capture,
++    data: &Path,
++    source: Option<&Path>,
++    out: &Path,
++    producer: Value,
++    candidate: Value,
++    marker: &str,
++    before_marker: impl FnOnce(),
++) -> Result<Value, String> {
++    let read = host.distribution_evidence(&c.generation);
++    let event = host
++        .lifecycle_events()
++        .into_iter()
++        .rev()
++        .find(|e| e["transitionId"] == "LT-23" && e["generation"] == c.generation)
++        .ok_or("actual LT23 absent")?;
++    c.current(host, &event)?;
++    source_locator(&read, source)?;
++    let files = publication_files(data, &read)?;
++    let originals = source.map(snapshot).transpose()?;
++    if originals != c.source || c.store.read_s1(&c.generation, &c.reference)? != c.read["evidence"]
++    {
++        return Err("predecessor/source changed".into());
++    }
++    let packet = json!({"format":FORMAT,"case":if source.is_some(){"selected"}else{"unselected"},"producer":producer,"applicationCandidate":candidate,"predecessor":{"readback":c.read,"actualLt09":c.event,"members":members(&c.files)},"terminal":{"readback":read,"actualLt23":event,"members":members(&files)},"selectedSourceMembers":originals.as_ref().map(members)});
++    validate(&packet, &c.files, &files, originals.as_ref())?;
++    let parent = out.parent().ok_or("output parent absent")?;
++    let physical = parent.canonicalize().map_err(err)?;
++    let temp = std::env::temp_dir().canonicalize().map_err(err)?;
++    if physical != parent || !(physical.starts_with("/private/tmp") || physical.starts_with(temp)) {
++        return Err("physical temporary output required".into());
++    }
++    let parent = Dir::physical(parent)?;
++    let root = parent.fresh(
++        out.file_name()
++            .and_then(|s| s.to_str())
++            .ok_or("output name absent")?,
++    )?;
++    let a = root.fresh("predecessor")?.fresh("publication")?;
++    a.files(&c.files)?;
++    let b = root.fresh("terminal")?.fresh("publication")?;
++    b.files(&files)?;
++    let src = if let Some(ref originals) = originals {
++        let d = root.fresh("selected-source")?;
++        d.files(originals)?;
++        Some(d)
++    } else {
++        None
++    };
++    before_marker();
++    if c.store.read_s1(&c.generation, &c.reference)? != c.read["evidence"]
++        || host.distribution_evidence(&c.generation) != read
++        || source.map(snapshot).transpose()? != originals
++    {
++        return Err("native read/source changed during export".into());
++    }
++    c.current(host, &event)?;
++    parent.guard()?;
++    root.guard()?;
++    a.guard()?;
++    b.guard()?;
++    if let Some(ref src) = src {
++        src.guard()?;
++    }
++    let mut expected = Files::new();
++    for (prefix, raw) in [
++        ("predecessor/publication", &c.files),
++        ("terminal/publication", &files),
++    ] {
++        for (p, b) in raw {
++            expected.insert(format!("{prefix}/{p}"), b.clone());
++        }
++    }
++    if let Some(ref originals) = originals {
++        for (p, b) in originals {
++            expected.insert(format!("selected-source/{p}"), b.clone());
++        }
++    }
++    copied(&root, &expected)?;
++    let raw = serde_json::to_vec_pretty(&packet).map_err(err)?;
++    root.marker(marker, &raw)?;
++    expected.insert(marker.into(), raw);
++    if let Err(e) = copied(&root, &expected) {
++        let n = name(marker)?;
++        unsafe {
++            libc::unlinkat(root.fd.as_raw_fd(), n.as_ptr(), 0);
++        }
++        return Err(e);
++    }
++    Ok(packet)
++}
++fn compiled_sources() -> [(&'static str, &'static [u8]); 6] {
++    [
++        (
++            "hosting_terminal_export.rs",
++            include_bytes!("hosting_terminal_export.rs"),
++        ),
++        (
++            "hosting_successor.rs",
++            include_bytes!("hosting_successor.rs"),
++        ),
++        ("hosting.rs", include_bytes!("hosting.rs")),
++        (
++            "distribution_store.rs",
++            include_bytes!("distribution_store.rs"),
++        ),
++        (
++            "distribution_store_s1.rs",
++            include_bytes!("distribution_store_s1.rs"),
++        ),
++        (
++            "distribution_selection.rs",
++            include_bytes!("distribution_selection.rs"),
++        ),
++    ]
++}
++fn source_matches(committed: &[u8], compiled: &[u8]) -> Result<(), String> {
++    if committed != compiled {
++        Err("compiled exporter/Host source differs from clean revision; rebuild harness".into())
++    } else {
++        Ok(())
++    }
++}
++fn marker_for(dirty: bool, diagnostic: bool) -> Result<&'static str, String> {
++    if dirty && !diagnostic {
++        return Err("dirty harness cannot issue completed exchange".into());
++    }
++    Ok(if dirty {
++        "exchange.diagnostic.json"
++    } else {
++        "exchange.json"
++    })
++}
++fn inputs() -> Result<(Value, Value, bool), String> {
++    let git = |args: &[&str]| -> Result<Vec<u8>, String> {
++        let o = std::process::Command::new("git")
++            .args(args)
++            .current_dir(env!("CARGO_MANIFEST_DIR"))
++            .output()
++            .map_err(err)?;
++        if !o.status.success() {
++            return Err("git identity unavailable".into());
++        }
++        Ok(o.stdout)
++    };
++    let revision = String::from_utf8(git(&["rev-parse", "HEAD"])?)
++        .map_err(err)?
++        .trim()
++        .to_owned();
++    let dirty = !git(&["status", "--porcelain", "--untracked-files=normal"])?.is_empty();
++    if !dirty {
++        for (path, compiled) in compiled_sources() {
++            let committed = git(&[
++                "show",
++                &format!("HEAD:projects/chirality-app-v4/app/src-tauri/src/{path}"),
++            ])?;
++            source_matches(&committed, compiled)?;
++            source_matches(
++                &fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(path))
++                    .map_err(err)?,
++                compiled,
++            )?;
++        }
++    }
++    let mut features = vec![];
++    if cfg!(feature = "custom-protocol") {
++        features.push("custom-protocol");
++    }
++    if cfg!(feature = "distribution-successor") {
++        features.push("distribution-successor");
++    }
++    Ok((
++        json!({"sourceRevision":revision,"harnessExecutableSha256":tree::digest(&fs::read(std::env::current_exe().map_err(err)?).map_err(err)?),"command":std::env::args().collect::<Vec<_>>(),"features":features,"kind":"synthetic-host-test"}),
++        json!({"revision":"INVENTED-S4-APP-REVISION","buildIdentity":"INVENTED-S4-APP-BUILD","standing":"invented-consumer-fixture"}),
++        dirty,
++    ))
++}
++fn ready(
++    selected: bool,
++) -> (
++    Fixture,
++    Arc<Host>,
++    Arc<AppRuntimeCustody>,
++    PathBuf,
++    Option<PathBuf>,
++    Capture,
++) {
++    let f = Fixture::new("pass");
++    let h = Arc::new(Host::new());
++    let data = attach_selected_store(&h, &f, selected.then_some("reference/expected.json"));
++    let cap = h.app_runtime_custody().unwrap();
++    h.start(&f.cfg, "terminal exchange fixture").unwrap();
++    let source = selected.then(|| f.root.join("reference-source"));
++    let c = Capture::before_stop(&h, &data, source.as_deref()).unwrap();
++    (f, h, cap, data, source, c)
++}
++#[test]
++#[ignore = "explicit offline terminal exchange; set CHIRALITY_TERMINAL_EXPORT_ROOT"]
++fn export_group_b_terminal_selected_and_unselected() {
++    let root = PathBuf::from(
++        std::env::var_os("CHIRALITY_TERMINAL_EXPORT_ROOT")
++            .expect("explicit physical temporary output parent"),
++    );
++    let (p, c, dirty) = inputs().unwrap();
++    let diagnostic = std::env::var_os("CHIRALITY_TERMINAL_DIAGNOSTIC").is_some();
++    let marker = marker_for(dirty, diagnostic).unwrap();
++    if dirty {
++        let dir = Dir::physical(&root).unwrap();
++        dir.write("DIAGNOSTIC_SOURCE.json",&serde_json::to_vec_pretty(&json!({"standing":"uncommitted diagnostic only; no completed receiving exchange","committedBaseRevision":p["sourceRevision"],"limit":"payload sourceRevision is checkout base only, does not contain this uncommitted exporter; rebuild after reviewed commit for usable export","exporterSourceSha256":tree::digest(include_bytes!("hosting_terminal_export.rs"))})).unwrap()).unwrap();
++    }
++    for selected in [false, true] {
++        let (_f, h, _cap, data, source, capture) = ready(selected);
++        h.stop("synthetic", "terminal export").unwrap();
++        settled(&h, &capture.generation, Duration::from_secs(10)).unwrap();
++        export(
++            &h,
++            &capture,
++            &data,
++            source.as_deref(),
++            &root.join(if selected { "selected" } else { "unselected" }),
++            p.clone(),
++            c.clone(),
++            marker,
++            || {},
++        )
++        .unwrap();
++    }
++}
++
++#[test]
++fn terminal_exchange_actual_selected_and_unselected_roundtrip() {
++    for selected in [false, true] {
++        let (f, h, _cap, data, source, c) = ready(selected);
++        let (p, a, _) = inputs().unwrap();
++        h.stop("synthetic", "exchange roundtrip").unwrap();
++        settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++        let out = f.root.join("exchange");
++        let packet = export(
++            &h,
++            &c,
++            &data,
++            source.as_deref(),
++            &out,
++            p,
++            a,
++            "exchange.json",
++            || {},
++        )
++        .unwrap();
++        let terminal = snapshot(&out.join("terminal/publication")).unwrap();
++        validate(
++            &packet,
++            &snapshot(&out.join("predecessor/publication")).unwrap(),
++            &terminal,
++            source
++                .as_deref()
++                .map(snapshot)
++                .transpose()
++                .unwrap()
++                .as_ref(),
++        )
++        .unwrap();
++        assert_eq!(
++            serde_json::from_slice::<Value>(&fs::read(out.join("exchange.json")).unwrap()).unwrap(),
++            packet
++        );
++        assert_eq!(out.join("selected-source").exists(), selected);
++        assert_eq!(
++            c.store.read_s1(&c.generation, &c.reference).unwrap(),
++            c.read["evidence"]
++        );
++    }
++}
++#[test]
++fn terminal_exchange_rejects_closed_shape_reference_generation_and_member_contradictions() {
++    let (f, h, _cap, data, source, c) = ready(true);
++    let (p, a, _) = inputs().unwrap();
++    h.stop("synthetic", "negative packet").unwrap();
++    settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++    let out = f.root.join("exchange");
++    let packet = export(
++        &h,
++        &c,
++        &data,
++        source.as_deref(),
++        &out,
++        p,
++        a,
++        "exchange.json",
++        || {},
++    )
++    .unwrap();
++    let terminal = snapshot(&out.join("terminal/publication")).unwrap();
++    let originals = c.source.as_ref();
++    for (pointer, value) in [
++        ("/format", json!("group-b-s1-reader-exchange.v1")),
++        ("/case", json!("unsupported")),
++        ("/terminal/actualLt23/transitionId", json!("LT-09")),
++        ("/predecessor/actualLt09/transitionId", json!("LT-23")),
++        ("/terminal/actualLt23/sequence", json!(0)),
++        ("/terminal/readback/generation/spawnCounter", json!(999)),
++        ("/terminal/readback/state", json!("pending")),
++        (
++            "/terminal/readback/evidence/reference/observed",
++            json!({"path":"x","sha256":null}),
++        ),
++        (
++            "/terminal/readback/evidence/artifact/phase",
++            json!("terminal"),
++        ),
++        (
++            "/terminal/readback/evidence/transport/sourceAssociation",
++            Value::Null,
++        ),
++        ("/producer/sourceRevision", json!("invented")),
++        ("/producer/features", json!(["z", "a"])),
++        ("/producer/command", json!([])),
++        (
++            "/applicationCandidate/revision",
++            json!("inferred-from-harness"),
++        ),
++        ("/selectedSourceMembers", Value::Null),
++    ] {
++        let mut wrong = packet.clone();
++        *wrong.pointer_mut(pointer).unwrap() = value;
++        assert!(
++            validate(&wrong, &c.files, &terminal, originals).is_err(),
++            "{pointer}"
++        );
++    }
++    for pointer in ["", "/producer", "/predecessor", "/terminal"] {
++        let mut wrong = packet.clone();
++        wrong.pointer_mut(pointer).unwrap()["extra"] = json!(true);
++        assert!(validate(&wrong, &c.files, &terminal, originals).is_err());
++    }
++    for field in ["predecessor", "terminal"] {
++        let mut wrong = packet.clone();
++        let entry = wrong[field]["members"][0].clone();
++        wrong[field]["members"].as_array_mut().unwrap().push(entry);
++        assert!(validate(&wrong, &c.files, &terminal, originals).is_err());
++    }
++    for mutation in ["tamper", "missing", "extra", "collision"] {
++        let mut bad = terminal.clone();
++        match mutation {
++            "tamper" => bad.values_mut().next().unwrap().push(0),
++            "missing" => {
++                let key = bad.keys().next().unwrap().clone();
++                bad.remove(&key);
++            }
++            "extra" => {
++                bad.insert("extra".into(), vec![]);
++            }
++            _ => {
++                bad.insert(".chirality-s1".into(), vec![]);
++            }
++        }
++        assert!(validate(&packet, &c.files, &bad, originals).is_err());
++    }
++    let mut altered = c.source.clone().unwrap();
++    altered.values_mut().next().unwrap().push(0);
++    assert!(validate(&packet, &c.files, &terminal, Some(&altered)).is_err());
++    assert!(validate(&packet, &c.files, &terminal, None).is_err());
++}
++#[test]
++fn terminal_exchange_pending_failed_and_missing_predecessor_never_mark_complete() {
++    let f = Fixture::new("pass");
++    let absent = Host::new();
++    assert!(Capture::before_stop(&absent, &f.root, None).is_err());
++    for fail in [false, true] {
++        let (f, h, cap, data, source, c) = ready(false);
++        let (p, a, _) = inputs().unwrap();
++        let (tx, rx) = std::sync::mpsc::channel();
++        let (go, wait) = std::sync::mpsc::channel();
++        if fail {
++            cap.terminal_publication
++                .fail_spawn
++                .store(true, std::sync::atomic::Ordering::SeqCst);
++        } else {
++            *cap.terminal_publication.before_work.lock().unwrap() = Some(Box::new(move || {
++                tx.send(()).unwrap();
++                wait.recv_timeout(Duration::from_secs(15)).unwrap();
++            }));
++        }
++        h.stop("synthetic", "not yet evidence").unwrap();
++        if !fail {
++            rx.recv_timeout(Duration::from_secs(10)).unwrap();
++        }
++        assert!(settled(&h, &c.generation, Duration::ZERO).is_err());
++        let out = f.root.join("refused");
++        assert!(export(
++            &h,
++            &c,
++            &data,
++            source.as_deref(),
++            &out,
++            p,
++            a,
++            "exchange.json",
++            || {}
++        )
++        .is_err());
++        assert!(!out.exists());
++        if !fail {
++            go.send(()).unwrap();
++            settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++        }
++    }
++}
++#[test]
++fn terminal_exchange_live_tamper_or_new_attempt_refuses_before_marker() {
++    for kind in ["source", "publication", "restart"] {
++        let (f, h, _cap, data, source, c) = ready(true);
++        let (p, a, _) = inputs().unwrap();
++        h.stop("synthetic", "tamper").unwrap();
++        let read = settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++        let out = f.root.join("refused");
++        let result = export(
++            &h,
++            &c,
++            &data,
++            source.as_deref(),
++            &out,
++            p,
++            a,
++            "exchange.json",
++            || match kind {
++                "source" => fs::write(
++                    source.as_ref().unwrap().join("evidence/expected/0.json"),
++                    b"tamper",
++                )
++                .unwrap(),
++                "publication" => {
++                    let root = data.join("runtime/distribution").join(
++                        read["evidence"]["reference"]["publication"]
++                            .as_str()
++                            .unwrap(),
++                    );
++                    fs::write(root.join(".chirality-s1/observed.json"), b"{}").unwrap();
++                }
++                _ => {
++                    h.start(&f.cfg, "new attempt").unwrap();
++                }
++            },
++        );
++        assert!(result.is_err(), "{kind}");
++        assert!(!out.join("exchange.json").exists());
++        if kind == "restart" {
++            let g = h.snapshot()["generation"].clone();
++            h.stop("synthetic", "cleanup").unwrap();
++            settled(&h, &g, Duration::from_secs(10)).unwrap();
++        }
++    }
++}
++#[test]
++fn terminal_exchange_output_replacement_symlink_extra_and_partial_fail_without_marker() {
++    let (f, h, _cap, data, source, c) = ready(false);
++    let (p, a, _) = inputs().unwrap();
++    h.stop("synthetic", "output controls").unwrap();
++    settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++    let existing = f.root.join("existing");
++    fs::create_dir(&existing).unwrap();
++    assert!(export(
++        &h,
++        &c,
++        &data,
++        None,
++        &existing,
++        p.clone(),
++        a.clone(),
++        "exchange.json",
++        || {}
++    )
++    .is_err());
++    let link = f.root.join("linked");
++    std::os::unix::fs::symlink(&f.root, &link).unwrap();
++    assert!(export(
++        &h,
++        &c,
++        &data,
++        None,
++        &link.join("new"),
++        p.clone(),
++        a.clone(),
++        "exchange.json",
++        || {}
++    )
++    .is_err());
++    for kind in ["root", "member", "extra", "partial", "mode"] {
++        let out = f.root.join(kind);
++        let result = export(
++            &h,
++            &c,
++            &data,
++            source.as_deref(),
++            &out,
++            p.clone(),
++            a.clone(),
++            "exchange.json",
++            || match kind {
++                "root" => {
++                    fs::rename(&out, f.root.join("moved")).unwrap();
++                    fs::create_dir(&out).unwrap();
++                }
++                "member" => {
++                    let leaf = out.join("terminal/publication/.chirality-s1/observed.json");
++                    fs::remove_file(&leaf).unwrap();
++                    std::os::unix::fs::symlink("/dev/null", leaf).unwrap();
++                }
++                "extra" => fs::create_dir(out.join("unexpected-empty-directory")).unwrap(),
++                "partial" => {
++                    let leaf = out.join("predecessor/publication/.chirality-s1/observed.json");
++                    fs::write(leaf, b"partial").unwrap();
++                }
++                _ => fs::set_permissions(&out, fs::Permissions::from_mode(0o755)).unwrap(),
++            },
++        );
++        assert!(result.is_err(), "{kind}");
++        assert!(!out.join("exchange.json").exists());
++        if kind == "root" {
++            assert_eq!(fs::read_dir(&out).unwrap().count(), 0);
++            assert!(!f.root.join("moved/exchange.json").exists());
++        }
++    }
++}
++#[test]
++fn terminal_exchange_paths_and_dirty_stale_harness_never_issue_completion() {
++    for p in ["", "/x", "a/../b", "a//b", "a\\b", ".", "a/./b"] {
++        assert!(safe(p).is_err());
++    }
++    let collision = Files::from([("a".into(), vec![]), ("a/b".into(), vec![])]);
++    assert!(paths(&collision).is_err());
++    assert!(marker_for(true, false).is_err());
++    assert_eq!(marker_for(true, true).unwrap(), "exchange.diagnostic.json");
++    assert_ne!(marker_for(true, true).unwrap(), "exchange.json");
++    assert_eq!(marker_for(false, false).unwrap(), "exchange.json");
++    assert!(source_matches(b"committed", b"stale harness").is_err());
++    assert!(source_matches(b"same", b"same").is_ok());
++}
++#[test]
++fn terminal_exchange_actual_busy_other_home_is_not_queued_evidence() {
++    let (_f, h, cap, _data, _source, c) = ready(false);
++    let (tx, rx) = std::sync::mpsc::channel();
++    let (go, wait) = std::sync::mpsc::channel();
++    *cap.terminal_publication.before_work.lock().unwrap() = Some(Box::new(move || {
++        tx.send(()).unwrap();
++        wait.recv_timeout(Duration::from_secs(15)).unwrap();
++    }));
++    h.stop("synthetic", "occupied publisher").unwrap();
++    rx.recv_timeout(Duration::from_secs(10)).unwrap();
++    let f2 = Fixture::new("pass");
++    let next = Arc::new(Host::new_with_app_custody(cap).unwrap());
++    let data = attach_store(&next, &f2);
++    next.start(&f2.cfg, "second home").unwrap();
++    let c2 = Capture::before_stop(&next, &data, None).unwrap();
++    next.stop("synthetic", "busy publisher").unwrap();
++    let (p, a, _) = inputs().unwrap();
++    let out = f2.root.join("refused");
++    assert!(export(&next, &c2, &data, None, &out, p, a, "exchange.json", || {}).is_err());
++    assert!(!out.exists());
++    go.send(()).unwrap();
++    settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++    assert_eq!(
++        next.distribution_evidence(&c2.generation)["state"],
++        "unavailable"
++    );
++}
++#[test]
++fn terminal_exchange_identical_foreign_source_locator_and_partial_write_refuse() {
++    let (f, h, _cap, data, source, c) = ready(true);
++    let (p, a, _) = inputs().unwrap();
++    h.stop("synthetic", "locator control").unwrap();
++    settled(&h, &c.generation, Duration::from_secs(10)).unwrap();
++    let parent = Dir::physical(&f.root).unwrap();
++    let copy = parent.fresh("foreign-source").unwrap();
++    copy.files(c.source.as_ref().unwrap()).unwrap();
++    assert_eq!(
++        snapshot(&copy.path).unwrap(),
++        snapshot(source.as_ref().unwrap()).unwrap()
++    );
++    assert!(export(
++        &h,
++        &c,
++        &data,
++        Some(&copy.path),
++        &f.root.join("refused"),
++        p,
++        a,
++        "exchange.json",
++        || {}
++    )
++    .is_err());
++    assert!(!f.root.join("refused").exists());
++    let output = parent.fresh("partial-write").unwrap();
++    output.write("b", b"already exists").unwrap();
++    assert!(output
++        .files(&Files::from([
++            ("a".into(), b"first written".to_vec()),
++            ("b".into(), b"never overwrites".to_vec())
++        ]))
++        .is_err());
++    assert_eq!(fs::read(output.path.join("a")).unwrap(), b"first written");
++    assert_eq!(fs::read(output.path.join("b")).unwrap(), b"already exists");
++    assert!(!output.path.join("exchange.json").exists());
++}

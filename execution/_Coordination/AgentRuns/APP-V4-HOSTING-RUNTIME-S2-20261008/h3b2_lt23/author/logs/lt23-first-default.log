@@ -1,0 +1,34 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+error[E0063]: missing field `terminal_publication` in initializer of `hosting::AppRuntimeCustody`
+   --> src/namespace_admission_tests.rs:226:23
+    |
+226 |     let mut missing = AppRuntimeCustody {
+    |                       ^^^^^^^^^^^^^^^^^ missing `terminal_publication`
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3349:13
+     |
+3349 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0063`.
+warning: `chirality-app-v4` (lib test) generated 3 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 1 previous error; 3 warnings emitted

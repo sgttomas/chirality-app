@@ -1,0 +1,36 @@
+{
+  "manifestSha256": "68e25791a755eaa1ba50dba2d814c53ec7043c9bab262dcae57cc004f38d2ef6",
+  "files": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/TERMINAL_EXCHANGE.md",
+      "size": 4730,
+      "sha256": "23f52bca9da7112c9043cbff269ab6f72bc4ab640479ffcff0520b74604d7f75"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "size": 49926,
+      "sha256": "81bb8b215abfbab0c6cb58fd07172cfae6d3691001d6d43e377a24ce9f72275f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_terminal_export.rs",
+      "size": 40551,
+      "sha256": "bf2e76f064ab49a9c7d530f980c9a2d14b6697d851e5840d3fed977fcc9dc4e8"
+    }
+  ],
+  "logs": {
+    "default.log": {
+      "sha256": "b8235031c74c48172fd2fc3cceb3f952f37b3616616928c3f9041f8f0f4b7395",
+      "result": [
+        "test result: ok. 10 passed; 0 failed; 2 ignored; 0 measured; 584 filtered out; finished in 25.13s"
+      ]
+    },
+    "combined.log": {
+      "sha256": "8c124dc673ea9d6b794d781a7d7b6af92456664390dafa1b580bc179bffacf0f",
+      "result": [
+        "test result: ok. 10 passed; 0 failed; 2 ignored; 0 measured; 584 filtered out; finished in 24.63s"
+      ]
+    }
+  },
+  "command": "cargo test --lib [--features distribution-successor,custom-protocol] export -- --test-threads=1",
+  "mechanism": "delegated-harness-native TASK; independent read-only reviewer; no descendants"
+}
