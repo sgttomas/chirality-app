@@ -142,6 +142,27 @@ The handshake uses its own unique system-temp home, a local provider at
 no credential, and checks its sampled process-group sockets. Test-owned scratch
 files are cleaned after consumers finish.
 
+## Group B offline examination support
+
+`examination/check.py` checks EXP result and PKG identity files and their explicit
+candidate/package association. It reads the pinned canonical Design sources,
+refuses source drift and inconsistent records, and reports input hashes and
+missing prerequisites. File-check success does not verify a native observation,
+package signature or qualification. The maintained examples are invented.
+
+From `app/`, with the prepared Python `jsonschema` 4.26.0 environment:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 tests/group_b_support_test.py
+PYTHONDONTWRITEBYTECODE=1 python3 examination/check.py validate result tests/group_b_fixtures/result.json
+```
+
+The Python suite is separate from `npm test`. See
+[the examination tool instructions](examination/README.md) for package-link
+arguments, supported rules and remaining M1/M2/M3 work. The current Group B graph
+is `execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md`
+relative to the project.
+
 ## Run the development App
 
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch

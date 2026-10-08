@@ -1,0 +1,13 @@
+{
+  "bundle_id": null,
+  "version": null,
+  "minimum_macos": null,
+  "signing_identity": null,
+  "notary_profile": null,
+  "app_binary": null,
+  "workflows": null,
+  "shipped_revision_manifest": null,
+  "guidance": null,
+  "role_files": null,
+  "role_set": null
+}

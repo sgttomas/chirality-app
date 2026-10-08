@@ -1,0 +1,40 @@
+{
+  "revision": "fb5e15203617ddf2a7e74ab492ecfd3ce421f952",
+  "observed_at": "2026-10-08T04:43:51.529317+00:00",
+  "python": "3.13.7",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "tests/group_b_packaging_test.py"
+      ],
+      "cwd": "/Users/ryan/.codex/worktrees/app-v4-group-b-support/chirality/projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "tests.txt"
+    },
+    {
+      "command": [
+        "python3",
+        "packaging/prepare.py",
+        "prepare",
+        "--vendor",
+        "/Users/ryan/Library/Caches/chirality-dev/codex/0.160.0/complete-package/package/vendor/aarch64-apple-darwin",
+        "--expected-manifest",
+        "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+        "--pin",
+        "0.160.0",
+        "--candidate-revision",
+        "fb5e15203617ddf2a7e74ab492ecfd3ce421f952",
+        "--inputs",
+        "/private/tmp/group-b-package-prep-capture/selected-inputs.json",
+        "--output",
+        "/private/tmp/chirality-group-b-unsigned-rosc6usm/stage"
+      ],
+      "cwd": "/Users/ryan/.codex/worktrees/app-v4-group-b-support/chirality/projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "preparation.json"
+    }
+  ],
+  "staging_output": "/private/tmp/chirality-group-b-unsigned-rosc6usm/stage"
+}

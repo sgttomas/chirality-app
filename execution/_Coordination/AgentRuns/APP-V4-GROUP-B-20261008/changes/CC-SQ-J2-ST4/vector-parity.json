@@ -1,0 +1,138 @@
+{
+  "existing_vectors": [
+    {
+      "record": "SQ-EX-01",
+      "before": [],
+      "after": []
+    },
+    {
+      "record": "SQ-EX-02",
+      "before": [],
+      "after": []
+    },
+    {
+      "record": "SQ-EX-03",
+      "before": [],
+      "after": []
+    },
+    {
+      "record": "SQ-EX-04",
+      "before": [],
+      "after": []
+    },
+    {
+      "record": "SQ-EX-05",
+      "before": [],
+      "after": []
+    },
+    {
+      "record": "SQ-RV-01",
+      "before": [
+        "SQ-R1"
+      ],
+      "after": [
+        "SQ-R1"
+      ]
+    },
+    {
+      "record": "SQ-RV-02",
+      "before": [
+        "SQ-R2"
+      ],
+      "after": [
+        "SQ-R2"
+      ]
+    },
+    {
+      "record": "SQ-RV-03",
+      "before": [
+        "SQ-R3"
+      ],
+      "after": [
+        "SQ-R3"
+      ]
+    },
+    {
+      "record": "SQ-RV-04",
+      "before": [
+        "SQ-R4"
+      ],
+      "after": [
+        "SQ-R4"
+      ]
+    },
+    {
+      "record": "SQ-RV-05",
+      "before": [
+        "SQ-R4"
+      ],
+      "after": [
+        "SQ-R4"
+      ]
+    },
+    {
+      "record": "SQ-RV-06",
+      "before": [
+        "SQ-R5"
+      ],
+      "after": [
+        "SQ-R5"
+      ]
+    },
+    {
+      "record": "SQ-RV-07",
+      "before": [
+        "SQ-R6"
+      ],
+      "after": [
+        "SQ-R6"
+      ]
+    },
+    {
+      "record": "SQ-RV-08",
+      "before": [
+        "SQ-R7"
+      ],
+      "after": [
+        "SQ-R7"
+      ]
+    },
+    {
+      "record": "SQ-RV-09",
+      "before": [
+        "SQ-R8"
+      ],
+      "after": [
+        "SQ-R8"
+      ]
+    },
+    {
+      "record": "SQ-RV-10",
+      "before": [
+        "SQ-R9"
+      ],
+      "after": [
+        "SQ-R9"
+      ]
+    },
+    {
+      "record": "SQ-RV-11",
+      "before": [
+        "SQ-R9"
+      ],
+      "after": [
+        "SQ-R9"
+      ]
+    },
+    {
+      "record": "SQ-RV-12",
+      "before": [
+        "SQ-R9"
+      ],
+      "after": [
+        "SQ-R9"
+      ]
+    }
+  ],
+  "sensitivity": "J-2 ST-4 omission passes old map; corrected map reports exactly SQ-R9"
+}

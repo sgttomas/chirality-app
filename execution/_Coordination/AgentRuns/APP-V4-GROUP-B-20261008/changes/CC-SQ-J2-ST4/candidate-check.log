@@ -1,0 +1,120 @@
+PASS  SCHEMA sq.dossier.schema.json is valid 2020-12
+PASS  SQ-R6 step map V4-EXM-10 J-1 NV-01 exists in NATIVE_PLANS_TOOLS_DELEGATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-1 NV-02 exists in NATIVE_PLANS_TOOLS_DELEGATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-1 WR-VC-01 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-2 NV-03 exists in NATIVE_PLANS_TOOLS_DELEGATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-2 VC-NIR-01 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-10 J-2 VC-NIR-10 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-10 J-2 VC-R-03 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-10 J-3 WR-VC-02 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-3 WR-VC-08 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-3 VC-NIR-14 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-10 J-4 WR-VC-09 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-5 WR-VC-03 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-5 WR-VC-05 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-5 VC-13 exists in WORKFLOW_DECLARATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 VC-AAC-08 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 VC-AAC-13 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 VC-AAC-07 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 VC-AAC-03 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 VC-NIR-16 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 VC-37 exists in RECORD_SEMANTICS.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 WR-VC-12 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-6 WR-VC-05 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-7 WR-VC-06 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-7 VC-E-18 exists in EXECUTION_COMPATIBILITY.md
+PASS  SQ-R6 step map V4-EXM-10 J-7 VC-40 exists in RECORD_SEMANTICS.md
+PASS  SQ-R6 step map V4-EXM-10 J-8 WR-VC-01 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-8 WR-VC-12 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-8 VC-AAC-08 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-8 VC-AAC-13 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-8 WR-VC-03 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-8R VC-E-17 exists in EXECUTION_COMPATIBILITY.md
+PASS  SQ-R6 step map V4-EXM-10 J-9 WR-VC-01 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-9 WR-VC-12 exists in WORKSPACE_AND_REGISTRATION.md
+PASS  SQ-R6 step map V4-EXM-10 J-9 VC-AAC-08 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-9 VC-AAC-13 exists in APP_ACT_CONTROL.md
+PASS  SQ-R6 step map V4-EXM-10 J-9R VC-E-17 exists in EXECUTION_COMPATIBILITY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-1 VC-R-02 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-1 VC-NIR-10 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-11 S11-1 VC-R-14 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-2 VC-R-01 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-2 VC-NIR-05 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-11 S11-2 VC-R-14 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-3 VC-NIR-04 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-11 S11-3 VC-R-03 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-3 VC-R-14 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-4 VC-R-03 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-4 VC-28 exists in WORKFLOW_DECLARATION.md
+PASS  SQ-R6 step map V4-EXM-11 S11-4 NV-07 exists in NATIVE_PLANS_TOOLS_DELEGATION.md
+PASS  SQ-R6 step map V4-EXM-11 S11-4 VC-R-14 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-5 VC-R-06 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-5 VC-NIR-11 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-11 S11-5 VC-R-14 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-6 VC-R-04 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-6 NV-04 exists in NATIVE_PLANS_TOOLS_DELEGATION.md
+PASS  SQ-R6 step map V4-EXM-11 S11-6 VC-R-14 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-6 X-09 exists in HOSTING_BOUNDARY.md
+PASS  SQ-R6 step map V4-EXM-11 S11-6 X-10 exists in HOSTING_BOUNDARY.md
+PASS  SQ-R6 step map V4-EXM-12 M12-1 VC-A01 exists in ACCOUNT_AND_PROVIDER_ACCESS.md
+PASS  SQ-R6 step map V4-EXM-12 M12-2 VC-A02 exists in ACCOUNT_AND_PROVIDER_ACCESS.md
+PASS  SQ-R6 step map V4-EXM-12 M12-2 VC-R-15 exists in EXECUTION_AND_RECOVERY.md
+PASS  SQ-R6 step map V4-EXM-12 M12-3 VC-A03 exists in ACCOUNT_AND_PROVIDER_ACCESS.md
+PASS  SQ-R6 step map V4-EXM-12 M12-4 VC-NIR-12 exists in NATIVE_INTERACTION_RECEIVING.md
+PASS  SQ-R6 step map V4-EXM-12 M12-4 VC-A12 exists in ACCOUNT_AND_PROVIDER_ACCESS.md
+PASS  SQ-R6 step map V4-EXM-12 M12-5 VC-A04 exists in ACCOUNT_AND_PROVIDER_ACCESS.md
+PASS  SQ-R6 step map V4-EXM-12 M12-6 VC-A13 exists in ACCOUNT_AND_PROVIDER_ACCESS.md
+PASS  MAP covers DEL-11-03 REQ-001's seven core-loop elements
+PASS  MAP every step has a v3 reference
+PASS  MAP every stimulus declared is used and every used one declared
+PASS  MAP added steps are not counted and give their reason
+PASS  MAP no act-control case for A4 joined at a registration step (RV2 SQ-R-C)
+PASS  MAP VC-R-14 cited at every V4-EXM-11 step (one execution)
+PASS  MAP SQ §3.1/§3.4 ST-4 carried at J-2, S11-1 and S11-6
+PASS  CC-SQ J-2 None/pass: schema valid and exact rules ['SQ-R9']
+PASS  CC-SQ J-2 not_produced/pass: schema valid and exact rules ['SQ-R9']
+PASS  CC-SQ J-2 not_produced/blocked: schema valid and exact rules []
+PASS  CC-SQ J-2 replay/pass: schema valid and exact rules []
+PASS  VALID SQ-EX-01
+PASS  RULES SQ-EX-01 none violated
+PASS  VALID SQ-EX-02
+PASS  RULES SQ-EX-02 none violated
+PASS  VALID SQ-EX-03
+PASS  RULES SQ-EX-03 none violated
+PASS  VALID SQ-EX-04
+PASS  RULES SQ-EX-04 none violated
+PASS  VALID SQ-EX-05
+PASS  RULES SQ-EX-05 none violated
+PASS  INVALID SQ-INV-01 (V4-EXM-12 without access modes)
+PASS  INVALID SQ-INV-02 (recorded step without a result record)
+PASS  INVALID SQ-INV-03 (handoff to another deliverable)
+PASS  INVALID SQ-INV-04 (step outside the defined set)
+PASS  INVALID SQ-INV-05 (RV2 Q3: awaiting_input step carrying an outcome)
+PASS  INVALID SQ-INV-06 (added step without its reason)
+PASS  INVALID SQ-INV-07 (stimulus not produced without its cause)
+PASS  INVALID SQ-INV-08 (dossier without its pre-run case definition)
+PASS  RULE-SCHEMA SQ-RV-01 schema-valid
+PASS  RULES SQ-RV-01 SQ-R1 detected
+PASS  RULE-SCHEMA SQ-RV-02 schema-valid
+PASS  RULES SQ-RV-02 SQ-R2 detected
+PASS  RULE-SCHEMA SQ-RV-03 schema-valid
+PASS  RULES SQ-RV-03 SQ-R3 detected
+PASS  RULE-SCHEMA SQ-RV-04 schema-valid
+PASS  RULES SQ-RV-04 SQ-R4 detected
+PASS  RULE-SCHEMA SQ-RV-05 schema-valid
+PASS  RULES SQ-RV-05 SQ-R4 detected
+PASS  RULE-SCHEMA SQ-RV-06 schema-valid
+PASS  RULES SQ-RV-06 SQ-R5 detected
+PASS  RULE-SCHEMA SQ-RV-07 schema-valid
+PASS  RULES SQ-RV-07 SQ-R6 detected
+PASS  RULE-SCHEMA SQ-RV-08 schema-valid
+PASS  RULES SQ-RV-08 SQ-R7 detected
+PASS  RULE-SCHEMA SQ-RV-09 schema-valid
+PASS  RULES SQ-RV-09 SQ-R8 detected
+PASS  RULE-SCHEMA SQ-RV-10 schema-valid
+PASS  RULES SQ-RV-10 SQ-R9 detected
+PASS  RULE-SCHEMA SQ-RV-11 schema-valid
+PASS  RULES SQ-RV-11 SQ-R9 detected
+PASS  RULE-SCHEMA SQ-RV-12 schema-valid
+PASS  RULES SQ-RV-12 SQ-R9 detected
+TOTAL 119, FAIL 0  (65 supplier case citations checked)
