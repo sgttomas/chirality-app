@@ -65,6 +65,35 @@ impl LibraryOwner {
         }
         self.base_custody().put(name, selection.identity(), false)
     }
+    /// V11 J5-2: undo the App's own just-written draft copy when its base could
+    /// not be recorded, so no draft is left that can only be DS-3 and that D-1
+    /// forbids the App to overwrite. Only exactly the copied bytes are removed;
+    /// anything else in the folder keeps the whole draft.
+    pub(crate) fn discard_unbased_copy(&self, name: &str, copied: &Snapshot) -> Result<(), String> {
+        if !super::valid_name(name) {
+            return Err("invalid draft name".into());
+        }
+        let draft = self.root.join(".chirality/workflow-drafts").join(name);
+        storage::check_path(&draft)?;
+        if Snapshot::capture(&draft)?.files() != copied.files() {
+            return Err("the draft folder differs from the App's copy; kept".into());
+        }
+        let mut directories = std::collections::BTreeSet::new();
+        for relative in copied.files().keys() {
+            let path = draft.join(relative);
+            fs::remove_file(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let mut parent = path.parent();
+            while let Some(directory) = parent.filter(|d| d.starts_with(&draft) && *d != draft) {
+                directories.insert(directory.to_path_buf());
+                parent = directory.parent();
+            }
+        }
+        for directory in directories.iter().rev() {
+            fs::remove_dir(directory).map_err(|e| format!("{}: {e}", directory.display()))?;
+        }
+        fs::remove_dir(&draft).map_err(|e| format!("{}: {e}", draft.display()))?;
+        storage::sync_dir(draft.parent().ok_or("draft has no parent")?)
+    }
     /// WR D-2/RB-1 listing observation: actual package bytes, not request identity.
     /// This digest is comparison data; it grants no review/capture/registration.
     pub(crate) fn listed_draft_revision(&self, name: &str) -> Result<String, String> {

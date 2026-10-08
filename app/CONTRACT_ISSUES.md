@@ -562,3 +562,9 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
   to each `LibraryOwner` (`attach_app_kept_bases`). An owner with no attached
   folder keeps bases in process memory only, and its review presentation says
   so.
+  - **V11 J5-2.** `create_selected_draft` copies the draft and then records
+    its base. If recording fails, a draft with no base could register only
+    as DS-3, and D-1 forbids the App to overwrite it. So the App removes its
+    own copy (`discard_unbased_copy`), but only when the folder still holds
+    exactly the copied bytes. The refusal says that the copy was removed.
+    Otherwise the draft is kept and the refusal names the folder to remove.

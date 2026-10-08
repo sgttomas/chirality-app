@@ -814,3 +814,36 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     drop(root);
     drop(three);
 }
+
+/// V11 J5-2: `workflow_create_draft` (Root `create_selected_draft`) must not
+/// leave a draft whose App-kept base was not recorded: such a draft could only
+/// ever be DS-3, and Refine refuses to overwrite it (D-1), a dead end. A failed
+/// base write removes the App's own just-written copy and says so; once the App
+/// data folder is writable again, Refine works.
+#[test]
+fn v11_j5_2_draft_copy_is_not_left_without_its_app_kept_base() {
+    let disk = Disk::new();
+    let project = disk.project.clone();
+    // A file where the App data `runtime/` folder should be: the base write fails.
+    let blocker = disk.app_data.join("runtime");
+    std::fs::write(&blocker, b"not a directory").unwrap();
+    let act = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    let root = root_session(&disk);
+    let mut r = root.lock().unwrap();
+    r.open_library(project.clone(), "project", Some(&project), act).unwrap();
+    r.select_development_copy(disk.package.clone()).unwrap();
+    let draft = project.join(".chirality/workflow-drafts").join(NAME);
+    let failed = r.create_selected_draft(NAME).unwrap_err();
+    assert!(failed.contains("App-kept base not recorded") && failed.contains("copy was removed"), "{failed}");
+    assert!(!draft.exists(), "no draft is left without its App-kept base");
+    // The way out: with the App data folder writable again, Refine succeeds and records the base.
+    std::fs::remove_file(&blocker).unwrap();
+    r.create_selected_draft(NAME).unwrap();
+    assert!(draft.join("WORKFLOW.md").is_file());
+    let records = std::fs::read_dir(disk.app_data.join(crate::workflow_workspace::registration::BASE_STORE))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
+        .count();
+    assert_eq!(records, 1);
+}

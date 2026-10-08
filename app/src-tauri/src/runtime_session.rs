@@ -3977,7 +3977,13 @@ impl WorkflowRootSession {
             }
             std::fs::write(path, bytes).map_err(|e| e.to_string())?;
         }
-        owner.record_base(name, &selected.selection)?;
+        // V11 J5-2: a copy whose App-kept base was not recorded would be a dead end.
+        if let Err(error) = owner.record_base(name, &selected.selection) {
+            return Err(match owner.discard_unbased_copy(name, selected.selection.snapshot()) {
+                Ok(()) => format!("App-kept base not recorded ({error}); the draft copy was removed, nothing kept; create the draft again"),
+                Err(kept) => format!("Draft copied but App-kept base not recorded ({error}); the copy was not removed ({kept}); remove {} and create the draft again", crate::attachments::native_path_identity(&target)),
+            });
+        }
         Ok(
             json!({"state":"draft copied from actual closed selection","library":library.reference,"name":name,"base":selected.selection.identity(),"registration":"not captured/registered; edit then Review"}),
         )
