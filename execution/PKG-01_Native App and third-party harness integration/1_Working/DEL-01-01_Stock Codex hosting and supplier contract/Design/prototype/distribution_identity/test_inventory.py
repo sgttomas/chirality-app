@@ -57,6 +57,7 @@ class InventoryContract(unittest.TestCase):
                 changed=copy.deepcopy(FIXTURE)
                 changed["entries"][-1]["path"]=path
                 self.assertTrue(validate(changed))
+                self.assertFalse(compare(changed, changed)["equal"])
         for kind in ("symlink", "fifo", "socket"):
             changed=copy.deepcopy(FIXTURE); changed["entries"][-1]["kind"]=kind
             self.assertTrue(validate(changed))
@@ -70,6 +71,38 @@ class InventoryContract(unittest.TestCase):
             self.assertFalse(compare(FIXTURE,changed)["equal"])
         changed=copy.deepcopy(FIXTURE); del changed["entries"]
         self.assertTrue(validate(changed))
+
+    def test_malformed_digests(self):
+        for digest in ("0" * 64 + "\n", "0" * 64 + "\r\n", "0" * 63,
+                       "0" * 65, "A" * 64, "g" * 64, " " + "0" * 63,
+                       "0" * 63 + "\n", "", None, 123):
+            for field in ("sha256", "manifest_sha256"):
+                with self.subTest(field=field, digest=digest):
+                    changed = copy.deepcopy(FIXTURE)
+                    if field == "sha256":
+                        next(e for e in changed["entries"] if e["kind"] == "file")[field] = digest
+                        # Reproduce the old false pass with a corresponding manifest,
+                        # without relying on the now-defensive manifest helper.
+                        if isinstance(digest, str):
+                            files = sorted((e for e in changed["entries"] if e["kind"] == "file"),
+                                           key=lambda e: e["path"].encode("utf-8"))
+                            raw = "".join(e["sha256"] + "  " + e["path"] + "\n" for e in files)
+                            changed["manifest_sha256"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+                        with self.assertRaises(ValueError):
+                            manifest(changed["entries"])
+                    else:
+                        changed[field] = digest
+                    self.assertFalse(VALIDATOR.is_valid(changed))
+                    self.assertTrue(validate(changed))
+                    self.assertFalse(compare(changed, changed)["equal"])
+
+    def test_mode_type_and_range(self):
+        for mode in ("493\n", "493", -1, 4096, True, 493.5, None):
+            with self.subTest(mode=mode):
+                changed = self.change("bin/codex", "mode", mode)
+                self.assertFalse(VALIDATOR.is_valid(changed))
+                self.assertTrue(validate(changed))
+                self.assertFalse(compare(changed, changed)["equal"])
 
     def test_path_relocation_and_inheritance(self):
         self.assertEqual(prepend_path("/App With Spaces/codex-path", ":/usr/bin:"),

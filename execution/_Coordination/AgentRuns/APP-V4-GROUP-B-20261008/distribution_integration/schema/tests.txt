@@ -1,0 +1,15 @@
+test_duplicate_and_missing_parent (test_inventory.InventoryContract.test_duplicate_and_missing_parent) ... ok
+test_fixed_multibyte_vector_and_order (test_inventory.InventoryContract.test_fixed_multibyte_vector_and_order) ... ok
+test_invalid_paths_and_types (test_inventory.InventoryContract.test_invalid_paths_and_types) ... ok
+test_malformed_digests (test_inventory.InventoryContract.test_malformed_digests) ... ok
+test_missing_invalid_method_and_manifest (test_inventory.InventoryContract.test_missing_invalid_method_and_manifest) ... ok
+test_mode_type_and_range (test_inventory.InventoryContract.test_mode_type_and_range) ... ok
+test_modes_sizes_empty_directories (test_inventory.InventoryContract.test_modes_sizes_empty_directories) ... ok
+test_path_relocation_and_inheritance (test_inventory.InventoryContract.test_path_relocation_and_inheritance) ... ok
+test_resource_change_unchanged_main (test_inventory.InventoryContract.test_resource_change_unchanged_main) ... ok
+test_schema_and_positive (test_inventory.InventoryContract.test_schema_and_positive) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.065s
+
+OK

@@ -5,6 +5,7 @@ qualified-reference provenance, stable custody and complete observations.
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 from jsonschema import Draft202012Validator
 
@@ -12,9 +13,15 @@ SCHEMA = Path(__file__).resolve().parents[2] / "hosting.distribution-inventory.s
 VALIDATOR = Draft202012Validator(json.loads(SCHEMA.read_text()))
 
 
+def valid_digest(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
 def manifest(entries):
     files = sorted((e for e in entries if e["kind"] == "file"),
                    key=lambda e: e["path"].encode("utf-8", "strict"))
+    if any(not valid_digest(e["sha256"]) for e in files):
+        raise ValueError("invalid file SHA-256")
     data = "".join(e["sha256"] + "  " + e["path"] + "\n" for e in files)
     return hashlib.sha256(data.encode("utf-8", "strict")).hexdigest()
 
@@ -23,9 +30,13 @@ def validate(value):
     errors = ["schema: " + e.message for e in VALIDATOR.iter_errors(value)]
     if errors:
         return errors
+    if not valid_digest(value["manifest_sha256"]):
+        errors.append("invalid manifest SHA-256")
     entries = value["entries"]
     paths = {}
     for entry in entries:
+        if entry["kind"] == "file" and not valid_digest(entry["sha256"]):
+            errors.append("invalid file SHA-256")
         path = entry["path"]
         try:
             path.encode("utf-8", "strict")
