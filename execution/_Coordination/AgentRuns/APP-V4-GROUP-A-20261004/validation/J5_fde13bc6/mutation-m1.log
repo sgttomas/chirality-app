@@ -1,0 +1,225 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/ai-env/projects/chirality/.claude/worktrees/agent-a7e1126761bc94dc4/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:2963:13
+     |
+2963 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1176:19
+     |
+ 404 | impl Host {
+     | --------- method in this implementation
+...
+1176 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3785:9
+     |
+3784 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3785 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+   --> src/workflow_library.rs:550:19
+    |
+550 |     RepairPending(String),
+    |     ------------- ^^^^^^
+    |     |
+    |     field in this variant
+    |
+    = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+550 -     RepairPending(String),
+550 +     RepairPending(()),
+    |
+
+warning: `chirality-app-v4` (lib test) generated 6 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.94s
+     Running unittests src/lib.rs (target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 114 tests
+test runtime_session::workflow_root_tests::j3_compatibility_ck1_and_ck2_are_evaluated_advisory_only ... ok
+test runtime_session::workflow_root_tests::j3_compatibility_is_advisory_and_writes_no_r14_on_refused_publication ... ok
+test runtime_session::workflow_root_tests::j3_end_on_finished_report_records_completed ... ok
+test runtime_session::workflow_root_tests::j3_end_and_start_orders_a_end_before_b_open_with_exact_chain ... ok
+test runtime_session::workflow_root_tests::j3_failed_send_opens_no_run_and_does_not_block_a_new_start ... ok
+test runtime_session::workflow_root_tests::j3_finished_and_proposal_lines_have_no_lifecycle_effect ... ok
+test runtime_session::workflow_root_tests::j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once ... ok
+test runtime_session::workflow_root_tests::j3_fork_conversation_has_no_live_run ... ok
+test runtime_session::workflow_root_tests::j3_open_writes_run_opened_and_second_live_start_is_refused ... ok
+test runtime_session::workflow_root_tests::j3_second_live_start_in_conversation_is_refused ... ok
+test runtime_session::workflow_root_tests::j3_reopen_after_state_loss_preserves_ended_and_unknown ... ok
+test runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss ... FAILED
+test runtime_session::workflow_root_tests::j3_successor_after_plain_end_gets_chain_only_and_no_notice ... ok
+test runtime_session::workflow_root_tests::j3_vc_e_17_interrupt_stop_quit_and_relaunch_never_end_a_run ... ok
+test runtime_session::workflow_root_tests::v10_g1_notice_refused_before_write_stays_pending ... ok
+test runtime_session::workflow_root_tests::v10_g1_pending_notice_survives_record_failure_and_relaunch_then_sent_once ... ok
+test runtime_session::workflow_root_tests::v10_g2_end_and_start_leaves_a_untouched_when_b_cannot_be_prepared ... ok
+test runtime_session::workflow_root_tests::v10_g2_end_and_start_falls_back_to_plain_end_when_b_does_not_start ... ok
+test runtime_session::workflow_root_tests::v10_g3_unknown_recorded_run_blocks_a_new_start ... ok
+test runtime_session::workflow_root_tests::v10_g5_busy_run_without_pending_notice_does_not_block_ordinary_text ... ok
+test runtime_session::workflow_root_tests::workflow_root_closed_selection_real_review_hot_receipt_and_transaction ... ok
+test runtime_session::workflow_root_tests::v10_g4_late_records_follow_observation_order_across_kinds ... ok
+test runtime_session::workflow_root_tests::v10_g7_reopened_run_cannot_be_ended_as_completed ... ok
+test runtime_session::workflow_root_tests::v10_g5_unwritable_notice_offers_retry_or_recorded_send_without_it ... ok
+test runtime_session::workflow_root_tests::v10_g5_retry_publishes_notice_record_then_next_turn_carries_it ... ok
+test runtime_session::workflow_root_tests::v10_g4_lifecycle_entries_written_late_in_order_with_limits ... ok
+test runtime_session::workflow_root_tests::workflow_root_development_selection_run_is_refused_tt1_tx1 ... ok
+test runtime_session::workflow_root_tests::workflow_root_closed_prepare_scoped_send_failed_turn_and_genuine_pages ... ok
+test runtime_session::workflow_root_tests::workflow_root_publication_failure_sends_nothing_and_retry_keeps_original_bytes ... ok
+test runtime_session::workflow_root_tests::workflow_root_refused_send_records_not_found_check_and_keeps_r3_unavailable ... ok
+test runtime_session::workflow_root_tests::workflow_root_stale_prepared_scope_keeps_original_receipt_without_resend ... ok
+test runtime_session::workflow_root_tests::workflow_root_post_send_record_failures_retry_without_resend ... ok
+test runtime_session::workflow_root_tests::workflow_root_fresh_process_resolves_records_without_run_claims ... ok
+test runtime_session::workflow_root_tests::workflow_root_recovered_writer_appends_pending_r3_in_observation_order ... ok
+test runtime_session::workflow_root_tests::workflow_root_whole_selected_copy_changes_and_library_alias_are_refused ... ok
+test runtime_session::workflow_root_tests::workflow_root_wrc1_busy_capture_owner_refuses_without_blocking_observer_root ... ok
+test runtime_session::workflow_root_tests::workflow_root_wrc1_busy_review_selection_refuses_without_global_wait ... ok
+test workflow_root_context_tests::file_act_actual_observer_checks_original_context_and_fails_fast_under_contention ... ok
+test workflow_root_context_tests::j3_reopen_collects_rec_restart_facts_wherever_projected ... ok
+test runtime_session::workflow_root_tests::workflow_root_each_reread_has_a_new_check_identity ... ok
+test runtime_session::workflow_root_tests::workflow_root_unknown_project_is_refused_without_fallback ... ok
+test workflow_root_context_tests::workflow_root_actual_observe_preserves_offline_context_and_refuses_retarget ... ok
+test workflow_workspace::publication::tests::forbidden_native_payload_rejected_and_original_time_retained ... ok
+test runtime_session::workflow_root_tests::workflow_root_check_minting_binds_pages_to_host_custody ... ok
+test workflow_workspace::publication::tests::immutable_reopen_retry_collision_and_wrong_project ... ok
+test workflow_workspace::publication::tests::invalid_partial_unsupported_and_escaping_reference_refused ... ok
+test workflow_workspace::publication::tests::listing_refuses_symlinks_and_follows_the_pinned_project ... ok
+test workflow_workspace::publication::tests::live_mapping_covers_every_wr_state_including_incomparable ... ok
+test workflow_workspace::publication::tests::published_text_is_sealed_to_two_types ... ok
+test runtime_session::workflow_root_tests::workflow_root_registered_run_publishes_before_send_and_records_each_check ... ok
+test workflow_workspace::publication::tests::actual_end_notice_requires_original_start_and_preserves_optional_workflow_comparison ... ok
+test workflow_workspace::publication::tests::unknown_project_and_symlink_escape_refused ... ok
+test workflow_workspace::publication::tests::uncertain_link_is_same_original_retry_not_a_new_observation ... ok
+test workflow_workspace::publication::tests::check_rereads_new_identity_retry_retains_identity_and_wrong_correspondence_refused ... ok
+test workflow_workspace::publication::tests::pending_live_check_publishes_original_bytes_and_yields_typed_token ... ok
+test workflow_workspace::registration::tests::actual_owner_snapshot_withdraws_after_resource_edit ... ok
+test workflow_workspace::publication::tests::unreadable_check_requires_issued_native_dispatch ... ok
+test workflow_workspace::publication::tests::typed_publication_retains_prepared_text_and_refuses_lost_source_or_development ... ok
+test workflow_workspace::registration::tests::actual_latest_slot_change_after_capture_records_second_act_no_effect ... ok
+test workflow_workspace::registration::tests::changed_unrecorded_copy_is_preserved_before_postcommit_publication ... ok
+test workflow_workspace::registration::tests::draft_after_capture_commits_original_bytes_and_canonical_ledger ... ok
+test workflow_workspace::registration::tests::hr1_new_store_parent_sync_failure_cannot_reach_g4_then_same_hot_retry_commits ... ok
+test workflow_workspace::registration::tests::in_place_changed_after_capture_is_terminal_while_sibling_commits ... ok
+test workflow_workspace::registration::tests::disclosed_prior_facts_do_not_block_new_hot_capture_or_authenticate_old_act ... ok
+test workflow_workspace::registration::tests::j5_app_kept_base_is_frozen_and_rechecked_at_current_and_under_the_ledger_lock ... FAILED
+test workflow_workspace::registration::tests::listed_revision_reads_actual_bytes_and_stale_listing_still_refuses_review ... ok
+test workflow_workspace::registration::tests::malformed_cold_ledger_refuses_observation_without_origin_promotion ... ok
+test workflow_workspace::registration::tests::j5_ledger_refusals_name_their_exact_cause ... ok
+test workflow_workspace::registration::tests::ordered_in_place_view_and_whole_offer_freshness ... ok
+test workflow_workspace::registration::tests::j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base ... FAILED
+test runtime_session::workflow_root_tests::workflow_root_unwritable_earlier_r3_holds_later_r3_pending ... ok
+test workflow_workspace::registration::tests::j5_removed_draft_drops_its_app_kept_base_and_a_recreated_draft_is_ds3 ... FAILED
+test workflow_workspace::workflow_catalog_tests::actual_embedded_package_preserves_full_tuple_and_both_files ... ok
+test workflow_workspace::registration::tests::store_conflict_records_no_effect_without_selection ... ok
+test workflow_workspace::registration::tests::j5_unusable_app_kept_base_record_refuses_review_with_its_exact_cause ... FAILED
+test runtime_session::workflow_root_tests::workflow_root_each_read_maps_state_faithfully_into_new_check_and_r3 ... ok
+test workflow_workspace::workflow_catalog_tests::additional_or_missing_file_is_not_the_admitted_package ... ok
+test workflow_workspace::workflow_catalog_tests::equal_bytes_under_other_name_or_relative_location_cannot_be_recognized ... ok
+test workflow_workspace::workflow_catalog_tests::same_name_other_origin_collision_does_not_rebind_catalog_selection ... ok
+test workflow_workspace::workflow_catalog_tests::development_provenance_survives_holding_and_run_preparation ... ok
+test workflow_workspace::workflow_catalog_tests::tuple_claims_are_data_and_do_not_change_fixed_catalog_admission ... ok
+test workflow_workspace::workflow_catalog_tests::exact_holding_copy_preserves_origin_and_location_then_detects_mutation ... ok
+test workflow_workspace::registration::tests::postcommit_convenience_copy_failure_retains_registered_store ... ok
+test workflow_workspace::workflow_catalog_tests::non_regular_holding_copy_cannot_be_recognized ... ok
+test workflow_workspace::workflow_receiving_tests::actual_holding_revision_tamper_refuses_preparation_without_silent_rebind ... ok
+test workflow_workspace::registration::tests::wrong_review_receipt_is_consumed_without_library_effect ... ok
+test workflow_workspace::workflow_receiving_tests::complete_run_record_retains_source_and_composed_scopes_without_normalization ... ok
+test workflow_workspace::workflow_role_tests::carriage_declared_empty_absent_unknown_duplicate ... ok
+test workflow_workspace::workflow_role_tests::commonmark_container_html_and_eof_contract_controls ... ok
+test workflow_workspace::workflow_role_tests::commonmark_decoded_info_aliases_are_not_reserved_literal_declarations ... ok
+test workflow_workspace::workflow_role_tests::commonmark_original_source_ranges_and_package_bytes_remain_exact ... ok
+test workflow_workspace::workflow_role_tests::delegation_missing_signal_wins_over_unread_other_signal ... ok
+test workflow_workspace::workflow_role_tests::descriptor_validates_against_unchanged_design_and_body_is_exact ... ok
+test workflow_workspace::workflow_role_tests::four_roles_supply_only_at_start_preserve_byte_provenance ... ok
+test workflow_workspace::workflow_receiving_tests::method_incomparability_precedes_values_and_body_fallback ... ok
+test workflow_workspace::workflow_role_tests::registered_bytes_and_collision_origins_do_not_rebind ... ok
+test workflow_workspace::workflow_role_tests::producer_consumer_unit ... ok
+test workflow_workspace::workflow_role_tests::regression_list_nested_fences_are_not_declarations ... ok
+test workflow_workspace::workflow_role_tests::regression_visual_tab_columns_preserve_root_and_contained_fences ... ok
+test workflow_workspace::workflow_receiving_tests::home_generation_source_and_identity_omissions_cannot_prepare ... ok
+test workflow_workspace::workflow_role_tests::maintained_design_examples_validate_with_element_failures_retained ... ok
+test workflow_workspace::workflow_receiving_tests::tx3_body_fallback_requires_original_selected_marker_tuple ... ok
+test workflow_workspace::workflow_role_tests::regression_missing_or_unknown_necessity_cannot_produce_compatible ... ok
+test workflow_workspace::workflow_role_tests::role_records_validate_and_supply_never_adoption ... ok
+test workflow_workspace::workflow_role_tests::supply_reads_all_pages_and_never_assumes_send_is_verified ... ok
+test workflow_workspace::workflow_role_tests::role_compatibility_is_fixed_and_no_role_is_explicit ... ok
+test workflow_workspace::workflow_role_tests::untrusted_page_bytes_and_adapter_matches_never_grant_authority ... ok
+test workflow_workspace::workflow_role_tests::tool_compatibility_missing_optional_unknown_and_guidance ... ok
+test workflow_workspace::workflow_role_tests::seeded_guidance_missing_symlink_and_modified_bytes_refuse_or_report ... ok
+test workflow_workspace::workflow_receiving_tests::chain_and_end_are_explicit_scope_bound_owner_facts_not_text_markers ... ok
+test workflow_workspace::workflow_role_tests::snapshot_hygiene_and_symlinks_refuse ... ok
+test workflow_workspace::registration::tests::uncertain_ledger_append_retries_same_hot_line_without_duplicate ... ok
+test workflow_workspace::workflow_role_tests::reviewed_package_identity_matches_independent_vectors_and_all_file_bytes ... ok
+test runtime_session::workflow_root_tests::workflow_root_unknown_send_outcome_mints_no_check_and_never_resends ... ok
+
+failures:
+
+---- runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss stdout ----
+
+thread 'runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss' (1188454) panicked at src/workflow_journey_tests.rs:633:10:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- workflow_workspace::registration::tests::j5_app_kept_base_is_frozen_and_rechecked_at_current_and_under_the_ledger_lock stdout ----
+
+thread 'workflow_workspace::registration::tests::j5_app_kept_base_is_frozen_and_rechecked_at_current_and_under_the_ledger_lock' (1189043) panicked at src/workflow_library_tests.rs:473:64:
+called `Result::unwrap()` on an `Err` value: "DS-3: name taken; draft has no App-kept base in this slot"
+
+---- workflow_workspace::registration::tests::j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base stdout ----
+
+thread 'workflow_workspace::registration::tests::j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base' (1189045) panicked at src/workflow_library_tests.rs:419:5:
+assertion `left == right` failed: G-6 base persisted in the App data folder
+  left: 0
+ right: 1
+
+---- workflow_workspace::registration::tests::j5_removed_draft_drops_its_app_kept_base_and_a_recreated_draft_is_ds3 stdout ----
+
+thread 'workflow_workspace::registration::tests::j5_removed_draft_drops_its_app_kept_base_and_a_recreated_draft_is_ds3' (1189049) panicked at src/workflow_library_tests.rs:547:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- workflow_workspace::registration::tests::j5_unusable_app_kept_base_record_refuses_review_with_its_exact_cause stdout ----
+
+thread 'workflow_workspace::registration::tests::j5_unusable_app_kept_base_record_refuses_review_with_its_exact_cause' (1189050) panicked at src/workflow_library_tests.rs:517:30:
+index out of bounds: the len is 0 but the index is 0
+
+
+failures:
+    runtime_session::workflow_journey_tests::journey_select_register_run_check_end_and_reopen_after_process_loss
+    workflow_workspace::registration::tests::j5_app_kept_base_is_frozen_and_rechecked_at_current_and_under_the_ledger_lock
+    workflow_workspace::registration::tests::j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base
+    workflow_workspace::registration::tests::j5_removed_draft_drops_its_app_kept_base_and_a_recreated_draft_is_ds3
+    workflow_workspace::registration::tests::j5_unusable_app_kept_base_record_refuses_review_with_its_exact_cause
+
+test result: FAILED. 109 passed; 5 failed; 0 ignored; 0 measured; 239 filtered out; finished in 13.60s
+
+error: test failed, to rerun pass `--lib`

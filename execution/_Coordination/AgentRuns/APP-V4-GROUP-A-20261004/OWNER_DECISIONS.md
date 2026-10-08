@@ -157,3 +157,37 @@ use `~/.codex`. Network access is used only by the stock supplier for the
 owner's signed-in model turns. The exact build and launch still need their
 own point-specific approval. This answer approves no launch, artifact, or
 other act.
+
+## Rerunning an unchanged workflow after relaunch — 2026-10-07
+
+Context: J4/J5 established that after a relaunch an unchanged registered
+workflow cannot run. Its old registration cannot be selected cold (SEAL-2
+deferred), and WR DS-4 refuses registering identical bytes again ("Identical
+to revision ‹k›; select it instead"). See `app/CONTRACT_ISSUES.md` CI-21(b).
+
+HELP_HUMAN offered four options: A15 re-confirmation (recommended); undertake
+SEAL-2 now; admit cold selection marked unverified; keep as is. The owner's
+first answer: **"explain the implications of this choice between doing SEAL-2
+now for your A15 approach you recommend."**
+
+HELP_HUMAN then explained, from `CAPTURE_CUSTODY_DECISION.md`:
+- SEAL-2 needs the signed App's protected key, so it does not help unsigned
+  development builds.
+- It needs Group B's signed identity, through the staged A→B→A→B route.
+- It closes the broader trusted-replay obligation for all human acts.
+- Re-confirmation is a narrow Group A WR change, works in every build, and
+  costs one confirmation per rerun after relaunch. It remains the fallback
+  if SEAL-2 is adopted later.
+
+The owner then answered: **"A15 re-confirmation now (Recommended)"**.
+Custody: structured answers in the active Claude Code chat.
+
+Effect:
+- A named, reviewed WR design change lets a new genuine A15 re-confirm
+  identical bytes after the original in-process registration is gone. Trust
+  rests on the new act, not on a replay.
+- It goes through change control, consumer propagation and review, then
+  implementation.
+- SEAL-2 stays deferred, to be weighed at the 90% gate.
+
+This approves no signing, credentials or downloads.

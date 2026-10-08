@@ -571,3 +571,143 @@ error.
 R-1 to R-4 are MINOR. None sends wrongly or presents the notice as supplied.
 They should be repaired or recorded in CI-20. R-4, a durable statement of a
 failure that did not happen, is the one to fix first.
+
+## Second repair confirmation
+
+2026-10-07. Same reviewer, same rules. My only write is this appended section.
+I made no commits and used no network, credentials, `~/.codex`, model calls or
+UI.
+
+### What was checked
+
+- **Head:** `07ff35486051fa49eac4b584d31b142b2719f7a1`.
+- **Commits after `1dad2331e8`:** `eb8984cbf0` (R-4), `02297948ad` (R-2),
+  `b2ca7ff581` (R-1), and `07ff354860` (R-3 recorded as CI-20 (j), plus the
+  CI-20 (e) addition).
+- **`numstat`:** `CONTRACT_ISSUES.md` +38/-0, `runtime_session.rs` +172/-13,
+  `App.tsx` +1/-1.
+- **SHA-256:**
+  - `runtime_session.rs`: `ca1df750e1816ae27200702b192d9ce329720c45f0b1687190304b1ab51d4990`
+  - `CONTRACT_ISSUES.md`: `a7c831aae6c1a4a73f0429e46dffdd1ad9abf2896316160a033c05f5476c8490`
+  - `App.tsx`: `816e85b3a5ce20d58d1c8a83df2cda301bfbb8c53cda3a56558a5c554ea9c023`
+- **Copy:** a fresh `git archive` at `$TMPDIR/j3f/`. After all mutations and
+  probes were reverted, `diff -r` shows `src-tauri/src` identical to the
+  candidate.
+
+### Suite, stability and mutations
+
+**Full suite.** The log's SHA-256 is
+`e67c16ba96b2da0fe997d8114b3e6258f9e113f76a332452e03e793fd761e98f`.
+- `npm run build`: passed.
+- `cargo test`: **669 passed (665 top-level plus 4 nested), 0 failed, 3
+  ignored**. This matches J3's report.
+- `npm test`: 3/3 passed.
+- All `credential_rpc` tests passed.
+
+**The R-1 test is stable.** `v10_r1_notice_accepted_but_never_written_stays_pending`
+passed 8 times out of 8:
+- 5 runs on its own (4.8 s each);
+- 2 runs within the full parallel lib suite (351 passed each);
+- 1 run in the full suite above.
+
+**Mutations,** each against the `workflow_root`, `publication`, `supply`,
+`j3_`, `v10_`, `native_coverage` and `prepared_turn` filters:
+
+| ID | Mutation | Result |
+|---|---|---|
+| G1M | Accept a source with no observed write attempt | **Caught** by the R-1 test. It survived before. |
+| JM1 | Cold check disabled | **Caught** |
+| JM2 | Hot open run not refused | **Caught** |
+| JM3 | No supersede | **Caught** |
+| JM4 | Order by kind instead of observation time | **Caught** |
+| JM5 | Incomplete record read as open | **Caught** |
+| JM6 | Advisory gates the start | **Caught** |
+| R4M | Skip allowed without a failure | **Caught** by 2 tests |
+| R2M | The hold is read, not removed (`held_successors.get` instead of `remove`) | **Survives** (see "Claim races") |
+
+R2M is the only survivor. It is harmless in practice, because
+`release_held_end` is idempotent through `held_end`, and a second sender
+reaches B's `attempted`/no-resend guard. The removal itself is not pinned by a
+concurrency test.
+
+### Probes
+
+These were temporary, and the copy has been restored. P3–P7 ran three times
+each with identical results.
+
+| Probe | What it does | Result |
+|---|---|---|
+| P3 | Skip right after End | Refused: "The end-notice record has not failed to be written …". 0 evidence limits written. **R-4 repaired.** |
+| P4 | A permanently unwritable earlier R3 | `run_ended` is still held, unchanged by design. **R-3** is now recorded accurately as CI-20 (j) with three options for the RS owner. Accepted as a recorded limit. |
+| P5 | A busy when B starts | B's start now waits for A instead of failing. A's end is written ("ended to start …") and B opens. **R-2 repaired.** |
+| P6 | Two concurrent starts of B, released by a barrier | One gets `Err("Original run operation pending")`, the other succeeds. 1 `turn/start` for B, 1 `run_ended` for A, 1 `run_opened` for B, and `held_successors` empty afterwards. |
+| P7 | A ended separately while held | `end_run(A)` is refused ("Only an open run can be ended"). `end_recorded_run(A)` is refused ("held by this process"). `retry_records` writes nothing while held. Then B's start writes exactly one `run_ended` for A. |
+| P8 | A third run C prepared and started in this conversation **between** `end_and_start` returning and B's start | C opens. Its chain line says A "ended to start …". B is then refused ("live in this conversation"). A's end falls back to "ended by the person" with a notice. The next ordinary turn sends "[Chirality] Workflow run ended: … No workflow is in force." **while C is live** (R-5). |
+
+### Judgement
+
+**R-1 is repaired.** The real Host no-write path is exercised without a test
+seam: a stalled peer, a large frame holding the writer, and the Codex stop. The
+test is stable.
+
+**R-2 is repaired.** Every outcome of B's start releases A's held end, whether
+the failure comes before the send, the start is refused, or the outcome is
+unknown. A busy A no longer blocks B. The CI-20 (e) "in-memory window" text is
+accurate.
+
+**R-3 is recorded.** CI-20 (j) is accurate and no code was changed, which
+fits a decision that belongs to the RS owner.
+
+**R-4 is repaired.** Skip requires a recorded notice-record failure, and the
+evidence limit carries that failure's text. The panel shows the button only
+then. A later successful record write clears the failure.
+
+**The CI-20 (e) addition** about B's own records after a definite refusal is
+accurate.
+
+**Claim races** for `held_successors`:
+- **Two starts of B are safe.**
+  - The claim is removed under the Root lock.
+  - A non-claiming caller meets B's lock (`try_lock`) or `hold_open_for` ("already
+    in progress") and sends nothing.
+  - P6 shows exactly one send and one A end.
+- **A ended separately while held is safe.** Both end routes refuse, and
+  `flush_records` returns early while held (P7).
+
+#### R-5 MINOR: a held successor does not reserve its conversation
+
+- **Where:** `conversation_prior` and `start_workflow_run`
+  (`runtime_session.rs:4324`).
+- **Evidence (P8):**
+  - Between `end_and_start` returning and B's start, A is *Ended*, and B is
+    *Prepared* but holds A's end.
+  - Neither counts as live, so another run C can be prepared and started.
+  - B is then refused, and A falls back to a plain end with a notice.
+  - The next ordinary turn tells the model "No workflow is in force" while C is
+    live, and C's chain line names A's end as "ended to start ‹B›".
+- **Reachability:** two separate commands have to interleave inside one
+  `workflow_end_and_start` call (prepare and send of C between its two steps).
+  The panel blocks this with its `busy` flag, so it is not reachable through
+  the App's own UI in ordinary use.
+- **Fix:** treat a run listed in `held_successors`, or carrying
+  `hold_open_for`, as live for CH-1, in both `conversation_prior` and the start
+  live-check. Or record the window in CI-20 (e).
+
+G-6 and G-8 remain NOTEs.
+
+### Final verdict (J1 + J3)
+
+**READY.**
+- **J1:** V9 F-1…F-5 were repaired and F-7 recorded. Confirmed at
+  `152eeac3df`, and unchanged in substance at this head (the suite and all J1
+  tests pass).
+- **J3:** V10 G-1…G-5 and G-7, and R-1, R-2 and R-4, are repaired with tests.
+  R-3 is recorded as CI-20 (j).
+- **Suite:** it matches the reported count, and every mutation except R2M is
+  caught. R2M is harmless.
+
+**Remaining, none blocking:**
+- R-5 MINOR. Not reachable through the panel; it should be repaired or
+  recorded in CI-20 (e).
+- G-6 NOTE.
+- G-8 NOTE.
