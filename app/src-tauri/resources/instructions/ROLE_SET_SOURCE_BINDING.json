@@ -1,0 +1,73 @@
+{
+  "format": "chirality.app.roles.source-binding/1",
+  "basisCommit": "015f9763ead9294b3857038e5d9cbaf2f9816244",
+  "standing": "Production candidate; independent review pending; no release, supplier adoption or shared allocation claim",
+  "roleSet": {
+    "path": "roles.json",
+    "sha256": "15fa4ca9d30f391a0b4c606b374b6255ab31bc994cf4a0a298907f786844f7d4"
+  },
+  "sources": [
+    {
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/ROLE_SUPPLY.md",
+      "sha256": "b279a23a5c8d8b2170618a062b3a5ccc3ea07a1cecdfcec7c61d0320f6559ba9",
+      "readExtent": "4.1; GS-1 through GS-7; 6.1; U-R6/U-R11"
+    },
+    {
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d",
+      "readExtent": "5.1\u20135.2"
+    },
+    {
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md",
+      "sha256": "2327508f2290e7cf2528950d65bc331d72a80d8413a13fe31ea8f867cce4d176",
+      "readExtent": "REQ-001 through REQ-006"
+    },
+    {
+      "repositoryPath": "projects/chirality-app-v4/app/src-tauri/resources/instructions/SOURCE_MAP.json",
+      "sha256": "ca3ff9b483d70a3c4dbe818c520cc3a16c750cbf81aa5bee88460c09c7f92f82",
+      "readExtent": "Historical source/output binding, unchanged"
+    }
+  ],
+  "guidance": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "d9233f5af0393e045f0d50fe14b60ede6ec3558da625c1a0deec84fae07afc27",
+      "byteLength": 3858
+    },
+    {
+      "path": "agents/AGENT_HELPS_HUMANS.md",
+      "sha256": "9306048b3229f63170cde5dbbb1280e048aae8aa434b1934085598bf8e649158",
+      "byteLength": 990
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "sha256": "11e619e41acad799b90552dda19a3d49c4d3921bcebbce7317254a58d03e04be",
+      "byteLength": 969
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "aaab8c8c20b1d5c3592f04d1337b3335f82ff44428a2304614c191cce71ba3cc",
+      "byteLength": 856
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "4be2e37da843353cde22bd2ed65f8756f00a865171939f1ac2c6d65adf025914",
+      "byteLength": 1111
+    }
+  ],
+  "openMatters": [
+    {
+      "id": "U-R6",
+      "owner": "App/shared contract owners",
+      "pointOfNeed": "Before allocation",
+      "disposition": "App-local candidate resource placement only; no shared allocation decision"
+    },
+    {
+      "id": "U-R11",
+      "owner": "App role-guidance owner",
+      "pointOfNeed": "Before release",
+      "disposition": "All four defaults false in this bounded candidate per parent-relayed HELP_HUMAN disposition; no final release decision"
+    }
+  ],
+  "prototype": "Not used as authority or copied"
+}

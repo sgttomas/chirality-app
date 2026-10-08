@@ -276,10 +276,67 @@ pub fn role_default(role: crate::role_supply::Role) -> &'static [u8] {
         TASK => include_bytes!("../resources/instructions/agents/AGENT_TASK.md"),
     }
 }
+/// Verify the installed, read-only package against the closed embedded candidate.
+/// Call with the actual native resource directory's instructions child before start.
+/// This is correspondence evidence, not a package signature or release qualification.
+pub fn verify_production_instructions_root(root: &std::path::Path) -> Result<Value, String> {
+    use crate::role_supply::{content, Role, RoleSet, BUNDLED_ROLE_SET};
+    let roles = read_packaged_instruction(root, "roles.json")?;
+    RoleSet::parse(&roles)?;
+    if roles != BUNDLED_ROLE_SET { return Err("role-set-invalid: packaged roles differ from compiled candidate".into()); }
+    let expected = std::iter::once(("AGENTS.md".to_owned(), COMMON_DEFAULT))
+        .chain(Role::ALL.into_iter().map(|r| (format!("agents/AGENT_{}.md", r.name()), role_default(r))))
+        .chain(std::iter::once(("ROLE_SET_SOURCE_BINDING.json".to_owned(), include_bytes!("../resources/instructions/ROLE_SET_SOURCE_BINDING.json").as_slice())));
+    for (path, bytes) in expected {
+        if read_packaged_instruction(root, &path)? != bytes {
+            return Err(format!("role-set-invalid: packaged instruction differs: {path}"));
+        }
+    }
+    Ok(json!({"roleSet":content(&roles),"standing":"package-correspondence-verified","releaseQualified":false}))
+}
+#[cfg(unix)]
+fn read_packaged_instruction(root: &std::path::Path, relative: &str) -> Result<Vec<u8>, String> {
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    use std::os::unix::ffi::OsStrExt;
+    use std::io::Read;
+    use std::path::Component;
+    let fail = || "role-set-invalid: packaged instruction missing, linked or unreadable".to_owned();
+    if !root.is_absolute() { return Err(fail()); }
+    let mut directory = std::fs::File::open("/").map_err(|_| fail())?;
+    let full = root.join(relative);
+    let parts: Vec<_> = full.components().collect();
+    for (index, part) in parts.iter().enumerate() {
+        let Component::Normal(name) = part else {
+            if index == 0 && *part == Component::RootDir { continue; }
+            return Err(fail());
+        };
+        let name = std::ffi::CString::new(name.as_bytes()).map_err(|_| fail())?;
+        let last = index + 1 == parts.len();
+        let flags = libc::O_RDONLY | libc::O_CLOEXEC | libc::O_NOFOLLOW
+            | if last { libc::O_NONBLOCK } else { libc::O_DIRECTORY };
+        // Each component opens relative to the retained parent descriptor; links never followed.
+        let fd = unsafe { libc::openat(directory.as_raw_fd(), name.as_ptr(), flags) };
+        if fd < 0 { return Err(fail()); }
+        let owned = unsafe { OwnedFd::from_raw_fd(fd) };
+        directory = std::fs::File::from(owned);
+        if last {
+            if !directory.metadata().map_err(|_| fail())?.is_file() { return Err(fail()); }
+            let mut bytes = Vec::new();
+            directory.take(1024 * 1024).read_to_end(&mut bytes).map_err(|_| fail())?;
+            return Ok(bytes);
+        }
+    }
+    Err(fail())
+}
+#[cfg(not(unix))]
+fn read_packaged_instruction(_root: &std::path::Path, _relative: &str) -> Result<Vec<u8>, String> {
+    Err("role-set-invalid: no-follow package reader unavailable on this target".into())
+}
 /// Create initial editable copies without overwriting any human edits.
 /// Failure has no alternate storage location and is shown by the entry surface.
 pub fn seed_instructions(root: &std::path::Path) -> Result<(), String> {
     use std::io::Write;
+    crate::role_supply::bundled_role_set()?;
     if COMMON_DEFAULT.is_empty() {
         return Err("reviewed v4 product instruction basis not supplied".into());
     }
@@ -347,6 +404,7 @@ pub fn compose_role(
     role: Option<crate::role_supply::Role>,
 ) -> Result<crate::role_supply::Composition, String> {
     use crate::role_supply::{Composition, Guidance};
+    crate::role_supply::bundled_role_set()?;
     let common = Guidance::read_seeded(root, "AGENTS.md", INSTRUCTION_RELEASE, COMMON_DEFAULT)?;
     let active = role
         .map(|r| {
@@ -988,6 +1046,7 @@ impl HistorySession {
         })();
         let error = prepared.as_ref().err().cloned();
         let mut summary = receipt_summary(&e);
+        summary["roleSet"] = composition.role_set_identity().clone();
         if let Some(error) = error.as_ref() {
             summary["rolePreparationError"] = json!(error);
         }
@@ -1021,7 +1080,9 @@ impl HistorySession {
                 }
             };
             let preparation_error = pending.evidence.get("rolePreparationError").cloned();
+            let role_set = pending.evidence["roleSet"].clone();
             pending.evidence = receipt_summary(&status);
+            pending.evidence["roleSet"] = role_set;
             if let Some(error) = preparation_error {
                 pending.evidence["rolePreparationError"] = error;
             }
@@ -6478,3 +6539,7 @@ for line in sys.stdin:
 
 }
 #[cfg(test)] #[path = "workflow_journey_tests.rs"] mod workflow_journey_tests;
+
+#[cfg(test)]
+#[path = "p3_role_set_tests.rs"]
+mod p3_role_set_tests;

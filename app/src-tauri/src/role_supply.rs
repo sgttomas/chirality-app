@@ -39,6 +39,72 @@ impl Role {
         }
     }
 }
+/// Read-only App candidate data. Placement/default release choices remain U-R6/U-R11.
+pub const BUNDLED_ROLE_SET: &[u8] = include_bytes!("../resources/instructions/roles.json");
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RoleDefinition {
+    pub name: Role,
+    pub meaning: String,
+    pub guidance_file: String,
+    pub delegation: String,
+    pub child_roles: Vec<Role>,
+    pub default_for_new_chat: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RoleSet {
+    pub format: String,
+    pub roles: Vec<RoleDefinition>,
+}
+impl RoleSet {
+    pub fn parse(bytes: &[u8]) -> Result<Self, String> {
+        let set: Self =
+            serde_json::from_slice(bytes).map_err(|e| format!("role-set-invalid: {e}"))?;
+        if set.format != "chirality.app.roles/1"
+            || set.roles.len() != Role::ALL.len()
+            || set.roles.iter().filter(|r| r.default_for_new_chat).count() > 1
+        {
+            return Err("role-set-invalid: format, role count or defaults".into());
+        }
+        for (role, meaning) in Role::ALL.into_iter().zip([
+            "Alignment with the human",
+            "Design",
+            "Managed execution",
+            "Bounded execution; does not delegate",
+        ]) {
+            let matching: Vec<_> = set.roles.iter().filter(|r| r.name == role).collect();
+            if matching.len() != 1 {
+                return Err("role-set-invalid: exact four roles required".into());
+            }
+            let row = matching[0];
+            if row.meaning != meaning
+                || row.guidance_file != format!("agents/AGENT_{}.md", role.name())
+                || row.delegation
+                    != if role == Role::TASK {
+                        "does-not-delegate"
+                    } else {
+                        "may-delegate"
+                    }
+                || row.child_roles != role.child_roles()
+            {
+                return Err(
+                    "role-set-invalid: role meaning, guidance or delegation differs".into(),
+                );
+            }
+        }
+        Ok(set)
+    }
+    pub fn default_role(&self) -> Option<Role> {
+        self.roles
+            .iter()
+            .find(|r| r.default_for_new_chat)
+            .map(|r| r.name)
+    }
+}
+pub fn bundled_role_set() -> Result<RoleSet, String> {
+    RoleSet::parse(BUNDLED_ROLE_SET)
+}
 pub fn content(bytes: &[u8]) -> Value {
     json!({"method":CONTENT_METHOD,"value":sha256_hex(bytes)})
 }
@@ -110,6 +176,7 @@ impl Guidance {
 }
 #[derive(Debug, Clone)]
 pub struct Composition {
+    role_set_identity: Value,
     pub text: String,
     pub carried: Value,
     pub role: Option<Role>,
@@ -120,6 +187,15 @@ impl Composition {
         role: Option<(Role, &Guidance)>,
         delegated: bool,
     ) -> Result<Self, String> {
+        Self::with_role_set(common, role, delegated, BUNDLED_ROLE_SET)
+    }
+    pub(crate) fn with_role_set(
+        common: &Guidance,
+        role: Option<(Role, &Guidance)>,
+        delegated: bool,
+        role_set_bytes: &[u8],
+    ) -> Result<Self, String> {
+        RoleSet::parse(role_set_bytes)?;
         if common.source["path"] != "AGENTS.md" {
             return Err("common guidance source mismatch".into());
         }
@@ -141,10 +217,14 @@ impl Composition {
         }
         let carried = json!({"compositionFormat":"chirality.role.compose/0.2","developerInstructions":{"content":content(&bytes),"byteLength":bytes.len(),"parts":parts},"baseInstructions":"not-set","nativeChildRoles":[]});
         Ok(Self {
+            role_set_identity: content(role_set_bytes),
             text: String::from_utf8(bytes).map_err(|e| e.to_string())?,
             carried,
             role: role.map(|(r, _)| r),
         })
+    }
+    pub fn role_set_identity(&self) -> &Value {
+        &self.role_set_identity
     }
     pub fn verify(&self) -> Result<(), String> {
         let b = self.text.as_bytes();
@@ -212,7 +292,7 @@ impl Composition {
         {
             return Err("supply request identity incomplete".into());
         }
-        let mut rec = json!({"format":"chirality.role.supply","formatVersion":"0.2","supplyId":supply_id,"thread":thread,"trigger":"thread-start","request":{"method":"thread/start","requestRef":request_ref,"generation":generation},"selection":{"role":self.role.map(|r|r.name()).unwrap_or("none"),"preselected":false},"carried":self.carried,"adoption":"unknown"});
+        let mut rec = json!({"format":"chirality.role.supply","formatVersion":"0.2","supplyId":supply_id,"thread":thread,"trigger":"thread-start","request":{"method":"thread/start","requestRef":request_ref,"generation":generation},"selection":{"role":self.role.map(|r|r.name()).unwrap_or("none"),"preselected":false,"roleSet":self.role_set_identity},"carried":self.carried,"adoption":"unknown"});
         match response {
             None => {
                 rec["outcome"] = json!("unknown-no-response");

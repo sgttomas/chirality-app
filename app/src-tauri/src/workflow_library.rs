@@ -752,7 +752,7 @@ fn diff(
 }
 /// Reads the registration ledger. Each refusal names its exact cause (unreadable,
 /// malformed or ambiguous) with the ledger path and line; nothing is skipped.
-fn read_ledger(root: &Path) -> Result<Vec<Value>, String> {
+pub(super) fn read_ledger(root: &Path) -> Result<Vec<Value>, String> {
     let path = root.join(".chirality/workflow-registry.jsonl");
     storage::check_path(&path)?;
     let shown = path.display();
