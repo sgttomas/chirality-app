@@ -10,7 +10,7 @@ import unittest
 
 APP=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(APP/'examination/admission'))
-import check
+import admission_check as check
 
 
 class AdmissionFiles(unittest.TestCase):
@@ -130,9 +130,22 @@ class AdmissionFiles(unittest.TestCase):
         for value in ('{"x":1,"x":2}','{"x":NaN}'):
             with self.assertRaises(ValueError): check.parse(value)
 
+    def test_b1_b3_import_orders_are_isolated(self):
+        # Each order runs in its own interpreter, as test collectors may load
+        # either suite first. B1's generic check/rules must remain untouched.
+        tests=APP/'tests'
+        for order in (['group_b_support_test','group_b_admission_test'],
+                      ['group_b_admission_test','group_b_support_test']):
+            code="import sys; sys.path.insert(0,"+repr(str(tests))+"); "
+            code+="import importlib; mods=[importlib.import_module(n) for n in "+repr(order)+"]; "
+            code+="import group_b_support_test as b1, group_b_admission_test as b3; "
+            code+="assert b1.Support is not b3.check.Support; assert b1.Support().prototype_digest; assert b3.check.Support().validators['review']"
+            result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+
     def test_cli_real_file_join_reports_no_verification_or_admission(self):
         fixtures=APP/'tests/group_b_admission_fixtures'
-        cmd=[sys.executable,str(APP/'examination/admission/check.py'),'change-join']
+        cmd=[sys.executable,str(APP/'examination/admission/admission_check.py'),'change-join']
         for field in ('change','before','after','rerun'): cmd+=['--'+field,str(fixtures/(field+'.json'))]
         cmd+=['--selection',str(fixtures/'change-selection.json')]
         output=subprocess.run(cmd,capture_output=True,text=True)

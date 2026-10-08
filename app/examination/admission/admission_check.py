@@ -9,7 +9,7 @@ import sys
 
 from jsonschema import Draft202012Validator
 from referencing import Registry
-from rules import impact_violations, review_violations, rule_violations
+from admission_rules import impact_violations, review_violations, rule_violations
 
 HERE=Path(__file__).resolve().parent
 PROJECT=HERE.parents[2]
@@ -199,7 +199,7 @@ def main(argv=None):
         report={'file_checks_passed':not errors,'errors':errors,'scope':args.command,'inputs':inputs,
                 'unresolved_other_references':unresolved,'rerun_not_supplied':pending,'limits':LIMITS,
                 'review_or_repair_verified':False,'route_admission':'not_established',
-                'tool_sha256':sha(Path(__file__).read_bytes()),'rules_sha256':sha((HERE/'rules.py').read_bytes()),
+                'tool_sha256':sha(Path(__file__).read_bytes()),'rules_sha256':sha((HERE/'admission_rules.py').read_bytes()),
                 'source_lock_sha256':sha(support.manifest_bytes)}
         print(json.dumps(report,indent=2)); return 1 if errors else 0
     except (ValueError,OSError) as error:

@@ -8,10 +8,10 @@ remains pending. This directory's name is not an admission claim.
 Use Python 3.10+ with the already prepared `jsonschema` environment. From `app/`:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/check.py validate review tests/group_b_admission_fixtures/review.json
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/check.py validate change tests/group_b_admission_fixtures/change.json --result tests/group_b_admission_fixtures/after.json
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/check.py review-join --review tests/group_b_admission_fixtures/review.json --result tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/review-selection.json
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/check.py change-join --change tests/group_b_admission_fixtures/change.json --before tests/group_b_admission_fixtures/before.json --after tests/group_b_admission_fixtures/after.json --rerun tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/change-selection.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py validate review tests/group_b_admission_fixtures/review.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py validate change tests/group_b_admission_fixtures/change.json --result tests/group_b_admission_fixtures/after.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py review-join --review tests/group_b_admission_fixtures/review.json --result tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/review-selection.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py change-join --change tests/group_b_admission_fixtures/change.json --before tests/group_b_admission_fixtures/before.json --after tests/group_b_admission_fixtures/after.json --rerun tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/change-selection.json
 PYTHONDONTWRITEBYTECODE=1 python3 tests/group_b_admission_test.py
 ```
 
