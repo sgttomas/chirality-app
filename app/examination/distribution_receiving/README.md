@@ -1,5 +1,9 @@
 # Staged S4 file receiving
 
+Current source: [combined-source renewal](LT12_COMBINED_SOURCE_ADOPTION.md) at2377.
+It preserves existing LT09 and LT09/LT23 contracts; preceding cohort descriptions
+below remain historical.
+
 Current two-cohort source selection: [LT12-source adoption](LT12_SOURCE_ADOPTION.md)
 at938d20ef4b. It preserves standalone LT09 and terminal LT09/LT23 restrictions.
 Earlier active-source descriptions below are historical.

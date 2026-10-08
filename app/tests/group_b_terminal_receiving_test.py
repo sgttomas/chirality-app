@@ -13,7 +13,8 @@ from unittest.mock import patch
 
 APP = Path(__file__).resolve().parents[1]
 PREVIOUS_CURRENT = APP / 'tests/group_b_terminal_receiving_fixtures'
-FIXTURES = APP / 'tests/group_b_lt12_source_terminal_fixtures'
+COMBINED_PREDECESSOR = APP / 'tests/group_b_lt12_source_terminal_fixtures'
+FIXTURES = APP / 'tests/group_b_lt12_combined_terminal_fixtures'
 
 
 def load(name, path):
@@ -162,6 +163,9 @@ class TerminalReceivingTests(unittest.TestCase):
         self.refused()
 
     def test_lt12_source_adoption_refuses_previous_source_mixed_reader_and_lt12(self):
+        prior = COMBINED_PREDECESSOR / 'selected/exchange.json'
+        with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+            self.receiver.check(prior, base.sha(prior.read_bytes()), self.selection, base.sha(self.selection.read_bytes()))
         path = PREVIOUS_CURRENT / 'selected/exchange.json'
         with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
             self.receiver.check(path,base.sha(path.read_bytes()),self.selection,base.sha(self.selection.read_bytes()))

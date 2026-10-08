@@ -16,7 +16,8 @@ HISTORICAL = APP / 'tests/group_b_distribution_receiving_fixtures'
 NAMESPACE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_namespace_fixtures'
 LT23_SOURCE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_lt23_source_fixtures'
 PREVIOUS_CURRENT = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
-FIXTURES = APP / 'tests/group_b_lt12_source_lt09_fixtures'
+COMBINED_PREDECESSOR = APP / 'tests/group_b_lt12_source_lt09_fixtures'
+FIXTURES = APP / 'tests/group_b_lt12_combined_lt09_fixtures'
 
 
 def load(name, path):
@@ -268,7 +269,7 @@ class DistributionReceivingTests(unittest.TestCase):
         with patch.object(receiver, 'relative', changed):
             with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
         report = self.check()
-        self.assertEqual(report['receiving_adoption'], 'B-S4-LT12-SOURCE-LT09-v1')
+        self.assertEqual(report['receiving_adoption'], 'B-S4-LT12-COMBINED-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
 
@@ -312,6 +313,9 @@ class DistributionReceivingTests(unittest.TestCase):
             self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
 
     def test_lt12_source_adoption_refuses_previous_source_mixed_reader_and_lt12(self):
+        prior = COMBINED_PREDECESSOR / 'selected/exchange.json'
+        with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+            self.receiver.check(prior, receiver.sha(prior.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
         path = PREVIOUS_CURRENT / 'selected/exchange.json'
         with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
             self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))

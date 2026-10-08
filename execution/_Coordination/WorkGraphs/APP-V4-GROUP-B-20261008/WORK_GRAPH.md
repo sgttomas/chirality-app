@@ -4,7 +4,7 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-lt12-source-adoption`, based on verified
+PR #1126. Current graph ref: `codex/app-v4-group-b-lt12-current-main`, based on verified
 PR #1147 merge `f23997d3202375f9d607098731f8d374d019b434`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
@@ -133,19 +133,18 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Fixed two-cohort source adoption:** Parent resumed the existing S4 lane on
-independently reviewed Host source 938d20ef4bf0d07a7cc706d575e74f844d8caccf
-and fresh committed/recompiled exports. Named fixed current standalone LT09
-and LT09/LT23 terminal source selections are independently READY. Formats and accepted rows
-are unchanged: there is no LT12 exchange/receiving claim. Historical pin/cohort
-bytes remain preserved, source drift refuses, and no dynamic fallback is added.
+**Fixed two-cohort current-main renewal:** The earlier 938 source adoption is
+retained historically. C3 main changed pinned lib.rs, so direct integration
+correctly refused source drift. Parent released nonrewriting combined Host
+source 2377becab65791fcd91177fcf4ab15abcf4c1742 and fresh committed-source
+exports. B named current-main standalone LT09 and LT09/LT23 cohorts preserve
+all earlier bytes and unchanged format/row restrictions; no LT12 exchange.
 
-Actual positive joins and stale/mixed/rehashed-LT12 refusals passed independent
-review (47 tests and sixteen probes); manager integration passes 63 tests.
-Joined Host exact-head review and CI remain required. Canonical six-record
-checks and all native/namespace/terminal authority, S3, actual candidate/package
-and qualification limits remain unchanged. No new lane or owner act is created.
-Exact supplied custody and write fences: s4-lt12-source-adoption/COORDINATION.md.
+Manager repeats 63 passing tests. Independent renewal review and joined Host
+exact-head review/CI are recorded separately in the return custody. No dynamic
+fallback, native/namespace/terminal authority, S3, actual candidate/package or
+qualification is supplied. No new lane or owner act is created. Exact custody:
+s4-lt12-current-main-adoption/COORDINATION.md.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|
