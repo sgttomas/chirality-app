@@ -54,8 +54,8 @@ authors. Each production slice carries its necessary documentation and checks.
 |---|---|---|---|---|
 | G0 recover basis and executable graph | All B; manager; this graph and run only | Owner steering, Group A closeout, three SoWs/Designs/dependencies, GC-8 | Source hashes, current DAG evidence, exact decision custody, relationship account | COMPLETE entry at 7b0170ed; BASIS.md |
 | B1 first usable EXP→PKG file path (partial M1) | DEL-09-01 OUT-002/003 + DEL-01-06 OUT-002; support_production TASK; new app/examination or scoped tools, group_b tests and production evidence only | EXP/PKG canonical schemas/rules; identified App source candidate; no native input needed | Offline CLI checks canonical shapes and rules; exact candidate/build/pin/support joins; false-pass negatives; candidate-bound technical artifact with honest limits | COMPLETE bounded partial M1 at author 703f834e0d; ten tests and independent V1 checks pass; merged into manager branch only; production/SUPPORT_CHECK.json |
-| V1 independent first-slice review/repair | B1 plus graph integration; separate TASK, review files only | Frozen B1 revision | Source fidelity, false-pass probes, no contract weakening, actual output and complete diff reviewed; author repairs and reviewer confirms | ACTIVE code/evidence 703f834e0d READY; final integrated graph/document backcheck pending |
-| P1 first substantive integration | Manager/HELP_HUMAN; B1, graph, checks and slice documentation | V1 READY and actual candidate checks | PR with graph and implementation; required CI; merge coordinated with HELP_HUMAN | PLANNED; manager may commit, cannot independently merge main |
+| V1 independent first-slice review/repair | B1 plus graph integration; separate TASK, review files only | Frozen B1 revision | Source fidelity, false-pass probes, no contract weakening, actual output and complete diff reviewed; author repairs and reviewer confirms | COMPLETE V1 READY on combined 949e0d84a7; no actionable findings; reviews/V1-FIRST-SLICE.md |
+| P1 first substantive integration | Manager/HELP_HUMAN; B1, graph, checks and slice documentation | V1 READY and actual candidate checks | PR with graph and implementation; required CI; merge coordinated with HELP_HUMAN | READY first slice reviewed and committed; PR/required CI/main merge pending HELP_HUMAN coordination |
 | B2 unsigned package configuration and inventory | DEL-01-06 OUT-001/002; packaging TASK, app packaging files and PKG evidence assigned before dispatch | Group A App source/pin, complete approved vendor tree, current WR/ROLE bundle inputs | CF-1…8 represented without credentials; P-0…4 layout; FP-0 at selected pin; FP-1(a) actual tree/mode/link comparison; missing content marks incomplete | READY for offline preparation; actual package needs supplied complete build inputs |
 | A-IN full distribution verification receiving | DEL-01-01 owning Group A follow-up; HELP_HUMAN coordinates; B manager receives only | Before FP-2/W-4, actual expected full-tree identity and runtime verification/launcher contribution | Reviewed implementation produces verified standing for exact packaged tree; development digest exception never satisfies this | PLANNED input; known development limit, see PACKAGE_INPUT_ACCOUNT.md |
 | B3 finish reusable support and route admission | DEL-09-01 OUT-001…004; examination TASK, maintained fixtures/adapters and EXP evidence | B1; identified recordings and installed runner engines; route configuration | Resolve CI-26 full support identity representation through owning Design review; EXP-VC-01…15 relevant checks; five outcomes, actor separation negatives, review/change/criteria checks; EXP-DC-RUNNER WebKit/Chromium sensitivity/isolation; N-1 form; N-2 only if separately admitted | PLANNED; absent recordings/engines stay named gaps, no downloads presumed |
@@ -115,15 +115,15 @@ and graph-closure graphs remain at their original paths.
 Initial source candidate: 7b0170ed. Graph maintainer: group_b_manager.
 Manager worktree: `/Users/ryan/.codex/worktrees/app-v4-group-b-implementation/chirality`.
 B1 has returned; no production operation is running. Its child remains available
-for repairs. V1 review is active. Production child uses its own `app-v4-group-b-support/chirality` worktree,
+for repairs. V1 review is complete; no child operation is running. Production child uses its own `app-v4-group-b-support/chirality` worktree,
 branch `codex/app-v4-group-b-support`. No shared App/runtime edit is delegated.
 Actual native-descendant mechanism, model request, supplied basis, write fences
 and returns are recorded in [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-B-20261008/DELEGATION.md).
 
 B2 entry technical inspection is retained in [PACKAGE_INPUT_ACCOUNT.md](../../AgentRuns/APP-V4-GROUP-B-20261008/PACKAGE_INPUT_ACCOUNT.md): bundling is disabled in the current source, production resource placement remains unsupplied, and HOSTING only provides labelled development identity. HELP_HUMAN retains coordination of the known DEL-01-01 full-distribution verification input at FP-2/W-4.
 
-**Next:** complete V1 backcheck of the integrated graph/documentation candidate,
-then return the checked implementation and graph to HELP_HUMAN for P1. Advance
+**Next:** HELP_HUMAN coordinates P1 PR/required CI/main integration of the
+checked first slice. Manager continuation may advance B2/B7 offline preparation. Advance
 B2/B7 offline preparation within their inputs. No native launch, signing,
 notarisation, supplier download, sign-in or human act has been authorized here.
 
@@ -148,6 +148,6 @@ and [technical check](../../AgentRuns/APP-V4-GROUP-B-20261008/production/SUPPORT
 retain original candidate identities and limits. The examiner independently ran
 ten tests, compared semantic-rule functions to their pinned sources, and checked
 additional mismatch/reopening cases and evidence hashes. No native result is
-supplied. Final combined review and P1 integration remain open. C1/M1/F1 are not
+supplied. Final combined review is READY in [V1-FIRST-SLICE.md](../../AgentRuns/APP-V4-GROUP-B-20261008/reviews/V1-FIRST-SLICE.md); P1 PR/CI/main integration remains open. C1/M1/F1 are not
 performed merely because this first slice is useful; no final receipt or MEMORY
 closure entry is created at this checkpoint.

@@ -46,3 +46,16 @@ The manager's possible noncandidate KeyError concern was investigated by the
 reviewer and not reproduced: canonical valid inputs cleanly refused where
 inapplicable; the schema requires the indexed configuration fields. No repair
 was ordered based on that unsupported concern.
+
+## Reviewed integration return
+
+V1 returned READY without actionable findings on combined candidate
+949e0d84a76fac70017f50e4b2747026dbf65b5e. Exact review bytes from reviewer
+commit d25659898c96b766e895c464d3433a75a709dc93 are retained under reviews/.
+The manager independently ran the integrated ten-test suite and verified the
+seven implementation-file hashes and both raw-output hashes in SUPPORT_CHECK:
+all match. The only subsequent manager changes record V1's completion and P1
+readiness; product bytes remain identical. No native/product qualification or
+Group B completion follows. No child is currently executing; author and reviewer
+remain available for bounded repairs/backchecks. PR/CI/main integration is
+returned to HELP_HUMAN as required by the launch brief.
