@@ -4147,9 +4147,16 @@ impl WorkflowRootSession {
             .get(&(home.to_owned(), thread.to_owned()))
             .cloned()
             .unwrap_or_default();
+        // V10 R-5: a held successor and its held predecessor reserve the conversation.
+        if let Some(e) = self.held_step_in(&hot) {
+            return Err(format!("{e}. Nothing prepared"));
+        }
         for reference in &hot {
             let run = self.runs.get(reference).ok_or("conversation run index inconsistent")?;
             let run = run.try_lock().map_err(|_| format!("Run {reference} has an operation pending in this conversation; whether it is live cannot be established now. Nothing prepared"))?;
+            if let Some(e) = run.held_step(reference) {
+                return Err(format!("{e}. Nothing prepared"));
+            }
             match &run.lifecycle {
                 RunLifecycle::Open if waived == Some(reference.as_str()) => {}
                 RunLifecycle::Open => return Err(format!("A workflow run is live in this conversation ({reference}). End it first, or confirm \"End and start\" (RE-7, CH-1). Nothing prepared")),
@@ -4206,6 +4213,22 @@ impl WorkflowRootSession {
             }
         }
         Ok(None)
+    }
+    /// V10 R-5 (RE-7, CH-1): an "End and start" step whose successor's start outcome
+    /// is not yet known, among these runs of one conversation.
+    fn held_step_in(&self, conversation: &[String]) -> Option<String> {
+        self.held_successors
+            .iter()
+            .find(|(b, a)| conversation.contains(b) || conversation.contains(a))
+            .map(|(b, a)| held_step_reason(a, b))
+    }
+    /// All runs prepared in this process in the conversation of `run`.
+    fn conversation_of(&self, run: &str) -> Vec<String> {
+        self.conversations
+            .values()
+            .find(|runs| runs.iter().any(|r| r == run))
+            .cloned()
+            .unwrap_or_default()
     }
     /// Runs in the conversation of `run` that a successor start supersedes (their
     /// pending end notice is replaced by the successor's chain line, TX-5).
@@ -4327,18 +4350,23 @@ pub(crate) fn start_workflow_run(
 ) -> Result<Value, String> {
     // V10 R-2: the call that claims B's hold (under the Root lock, once) owns A's
     // held end and releases it on every outcome, including a failure before send.
-    let (run, others, predecessor) = {
+    let (run, others, predecessor, reserved) = {
         let mut root = root.lock().unwrap();
         let run = root.conversation_run(reference)?;
         let predecessor = root
             .held_successors
             .remove(reference)
             .and_then(|a| root.runs.get(&a).cloned());
-        (run, root.superseded_notices(reference), predecessor)
+        // V10 R-5: another "End and start" step in progress reserves the conversation.
+        let reserved = root.held_step_in(&root.conversation_of(reference));
+        (run, root.superseded_notices(reference), predecessor, reserved)
     };
     let live_check = |others: &[std::sync::Arc<std::sync::Mutex<WorkflowRun>>]| -> Result<(), String> {
         for other in others {
             let other = other.try_lock().map_err(|_| "Another run operation is pending in this conversation; whether a run is live cannot be established; nothing sent")?;
+            if let Some(e) = other.held_step(&other.prepared().scope().run) {
+                return Err(format!("{e}. Nothing sent"));
+            }
             if other.lifecycle == RunLifecycle::Open {
                 return Err("A workflow run is live in this conversation; end it first (RE-7, CH-1). Nothing sent".into());
             }
@@ -4349,7 +4377,10 @@ pub(crate) fn start_workflow_run(
         // A is ended (its end is held), so it needs no live check and its being
         // busy does not stop B; its end is released once A is free.
         let others: Vec<_> = others.into_iter().filter(|o| !std::sync::Arc::ptr_eq(o, &predecessor)).collect();
-        let checked = live_check(&others);
+        let checked = match reserved {
+            Some(e) => Err(format!("{e}. Nothing sent")),
+            None => live_check(&others),
+        };
         let mut run = run.lock().unwrap();
         let result = checked.and_then(|()| run.send());
         // V10 G-2: A's held end is written first, then B's run_opened (RE-7 order).
@@ -4363,11 +4394,14 @@ pub(crate) fn start_workflow_run(
         }
         return result;
     }
-    live_check(&others)?;
+    if let Some(e) = reserved {
+        return Err(format!("{e}. Nothing sent"));
+    }
     let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
     if run.hold_open_for.is_some() {
         return Err("This successor's start is already in progress; nothing sent".into());
     }
+    live_check(&others)?;
     let result = run.send();
     if run.attempted {
         for other in others {
@@ -4403,6 +4437,10 @@ pub(crate) fn send_with_pending_notice(
 // writing any frame, as its own validation and scope refusals do.
 #[cfg(test)]
 thread_local! { pub(crate) static NOTICE_REFUSED_BEFORE_WRITE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+/// V10 R-5: why a conversation is reserved by an "End and start" step in progress.
+fn held_step_reason(predecessor: &str, successor: &str) -> String {
+    format!("\"End and start\" is in progress in this conversation ({predecessor} ended to start {successor}); until the successor's start outcome is known no other run may be prepared or started here (RE-7, CH-1)")
+}
 /// RS run_ended cause for the person's end (WR CH-1/CH-2 wording; R20-11 (4)).
 fn run_end_cause(reason: &crate::workflow_workspace::RunEndReason) -> String {
     match reason {
@@ -5038,6 +5076,14 @@ impl WorkflowRun {
         self.flush_records();
         self.status = json!({"state":"run ended by the person","cause":cause,"recorded":self.entry_written("run_ended"),"endNotice":self.notice.view(),"adoption":"unknown"});
         Ok(self.status.clone())
+    }
+    /// V10 R-5: this run is the held predecessor or the held successor of an "End
+    /// and start" step whose successor's start outcome is not yet known.
+    fn held_step(&self, reference: &str) -> Option<String> {
+        if let Some(predecessor) = &self.hold_open_for {
+            return Some(held_step_reason(predecessor, reference));
+        }
+        self.held_end.then(|| held_step_reason(reference, "its successor"))
     }
     /// V10 G-2: release A's held end once B's start outcome is known. B opened:
     /// "ended to start ‹B›" is written. B did not start: the end becomes a plain
@@ -6171,6 +6217,51 @@ for line in sys.stdin:
         assert!(ended["body"]["cause"].as_str().unwrap().starts_with("ended to start"),"{ended}");
         let opened=rs_for(&peer,&b).into_iter().find(|e|e["kind"]=="run_opened").expect("B opened");
         assert!(ended["writtenAt"].as_str().unwrap()<=opened["writtenAt"].as_str().unwrap(),"A's run_ended is written before B's run_opened");
+    }
+    // V10 R-5 (reviewer's probe P8): between "End and start" returning and B's start, the
+    // held successor reserves its conversation: a third run C is neither prepared there nor
+    // dispatched, so C can never be live while A falls back to "No workflow is in force".
+    #[test]
+    fn v10_r5_held_successor_reserves_its_conversation_at_prepare_and_dispatch(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        // C is prepared before A opens (a prepared run is not live), so its dispatch is checked on its own.
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","A".into(),peer.project()).unwrap();
+        let c=root.prepare_run(peer.home.clone(),&peer.generation,"thread","C".into(),peer.project()).unwrap();
+        root.runs[&a].clone().lock().unwrap().send().unwrap();
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let prepared=root.prepare_run(peer.home.clone(),&peer.generation,"thread","D".into(),peer.project());
+        assert!(prepared.as_ref().is_err_and(|e|e.contains("End and start")&&e.contains(&b)),"prepare refused while B holds the conversation: {prepared:?}");
+        let root=Mutex::new(root);let starts=peer.turn_starts();
+        let dispatched=start_workflow_run(&root,&c);
+        assert!(dispatched.as_ref().is_err_and(|e|e.contains("End and start")),"dispatch refused while B holds the conversation: {dispatched:?}");
+        assert_eq!(peer.turn_starts(),starts,"C not sent");assert!(!rs_for(&peer,&c).iter().any(|e|e["kind"]=="run_opened"));
+        // B's step completes normally; A ended to start B.
+        start_workflow_run(&root,&b).unwrap();
+        let end=rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap();assert_eq!(end["body"]["cause"],"ended to start coordinated-knowledge-work");
+    }
+    // V10 R-5: once B's start outcome is known the reservation is gone: after B is refused and
+    // A falls back to a plain end, a new run may be prepared in the conversation.
+    #[test]
+    fn v10_r5_reservation_ends_with_the_successor_outcome(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        peer.set_mode("turn-mode","error");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Mutex::new(root);assert!(start_workflow_run(&root,&b).is_err());peer.set_mode("turn-mode","");
+        assert!(root.lock().unwrap().held_successors.is_empty(),"the hold was removed by its start");
+        let next=root.lock().unwrap().prepare_run(peer.home.clone(),&peer.generation,"thread","C".into(),peer.project());assert!(next.is_ok(),"{next:?}");
+    }
+    // V10 R-5 (optional): concurrent starts of one held B claim the hold exactly once: one
+    // turn/start for B, one run_ended for A, and no hold left behind.
+    #[test]
+    fn v10_r5_concurrent_successor_starts_claim_the_hold_once(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let b=root.end_and_start(&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        let root=Arc::new(Mutex::new(root));let starts=peer.turn_starts();let barrier=Arc::new(std::sync::Barrier::new(2));
+        let workers:Vec<_>=(0..2).map(|_|{let(shared,b,barrier)=(root.clone(),b.clone(),barrier.clone());std::thread::spawn(move||{barrier.wait();start_workflow_run(&shared,&b)})}).collect();
+        let results:Vec<_>=workers.into_iter().map(|w|w.join().unwrap()).collect();
+        assert_eq!(results.iter().filter(|r|r.is_ok()).count(),1,"{results:?}");assert_eq!(peer.turn_starts(),starts+1,"B sent once");
+        assert_eq!(rs_for(&peer,&a).iter().filter(|e|e["kind"]=="run_ended").count(),1);
+        assert!(root.lock().unwrap().held_successors.is_empty(),"the hold was removed, not only read");
     }
     // V10 R-2: a start that did not claim B's hold (another call owns it) refuses and sends
     // nothing; it never releases or rewrites A's held end.

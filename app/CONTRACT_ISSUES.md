@@ -451,6 +451,10 @@ owner or the owner. No Design file was changed.
     failure before any send (for example another run of the conversation is
     busy, or B's publication fails). A being busy does not stop B's start; A's
     end is written once A is free, before B's `run_opened`.
+  - **The step reserves its conversation (V10 R-5).** Until B's start outcome
+    is known, the held B and the held A count as live in both one-run checks
+    (prepare and dispatch). No third run can be prepared or started there, so
+    a fallback "No workflow is in force" can never follow a live run.
   - **In-memory window.** Between the person's confirmed step and the start's
     outcome (one command, normally moments), A's end exists only in this
     process. If the process is lost in that window, A reopens as *open;
