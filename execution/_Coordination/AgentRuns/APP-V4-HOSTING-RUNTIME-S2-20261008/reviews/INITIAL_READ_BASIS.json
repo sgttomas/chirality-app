@@ -1,0 +1,107 @@
+{
+  "role": "independent TASK",
+  "agent": "/root/hosting_runtime_manager/runtime_review",
+  "parent": "/root/hosting_runtime_manager",
+  "mechanism": "delegated-harness-native",
+  "requested_model": "gpt-6-astra",
+  "requested_reasoning": "low",
+  "isolation": "read-only source review; output staged in /tmp because manager worktree is outside inherited writable roots; parent may copy review bytes",
+  "reads": [
+    {
+      "path": "AGENTS.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "extent": "full text"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "extent": "full text"
+    },
+    {
+      "path": ".agents/skills/software-code-review/SKILL.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/.agents/skills/software-code-review/SKILL.md",
+      "sha256": "ee085d589c44f912d11a59eead8edac214f0343761d26b0d33e886a979888bca",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+      "extent": "full text"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+      "extent": "full text"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+      "extent": "full text"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+      "extent": "headings through level three"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-HOSTING-RUNTIME-S2-20261008/WORK_GRAPH.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-HOSTING-RUNTIME-S2-20261008/WORK_GRAPH.md",
+      "sha256": "46f1fbeac4ae195bf57c966c433644214bd398006bb897fb0959d53462f063e1",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/TECHNICAL_SELECTION.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/TECHNICAL_SELECTION.md",
+      "sha256": "6a5910339d6148e563f5c1be13666082e0a61bb69d024a488a859c1670e42b29",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/SELECTED_ARTIFACTS.json",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/SELECTED_ARTIFACTS.json",
+      "sha256": "9f58ec2ccaef06839c8c80f8dba28b6c4c978cfb0ce4315ed433b2bd13b0b1fc",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/READ_BASIS.json",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/READ_BASIS.json",
+      "sha256": "2383826405a39d20fe71017cc9a9619d4df065aca6e6dd496bfb7fbb11e887c6",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/ADOPTION_PACKAGE.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/ADOPTION_PACKAGE.md",
+      "sha256": "74011994a880d1b3bb866c86c9f45d04d09e0871ab7ece169465dbaddeaba382",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/reviews/S1_REVIEW.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/reviews/S1_REVIEW.md",
+      "sha256": "007f1d18a73ff7f70fad509dc7e84fcf51c491cf14aceaa75b151c27feec0590",
+      "extent": "verdict, findings and conclusions; tail truncated in combined tool return"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/README.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/README.md",
+      "sha256": "ac8d515bd0169ccb8152eeb8359b780109c9d58ba5ffde8e46f9a353a3474a6a",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/DISTRIBUTION_IDENTITY.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/DISTRIBUTION_IDENTITY.md",
+      "sha256": "d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290",
+      "extent": "full text"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/CONTRACT_ISSUES.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/app/CONTRACT_ISSUES.md",
+      "sha256": "78604bc8997e65f59dbc767f647cf6723f1ce03dd72f71528e5fbe8d1ca83088",
+      "extent": "CI-27 section"
+    }
+  ]
+}

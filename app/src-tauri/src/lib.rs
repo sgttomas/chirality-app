@@ -19,6 +19,8 @@ pub mod external_observation;
 pub mod external_trace;
 pub mod trace_receiving;
 pub mod hosting;
+#[cfg(unix)]
+pub mod distribution_preflight;
 pub mod home_resources;
 pub mod native_items;
 pub mod native_history;

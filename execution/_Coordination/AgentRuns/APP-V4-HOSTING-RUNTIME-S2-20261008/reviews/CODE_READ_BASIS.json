@@ -1,0 +1,91 @@
+{
+  "role": "independent TASK",
+  "agent": "/root/hosting_runtime_manager/runtime_review",
+  "parent": "/root/hosting_runtime_manager",
+  "mechanism": "delegated-harness-native",
+  "candidate_receiving_revision": "7311df06d81ce4d45bb1222080e52731f1ed45ba",
+  "maintained_candidate_hashes_match": true,
+  "staged_files": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/adoption-attestation.s1.schema.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/adoption-attestation.s1.schema.json",
+      "sha256": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/expected-reference.s1.schema.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/expected-reference.s1.schema.json",
+      "sha256": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/sources.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/sources.json",
+      "sha256": "57ae97222a567e9461abe42a495cad992c0310834526af4f955ee66d2e2ff66e"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-attestation.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-attestation.json",
+      "sha256": "f7a270126f4e7c6a651c7969e538fadcae0d85d610881d5b2b2d2abb94362754"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-evidence.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-evidence.json",
+      "sha256": "159d63ddba6a68e91a403359e0a20e26bc8ff8b761f7bad9cd2b75e219d232e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-expected.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-expected.json",
+      "sha256": "f93f8d60649f27b0890ad021d606d58abfcce85e48c82d47181b8b6f9bf149e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs",
+      "sha256": "404d7930c1a37a4f4233d6c3b0da80eba6155ef13b673ce30e8cdeabeb0f3924"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight_tests.rs",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/src/distribution_preflight_tests.rs",
+      "sha256": "f572d00e1cd7b03cc2fcd86f32a7f83983bc615880de004368dcaf105a80c07a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "1048a1a0ed1030d826873441c69001cb5bc000dffbe5c35baa4e44e0a43e8c50"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/CANDIDATE.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/CANDIDATE.json",
+      "sha256": "37931dcb0fd6826a3fff728e2e86ac2cf1c41f2d892b2eb5e95c179e6393040a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/CHECKS.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/CHECKS.json",
+      "sha256": "7d66b3b8547132f0e94297d53726bfdb3712304ef36de8dc9d4b30dd4ef5c705"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/READ_BASIS.json",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/READ_BASIS.json",
+      "sha256": "e5013fd6f01605dbd59624b1698c48a32923966a93e0b00c963678c146abe8aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/RETURN.md",
+      "origin": "/Users/ryan/.codex/worktrees/hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/implementation/RETURN.md",
+      "sha256": "3269ecd3ee7547204de10524791f0688e75e4465475cdfd19998b782d433d5b6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/TECHNICAL_SELECTION.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/TECHNICAL_SELECTION.md",
+      "sha256": "243fd4f07d6e1395603227f47be5378e6d548e439b1414fc275f6970b3b3e28c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/RS_CONCURRENCE.md",
+      "origin": "/Users/ryan/.codex/worktrees/v4-hosting-runtime-s2/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/RS_CONCURRENCE.md",
+      "sha256": "99e0f6ea352bc705af98b5503c1d57d67d84b7c71683d14661d5fae108fab5d8"
+    }
+  ],
+  "tests": {
+    "author_suite": "11 passed after authorized escalation; initial sandbox EPERM fixture failure retained as environment limitation",
+    "independent_controls": "6 passed",
+    "scanner_mutation_regression": "1 failed: stale successful inventory"
+  },
+  "production_supplier_execution": false
+}
