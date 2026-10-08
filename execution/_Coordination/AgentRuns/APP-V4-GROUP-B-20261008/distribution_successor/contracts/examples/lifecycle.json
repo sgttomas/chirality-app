@@ -1,0 +1,29 @@
+{
+  "format": "lifecycle-event.s1",
+  "legacy_event": {
+    "recordKind": "lifecycle-event",
+    "sequence": 1,
+    "transitionId": "LT-04",
+    "generation": {
+      "appSession": "synthetic session",
+      "home": "synthetic account",
+      "spawnCounter": 1
+    },
+    "fromState": "verifying",
+    "event": "verification-passed",
+    "toState": "spawning",
+    "at": "synthetic time",
+    "verificationResult": {
+      "result": "verified"
+    }
+  },
+  "verification_artifact": {
+    "path": "observed.json",
+    "sha256": "41f0b442894c1292241bbea18a116b5e3e5245ccdbe39294f403e12340e497c0"
+  },
+  "verification_generation": {
+    "appSession": "synthetic session",
+    "home": "synthetic account",
+    "spawnCounter": 1
+  }
+}

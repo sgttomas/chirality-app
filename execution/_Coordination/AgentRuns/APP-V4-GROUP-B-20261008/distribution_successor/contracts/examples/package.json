@@ -1,0 +1,168 @@
+{
+  "format": "pkg-identity.s1",
+  "distribution_status": "reference-equal",
+  "legacy_package": {
+    "record_kind": "package_identity",
+    "format": "PKG-v0.2",
+    "record_id": "PKG-EX-01",
+    "app": {
+      "revision": "ILLUSTRATIVE",
+      "build_identity": "ILLUSTRATIVE",
+      "version": "4.0.0-illustrative",
+      "bundle_id": "ILLUSTRATIVE.bundle.id",
+      "target": "macOS arm64",
+      "signature": {
+        "team": "EXAMPLE001",
+        "authority": "Developer ID Application: ILLUSTRATIVE (EXAMPLE001)",
+        "hardened_runtime": true,
+        "timestamp": true,
+        "entitlements": []
+      },
+      "installer": {
+        "kind": "dmg",
+        "file": "ILLUSTRATIVE.dmg",
+        "sha256_before_notarisation": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "codex": {
+      "pin": "9.9.9",
+      "published": {
+        "manifest_sha256": "76965bf87ccdf17d1fca3bd9ebd8edd6bb5851fcb1a79242b8e3fbf3cb96821f",
+        "files": 2,
+        "macho_files": 1
+      },
+      "packaged": {
+        "manifest_sha256": "76965bf87ccdf17d1fca3bd9ebd8edd6bb5851fcb1a79242b8e3fbf3cb96821f",
+        "files": 2,
+        "macho_files": 1
+      },
+      "launcher": {
+        "kind": "vendor_binary",
+        "path_in_bundle": "Contents/Resources/codex/bin/codex",
+        "environment_added": []
+      },
+      "executables": [
+        {
+          "path": "bin/codex",
+          "sha256_published": "11748b0b4d6aca4e2cd01306657de841ba87d5576dd6976aa89beb853047b680",
+          "sha256_packaged": "11748b0b4d6aca4e2cd01306657de841ba87d5576dd6976aa89beb853047b680",
+          "signature": {
+            "team": "2DC432GLL2",
+            "authority": "Developer ID Application: OpenAI OpCo, LLC (2DC432GLL2)",
+            "hardened_runtime": true,
+            "timestamp": true,
+            "entitlements": [
+              "com.apple.security.cs.allow-jit",
+              "com.apple.security.cs.allow-unsigned-executable-memory"
+            ]
+          },
+          "supplier_entitlements": [
+            "com.apple.security.cs.allow-jit",
+            "com.apple.security.cs.allow-unsigned-executable-memory"
+          ]
+        }
+      ]
+    },
+    "bundle_contents": [
+      {
+        "item": "bundled_workflows",
+        "supplier": "DEL-02-02",
+        "path_in_bundle": "Contents/Resources/workflows/",
+        "state": "present",
+        "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "item": "shipped_revision_manifest",
+        "supplier": "DEL-02-02",
+        "path_in_bundle": "Contents/Resources/workflows/shipped-revisions.json",
+        "state": "present",
+        "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "item": "product_guidance",
+        "supplier": "DEL-02-04",
+        "path_in_bundle": "Contents/Resources/instructions/AGENTS.md",
+        "state": "present",
+        "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "item": "role_files",
+        "supplier": "DEL-02-04",
+        "path_in_bundle": "Contents/Resources/instructions/agents/",
+        "state": "present",
+        "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "item": "role_set",
+        "supplier": "DEL-02-04",
+        "path_in_bundle": "Contents/Resources/instructions/roles.json",
+        "state": "present",
+        "identity": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ],
+    "complete": true,
+    "configuration": {
+      "ref": "ILLUSTRATIVE OUT-001 configuration",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "first_package_checks": {
+      "fp0": {
+        "outcome": "pass",
+        "evidence": "check_pkg.py --tree <0.160.0 published vendor dir>, 2026-10-03"
+      },
+      "fp1a": {
+        "outcome": "not-run",
+        "evidence": "not built (ILLUSTRATIVE)"
+      },
+      "fp1b": {
+        "outcome": "not-run",
+        "evidence": "not built (ILLUSTRATIVE)"
+      },
+      "fp3": {
+        "outcome": "not-run",
+        "evidence": "not submitted (ILLUSTRATIVE)"
+      }
+    },
+    "signing": {
+      "option": "B_supplier_signatures_kept",
+      "app_identity": "Developer ID Application: ILLUSTRATIVE (EXAMPLE001)",
+      "performed_by": "the owner (ILLUSTRATIVE)",
+      "recorded_by": "DEL-01-06 recorder (ILLUSTRATIVE)"
+    },
+    "notarisation": {
+      "state": "not_submitted"
+    },
+    "gatekeeper": {
+      "assessed": false
+    },
+    "support_revision": "EXP-v0.2",
+    "date": "2026-10-03",
+    "limits": [
+      "ILLUSTRATIVE: Codex values are the real 0.160.0 published tree read on 2026-10-03 (30 Mach-O); App, installer, configuration and bundle-content identities are placeholders (zeros)",
+      "option B not yet relied on: FP-1/FP-3 not passed"
+    ]
+  },
+  "expected_reference": {
+    "path": "expected.json",
+    "sha256": "f93f8d60649f27b0890ad021d606d58abfcce85e48c82d47181b8b6f9bf149e3"
+  },
+  "adoption_attestation": {
+    "path": "attestation.json",
+    "sha256": "f7a270126f4e7c6a651c7969e538fadcae0d85d610881d5b2b2d2abb94362754"
+  },
+  "published_inventory": {
+    "path": "inventory.json",
+    "sha256": "1d47c36ad29375e76741425d91439ae9fafa29ce10e968f287be08ee090b1c15"
+  },
+  "packaged_inventory": {
+    "path": "inventory.json",
+    "sha256": "1d47c36ad29375e76741425d91439ae9fafa29ce10e968f287be08ee090b1c15"
+  },
+  "verification_artifact": {
+    "path": "observed.json",
+    "sha256": "41f0b442894c1292241bbea18a116b5e3e5245ccdbe39294f403e12340e497c0"
+  },
+  "mach_o_paths": [
+    "bin/codex"
+  ]
+}
