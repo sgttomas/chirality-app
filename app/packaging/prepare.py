@@ -144,7 +144,10 @@ def prepare(vendor,expected_manifest,pin,revision,inputs,output):
     account=inputs_account(inputs)
     output=anchored(output)
     # Never create staging inside a source, nor accept a reused output directory.
-    sources=[Path(inventory['root'])]+[Path(v) for k,v in account['declared'].items() if k in account['items'] and v]
+    sources=[Path(inventory['root'])]+[
+        Path(item['tree']['root'] if 'tree' in item else item['source'])
+        for item in account['items'].values() if item['state']!='missing'
+    ]
     if any(output==s or s in output.parents or output in s.parents for s in sources):
         raise ValueError('staging and inspected inputs must not overlap')
     output.mkdir(exist_ok=False)

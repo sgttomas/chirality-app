@@ -124,6 +124,30 @@ class PackagingPreparation(unittest.TestCase):
         self.assertEqual((self.output/'keep').read_text(),'unchanged')
         with self.assertRaisesRegex(ValueError,'overlap'): self.run_prepare(output=self.vendor/'stage')
 
+    def test_relative_and_dotdot_inputs_cannot_overlap_staging(self):
+        workflows=self.root/'workflows'; workflows.mkdir()
+        (self.root/'subdir').mkdir()
+        original_cwd=Path.cwd()
+        try:
+            for relative in ('workflows','subdir/../workflows','./workflows'):
+                with self.subTest(source=relative):
+                    os.chdir(self.root)
+                    self.inputs.write_text(json.dumps({'workflows':relative}))
+                    before=inventory.scan(workflows)
+                    destination=workflows/'stage'
+                    with self.assertRaisesRegex(ValueError,'overlap'):
+                        self.run_prepare(output=destination)
+                    self.assertFalse(destination.exists())
+                    self.assertTrue(inventory.compare(inventory.scan(workflows),before)['equal'])
+            # Also exercise .. from a nested cwd, not just a lexical alias.
+            os.chdir(self.root/'subdir')
+            self.inputs.write_text(json.dumps({'workflows':'../workflows'}))
+            with self.assertRaisesRegex(ValueError,'overlap'):
+                self.run_prepare(output=workflows/'stage')
+            self.assertFalse((workflows/'stage').exists())
+        finally:
+            os.chdir(original_cwd)
+
     def test_copy_failure_has_marker_and_no_success_report(self):
         with patch.object(prepare,'copy_supplier',side_effect=ValueError('simulated copy failure')):
             with self.assertRaisesRegex(ValueError,'copy failure'): self.run_prepare()
