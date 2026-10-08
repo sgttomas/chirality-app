@@ -1,0 +1,24 @@
+{
+  "candidate": "dc6e5371f379db3d5f71a67ce126c90faccac41d",
+  "prior_s2": "2c055166f71adb4b49ca7069e97a776036c03bf6",
+  "incoming_main": "236cbc3c69",
+  "integration": "non-rewriting merge; no conflicts; source delta from prior S2 only incoming connector_standing and lib module export",
+  "checks": [
+    {
+      "command": "CHIRALITY_SKIP_CODEX=1 cargo test --offline --locked --manifest-path projects/chirality-app-v4/app/src-tauri/Cargo.toml distribution_preflight --lib",
+      "exit_code": 0,
+      "passed": 13,
+      "failed": 0,
+      "log": "reviews/CURRENT_MAIN_HOSTING.log"
+    },
+    {
+      "command": "CHIRALITY_SKIP_CODEX=1 cargo test --offline --locked --manifest-path projects/chirality-app-v4/app/src-tauri/Cargo.toml connector_standing --lib",
+      "exit_code": 0,
+      "passed": 7,
+      "failed": 0,
+      "log": "reviews/CURRENT_MAIN_CONNECTOR.log"
+    }
+  ],
+  "environment": "prepared offline Cargo cache, isolated temporary target, authorized host escalation for synthetic fixtures; no downloads/supplier execution",
+  "limits": "affected compiled integration only; retained R1 review and full-head review cover unchanged S2 source/claims; no qualification/production/native witness"
+}
