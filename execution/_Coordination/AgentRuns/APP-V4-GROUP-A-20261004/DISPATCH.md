@@ -78,3 +78,14 @@ The first J1 instance's read-only finding was verified by HELP_HUMAN against
 the WR source, and the redispatch carries it: WR TT-1 (SETTLED) and TX-1
 admit only LS-1/LS-5/LS-6/LS-8 revisions to runs, so a development-catalog
 selection cannot be run. J1 logs CI-18.
+
+J8 return (2026-10-08): the J5 owner returned `claude/app-v4-j8-reconfirm`
+at `1a74f7f307` (`39519096c4` implementation; `1a74f7f307` restores
+`a15_native.rs` and `act_control_a15.rs` to their `007489e72b` blobs so the
+native statement stays with J6). HELP_HUMAN confirmed the branch, the
+ancestry and the retained logs' hashes against the return, and copied the
+logs to `validation/J8_1a74f7f3/` with `SHA256SUMS`. The hand-back is the
+implementer's account, not review evidence. Independent review V15 was
+dispatched to a fresh harness-native Type 2 reviewer (Opus 5.5, high) at
+`1a74f7f307`, read-only on the candidate, offline, writing only
+`reviews/V15-J8-RECONFIRM.md` in its own worktree.
