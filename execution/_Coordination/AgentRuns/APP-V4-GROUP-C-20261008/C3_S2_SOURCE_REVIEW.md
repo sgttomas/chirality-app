@@ -1,0 +1,11 @@
+# C3-S2 independent source review
+
+Reviewer TASK `/root/group_c_successor/cfb_design_review`, parent `/root/group_c_successor`, delegated-harness-native; no delegation. Exact candidate `5c14fe5bdf4cf0ff1ab733dd1e316eaceae12385`, base `c3a0f50f032ae20e54c7d66b36d55cf40223e184`. Read full three-file packet and applicable CFB/CRP/SoW clauses. Prior Root/TASK/loop/software-code-review context continues from this run. Independently checked all 17 source hashes in C3_S2_SOURCE_BASIS.json against its exact base. Initial CSP source SHA-256: `7d18e42bd1cbf33b7bbb07b26fbba426a9a2f8a0b46db61eb88f9328a6171af2`.
+
+## Initial disposition: NOT READY
+
+P2, CSP §5: the line selection does not determine whether its last line's LF is included or whether byte offsets are zero-based half-open versus another convention. For `a\r\nb\n`, L1 can plausibly yield either two or three bytes, changing the excerpt/hash. Specify delimiter inclusion and offset convention with exact LF/CRLF/terminal-newline examples before implementation. Manager independently raised the same issue. Also clarify §2 cancellation: retained prior observation must be visibly historical/cancelled, not a current successful selection. These are bounded technical clarifications, not new policy decisions.
+
+The remaining definition is appropriately bounded: explicit host project association and native selector; no renderer path/body/hash capability; project-relative no-follow handle operations; acknowledged mutable-path and in-place mutation residual; one bounded UTF-8 buffer for hash/preview; session-only custody and generation isolation. Revision assertions and located text are distinct from deferred Git verification; no source/account/fact/conclusion emission is authorized. Unavailable inputs remain gaps with unassigned responsibility until supplied. Actual duties, external admission, attachment supply and provider/fleet authority are not inferred. Offline injected selection remains separate from the held native witness.
+
+§8 supplies meaningful future adversarial checks; this source review did not execute them and grants no code READY. No downloads, native acts, persistence, schema amendments or source materialization occurred. Implementation remains held pending exact source repair review and manager technical selection.
