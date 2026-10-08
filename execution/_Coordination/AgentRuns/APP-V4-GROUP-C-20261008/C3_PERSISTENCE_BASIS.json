@@ -1,0 +1,154 @@
+{
+  "assignment": "C3-P bounded route-account persistence and cold recovery/resolve",
+  "role": "TASK",
+  "agent": "/root/group_c_successor/route_persistence",
+  "parent": "/root/group_c_successor",
+  "mechanism": "harness-native delegated child; no delegation by TASK",
+  "base_commit": "fbf16537a2502f15bc1a0a8ae07ce508e9bdbbe7",
+  "branch": "codex/group-c-route-persistence",
+  "authority": "Parent brief and C3_PLACEMENT_ADOPTION; no new human act or gate",
+  "scope_enforcement": "instruction fence plus actual host permissions, not per-file host isolation",
+  "read_coverage": "Root instructions supplied in entry; TASK/change/loop, Field Book in full; manual edition index and Agent User Manual headings plus section 11; exact placement, CFB and route/standing schemas; repaired review/concurrence/adoption; Group C graph (TASK does not resume or revise manager graph); Group A offline handoff; relevant existing schema/filesystem/identity helpers. IMPLEMENTATION_BASIS index excerpt inspected, not its entire listed source corpus.",
+  "sources": [
+    {
+      "origin": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "origin": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "origin": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "origin": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "origin": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d"
+    },
+    {
+      "origin": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7"
+    },
+    {
+      "origin": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/README.md",
+      "sha256": "cdb08450a1cb29bd5e6e10d491efc6f537cc4ca08ba2e0add395e4223e7148b2"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/PAUSE_HANDOFF_HELP_HUMAN_20261008.md",
+      "sha256": "f8788e0bfdc68813b360e690c7e64f1cf0c18c911ed9097c9c92f90fb880be4e"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "21915f34f8608fd540f2bf504e390ef7c24d908f4fa188dad5a09511ddd79e81"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md",
+      "sha256": "428a330de7acfa0687a85f1328b081ccdbc64ded4fc53f9266585b45f9079ca0"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_REVIEW.md",
+      "sha256": "1c9b8513ebec4074bb5190c7a752228369bd77da8aa19035de6bf41cd78c0f5a"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_FLEET_PLACEMENT_CONCURRENCE.md",
+      "sha256": "b357e80fa7e4d791a55549f3a961d313513c8e58f98283659657a229475c1a2e"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/IMPLEMENTATION_BASIS.json",
+      "sha256": "5745706121e428e4534ac71fa87f66f820ca2c8584f405e1fd8a66606ee29005"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.2.md",
+      "sha256": "6552f82f3a574b847e19ed909ac610e4b263f27d6034253488b0d2a314659f12"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK.md",
+      "sha256": "69c1f10eb1ed0ecb65dbf75844d3d47daaae0842697f0e41c51b072c41353f16"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_FALLBACK_v0.3.md",
+      "sha256": "3b1007357e05571f1f22b09c6bfe1af575ec6549d938f95ab94cf61093bd834d"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.schema.json",
+      "sha256": "a6823eebb2872d0d563b7e77589a0cc2f7cd2545abe654e5b427af7d79365286"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/schema_validation.rs",
+      "sha256": "42545d9d544f0a8ac7be84814bc9285d987888e6c7ef2ca0201041458c2eb3a9"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/util.rs",
+      "sha256": "4c890ed6e57c5ef5a155dfac18133f9a0ab7c5b7ba1a96b5a42631a2ebceb951"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/workflow_record_store.rs",
+      "sha256": "327f2f054e307aceaa5166a9b8d0edd236103b2c92d5dfe9152c9c6aafda4345"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/Cargo.toml",
+      "sha256": "897dfa625fbb9c3666a92c9cbd6b12ff8bb86083b5ee050313832a71bca3b968"
+    }
+  ],
+  "tested_outputs": [
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "sha256": "d2a90218452a815e982b5851fc257e70db3f830f0ab013cfce3457cc7921187b"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store_tests.rs",
+      "sha256": "d760aaf09eb526de1cd6fd02b5c7797c4befc0511a9c43e6a93cf50eafc1cfae"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "d0ddcec7301e6641b6ad29f319c7ea26da5371319630d9846f8a9dda45cfe30c"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.route-account.schema.json",
+      "sha256": "a6823eebb2872d0d563b7e77589a0cc2f7cd2545abe654e5b427af7d79365286"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.route-account.v0.2.schema.json",
+      "sha256": "4b82115a5d280fd4059925f1f5e50c20cc726be2d3266caf8b68873ad1c665d4"
+    },
+    {
+      "origin": "projects/chirality-app-v4/app/src-tauri/resources/connector_route/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719"
+    }
+  ],
+  "validation": {
+    "platform": "macOS 26.6.2 arm64",
+    "rustc": "1.92.0",
+    "cargo": "1.92.0",
+    "offline": true,
+    "supplier": "explicitly disabled with CHIRALITY_SKIP_CODEX=1",
+    "target": "one private temporary target, cloned with APFS copy-on-write from inactive C1 integration cache; actual candidate rebuilt and executed",
+    "command": "cargo test --offline --locked connector_ --lib -- --nocapture",
+    "result": "25 passed, 0 failed, 0 ignored, 423 filtered out; 18 route-store and 7 connector-standing top-level checks; two nested abrupt-exit subprocesses intentionally return 73",
+    "initial_observations": "First sandboxed build could not write Tauri generated permissions, then authorized scoped escalation ran offline. First test run: 14 passed, 1 failed because two test versions shared one account identity; fixture repaired with distinct IDs. Final run above passes."
+  },
+  "limits": [
+    "macOS execution only; Linux branch not compiled or run here",
+    "No physical power-loss, hardware durability or real fsync failure witness",
+    "Pre/post identity observations cannot disprove transient external directory moves",
+    "Schema-valid caller account is not source truth, source custody, actual performance or authority",
+    "No full source reconstruction, UI/native/provider acts, supplier launch, credentials, downloads, MEMORY, SEAL-2, push or merge"
+  ]
+}

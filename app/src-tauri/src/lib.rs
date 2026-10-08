@@ -12,6 +12,7 @@ pub mod attachments;
 pub mod canonical;
 pub mod catalog;
 pub mod connector_standing;
+pub mod connector_route_store;
 pub mod decision_view;
 mod file_act_root;
 mod file_act_view;
