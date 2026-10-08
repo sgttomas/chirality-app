@@ -1,0 +1,1425 @@
+{
+  "format": "sq-exp-receiving-selection.v1",
+  "purpose": "current_producer_declaration",
+  "support": {
+    "declaration_sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248",
+    "support_identity": {
+      "exp_version": "EXP-v0.2",
+      "schema_ids": {
+        "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+        "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+        "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+      },
+      "prototype_sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+    }
+  },
+  "candidate": {
+    "revision": "INVENTED-SQ-REVISION",
+    "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+    "codex_pin": "0.160.0"
+  },
+  "dossier": {
+    "path": "dossier.json",
+    "sha256": "5ab5eaf5da0a2ae9742f62e742de8cfdc1befbcc4aa99759ae3cf5da6fa750bf"
+  },
+  "case_definition": {
+    "ref": "INVENTED-SQ-CASE-DEFINITION",
+    "path": "case-definition.txt",
+    "sha256": "dcf0fa22c6e6e3752e05491d056142e58b9efca378c5200d3294e981c26cb19c"
+  },
+  "artifacts": [
+    {
+      "slot": "result-J-1",
+      "kind": "result",
+      "record": {
+        "path": "result-J-1.json",
+        "sha256": "64bb8e229d6d54d96a53570a649076c44453cf8b00e49c157cf7faef805caa3d"
+      },
+      "binding": {
+        "path": "result-J-1.binding.json",
+        "sha256": "c862a26fd55954098c59ebaa47fe02376b7caf5e80eb2dde60d53abb6b21679e"
+      }
+    },
+    {
+      "slot": "result-J-2",
+      "kind": "result",
+      "record": {
+        "path": "result-J-2.json",
+        "sha256": "84408b2f9ed6914e13426ad61bb932d772e53894d180264635ea56b0bc245525"
+      },
+      "binding": {
+        "path": "result-J-2.binding.json",
+        "sha256": "79fc1b5d28eafcb4186a4a537c51e00f1803835a155e89eebda0af8b3c07ec33"
+      }
+    },
+    {
+      "slot": "result-J-3",
+      "kind": "result",
+      "record": {
+        "path": "result-J-3.json",
+        "sha256": "4679f4ff682654467d7d44bf8bde037095f5e58787ddcd0045e2217e6fa82b4c"
+      },
+      "binding": {
+        "path": "result-J-3.binding.json",
+        "sha256": "b69367d5755c947b46adcb84ca4f5988fb2d9d594df7083fb1c3f0f9355b00c1"
+      }
+    },
+    {
+      "slot": "result-J-4",
+      "kind": "result",
+      "record": {
+        "path": "result-J-4.json",
+        "sha256": "ddcdfed35b3f1b99c8bbc36391ad585753feea4e578ca2f080470888042237e1"
+      },
+      "binding": {
+        "path": "result-J-4.binding.json",
+        "sha256": "d3564017717298dcd01e9d48537338797b4dd4a0e0c6f7214b506b3a5fa655f7"
+      }
+    },
+    {
+      "slot": "result-J-5",
+      "kind": "result",
+      "record": {
+        "path": "result-J-5.json",
+        "sha256": "f0c8a18c508687367f6e7983efada7d4f197bf8643bafbac585e50201b244770"
+      },
+      "binding": {
+        "path": "result-J-5.binding.json",
+        "sha256": "02e4b20636f9043eb7eb50eccfdf5a75e3998bd82ac66238575bab94a396217f"
+      }
+    },
+    {
+      "slot": "result-J-6",
+      "kind": "result",
+      "record": {
+        "path": "result-J-6.json",
+        "sha256": "ee360997c7b4246a4ba5786d643a94f7cb7ff1f9d2b219dc29cbf3212f5b8d33"
+      },
+      "binding": {
+        "path": "result-J-6.binding.json",
+        "sha256": "a2baede2a6b057638f990de766dbbd7478fa769bbb8927f91fa4e4532f7a6955"
+      }
+    },
+    {
+      "slot": "result-J-7",
+      "kind": "result",
+      "record": {
+        "path": "result-J-7.json",
+        "sha256": "e9081f7305edffd68b28fe2e25b50caf73ee80a8f4a4cbab15d5398ab1223669"
+      },
+      "binding": {
+        "path": "result-J-7.binding.json",
+        "sha256": "f955d07a73fc7b371a724467a3ee3449c6b1e7ff03db98d37251e6fa45024fc6"
+      }
+    },
+    {
+      "slot": "result-J-8",
+      "kind": "result",
+      "record": {
+        "path": "result-J-8.json",
+        "sha256": "51eb143b2146641746ecc1e3da148e1652b1fb1eef886dd10d3593c643084229"
+      },
+      "binding": {
+        "path": "result-J-8.binding.json",
+        "sha256": "779391bbc5aef1093a5a838fe446241ab16e60941145b82569ff10372f4e5a72"
+      }
+    },
+    {
+      "slot": "result-J-8R",
+      "kind": "result",
+      "record": {
+        "path": "result-J-8R.json",
+        "sha256": "acfc6554d21506117fb0d0cd72d161f1a3baedc3e623e3336ef04763675c8ea5"
+      },
+      "binding": {
+        "path": "result-J-8R.binding.json",
+        "sha256": "22fbb86449753e59822da95ad029bcd343a7446f08b049d122aca4eaf9ccaf05"
+      }
+    },
+    {
+      "slot": "result-J-9",
+      "kind": "result",
+      "record": {
+        "path": "result-J-9.json",
+        "sha256": "93fda0ece64b03a9cdeefe9f5764cef698867601fad0d40aab218a387c064bed"
+      },
+      "binding": {
+        "path": "result-J-9.binding.json",
+        "sha256": "0fede615e11828e06c5c1eb01ba02c59dcd22855cb99bb30768e26ed73622747"
+      }
+    },
+    {
+      "slot": "result-J-9R",
+      "kind": "result",
+      "record": {
+        "path": "result-J-9R.json",
+        "sha256": "c56867bfdcc3e5b03921e38d5233399d796bef21379d5ae32a456aeb2166d34b"
+      },
+      "binding": {
+        "path": "result-J-9R.binding.json",
+        "sha256": "0f592e0f095f23b5098077aac1ebe4d5bd5a741567ea6d0c1be7a5816ab02083"
+      }
+    },
+    {
+      "slot": "result-S11-1",
+      "kind": "result",
+      "record": {
+        "path": "result-S11-1.json",
+        "sha256": "3fd7ddcf92297813a1ecbdda5a557ca0a22a0cffdabc24e51dd35f2686c0c979"
+      },
+      "binding": {
+        "path": "result-S11-1.binding.json",
+        "sha256": "61ff3417eeb0c30d8e6f89450efe2444bd63145d95fd716c35c16dc5af71fe47"
+      }
+    },
+    {
+      "slot": "result-S11-2",
+      "kind": "result",
+      "record": {
+        "path": "result-S11-2.json",
+        "sha256": "661b3ab1bbc509d125ec1aed745f3e76c3b6935373c6eea05bf3bd38a7428424"
+      },
+      "binding": {
+        "path": "result-S11-2.binding.json",
+        "sha256": "a473346f8df4616dd6e23ff3df5ae6cfcc18737b3bbffe8ffb31c1dbe9a68a74"
+      }
+    },
+    {
+      "slot": "result-S11-3",
+      "kind": "result",
+      "record": {
+        "path": "result-S11-3.json",
+        "sha256": "86de1442277d2debf8370ea6014e9fd5615d8e6e34a646c2bfd6782ba2d9a201"
+      },
+      "binding": {
+        "path": "result-S11-3.binding.json",
+        "sha256": "562623283da9a268ded0c8ef71f934025a6db4b8d9e71fc5550e81fc29e101d8"
+      }
+    },
+    {
+      "slot": "result-S11-4",
+      "kind": "result",
+      "record": {
+        "path": "result-S11-4.json",
+        "sha256": "87978a12b1f67d675b482ae78cf240266ed3ad952ec40941cf7bc8841a29b7a3"
+      },
+      "binding": {
+        "path": "result-S11-4.binding.json",
+        "sha256": "cb1ed2a824b711f5e81b82056043bd41b6372b42f65fc30a7b78cf9900ba3519"
+      }
+    },
+    {
+      "slot": "result-S11-5",
+      "kind": "result",
+      "record": {
+        "path": "result-S11-5.json",
+        "sha256": "1faf5d7dc59c22b6b7cae225bd5d7f2e29e1c5d145a08f5671815a066480c1d4"
+      },
+      "binding": {
+        "path": "result-S11-5.binding.json",
+        "sha256": "0fae2a21399e070969317c2ac53aab9d191d5da206f72c630593c088d2399adc"
+      }
+    },
+    {
+      "slot": "result-S11-6",
+      "kind": "result",
+      "record": {
+        "path": "result-S11-6.json",
+        "sha256": "6ed139128c867d957e123ac4a8029ef07d769ace0a0b0c7122a5947bb392bd37"
+      },
+      "binding": {
+        "path": "result-S11-6.binding.json",
+        "sha256": "a07cbc1d314b4f3fafbb2c09ec95e44e197f63bf92f47312fd69d1f5096d44e7"
+      }
+    },
+    {
+      "slot": "result-M12-1",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-1.json",
+        "sha256": "39413d05bf7b4136e42891fb95a4debccb037c808ddcda8ff47185baef8e3c8d"
+      },
+      "binding": {
+        "path": "result-M12-1.binding.json",
+        "sha256": "0c761681dfad71ff5714055d6dc339793c497ca9277afc0488767ad979585c6c"
+      }
+    },
+    {
+      "slot": "result-M12-2",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-2.json",
+        "sha256": "0f21f1926d853acef8f426d52b27b9f81a36d8a5193f4ca4ed385ad5f9a7ccea"
+      },
+      "binding": {
+        "path": "result-M12-2.binding.json",
+        "sha256": "e46130429274bc594fd3ee6c4ad0014ba914577a161af52e8e576e1b74cbd086"
+      }
+    },
+    {
+      "slot": "result-M12-3",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-3.json",
+        "sha256": "96eb88ce80ae96bb03e4fd7d29d16b4ed1f0a42b2ebf2b0a06de5ce26417b7c1"
+      },
+      "binding": {
+        "path": "result-M12-3.binding.json",
+        "sha256": "c364bd4bf58ec72981f48570ca9effda800fd0e665192fd8c9b4ad78bc57cbb9"
+      }
+    },
+    {
+      "slot": "result-M12-4",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-4.json",
+        "sha256": "1e1c0480a569d598d3510d7e24037c73f762971927d35fb47787aa162bc4b6cf"
+      },
+      "binding": {
+        "path": "result-M12-4.binding.json",
+        "sha256": "4ccab16df1cfa8cb552ddad80a9f0f3fa769e737b88eb087c378b979b945054f"
+      }
+    },
+    {
+      "slot": "result-M12-5",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-5.json",
+        "sha256": "242562946829b0c3e4e4ff839ba5206e4adef07d0ceacfc6afb5456a121d9dc9"
+      },
+      "binding": {
+        "path": "result-M12-5.binding.json",
+        "sha256": "5ce162d283cc58f5becfccf71b348f7bd37df93e870e8a7d3437c40f14946d77"
+      }
+    },
+    {
+      "slot": "result-M12-6",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-6.json",
+        "sha256": "caf8a210d5af7b70d1603b66fe681d86d6a309b427166d6fe9e1b2831b59d5e9"
+      },
+      "binding": {
+        "path": "result-M12-6.binding.json",
+        "sha256": "20f0b385fcff4ce32af1ccca34fc4fc41a6a2cdc62382a9fbc827b030ae03232"
+      }
+    },
+    {
+      "slot": "review",
+      "kind": "review",
+      "record": {
+        "path": "review.json",
+        "sha256": "bb31fb403892347e90b471815261c1adeedb823c6c8c0819498641f5f0f5562c"
+      },
+      "binding": {
+        "path": "review.binding.json",
+        "sha256": "133fba96c617757160527e6ce5bd067383716af17ce206e07fb48fe2912f1ea2"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-1",
+      "result_slot": "result-J-1"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-2",
+      "result_slot": "result-J-2"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-3",
+      "result_slot": "result-J-3"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-4",
+      "result_slot": "result-J-4"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-5",
+      "result_slot": "result-J-5"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-6",
+      "result_slot": "result-J-6"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-7",
+      "result_slot": "result-J-7"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-8",
+      "result_slot": "result-J-8"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-8R",
+      "result_slot": "result-J-8R"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-9",
+      "result_slot": "result-J-9"
+    },
+    {
+      "scenario": "V4-EXM-10",
+      "step": "J-9R",
+      "result_slot": "result-J-9R"
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "step": "S11-1",
+      "result_slot": "result-S11-1"
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "step": "S11-2",
+      "result_slot": "result-S11-2"
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "step": "S11-3",
+      "result_slot": "result-S11-3"
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "step": "S11-4",
+      "result_slot": "result-S11-4"
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "step": "S11-5",
+      "result_slot": "result-S11-5"
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "step": "S11-6",
+      "result_slot": "result-S11-6"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-1",
+      "result_slot": "result-M12-1"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-2",
+      "result_slot": "result-M12-2"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-3",
+      "result_slot": "result-M12-3"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-4",
+      "result_slot": "result-M12-4"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-5",
+      "result_slot": "result-M12-5"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-6",
+      "result_slot": "result-M12-6"
+    }
+  ],
+  "review": {
+    "slot": "review",
+    "subject_alias": "INVENTED-SQ-CANDIDATE-ALIAS",
+    "reviewer_identity": "INVENTED reviewer",
+    "author_identities": [
+      "INVENTED author"
+    ],
+    "review_kind": "v4_ops_34",
+    "reported_as_independent": false,
+    "results": {
+      "result-J-1": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-1"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-1",
+          "identity": "sha256:83b13c7298577d73de773b21eff8f7a55205cebf4556dbfadc0df378a3cb992b"
+        }
+      },
+      "result-J-2": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-2"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-2",
+          "identity": "sha256:7b5092a2d7afde2d21ef8121021aebd6a97b6d76a99ec551d7a2867f221ea990"
+        }
+      },
+      "result-J-3": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-3"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-3",
+          "identity": "sha256:88bbce9902086c694881dcb21c271da6bcc4dd77d6ea87f9b9080c91c3635744"
+        }
+      },
+      "result-J-4": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-4"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-4",
+          "identity": "sha256:a3a28229b38ac7fc57b59a77d37fb8a1d8358842dc20cdfcba170a53747dc094"
+        }
+      },
+      "result-J-5": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-5"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-5",
+          "identity": "sha256:defc65e562742a1ffcdc82c208c3a640c3ebca7861b05afacd5869bcccc55263"
+        }
+      },
+      "result-J-6": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-6"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-6",
+          "identity": "sha256:54d77d1e8662d94ca959bc5aed13035b6f54272a6c73a09d376540f4ca5762da"
+        }
+      },
+      "result-J-7": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-7"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-7",
+          "identity": "sha256:ec8069cbdf101b1ff124719433debc7f0589ba3876e053f6b5ead85cde865e27"
+        }
+      },
+      "result-J-8": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-8"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-8",
+          "identity": "sha256:ca3452fb62008956c00b5893bffe50adf7b13e34db3566f7dfe4e27162f0de4a"
+        }
+      },
+      "result-J-8R": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-8R"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-8R",
+          "identity": "sha256:95105ab2e15aaa667bb660f85f1355d89bf599f9f93308c6b918a3690b9ff659"
+        }
+      },
+      "result-J-9": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-9"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-9",
+          "identity": "sha256:dcc4953054113e76f42e23b226b13800856b583206e826c505bbede61f744907"
+        }
+      },
+      "result-J-9R": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-J-9R"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for J-9R",
+          "identity": "sha256:3a01ab160d2cb03b2729bfc76594aeb7cc063c98204f059f1e8d10159fdd9b8e"
+        }
+      },
+      "result-S11-1": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-S11-1"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for S11-1",
+          "identity": "sha256:79912992b633eb256db1276f7bcbd1a02b350172e6f6b5e2156956da54855f50"
+        }
+      },
+      "result-S11-2": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-S11-2"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for S11-2",
+          "identity": "sha256:02bd117ff8273efa88b4dd88bc0a5adf8f938098254e4b2e2970c521af9c2b1e"
+        }
+      },
+      "result-S11-3": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-S11-3"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for S11-3",
+          "identity": "sha256:63cf6d6d4778dc36be872b6f4ef7ba00b4986764322923bc087436484c820c94"
+        }
+      },
+      "result-S11-4": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-S11-4"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for S11-4",
+          "identity": "sha256:6ac802d9b3105fce20c4a52c9457479af78f9711375da12caa6b8456bfbe74a7"
+        }
+      },
+      "result-S11-5": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-S11-5"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for S11-5",
+          "identity": "sha256:578a7b1c7c9e8fd4fd2f5e91a15354cbaab7617083ddef3882c87aac81eb42eb"
+        }
+      },
+      "result-S11-6": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-S11-6"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for S11-6",
+          "identity": "sha256:7a7605e3f36f4e085cbd1a2ceff9218582ad5f2d003363396a90e6ae43f4d29c"
+        }
+      },
+      "result-M12-1": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-M12-1"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for M12-1",
+          "identity": "sha256:442c922b8991e1bea79c884ecf133233b387ebd2bbf03c4990b150d0964e3d21"
+        }
+      },
+      "result-M12-2": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-M12-2"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for M12-2",
+          "identity": "sha256:10bf6a535aa625fd368a0158d6993ff26967f9ca8ed25f6138c5865c558c13bb"
+        }
+      },
+      "result-M12-3": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-M12-3"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for M12-3",
+          "identity": "sha256:235b7a02bf3c948b8a8aa73d5ab82a9abeb3b4a2af3ada804f01b8284f7e9811"
+        }
+      },
+      "result-M12-4": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-M12-4"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for M12-4",
+          "identity": "sha256:dccdbb31d0dd4f5c55ac7ea2b262e54a3763372ab2026cb3fb0e414875f2e7e7"
+        }
+      },
+      "result-M12-5": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-M12-5"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for M12-5",
+          "identity": "sha256:3ab2e196838b83eace648291d7d6a0cbb3fba7209b6c38e14c8d5e037a719c8c"
+        }
+      },
+      "result-M12-6": {
+        "subject": {
+          "kind": "candidate",
+          "app_candidate": {
+            "revision": "INVENTED-SQ-REVISION",
+            "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+            "packaged": false
+          },
+          "invented_material": "INVENTED fixture, no native run or actual review"
+        },
+        "configuration": {
+          "codex_pin": "0.160.0",
+          "route": {
+            "kind": "native_development",
+            "platform": {
+              "os": "INVENTED macOS",
+              "arch": "INVENTED arm64"
+            },
+            "native_route": {
+              "method": "person_operated",
+              "form_ref": "INVENTED-FORM-M12-6"
+            },
+            "webview": {
+              "name": "WKWebView",
+              "webkit_version": "INVENTED",
+              "os_version": "INVENTED"
+            }
+          },
+          "model": "not_observed",
+          "model_server": "not_observed"
+        },
+        "criterion": {
+          "source": "INVENTED criterion for M12-6",
+          "identity": "sha256:7184aa36169b09e453b056af1b6c9434ddf909d4e5ee3eb49a5b4997483fbe9a"
+        }
+      }
+    },
+    "evidence": [
+      {
+        "ref": "INVENTED-SQ-DOSSIER",
+        "target": {
+          "dossier": true
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-1",
+        "target": {
+          "slot": "result-J-1"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-2",
+        "target": {
+          "slot": "result-J-2"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-3",
+        "target": {
+          "slot": "result-J-3"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-4",
+        "target": {
+          "slot": "result-J-4"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-5",
+        "target": {
+          "slot": "result-J-5"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-6",
+        "target": {
+          "slot": "result-J-6"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-7",
+        "target": {
+          "slot": "result-J-7"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-8",
+        "target": {
+          "slot": "result-J-8"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-8R",
+        "target": {
+          "slot": "result-J-8R"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-9",
+        "target": {
+          "slot": "result-J-9"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-J-9R",
+        "target": {
+          "slot": "result-J-9R"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-S11-1",
+        "target": {
+          "slot": "result-S11-1"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-S11-2",
+        "target": {
+          "slot": "result-S11-2"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-S11-3",
+        "target": {
+          "slot": "result-S11-3"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-S11-4",
+        "target": {
+          "slot": "result-S11-4"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-S11-5",
+        "target": {
+          "slot": "result-S11-5"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-S11-6",
+        "target": {
+          "slot": "result-S11-6"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-M12-1",
+        "target": {
+          "slot": "result-M12-1"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-M12-2",
+        "target": {
+          "slot": "result-M12-2"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-M12-3",
+        "target": {
+          "slot": "result-M12-3"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-M12-4",
+        "target": {
+          "slot": "result-M12-4"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-M12-5",
+        "target": {
+          "slot": "result-M12-5"
+        }
+      },
+      {
+        "ref": "INVENTED-SQ-M12-6",
+        "target": {
+          "slot": "result-M12-6"
+        }
+      }
+    ]
+  },
+  "packages": [],
+  "changes": []
+}

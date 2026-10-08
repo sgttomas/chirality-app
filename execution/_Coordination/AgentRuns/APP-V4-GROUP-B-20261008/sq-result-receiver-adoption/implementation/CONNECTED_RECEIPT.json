@@ -1,0 +1,1044 @@
+{
+  "selection_consistent": true,
+  "coverage": "complete",
+  "errors": [],
+  "missing_selected_inputs": [],
+  "unsupported_joins": [],
+  "unresolved_external_references": [
+    {
+      "scope": "result-J-1",
+      "ref": "INVENTED-FORM-J-1",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-2",
+      "ref": "INVENTED-FORM-J-2",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-3",
+      "ref": "INVENTED-FORM-J-3",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-4",
+      "ref": "INVENTED-FORM-J-4",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-5",
+      "ref": "INVENTED-FORM-J-5",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-6",
+      "ref": "INVENTED-FORM-J-6",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-7",
+      "ref": "INVENTED-FORM-J-7",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-8",
+      "ref": "INVENTED-FORM-J-8",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-8R",
+      "ref": "INVENTED-FORM-J-8R",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-9",
+      "ref": "INVENTED-FORM-J-9",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-J-9R",
+      "ref": "INVENTED-FORM-J-9R",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-S11-1",
+      "ref": "INVENTED-FORM-S11-1",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-S11-2",
+      "ref": "INVENTED-FORM-S11-2",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-S11-3",
+      "ref": "INVENTED-FORM-S11-3",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-S11-4",
+      "ref": "INVENTED-FORM-S11-4",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-S11-5",
+      "ref": "INVENTED-FORM-S11-5",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-S11-6",
+      "ref": "INVENTED-FORM-S11-6",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-M12-1",
+      "ref": "INVENTED-FORM-M12-1",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-M12-2",
+      "ref": "INVENTED-FORM-M12-2",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-M12-3",
+      "ref": "INVENTED-FORM-M12-3",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-M12-4",
+      "ref": "INVENTED-FORM-M12-4",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-M12-5",
+      "ref": "INVENTED-FORM-M12-5",
+      "kind": "native form"
+    },
+    {
+      "scope": "result-M12-6",
+      "ref": "INVENTED-FORM-M12-6",
+      "kind": "native form"
+    }
+  ],
+  "existing_checks": [
+    {
+      "scope": "result-J-1",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-2",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-3",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-4",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-5",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-6",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-7",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-8",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-8R",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-9",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-J-9R",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-S11-1",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-S11-2",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-S11-3",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-S11-4",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-S11-5",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-S11-6",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-M12-1",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-M12-2",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-M12-3",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-M12-4",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-M12-5",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "result-M12-6",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "review",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "SQ",
+      "errors": [],
+      "unresolved_other_references": []
+    },
+    {
+      "scope": "review/result-J-1",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-2",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-3",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-4",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-5",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-6",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-7",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-8",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-8R",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-9",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-J-9R",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-S11-1",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-S11-2",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-S11-3",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-S11-4",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-S11-5",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-S11-6",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-M12-1",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-M12-2",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-M12-3",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-M12-4",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-5",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-M12-5",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-6"
+      ]
+    },
+    {
+      "scope": "review/result-M12-6",
+      "errors": [],
+      "unresolved_other_references": [
+        "INVENTED-SQ-DOSSIER",
+        "INVENTED-SQ-J-1",
+        "INVENTED-SQ-J-2",
+        "INVENTED-SQ-J-3",
+        "INVENTED-SQ-J-4",
+        "INVENTED-SQ-J-5",
+        "INVENTED-SQ-J-6",
+        "INVENTED-SQ-J-7",
+        "INVENTED-SQ-J-8",
+        "INVENTED-SQ-J-8R",
+        "INVENTED-SQ-J-9",
+        "INVENTED-SQ-J-9R",
+        "INVENTED-SQ-S11-1",
+        "INVENTED-SQ-S11-2",
+        "INVENTED-SQ-S11-3",
+        "INVENTED-SQ-S11-4",
+        "INVENTED-SQ-S11-5",
+        "INVENTED-SQ-S11-6",
+        "INVENTED-SQ-M12-1",
+        "INVENTED-SQ-M12-2",
+        "INVENTED-SQ-M12-3",
+        "INVENTED-SQ-M12-4",
+        "INVENTED-SQ-M12-5"
+      ]
+    }
+  ],
+  "selection_sha256": "321067666bb823519d0d5f8a3b957df09db5377d096b3e6ec565ad3f3df3cf84",
+  "fixed_support": {
+    "declaration_sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248",
+    "support_identity": {
+      "exp_version": "EXP-v0.2",
+      "schema_ids": {
+        "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+        "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+        "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+      },
+      "prototype_sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+    }
+  },
+  "reported_outcomes": {
+    "result-J-1": "fail",
+    "result-J-2": "blocked",
+    "result-J-3": "not-run",
+    "result-J-4": "blocked",
+    "result-J-5": "blocked",
+    "result-J-6": "blocked",
+    "result-J-7": "blocked",
+    "result-J-8": "blocked",
+    "result-J-8R": "blocked",
+    "result-J-9": "blocked",
+    "result-J-9R": "blocked",
+    "result-S11-1": "blocked",
+    "result-S11-2": "blocked",
+    "result-S11-3": "blocked",
+    "result-S11-4": "blocked",
+    "result-S11-5": "blocked",
+    "result-S11-6": "blocked",
+    "result-M12-1": "blocked",
+    "result-M12-2": "blocked",
+    "result-M12-3": "blocked",
+    "result-M12-4": "blocked",
+    "result-M12-5": "blocked",
+    "result-M12-6": "blocked"
+  },
+  "reported_currency": {
+    "dossier": {
+      "state": "current"
+    },
+    "result-J-1": {
+      "state": "current"
+    },
+    "result-J-2": {
+      "state": "current"
+    },
+    "result-J-3": {
+      "state": "current"
+    },
+    "result-J-4": {
+      "state": "current"
+    },
+    "result-J-5": {
+      "state": "current"
+    },
+    "result-J-6": {
+      "state": "current"
+    },
+    "result-J-7": {
+      "state": "current"
+    },
+    "result-J-8": {
+      "state": "current"
+    },
+    "result-J-8R": {
+      "state": "current"
+    },
+    "result-J-9": {
+      "state": "current"
+    },
+    "result-J-9R": {
+      "state": "current"
+    },
+    "result-S11-1": {
+      "state": "current"
+    },
+    "result-S11-2": {
+      "state": "current"
+    },
+    "result-S11-3": {
+      "state": "current"
+    },
+    "result-S11-4": {
+      "state": "current"
+    },
+    "result-S11-5": {
+      "state": "current"
+    },
+    "result-S11-6": {
+      "state": "current"
+    },
+    "result-M12-1": {
+      "state": "current"
+    },
+    "result-M12-2": {
+      "state": "current"
+    },
+    "result-M12-3": {
+      "state": "current"
+    },
+    "result-M12-4": {
+      "state": "current"
+    },
+    "result-M12-5": {
+      "state": "current"
+    },
+    "result-M12-6": {
+      "state": "current"
+    }
+  },
+  "current_reliance": false,
+  "qualification_established": false,
+  "actual_producer_use_verified": false,
+  "native_observation_verified": false,
+  "publication_authority_authenticated": false,
+  "method_adoption_authenticated": false,
+  "limits": [
+    "Exact selected file correspondence only; not actual review, producer use or native observation.",
+    "Opaque review-set bytes are not a generic EXP evidence resolver; external references remain obligations.",
+    "No actual independence, signing, authority, complete affectedness, qualification or release established.",
+    "Best-effort link checks do not establish hostile concurrent-filesystem isolation or native-held custody."
+  ],
+  "reader_pins_sha256": "5d0f564b83b7ab9c2b578ca63db55e191eee09e1b334006843f587b798851fa6",
+  "tool_sha256": "9560ecc26bbd25dd6b817e0e132b484dc27fafb07d205d809bd5212acc0464ec"
+}

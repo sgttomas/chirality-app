@@ -1,0 +1,61 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "INVENTED-SQ-M12-5",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+    "prototype_digest": "sha256:f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+  },
+  "case": {
+    "owner_deliverable": "DEL-09-02",
+    "case_id": "M12-5",
+    "scenario": "V4-EXM-12"
+  },
+  "criterion": {
+    "source": "INVENTED criterion for M12-5",
+    "identity": "sha256:3ab2e196838b83eace648291d7d6a0cbb3fba7209b6c38e14c8d5e037a719c8c"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+      "revision": "INVENTED-SQ-REVISION",
+      "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+      "packaged": false
+    },
+    "invented_material": "INVENTED fixture, no native run or actual review"
+  },
+  "configuration": {
+    "codex_pin": "0.160.0",
+    "route": {
+      "kind": "native_development",
+      "platform": {
+        "os": "INVENTED macOS",
+        "arch": "INVENTED arm64"
+      },
+      "native_route": {
+        "method": "person_operated",
+        "form_ref": "INVENTED-FORM-M12-5"
+      },
+      "webview": {
+        "name": "WKWebView",
+        "webkit_version": "INVENTED",
+        "os_version": "INVENTED"
+      }
+    },
+    "model": "not_observed",
+    "model_server": "not_observed"
+  },
+  "date": {
+    "value": "2026-10-08",
+    "source": "record_timestamp"
+  },
+  "outcome": "blocked",
+  "evidence": [],
+  "currency": {
+    "state": "current"
+  },
+  "blocked_by": "INVENTED unmet prerequisite"
+}
