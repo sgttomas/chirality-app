@@ -57,3 +57,9 @@ build basis has no qualified S3 distribution reference and no actual H3B runtime
 witness. Do not insert a synthetic anchor. FP-1(b), FP-2/W-4, FP-3/4/5, SIGN-1,
 M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
+
+
+A separate [compiled synthetic-selection route](SYNTHETIC_SELECTION.md) is
+available only by explicit debug-feature opt-in. Its separate configuration and
+fixed development namespace do not change the ordinary command above or confer
+a qualified supplier reference. Do not add its resources to this ordinary route.
