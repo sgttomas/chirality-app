@@ -1,0 +1,1091 @@
+{
+  "artifact_kind": "standalone_case_preparation",
+  "preparation_version": 1,
+  "standing": "test_definition_only",
+  "source_basis_revision": "462f66975d36cd10d5b8455193ada9517d28d353",
+  "sources": [
+    {
+      "role": "step_map",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.step-map.json",
+      "sha256": "sha256:e57ff599c169aee2c45fc676fe579d3f2fabdfd4085f15616acf01965e826fc7"
+    },
+    {
+      "role": "sq_design",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/STANDALONE_QUALIFICATION.md",
+      "sha256": "sha256:3e5d0f12c6190710ae11971a01a5be81bd3e5c31eddd9bbb0b835759649d8391"
+    },
+    {
+      "role": "sq_schema",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.schema.json",
+      "sha256": "sha256:16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6"
+    },
+    {
+      "role": "sq_rules",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/prototype/check_sq.py",
+      "sha256": "sha256:4a141a8c3f36620aec3f54ba5ace6d193c5cbfd00129f0d7e6fff7ef1b7ef2ea"
+    },
+    {
+      "role": "sq_scope",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/ScopeOfWork.md",
+      "sha256": "sha256:327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+    },
+    {
+      "role": "exp_design",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "sha256:ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "role": "exp_schema",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+      "sha256": "sha256:f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+    },
+    {
+      "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "sha256": "sha256:8b8d0e46a25b6872e806aa49cc9e7604515d643bbd4a51c0913bbcace2585c54"
+    },
+    {
+      "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md",
+      "sha256": "sha256:6bfb2277006a16e6089e7e862da24e9ed7fe749a08f0e63e35e50f25ea251838"
+    },
+    {
+      "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "sha256": "sha256:e287ab26591c52b0f46410afa3dde9dd4f3d6d8da80c1862ef6a91c2cdccd764"
+    },
+    {
+      "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/EXECUTION_AND_RECOVERY.md",
+      "sha256": "sha256:088cb70f9124e09845b27dad785009fca56674e276f11dd32ae650622bdb1856"
+    },
+    {
+      "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md",
+      "sha256": "sha256:a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d"
+    },
+    {
+      "role": "DEL-01-04/APP_ACT_CONTROL.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/APP_ACT_CONTROL.md",
+      "sha256": "sha256:94409f56399da79793866f1979829c2bcd0962f8a6a47ca4d20eaf74d4f71426"
+    },
+    {
+      "role": "DEL-04-03/RECORD_SEMANTICS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "sha256": "sha256:910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae"
+    },
+    {
+      "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/EXECUTION_COMPATIBILITY.md",
+      "sha256": "sha256:a3001809efe5e749c158a9b33aa30180e53f0c42892a4bbb6251592b35f8c0e2"
+    },
+    {
+      "role": "DEL-01-01/HOSTING_BOUNDARY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
+      "sha256": "sha256:9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85"
+    },
+    {
+      "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "sha256": "sha256:26659864fd1b720d51bc5bf8038311238e9d6b1775f62a4e08fd2917dba4f9ec"
+    }
+  ],
+  "candidate_slot": {
+    "id": "one_same_candidate",
+    "revision": null,
+    "build_identity": null,
+    "codex_pin": null,
+    "configuration": null
+  },
+  "scenarios": [
+    {
+      "scenario": "V4-EXM-10",
+      "run_label": "RUN-A",
+      "candidate_slot": "one_same_candidate",
+      "steps": [
+        {
+          "step": "J-1",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-03",
+              "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+              "case_id": "NV-01"
+            },
+            {
+              "deliverable": "DEL-01-03",
+              "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+              "case_id": "NV-02"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-01"
+            }
+          ],
+          "core_loop_element": "planning",
+          "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "From an empty project folder, plan with the agent and revise the plan",
+            "Plan revisions (plan items if plan mode is on, K-5 of pass 3)"
+          ]
+        },
+        {
+          "step": "J-2",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-03",
+              "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+              "case_id": "NV-03"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-01"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-10"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-03"
+            }
+          ],
+          "core_loop_element": "execution",
+          "v3_reference": "J02, J04 (real tool use)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Execute with substantive real tool use in an ordinary conversation; the agent also delegates one bounded sub-task (ST-4)",
+            "Tool outcomes as Codex reports them; request cards; the delegated child"
+          ]
+        },
+        {
+          "step": "J-3",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-02"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-08"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-14"
+            }
+          ],
+          "core_loop_element": "workflow saving",
+          "v3_reference": "J05 (workflow created)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Turn the work into a workflow draft",
+            "Draft listed with content identity; hygiene"
+          ]
+        },
+        {
+          "step": "J-4",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-09"
+            }
+          ],
+          "core_loop_element": "workflow saving",
+          "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Try the draft in a conversation (not a run, K-7)",
+            "No run record; draft not selectable for a run"
+          ]
+        },
+        {
+          "step": "J-5",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-03"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-05"
+            },
+            {
+              "deliverable": "DEL-02-01",
+              "file": "WORKFLOW_DECLARATION.md",
+              "case_id": "VC-13"
+            }
+          ],
+          "core_loop_element": "workflow saving",
+          "v3_reference": "J05",
+          "stimuli": [
+            "ST-2"
+          ],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Review the draft; the same-name entry placed in another origin (ST-2) is present",
+            "Declared inputs, tools, checkpoints, outputs, evidence; the other-origin notice (WR SP-5); nothing overwritten"
+          ]
+        },
+        {
+          "step": "J-6",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-08"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-13"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-07"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-03"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-16"
+            },
+            {
+              "deliverable": "DEL-04-03",
+              "file": "RECORD_SEMANTICS.md",
+              "case_id": "VC-37"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-12"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-05"
+            }
+          ],
+          "core_loop_element": "workflow saving",
+          "v3_reference": "J05 (saved to the project library)",
+          "stimuli": [
+            "ST-3"
+          ],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "**The person registers it** at the act control (A15), after the unperformed-act negatives (ST-3)",
+            "Direct-capture record, actor ≠ recorder, bound bytes; no A15 from silence, timeout, the agent's claim or tool success"
+          ]
+        },
+        {
+          "step": "J-7",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-06"
+            },
+            {
+              "deliverable": "DEL-02-03",
+              "file": "EXECUTION_COMPATIBILITY.md",
+              "case_id": "VC-E-18"
+            },
+            {
+              "deliverable": "DEL-04-03",
+              "file": "RECORD_SEMANTICS.md",
+              "case_id": "VC-40"
+            }
+          ],
+          "core_loop_element": "reuse",
+          "v3_reference": "J05, J07 (selected in a fresh chat)",
+          "stimuli": [
+            "ST-2"
+          ],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Select the registered revision (an unqualified name offers both origins, ST-2) and run it on new inputs",
+            "Source-qualified identity; no rebinding to the other origin; per-run supply"
+          ]
+        },
+        {
+          "step": "J-8",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-01"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-12"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-08"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-13"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-03"
+            }
+          ],
+          "core_loop_element": "workflow saving",
+          "v3_reference": "J07 (refined workflow)",
+          "stimuli": [
+            "ST-1",
+            "ST-3"
+          ],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Refine (revision 2): draft from base, **try**, review, **register** (ST-3 negatives again)",
+            "Second registered revision; ST-1: J-7's selection and run record still name revision 1, whose bytes are unchanged"
+          ]
+        },
+        {
+          "step": "J-8R",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-03",
+              "file": "EXECUTION_COMPATIBILITY.md",
+              "case_id": "VC-E-17"
+            }
+          ],
+          "core_loop_element": "reuse",
+          "v3_reference": "J07",
+          "stimuli": [],
+          "counts": false,
+          "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "*(added; not counted)* Run revision 2 on new inputs",
+            "Run record"
+          ]
+        },
+        {
+          "step": "J-9",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-01"
+            },
+            {
+              "deliverable": "DEL-02-02",
+              "file": "WORKSPACE_AND_REGISTRATION.md",
+              "case_id": "WR-VC-12"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-08"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "APP_ACT_CONTROL.md",
+              "case_id": "VC-AAC-13"
+            }
+          ],
+          "core_loop_element": "workflow saving",
+          "v3_reference": "J07 (three cycles, refined)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Refine again (revision 3): draft, try, review, register",
+            "Third registered revision; exactly two refinements"
+          ]
+        },
+        {
+          "step": "J-9R",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-02-03",
+              "file": "EXECUTION_COMPATIBILITY.md",
+              "case_id": "VC-E-17"
+            }
+          ],
+          "core_loop_element": "reuse",
+          "v3_reference": "J07",
+          "stimuli": [],
+          "counts": false,
+          "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "*(added; not counted)* Run revision 3",
+            "Run record"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": "V4-EXM-11",
+      "run_label": "RUN-A",
+      "candidate_slot": "one_same_candidate",
+      "steps": [
+        {
+          "step": "S11-1",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-02"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-10"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-14"
+            }
+          ],
+          "core_loop_element": "interruption",
+          "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+          "stimuli": [
+            "ST-4"
+          ],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "During J-2's tool-heavy turn, with the delegated child active (ST-4)",
+            "The person stops the turn",
+            "Turn ends interrupted (NIR-v0.3 TO-4, including a turn carrying `Turn.error` at 0.160.0); nothing shown done that was not observed; the child observed active is reported, not marked done"
+          ]
+        },
+        {
+          "step": "S11-2",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-01"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-05"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-14"
+            }
+          ],
+          "core_loop_element": "interruption",
+          "v3_reference": "none recorded",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "During J-7's run, with a tool-permission request waiting",
+            "Close the window; reopen",
+            "Work continued; the request is still listed; closing an observer is not stopping work"
+          ]
+        },
+        {
+          "step": "S11-3",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-04"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-03"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-14"
+            }
+          ],
+          "core_loop_element": "approvals",
+          "v3_reference": "J09 (denied write left no file)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "J-7, first request",
+            "**Deny** it on its card",
+            "Denial settled with its origin; not a human act"
+          ]
+        },
+        {
+          "step": "S11-4",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-03"
+            },
+            {
+              "deliverable": "DEL-02-01",
+              "file": "WORKFLOW_DECLARATION.md",
+              "case_id": "VC-28"
+            },
+            {
+              "deliverable": "DEL-01-03",
+              "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+              "case_id": "NV-07"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-14"
+            }
+          ],
+          "core_loop_element": "approvals",
+          "v3_reference": "J09 (renewed approval created one line)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "J-7, a later request",
+            "**Grant** it",
+            "Grant settled; tool success is not an act"
+          ]
+        },
+        {
+          "step": "S11-5",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-06"
+            },
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-11"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-14"
+            }
+          ],
+          "core_loop_element": "restart",
+          "v3_reference": "none recorded",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "During J-8's try conversation, while the agent's turn is live and a tool-permission request waits",
+            "Quit the App (confirming the question); relaunch",
+            "Quit question lists live work; relaunch reads *quit-with-live-work*; the waiting request rebuilt as interrupted by quit"
+          ]
+        },
+        {
+          "step": "S11-6",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-04"
+            },
+            {
+              "deliverable": "DEL-01-03",
+              "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+              "case_id": "NV-04"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-14"
+            },
+            {
+              "deliverable": "DEL-01-01",
+              "file": "HOSTING_BOUNDARY.md",
+              "case_id": "X-09"
+            },
+            {
+              "deliverable": "DEL-01-01",
+              "file": "HOSTING_BOUNDARY.md",
+              "case_id": "X-10"
+            }
+          ],
+          "core_loop_element": "restart",
+          "v3_reference": "J08 (same chat continued)",
+          "stimuli": [
+            "ST-4",
+            "ST-5"
+          ],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "After relaunch",
+            "Continue **J-8's try conversation** (the one live at quit), then carry J-8 to registration",
+            "Provider vs rendered state; primary-turn completion vs the child still active (ST-4); settlement vs received acknowledgment (ST-5); unknown stays unknown"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "run_label": "RUN-B",
+      "candidate_slot": "one_same_candidate",
+      "steps": [
+        {
+          "step": "M12-1",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-05",
+              "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+              "case_id": "VC-A01"
+            }
+          ],
+          "core_loop_element": "model access",
+          "v3_reference": "v3: ChatGPT sign-in only",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "**The person signs in** with ChatGPT in the App-owned home H-acct",
+            "Sign-in completes; account reported; no credential in App records"
+          ]
+        },
+        {
+          "step": "M12-2",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-05",
+              "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+              "case_id": "VC-A02"
+            },
+            {
+              "deliverable": "DEL-01-02",
+              "file": "EXECUTION_AND_RECOVERY.md",
+              "case_id": "VC-R-15"
+            }
+          ],
+          "core_loop_element": "model access",
+          "v3_reference": "none (v3 had no API-key mode)",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "**The person enters an API key**; the App uses home H-key (L-1)",
+            "Key held by Codex in H-key; two homes, one process each"
+          ]
+        },
+        {
+          "step": "M12-3",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-05",
+              "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+              "case_id": "VC-A03"
+            }
+          ],
+          "core_loop_element": "model access",
+          "v3_reference": "none",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Configure an identified local model server",
+            "Provider requested = reported; endpoint and model identity recorded"
+          ]
+        },
+        {
+          "step": "M12-4",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-04",
+              "file": "NATIVE_INTERACTION_RECEIVING.md",
+              "case_id": "VC-NIR-12"
+            },
+            {
+              "deliverable": "DEL-01-05",
+              "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+              "case_id": "VC-A12"
+            }
+          ],
+          "core_loop_element": "model access",
+          "v3_reference": "none",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Open a new conversation",
+            "\"No model selected\" until the person chooses (DEC-4; no default)"
+          ]
+        },
+        {
+          "step": "M12-5",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-05",
+              "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+              "case_id": "VC-A04"
+            }
+          ],
+          "core_loop_element": "model access",
+          "v3_reference": "none",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "One conversation with each mode; switch between them",
+            "Each starts; the other two stay configured and selectable"
+          ]
+        },
+        {
+          "step": "M12-6",
+          "supplier_cases": [
+            {
+              "deliverable": "DEL-01-05",
+              "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+              "case_id": "VC-A13"
+            }
+          ],
+          "core_loop_element": "model access",
+          "v3_reference": "none",
+          "stimuli": [],
+          "counts": true,
+          "state": "awaiting_input",
+          "missing_input": "candidate_and_configuration",
+          "required_native_route": "N-1",
+          "native_evidence_kinds": [
+            "native_development",
+            "native_packaged"
+          ],
+          "source_action_observation": [
+            "Inspect records and logs",
+            "No credential anywhere (custody scan)"
+          ]
+        }
+      ]
+    }
+  ],
+  "stimuli": [
+    {
+      "id": "ST-1",
+      "condition": "Revision condition: after J-8 registers revision 2, J-7's selection and run record still name revision 1, and revision 1's bytes are unchanged (WR SL-4)",
+      "staged_at": "J-8",
+      "ver": "VER-002",
+      "native": "Produced by the run itself (J-8 after J-7)",
+      "replay_counterpart": null
+    },
+    {
+      "id": "ST-2",
+      "condition": "Source collision: before J-5, a same-name workflow is placed in another origin (the user library); review lists it (WR SP-5) and an unqualified name offers both (SL-3); J-7's selection does not rebind",
+      "staged_at": "before J-5; observed at J-5 and J-7",
+      "ver": "VER-002",
+      "native": "The examiner places the invented same-name entry before the run, as declared",
+      "replay_counterpart": null
+    },
+    {
+      "id": "ST-3",
+      "condition": "Unperformed-act negatives: (a) the act control opened and left unconfirmed past a wait (silence, timeout); (b) the agent states the workflow is registered; (c) tool success on the draft. In each, no A15 is recorded",
+      "staged_at": "J-6 and J-8",
+      "ver": "VER-003",
+      "native": "The person leaves the control open; the examiner prompts the agent's claim; the draft is used by a tool",
+      "replay_counterpart": null
+    },
+    {
+      "id": "ST-4",
+      "condition": "A delegated child that outlives its parent turn: the agent delegates a bounded sub-task and the parent turn completes (or is stopped at S11-1) while the child is still active",
+      "staged_at": "J-2 (delegation), S11-1 (stop with child active), S11-6 (observe)",
+      "ver": "VER-005",
+      "native": "Requires a model route that carries Codex's delegation tools (HOSTING U-22: the local Responses route drops them)",
+      "replay_counterpart": "A delegation recording where the parent completes first (NPTD NV-04); none exists yet"
+    },
+    {
+      "id": "ST-5",
+      "condition": "A lost or unavailable acknowledgment: an answer written whose acknowledgment never arrives, across a process loss",
+      "staged_at": "S11-6",
+      "ver": "VER-005",
+      "native": "Not producible on demand natively",
+      "replay_counterpart": "A recording, captured with HOSTING §9.1's method on the candidate's pin before RUN-A, in X-09's form with this condition in it: an answer written to a server request and the process ended before any acknowledgment arrives; replayed on the supplier double with X-10's recovery read. RECOVERY VC-R-04's stub run is not the counterpart (its frames are constructed, not recorded). Owner and point of need: U-SQ-6"
+    }
+  ],
+  "requirements": {
+    "## 2. Interfaces": "## 2. Interfaces\n\n| ID | Input | Supplier | Arc (DAG-004) | Point of need | If absent |\n|---|---|---|---|---|---|\n| I-1 | Hosting/protocol, verification, recorded seams | DEL-01-01 | DEP-09-02-009, admitted | Before any step | All steps `awaiting_input` |\n| I-2 | Recovery contribution and checks | DEL-01-02 | DEP-09-02-010, admitted | S11-1…S11-6 | Those steps wait |\n| I-3 | Plan, tool, delegation views | DEL-01-03 | DEP-09-02-011, admitted | J-1, J-2, S11-6 | Those steps wait; plan items optional (WR J-1) |\n| I-4 | Request cards, outcomes, draft view; **App act control** | DEL-01-04 | DEP-09-02-012, admitted (row names the interaction view; the act control is used too: §11) | J-2, J-3, J-6, J-8, J-9, S11-1…S11-5, M12-4 | Those steps wait |\n| I-5 | Account/provider access, homes, focused checks | DEL-01-05 | DEP-09-02-013, admitted | M12-1…M12-6 | V4-EXM-12 waits |\n| I-6 | Package and identity record | DEL-01-06 | DEP-09-02-014, admitted | Only if the native steps run on a package | Steps run on a development build, labelled `native_development` |\n| I-7 | Workflow declaration | DEL-02-01 | DEP-09-02-015, admitted | J-5, J-7 | Those steps wait |\n| I-8 | Workspace and registration | DEL-02-02 | DEP-09-02-016, admitted | J-1…J-9 | V4-EXM-10 waits |\n| I-9 | Run start, per-run supply, run end | DEL-02-03 | DEP-09-02-017, admitted | J-7…J-9 | Those steps wait |\n| I-10 | Adopted policy (D2/D3) | DEL-04-01 | DEP-09-02-018, admitted | J-6, S11-3/4 act classification | Settled distinctions applied from ACT as cited |\n| I-11 | Act and run records | DEL-04-03 | DEP-09-02-019, admitted | J-6…J-9, S11-3/4 | Those steps wait |\n| I-12 | EXP record, outcomes, routes, review | DEL-09-01 | DEP-09-02-020, admitted | Every step | No record can be written |\n| I-13 | Candidate and configuration | Integration owner | DEP-09-02-022, not topological | Before the run | Dossier not opened |\n| O-1 | The dossier (§5) | → DEL-11-03 | DEP-11-03-006 (admitted; DEP-09-02-021 mirror) | After the run | DEL-11-03 has no standalone evidence |",
+    "## 3. Case definitions": "## 3. Case definitions (OUT-001; the step map)\n\nThe machine-readable map is `sq.step-map.json`: per step, the supplier\ncases joined, the DEL-11-03 core-loop element, the v3 reference, the\nstimuli it carries and whether it counts. `check_sq.py` confirms that every\ncited supplier case is a designed-case row in that supplier's file (65\ncitations; SQ-R6). Case ids are file-qualified (`VC-13` in WD is not\n`VC-13` in RS). The case definition, with the stimuli and preconditions\nbelow, is declared and digested before the run (dossier `case_definition`;\nR23-19, R23-27).\n\n### 3.1 V4-EXM-10 — run RUN-A (REQ-002; WR §6 SQ-J)\n\n| Step | What the person and agent do | Observe (EXAMINATION V4-EXM-10) | Supplier cases joined |\n|---|---|---|---|\n| J-1 | From an empty project folder, plan with the agent and revise the plan | Plan revisions (plan items if plan mode is on, K-5 of pass 3) | NPTD NV-01, NV-02; WR WR-VC-01 |\n| J-2 | Execute with substantive real tool use in an ordinary conversation; the agent also delegates one bounded sub-task (ST-4) | Tool outcomes as Codex reports them; request cards; the delegated child | NPTD NV-03; NIR VC-NIR-01, VC-NIR-10; RECOVERY VC-R-03 |\n| J-3 | Turn the work into a workflow draft | Draft listed with content identity; hygiene | WR WR-VC-02, WR-VC-08; NIR VC-NIR-14 |\n| J-4 | Try the draft in a conversation (not a run, K-7) | No run record; draft not selectable for a run | WR WR-VC-09 |\n| J-5 | Review the draft; the same-name entry placed in another origin (ST-2) is present | Declared inputs, tools, checkpoints, outputs, evidence; the other-origin notice (WR SP-5); nothing overwritten | WR WR-VC-03, WR-VC-05; WD VC-13 |\n| J-6 | **The person registers it** at the act control (A15), after the unperformed-act negatives (ST-3) | Direct-capture record, actor ≠ recorder, bound bytes; no A15 from silence, timeout, the agent's claim or tool success | AAC VC-AAC-08, VC-AAC-13, VC-AAC-07, VC-AAC-03; NIR VC-NIR-16; RS VC-37; WR WR-VC-12, WR-VC-05 |\n| J-7 | Select the registered revision (an unqualified name offers both origins, ST-2) and run it on new inputs | Source-qualified identity; no rebinding to the other origin; per-run supply | WR WR-VC-06; EXEC VC-E-18; RS VC-40 |\n| J-8 | Refine (revision 2): draft from base, **try**, review, **register** (ST-3 negatives again) | Second registered revision; ST-1: J-7's selection and run record still name revision 1, whose bytes are unchanged | WR WR-VC-01, WR-VC-12, WR-VC-03; AAC VC-AAC-08, VC-AAC-13 |\n| J-8R | *(added; not counted)* Run revision 2 on new inputs | Run record | EXEC VC-E-17 |\n| J-9 | Refine again (revision 3): draft, try, review, register | Third registered revision; exactly two refinements | WR WR-VC-01, WR-VC-12; AAC VC-AAC-08, VC-AAC-13 |\n| J-9R | *(added; not counted)* Run revision 3 | Run record | EXEC VC-E-17 |\n\n**\"Refines it twice\"** is read as two **registered** revisions (K-7: only\nregistered revisions run, so a refinement to be used is registered). The\nruns of each refinement (J-8R, J-9R) come from WR TT-7, which is PROPOSED\nthere and not EXAMINATION's words; they are recorded but **added and not\ncounted** in V4-EXM-10's outcome (RV2 SQ-R-E). WR's \"try\" step is kept in\nJ-8 and J-9.\n\n### 3.2 V4-EXM-11 — inside RUN-A (REQ-004, REQ-005)\n\n\"During the run in V4-EXM-10\" means during RUN-A as a whole (EXAMINATION\n§1 uses \"run\" for a scenario's execution; RECOVERY VC-R-14 reads it the same\nway). RECOVERY VC-R-14, DEL-01-02's own native V4-EXM-11 witness, is the\nsame execution and is cited at every S11 step.\n\n**Precondition (declared before the run; D3).** The person's own\ntool-permission and sandbox settings for RUN-A are ones under which Codex\nasks before the tool actions J-7 uses (the setting is the person's choice,\nrecorded by reference). If no request arises when one is needed, the step\nis `blocked` with the cause \"no request raised\"; it never passes.\n\n| Step | When (inside RUN-A) | Action | Observe | Supplier cases joined |\n|---|---|---|---|---|\n| S11-1 | During J-2's tool-heavy turn, with the delegated child active (ST-4) | The person stops the turn | Turn ends interrupted (NIR-v0.3 TO-4, including a turn carrying `Turn.error` at 0.160.0); nothing shown done that was not observed; the child observed active is reported, not marked done | RECOVERY VC-R-02, VC-R-14; NIR VC-NIR-10 |\n| S11-2 | During J-7's run, with a tool-permission request waiting | Close the window; reopen | Work continued; the request is still listed; closing an observer is not stopping work | RECOVERY VC-R-01, VC-R-14; NIR VC-NIR-05 |\n| S11-3 | J-7, first request | **Deny** it on its card | Denial settled with its origin; not a human act | NIR VC-NIR-04; RECOVERY VC-R-03, VC-R-14 |\n| S11-4 | J-7, a later request | **Grant** it | Grant settled; tool success is not an act | RECOVERY VC-R-03, VC-R-14; WD VC-28; NPTD NV-07 |\n| S11-5 | During J-8's try conversation, while the agent's turn is live and a tool-permission request waits | Quit the App (confirming the question); relaunch | Quit question lists live work; relaunch reads *quit-with-live-work*; the waiting request rebuilt as interrupted by quit | RECOVERY VC-R-06, VC-R-14; NIR VC-NIR-11 |\n| S11-6 | After relaunch | Continue **J-8's try conversation** (the one live at quit), then carry J-8 to registration | Provider vs rendered state; primary-turn completion vs the child still active (ST-4); settlement vs received acknowledgment (ST-5); unknown stays unknown | RECOVERY VC-R-04, VC-R-14; NPTD NV-04; HOSTING X-09, X-10 |\n\nS11-5 combines only conditions the person produces together: a live turn\nand a waiting request in the same conversation at quit. A registration\nattempt interrupted by process loss (WR-VC-07) is not staged here; it is\nWR's own fault-injection case.\n\nV4-EXM-11's distinctions are examined at S11-6 and wherever they arise; the\ndossier never reports conversation continuation as recovery of the whole\nundertaking (REQ-005).\n\n### 3.3 V4-EXM-12 — run RUN-B, same candidate (REQ-006)\n\n| Step | Action | Observe | Supplier cases joined |\n|---|---|---|---|\n| M12-1 | **The person signs in** with ChatGPT in the App-owned home H-acct | Sign-in completes; account reported; no credential in App records | ACCESS VC-A01 |\n| M12-2 | **The person enters an API key**; the App uses home H-key (L-1) | Key held by Codex in H-key; two homes, one process each | ACCESS VC-A02; RECOVERY VC-R-15 |\n| M12-3 | Configure an identified local model server | Provider requested = reported; endpoint and model identity recorded | ACCESS VC-A03 |\n| M12-4 | Open a new conversation | \"No model selected\" until the person chooses (DEC-4; no default) | NIR VC-NIR-12; ACCESS VC-A12 |\n| M12-5 | One conversation with each mode; switch between them | Each starts; the other two stay configured and selectable | ACCESS VC-A04 |\n| M12-6 | Inspect records and logs | No credential anywhere (custody scan) | ACCESS VC-A13 |\n\n`access_modes` in the dossier names each mode's kind, home and conversation\n(SQ-R3: three kinds, API key in H-key, ChatGPT in H-acct, three distinct\nconversations). An unusable mode is an input gap or an observed failure,\nnever a substitute-mode pass (VER-006).\n\n### 3.4 Stimuli the verification requires (R23-27)\n\nEach is declared in the case definition before the run, carried by the\nsteps named, and **counts toward its scenario's outcome** (R23-27 item 2).\nA condition the candidate cannot produce is supplied by its replay\ncounterpart, which is then **required**; if neither is possible, the\ndependent step is `blocked` with that cause and never passes (R23-27 item 3;\nSQ-R9).\n\n| Id | Condition | Staged | VER | Native production | Replay counterpart |\n|---|---|---|---|---|---|\n| ST-1 | Revision condition: after J-8 registers revision 2, J-7's selection and run record still name revision 1, and revision 1's bytes are unchanged (WR SL-4) | J-8 | VER-002 | The run itself | — |\n| ST-2 | Source collision: a same-name invented workflow placed in the user library before J-5; review lists it (WR SP-5); an unqualified name offers both (SL-3); J-7's selection does not rebind | Before J-5; observed at J-5, J-7 | VER-002 | The examiner places the entry, as declared | — |\n| ST-3 | Unperformed-act negatives: (a) the act control opened and left unconfirmed past a wait; (b) the agent states the workflow is registered; (c) tool success on the draft. No A15 in any | J-6, J-8 | VER-003 | The person leaves the control open; the examiner prompts the claim; a tool uses the draft | — |\n| ST-4 | A delegated child that outlives its parent turn | J-2; S11-1; observed at S11-6 | VER-005 | Needs a model route that carries Codex's delegation tools (HOSTING U-22: the local Responses route drops them), so RUN-A's model is chosen accordingly | A delegation recording where the parent completes first (NPTD NV-04); none exists yet |\n| ST-5 | A lost acknowledgment: an answer written whose acknowledgment never arrives, across a process loss | S11-6 | VER-005 | Not producible on demand | **Required:** a recording captured with HOSTING §9.1's method on the candidate's pin, in X-09's form **with this condition in it** (an answer written to a server request and the process ended before any acknowledgment arrives), replayed on the supplier double with X-10's recovery read; recorded as an EXP rehearsal and cited as `recorded_replay` evidence of S11-6's part, compared with the native observation. Owner and point of need: U-SQ-6 |\n\nA replayed condition stands as evidence for the part that needs it, not as\na native step (EXP-R4 applies to parts that need native evidence; the ST-5\npart is declared as not needing it). ST-1, ST-2 and ST-3 have no replay\ncounterpart: they are produced natively or not at all (SQ-R9 refuses a\nreplay claim for them).\n\n**Why ST-5 is a capture, not RECOVERY VC-R-04's double (RV2 SQ-R-M).**\nVC-R-04 does stage exactly this condition (\"a written answer whose\nacknowledgment never comes\"), but on RECOVERY's supplier stub, whose\nbehaviour beyond recorded frames is `constructed` (HOSTING §9.6 \"Not\nclaimed\"; RECOVERY §11.1 \"Ran (model)\"). VER-005 asks for \"supported\nrecorded seam evidence\", and R23-27's counterpart stands in for a condition\non the real supplier. So the counterpart is a recording of the real Codex at\nthe candidate's pin; VC-R-04's stub run stays a definition check of the\nrecovery rules and is cited as such. The design choice is recorded here;\nthe capture is U-SQ-6.",
+    "## 4. Route, configuration and evidence": "## 4. Route, configuration and evidence\n\n- **Native route (EXP §8.1, R23-13):** every step of V4-EXM-10/11/12\n  contains a person's act, a person's answer or an OS-level action, so the\n  whole journey runs on route N-1 (person-operated, with the native-step\n  form of EXP §8.2); every native record names the WKWebView identity.\n  Steps recorded on a package use `native_packaged`; otherwise\n  `native_development` (I-6).\n- **Configuration per record (V4-EXM-01; EXP §4.1):** pin; Codex\n  distribution identity (HOSTING §7.1); model requested and reported; model\n  server kind, label and version; App-owned home; the person's\n  tool-permission and sandbox settings in effect, by reference (D3; the §3.2\n  precondition).\n- **Material:** invented engineering material only (V4-CST-06), named in the\n  candidate subject; the ST-2 entry is invented too.\n- **Replay counterparts (R23-27):** ST-5's replay is required; ST-4's\n  replay is required if the candidate's model route cannot delegate. Other\n  recordings (HOSTING §9.4 X-04, X-05) may be examined additionally as EXP\n  rehearsals; none stands for a native step (EXP-R3, EXP-R4).\n- **Browser evidence** (EXP routes `interface_webkit`/`interface_chromium`)\n  may support interface parts; it never satisfies a native step.",
+    "## 6. States and sequence": "## 6. States and sequence\n\n**Step states** are EXP §6.1's: `designed`, `planned`, `awaiting_input`,\n`held`, `run`, `recorded`, `reopened`. `held` is only for an input held by an\nunresolved owner matter, never for a held DAG arc (EXP §6.1). The\nexamination is **opened** when the integration owner names the candidate and\nthe runs are due (`examination_opened`); from then on every step is\n`planned` and gets an EXP record (R23-20): `not-run` if not attempted,\n`blocked` with its cause if attempted and stopped, otherwise its observed\noutcome. Before that, steps may be `designed` or `awaiting_input` and carry\nno outcome (schema). A changed candidate puts affected steps in `reopened`\n(EXP §6.2). A step declared not applicable before the run (R23-19) would be\nlisted apart; none of V4-EXM-10/11/12's steps is.\n\n**SQ-SEQ:**\n1. The integration owner names the candidate and configuration (I-13); the\n   examiner checks each supplier's focused evidence exists (§2), lists\n   gaps, and declares the case definition with ST-1…ST-5 and the §3.2\n   precondition (digested).\n2. The examination is opened; all steps planned.\n3. Run RUN-A: J-1…J-9R with S11-1…S11-6 at their points and the stimuli at\n   theirs, the person operating, the examiner recording each step as an EXP\n   record.\n4. Run the required replay counterparts (ST-5; ST-4 if needed) as EXP\n   rehearsals and cite them in S11-6's parts.\n5. Run RUN-B: M12-1…M12-6.\n6. Validate every record (EXP rules) and the dossier (SQ rules).\n7. Independent review per EXP §7 (Codex reviewer; Claude fallback with an\n   observed unavailability; R23-12).\n8. Hand the dossier to DEL-11-03 (SQ-R8).\n9. On any change (EXP §6.2) the affected steps reopen; old results stay with\n   their candidate.",
+    "## 7. Failure behaviour": "## 7. Failure behaviour\n\n| ID | Condition | Behaviour |\n|---|---|---|\n| SF-1 | A supplier contribution is missing | Before the examination opens: the steps are `awaiting_input` with the input named. After: `not-run` with the missing input (R23-20) |\n| SF-2 | A step cannot proceed mid-run | That step `blocked`; steps needing its end state `not-run`, \"blocked by ‹step›\" (EXP F-2); the run may continue where independent |\n| SF-3 | The person declines to perform an act (e.g. registration) | The step is `not-run` (\"act not performed\"); no act is recorded or inferred |\n| SF-4 | A credentialed mode cannot be configured | M12 step `blocked` (attempted) or `not-run`; no other mode stands in |\n| SF-5 | The candidate changes during the dossier | Change-impact record; affected steps `reopened`; the dossier's `currency` follows |\n| SF-6 | Reviewer not separate | Review recorded as such; `reported_as_independent: false` (SQ-R8) |\n| SF-7 | Evidence partial | `inconclusive` with its limit, never `pass` |\n| SF-8 | A required stimulus neither produced nor replayed | The dependent step `blocked` with that cause (R23-27; SQ-R9) |\n| SF-9 | No tool-permission request arises when the step needs one | `blocked`, \"no request raised\" (§3.2 precondition) |",
+    "## 9. What the person must do": "## 9. What the person must do, and what is never automated\n\nReview and registration (J-5, J-6, J-8, J-9), answers on request cards\n(S11-3, S11-4), quit and relaunch confirmation (S11-5), leaving the act\ncontrol unconfirmed for ST-3, sign-in and key\nentry (M12-1, M12-2). An agent may prepare, prompt and record; it does not\nperform these (REQ-003; ACCESS §0; AAC NA-3).",
+    "## 12. UNRESOLVED": "## 12. UNRESOLVED\n\n| ID | Item | Owner | Point of need |\n|---|---|---|---|\n| U-SQ-1 | Qualification pin | **Decided by rule (R23-22):** 0.158.0 stays the definition and generation pin; 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when the candidate is built | When the candidate is built |\n| U-SQ-2 | Which local model and server for M12-3, and RUN-A's model (it must carry delegation for ST-4) | Implementer, recorded as configuration (R23-17 pattern) | Before the run; a download needs the owner's yes |\n| U-SQ-3 | Whether the native steps run on a package (I-6). On a development build, if DEL-01-04's SEAL-2 is implemented, J-6/J-8/J-9's act records read \"capture not verifiable\" (AAC §6.3: \"available only to the signed App\"); that limit is recorded on AC-003's evidence | Integration owner | Before the run |\n| U-SQ-4 | API-key protocol detail (OI-010) | App implementation owner | Before M12-2 |\n| U-SQ-5 | ST-4's replay recording (a parent completing before its child), if the chosen model route cannot delegate | DEL-01-03 / DEL-01-01 capture method | Before RUN-A |\n| U-SQ-6 | ST-5's capture: a recording in X-09's form that contains an answer written to a server request and the process ended before any acknowledgment arrives, at the candidate's pin, with X-10's recovery read | DEL-01-01 (HOSTING §9.1 capture method) with DEL-01-02 (RECOVERY RQ-05, the acknowledgment-not-observed record) | Before RUN-A; without it S11-6 is `blocked` (SF-8) |\n| — | Placement (decided, as EXP §8.4): the dossier is `Evidence/EXP/<candidate key>/SQ-dossier.json` in DEL-09-02's folder, beside its records | — | — |"
+  },
+  "access_mode_requirements": {
+    "kinds": [
+      "chatgpt_account",
+      "api_key",
+      "local_provider"
+    ],
+    "homes": {
+      "chatgpt_account": "H-acct",
+      "api_key": "H-key"
+    },
+    "distinct_conversations": 3,
+    "configured_together": true,
+    "substitute_mode_satisfies": false
+  },
+  "missing_inputs": [
+    {
+      "id": "candidate_and_configuration",
+      "owner": "App workflow-experience integration owner",
+      "needed_before": "every native step",
+      "missing": "Named executable candidate revision/build identity, qualification pin under R23-22, actual supplier distribution verification, WKWebView/platform identity, model requested/reported and server configuration, App-owned homes and permission/sandbox references. The source basis alone supplies none of these."
+    },
+    {
+      "id": "supplier_focused_evidence",
+      "owner": "DEL-01-01…05, DEL-02-01…03, DEL-04-01/03; integration examiner receives",
+      "needed_before": "relying on applicable supplier cases",
+      "missing": "Candidate-applicable feature checks and their scope/limits must be received against every file-qualified supplier case. Group A C1 is a bounded historical account, not this candidate's qualification."
+    },
+    {
+      "id": "native_route_and_person",
+      "owner": "integration owner and person operating",
+      "needed_before": "RUN-A and RUN-B",
+      "missing": "Point-specific authorized N-1 person-operated native journey and examiner custody. Package choice is unresolved; a development build is allowed by SQ I-6. Neither route is executed here. SEAL-2 stays owner-deferred."
+    },
+    {
+      "id": "tool_request_precondition",
+      "owner": "person operating; examiner records reference",
+      "needed_before": "RUN-A",
+      "missing": "Actual chosen tool-permission/sandbox settings that raise requests for J-7. No request raised means blocked at the dependent attempted step, never pass."
+    },
+    {
+      "id": "st4_route_or_recording",
+      "owner": "DEL-01-03 / DEL-01-01",
+      "needed_before": "RUN-A J-2/S11-1/S11-6",
+      "missing": "Identified model route carrying delegation, or required candidate-pin delegation recording where parent completes first if that route cannot delegate. No recording or usable route is supplied to this preparation."
+    },
+    {
+      "id": "st5_recording",
+      "owner": "DEL-01-01 with DEL-01-02 (U-SQ-6)",
+      "needed_before": "RUN-A",
+      "missing": "Real Codex capture at candidate pin: answer written to server request, process ends before acknowledgment, X-09 form and X-10 recovery read, EXP rehearsal cited only for S11-6's ST-5 part. RECOVERY VC-R-04 constructed stub is not the counterpart."
+    },
+    {
+      "id": "three_modes",
+      "owner": "person operating and DEL-01-05",
+      "needed_before": "RUN-B",
+      "missing": "Person sign-in and API-key entry, identified usable local model/server and concurrent three-mode configuration with distinct conversations; no credentials are collected by preparation."
+    },
+    {
+      "id": "support_and_review",
+      "owner": "DEL-09-01 and independent examiner",
+      "needed_before": "native records and later qualification handoff",
+      "missing": "Full support identity/admission including CI-26 disposition and actual separate examiner/review. Offline file checks establish no native support qualification."
+    }
+  ],
+  "invented_material": {
+    "standing": "constructed verification material; not engineering advice or observed output",
+    "task": "Plan and revise an inventory count for a fictional test workshop; use real tools to read the supplied rows and write a count summary during the authorized future journey.",
+    "initial_inputs": [
+      {
+        "bin": "invented-A",
+        "items": 4
+      },
+      {
+        "bin": "invented-B",
+        "items": 7
+      }
+    ],
+    "reuse_inputs": [
+      {
+        "bin": "invented-C",
+        "items": 3
+      },
+      {
+        "bin": "invented-D",
+        "items": 8
+      }
+    ],
+    "revision_2_inputs": [
+      {
+        "bin": "invented-E",
+        "items": 2
+      },
+      {
+        "bin": "invented-F",
+        "items": 6
+      }
+    ],
+    "revision_3_inputs": [
+      {
+        "bin": "invented-G",
+        "items": 5
+      },
+      {
+        "bin": "invented-H",
+        "items": 9
+      }
+    ],
+    "staging": "Start the future journey in an empty scratch project; these are input values to supply, not files preinstalled there. Future workflow draft and same-name user-library collision are created/reviewed under their own authorized method, then their exact bytes are bound in the pre-run declaration. This helper creates or registers no workflow."
+  },
+  "boundary": "No candidate named, examination opened, run attempted, result recorded, supplier check qualified, or qualification handed over. Source revision is not build identity."
+}

@@ -1,0 +1,14 @@
+test_cli_roundtrip_rejection_and_duplicate_keys (group_b_standalone_test.StandalonePreparationTest.test_cli_roundtrip_rejection_and_duplicate_keys) ... ok
+test_dropped_reordered_and_recounted_steps (group_b_standalone_test.StandalonePreparationTest.test_dropped_reordered_and_recounted_steps) ... ok
+test_exact_source_map_and_counts (group_b_standalone_test.StandalonePreparationTest.test_exact_source_map_and_counts) ... ok
+test_no_fabricated_readiness_opening_or_outcome (group_b_standalone_test.StandalonePreparationTest.test_no_fabricated_readiness_opening_or_outcome) ... ok
+test_no_native_or_replay_substitution (group_b_standalone_test.StandalonePreparationTest.test_no_native_or_replay_substitution) ... ok
+test_prose_preconditions_and_insertion_points (group_b_standalone_test.StandalonePreparationTest.test_prose_preconditions_and_insertion_points) ... ok
+test_same_candidate_run_and_modes (group_b_standalone_test.StandalonePreparationTest.test_same_candidate_run_and_modes) ... ok
+test_source_drift_refuses_generation (group_b_standalone_test.StandalonePreparationTest.test_source_drift_refuses_generation) ... ok
+test_stimuli_and_supplier_case_omissions (group_b_standalone_test.StandalonePreparationTest.test_stimuli_and_supplier_case_omissions) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 2.404s
+
+OK
