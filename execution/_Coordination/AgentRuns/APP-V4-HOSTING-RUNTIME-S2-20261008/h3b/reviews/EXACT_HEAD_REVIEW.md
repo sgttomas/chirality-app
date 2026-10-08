@@ -1,0 +1,11 @@
+# H3B-1 exact-head integration review
+
+**READY at commit `7b136cf6b20a0440edb5b105e1feb7403a41344e`** against receiving `00ce2e10749dbf72cb69cd6814baab82e339d224` for the bounded H3B-1 actual Host connecting increment. No unresolved blocking integration findings.
+
+All five committed maintained-source hashes match the independently reviewed R1 candidate exactly. The complete 40-file diff stays within those five sources, the H3B run/initial-failure/R1 evidence packet, and the existing work graph. All four packaging/examination/admission/standalone source locks remain unchanged. Seven committed R1 review/test artifacts match the independent return bytes exactly. Original failed review and reproduction are retained alongside repair evidence, not overwritten.
+
+Checked the intervening authored/test base `f79317be861bb63553512de3197b22d556268198` through receiving base: no App src-tauri or frontend src changes. The existing P2/P3 role/workflow wiring is therefore preserved by the same reviewed five-source integration. Reuse of R1 code review and the independently executed 16-test suites in both modes plus three independent controls is warranted; no redundant behavioral rerun was performed.
+
+Manager integration, layout, RS placement, RETURN, CHECKS and graph distinguish H3B-1 from pending H3B-2 durable transport/observation/lifecycle/reference-display work and H3B-3 coordinated adoption. They retain default legacy mode, explicit staged feature/build identity, absent compiled S3 selection, unavailable integrity/custody authority and production refusal. The prior Group B bundle is not claimed as evidence for this changed build. No unsupported whole-S2, canonical adoption, qualified production, FP-2/W-4 or release claim was found. The graph's earlier minimal-export fence is correctly scoped to the historical prerequisite slice.
+
+Required CI and merge remain parent-coordinated. This verdict does not supply actual native App/supplier execution, durable successor artifact publication, installed custody, qualification or stage acceptance. Review was read-only with no branch/source changes. Independent TASK `/root/hosting_runtime_manager/runtime_review`, delegated-harness-native child of `/root/hosting_runtime_manager`.
