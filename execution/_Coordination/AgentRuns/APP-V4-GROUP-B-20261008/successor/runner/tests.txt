@@ -1,0 +1,12 @@
+✔ false expectations and absent/ambiguous targets cannot pass (0.528333ms)
+✔ origin guard rejects deceptive origins and non-network schemes (0.095458ms)
+✔ actual runner missing-module path writes blocked evidence and detects tampering (16.057375ms)
+✔ cached browsers exercise real false-pass, missing-target, capture and network guard paths (3309.502209ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3394.538834
