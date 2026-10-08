@@ -359,10 +359,9 @@ impl ActControl {
         }
         slot.actor = Some(actor.clone());
         slot.context = Some(context.clone());
-        Ok(format!("{} (A15)\n\nOwning library: {}\nComplete review:\n{}\n\nNative offer:\n{}\n\nActor: {} (identity not verified)\n\n{}\nNative confirmation only; Accessibility-authorized processes may operate native buttons. Cancel closes without an act.",
+        Ok(format!("{} (A15)\n\nOwning library: {}\nComplete review:\n{}\n\nNative offer:\n{}\n\nActor: {} (identity not verified)\n\nRegistering makes these reviewed bytes available in this library. It is not a check that the workflow can run here.\nNative confirmation only; Accessibility-authorized processes may operate native buttons. Cancel closes without an act.",
             slot.offer["wording"].as_str().unwrap_or(""),now.library_root.display(),serde_json::to_string_pretty(&now.presentation).map_err(|e|e.to_string())?,
-            serde_json::to_string_pretty(&slot.offer).map_err(|e|e.to_string())?,serde_json::to_string(actor).map_err(|e|e.to_string())?,
-            a15_effect_statement(&slot.offer,&now.presentation)))
+            serde_json::to_string_pretty(&slot.offer).map_err(|e|e.to_string())?,serde_json::to_string(actor).map_err(|e|e.to_string())?))
     }
     pub(crate) fn frozen_a15_offer_digest(&self, offer: &A15OfferRef) -> Result<&Value, String> {
         let slot = self.a15_offers.get(&offer.id).ok_or("A15 offer absent")?;
@@ -589,20 +588,6 @@ impl ActControl {
             capture_id: id,
             witness,
         }))
-    }
-}
-/// J8 (WR §4.8 RC-4; AAC §4.2 re-confirmation): the effect sentence of the
-/// native statement. A re-confirmation names ‹k› and says no new revision is
-/// registered; registration keeps its sentence unchanged.
-pub(crate) const RECONFIRM_WORDING: &str = "re-confirm workflow revision for use";
-fn a15_effect_statement(offer: &Value, presentation: &Value) -> String {
-    if offer["wording"] == RECONFIRM_WORDING {
-        let statement = presentation["entries"][0]["reconfirmation"]["statement"]
-            .as_str()
-            .unwrap_or("Re-confirm the registered revision for use in this App session. This registers no new revision.");
-        format!("{statement} It is not a check that the workflow can run here.")
-    } else {
-        "Registering makes these reviewed bytes available in this library. It is not a check that the workflow can run here.".into()
     }
 }
 pub(super) fn a15_body(capture: &Value) -> Value {

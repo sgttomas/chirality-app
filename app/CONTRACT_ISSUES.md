@@ -680,13 +680,20 @@ record's "App implementation items". No Design or schema file was changed.
   (`a15_multi_descriptor`) work. The RF-1 test therefore registers in place
   with two entries. For the AAC and WR owners: admit `entry:` for a single
   in-place `a15_descriptor`, or route DS-7 through another form.
-- **(f) Native statement placement (AAC §4.2 re-confirmation).** The wording
-  and offer come from WR's descriptor unchanged (`compose_a15`). The effect
-  sentence of the statement comes from a new helper, `a15_effect_statement`
-  in `act_control_a15.rs`; for a re-confirmation it names ‹k› and says "This
-  registers no new revision." `a15_native.rs` titles the dialog "re-confirm
-  workflow revision" with a "Re-confirm" button when the statement's first
-  line is the re-confirm wording.
+- **(f) Native statement (AAC §4.2 re-confirmation): left to J6.** By
+  coordination, J8 does not change `a15_native.rs` or the A15 statement code;
+  both are unchanged from `007489e72b`. J8 supplies the source facts:
+  - the descriptor's wording "re-confirm workflow revision for use",
+    disposition *re-confirmation*, re-confirm purpose and `reconfirms`;
+  - the offer that `compose_a15` builds from them unchanged;
+  - the review presentation's `entries[0].reconfirmation.statement`, "Re-confirm
+    revision ‹k› of ‹origin›:‹name› for use in this App session. This registers
+    no new revision.".
+
+  J6's statement variant reads these when HELP_HUMAN integrates the two
+  branches. Until then, the base statement's closing sentence ("Registering
+  makes these reviewed bytes available …") also appears for a
+  re-confirmation.
 - **(g) Capture outcome not written.** `aac.capture-evidence` now admits the
   entry outcome *re-confirmed*. The App writes no capture entry outcome for
   any registration, so none is written for a re-confirmation either. The

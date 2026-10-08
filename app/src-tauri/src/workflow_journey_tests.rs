@@ -311,8 +311,8 @@ fn register_and_select(
 /// checks and `workflow_select_registered` for the review `begin_review` just
 /// opened. Returns (review reference, registered revision).
 /// `workflow_register_native`'s act through the act-control double, for the
-/// review `begin_review` just opened. Returns the native statement text shown.
-fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) -> String {
+/// review `begin_review` just opened.
+fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) {
     let review = r.reviews[reference].clone();
     let mut review = review.lock().unwrap();
     let library_ctx = review.library.clone();
@@ -322,7 +322,7 @@ fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) -> String {
     let context = json!({"library":library_ctx.reference,"home":"explicit absent/unknown fixture source","identityVerified":false});
     let mut owner_guard = library_ctx.control.lock().unwrap();
     let owner = owner_guard.as_mut().unwrap();
-    let statement = owner.a15_confirmation_text(offer, &current, &actor, &context).unwrap();
+    owner.a15_confirmation_text(offer, &current, &actor, &context).unwrap();
     owner.present_a15(offer).unwrap();
     let event = crate::a15_native::ConfirmedA15Event::synthetic_for_test(
         offer.id().into(),
@@ -335,7 +335,6 @@ fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) -> String {
     drop(owner_guard);
     review.attempted_native = true;
     review.accept_result(result).unwrap();
-    statement
 }
 
 fn capture_and_register(r: &mut WorkflowRootSession, library: &Path, origin: &str) -> (String, String) {
@@ -852,7 +851,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let copy_before = crate::workflow_workspace::Snapshot::capture(&copy).unwrap();
     let draft_before = crate::workflow_workspace::Snapshot::capture(&project.join(".chirality/workflow-drafts").join(NAME)).unwrap();
     assert_eq!(draft_before.revision(), revision_three, "the draft is unchanged since step 8");
-    let (reference, statement) = {
+    let reference = {
         let mut r = root.lock().unwrap();
         r.open_library(project.clone(), "project", Some(&project), act.clone()).unwrap();
         // Not selectable cold (RC-2, SEAL-2 deferred).
@@ -866,13 +865,22 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         assert_eq!(entry["disposition"], "re-confirmation", "{entry}");
         assert_eq!(entry["identity"]["revision"], revision_three.as_str());
         assert_eq!(entry["reconfirmation"]["sequence"], 3);
-        let statement = confirm_with_double(&mut r, &reference);
-        (reference, statement)
+        assert!(entry["reconfirmation"]["statement"].as_str().unwrap().ends_with("This registers no new revision."));
+        // The offer's source: the re-confirmation descriptor (WR §4.8 RC-4). The
+        // rendered native statement is J6's and is not asserted here.
+        let descriptor = {
+            let review = r.reviews[&reference].lock().unwrap();
+            let view = review.review.as_ref().unwrap().current().unwrap();
+            view.descriptor().clone()
+        };
+        assert_eq!(descriptor["wording"], "re-confirm workflow revision for use");
+        assert_eq!(descriptor["disposition"], "re-confirmation");
+        assert_eq!(descriptor["purpose"], "make it available again in this App session from the project library");
+        assert_eq!(descriptor["subject"]["revision"], revision_three.as_str());
+        assert_eq!(descriptor["reconfirms"]["sequence"], 3);
+        confirm_with_double(&mut r, &reference);
+        reference
     };
-    assert!(statement.starts_with("re-confirm workflow revision for use (A15)"), "{statement}");
-    assert!(statement.contains("Re-confirm revision 3 of project:"), "{statement}");
-    assert!(statement.contains("This registers no new revision."), "{statement}");
-    assert!(!statement.contains("Registering makes"), "{statement}");
     {
         let r = root.lock().unwrap();
         let review = r.reviews[&reference].lock().unwrap();
@@ -893,7 +901,8 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_ne!(line["act"], registered_three["act"], "a new act");
     let (acts, limits) = crate::records::read_log(&crate::storage::library_log(&project));
     assert!(limits.is_empty(), "{limits:?}");
-    assert!(acts.iter().any(|e| e["recordId"] == line["act"]["record_id"]), "the ledger cites the new A15");
+    let new_act = acts.iter().find(|e| e["recordId"] == line["act"]["record_id"]).expect("the ledger cites the new A15");
+    assert_eq!(new_act["body"]["purpose"], "make it available again in this App session from the project library");
     assert_eq!(stores(), stores_before, "no new store folder");
     assert_eq!(crate::workflow_workspace::Snapshot::capture(&copy).unwrap().files(), copy_before.files(), "no copy written");
     {
