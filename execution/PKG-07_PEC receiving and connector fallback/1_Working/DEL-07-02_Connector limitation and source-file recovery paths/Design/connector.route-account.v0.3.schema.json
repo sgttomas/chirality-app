@@ -122,7 +122,7 @@
           "revision": {
             "type": "string",
             "minLength": 1,
-            "description": "Repository commit, or the source's own stated revision for a non-repository source."
+            "description": "Exact full Git readCommit observed by the host-private CGP result, equal to provenance.commit and the requested side. Object membership and byte consistency only; not source truth, authorship, accepted-branch status or authority."
           },
           "sha256": {
             "type": "string",
