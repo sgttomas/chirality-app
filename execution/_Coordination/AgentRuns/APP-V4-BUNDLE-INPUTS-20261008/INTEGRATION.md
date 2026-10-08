@@ -91,3 +91,11 @@ The final evidence-only head receives a separate read-only backcheck before PR
 handoff. Both directions of the brief are accounted for above: real assets and
 consumer refusals exist; P2 runnable admission remains the precise blocker with
 a named proposal, and P3 owner/default and native qualification limits remain.
+
+Parent's final source assessment classifies the proposed TT-1/TX-1 candidate
+standing as an owner product-authority choice after source-owner and independent
+review, not manager-only technical adoption. The proposal now separates its
+bundled-workflow examination point of need from M2/M3 package/start/handshake/
+conversation smoke. Genuine A15 testing remains viable with an explicit LS5/LS8
+bundled-path coverage gap. Current runtime refusal and all product bytes stay
+unchanged.

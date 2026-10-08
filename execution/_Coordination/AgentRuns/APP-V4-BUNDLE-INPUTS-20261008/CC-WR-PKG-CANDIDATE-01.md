@@ -33,24 +33,51 @@ required before adoption. It is not a reusable workflow.
 | runtime_session.rs WorkflowRootSession/run_admission/prepare/send; lib.rs native resolver/commands; App.tsx display | Examiner explicitly selects bound candidate route; ordinary candidate browsing never enables run; source and scope survive preparation/supply records | No route/receipt or mismatched build refuses before prepared records/supplier send; held-copy mutation/registration after selection refuses; candidate wording remains visible |
 | Group B DEL-01-06 packaging producer and DEL-09-01/02 examination receivers | Package P-2 exact bytes/digest; bind candidate/support/route and actual authorizing examination scope; keep FP and native outcomes separate | Complete package inventory is not workflow release registration or qualification; native candidate evidence cannot become shipped-history evidence |
 
+## Point of need: M2/M3 versus bundled-workflow examination
+
+This proposal is not a new blanket gate on Group B M2/M3. EXP §9's packaged
+smoke covers start, handshake shown and a conversation opening; EXP §10 M2 is
+package/identity/install witness, and M3 is that native smoke on the same package.
+PKG §8 W-0–W-6 does not require a workflow conversation. Candidate inventory,
+physical roles validation and those native steps can therefore progress under
+their existing contribution/authorization requirements without inventing a new
+workflow run authority. Group B still decides P-2 receiving/completeness and must
+record the held runnable standing; this proposal does not satisfy other missing
+M2/M3 inputs, A-IN verification, signing or owner acts.
+
+The proposed route (or genuine release registration under the current contract)
+is needed before an examination relies on **running the bundled candidate or
+its candidate-held copy as such**. A genuine A15-registered copy can support an
+independently scoped pre-release workflow examination, preserving the LS-5/LS-8
+coverage gap. No such alternative result may be reported as exercising the
+bundled/shipped registration path. Case owners must state the exact route and
+missing coverage before the relevant examination.
+
 ## Decision interface
 
 Recommended: retain the currently enforced refusal and have WR/PKG source owners
 review this narrow route as a separate named adoption before enabling it. The
 alternative is to use existing genuine A15-registered copies for pre-release
 examinations and defer release-bound catalog admission until the release owner
-provides the required actual registration. Either route leaves P2 asset
+provides the required actual registration. That alternative exercises reviewed
+registered-copy selection and supply, but does not cover bundled LS-5 selection
+or LS-8 shipped-copy recognition; those gaps must remain explicit. Either route leaves P2 asset
 preparation and P3 role validation independently useful. Parent coordinates
 source-owner concurrence and any human product/release choice; this proposal
-creates no automatic fresh owner gate for ordinary mechanical validation.
+does not require an owner act for ordinary mechanical validation. The proposed
+new runnable standing does change settled TT-1/TX-1 authority semantics: after
+WR/PKG source-owner and independent review prepare the concrete amendment,
+HELP_HUMAN must route that consequential product authority choice to the owner.
+It cannot be adopted as a manager-only implementation choice.
 
 MISSING: reviewed/adopted candidate route and its exact authority-receipt contract;
 actual release registration/shipping evidence for LS-5/LS-8; independent final
 review of this proposal and actual producer/consumer candidate.
 
-NEEDS_HUMAN_RULING: no new owner act is asserted as already required. HELP_HUMAN
-must route any substantive product/release-policy choice exposed by source-owner
-review; optional v3-copy recognition remains the owner's unselected choice.
+NEEDS_HUMAN_RULING: before adoption, the owner must decide the proposed change
+to settled TT-1/TX-1 runnable authority after source-owner and independent review
+of a concrete amendment. Current assets/refusal checks do not wait for that
+decision. Optional v3-copy recognition remains separately unselected.
 
 DEPENDENCY_NOTES: P2 assets and closed validation can be received as candidate
 build inputs; current candidate catalog remains non-runnable. No package
