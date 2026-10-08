@@ -24,3 +24,25 @@ It identified EXP's prototype digest field and PKG's support version field;
 it will preserve them and report tooling identity separately. No runtime or
 Design writes are authorized. Independent review will use a separate TASK
 and worktree after a fixed candidate exists. Findings return to this author.
+
+## First return and review dispatch
+
+Production returned clean commit `703f834e0d886122696a856ed068cea90457e5e4`,
+including implementation `fc027ae116` and candidate-bound technical evidence.
+Its report states ten passing test methods at file-support scope only.
+Manager has not equated that report with review or native qualification.
+
+Actual independent review child `/root/group_b_manager/first_slice_review` was
+launched by collaboration.spawn_agent with `fork_turns=none`, requested
+`gpt-6-astra` / `low`, in its own `app-v4-group-b-review/chirality` worktree.
+Its launch supplied Root/TASK/v4 loop and software-code-review reading, the
+initial graph commit 77daa138d8, the base 7b0170ed, the same no-download/native/
+credential limits, read-only product scope and run/reviews write scope. A follow-up
+bound code/evidence review to 703f834e0d. It may run offline file checks and
+temporary probes; it authors no implementation. Same model allocation is
+recorded without a model-family-diversity claim. Reviewer output is pending.
+
+The manager's possible noncandidate KeyError concern was investigated by the
+reviewer and not reproduced: canonical valid inputs cleanly refused where
+inapplicable; the schema requires the indexed configuration fields. No repair
+was ordered based on that unsupported concern.
