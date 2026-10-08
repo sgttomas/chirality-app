@@ -694,7 +694,9 @@ What the code now does (J6, revised after independent review V14):
   - The App does not report which non-act slot either key took.
   - The middle button registered when clicked; the Cancel button was not
     clicked.
-  - The A16 and request-answer dialogs were not witnessed natively. **Known limit: file acts are excluded.** Their three slots are
+  - The A16 and request-answer dialogs were not witnessed natively.
+
+  **Known limit: file acts are excluded.** Their three slots are
   act, decline and Cancel; under the three-button layout an aborted alert
   would map to the third slot, which there would be a decline. They keep
   [act (default)] [Decline this act] [Cancel], so Return still performs a

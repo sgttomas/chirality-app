@@ -64,8 +64,9 @@ run are quoted below.
 `evidence/…/workspace-records/.chirality/`: captures, the act log, the
 2-line ledger, the run log and the WR records. They are force-added past
 the repository's `**/.chirality/` ignore rule (V16 F1). Hashes are in
-`SHA256SUMS`. `workspace-listing.sha256` lists every workspace file after
-the run, with its hash.
+`SHA256SUMS`. `workspace-listing.sha256` lists every `.chirality/` file in the workspace
+after the run, with its hash; `notes/witness.txt` is not included
+(V16-R1 R1-N2).
 
 Several items are HELP_HUMAN's account and are not shown in the retained
 files (V16 F6):

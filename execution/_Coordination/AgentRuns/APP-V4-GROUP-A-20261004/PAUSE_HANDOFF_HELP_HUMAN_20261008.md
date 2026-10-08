@@ -63,6 +63,9 @@ integrated head's `app/` bytes equal that candidate except for
    - **D-5 and D-6/O-5:** the `base_comparison` reads "unavailable" for a
      bundled base, and the pending capture file remains. Both are for the
      AAC/REC owners to confirm.
+   - **D-3 residual:** the compact App-state JSON still prints
+     `"root":{"bytes":[…]}` arrays; only the formatted view was repaired
+     (V16 F5, V16-R1 R1-N3).
    - **Flaky tests:** two `credential_rpc_*` tests and
      `tests/handshake.rs::hosts_codex_initialize_then_thread_start`.
 3. **C1, bounded reconciliation** (graph row C1). Map Group A obligations
@@ -140,15 +143,51 @@ integrated head's `app/` bytes equal that candidate except for
   the owner's sign-in remains from this run.
 - **Leftover temp roots.** The two witness temp roots (built App,
   workspace) under `$TMPDIR/chirality-v4-witness1113.*` and
-  `chirality-v4-rewitness.*` hold no credentials. Their evidence is
-  retained in the repository, so they can be deleted.
+  `chirality-v4-rewitness.*` hold no credentials. Their records and
+  screens are retained in the repository. The built witness binaries are
+  retained only by hash, so deleting a temp root loses the exact binary;
+  a rebuild from the same source is not guaranteed to be byte-identical
+  (V16-R1 R1-N5). Keep or delete them as the owner prefers.
+- **Witness evidence under `.chirality/`.** The repository ignores
+  `**/.chirality/`. Commit retained workspace records with `git add -f`,
+  then verify them with `shasum -c` from a clean `git archive` of the
+  head.
 
 ## Agents
 
-At handoff no executor is mid-task, except V16 if PR 1115 has not yet
-merged (see below). Earlier agents returned and stopped; their records are
-in `DISPATCH.md` and `reviews/`.
+At handoff no executor is mid-task. Every agent has returned and stopped,
+and their records are in `DISPATCH.md` and `reviews/`.
 
-## Closing state
+## Read next
 
-(Updated at handoff, below.)
+`RETROSPECTIVE_HELP_HUMAN_20261008.md` is HELP_HUMAN's self-assessment. It
+lists what worked, where HELP_HUMAN fell short, and the behaviours the
+successor should and should not follow. It also gives two recommendations
+(R-1, R-2) for `coordinated-knowledge-work`. Those are recommendations only:
+revising the workflow needs `create-workflow` and the owner's decision.
+
+## Closing state (2026-10-08)
+
+- **PR 1115 merged** into `main` as merge commit
+  `0e62b8e36b02ee85680e99ab8b313997930c45c7`.
+  - Head `87d411d774`: every CI check green, including `harness`, App
+    Runtime integration and Desktop E2E.
+  - Head review V16, NOT READY, was followed by V16-R1, READY.
+- **Open item 1 above is therefore done.** Continue from item 2 or 3.
+- **Commits after the merge** sit on `claude/app-v4-group-a-resume` and are
+  not yet merged:
+  - the V16-R1 review and its optional notes R1-N1…N5, applied;
+  - this closing state;
+  - the retrospective.
+
+  They are records only, and ride with the next PR (C1 or F1). Give that
+  PR's head review these commits too.
+- **App CI monitor.** The owner switched on auto-fix monitoring for PR 1115
+  in this session. The PR is merged, so it has nothing left to watch.
+- **Worktrees that can be cleaned up.** Check that each is clean and fully
+  merged first. The candidates are the `.claude/worktrees/agent-*`
+  directories from this run:
+  - J6 `agent-ad91335d51d4650ca`;
+  - J8 `agent-a7e1126761bc94dc4`;
+  - V16 `agent-ae13df58973d86fe7`;
+  - any earlier `agent-*` worktrees listed by `git worktree list`.
