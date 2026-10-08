@@ -273,6 +273,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    mod terminal_export { include!("hosting_terminal_export.rs"); }
     mod lt23 { include!("hosting_lt23_tests.rs"); }
     mod s4_export { include!("hosting_s4_export.rs"); }
     use super::*;

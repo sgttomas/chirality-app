@@ -1,0 +1,99 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3356:13
+     |
+3356 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `admin` and `common` are never read
+  --> src/connector_git.rs:44:5
+   |
+42 | struct Association {
+   |        ----------- fields in this struct
+43 |     root: PathBuf,
+44 |     admin: PathBuf,
+   |     ^^^^^
+45 |     common: PathBuf,
+   |     ^^^^^^
+   |
+   = note: `Association` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1516:19
+     |
+ 500 | impl Host {
+     | --------- method in this implementation
+...
+1516 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3876:9
+     |
+3875 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3876 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: `chirality-app-v4` (lib test) generated 8 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.85s
+     Running unittests src/lib.rs (/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b)
+
+running 11 tests
+test hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected ... ignored, explicit offline Group B fixture export; set CHIRALITY_S4_EXPORT_ROOT
+test hosting::successor::tests::s4_export::exporter_refuses_unavailable_existing_destination_and_tampered_bytes ... ok
+test hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected ... ignored, explicit offline terminal exchange; set CHIRALITY_TERMINAL_EXPORT_ROOT
+test hosting::successor::tests::terminal_export::terminal_exchange_actual_busy_other_home_is_not_queued_evidence ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_actual_selected_and_unselected_roundtrip ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_identical_foreign_source_locator_and_partial_write_refuse ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_live_tamper_or_new_attempt_refuses_before_marker ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_output_replacement_symlink_extra_and_partial_fail_without_marker ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_paths_and_dirty_stale_harness_never_issue_completion ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_pending_failed_and_missing_predecessor_never_mark_complete ... ok
+test hosting::successor::tests::terminal_export::terminal_exchange_rejects_closed_shape_reference_generation_and_member_contradictions ... ok
+
+test result: ok. 9 passed; 0 failed; 2 ignored; 0 measured; 585 filtered out; finished in 26.25s
+
