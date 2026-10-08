@@ -75,3 +75,23 @@ instructions activated. Current source hashes:
 - .agents/skills/chirality-change/SKILL.md: `1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450`
 - projects/chirality-app-v4/loop/LOOP_INIT.md: `c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd`
 - app/src-tauri/src/distribution_preflight.rs: `b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411`
+
+## Compare reader repair
+
+Parent review identified that the original caller-path std::fs::read could block
+on a FIFO and follow a leaf symlink. The example-only reader now checks regular
+non-link metadata, opens with O_NOFOLLOW/O_NONBLOCK/O_CLOEXEC, checks the descriptor
+is the same regular file, bounds reads to 64 MiB and refuses observed size/time
+change during read. This remains equality input handling, not canonical inventory
+semantics or an authority/trust admission. Existing library scan/equal unchanged.
+
+Rebuilt the actual example offline and ran all explicit scanner tests: 5 passed,
+0 failed, 0 ignored. Added negative cases for FIFO, leaf symlink, directory and
+oversized sparse file in both expected/actual positions, each with a 3-second
+child-process timeout and cleanup; all refused without timeout or stdout JSON.
+Prior four scanner/equality tests passed unchanged. No supplier process or launch.
+
+Repaired source SHA-256:
+`3bc4ed010a6f322a88b902bcfc90cc705cbe1cb79b1678bcb717ede376537a71`.
+Locally rebuilt example SHA-256:
+`f8bb51b8894a8e913933ebd2a54f3ce0af1cbd38df65fad898a16b81398e68d7`.

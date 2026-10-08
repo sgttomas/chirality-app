@@ -147,3 +147,53 @@ fn scanner_compare_uses_public_equal_and_distinguishes_difference_from_error() {
     assert!(!out.status.success());
     assert!(out.stdout.is_empty());
 }
+
+#[test]
+#[ignore = "requires explicitly built scanner and DISTRIBUTION_STATIC_BIN"]
+fn scanner_compare_refuses_fifo_links_directories_and_oversize_without_hanging() {
+    use std::os::unix::ffi::OsStrExt;
+    use std::process::Stdio;
+    use std::time::{Duration, Instant};
+    let f = Fixture::new();
+    let (_, bytes) = observed(&f.0);
+    let regular = f.0.join("regular.json");
+    fs::write(&regular, bytes).unwrap();
+    let linked = f.0.join("linked.json");
+    symlink(&regular, &linked).unwrap();
+    let fifo = f.0.join("fifo");
+    let name = std::ffi::CString::new(fifo.as_os_str().as_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    let oversized = f.0.join("oversized.json");
+    fs::File::create(&oversized)
+        .unwrap()
+        .set_len(64 * 1024 * 1024 + 1)
+        .unwrap();
+    for bad in [&linked, &fifo, &f.0, &oversized] {
+        for (left, right) in [(bad, &regular), (&regular, bad)] {
+            let mut child = Command::new(std::env::var_os("DISTRIBUTION_STATIC_BIN").unwrap())
+                .arg("compare")
+                .arg(left)
+                .arg(right)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            let deadline = Instant::now() + Duration::from_secs(3);
+            loop {
+                if child.try_wait().unwrap().is_some() {
+                    break;
+                }
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("compare hung on nonregular/link/oversized input");
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            let output = child.wait_with_output().unwrap();
+            assert!(!output.status.success());
+            assert!(output.stdout.is_empty());
+            assert!(!output.stderr.is_empty());
+        }
+    }
+}
