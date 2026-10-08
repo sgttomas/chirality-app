@@ -1,0 +1,55 @@
+{
+  "run": "APP-V4-GROUP-C-20261008",
+  "slice": "C3-S2",
+  "base": "c3a0f50f032ae20e54c7d66b36d55cf40223e184",
+  "manager": "/root/group_c_successor",
+  "steering": "HELP_HUMAN resumed App-native source selection/read/revision/anchor producer with synthetic/offline tests; no native launch authorization. Parent concurred that exact excerpt match warrants observed bytes/anchor, not verified revision or authority.",
+  "route": "Named source-owner contract, independent source review, bounded implementation, independent combined review and CI; actual native witness remains held.",
+  "delegation": {
+    "mechanism": "harness-native descendants; separate isolated managed worktrees",
+    "model": "gpt-6-astra",
+    "effort": "low",
+    "source_owner": "cfb_design_owner",
+    "implementation_owner": "route_persistence",
+    "independent_reviewer": "cfb_design_review",
+    "limits": "TASK no delegation; instruction write fences, not per-file host sandbox guarantees"
+  },
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "sha256": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "6322f96000af598f5e3cb846d7073c1650bae2b3de515f4cb2a9d7e6a26444b1"
+    }
+  ],
+  "continuity": "Prior manual/CFB/CRP/code reads and limits are retained in C3_MANAGER_BASIS and C3_SOURCE_ROUTE_MANAGER_BASIS; source-specific child records bind newly consulted material.",
+  "coordination": "H3B-2 owns runtime_session/native_items version references and additive distribution setup. C3 plans separate modules/panel and additive commands; exact implementation fence precedes edits.",
+  "holds": [
+    "no MEMORY",
+    "no downloads",
+    "no credentials",
+    "no native launch or person act",
+    "C2 OI-022",
+    "C4 OI-023/OI-026",
+    "C5 activation",
+    "SEAL-2"
+  ]
+}
