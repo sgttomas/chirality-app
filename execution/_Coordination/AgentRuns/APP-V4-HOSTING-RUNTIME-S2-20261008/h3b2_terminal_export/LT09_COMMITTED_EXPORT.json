@@ -1,0 +1,48 @@
+{
+  "name": "H3B terminal-source standalone LT09 v1 successor inputs",
+  "sourceRevision": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71",
+  "standing": "synthetic LT09 correspondence only, separate from terminal-format exchange; no native authority or qualification",
+  "compiledHarness": "same exact9af committed-recompiled executable as terminal receipt; no intervening build",
+  "exports": [
+    {
+      "case": "selected",
+      "locator": "/private/tmp/hosting-terminal-source-lt09-3mh4mkrk/selected/exchange.json",
+      "exchangeSha256": "9815b031e0295ca06c145c4ce50a840979dbf8895dfe9165bef36f5caa858552",
+      "producer": {
+        "command": [
+          "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+          "--ignored",
+          "--exact",
+          "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+          "--test-threads=1"
+        ],
+        "features": [],
+        "harnessExecutableSha256": "c568f53b288c142e444f936296cee1d29477f83f0ce19b2cc2c5506139bfca58",
+        "kind": "synthetic-host-test",
+        "sourceRevision": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71"
+      },
+      "publicationMembers": 17,
+      "selectedSourceMembers": 13
+    },
+    {
+      "case": "unselected",
+      "locator": "/private/tmp/hosting-terminal-source-lt09-3mh4mkrk/unselected/exchange.json",
+      "exchangeSha256": "6f7c94c2768d5a3740e7f1f9b716bebc514816fe443dd57c43b0aa07ac0babb5",
+      "producer": {
+        "command": [
+          "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+          "--ignored",
+          "--exact",
+          "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+          "--test-threads=1"
+        ],
+        "features": [],
+        "harnessExecutableSha256": "c568f53b288c142e444f936296cee1d29477f83f0ce19b2cc2c5506139bfca58",
+        "kind": "synthetic-host-test",
+        "sourceRevision": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71"
+      },
+      "publicationMembers": 4,
+      "selectedSourceMembers": null
+    }
+  ]
+}
