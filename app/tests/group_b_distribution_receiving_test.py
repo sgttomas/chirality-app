@@ -15,7 +15,8 @@ APP = Path(__file__).resolve().parents[1]
 HISTORICAL = APP / 'tests/group_b_distribution_receiving_fixtures'
 NAMESPACE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_namespace_fixtures'
 LT23_SOURCE_HISTORICAL = APP / 'tests/group_b_distribution_receiving_lt23_source_fixtures'
-FIXTURES = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
+PREVIOUS_CURRENT = APP / 'tests/group_b_distribution_receiving_terminal_source_fixtures'
+FIXTURES = APP / 'tests/group_b_lt12_source_lt09_fixtures'
 
 
 def load(name, path):
@@ -267,7 +268,7 @@ class DistributionReceivingTests(unittest.TestCase):
         with patch.object(receiver, 'relative', changed):
             with self.assertRaisesRegex(ValueError, 'selected source changed'): receiver.Receiver()
         report = self.check()
-        self.assertEqual(report['receiving_adoption'], 'B-S4-TERMINAL-SOURCE-LT09-v1')
+        self.assertEqual(report['receiving_adoption'], 'B-S4-LT12-SOURCE-LT09-v1')
         self.assertFalse(report['namespace_authority_authenticated'])
         self.assertFalse(report['qualification_established'])
 
@@ -309,6 +310,18 @@ class DistributionReceivingTests(unittest.TestCase):
         path = APP / 'tests/group_b_terminal_receiving_fixtures/selected/exchange.json'
         with self.assertRaisesRegex(ValueError, 'exchange fields differ'):
             self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+
+    def test_lt12_source_adoption_refuses_previous_source_mixed_reader_and_lt12(self):
+        path = PREVIOUS_CURRENT / 'selected/exchange.json'
+        with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+            self.receiver.check(path, receiver.sha(path.read_bytes()), self.selection, receiver.sha(self.selection.read_bytes()))
+        old = receiver.parse(path.read_bytes())
+        self.exchange['readback']['evidence']['reference']['reader']['storeReaderSha256'] = old['readback']['evidence']['reference']['reader']['storeReaderSha256']
+        self.refused('reader identity differs')
+        self.select('selected')
+        self.exchange['actualLt09']['transitionId'] = 'LT-12'
+        self.exchange['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(self.exchange['actualLt09'])
+        self.rebind_publication(); self.refused('unsupported envelope')
 
     def test_cli_uses_actual_export_and_preserves_limits(self):
         result = subprocess.run([sys.executable, '-B', str(APP / 'examination/distribution_receiving/receive.py'),

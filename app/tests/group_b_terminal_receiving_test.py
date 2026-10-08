@@ -12,7 +12,8 @@ import unittest
 from unittest.mock import patch
 
 APP = Path(__file__).resolve().parents[1]
-FIXTURES = APP / 'tests/group_b_terminal_receiving_fixtures'
+PREVIOUS_CURRENT = APP / 'tests/group_b_terminal_receiving_fixtures'
+FIXTURES = APP / 'tests/group_b_lt12_source_terminal_fixtures'
 
 
 def load(name, path):
@@ -159,6 +160,18 @@ class TerminalReceivingTests(unittest.TestCase):
         old = base.parse((APP / 'tests/group_b_distribution_receiving_lt23_source_fixtures/selected/exchange.json').read_bytes())
         self.exchange['predecessor']['readback']['evidence']['reference'] = old['readback']['evidence']['reference']
         self.refused()
+
+    def test_lt12_source_adoption_refuses_previous_source_mixed_reader_and_lt12(self):
+        path = PREVIOUS_CURRENT / 'selected/exchange.json'
+        with self.assertRaisesRegex(ValueError, 'producer source revision differs'):
+            self.receiver.check(path,base.sha(path.read_bytes()),self.selection,base.sha(self.selection.read_bytes()))
+        old = base.parse(path.read_bytes())
+        self.exchange['terminal']['readback']['evidence']['reference']['reader']['storeReaderSha256'] = old['terminal']['readback']['evidence']['reference']['reader']['storeReaderSha256']
+        self.refused('terminal reader identity differs')
+        for role,key in [('predecessor','actualLt09'),('terminal','actualLt23')]:
+            self.select('selected'); event = self.exchange[role][key]; event['transitionId'] = 'LT-12'
+            self.exchange[role]['readback']['evidence']['lifecycle']['legacy_event'] = copy.deepcopy(event)
+            self.rebind(role); self.refused('unsupported envelope|unsupported terminal event')
 
     def test_terminal_source_guard_and_cli(self):
         original = base.relative

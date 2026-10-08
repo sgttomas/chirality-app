@@ -7,3 +7,7 @@ Five product/test/support files are copied byte-exact from author manifest f9b51
 This is bounded actual LT12 same-H5 publication after installed LT09, with original LT09 also preserved for LT23. Existing invalid LT19 Stop-after-exit tuple and null fallback facts remain unresolved; there is no whole-trace validation. No REC/lib/setup change, new production authority, S3, SEAL-2, hydration, native/package or qualification claim.
 
 Committed-head review, fresh committed/recompiled unchanged-format LT09 and LT09+LT23 exchanges, and named B receiving adoption are required next. Old cohorts/pins remain historical and unchanged; current-source guards must not be weakened. Neither exchange claims an LT12 export.
+
+## Joined checkpoint
+
+Source938d20 is exact-head READY. Fresh unchanged-format cohorts were independently verified and retained at f003bf567b. B fixed named adoption6fdacd9dca86 is independently READY; all135 B paths copied byte-exact,73 current pins checked and63 integrated tests passed. Historical cohorts remain byte-exact. Full joined review and required CI remain pending. LT12 is supported in production code and in-crate tests but is not exported by either unchanged receiving format.
