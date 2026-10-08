@@ -1,5 +1,8 @@
 # C3 fleet placement concurrence — DEL-06-01 consultation
 
+Current affected concurrence is the CRP-v0.2 addendum below. The original
+CRP-v0.1 assessment remains historical and does not establish final adoption.
+
 ## Result and responsibility
 
 I concur, in the bounded DEL-06-01 source-owner consultation assigned to TASK
@@ -142,3 +145,64 @@ return is this consultation commit for manager integration; no push or merge.
 Verification is document/source comparison against the identified basis and
 write-scope inspection. The staged private-term validator with `--from-host`
 is required before commit; its actual result is returned with the commit.
+
+## Affected concurrence — CRP-v0.2 / CRP-R1
+
+Read in full: `projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.2.md` at
+`cdc4c5b4d32d3aa2b94134bfd90aadb7538a58d0`;
+SHA-256 `6552f82f3a574b847e19ed909ac610e4b263f27d6034253488b0d2a314659f12`.
+The parent supplied the revision with the earlier v0.1 filename; inspection
+of that commit established the actual renamed v0.2 path recorded here.
+
+**Concur from DEL-06-01 ownership with the repaired definition at these exact
+bytes.** This supersedes the compatibility assessment of the original CRP-v0.1
+proposal for current use, preserving that earlier revision and its assessment
+above as history. No independent review or adoption is implied.
+
+The reopened issue was that no-follow directory-handle operations cannot
+establish the earlier unconditional failure guarantee for every ancestor
+change. CRP-v0.2 §2 now specifies the guarantee as containment through verified
+opened directory identities. The operation cannot be redirected into a
+replacement directory by path substitution, but an external rename can move
+an already opened directory outside the current project pathname tree.
+Pre/post identity comparisons cannot prove continuous pathname membership or
+exclude a move restored between checks. This is a real residual, not evidence
+that the original stronger wording was implemented or verified.
+
+For fleet reference compatibility, the repaired boundary is usable: a detected
+pre-write mismatch aborts; a detected post-write mismatch reports an
+uncertain-location commit rather than a successful old relative reference.
+The writer retains the original identity and intended binding, does not retry
+or relocate implicitly, and requires explicit reconciliation where the
+canonical project path no longer identifies the publication. The added
+post-publication read-back checks file identity, exact bytes, account ID and
+version. Later discovery mismatch refuses reliance. A successful observed
+comparison remains bounded evidence, not a perpetual guarantee of location.
+Fleet consumers must resolve and check the adopted binding at actual use;
+they cannot turn a stored relative path into proof of current location or
+promote an unresolved location into readiness or need satisfaction.
+
+The canonical connector namespace, account/storage identity separation,
+version/hash binding, duplicate refusal and cold-discovery meaning are
+unchanged. Future fleet paths remain unselected and can coexist separately.
+There is still no common reader/service requirement, no D-first production
+prerequisite, no reversal of C→D supply, and no change to RF-5a/RF-5b or the
+need/readiness distinction. The explicit §3 schema boundary is also compatible:
+shape validity and evidence-field presence do not establish reference truth,
+source custody, actual duty performance or completeness. Actual source recovery
+and semantic verification remain C3 work, not silently delegated to fleet.
+
+The required rename-race and restored-rename cases in §6 appropriately examine
+the repaired promise and its residual. This consultation did not execute them.
+Implementation and independent review must cover those cases and the actual
+candidate. If a consumer or accepted requirement instead demands continuous
+current-path containment against concurrent renames, §2 expressly holds the
+affected implementation pending an enforceable exclusion mechanism. This
+consultation does not select such a mechanism or waive such a requirement.
+No inspected DEL-06-01 placement/reference rule imposes that stronger promise;
+no source-owner conflict is identified within this bounded consultation.
+
+All original write, authority and SEAL-2 limits remain. The only change is this
+evidence update. Staged private-term screening with `--from-host` and diff
+checking precede the affected concurrence commit; their actual results are
+returned to the manager. No push, merge, persistence or native witness occurs.
