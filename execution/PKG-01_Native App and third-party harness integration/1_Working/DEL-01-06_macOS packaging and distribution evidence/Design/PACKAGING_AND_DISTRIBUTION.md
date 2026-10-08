@@ -1,5 +1,11 @@
 # macOS packaging, signing and distribution evidence
 
+**CC-HOSTING-DISTRIBUTION-01 amendment candidate:** additions in §§4–5 select
+full-tree comparison and launcher evidence jointly with HOSTING §7.4. Pending
+independent Design review and HELP_HUMAN integration/adoption. The PKG-v0.2
+headers, schemas, examples, prototypes and historical observations retain their
+original standing; they do not implement the new full-record requirements.
+
 - **Contribution:** DEL-01-06/PKG-v0.2. It supersedes PKG-v0.1 (frozen unit
   U2, file sha256 `6920cd8c50b770772b15fe9665466cefb158f8c0d82e434b749006e8dc69b411`),
   repaired for review `reviews/RV2-PKG-U2.md` under R23-22 and R23-26 (see
@@ -242,13 +248,17 @@ unmodified tree but is not exercised (U-PKG-4).
 | P-4 `Contents/Info.plist` | Bundle id, version, minimum macOS, no microphone string | App build | Version equals the identity record's |
 | — App data, project folders | App-owned Codex homes (H-acct, H-key, H-probe), records, seeded guidance | Runtime | **Never in the bundle**; nothing is written into the bundle at run time |
 
-**Launcher (proposed value for HOSTING U-17).** The App starts
+**Launcher (CC-HOSTING-DISTRIBUTION-01 candidate for HOSTING U-17).** The App starts
 `Contents/Resources/codex/bin/codex` directly (the vendor binary), adding no
 npm-wrapper environment. Reasons: a Tauri App ships no Node runtime for the
 npm wrapper; PIN_SPIKE §3 observed the vendor binary started directly gives
 the same handshake as the wrapper. The identity covers the whole vendor tree
-(HOSTING §7.1 as written). U-17 stays the App implementation owner's with
-this deliverable; this is a proposal to it, not an edit of HOSTING.
+(HOSTING §7.1 as written). The candidate HOSTING §7.4 / DISTRIBUTION_IDENTITY.md now supplies the joint
+method: prepend the resolved `codex-path` for probe and server; reject a prefix
+containing `:` or otherwise unrepresentable as one PATH entry; preserve inherited
+PATH remainder semantics; remove inherited npm managed-package variables; record
+actual nonsecret App configuration and separate H-probe/account homes. This
+selection remains pending named review and HELP_HUMAN adoption.
 
 **Relocation (HOSTING §10 P-02; PIN_SPIKE UNRESOLVED).** P-1 keeps the
 tree's relative layout, so the sibling resources stay where the binary
@@ -289,6 +299,16 @@ identity record (`configuration.sha256`). It holds:
 | CF-6 Installer | `dmg`, built from the signed `.app`, itself signed with CF-1 |
 | CF-7 Notarisation | `xcrun notarytool submit --wait --keychain-profile <name>`; the profile is the owner's, stored in the owner's keychain; only its name is configured, no credential enters a file or record |
 | CF-8 Stapling | `xcrun stapler staple` on the installer |
+
+### 4.4 Full-tree configuration addition (CC-HOSTING-DISTRIBUTION-01; candidate)
+
+OUT-001 also identifies method `codex-vendor-tree-v1`, the immutable qualified
+supplier-reference artifact and its exact-byte SHA-256, bundle-relative vendor
+root and direct executable, PATH-prefix convention and wrapper-variable removal.
+The expected artifact is outside the measured tree. App build identity binds its
+bytes; it does not contain a self-referential final package identity. Until a
+qualified reference exists, record that missing input; no development digest
+substitutes. Preserve CF-1…8 and the existing signing/owner-act boundaries.
 
 ## 5. Package identity record (OUT-002; SCC-003 M2) — `pkg.identity-record.schema.json`
 
@@ -347,6 +367,35 @@ witness) go under `Evidence/EXP/<candidate key>/` per EXP §8.4.
 - **PK-R8** `complete` only when no bundle item is `missing`.
 - **PK-R9** Option B with any of FP-1(a), FP-1(b), FP-3 not `pass` carries
   the limit "option B not yet relied on: FP-1/FP-3 not passed" (§3).
+
+### 5.5 Full inventory successor (CC-HOSTING-DISTRIBUTION-01; candidate)
+
+HOSTING §7.4 / DISTRIBUTION_IDENTITY.md defines the authoritative candidate
+method for published and packaged trees: exact file/directory/root-mode inventory,
+file sizes/digests and the unchanged §5.2 file-manifest encoding. Its inventory
+schema and pure-value prototype are maintained in DEL-01-01 Design. Reject
+unsupported links/types, invalid paths, unstable traversal or unavailable comparison
+as specified there; never omit them. The legacy shell pipeline in §5.2 is a
+historical illustration, not the production traversal for arbitrary names.
+
+A versioned successor to PKG-v0.2 must carry both full inventory artifact references
+and their exact-byte digests, method and qualified supplier-reference binding.
+PK-R1's successor must compare exact inventories as well as existing signature
+obligations; v0.2's manifest/counts/executable list alone is insufficient. The
+successor schema, examples, checker and maintained app/examination consumer must
+propagate together. They are not delivered by this text amendment. Existing v0.2
+schema/prototype passes retain historical meaning and cannot satisfy the new rule.
+
+FP-1(a)/(b) compare the actual packaged tree, published tree and qualified reference
+under this method, including root mode and empty directories; packaging preserves
+them or records a mismatch. Their successor evidence binds the observations,
+reference and comparison outcome. Pending qualification may be recorded as missing
+input while offline package preparation proceeds; no Option B reliance or FP-2/W-4
+pass follows from that state. FP-0 signature facts and FP-3 notarisation are
+separate requirements. FP-2/W-4 additionally consumes the complete runtime
+verification artifact for the same installed candidate. Runtime revalidation and
+stable-bundle custody are specified by HOSTING; this packaging text grants no
+execution authority. SIGN-2 remains the required escalation for Option A.
 
 ## 6. Operating sequence and failure behaviour
 
@@ -513,7 +562,7 @@ and content identities are placeholders, labelled in `limits`.
 | ID | Item | Owner | Point of need |
 |---|---|---|---|
 | U-PKG-1 | G-2, G-5, G-7 confirmed (FP-1, FP-3, FP-4, the witness) | DEL-01-06 at the first package | Before any reliance on B |
-| U-PKG-2 | HOSTING U-17 launcher value (§4.1 proposes the vendor binary) | App implementation owner with DEL-01-06 (HOSTING U-17) | Before verification implementation |
+| U-PKG-2 | HOSTING U-17 launcher value (CC-HOSTING-DISTRIBUTION-01 candidate, §4.1; review/adoption pending) | App implementation owner with DEL-01-06 (HOSTING U-17) | Before verification implementation |
 | U-PKG-3 | Qualification pin | **Decided by rule (R23-22):** 0.158.0 stays the definition and generation pin; 0.160.0 is checked and design-compatible; the qualification pin is the newest version that has passed a version-advance check when a candidate is built. FP-0 runs at that pin | When a candidate is built |
 | U-PKG-4 | Voice host shipped but unused; no microphone string | App implementation owner | If voice is ever offered |
 | U-PKG-5 | Minimum macOS version (CF-5) | App implementation owner | Before the first package |

@@ -1,0 +1,53 @@
+{
+  "method": "codex-vendor-tree-v1",
+  "algorithm": "sha-256",
+  "manifest_sha256": "fdfb751fcd2b510cf79fda139d850b636dc67f45781f140f6a8eb37f268ccceb",
+  "entries": [
+    {
+      "path": ".",
+      "kind": "dir",
+      "mode": 493
+    },
+    {
+      "path": "bin",
+      "kind": "dir",
+      "mode": 493
+    },
+    {
+      "path": "codex-path",
+      "kind": "dir",
+      "mode": 493
+    },
+    {
+      "path": "codex-resources",
+      "kind": "dir",
+      "mode": 493
+    },
+    {
+      "path": "codex-resources/empty",
+      "kind": "dir",
+      "mode": 493
+    },
+    {
+      "path": "bin/codex",
+      "kind": "file",
+      "mode": 493,
+      "size": 12,
+      "sha256": "f0fce4c4b7a93190210cf71dfe9225a62d468b76a268df42f0447b12390802ae"
+    },
+    {
+      "path": "codex-package.json",
+      "kind": "file",
+      "mode": 420,
+      "size": 2,
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "path": "codex-resources/é.txt",
+      "kind": "file",
+      "mode": 420,
+      "size": 3,
+      "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    }
+  ]
+}
