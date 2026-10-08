@@ -1,0 +1,58 @@
+{
+  "finding": "F1: relative resource path bypassed output/input overlap guard",
+  "reviewer": "/root/group_b_manager/first_slice_review",
+  "candidate_revision": "799f7ca01ef5820a70dff7ee900e10d1ccc59670",
+  "observed_at": "2026-10-08T04:47:17.080984+00:00",
+  "change": "Use already anchored input_account item.tree.root/item.source paths in overlap checks, not raw declared relative strings.",
+  "checks": "16 test methods pass, including relative, ./, subdir/.. and nested-cwd ../ inputs, refusing before output creation and preserving original input inventory. Actual supplier staging repeated under repaired candidate: 42 files, equal content/mode/layout comparison, package_complete false.",
+  "commands": [
+    {
+      "command": [
+        "python3",
+        "tests/group_b_packaging_test.py"
+      ],
+      "cwd": "/Users/ryan/.codex/worktrees/app-v4-group-b-support/chirality/projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "tests.txt"
+    },
+    {
+      "command": [
+        "python3",
+        "packaging/prepare.py",
+        "prepare",
+        "--vendor",
+        "/Users/ryan/Library/Caches/chirality-dev/codex/0.160.0/complete-package/package/vendor/aarch64-apple-darwin",
+        "--expected-manifest",
+        "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+        "--pin",
+        "0.160.0",
+        "--candidate-revision",
+        "799f7ca01ef5820a70dff7ee900e10d1ccc59670",
+        "--inputs",
+        "/private/tmp/group-b-package-prep-repair-capture/selected-inputs.json",
+        "--output",
+        "/private/tmp/chirality-group-b-unsigned-ir9gmbnc/stage"
+      ],
+      "cwd": "/Users/ryan/.codex/worktrees/app-v4-group-b-support/chirality/projects/chirality-app-v4/app",
+      "exit": 0,
+      "output": "preparation.json"
+    }
+  ],
+  "staging_output": "/private/tmp/chirality-group-b-unsigned-ir9gmbnc/stage",
+  "affected_files_sha256": {
+    "projects/chirality-app-v4/app/packaging/prepare.py": "8881ac02b05863aa997f46f5d48b9711a2395333319a97face3618351d60866b",
+    "projects/chirality-app-v4/app/tests/group_b_packaging_test.py": "b743c1af24177b1b6a80ecb84d2b26ddf014a0d9442f2d5dfa3df7507e402a07"
+  },
+  "artifact_sha256": {
+    "preparation.json": "4866c6e1ae8ca9104d60003e49e47c6b25639636008b8057472fd35f05a766c6",
+    "selected-inputs.json": "af14256dc3ddc4aa1494536ce85a97cad487003a6c779d02749e9a6d973afbfb",
+    "tests.txt": "fff6601bebc445c749c178dc20607ca4e7975212cf3db4664b6b088e8a096422",
+    "execution.json": "65e2d501164803adb15857a7993695a7a196b8444dc3ebf28d1e48f4c9a86a75"
+  },
+  "unchanged_scope": "inventory.py and pinned canonical sources unchanged by F1. Baseline host-inventory.json FP0 observations remain attached to actual unchanged supplier tree and original inventory implementation. No signature rerun needed for overlap repair.",
+  "limits": [
+    "This preparation report is not a canonical PKG identity or qualified full-tree/package evidence. Parent retains CI27 and CC-HOSTING-DISTRIBUTION-01 for versioned complete inventory and verifier propagation.",
+    "No FP1a/b, FP2/W4, FP3, package, native smoke, signing, notarisation, human act or qualification is established.",
+    "Independent reviewer re-probe requested; no review acceptance claimed by author."
+  ]
+}
