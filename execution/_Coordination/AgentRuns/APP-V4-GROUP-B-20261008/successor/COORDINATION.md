@@ -28,3 +28,42 @@ B7 already has source-bound steps, invented workflow consumer checks and blank
 native forms. Executable candidate/configuration, real ST-4/ST-5 counterparts,
 three modes, person and separate examiner remain missing. No further preparation
 artifact substitutes for these inputs. No duplication of either manager's files.
+
+## Review and receiving updates
+
+Independent Type 2 `/root/group_b_successor/runner_review` was dispatched via
+the harness with fresh context, requested gpt-6-astra/low, a separate managed
+checkout, TASK and software-code-review skill. Author d64007fa46 was frozen
+for review, integrated unchanged as 8f81709f3a. The existing 61 Python Group B
+checks passed in manager integration. Reviewer confirmed the manager's DC-R2
+concern: static DOM sensitivity is not supplier-double/recording seam evidence.
+The author retains repair custody; no route admission is inferred.
+
+Distribution reports P3 production native start will require Cargo
+`custom-protocol` (tauri/custom-protocol) and strict resource_dir/instructions
+comparison. The next production candidate must enable that feature; the
+embedded development route cannot substitute. Reviewed exact P3 return remains
+pending. P2 remains held/non-runnable pending its separate named proposal.
+
+## Frozen bounded return
+
+Author repair ea75b4b412 integrates as e16754821d. Separate reviewer
+READY at that author revision; review-only d8fd63027a integrates as e0d238197f.
+DC-R2 is inconclusive with actual sensitivity outcomes preserved separately.
+WebKit DC-R1 and both DC-R5 remain inconclusive; no route is admitted.
+Author browser suite: 4 pass, no skips. Independent nonbrowser suite: 3 pass,
+1 explicit browser skip. Reviewer verified eight capture hashes, source/fixture
+hashes and observation joins. Automatic approval review rejected the independent
+cached-browser launch as an unauthorized native act. No bypass or retry; parent
+confirmed use of existing evidence with the re-execution limit recorded.
+
+Manager integration: existing 61 Python Group B tests pass; nonbrowser runner
+tests 3 pass/1 skip. Initial sandbox loopback bind was refused; separately
+approved loopback-only nonbrowser run passed. No browser rerun was attempted
+by the manager. Required CI and exact-head review remain before parent merge.
+
+This increment supplies usable runner probe support and truthful partial
+evidence. Full B3 admission, complete CI-26 support identity, A-IN/CI-27, P2
+production admission, qualified package inputs, B7 actual stimuli/configuration
+and person/examiner inputs remain on the existing graph. No final closeout or
+90% decision is claimed.

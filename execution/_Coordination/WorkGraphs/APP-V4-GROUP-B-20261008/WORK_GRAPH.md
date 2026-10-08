@@ -73,7 +73,7 @@ authors. Each production slice carries its necessary documentation and checks.
 | B7-FX usable invented workflow fixtures and real consumer checks | DEL-09-02/DEL-09-01; standalone_preparation TASK; new standalone fixtures and group_b_fixture tests; exact cfg(test) module declaration in lib.rs | Accepted SQ/WD/WR/EXEC; actual maintained Rust parser/review/snapshot path | Invented workflow/collision inputs pass real consumer, meaningful negatives; no registration/act/native stimulus fabricated | COMPLETE bounded54db725c independently READY;5 actual Rust/2 tool checks; native stimuli unperformed |
 | B3-N1 usable blank native-step forms | DEL-09-01/DEL-09-02; support_production TASK; new native_forms and group_b_native_forms tests | EXP §8.2, current source-bound B7 prep and SQ steps | Actual prep→ordered form path, blank unobserved fields and explicit no-examination standing; meaningful mismatch tests | COMPLETE bounded79154910 independently READY;3 blank forms exact regeneration; N-1 execution unrun |
 | V4 integrated consuming-path review | Separate reviewer first_slice_review; manager fan-in | Frozen B7-FX/B3-N1 code/evidence, current main | Independent contract/consumer review, affected integration tests, private-term checks and parent PR | COMPLETE PR #1126 merged 7311df06d8; exact-head review and CI retained in PR; 61 integrated Python checks |
-| B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | ACTIVE; successor/COORDINATION.md |
+| B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | READY bounded support at author ea75b4b412; independent review READY; successor/reviews/RUNNER.md |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -128,10 +128,13 @@ Current receiving source: merged PR #1126, 7311df06d8. PR #1117 supplied partial
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** B3-RUNNER produces cached-engine interface-runner support against
-EXP §8.3, with actual pass/fail/missing-target and capture checks where available.
-Observed page traffic alone cannot establish complete DC-R5 isolation; incomplete
-observations do not admit a route. Receive P2/P3 and hosting S1/S2 contributions
+**Next:** integrate the independently reviewed B3-RUNNER support increment.
+Actual cached-engine assertion, missing-target and capture probes exist. DC-R2
+remains inconclusive because the static fixture is not a supplier-double seam;
+WebKit DC-R1 does not query the engine identity; page traffic does not establish
+DC-R5 whole-process isolation. No route is admitted. Independent browser rerun
+was not performed after automatic approval review rejected that launch; source,
+retained captures and nonbrowser checks were independently examined. Receive P2/P3 and hosting S1/S2 contributions
 at their separately reviewed boundaries. P2 production LS-5/LS-8 admission is
 held: an unshipped candidate cannot mint its own shipping history. Distribution's
 named WR/PKG pre-release proposal owns that treatment; development catalog checks
