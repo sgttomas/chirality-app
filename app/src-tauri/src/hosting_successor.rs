@@ -273,6 +273,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    mod lt23 { include!("hosting_lt23_tests.rs"); }
     mod s4_export { include!("hosting_s4_export.rs"); }
     use super::*;
     use crate::hosting::Host;
@@ -387,7 +388,7 @@ for line in sys.stdin:
         let ready=host.start(&f.cfg,"fixture").unwrap();
         let g=ready["generation"].clone();
         let evidence=host.distribution_evidence(&g);
-        host.stop("fixture","store test complete").unwrap();
+
         assert_eq!(evidence["state"],"read", "{evidence}");
         assert_eq!(evidence["evidence"]["artifact"]["format"],"observed-verification.s1");
         let lt09=host.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-09").unwrap();
@@ -402,16 +403,18 @@ for line in sys.stdin:
         assert_eq!(host.distribution_evidence(&json!({"appSession":"foreign","home":g["home"],"spawnCounter":1}))["state"],"unavailable");
         std::fs::write(&artifact,b"{}").unwrap();
         assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+        host.stop("fixture","store test complete").unwrap();
     }
     #[test]
     fn actual_s1_at_use_final_audit_rejects_mutation_after_read() {
         let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
         let ready=host.start(&f.cfg,"fixture").unwrap();let g=ready["generation"].clone();
-        let evidence=host.distribution_evidence(&g);host.stop("fixture","audit fixture complete").unwrap();
+        let evidence=host.distribution_evidence(&g);
         let artifact=data.join("runtime/distribution").join(evidence["evidence"]["reference"]["publication"].as_str().unwrap()).join(".chirality-s1/observed.json");
         let store=host.distribution_store.lock().unwrap().as_ref().unwrap().as_ref().unwrap().clone();
         store.before_s1_audit(move || std::fs::write(artifact,b"{}").unwrap());
         assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+        host.stop("fixture","audit fixture complete").unwrap();
     }
     #[test]
     fn namespace_admission_two_actual_host_homes_preserve_store_reference_and_expand_guards(){
@@ -436,11 +439,12 @@ for line in sys.stdin:
     fn actual_s1_selected_closure_is_unverified_exact_and_rechecks_original_source() {
         let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_selected_store(&host,&f,Some("reference/expected.json"));
         let ready=host.start(&f.cfg,"fixture").unwrap();let g=ready["generation"].clone();let evidence=host.distribution_evidence(&g);
-        host.stop("fixture","selected closure test complete").unwrap();
+
         assert_eq!(evidence["state"],"read","{evidence}");assert_eq!(evidence["evidence"]["outcome"],"unverifiable");assert_eq!(ready["supplierStanding"],"unverified-development");
         let root=data.join("runtime/distribution").join(evidence["evidence"]["reference"]["publication"].as_str().unwrap());
         for entry in evidence["evidence"]["transport"]["entries"].as_array().unwrap(){let path=entry["path"].as_str().unwrap();if !path.starts_with(".chirality-s1/"){assert_eq!(std::fs::read(root.join(path)).unwrap(),std::fs::read(f.root.join("reference-source").join(path)).unwrap());}}
         std::fs::write(f.root.join("reference-source/evidence/expected/0.json"),b"tamper").unwrap();assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+        host.stop("fixture","selected closure test complete").unwrap();
     }
     #[test]
     fn selected_reserved_path_collision_refuses_before_spawn() {

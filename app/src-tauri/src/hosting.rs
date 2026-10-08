@@ -145,6 +145,9 @@ struct Inner {
     successor_status: Option<Value>,
     successor_artifact_error: Option<String>,
     successor_reference: Option<crate::distribution_store::S1Reference>,
+    successor_publication_sequence: u64,
+    successor_lt09_installed: bool,
+    successor_terminal_pending: bool,
     generation: Value,
     app_session: String,
     home: String,
@@ -336,6 +339,56 @@ struct CapturedRecoveryQueue { facts:Mutex<VecDeque<Value>>, limit:Mutex<Option<
 
 struct AppRecoverySource { inner:Weak<(Mutex<Inner>,Condvar)>, queue:Arc<CapturedRecoveryQueue> }
 
+// One job across all homes and retired/reopened Hosts in this App session.
+// Lock order is controller -> Inner, never across Store work or thread joins.
+#[derive(Default)]
+struct TerminalPublicationController {
+    state: Mutex<TerminalPublicationState>,
+    #[cfg(test)]
+    before_work: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    fail_spawn: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    after_spawn: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    before_install: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+}
+#[derive(Default)]
+struct TerminalPublicationState { closing: bool, active: bool }
+struct TerminalPermit(Arc<TerminalPublicationController>);
+impl Drop for TerminalPermit {
+    fn drop(&mut self) { self.0.lock_state().active=false; }
+}
+#[derive(Clone)]
+struct TerminalToken { attempt: u64, generation: Value, sequence: u64 }
+impl TerminalToken {
+    fn matches(&self, i:&Inner)->bool {
+        i.start_attempt==self.attempt && i.generation==self.generation
+            && i.successor_publication_sequence==self.sequence && i.state=="stopped"
+    }
+    fn unavailable(&self, inner:&Arc<(Mutex<Inner>,Condvar)>, reason:String) {
+        let mut i=inner.0.lock().unwrap();
+        if self.matches(&i) { i.successor_terminal_pending=false; i.successor_artifact_error=Some(reason); }
+    }
+}
+impl TerminalPublicationController {
+    fn lock_state(&self)->std::sync::MutexGuard<'_,TerminalPublicationState> {
+        self.state.lock().unwrap_or_else(|e|{let mut state=e.into_inner();state.closing=true;state})
+    }
+    fn complete(&self, inner:&std::sync::Weak<(Mutex<Inner>,Condvar)>, token:&TerminalToken, result:Result<crate::distribution_store::S1Reference,String>) {
+        let state=self.lock_state();
+        if state.closing { return; }
+        #[cfg(test)]
+        {let hook=self.before_install.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+        if let Some(inner)=inner.upgrade() {
+            let mut i=inner.0.lock().unwrap();
+            if !token.matches(&i)||!i.successor_terminal_pending { return; }
+            i.successor_terminal_pending=false;
+            match result { Ok(reference)=>{i.successor_reference=Some(reference);i.successor_artifact_error=None;}, Err(e)=>i.successor_artifact_error=Some(format!("LT-23 evidence unavailable: {e}")) }
+        }
+    }
+}
+
 pub struct AppRuntimeCustody {
     session:String,
     ledger:Option<Arc<Mutex<RecoveryLedger>>>,
@@ -346,8 +399,10 @@ pub struct AppRuntimeCustody {
     initial_limit:Option<String>,
     recovery_path:Option<PathBuf>,
     end_observation:Mutex<Option<Value>>,
+    terminal_publication:Arc<TerminalPublicationController>,
 }
 impl AppRuntimeCustody {
+    pub(crate) fn close_distribution_publication(&self) { self.terminal_publication.lock_state().closing=true; }
     pub fn snapshot(&self)->Value {
         let recovery=self.ledger.as_ref().map(|ledger|ledger.lock().unwrap().snapshot());
         json!({"appSession":self.session,"recovery":recovery,"limit":self.initial_limit,"sessionEndObservation":*self.end_observation.lock().unwrap(),"pendingSourceObservations":self.sources.lock().unwrap().iter().map(|s|json!({"entries":s.queue.facts.lock().unwrap().iter().cloned().collect::<Vec<_>>(),"limit":*s.queue.limit.lock().unwrap()})).collect::<Vec<_>>(),"standing":"actual App custody; pointer-only metadata, not native live proof or capture chronology"})
@@ -390,6 +445,7 @@ impl AppRuntimeCustody {
     /// Called by Root only on actual App termination after owned-home accounting.
     /// This records metadata; it does not stop native sources or prove a human act.
     pub fn record_app_session_end(&self,stop_requests:&[Value])->Result<Value,String>{
+        self.close_distribution_publication();
         let _writer=self.writer.lock().unwrap();let mut ended=self.end_observation.lock().unwrap();if let Some(observed)=ended.as_ref(){return Ok(observed.clone());}
         let entry=RecoveryLedger::session_end_entry(&self.session,stop_requests)?;
         // Keep each source's captured order; this chosen append interleaving is
@@ -520,11 +576,14 @@ impl Host {
     pub(crate) fn distribution_store_for_admission(&self,required:bool)->Result<Option<Arc<crate::distribution_store::Store>>,String>{match self.distribution_store.lock().unwrap().clone(){Some(Ok(store))=>Ok(Some(store)),Some(Err(e))=>Err(e),None if required=>Err("required distribution Store unavailable".into()),None=>Ok(None)}}
     /// Read exact bytes outside source/ledger locks, then recheck the source.
     pub(crate) fn distribution_evidence(&self, generation: &Value) -> Value {
-        let (attempt, reference) = {
+        let closing=self.runtime_custody.lock().unwrap().as_ref().map(|c|c.terminal_publication.clone())
+            .is_some_and(|c|c.lock_state().closing);
+        let (attempt, sequence, reference) = {
             let i = self.inner.0.lock().unwrap();
             if &i.generation != generation { return json!({"state":"unavailable","reason":"foreign generation"}); }
+            if i.successor_terminal_pending { return json!({"state":if closing {"unavailable"} else {"pending"},"generation":generation,"reason":if closing {"App closing; terminal installation disabled"} else {"LT-23 publication pending; not durable evidence"}}); }
             if let Some(error)=&i.successor_artifact_error{return json!({"state":"unavailable","generation":generation,"reason":error});}
-            (i.start_attempt, i.successor_reference.clone())
+            (i.start_attempt, i.successor_publication_sequence, i.successor_reference.clone())
         };
         let Some(reference) = reference else { return Value::Null; };
         let store = self.distribution_store.lock().unwrap().clone();
@@ -533,7 +592,7 @@ impl Host {
             Some(Err(e)) => Err(e), None => Err("distribution store not configured".into()),
         };
         let i = self.inner.0.lock().unwrap();
-        if i.start_attempt != attempt || &i.generation != generation { return json!({"state":"unavailable","reason":"source changed during artifact read"}); }
+        if i.start_attempt != attempt || i.successor_publication_sequence != sequence || &i.generation != generation { return json!({"state":"unavailable","reason":"source changed during artifact read"}); }
         match result {
             Ok(value) => json!({"state":"read","generation":generation,"evidence":value}),
             Err(error) => json!({"state":"unavailable","generation":generation,"reason":error}),
@@ -580,7 +639,7 @@ impl Host {
         let(session,ledger,limit,recovery_path)={let mut i=self.inner.0.lock().unwrap();if !i.generation.is_null()&&(i.app_session.is_empty()||i.generation["appSession"]!=i.app_session||i.generation["home"]!=i.home||i.generation["spawnCounter"]!=i.spawn_counter){return Err("actual App session/home/counter fields disagree with generation; no JSON custody reconstruction".into());}if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}
             if !i.home.is_empty()&&i.spawn_counter>0{let mut counters=self.spawn_counters.lock().unwrap();let current=counters.entry(i.home.clone()).or_default();*current=(*current).max(i.spawn_counter);}
             (i.app_session.clone(),i.recovery.clone(),i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone()).or_else(||if i.recovery.is_none(){Some("original App ledger unavailable; pointer history memory-only/unverified".into())}else{None}),i.recovery_path.clone())};
-        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None)});*cached=Some(Arc::clone(&custody));Ok(custody)
+        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default())});*cached=Some(Arc::clone(&custody));Ok(custody)
     }
     pub fn new_with_app_custody(custody:Arc<AppRuntimeCustody>)->Result<Self,String>{
         let writer=Arc::clone(&custody.writer);let _writer=writer.lock().unwrap();if custody.end_observation.lock().unwrap().is_some(){return Err("App session end already observed; no new home source in this App session".into());}
@@ -829,6 +888,9 @@ impl Host {
             i.successor_status = None;
             i.successor_reference = None;
             i.successor_artifact_error = None;
+            i.successor_lt09_installed=false;
+            i.successor_terminal_pending=false;
+            i.successor_publication_sequence=0;
             i.supplier_standing = None;
             i.version_identity = None;
             let id = match i.state.as_str() {
@@ -1146,6 +1208,8 @@ impl Host {
         let held: Vec<Value> = std::mem::take(&mut i.held);
         i.journal.extend(held);
         let event=i.lifecycle.last().cloned().ok_or("actual LT-09 absent")?;
+        let sequence=event["sequence"].as_u64().ok_or("actual LT-09 sequence absent")?;
+        i.successor_publication_sequence=sequence;
         let prior=i.successor_reference.clone();
         drop(i);drop(_gate);
         #[cfg(test)]
@@ -1153,9 +1217,14 @@ impl Host {
         if let Some(prior)=prior {
             let store=self.distribution_store.lock().unwrap().clone();
             let publication=match store {Some(Ok(store))=>store.publish_lt09(generation,&prior,&event),Some(Err(e))=>Err(e),None=>Err("S1 store absent after LT-09".into())};
+            let controller=self.runtime_custody.lock().unwrap().as_ref().map(|c|c.terminal_publication.clone());
+            let publication_state=controller.as_ref().map(|c|c.lock_state());
             let mut i=self.inner.0.lock().unwrap();
+            if publication_state.as_ref().is_some_and(|s|s.closing){return Err("App closing; LT-09 installation disabled".into());}
             if i.start_attempt!=attempt||i.generation!=*generation{return Err("source changed during LT-09 publication; no newer-source mutation".into());}
-            match publication {Ok(reference)=>i.successor_reference=Some(reference),Err(error)=>i.successor_artifact_error=Some(format!("LT-09 evidence unavailable: {error}"))}
+            if i.successor_publication_sequence==sequence {
+                match publication {Ok(reference)=>{i.successor_reference=Some(reference);i.successor_lt09_installed=true;},Err(error)=>i.successor_artifact_error=Some(format!("LT-09 evidence unavailable: {error}"))}
+            }
         }
         Ok(self.snapshot())
     }
@@ -2200,6 +2269,43 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     pub fn stop_scoped(&self,expected_generation:&Value,actor:&str,reason:&str)->Result<Value,String>{
         crate::recovery::generation_ref(expected_generation)?;self.stop_inner(Some(expected_generation),actor,reason)
     }
+    fn schedule_terminal_publication(&self, token:TerminalToken, event:Value, prior:Option<crate::distribution_store::S1Reference>) {
+        let Some(prior)=prior else { token.unavailable(&self.inner,"LT-23 evidence unavailable: installed same-source LT-09 absent".into());return; };
+        // Do not manufacture App custody or acquire its REC writer from Stop.
+        let controller=self.runtime_custody.lock().unwrap().as_ref().map(|c|c.terminal_publication.clone());
+        let Some(controller)=controller else {token.unavailable(&self.inner,"LT-23 evidence unavailable: App custody absent".into());return;};
+        let store=self.distribution_store.lock().unwrap().clone();
+        let store=match store {Some(Ok(store))=>store,Some(Err(e))=>{token.unavailable(&self.inner,e);return;},None=>{token.unavailable(&self.inner,"LT-23 store absent".into());return;}};
+        {
+            let mut state=match controller.state.try_lock() {Ok(state)=>state,Err(_)=>{token.unavailable(&self.inner,"LT-23 publisher busy; no queued retry".into());return;}};
+            if state.closing||state.active {token.unavailable(&self.inner,"LT-23 publisher closing or busy; no queued retry".into());return;}
+            let mut i=self.inner.0.lock().unwrap();
+            if !token.matches(&i) {return;}
+            i.successor_terminal_pending=true;i.successor_artifact_error=None;
+            state.active=true;
+        }
+        let permit=TerminalPermit(controller.clone());
+        let weak=Arc::downgrade(&self.inner);
+        let worker_controller=controller.clone();let worker_token=token.clone();let worker_weak=weak.clone();
+        #[cfg(test)]
+        if controller.fail_spawn.swap(false,std::sync::atomic::Ordering::SeqCst) {
+            controller.complete(&weak,&token,Err("injected thread spawn failure".into()));drop(permit);return;
+        }
+        let spawn=std::thread::Builder::new().name("distribution-lt23".into()).spawn(move||{
+            let _permit=permit;
+            let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+                #[cfg(test)]
+                {let hook=worker_controller.before_work.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+                store.publish_lt23(&worker_token.generation,&prior,&event)
+            })).unwrap_or_else(|_|Err("terminal publication panicked".into()));
+            // All Store/namespace guards have unwound before installation.
+            worker_controller.complete(&worker_weak,&worker_token,result);
+        });
+        if let Err(e)=spawn {controller.complete(&weak,&token,Err(format!("thread spawn failed: {e}")));}
+        #[cfg(test)]
+        {let hook=controller.after_spawn.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+        // Detached: Stop, restart and shutdown never join or wait for this job.
+    }
     fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str) -> Result<Value, String> {
         let source_gate = self.attachment_gate.lock().unwrap();
         let pid;let target_generation;
@@ -2261,7 +2367,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             "exitFacts": exit,
             "descendants": {"checked": true, "surviving": surviving, "handling": if surviving > 0 { "recorded; not ended" } else { "none surviving" }},
             "closedGeneration": counts}));
-        let response=json!({"state":i.state});drop(i);self.flush_recovery_observations();Ok(response)
+        let terminal=if i.successor_status.is_some() {
+            let event=i.lifecycle.last().unwrap().clone();let sequence=event["sequence"].as_u64().unwrap();
+            i.successor_publication_sequence=sequence;
+            let token=TerminalToken{attempt:i.start_attempt,generation:i.generation.clone(),sequence};
+            let prior=if i.successor_lt09_installed {i.successor_reference.clone()} else {None};
+            i.successor_artifact_error=Some("LT-23 evidence unavailable: publication not admitted".into());
+            Some((token,event,prior))
+        }else{None};
+        let response=json!({"state":i.state});drop(i);
+        if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
+        self.flush_recovery_observations();Ok(response)
     }
 }
 

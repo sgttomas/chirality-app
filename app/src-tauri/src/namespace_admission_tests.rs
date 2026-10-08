@@ -233,6 +233,7 @@ fn namespace_admission_final_geometry_failure_and_unavailable_rec_are_truthful()
         initial_limit: Some("synthetic unavailable REC".into()),
         recovery_path: original.recovery_path.clone(),
         end_observation: Mutex::new(None),
+        terminal_publication: original.terminal_publication.clone(),
     };
     let binding = f.bootstrap.native_namespaces(true).unwrap();
     f.bootstrap.prepare_key().unwrap();
