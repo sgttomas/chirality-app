@@ -688,7 +688,12 @@ What the code now does (J6, revised after independent review V14):
   triggers in the parentless macOS alert (CFUserNotification) is
   unestablished, and the act now sits in the alternate slot, so Escape must
   be witnessed natively before any person relies on the build for an act;
-  if Escape reaches the middle slot the layout is revisited (V14-R1 R1-1). **Known limit: file acts are excluded.** Their three slots are
+  if Escape reaches the middle slot the layout is revisited (V14-R1 R1-1).
+  Witnessed 2026-10-08 (`probes/NATIVE_RECONFIRM_WITNESS_8cd69ff7.md`): on
+  macOS (Darwin 25.6), for A15, Escape closed the alert with no capture or
+  registration, Return chose "Don't register", and only the middle button
+  acted. Which non-act slot Escape takes is not shown by the App. The A16
+  and request-answer dialogs were not witnessed natively. **Known limit: file acts are excluded.** Their three slots are
   act, decline and Cancel; under the three-button layout an aborted alert
   would map to the third slot, which there would be a decline. They keep
   [act (default)] [Decline this act] [Cancel], so Return still performs a
