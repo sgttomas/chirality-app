@@ -723,13 +723,13 @@ has D5 add on *registered* and *registration not completed*:
 | Element (D5's name) | Meaning for the view |
 |---|---|
 | `draft` {`draft_location`, `draft_root`, `name`} | Where the draft is; a draft has no workflow identity (EXEC TR-1, HR-3) |
-| `event` | *written* · *changed* · *review shown* · *review stale* · *registration refused* · *registered* · *registration not completed* · *removed* |
+| `event` | *written* · *changed* · *review shown* · *review stale* · *registration refused* · *registered* · *registration not completed* · *re-confirmed* (CC-WR-RECONFIRM) · *removed* |
 | `from`, `to` | WR §5.1 draft states: *absent* · *draft* · *not valid* · *under review* · *changed since review* · *registered, unchanged since* · *removed* |
 | `content` | The draft's content identity with method (WD §6.1 RV-1…RV-5; algorithm open, WD U-03) |
-| `disposition` | WR's codes: *new workflow*, *new revision*, *in place*, or *refused: …* (K-6: *refused: name taken* asks for a new name) |
+| `disposition` | WR's codes: *new workflow*, *new revision*, *in place*, or *refused: …* (K-6: *refused: name taken* asks for a new name); *re-confirmation* (DS-8, WR §4.8) |
 | `cause`, `time`, `attribution` | As WR §8 states them (*file change item* with thread and item, *app action*, *not observed*) |
-| **`a15_record`** (optional, C-02) | For *registered* and *registration not completed*: the RS A15 record the App act control wrote at capture (K-8) |
-| **`revision`** (optional, C-02) | For *registered*: the revision identity |
+| **`a15_record`** (optional, C-02) | For *registered*, *registration not completed* and *re-confirmed*: the RS A15 record the App act control wrote at capture (K-8) |
+| **`revision`** (optional, C-02) | For *registered* and *re-confirmed*: the revision identity (for *re-confirmed*, the re-confirmed revision's own; no new revision) |
 
 **Read side (C-02).** The view takes `a15_record` and `revision` from the
 transition when present, otherwise from WR's `library_entry` for the same
@@ -749,16 +749,17 @@ for the parent workflow identity and the view never uses it for an A15.
 | *under review* | "under review", with the reviewed content identity; the App act control's A15 offer is available (AAC §4.2) |
 | *changed since review* | "changed since review — review again before registering" (K-8; WR RB-3) |
 | *registered, unchanged since* | "registered as ‹revision› by ‹person› (identity not verified) at ‹t›", citing the A15 record; earlier revisions remain (K-6) |
+| *registered, unchanged since*, reached by *re-confirmed* | "re-confirmed as ‹revision› for use in this App session by ‹person› (identity not verified) at ‹t›; registered earlier (not verified in this session)", citing the new A15 record |
 | *removed* | "removed" |
 | While the act control has captured an A15 and the workspace has not yet reported | "registration in progress" (from the act control's own state, AAC §3) |
 | After *registration not completed* | "draft — registration not completed: ‹cause›; the act is recorded and had no effect" |
 
 **Accepted transitions** are WR §5.1's (prototype `DRAFT_ALLOWED`); the view
 checks that `from` equals the state it shows and re-reads WR's
-`draft_reference` when it does not. **Refused by the view** (never shown as
+`draft_reference` when it does not. CC-WR-RECONFIRM adds: *registered, unchanged since* → *under review* (*review shown*, DS-8); *registered, unchanged since* → *registered, unchanged since* (*registration refused*, DS-3 or DS-4); *under review* → *registered, unchanged since* (*re-confirmed*; *registration not completed* or *review stale* of a DS-8 review begun there); *under review* → *draft* (*registration not completed* of a DS-8 review begun at *draft*). **Refused by the view** (never shown as
 transitions): *registered* when neither the transition nor `library_entry`
 gives the A15 record and the revision;
-*registered* for content other than the reviewed content; *registration not
+*registered* for content other than the reviewed content; *re-confirmed* when neither the transition nor `library_entry` gives the A15 record and the revision; *re-confirmed* for content other than the reviewed content; *registration not
 completed* without the recorded act; any local UI action that would make a
 draft reviewed or registered (REQ-004: no local transition invents review or
 registration). K-7: a draft is never shown as running a workflow; trying it

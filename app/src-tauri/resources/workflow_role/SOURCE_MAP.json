@@ -7,7 +7,7 @@
   {
     "resource": "workspace-registration.schema.json",
     "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.schema.json",
-    "sha256": "cfd6d3e252b72247d8e1ad0ced3b43b119c5785935002d493407757bd57066e9"
+    "sha256": "6f772b3b0f51abf750fc0970a169ea3ff601d2015f3a6941308aff87c1ef51f5"
   },
   {
     "resource": "checkpoint-record-entries.schema.json",

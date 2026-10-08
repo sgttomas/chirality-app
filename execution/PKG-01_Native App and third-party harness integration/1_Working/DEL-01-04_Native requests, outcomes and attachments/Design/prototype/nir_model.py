@@ -774,10 +774,13 @@ DRAFT_ALLOWED = {
     ("draft", "registration refused"): {"draft", "not valid"},
     ("not valid", "registration refused"): {"not valid"},
     ("changed since review", "registration refused"): {"draft", "not valid", "changed since review"},
-    ("under review", "review stale"): {"changed since review"},
+    ("under review", "review stale"): {"changed since review", "registered, unchanged since"},
     ("under review", "registered"): {"registered, unchanged since"},
-    ("under review", "registration not completed"): {"draft"},
+    ("under review", "registration not completed"): {"draft", "registered, unchanged since"},
     ("registered, unchanged since", "changed"): {"draft"},
+    ("registered, unchanged since", "review shown"): {"under review"},
+    ("registered, unchanged since", "registration refused"): {"registered, unchanged since"},
+    ("under review", "re-confirmed"): {"registered, unchanged since"},
     ("any", "removed"): {"removed"},
 }
 DRAFT_WORDS = {

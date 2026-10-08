@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2",
   "title": "Workflow workspace and registration records (DEL-02-02 WR-v0.2) - PROPOSED",
-  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
+  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check; CC-WR-RECONFIRM, in place, adds the DS-8 re-confirmation of a registered revision to registration_disposition, draft_transition, a15_descriptor and library_entry). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
   "type": "object",
   "required": [
     "record_kind"
@@ -351,6 +351,7 @@
             "registration refused",
             "registered",
             "registration not completed",
+            "re-confirmed",
             "removed"
           ]
         },
@@ -399,17 +400,17 @@
           }
         },
         "a15_record": {
-          "description": "C-02 (R18-1): the RS human_act A15 record the App act control wrote; on 'registered' and 'registration not completed' only.",
+          "description": "C-02 (R18-1): the RS human_act A15 record the App act control wrote; on 'registered', 'registration not completed' and (CC-WR-RECONFIRM) 're-confirmed' only.",
           "$ref": "#/$defs/record_ref"
         },
         "revision": {
-          "description": "C-02 (R18-1): the registered revision identity; on 'registered' only.",
+          "description": "C-02 (R18-1): the registered revision identity; on 'registered' and (CC-WR-RECONFIRM) on 're-confirmed', where it is the re-confirmed revision's own identity, not a new one.",
           "$ref": "#/$defs/text"
         }
       },
       "allOf": [
         {
-          "description": "C-02: a15_record only on 'registered' or 'registration not completed'.",
+          "description": "C-02: a15_record only on 'registered' or 'registration not completed'; CC-WR-RECONFIRM adds 're-confirmed'.",
           "anyOf": [
             {
               "not": {
@@ -423,7 +424,8 @@
                 "event": {
                   "enum": [
                     "registered",
-                    "registration not completed"
+                    "registration not completed",
+                    "re-confirmed"
                   ]
                 }
               }
@@ -431,7 +433,7 @@
           ]
         },
         {
-          "description": "C-02: revision only on 'registered'.",
+          "description": "C-02: revision only on 'registered'; CC-WR-RECONFIRM adds 're-confirmed'.",
           "anyOf": [
             {
               "not": {
@@ -443,7 +445,63 @@
             {
               "properties": {
                 "event": {
-                  "const": "registered"
+                  "enum": [
+                    "registered",
+                    "re-confirmed"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a 're-confirmed' event ends in 'registered, unchanged since' with disposition 're-confirmation', and names the content, the A15 record and the re-confirmed revision (NIR's draft-transition rule, mirrored).",
+          "anyOf": [
+            {
+              "properties": {
+                "event": {
+                  "not": {
+                    "const": "re-confirmed"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "a15_record",
+                "revision",
+                "content",
+                "disposition"
+              ],
+              "properties": {
+                "to": {
+                  "const": "registered, unchanged since"
+                },
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a 'registered' event never carries the re-confirmation disposition.",
+          "anyOf": [
+            {
+              "properties": {
+                "event": {
+                  "not": {
+                    "const": "registered"
+                  }
+                }
+              }
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
                 }
               }
             }
@@ -460,8 +518,32 @@
         "refused: identical content",
         "refused: draft not valid",
         "refused: changed since review",
-        "refused: slot moved on"
+        "refused: slot moved on",
+        "re-confirmation"
       ]
+    },
+    "reconfirmed_revision": {
+      "description": "CC-WR-RECONFIRM (WR section 4.8 RC-3, RC-4, RC-9): the registered revision a re-confirmation names: its full tuple exactly as its registered ledger line records it, and that line's ledger_seq and sequence. A re-confirmation registers no new revision.",
+      "type": "object",
+      "required": [
+        "identity",
+        "ledger_seq",
+        "sequence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/revision_identity"
+        },
+        "ledger_seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     },
     "registration_disposition": {
       "description": "WR section 4.1 DS-1...DS-7: the registration collision and disposition report, shown in the review and supplied to DEL-01-04. A discovery collision (C-1) uses the same entries list with disposition absent.",
@@ -542,9 +624,43 @@
         },
         "message": {
           "$ref": "#/$defs/text"
+        },
+        "reconfirms": {
+          "description": "CC-WR-RECONFIRM: DS-8 only, the registered revision the review offers to re-confirm (WR section 4.8 RC-1). prior_revision keeps its meaning for every review: the slot's latest revision at review (WR section 4.8 RC-4).",
+          "$ref": "#/$defs/reconfirmed_revision"
         }
       },
       "allOf": [
+        {
+          "description": "CC-WR-RECONFIRM: DS-8 (re-confirmation) names the registered revision it re-confirms; no other disposition does.",
+          "anyOf": [
+            {
+              "properties": {
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              },
+              "required": [
+                "disposition",
+                "reconfirms"
+              ]
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                }
+              },
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            }
+          ]
+        },
         {
           "description": "A registration review states a disposition and the reviewed content; a discovery report does not.",
           "anyOf": [
@@ -623,7 +739,7 @@
       ]
     },
     "a15_descriptor": {
-      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation.",
+      "description": "WR section 4.3 RB-4: what the workspace hands DEL-01-04's act control to present and capture A15 (K-8). Bound content equals the subject's revision (reader check). Relations named per R17-11: the reviewed draft content and the prior revision; derived_from is WD's parent-identity relation. CC-WR-RECONFIRM (WR section 4.8 RC-4): for DS-8 the descriptor re-confirms a registered revision: disposition 're-confirmation', its own wording and purpose, subject equal to reconfirms.identity (reader check), prior_revision and derived_from as that revision's registered line records them; no new revision is registered.",
       "type": "object",
       "required": [
         "record_kind",
@@ -650,7 +766,10 @@
           "const": "A15"
         },
         "wording": {
-          "const": "register workflow revision"
+          "enum": [
+            "register workflow revision",
+            "re-confirm workflow revision for use"
+          ]
         },
         "subject": {
           "$ref": "#/$defs/revision_identity"
@@ -682,7 +801,8 @@
           "enum": [
             "new workflow",
             "new revision",
-            "in place"
+            "in place",
+            "re-confirmation"
           ]
         },
         "scope": {
@@ -691,14 +811,20 @@
         "purpose": {
           "enum": [
             "make it available in the project library",
-            "make it available in the user library"
+            "make it available in the user library",
+            "make it available again in this App session from the project library",
+            "make it available again in this App session from the user library"
           ]
+        },
+        "reconfirms": {
+          "description": "CC-WR-RECONFIRM: DS-8 only, the registered revision this act re-confirms (WR section 4.8 RC-4).",
+          "$ref": "#/$defs/reconfirmed_revision"
         },
         "review_ref": {
           "$ref": "#/$defs/text"
         },
         "freshness": {
-          "description": "RB-3: the descriptor is current only while the live draft still has this content and the slot's latest revision is still prior_revision (or the slot is still empty).",
+          "description": "RB-3: the descriptor is current only while the live draft still has this content and the slot's latest revision is still prior_revision (or the slot is still empty). CC-WR-RECONFIRM (WR section 4.8 RC-5): for a re-confirmation descriptor (disposition 're-confirmation') the slot's latest revision is compared with slot_latest, the slot's latest at review, because relations.prior_revision is then the re-confirmed revision's own prior.",
           "type": "object",
           "required": [
             "draft_content",
@@ -724,10 +850,60 @@
         "act_request_ref": {
           "$ref": "#/$defs/text"
         }
-      }
+      },
+      "allOf": [
+        {
+          "description": "CC-WR-RECONFIRM: a re-confirmation descriptor (disposition 're-confirmation') carries the re-confirm wording and purpose and names the revision it re-confirms; any other descriptor keeps the registration wording and purpose and names none.",
+          "anyOf": [
+            {
+              "properties": {
+                "disposition": {
+                  "const": "re-confirmation"
+                },
+                "wording": {
+                  "const": "re-confirm workflow revision for use"
+                },
+                "purpose": {
+                  "enum": [
+                    "make it available again in this App session from the project library",
+                    "make it available again in this App session from the user library"
+                  ]
+                }
+              },
+              "required": [
+                "disposition",
+                "reconfirms"
+              ]
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                },
+                "wording": {
+                  "const": "register workflow revision"
+                },
+                "purpose": {
+                  "enum": [
+                    "make it available in the project library",
+                    "make it available in the user library"
+                  ]
+                }
+              },
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     "library_entry": {
-      "description": "WR section 4.6 and 6 SQ-G: one line of a library's registration ledger (App-kept, R17-4). 'registered' is the commit point of a registration; 'not completed' records an A15 whose registration did not complete. Registered standing also needs the cited A15 record and store bytes that recompute (LS-1).",
+      "description": "WR section 4.6 and 6 SQ-G: one line of a library's registration ledger (App-kept, R17-4). 'registered' is the commit point of a registration; 'not completed' records an A15 whose registration did not complete. Registered standing also needs the cited A15 record and store bytes that recompute (LS-1). CC-WR-RECONFIRM (WR section 4.8): 're-confirmed' is the commit point of a re-confirmation (G-4R): it cites the new A15 and, in reconfirms, the earlier 'registered' line of the same revision; it adds no revision to the slot's series and never changes the slot's latest (reader checks RC-9). A 'not completed' line with disposition 're-confirmation' records a re-confirmation that did not complete.",
       "type": "object",
       "required": [
         "record_kind",
@@ -751,7 +927,8 @@
         "outcome": {
           "enum": [
             "registered",
-            "not completed"
+            "not completed",
+            "re-confirmed"
           ]
         },
         "identity": {
@@ -765,9 +942,10 @@
           "enum": [
             "new workflow",
             "new revision",
-            "in place"
+            "in place",
+            "re-confirmation"
           ],
-          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, §4.7)."
+          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, §4.7). 're-confirmation' (CC-WR-RECONFIRM, DS-8) is carried by 're-confirmed' lines and by 'not completed' lines of a re-confirmation."
         },
         "prior_revision": {
           "$ref": "#/$defs/identity_or_none"
@@ -823,6 +1001,10 @@
               "$ref": "#/$defs/content_identity"
             }
           }
+        },
+        "reconfirms": {
+          "description": "CC-WR-RECONFIRM: on a re-confirmation line only, the earlier 'registered' line this line re-confirms (WR section 4.8 RC-9).",
+          "$ref": "#/$defs/reconfirmed_revision"
         }
       },
       "allOf": [
@@ -832,6 +1014,13 @@
               "properties": {
                 "outcome": {
                   "const": "registered"
+                },
+                "disposition": {
+                  "enum": [
+                    "new workflow",
+                    "new revision",
+                    "in place"
+                  ]
                 }
               },
               "required": [
@@ -843,11 +1032,75 @@
             {
               "properties": {
                 "outcome": {
+                  "const": "re-confirmed"
+                },
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              },
+              "required": [
+                "sequence",
+                "disposition",
+                "store_path",
+                "reconfirms",
+                "reviewed_draft"
+              ]
+            },
+            {
+              "properties": {
+                "outcome": {
                   "const": "not completed"
                 }
               },
               "required": [
                 "reason"
+              ]
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a line names the revision it re-confirms exactly when its disposition is 're-confirmation'.",
+          "anyOf": [
+            {
+              "properties": {
+                "disposition": {
+                  "const": "re-confirmation"
+                }
+              },
+              "required": [
+                "disposition",
+                "reconfirms"
+              ]
+            },
+            {
+              "properties": {
+                "disposition": {
+                  "not": {
+                    "const": "re-confirmation"
+                  }
+                }
+              },
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "description": "CC-WR-RECONFIRM: a re-confirmation is of a reviewed draft (WR section 4.8 RC-1), never of an entry reviewed in place.",
+          "anyOf": [
+            {
+              "not": {
+                "required": [
+                  "reconfirms"
+                ]
+              }
+            },
+            {
+              "required": [
+                "reviewed_draft"
               ]
             }
           ]

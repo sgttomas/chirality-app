@@ -139,7 +139,8 @@
         "rely (professional reliance)",
         "register workflow revision",
         "register workflow revisions",
-        "decide"
+        "decide",
+        "re-confirm workflow revision for use"
       ]
     },
     "subject": {
@@ -426,7 +427,8 @@
             "wording": {
               "enum": [
                 "register workflow revision",
-                "register workflow revisions"
+                "register workflow revisions",
+                "re-confirm workflow revision for use"
               ]
             },
             "declineAvailable": {
@@ -498,7 +500,7 @@
       ]
     },
     {
-      "description": "An a15_descriptor (WR RB-4): exactly one entry, a reviewed draft ('draft:' form); wording 'register workflow revision'.",
+      "description": "An a15_descriptor (WR RB-4): exactly one entry, a reviewed draft ('draft:' form); wording 'register workflow revision'.; CC-WR-RECONFIRM adds 're-confirm workflow revision for use' for WR's re-confirmation descriptor",
       "anyOf": [
         {
           "not": {
@@ -532,7 +534,10 @@
               }
             },
             "wording": {
-              "const": "register workflow revision"
+              "enum": [
+                "register workflow revision",
+                "re-confirm workflow revision for use"
+              ]
             }
           }
         }
@@ -647,6 +652,47 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "description": "CC-WR-RECONFIRM: the re-confirm wording goes with a re-confirm purpose and an a15_descriptor, and a re-confirm purpose with the re-confirm wording (WR §4.8 RC-4).",
+      "anyOf": [
+        {
+          "properties": {
+            "wording": {
+              "not": {
+                "const": "re-confirm workflow revision for use"
+              }
+            },
+            "purpose": {
+              "not": {
+                "enum": [
+                  "make it available again in this App session from the project library",
+                  "make it available again in this App session from the user library"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "descriptorKind"
+          ],
+          "properties": {
+            "wording": {
+              "const": "re-confirm workflow revision for use"
+            },
+            "purpose": {
+              "enum": [
+                "make it available again in this App session from the project library",
+                "make it available again in this App session from the user library"
+              ]
+            },
+            "descriptorKind": {
+              "const": "a15_descriptor"
+            }
+          }
         }
       ]
     }

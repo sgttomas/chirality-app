@@ -61,6 +61,7 @@
         "registration refused",
         "registered",
         "registration not completed",
+        "re-confirmed",
         "removed"
       ]
     },
@@ -105,7 +106,8 @@
         "refused: identical content",
         "refused: draft not valid",
         "refused: changed since review",
-        "refused: slot moved on"
+        "refused: slot moved on",
+        "re-confirmation"
       ]
     },
     "cause": {
@@ -158,7 +160,8 @@
                   "written",
                   "changed",
                   "review shown",
-                  "registered"
+                  "registered",
+                  "re-confirmed"
                 ]
               }
             }
@@ -227,6 +230,35 @@
                 "refused: changed since review",
                 "refused: slot moved on"
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "description": "CC-WR-RECONFIRM (WR §4.8): 're-confirmed' ends in 'registered, unchanged since' with disposition 're-confirmation' and names the A15 record and the re-confirmed revision; it registers no new revision.",
+      "anyOf": [
+        {
+          "properties": {
+            "event": {
+              "not": {
+                "const": "re-confirmed"
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "disposition",
+            "a15_record",
+            "revision"
+          ],
+          "properties": {
+            "to": {
+              "const": "registered, unchanged since"
+            },
+            "disposition": {
+              "const": "re-confirmation"
             }
           }
         }

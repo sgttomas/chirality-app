@@ -565,14 +565,14 @@ operations (proposals, applications, undo) are never flagged or annotated
   policy; whether any host offers one is a relay question.
 - **HA-10 A15 register workflow revision (R12-5; DEL-02-02 REQ-002, AC-002,
   AC-006; record elements PROPOSED; v0.9).** Written only from capture
-  evidence of the person's explicit registration at **DEL-01-04's App act
+  evidence of the person's explicit registration, or re-confirmation (WR §4.8; CC-WR-RECONFIRM), at **DEL-01-04's App act
   control** (AAC-v0.2 §4.2; K-8), composed from DEL-02-02's A15 descriptor
   (WR-v0.2 §4.3 RB-4) and bound to the exact reviewed bytes. Fresh App A15 package content receives WD's selected package method (§6.2a; CC-CONTENT-RX), with reviewed/registered equality unchanged. Bound subject:
   the workflow revision; bound content: the reviewed content identity, equal
   to the revision identity (WR ID-2), with method; relations: the **reviewed
   draft** and the **prior revision** (or none) (R17-11; C-01); purpose:
   "make it available in the project library" or "… in the user library"
-  (ACT-POLICY-v0.9 §2.1). **Several entries in one act (DECISION-L L-4):**
+  (ACT-POLICY-v0.9 §2.1). **Re-confirmation (CC-WR-RECONFIRM; WR-v0.2 §4.8).** An A15 composed from a WR descriptor with disposition *re-confirmation* re-confirms a registered revision for use in the App session that captured it: bound subject that revision; bound content its identity; relations the reviewed draft and that revision's own prior revision (or none); purpose "make it available again in this App session from the project library" or "… from the user library". It registers no new revision. It is new capture evidence of the person's act; it makes no earlier A15, capture or record trusted, and §14.1a and R-7 are unchanged. **Several entries in one act (DECISION-L L-4):**
   one A15 may register several library entries in place, each entry's bytes
   bound (*registered entries*, §6.1), like a batch A5 listing several items;
   wording "register workflow revisions", purpose "make them available in

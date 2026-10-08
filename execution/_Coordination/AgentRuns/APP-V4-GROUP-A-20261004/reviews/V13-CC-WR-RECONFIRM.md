@@ -159,3 +159,172 @@ Script: `$TMPDIR/…/scratchpad/validate.py`.
 - The integrator should take a position on F5, F6, F7, F8, F9 and F10. Each is a small text change.
 - After repair, a re-review limited to the changed lines and a rerun of the scratch validation would suffice.
 - The decision fidelity (Q1) and the identity choice (Q2) need no rework.
+
+## Revision 2 re-review (2026-10-07)
+
+Same reviewer and method: read-only, scratch copies only, no commit. The
+checkout is now at `c59aaaa1b9`, which adds this review (committed at
+`5b1a8260…`) and CI-23.
+
+**Verdict: READY for adoption.** F1–F3 are repaired. F4–F10 are applied
+as HELP_HUMAN ruled, and U-WR-21, U-WR-23 and RC-2 are disposed. No BLOCKING,
+MAJOR or MINOR finding remains; two NOTEs follow. This covers the WR Design and
+schema patch and the exact consumer text. Each consumer still adopts its own
+text, and the App implementation follows (LOOP_INIT "Change control").
+
+### Basis
+
+| Item | sha256 | Check |
+|---|---|---|
+| `changes/CC-WR-RECONFIRM.md` (revision 2) | `0b3678ceef06e1b8ea672442c4ed49e0bfc84d2401dbb21a1462fb35c4799b6f` | `shasum -a 256` (matches the brief) |
+| `changes/CC-WR-RECONFIRM.patch` (revision 2) | `38924fb728bcc228e2c1acab08346c7a0dbcf9670044d11c4d48b84cba28362b` | as above |
+| Preimages | `094602ac…6019656`, `cfd6d3e2…7066e9` | unchanged; `git apply --check` is clean on a fresh `git archive HEAD` copy |
+| Postimage WR / schema | `6bfb2277…251838` / `6f772b3b…ef51f5` | reproduced by applying the patch |
+
+I diffed the revision 1 and revision 2 postimages (WR: 103 diff lines; schema:
+52) and read every changed line, together with the revision 2 change record.
+
+### Rerun of the scratch validation (`scratchpad/validate2.py`)
+
+- **WR schema.** The postimage passes the metaschema. 14/14 valid and 17/17 invalid conformance instances behave as before. `minischema.check_supported` accepts it.
+- **My 38 revision-1 cases.** All behave as expected, 0 mismatches. V13's gap probes G1–G4 are now **refused**:
+  - G1: *re-confirmed* to *draft*;
+  - G2: *re-confirmed* with *new revision*;
+  - G3: *re-confirmed* with no disposition;
+  - G4: *registered* with *re-confirmation*.
+- **F1–F3 scenarios and new cases.** All as expected:
+  - a DS-8 descriptor with `relations.prior_revision` null (‹k›'s own prior) and `freshness.slot_latest` = ‹k› is valid;
+  - *re-confirmed* without `content` is refused;
+  - a *registration not completed* DS-8 transition back to *registered, unchanged since* is valid;
+  - the *registered* example is unchanged.
+- **AAC offer adoption (1)–(4)**, applied to a scratch copy of the Design schema:
+  - It passes the metaschema. 4/4 valid examples still validate and 19/19 invalid examples are still refused.
+  - A re-confirmation offer built from `offer:0009` is valid. Before adoption it was refused at `allOf/6`; the F2 repair fixes this.
+  - Refused as expected: re-confirm wording with a registration purpose; the reverse; re-confirm wording on the multi-entry descriptor; re-confirm wording without `descriptorKind`.
+  - `offer:0009` unchanged stays valid.
+- **NIR draft-transition adoption (1)–(4)**, on a scratch copy:
+  - It passes the metaschema.
+  - *re-confirmed* is valid.
+  - Refused as expected: `to` *draft*; no `content`; *registered* with *re-confirmation*.
+  - A not-completed DS-8 transition back to *registered, unchanged since* is valid.
+- **Capture-evidence addition.** Unchanged from revision 1, which validated (see above).
+
+### Disposition of V13 findings
+
+| V13 | Revision 2 | Judgement |
+|---|---|---|
+| F1 MAJOR | RB-3 sentence; RC-5 reads (b) against `freshness.slot_latest`; G-1R checks that the slot's latest equals `freshness.slot_latest`; RC-4 says SP-6's prior link does not apply; `registration_disposition.prior_revision` keeps its meaning (slot's latest), stated in §8 and in the schema descriptions of `reconfirms` and `freshness`; WR-VC-19 case | **Closed.** Text, schema descriptions and the case agree |
+| F2 MAJOR | AAC offer row: (3) widens `allOf/6`'s `wording`; (4) adds a wording/purpose/`descriptorKind` pairing rule; the App copy is named | **Closed.** Validated above |
+| F3 MAJOR | X-2 and RC-7: reread the ledger for a line citing the A15; write nothing if one exists; otherwise *not completed*. WR-VC-19 adds the crash-after-durable-G-4R case | **Closed.** RC-9's one-line-per-act rule now holds across a process loss |
+| F4 | The gate phrase is removed and the owner's words are quoted | Closed |
+| F5 | DS-8 and RC-1 require LS-1 as read. DS-4 names a non-LS-1 cause. G-1R adds "act record no longer found". G-2R/G-3R never create or repair a store. RC-5 (c) and RC-10 show LS-1. WR-VC-17 adds the LS-4 case | Closed |
+| F6 | §5.1 and X-4: an abandoned, stale or not-completed DS-8 review returns to *registered, unchanged since* when it began there. NIR (f) lists the transitions, and the `nir_model.py` `DRAFT_ALLOWED` entries are exact | Closed |
+| F7 | WR `draft_transition` mirrors NIR: *re-confirmed* ⇒ `to`, disposition, `content`, `a15_record`, `revision`; *registered* never carries *re-confirmation* | Closed. G1–G4 are refused |
+| F8 | RC-7 splits the windows. Before *stored*, WR writes nothing and AAC §4.4 governs. After *stored*, X-2 applies. G-3R marks *stored* | Closed |
+| F9 | ACT meaning-cell adoption text added | Closed |
+| F10 | LS-1 row: runnable or selectable in a process holding the result; Refine in any process. The §5.4 rows match RC-2 | Closed |
+| U-WR-21 | Option (a) written as RF-1 in §4.6 (no selection; store recomputed; App-recorded base shown and frozen; covers revisions registered in place; LS-4 gives no draft). Option (b) deferred | Faithful to the ruling. It gives the edited/removed-draft path a DS-8 route without new authority: trust still rests on the new A15 on reviewed bytes |
+| U-WR-23 | Closed: "K-6 unchanged; route via Refine (RF-1)" | Faithful. No owner question remains |
+| RC-2 | Unchanged, INTEGRATION | Accepted as ruled |
+| F11–F17 | Withdrawn, relabelled or recorded (F12 "new WR text, adopting the App's existing behaviour"; F13 consumers added; F14 App item and version-skew note; F15 returned to the WR owner) | Adequate |
+
+### Remaining notes (non-blocking)
+
+| ID | Severity | Where | Evidence and consequence |
+|---|---|---|---|
+| R2-N1 | NOTE | WR §4.6 LS-4 row (postimage line 199, unchanged): "Offered: Review to register" | A draft with an LS-4 revision's bytes now reviews as DS-4, citing LS-4's restore route. Re-registration through review was already refused as DS-4 before this change, so this is a pre-existing mismatch, now made explicit. The WR owner may amend the row to "Restore the record or bytes (§5.3)" when convenient. Nothing in this change depends on it |
+| R2-N2 | NOTE | RC-1 / RF-1 | LS-1 "as read" (A15 record found, bytes recompute) is a cold read of App-kept files. RC-10 discloses it as "not verified in this session", and it only gates the offer; authority comes from the new A15. This is consistent with RC-2 and RC-8. Recorded so the WR-VC-16/17 implementation tests do not treat LS-1 as a trust signal |
+
+Pre-existing and outside this change, as before: CI-23 (DEL-04-03
+`minischema` `if`) and F15 (X-2's cold completion of a registration).
+
+**Verdict: READY for adoption.**
+
+## Adoption verification (2026-10-07)
+
+Same reviewer, working read-only. I checked the uncommitted adoption in the
+HELP_HUMAN checkout (HEAD `c59aaaa1b9`) against
+`changes/CC-WR-RECONFIRM-SOURCE-ADOPTION.json` (sha256
+`61f072c6a0f9809a1c0098cf116a322daf3a9b5128d0ad4c7517f2137feaa9c0`). Every
+build and test ran in a scratch copy: a `git archive HEAD` with the
+working-tree changes copied over, compared with `cmp`. The App's `target/`
+was APFS-cloned into that copy. No commit, network, credentials or `~/.codex`.
+
+**Verdict: ADOPTION CONFIRMED.** The adoption applies exactly the reviewed
+text and nothing more. The App copies and pins are correct, and the suites
+pass. Two NOTEs follow; neither blocks.
+
+### 1. Diffs against the reviewed text
+
+- **Scope.** `git status` shows the 16 files the adoption record lists, plus the record itself, the revision 2 change record and patch, and this review. No other file changed.
+- **Hashes.** For all 16 files, the preimage (`git show HEAD:`) and the postimage equal the record's hashes.
+  - WR postimages: `6bfb2277…1838` and `6f772b3b…51f5`, the reviewed values.
+- **JSON schemas.** I rebuilt each reviewed proposal from its HEAD preimage, using the exact text in the change record, and compared it with the adopted file:
+  - AAC offer: equal, including every description string; only `allOf/6` and the new `allOf/9` descriptions differ from the preimage.
+  - AAC capture-evidence: exactly equal.
+  - NIR draft-transition: exactly equal.
+  - Each preimage round-trips byte for byte through indent 2 with `ensure_ascii` false, so the serialization adds no change.
+- **Text adoptions.** `git diff --word-diff` shows only the proposed strings, at the named anchors:
+  - AAC (a)–(d): (b) sits before "**Why record at capture"; (d) is appended to the VC-AAC-08 row.
+  - NIR (a)–(f).
+  - RS HA-10 (a)–(b): (b) sits after "(ACT-POLICY-v0.9 §2.1).", before "**Several entries in one act".
+  - ACT (a)–(b).
+  - EXEC CAP-2.
+- **`nir_model.py`.** Only the five `DRAFT_ALLOWED` entries changed, as the record states. Imported, the table reads exactly as proposed. The `DraftView.receive` checks are listed as not applied (a minor prototype adoption).
+- **Mirrors.** These App copies are byte-equal to their Design sources:
+  - `resources/workflow_role/workspace-registration.schema.json`;
+  - `schemas/aac.offer.schema.json`;
+  - `schemas/aac.capture-evidence.schema.json`.
+- **Pins.**
+  - `SOURCE_MAP.json` changes only the workspace-registration hash, to `6f772b3b…`. All 9 rows match their source bytes and sources.
+  - `manifest.json` changes only the two AAC hashes, to `34e61d5a…` and `53e4a553…`. Its IDs are unchanged and correct.
+
+### 2. The ".;" suffix in AAC offer `allOf/6`
+
+The adopted description reads `… wording 'register workflow revision'.; CC-WR-RECONFIRM adds …`.
+This is the literal reviewed text: the proposal said to append
+"; CC-WR-RECONFIRM adds …" to a description that ends in a full stop.
+
+It is cosmetic. It is a description, not an assertion, so validation is
+unaffected. **Acceptable as adopted (NOTE AV-N1).** Correcting it now would
+move the file off the reviewed bytes and would need new manifest pins. Tidy it
+at the next AAC schema change.
+
+### 3. `resources/policy_standing/basis.json`
+
+**The author is right to leave it unchanged.**
+- It is an earlier TASK's basis record: role, parent, model, base commit `38bb2bc87a`, and the sources it read.
+- 11 of its 26 hashes already differ from current bytes (for example `LOOP_INIT.md`). It is a historical snapshot, not a maintained pin.
+- No code or test reads it.
+  - `tests/policy_standing.rs` reads only `ACT_POLICY_CLASS_RECORD.valid.example.json` and `AS_SETTINGS_IN.valid.examples.json` from that folder.
+  - Neither `include_str!` nor `include_bytes!` in `src` refers to it.
+  - `sync.py` does not cover it.
+- Updating it would falsify what that TASK read.
+
+### 4. Suites (scratch copy of the working tree)
+
+The cargo environment was `CARGO_HOME=~/Library/Caches/chirality-dev/cargo-home-group-a` with `CARGO_NET_OFFLINE=true`.
+
+| Command | Result |
+|---|---|
+| `python3 schemas/sync.py` (verify mode) | exit 0: "6 schema resources match source bytes, hashes and declared IDs" |
+| `SOURCE_MAP.json` check (script) | 9 of 9 rows: copy equals source, and the pin is correct |
+| `cargo test --offline --locked --no-run` | exit 0 (64 s) |
+| `cargo test --offline --locked --lib -- workflow` | 126 passed, 0 failed |
+| `… --lib -- schema` | 9 passed, 0 failed |
+| `… --lib -- a15` | 7 passed, 0 failed |
+| `… --lib -- record` | 34 passed, 0 failed |
+| `… --lib -- act_control` (each matching binary) | all passed: 1+1+1+1 and 24 (1 ignored) |
+| `cargo test --offline --locked --test policy_standing --test workflow_catalog --test workflow_receiving --test workflow_role` | exit 0; `policy_standing` 22 passed |
+
+The library compiles the adopted schema resources in, so the `workflow`,
+`schema`, `a15` and `record` subsets exercise the new copies. I did not repeat
+the full suite or `npm test`. The adoption record reports 681 passed and 3 of 3,
+with log hashes.
+
+**NOTE AV-N2.** The DEL-01-04 prototype `run_cases.py` exits 1 both before
+and after adoption. It fails on the same RS `minischema` `if` error (CI-23),
+so the prototype run does not exercise the `nir_model.py` change. That is
+pre-existing and tracked as CI-23; it is not caused by this adoption.
+
+**Verdict: ADOPTION CONFIRMED.**

@@ -354,6 +354,23 @@
                     "minLength": 1
                   }
                 }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "registration",
+                  "revisionIdentity"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "registration": {
+                    "const": "re-confirmed"
+                  },
+                  "revisionIdentity": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
               }
             ]
           }
