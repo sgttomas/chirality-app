@@ -43,7 +43,7 @@ Arbitrary caller-supplied claims about either remain unauthenticated.
 ## What is checked
 
 The receiver fixes the full `observed-lifecycle-reader.s3` receipt and selected
-source hashes in `pins.json`; callers cannot supply an alternative method.
+source hashes in `pins.namespace-v1.json`; callers cannot supply an alternative method.
 It reuses the unchanged S1 schemas for shapes, then resolves exact observation,
 actual LT09 envelope, transport and declared selected-source references. It
 checks projection/raw equality, complete manifest inventory, source/mirror
@@ -87,3 +87,14 @@ review, repair or examination act occurred. No Rust build or supplier run is
 needed to replay these file tests. Set `CHIRALITY_S4_TEST_EXPORTS` to a fresh
 Host-export directory to repeat the same connected receiving tests. The
 receiver still requires its pinned producer source revision and full receipt.
+
+## Named namespace successor
+
+The active cohort is `B-S4-NAMESPACE-ADOPTION-v1`, described in
+[NAMESPACE_ADOPTION.md](NAMESPACE_ADOPTION.md). It selects committed Host source
+`b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0` and its fresh actual synthetic exports.
+The previous `pins.json` and f267 fixture cohort remain historical exact bytes;
+the current consumer refuses them and offers no caller-selectable fallback.
+The active fixtures are in `group_b_distribution_receiving_namespace_fixtures`.
+A receipt's namespace source digest is an identity, not a namespace capability:
+`namespace_authority_authenticated` remains false on success and failure.

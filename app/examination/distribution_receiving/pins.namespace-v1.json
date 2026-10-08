@@ -1,0 +1,116 @@
+{
+  "format": "group-b-s1-receiving-pins.namespace-v1",
+  "producer_source_revision": "b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0",
+  "reader": {
+    "closureReaderSha256": "b1e3ce5069c254ade3a8e73b9047f61076d48e483ba0ad8fe2013496dd856ff9",
+    "factsSchemaSha256": "3a6eb9d2bbad03b85f405edcfc40e24012c7ca43edbdd3e396886385c3e20865",
+    "labelJoin": {
+      "readerSourceSha256": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9",
+      "schemas": {
+        "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+        "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+      },
+      "scope": "version-label-join-only",
+      "semanticRevision": "lifecycle-label-join.s2"
+    },
+    "limit": "installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only",
+    "namespaceAuthoritySourceSha256": "01855cb125c81aef1541d265be16db42444ead5b31a755b393351eca20b41c6f",
+    "preflightReaderSha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+    "readerSourceSha256": "408302b9942b1a2eec8e08ab8f81f28700d4e40f69a049dba08ede62f1198ad1",
+    "schemas": {
+      "adoption-attestation.s1": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
+      "expected-reference.s1": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd",
+      "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+      "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+    },
+    "semanticRevision": "observed-lifecycle-reader.s3",
+    "storeGuardsSha256": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903",
+    "storeReaderSha256": "e78664f9b422344f246099062c9247e484277095d8df2e570f247a02d469c8de",
+    "stringIdentity": {
+      "domain": "Unicode scalar values; JSON non-scalar surrogates rejected",
+      "generatorSha256": "8fb879032f1d37681c57baae54d5a2aaf839a02a108b8fcfbf43dff94880604a",
+      "interpreterSha256": "406d73d07e33e164d986326fde00b85c2b8f4ed2c33278142c8431588fe2df14",
+      "method": "python-strip-casefold-scalar-v1",
+      "pythonImplementation": "CPython",
+      "pythonVersion": "3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "tableSha256": "071c266188836e733a100e01fe4b7a40552ed18d41b04d481fef1b2ea4a29f40",
+      "unicodeVersion": "15.1.0"
+    },
+    "transitionProvenance": {
+      "maintained": {
+        "path": "lifecycle-transitions.s1.json",
+        "sha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
+      },
+      "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+        "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
+      }
+    },
+    "transitionsSha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14",
+    "transportSchemaSha256": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5"
+  },
+  "read_standing": "S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion",
+  "unsupported_envelopes": "Only actual LT-09 is published; pre-spawn/restart/other legacy envelopes unavailable",
+  "transport_limit": "Creation correspondence only; no future integrity, issuer, qualification or live custody assertion",
+  "sources": {
+    "app/examination/support_identity/canonical-pins.v1.json": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4",
+    "app/examination/support_identity/canonical.py": "320728cdebdd87cadeac4621ce100807fbe228bff1787f04ca625b4a2873cb20",
+    "app/src-tauri/resources/distribution-successor/DISTRIBUTION_EVIDENCE_TRANSPORT.md": "133daddf0f7c15369479e42e8b3efa5aae73d6e8a03d7f74bf55f63035d1ec3b",
+    "app/src-tauri/resources/distribution-successor/LIFECYCLE_LABEL_JOIN.md": "f7d9dd292aaa3a3144c052f5b8f994783f8cfea61a34d8c062dd49071776944e",
+    "app/src-tauri/resources/distribution-successor/NAMESPACE_ADMISSION.md": "73616d72bbd4c43ad021205fa9eaf396e921f7258025398ae8c20dbddfdf8f26",
+    "app/src-tauri/resources/distribution-successor/S1_READER_TRANSPORT.md": "a5fafe584043c0921d8ef412d1c887693204f30c92aad84851541665dfe0abec",
+    "app/src-tauri/resources/distribution-successor/adoption-attestation.s1.schema.json": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
+    "app/src-tauri/resources/distribution-successor/distribution-closure-transport.s3.schema.json": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5",
+    "app/src-tauri/resources/distribution-successor/distribution-evidence-transport.s2.schema.json": "bc8c9578b803b503cfc2b98abc4add3bea7d777cf13092027b2bc0c054b19204",
+    "app/src-tauri/resources/distribution-successor/distribution-preflight-facts.s3.schema.json": "3a6eb9d2bbad03b85f405edcfc40e24012c7ca43edbdd3e396886385c3e20865",
+    "app/src-tauri/resources/distribution-successor/expected-reference.s1.schema.json": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd",
+    "app/src-tauri/resources/distribution-successor/generate_python_identity.py": "8fb879032f1d37681c57baae54d5a2aaf839a02a108b8fcfbf43dff94880604a",
+    "app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+    "app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.json": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14",
+    "app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.provenance.json": "6f049cc5541cbf8c5b8f77ca1640ffef6c40002afba06a7e2afa763d685348dd",
+    "app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1",
+    "app/src-tauri/resources/distribution-successor/python-string-identity.s3.json": "071c266188836e733a100e01fe4b7a40552ed18d41b04d481fef1b2ea4a29f40",
+    "app/src-tauri/resources/distribution-successor/sources.json": "a90b6efb2b33655c756a46dd3cffaee9f808cc3009359a6c17bf298b2e1752bb",
+    "app/src-tauri/resources/distribution-successor/synthetic-attestation.json": "f7a270126f4e7c6a651c7969e538fadcae0d85d610881d5b2b2d2abb94362754",
+    "app/src-tauri/resources/distribution-successor/synthetic-evidence.json": "159d63ddba6a68e91a403359e0a20e26bc8ff8b761f7bad9cd2b75e219d232e3",
+    "app/src-tauri/resources/distribution-successor/synthetic-expected.json": "f93f8d60649f27b0890ad021d606d58abfcce85e48c82d47181b8b6f9bf149e3",
+    "app/src-tauri/src/attachment_custody.rs": "01855cb125c81aef1541d265be16db42444ead5b31a755b393351eca20b41c6f",
+    "app/src-tauri/src/distribution_preflight.rs": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+    "app/src-tauri/src/distribution_s1.rs": "408302b9942b1a2eec8e08ab8f81f28700d4e40f69a049dba08ede62f1198ad1",
+    "app/src-tauri/src/distribution_selection.rs": "b1e3ce5069c254ade3a8e73b9047f61076d48e483ba0ad8fe2013496dd856ff9",
+    "app/src-tauri/src/distribution_semantics.rs": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9",
+    "app/src-tauri/src/distribution_store.rs": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903",
+    "app/src-tauri/src/distribution_store_s1.rs": "e78664f9b422344f246099062c9247e484277095d8df2e570f247a02d469c8de",
+    "app/src-tauri/src/hosting.rs": "2952406eeab874252de18fe3a263bd77c6e70f808d91c6cefdf2df4e4ee1cf52",
+    "app/src-tauri/src/hosting_s4_export.rs": "3114efc75f4c2ca9b3118d82b63d30d25e48455f053bff2c8a75f0ec8c7b1d4c",
+    "app/src-tauri/src/hosting_successor.rs": "580578f22515d684bbb3d47a7742356f37ed2ffe5c424c1a6316f38637f16105",
+    "app/src-tauri/src/lib.rs": "cce8469315cec6e9d3cf379ed9519a0823825c4c1062a9d11070fe119bfd72ad",
+    "app/src-tauri/src/recovery.rs": "d4604e4887b8cf3ec202a46424c02e3346d65d2df7f159991d307f73049fb7fb",
+    "app/src-tauri/src/runtime_session.rs": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97"
+  },
+  "adoption": "B-S4-NAMESPACE-ADOPTION-v1",
+  "predecessor_pins_sha256": "649590877b2a6935c26620eafd2d81707b270efe03899a39dfa2390d5acc4280",
+  "reader_changes": {
+    "closureReaderSha256": {
+      "previous": "914c7619118e12308dca70b201941383b76e75c08dd5799b3a3b5c44696d02f5",
+      "selected": "b1e3ce5069c254ade3a8e73b9047f61076d48e483ba0ad8fe2013496dd856ff9"
+    },
+    "namespaceAuthoritySourceSha256": {
+      "previous": null,
+      "selected": "01855cb125c81aef1541d265be16db42444ead5b31a755b393351eca20b41c6f"
+    },
+    "readerSourceSha256": {
+      "previous": "32586a82316350717f0856483d36f30debf66efec22cd006740b51b11b7a1e7f",
+      "selected": "408302b9942b1a2eec8e08ab8f81f28700d4e40f69a049dba08ede62f1198ad1"
+    },
+    "storeGuardsSha256": {
+      "previous": "9a19eaf09f5dae25bb562233a9e84d49c3da9ab37e58edf8f125fbfe5c6fb192",
+      "selected": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903"
+    },
+    "storeReaderSha256": {
+      "previous": "6c7abec33ad8b8488f1849fe44abdb819d36ddea2e977f133c4c4365114b4ffd",
+      "selected": "e78664f9b422344f246099062c9247e484277095d8df2e570f247a02d469c8de"
+    }
+  }
+}
