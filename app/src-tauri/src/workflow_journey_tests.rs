@@ -16,10 +16,20 @@
 //! `workflow_root_tests::Peer`, which is private to that module) and the A15
 //! act-control double (`ConfirmedA15Event::synthetic_for_test`).
 //!
-//! Not established here: native supplier behaviour (the peer is a fixture),
-//! any real model, the UI, a person's native A15 confirmation, or a real App
-//! relaunch (process loss is simulated by stopping the supplier child and
-//! dropping every in-memory session object in this test process).
+//! Not established here:
+//! - native supplier behaviour (the peer is a fixture), any real model, the UI,
+//!   or a person's native A15 confirmation;
+//! - a real App relaunch (process loss is simulated by stopping the supplier
+//!   child and dropping every in-memory session object in this test process);
+//! - the command-layer guards that run outside the Root API (V11 J4-1):
+//!   `AppState::validate_home_source` (review, prepare, send, check);
+//!   `workflow_review_observe`'s actor, home and library/review-selection
+//!   recheck before and after the native dialog; and the second
+//!   `session.current()` that `a15_native::confirm_native` takes after the
+//!   dialog (this test holds one `current` across the confirmation);
+//! - the real Tauri `app_data_dir()` and the `lib.rs` setup line that hands it
+//!   to `set_app_user_data` (V11 J5-7): `root_session` mimics that wiring with
+//!   a test folder.
 #![cfg(unix)]
 
 use super::*;
