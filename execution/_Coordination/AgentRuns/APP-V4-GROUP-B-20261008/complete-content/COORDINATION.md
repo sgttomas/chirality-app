@@ -31,3 +31,24 @@ existing approved caches, explicit --no-sign/custom-protocol, physical inventory
 and read-only metadata. No native launch, supplier execution, sign/notarize,
 credentials, downloads or qualification. Incidental linker ad-hoc signature is
 unqualified. Missing tool/cache/native inputs stop their affected operation.
+
+## Checked integration
+
+Author 3269a2c288bdd3b34dbc7c3eb69f868e637a3cf6 integrated as 541861e2c1.
+Independent exact-artifact review 88b1d08786 integrated as 47ff6e0e5d. The reviewer
+recomputed 74 entries / 56 files and manifest
+cd0e8f7216d6c85b1b1cee96300e3b1f4aeaea15bbc6185214345290bdb83c15, checked
+actual P1/P2/P3 bytes/modes/links, all 406 sealed source/scratch inputs, emitted
+P0 binary, custom-protocol fingerprint, roles/manifest and read-only signature/
+plist metadata. No blocking finding. Manager existing 61 Group B tests passed.
+
+Parent advised limited disk space. No duplicate build or artifact copy was
+made. Preserve target/debug/bundle and evidence through receiving review; only
+producer-owned deps/incremental/build scratch may later be cleaned after PR
+status is secure. Shared cache symlinks are never cleanup targets.
+
+PR #1133 merged later as ce2d7adaed: parent supplies its decision package as
+context only, with genuine A15-copy route recommendation and LS5/LS8 gap; no
+admission decision or build-basis change. Later H3B source changes need a new
+candidate. This artifact binds f79317be plus SOURCE.patch, not later main.
+Exact-head integration backcheck and required CI precede parent merge.
