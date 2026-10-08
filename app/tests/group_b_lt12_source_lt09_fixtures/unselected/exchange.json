@@ -1,0 +1,526 @@
+{
+  "actualLt09": {
+    "at": "2026-10-08T14:18:14.799Z",
+    "declaredCapabilities": {
+      "experimentalApi": true,
+      "explicitGatewayOauth": true,
+      "requestAttestation": false
+    },
+    "event": "handshake-completed",
+    "fromState": "handshaking",
+    "generation": {
+      "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+      "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+      "spawnCounter": 1
+    },
+    "recordKind": "lifecycle-event",
+    "sequence": 4,
+    "supplierStanding": "unverified-development",
+    "toState": "ready",
+    "transitionId": "LT-09",
+    "versionIdentity": {
+      "configurationIdentity": {
+        "arguments": [
+          "-c",
+          "analytics.enabled=false",
+          "app-server"
+        ],
+        "environment": {
+          "CODEX_HOME": "App-owned home (path recorded by the App, not here)"
+        },
+        "launcher": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/vendor/bin/codex",
+        "removedEnvironment": [
+          "OPENAI_API_KEY",
+          "CODEX_API_KEY",
+          "CODEX_ACCESS_TOKEN",
+          "OPENAI_ORG_ID",
+          "OPENAI_PROJECT_ID",
+          "AZURE_OPENAI_API_KEY",
+          "ANTHROPIC_API_KEY",
+          "CODEX_MANAGED_PACKAGE_ROOT",
+          "CODEX_MANAGED_BY_NPM"
+        ],
+        "sessionFlags": [
+          "analytics.enabled=false"
+        ]
+      },
+      "declaredPin": "0.160.0",
+      "distributionContentIdentity": [
+        {
+          "identity": {
+            "algorithm": "sha-256",
+            "value": "77ceb39abafda8b550ba851036b47cae5b5f40892e01a990f495950d49192779"
+          },
+          "path": "bin/codex"
+        },
+        {
+          "identity": {
+            "algorithm": "sha-256",
+            "value": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+          },
+          "path": "codex-package.json"
+        }
+      ],
+      "generatedOutputIdentity": "codex app-server generate-json-schema --experimental @ 0.160.0 (manifest sha256 411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be; root sha256 7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5; v2 sha256 e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c)",
+      "handshakeConsistency": "consistent",
+      "handshakeReportedIdentity": {
+        "userAgent": "codex/0.160.0"
+      },
+      "launcherRecord": {
+        "addedEnvironment": [
+          "PATH"
+        ],
+        "launcher": "vendor-binary"
+      },
+      "observedVersionLabel": "codex-cli 0.160.0",
+      "supplementIdentity": "empty at 0.160.0"
+    }
+  },
+  "applicationCandidate": {
+    "buildIdentity": "INVENTED-S4-APP-BUILD",
+    "revision": "INVENTED-S4-APP-REVISION",
+    "standing": "invented-consumer-fixture"
+  },
+  "case": "unselected",
+  "format": "group-b-s1-reader-exchange.v1",
+  "members": [
+    {
+      "path": ".chirality-s1/lifecycle.json",
+      "sha256": "765fe138098af6fe1ac366b804fc497c893b47e8623d008a005190b398405e2a",
+      "size": 2350
+    },
+    {
+      "path": ".chirality-s1/observed.json",
+      "sha256": "f36404d1545d6b1150a78830eb3007a10e77e7dbf9e6960e07900f014b92de0a",
+      "size": 4302
+    },
+    {
+      "path": ".chirality-s1/preflight.json",
+      "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e",
+      "size": 2581
+    },
+    {
+      "path": ".chirality-s1/transport.json",
+      "sha256": "d9c400367334ad0fc325c8438c3b9314222f6d9735d2fbbe4bc8dc8cc53a988f",
+      "size": 3760
+    }
+  ],
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+      "--exact",
+      "--ignored",
+      "--nocapture"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "69d418bb91d6734f3da46812982e6a858369839aeed4532ff86299038abb8bea",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "938d20ef4bf0d07a7cc706d575e74f844d8caccf"
+  },
+  "readback": {
+    "evidence": {
+      "artifact": {
+        "adoption_attestation": null,
+        "at": "2026-10-08T14:18:14.707Z",
+        "candidate_subject": null,
+        "checks": {
+          "custody": {
+            "evidence": {
+              "path": ".chirality-s1/preflight.json",
+              "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e"
+            },
+            "outcome": "missing",
+            "reason": "Installed integrity/stable custody issuer unavailable"
+          },
+          "generated": {
+            "evidence": {
+              "path": ".chirality-s1/preflight.json",
+              "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e"
+            },
+            "outcome": "missing",
+            "reason": "Compiled generated bytes checked, but S3 provenance/version-advance evidence absent"
+          },
+          "label": {
+            "evidence": {
+              "path": ".chirality-s1/preflight.json",
+              "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e"
+            },
+            "outcome": "pass",
+            "reason": "Exact isolated raw label corresponds to declared pin"
+          },
+          "reference": {
+            "evidence": {
+              "path": ".chirality-s1/preflight.json",
+              "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e"
+            },
+            "outcome": "missing",
+            "reason": "No production S3 selection available; any private selected fixture is not qualification"
+          },
+          "tree": {
+            "evidence": {
+              "path": ".chirality-s1/preflight.json",
+              "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e"
+            },
+            "outcome": "unverifiable",
+            "reason": "Complete local inventory observed; qualified installed reference/custody unavailable"
+          }
+        },
+        "configuration": {
+          "account_home": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/account",
+          "app_supplied_nonsecret": {
+            "CODEX_HOME": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/account"
+          },
+          "argv": [
+            "-c",
+            "analytics.enabled=false",
+            "app-server"
+          ],
+          "home_link_states": "Root fixed namespace metadata reobserved by protected publication guard; not native discovery proof",
+          "k12_flags": [
+            "analytics.enabled=false"
+          ],
+          "path_prefix": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/vendor/codex-path",
+          "path_remainder_provenance": "Inherited process PATH; remainder bytes omitted from this nonsecret record",
+          "probe_home": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/probe",
+          "removed_environment_names": [
+            "OPENAI_API_KEY",
+            "CODEX_API_KEY",
+            "CODEX_ACCESS_TOKEN",
+            "OPENAI_ORG_ID",
+            "OPENAI_PROJECT_ID",
+            "AZURE_OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "CODEX_MANAGED_PACKAGE_ROOT",
+            "CODEX_MANAGED_BY_NPM"
+          ],
+          "resolved_executable": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/vendor/bin/codex",
+          "resolved_root": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/vendor",
+          "secret_redactions": [
+            "OPENAI_API_KEY",
+            "CODEX_API_KEY",
+            "CODEX_ACCESS_TOKEN",
+            "OPENAI_ORG_ID",
+            "OPENAI_PROJECT_ID",
+            "AZURE_OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY"
+          ],
+          "working_directory": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813"
+        },
+        "expected_reference": null,
+        "format": "observed-verification.s1",
+        "generated": null,
+        "generation": {
+          "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+          "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+          "spawnCounter": 1
+        },
+        "inventory": {
+          "algorithm": "sha-256",
+          "entries": [
+            {
+              "kind": "dir",
+              "mode": 493,
+              "path": "."
+            },
+            {
+              "kind": "dir",
+              "mode": 493,
+              "path": "bin"
+            },
+            {
+              "kind": "file",
+              "mode": 448,
+              "path": "bin/codex",
+              "sha256": "77ceb39abafda8b550ba851036b47cae5b5f40892e01a990f495950d49192779",
+              "size": 266
+            },
+            {
+              "kind": "file",
+              "mode": 420,
+              "path": "codex-package.json",
+              "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+              "size": 3
+            },
+            {
+              "kind": "dir",
+              "mode": 493,
+              "path": "codex-path"
+            },
+            {
+              "kind": "dir",
+              "mode": 493,
+              "path": "codex-resources"
+            }
+          ],
+          "manifest_sha256": "e963f1e597c5df4ac34cc1898e8a048fe3c26deb58809377092072f00406ea65",
+          "method": "codex-vendor-tree-v1"
+        },
+        "launcher": {
+          "kind": "direct-vendor",
+          "path_prefix_relative": "codex-path",
+          "relative_executable": "bin/codex",
+          "removed_wrapper_variables": [
+            "CODEX_MANAGED_PACKAGE_ROOT",
+            "CODEX_MANAGED_BY_NPM"
+          ]
+        },
+        "limits": [
+          "Development observation only; no installed integrity/custody issuer",
+          "Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"
+        ],
+        "observed_label": "0.160.0",
+        "outcome": "unverifiable",
+        "phase": "pre-spawn",
+        "pin": "0.160.0",
+        "platform": "macOS arm64",
+        "raw_version_label": "codex-cli 0.160.0\n"
+      },
+      "lifecycle": {
+        "format": "lifecycle-event.s1",
+        "legacy_event": {
+          "at": "2026-10-08T14:18:14.799Z",
+          "declaredCapabilities": {
+            "experimentalApi": true,
+            "explicitGatewayOauth": true,
+            "requestAttestation": false
+          },
+          "event": "handshake-completed",
+          "fromState": "handshaking",
+          "generation": {
+            "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+            "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+            "spawnCounter": 1
+          },
+          "recordKind": "lifecycle-event",
+          "sequence": 4,
+          "supplierStanding": "unverified-development",
+          "toState": "ready",
+          "transitionId": "LT-09",
+          "versionIdentity": {
+            "configurationIdentity": {
+              "arguments": [
+                "-c",
+                "analytics.enabled=false",
+                "app-server"
+              ],
+              "environment": {
+                "CODEX_HOME": "App-owned home (path recorded by the App, not here)"
+              },
+              "launcher": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/vendor/bin/codex",
+              "removedEnvironment": [
+                "OPENAI_API_KEY",
+                "CODEX_API_KEY",
+                "CODEX_ACCESS_TOKEN",
+                "OPENAI_ORG_ID",
+                "OPENAI_PROJECT_ID",
+                "AZURE_OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "CODEX_MANAGED_PACKAGE_ROOT",
+                "CODEX_MANAGED_BY_NPM"
+              ],
+              "sessionFlags": [
+                "analytics.enabled=false"
+              ]
+            },
+            "declaredPin": "0.160.0",
+            "distributionContentIdentity": [
+              {
+                "identity": {
+                  "algorithm": "sha-256",
+                  "value": "77ceb39abafda8b550ba851036b47cae5b5f40892e01a990f495950d49192779"
+                },
+                "path": "bin/codex"
+              },
+              {
+                "identity": {
+                  "algorithm": "sha-256",
+                  "value": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+                },
+                "path": "codex-package.json"
+              }
+            ],
+            "generatedOutputIdentity": "codex app-server generate-json-schema --experimental @ 0.160.0 (manifest sha256 411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be; root sha256 7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5; v2 sha256 e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c)",
+            "handshakeConsistency": "consistent",
+            "handshakeReportedIdentity": {
+              "userAgent": "codex/0.160.0"
+            },
+            "launcherRecord": {
+              "addedEnvironment": [
+                "PATH"
+              ],
+              "launcher": "vendor-binary"
+            },
+            "observedVersionLabel": "codex-cli 0.160.0",
+            "supplementIdentity": "empty at 0.160.0"
+          }
+        },
+        "verification_artifact": {
+          "path": ".chirality-s1/observed.json",
+          "sha256": "f36404d1545d6b1150a78830eb3007a10e77e7dbf9e6960e07900f014b92de0a"
+        },
+        "verification_generation": {
+          "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+          "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+          "spawnCounter": 1
+        }
+      },
+      "outcome": "unverifiable",
+      "readStanding": "S1 shape/semantics and exact closure checked at this read; no future integrity or live custody assertion",
+      "reference": {
+        "format": "distribution-s1-reference.s3",
+        "generation": {
+          "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+          "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+          "spawnCounter": 1
+        },
+        "lifecycle": {
+          "path": ".chirality-s1/lifecycle.json",
+          "sha256": "765fe138098af6fe1ac366b804fc497c893b47e8623d008a005190b398405e2a"
+        },
+        "observed": {
+          "path": ".chirality-s1/observed.json",
+          "sha256": "f36404d1545d6b1150a78830eb3007a10e77e7dbf9e6960e07900f014b92de0a"
+        },
+        "publication": "s1-d98bb3b6-b234-43ae-8ebf-546504beb82f",
+        "reader": {
+          "closureReaderSha256": "b1e3ce5069c254ade3a8e73b9047f61076d48e483ba0ad8fe2013496dd856ff9",
+          "factsSchemaSha256": "3a6eb9d2bbad03b85f405edcfc40e24012c7ca43edbdd3e396886385c3e20865",
+          "labelJoin": {
+            "readerSourceSha256": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9",
+            "schemas": {
+              "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+              "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+            },
+            "scope": "version-label-join-only",
+            "semanticRevision": "lifecycle-label-join.s2"
+          },
+          "limit": "installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only",
+          "namespaceAuthoritySourceSha256": "01855cb125c81aef1541d265be16db42444ead5b31a755b393351eca20b41c6f",
+          "preflightReaderSha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+          "readerSourceSha256": "408302b9942b1a2eec8e08ab8f81f28700d4e40f69a049dba08ede62f1198ad1",
+          "schemas": {
+            "adoption-attestation.s1": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
+            "expected-reference.s1": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd",
+            "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+            "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+          },
+          "semanticRevision": "observed-lifecycle-reader.s3",
+          "storeGuardsSha256": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903",
+          "storeReaderSha256": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be",
+          "stringIdentity": {
+            "domain": "Unicode scalar values; JSON non-scalar surrogates rejected",
+            "generatorSha256": "8fb879032f1d37681c57baae54d5a2aaf839a02a108b8fcfbf43dff94880604a",
+            "interpreterSha256": "406d73d07e33e164d986326fde00b85c2b8f4ed2c33278142c8431588fe2df14",
+            "method": "python-strip-casefold-scalar-v1",
+            "pythonImplementation": "CPython",
+            "pythonVersion": "3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]",
+            "tableSha256": "071c266188836e733a100e01fe4b7a40552ed18d41b04d481fef1b2ea4a29f40",
+            "unicodeVersion": "15.1.0"
+          },
+          "transitionProvenance": {
+            "maintained": {
+              "path": "lifecycle-transitions.s1.json",
+              "sha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
+            },
+            "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
+            "origin": {
+              "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+              "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
+            }
+          },
+          "transitionsSha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14",
+          "transportSchemaSha256": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5"
+        },
+        "transport": {
+          "path": ".chirality-s1/transport.json",
+          "sha256": "d9c400367334ad0fc325c8438c3b9314222f6d9735d2fbbe4bc8dc8cc53a988f"
+        }
+      },
+      "standing": "unverified-development",
+      "transport": {
+        "entries": [
+          {
+            "path": ".chirality-s1/lifecycle.json",
+            "sha256": "765fe138098af6fe1ac366b804fc497c893b47e8623d008a005190b398405e2a"
+          },
+          {
+            "path": ".chirality-s1/observed.json",
+            "sha256": "f36404d1545d6b1150a78830eb3007a10e77e7dbf9e6960e07900f014b92de0a"
+          },
+          {
+            "path": ".chirality-s1/preflight.json",
+            "sha256": "94d71960ac2396e591ed7753222ea1292c80907639201e1ff62a7693a2ee899e"
+          }
+        ],
+        "format": "distribution-closure-transport.s3",
+        "generation": {
+          "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+          "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+          "spawnCounter": 1
+        },
+        "limit": "Creation correspondence only; no future integrity, issuer, qualification or live custody assertion",
+        "method": "selected-s1-contract-closure.s3",
+        "mirrorLocator": "/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/h3b-7430c7fb-39de-4144-9e1c-b77a62ff8813/app-data/runtime/distribution/s1-d98bb3b6-b234-43ae-8ebf-546504beb82f",
+        "reader": {
+          "closureReaderSha256": "b1e3ce5069c254ade3a8e73b9047f61076d48e483ba0ad8fe2013496dd856ff9",
+          "factsSchemaSha256": "3a6eb9d2bbad03b85f405edcfc40e24012c7ca43edbdd3e396886385c3e20865",
+          "labelJoin": {
+            "readerSourceSha256": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9",
+            "schemas": {
+              "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+              "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+            },
+            "scope": "version-label-join-only",
+            "semanticRevision": "lifecycle-label-join.s2"
+          },
+          "limit": "installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only",
+          "namespaceAuthoritySourceSha256": "01855cb125c81aef1541d265be16db42444ead5b31a755b393351eca20b41c6f",
+          "preflightReaderSha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+          "readerSourceSha256": "408302b9942b1a2eec8e08ab8f81f28700d4e40f69a049dba08ede62f1198ad1",
+          "schemas": {
+            "adoption-attestation.s1": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
+            "expected-reference.s1": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd",
+            "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+            "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+          },
+          "semanticRevision": "observed-lifecycle-reader.s3",
+          "storeGuardsSha256": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903",
+          "storeReaderSha256": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be",
+          "stringIdentity": {
+            "domain": "Unicode scalar values; JSON non-scalar surrogates rejected",
+            "generatorSha256": "8fb879032f1d37681c57baae54d5a2aaf839a02a108b8fcfbf43dff94880604a",
+            "interpreterSha256": "406d73d07e33e164d986326fde00b85c2b8f4ed2c33278142c8431588fe2df14",
+            "method": "python-strip-casefold-scalar-v1",
+            "pythonImplementation": "CPython",
+            "pythonVersion": "3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]",
+            "tableSha256": "071c266188836e733a100e01fe4b7a40552ed18d41b04d481fef1b2ea4a29f40",
+            "unicodeVersion": "15.1.0"
+          },
+          "transitionProvenance": {
+            "maintained": {
+              "path": "lifecycle-transitions.s1.json",
+              "sha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
+            },
+            "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
+            "origin": {
+              "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+              "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
+            }
+          },
+          "transitionsSha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14",
+          "transportSchemaSha256": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5"
+        },
+        "sourceAssociation": null
+      },
+      "unsupportedEnvelopes": "Actual LT-09 and eligible same-H5 LT-12/LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"
+    },
+    "generation": {
+      "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+      "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+      "spawnCounter": 1
+    },
+    "state": "read"
+  },
+  "selectedSourceMembers": null
+}

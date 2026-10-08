@@ -1,0 +1,30 @@
+{
+  "lt09": {
+    "previous_source": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+    "selected_source": "2377becab65791fcd91177fcf4ab15abcf4c1742",
+    "reader_changes": {},
+    "producer_boundary_unchanged": true,
+    "source_changes": {
+      "app/src-tauri/src/lib.rs": {
+        "previous": "2cd2559f351fc02a6077d2fd6ca1e2c0ee995909a02d40b2883eb406b90b3c09",
+        "selected": "068c3039d446b8d341c8c3e5dac60937b7cc11b0746276da6babd751b90872f2"
+      }
+    }
+  },
+  "terminal": {
+    "previous_source": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+    "selected_source": "2377becab65791fcd91177fcf4ab15abcf4c1742",
+    "reader_changes": {},
+    "producer_boundary_unchanged": true,
+    "source_changes": {
+      "app/examination/distribution_receiving/receive.py": {
+        "previous": "d3902ff62136bf0f5e1b8bb10d9948ec5d2e07493428804425cca1b5c214c787",
+        "selected": "195c839be661c0a041a9c2ae021413660d368e131ca59243c32ae16d6601ae3d"
+      },
+      "app/src-tauri/src/lib.rs": {
+        "previous": "2cd2559f351fc02a6077d2fd6ca1e2c0ee995909a02d40b2883eb406b90b3c09",
+        "selected": "068c3039d446b8d341c8c3e5dac60937b7cc11b0746276da6babd751b90872f2"
+      }
+    }
+  }
+}

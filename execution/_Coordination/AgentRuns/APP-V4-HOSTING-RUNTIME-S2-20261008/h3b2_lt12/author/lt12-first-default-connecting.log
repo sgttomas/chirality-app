@@ -1,0 +1,66 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `start` found for struct `hosting::Host` in the current scope
+   --> src/hosting_lt12_tests.rs:26:17
+    |
+ 26 |         let g=h.start(&f.cfg,"synthetic LT12").unwrap()["generation"].clone();
+    |                 ^^^^^ method not found in `hosting::Host`
+    |
+   ::: src/hosting.rs:468:1
+    |
+468 | pub struct Host {
+    | --------------- method `start` not found for this struct
+...
+887 |     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+    |            ----- the method is available for `std::sync::Arc<hosting::Host>` here
+    |
+help: consider wrapping the receiver expression with the appropriate type
+    |
+ 26 |         let g=Arc::new(h).start(&f.cfg,"synthetic LT12").unwrap()["generation"].clone();
+    |               +++++++++ +
+
+error[E0599]: no method named `start` found for struct `hosting::Host` in the current scope
+   --> src/hosting_lt12_tests.rs:42:19
+    |
+ 42 |         assert!(h.start(&f.cfg,"no direct restart").is_err());
+    |                   ^^^^^ method not found in `hosting::Host`
+    |
+   ::: src/hosting.rs:468:1
+    |
+468 | pub struct Host {
+    | --------------- method `start` not found for this struct
+...
+887 |     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+    |            ----- the method is available for `std::sync::Arc<hosting::Host>` here
+    |
+help: consider wrapping the receiver expression with the appropriate type
+    |
+ 42 |         assert!(Arc::new(h).start(&f.cfg,"no direct restart").is_err());
+    |                 +++++++++ +
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3375:13
+     |
+3375 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0599`.
+warning: `chirality-app-v4` (lib test) generated 3 warnings
+error: could not compile `chirality-app-v4` (lib test) due to 2 previous errors; 3 warnings emitted

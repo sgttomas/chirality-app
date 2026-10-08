@@ -1,0 +1,13 @@
+{
+  "basis": "2377becab65791fcd91177fcf4ab15abcf4c1742",
+  "author": "b394a2ab900bb96f1039e4424384828d7874950b",
+  "patterns": {
+    "group_b_distribution_receiving_test.py": 23,
+    "group_b_terminal_receiving_test.py": 13,
+    "group_b_support_identity_test.py": 16,
+    "group_b_support_identity_canonical_test.py": 11
+  },
+  "total": 63,
+  "result": "PASS",
+  "runner": "python3 -B unittest discovery"
+}

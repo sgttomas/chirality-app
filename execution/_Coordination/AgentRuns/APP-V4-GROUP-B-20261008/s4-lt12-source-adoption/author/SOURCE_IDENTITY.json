@@ -1,0 +1,62 @@
+{
+  "lt09": {
+    "previous_source": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71",
+    "selected_source": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+    "reader_changes": {
+      "storeReaderSha256": {
+        "previous": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57",
+        "selected": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be"
+      }
+    },
+    "boundary": {
+      "previous": "Actual LT-09 and eligible same-H5 LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable",
+      "selected": "Actual LT-09 and eligible same-H5 LT-12/LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"
+    },
+    "source_changes": {
+      "app/src-tauri/src/distribution_store_s1.rs": {
+        "previous": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57",
+        "selected": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be"
+      },
+      "app/src-tauri/src/hosting.rs": {
+        "previous": "7281e582de19ee560b71db0713e8afadc98da617cb1bff02acf2e8382e51edc8",
+        "selected": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d"
+      },
+      "app/src-tauri/src/hosting_successor.rs": {
+        "previous": "81bb8b215abfbab0c6cb58fd07172cfae6d3691001d6d43e377a24ce9f72275f",
+        "selected": "92748193385f7912fa1a3c626abbab779599f5ebd98c6b4c86460db5980d6d02"
+      }
+    }
+  },
+  "terminal": {
+    "previous_source": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71",
+    "selected_source": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+    "reader_changes": {
+      "storeReaderSha256": {
+        "previous": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57",
+        "selected": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be"
+      }
+    },
+    "boundary": {
+      "previous": "Actual LT-09 and eligible same-H5 LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable",
+      "selected": "Actual LT-09 and eligible same-H5 LT-12/LT-23 are supported; pre-spawn/restart/other legacy envelopes unavailable"
+    },
+    "source_changes": {
+      "app/examination/distribution_receiving/receive.py": {
+        "previous": "90c1ed320abe592db325cd6c42cb4b33b28148a21356d1aa3509095ee509bdf8",
+        "selected": "d3902ff62136bf0f5e1b8bb10d9948ec5d2e07493428804425cca1b5c214c787"
+      },
+      "app/src-tauri/src/distribution_store_s1.rs": {
+        "previous": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57",
+        "selected": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be"
+      },
+      "app/src-tauri/src/hosting.rs": {
+        "previous": "7281e582de19ee560b71db0713e8afadc98da617cb1bff02acf2e8382e51edc8",
+        "selected": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d"
+      },
+      "app/src-tauri/src/hosting_successor.rs": {
+        "previous": "81bb8b215abfbab0c6cb58fd07172cfae6d3691001d6d43e377a24ce9f72275f",
+        "selected": "92748193385f7912fa1a3c626abbab779599f5ebd98c6b4c86460db5980d6d02"
+      }
+    }
+  }
+}

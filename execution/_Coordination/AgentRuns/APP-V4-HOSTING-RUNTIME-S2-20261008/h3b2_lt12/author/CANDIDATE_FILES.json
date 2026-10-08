@@ -1,0 +1,27 @@
+{
+  "base": "3d73db745edd3378e0bb254a1b263215ef0861e9",
+  "branch": "codex/hosting-lt12",
+  "worktree": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality",
+  "files": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/LT12_PUBLICATION.md",
+      "sha256": "a32ff459c5db2a8994b7564245e5f77de2352fd0cb145f348a5154e4bd1b96d3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs",
+      "sha256": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "9cd226e15581c3c8263d8465bfd8c3c9e94727cb5a980bc2000d3589b4f6ab5d"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_lt12_tests.rs",
+      "sha256": "178bc1637acb69e9a2b215289914da5b5a273f8f18e8881334e9db8cdf8595c8"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "sha256": "92748193385f7912fa1a3c626abbab779599f5ebd98c6b4c86460db5980d6d02"
+    }
+  ]
+}

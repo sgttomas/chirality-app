@@ -1,0 +1,264 @@
+{
+  "file_correspondence_passed": true,
+  "exchange_sha256": "e39c2e9046ae7134d5da67e233e52a0941c48e3aaaef0e0e8090c870abe7ff8f",
+  "selection_sha256": "e7ca8c59d109a7f0d5ef94accecf8569baf98848b0d371c472dcc5976507fa39",
+  "receiving_adoption": "B-S4-LT12-SOURCE-LT09-v1",
+  "case": "unselected",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected",
+      "--exact",
+      "--ignored",
+      "--nocapture"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "69d418bb91d6734f3da46812982e6a858369839aeed4532ff86299038abb8bea",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "938d20ef4bf0d07a7cc706d575e74f844d8caccf"
+  },
+  "application_candidate": {
+    "buildIdentity": "INVENTED-S4-APP-BUILD",
+    "revision": "INVENTED-S4-APP-REVISION",
+    "standing": "invented-consumer-fixture"
+  },
+  "reader": {
+    "closureReaderSha256": "b1e3ce5069c254ade3a8e73b9047f61076d48e483ba0ad8fe2013496dd856ff9",
+    "factsSchemaSha256": "3a6eb9d2bbad03b85f405edcfc40e24012c7ca43edbdd3e396886385c3e20865",
+    "labelJoin": {
+      "readerSourceSha256": "46e3eb588b99b4c067993537d09608b8e671f13a1b83cbabe11d2e5155de26a9",
+      "schemas": {
+        "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+        "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+      },
+      "scope": "version-label-join-only",
+      "semanticRevision": "lifecycle-label-join.s2"
+    },
+    "limit": "installed custody issuer unsupported; no verified outcome accepted; pinned Python Unicode compatibility only",
+    "namespaceAuthoritySourceSha256": "01855cb125c81aef1541d265be16db42444ead5b31a755b393351eca20b41c6f",
+    "preflightReaderSha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+    "readerSourceSha256": "408302b9942b1a2eec8e08ab8f81f28700d4e40f69a049dba08ede62f1198ad1",
+    "schemas": {
+      "adoption-attestation.s1": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
+      "expected-reference.s1": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd",
+      "lifecycle-event.s1": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",
+      "observed-verification.s1": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+    },
+    "semanticRevision": "observed-lifecycle-reader.s3",
+    "storeGuardsSha256": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903",
+    "storeReaderSha256": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be",
+    "stringIdentity": {
+      "domain": "Unicode scalar values; JSON non-scalar surrogates rejected",
+      "generatorSha256": "8fb879032f1d37681c57baae54d5a2aaf839a02a108b8fcfbf43dff94880604a",
+      "interpreterSha256": "406d73d07e33e164d986326fde00b85c2b8f4ed2c33278142c8431588fe2df14",
+      "method": "python-strip-casefold-scalar-v1",
+      "pythonImplementation": "CPython",
+      "pythonVersion": "3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]",
+      "tableSha256": "071c266188836e733a100e01fe4b7a40552ed18d41b04d481fef1b2ea4a29f40",
+      "unicodeVersion": "15.1.0"
+    },
+    "transitionProvenance": {
+      "maintained": {
+        "path": "lifecycle-transitions.s1.json",
+        "sha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
+      },
+      "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+        "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
+      }
+    },
+    "transitionsSha256": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14",
+    "transportSchemaSha256": "022b830b379a809187dec522379b3c32f2532c16fb7c02eb4141c7b847a05fe5"
+  },
+  "generation": {
+    "appSession": "app-session:4814389d-8256-4f64-b3cb-f23513894dc2",
+    "home": "app-home:bc5437ad6fca2a1cd9c48a81d26885e54ea3d803c2bfb0a3699b145dd346280e",
+    "spawnCounter": 1
+  },
+  "canonical_support": {
+    "canonical_consistency_passed": true,
+    "errors": [],
+    "binding_method": "EXP-SUPPORT-BINDING-v1",
+    "binding_purpose": "current_producer_declaration",
+    "fixed_support_selection": {
+      "declaration_sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248",
+      "publication_reference": {
+        "repository": "sgttomas/chirality",
+        "revision": "09106477e351c6e5bde85259c55a00cc8fc5f7f5",
+        "pull_request": 1077,
+        "mechanism": "deliverable_merge"
+      },
+      "support_identity": {
+        "exp_version": "EXP-v0.2",
+        "schema_ids": {
+          "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+          "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+          "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+        },
+        "prototype_sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+      },
+      "reader_pins_sha256": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4"
+    },
+    "selection_sha256": "e7ca8c59d109a7f0d5ef94accecf8569baf98848b0d371c472dcc5976507fa39",
+    "inputs": {
+      "before": {
+        "record": {
+          "path": "before.record.json",
+          "sha256": "39847af77ae6699d639e53e84d252f45abab5c8321302ebb8e155fbbcbffbe08"
+        },
+        "binding": {
+          "path": "before.binding.json",
+          "sha256": "f83cf413dd34536f841303a3272d1d6f188a9bead9e65d62a26a3385feba20dd"
+        }
+      },
+      "after": {
+        "record": {
+          "path": "after.record.json",
+          "sha256": "1bd4093bd705a45a1355b0dce8192457699ff4ebe3764871dfbd2f16bd251af3"
+        },
+        "binding": {
+          "path": "after.binding.json",
+          "sha256": "7e79244a3276bcdd06fa4badc8a2bef4ca3772a0f4917a3a6d77aa2870246ff9"
+        }
+      },
+      "rerun": {
+        "record": {
+          "path": "rerun.record.json",
+          "sha256": "04ff0db6e471dd0c96838c4f40b0c699077fa220a3bfd7f8fd6020bb444381c3"
+        },
+        "binding": {
+          "path": "rerun.binding.json",
+          "sha256": "c5be5cabb089507cc7095c03f05a214afddc452e5cc6c963fb3ccdccffb20fd4"
+        }
+      },
+      "review": {
+        "record": {
+          "path": "review.record.json",
+          "sha256": "5cf78bef4eef8d86f642b2729a6ecc2cb721a022a04d0eaab76f6ddf33aa8fb2"
+        },
+        "binding": {
+          "path": "review.binding.json",
+          "sha256": "0318cf247e834735300531ca709cddac6906438165f381706872b34b3b4c6022"
+        }
+      },
+      "change": {
+        "record": {
+          "path": "change.record.json",
+          "sha256": "176564a5bebab148db7c2f10be3ccec9fd9130793c0960d2f302ec613acc4c51"
+        },
+        "binding": {
+          "path": "change.binding.json",
+          "sha256": "bbb245ffdbba183b86777bb04d02958c390ba8358dc715c85d4bcfbacb34faa0"
+        }
+      },
+      "package": {
+        "record": {
+          "path": "package.record.json",
+          "sha256": "832fb167fbaf90920b51fa8e9a38c409377f3c545eb6d2bf97d956c894fce22a"
+        },
+        "binding": {
+          "path": "package.binding.json",
+          "sha256": "19159bf8492f13172372de1bd47c2981e61ed493a7723db2bbd05d8388c56031"
+        }
+      }
+    },
+    "existing_checks": {
+      "package": {
+        "errors": [],
+        "selected_candidate": {
+          "revision": "INVENTED-S4-APP-REVISION",
+          "build_identity": "INVENTED-S4-APP-BUILD",
+          "codex_pin": "0.160.0"
+        },
+        "selected_package_reference": "INVENTED-PACKAGE",
+        "reported_prerequisite_gaps": [
+          "fp1a has no reported pass; Option B cannot be relied on",
+          "fp1b has no reported pass; Option B cannot be relied on",
+          "fp3 has no reported pass; Option B cannot be relied on"
+        ],
+        "option_b_reliance": "not_established_by_file_check",
+        "native_qualification": "not_established_by_file_check",
+        "file_checks_passed": true,
+        "limits": [
+          "File structure and declared consistency only; observation origin is unverified.",
+          "No package bytes, signatures, notarisation, native run, human act or qualification verified.",
+          "EXP review/change-impact records, runner admission and SQ dossiers are not checked by this slice.",
+          "SIGN-1 Option B remains selected; OI-011 SWB co-owner work remains open."
+        ],
+        "tool_sha256": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
+        "rules_sha256": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
+        "source_manifest_sha256": "4284cebd7cfdfebbaaf87338db629f6cb6f5ed3c0cc054adb11124d0e80a2059"
+      },
+      "review": {
+        "file_checks_passed": true,
+        "errors": [],
+        "scope": "review-join",
+        "unresolved_other_references": [],
+        "rerun_not_supplied": false,
+        "limits": [
+          "File and declared-relationship checks only; no observation, actual review, independence or authorization is verified.",
+          "Joins cover only the supplied records. Other evidence, affectedness, unreadable reliance and omitted results require the examination owner.",
+          "Opaque subject/from/to identities are matched to caller-selected aliases; their real-world identity is not inferred.",
+          "No runner/browser/native admission, human act, qualification, acceptance or release. CI26 full support identity remains pending."
+        ],
+        "review_or_repair_verified": false,
+        "route_admission": "not_established",
+        "tool_sha256": "c51f02c8f4f05361b0a299fb85dfce98228f419913bde967fa22447628a6c49a",
+        "rules_sha256": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
+        "source_lock_sha256": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511"
+      },
+      "change": {
+        "file_checks_passed": true,
+        "errors": [],
+        "scope": "change-join",
+        "unresolved_other_references": [],
+        "rerun_not_supplied": false,
+        "limits": [
+          "File and declared-relationship checks only; no observation, actual review, independence or authorization is verified.",
+          "Joins cover only the supplied records. Other evidence, affectedness, unreadable reliance and omitted results require the examination owner.",
+          "Opaque subject/from/to identities are matched to caller-selected aliases; their real-world identity is not inferred.",
+          "No runner/browser/native admission, human act, qualification, acceptance or release. CI26 full support identity remains pending."
+        ],
+        "review_or_repair_verified": false,
+        "route_admission": "not_established",
+        "tool_sha256": "c51f02c8f4f05361b0a299fb85dfce98228f419913bde967fa22447628a6c49a",
+        "rules_sha256": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
+        "source_lock_sha256": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511"
+      }
+    },
+    "adapter": {
+      "tool_sha256": "38f1008e47b4e924b6725b4e2901762e1c149f5bdedaec17e8357bed046bd109",
+      "standing": "internal_unpublished_v1_bindings_only"
+    },
+    "producer_use_verified": false,
+    "publication_authority_authenticated": false,
+    "method_adoption_authenticated": false,
+    "qualification_established": false,
+    "tool_sha256": "320728cdebdd87cadeac4621ce100807fbe228bff1787f04ca625b4a2873cb20",
+    "limits": [
+      "Fixed canonical support selection and exact-byte consistency only; runtime does not authenticate publication or method adoption.",
+      "Current producer binding is a declaration, not verified use; historical correspondence never establishes the basis actually used.",
+      "No actual observation, reviewer independence, repair, native run, signing, qualification, acceptance or release established.",
+      "Only the supplied current package and bounded result/review/change pair are joined; omitted history and prior package custody remain outside scope.",
+      "Filesystem link checks are best effort, not hostile concurrent-filesystem isolation or authenticated custody.",
+      "SQ, native-form and S4 receiving adoption and M1 runner/native qualification remain separate."
+    ]
+  },
+  "native_reference_authority": false,
+  "terminal_evidence_received": false,
+  "terminal_authority_authenticated": false,
+  "namespace_authority_authenticated": false,
+  "semantic_reader_reexecuted": false,
+  "producer_history_authenticated": false,
+  "application_build_authenticated": false,
+  "qualification_established": false,
+  "limits": [
+    "Exact exported file correspondence only; native S1 semantics are not reexecuted.",
+    "Serialized readback is a producer report, not authenticated history or a native-held reference capability.",
+    "Synthetic Host executable identity and invented application candidate identity are separate; no actual App build is established.",
+    "Selected source copies do not establish original source custody, compiled production selection, S3 qualification or adoption.",
+    "No native examination, installed custody, signing, supplier qualification or release is established.",
+    "No-follow reads and private snapshots are bounded observations, not atomic isolation against a hostile concurrent filesystem."
+  ]
+}

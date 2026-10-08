@@ -1,0 +1,23 @@
+{
+  "format": "group-b-lt12-source-terminal-fixture-provenance.v1",
+  "adoption": "B-S4-LT12-SOURCE-TERMINAL-v1",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected",
+      "--exact",
+      "--ignored",
+      "--nocapture"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "69d418bb91d6734f3da46812982e6a858369839aeed4532ff86299038abb8bea",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "938d20ef4bf0d07a7cc706d575e74f844d8caccf"
+  },
+  "exchange_sha256": {
+    "selected": "0f4fceb10409d01ea17f37cec84b0ff7684b279e3eeaf283519617b9b941329c",
+    "unselected": "8318a49275a2e0859c91196d4539ac2d3ddcae90e6a60b02fb6b140fb3e1e37d"
+  },
+  "standing": "Actual synthetic LT09/LT23 exports; no LT12 exchange, native authority or qualification",
+  "receipt_sha256": "e3580b2acf79897a8416895bff4013189936d61e6eeab14a2cdf8a66126c2cd7"
+}

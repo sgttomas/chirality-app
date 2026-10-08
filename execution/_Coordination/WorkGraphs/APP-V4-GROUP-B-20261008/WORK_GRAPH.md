@@ -4,7 +4,7 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-terminal-receiving`, based on verified
+PR #1126. Current graph ref: `codex/app-v4-group-b-lt12-current-main`, based on verified
 PR #1147 merge `f23997d3202375f9d607098731f8d374d019b434`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
@@ -133,21 +133,18 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Paired terminal receiving:** Parent released bounded B receiving on reviewed
-Host source 9af67409ed0e625fcd8e0e9a0c59975fccfcae71 and completed actual
-synthetic LT09/LT23 paired exchanges. New closed-format terminal receiving and
-separate named fixed current LT09 source adoption are independently READY at
-B author 52cead3c04, with 61 integrated tests passing, under the explicit
-two-cohort technical disposition in s4-terminal-receiving/COORDINATION.md.
+**Fixed two-cohort current-main renewal:** The earlier 938 source adoption is
+retained historically. C3 main changed pinned lib.rs, so direct integration
+correctly refused source drift. Parent released nonrewriting combined Host
+source 2377becab65791fcd91177fcf4ab15abcf4c1742 and fresh committed-source
+exports. B named current-main standalone LT09 and LT09/LT23 cohorts preserve
+all earlier bytes and unchanged format/row restrictions; no LT12 exchange.
 
-Original v1 format/behavior and all historical pins/fixtures remain preserved;
-only the named fixed active LT09 selection changes after fresh verified v1
-exports. Terminal pins freeze afterward. Both current positive paths and
-cross-cohort/format/stale/malformed negatives passed independent review; joined
-Host exact-head review/CI remain ahead. There is no dynamic fallback or native/S3/package
-qualification. Actual native/namespace authority, renewed terminal integrity,
-installed custody and zero-descendant proof remain outside file correspondence.
-The separate actual candidate, examination and package inputs remain open.
+Manager repeats 63 passing tests. Independent renewal review and joined Host
+exact-head review/CI are recorded separately in the return custody. No dynamic
+fallback, native/namespace/terminal authority, S3, actual candidate/package or
+qualification is supplied. No new lane or owner act is created. Exact custody:
+s4-lt12-current-main-adoption/COORDINATION.md.
 
 | Held node | Missing usable input / exact point of resumption |
 |---|---|

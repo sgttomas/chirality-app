@@ -1,0 +1,16 @@
+{
+  "basis": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+  "author": "65fd8cd7ae51ba23250942bc30865a396ae1554d",
+  "integratedAuthor": "e072056619f7a44bc3ba7329f54e27a7b23e320a",
+  "runner": "python3 -B unittest discovery",
+  "patterns": {
+    "group_b_distribution_receiving_test.py": 23,
+    "group_b_terminal_receiving_test.py": 13,
+    "group_b_support_identity_test.py": 16,
+    "group_b_support_identity_canonical_test.py": 11
+  },
+  "total": 63,
+  "result": "PASS",
+  "durationSeconds": 20.554,
+  "scope": "offline synthetic file correspondence; no LT12 exchange or qualification"
+}

@@ -1,0 +1,23 @@
+{
+  "format": "group-b-lt12-combined-terminal-fixture-provenance.v1",
+  "adoption": "B-S4-LT12-COMBINED-TERMINAL-v1",
+  "producer": {
+    "command": [
+      "/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b",
+      "hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected",
+      "--exact",
+      "--ignored",
+      "--nocapture"
+    ],
+    "features": [],
+    "harnessExecutableSha256": "264ef54bec3a3e0bc7bd5db7eee89293a90b1e8f767692932695da0aa48fd73f",
+    "kind": "synthetic-host-test",
+    "sourceRevision": "2377becab65791fcd91177fcf4ab15abcf4c1742"
+  },
+  "exchange_sha256": {
+    "selected": "7a20dfe47d4ffe708c5670890ae30cadacd6e246ae435101703596dcdf9778aa",
+    "unselected": "f3b8874a80fcbbcb0dca3152f407b697d9839ea127ac522532eb97436575180e"
+  },
+  "standing": "Actual synthetic existing-row exports; no LT12 exchange/native authority/qualification",
+  "receipt_sha256": "d140bc8932a408e5ea6348a0a134e1efda4b10778ddafd184e6bcf972b1a8f91"
+}

@@ -1,0 +1,70 @@
+[
+  {
+    "path": "RETURN.md",
+    "sha256": "783cf50b19b058228adb94d94b22fc5a0f8feae120059a48594aecc7a8169b83"
+  },
+  {
+    "path": "SOURCE_MEMBERS.json",
+    "sha256": "4bd6a1311dd117a80c2ce03344ac10bbc80fd8056c512e5669e52418184697d5"
+  },
+  {
+    "path": "SUMMARY.json",
+    "sha256": "f5f179992967e71bff4c23acd0396b7751e69ad2d7779dea13fd207e46a3c426"
+  },
+  {
+    "path": "VERIFICATION.json",
+    "sha256": "635c8fd5c91bbdc6bba714cc0095a0c0cdcb39a45e5a121216cd2868a6a0b743"
+  },
+  {
+    "path": "lt09-receipt.json",
+    "sha256": "db48486ef68c3bd5131304f14dab7ce0fb1eda0d10237c864120a93d71e922dc"
+  },
+  {
+    "path": "lt09.log",
+    "sha256": "60552ca07c687e7da2ba5a54788432a5d5d26f50465e95b548753c09c54e71f6"
+  },
+  {
+    "path": "lt12-combined-build.log",
+    "sha256": "495bbb545bbeb03f233024a11d82c51f75712a9333c6c674e4a8550d25f10ca8"
+  },
+  {
+    "path": "lt12-combined-default.log",
+    "sha256": "1ff5fe37a18e365b5060716fd8f07f1cad7124a8840fdeb9f4e24196cbcb4ab0"
+  },
+  {
+    "path": "lt12-combined-export-result.log",
+    "sha256": "923fbee1bd579976d175c3366c4aa3b4387db82b8294e0ee0a5f591498d11ec0"
+  },
+  {
+    "path": "lt12-combined-harness.jsonl",
+    "sha256": "bcc6011b8743a5a1dd741847c13edf55b2cf0338222d1f626d66d3422f92bc00"
+  },
+  {
+    "path": "lt12-combined-production-r2.log",
+    "sha256": "ce5f57bc8261aa651b68f5e36e601a3279ef460dabaf14ece2b4e76095e51e40"
+  },
+  {
+    "path": "lt12-combined-production.log",
+    "sha256": "d422a57d35c4fa099abfc51456dcf4e6d1e889a483ae4bab3ff9a30be2ef6c26"
+  },
+  {
+    "path": "lt12-combined-verification-result.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "lt12_run_combined_exports.py",
+    "sha256": "ba83d230ec331e88cd9c5158cf28b641fbf5698315b252746cd2584b2f47d5a4"
+  },
+  {
+    "path": "lt12_verify_combined.py",
+    "sha256": "235f0109b76d49da9546a474f10ced23ab77c1a65123c44c34ae0c57a9eb2306"
+  },
+  {
+    "path": "terminal-receipt.json",
+    "sha256": "d140bc8932a408e5ea6348a0a134e1efda4b10778ddafd184e6bcf972b1a8f91"
+  },
+  {
+    "path": "terminal.log",
+    "sha256": "12fd0fe55b3af2d8beec1b16941463666fc555475918f132abef6bf39229f083"
+  }
+]

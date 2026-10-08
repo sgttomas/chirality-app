@@ -1,0 +1,15 @@
+{
+  "hostSource": "938d20ef4bf0d07a7cc706d575e74f844d8caccf",
+  "receiptsHead": "f003bf567b",
+  "bSource": "6fdacd9dca86aa476f901e8be51918c352c30131",
+  "bPathsByteExact": 135,
+  "currentSourcePinsVerified": 73,
+  "tests": {
+    "group_b_distribution_receiving_test.py": 23,
+    "group_b_terminal_receiving_test.py": 13,
+    "group_b_support_identity_test.py": 16,
+    "group_b_support_identity_canonical_test.py": 11
+  },
+  "result": "63 PASS",
+  "limits": "Unchanged LT09 and LT09+LT23 formats only, no LT12 exchange; no native authority, S3, SEAL2, restart hydration or whole-trace validity"
+}

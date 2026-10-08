@@ -1,0 +1,26 @@
+{
+  "basis": "3d73db745edd3378e0bb254a1b263215ef0861e9",
+  "status": "HELP_HUMAN technically released exact proposal after independent READY and RS/REC concurrence; implementation pending verification",
+  "records": [
+    {
+      "source": "/private/tmp/H3B_LT12_PROPOSAL.md",
+      "retained": "H3B_LT12_PROPOSAL.md",
+      "sha256": "e0d605da4829bb49c9093fa26708523369e426e926d58be0963a5822c632d1f5"
+    },
+    {
+      "source": "/private/tmp/H3B_LT12_DESIGN_REVIEW.md",
+      "retained": "H3B_LT12_DESIGN_REVIEW.md",
+      "sha256": "c693296976a184c10320165a870da99075693573ab87e4e4b4986f22270518aa"
+    },
+    {
+      "source": "/private/tmp/H3B_LT12_RS_CONCURRENCE.md",
+      "retained": "H3B_LT12_RS_CONCURRENCE.md",
+      "sha256": "2bcaad0835ae238981d8dfbb5b3ed921f4b05c5103222cd4b630e22d8ec08b16"
+    },
+    {
+      "source": "/private/tmp/H3B_LT12_REC_CONCURRENCE.md",
+      "retained": "H3B_LT12_REC_CONCURRENCE.md",
+      "sha256": "4bf0ce500ddf44f239a368415034c04bf8604e33ecfb227a6d9cf3ecdc5264ac"
+    }
+  ]
+}
