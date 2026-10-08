@@ -1,7 +1,15 @@
 # Native re-witness — readable A15 dialogs and re-confirmation, 2026-10-08 UTC
 
 **What this is.** HELP_HUMAN (Claude Opus 5.5) drove the App and observed
-it. The owner pressed every dialog key and button personally. This
+it. The owner pressed every dialog key and button personally.
+
+**Who did what.** Only the four dialog answers were the owner's: Escape,
+Return, the Register click and the Re-confirm click. HELP_HUMAN performed
+every other App step: library and holding-copy selection, draft, reviews,
+selection, model entry, thread start, prepare and send. The retained App
+records attribute selection and run start to "the person (App
+interface)" / `startedBy: person`. That is the App's label for its own
+interface, not evidence that the owner performed those steps (V16 F7). This
 re-witness covers the J6 dialog repair (D-1) and the J8 identical-content
 re-confirmation (CC-WR-RECONFIRM) on one artifact. It is a native witness
 of one run. It does not qualify the App, the supplier or a release, and it
@@ -38,32 +46,43 @@ run are quoted below.
 
 | # | Step | Observed (screens in `evidence/NATIVE-RECONFIRM-WITNESS-8cd69ff7/screens/`) |
 |---|---|---|
-| 1 | Setup | Development selection "not runnable" (CI-18). Paths are shown as text, not byte arrays (D-3 repaired). Draft created; review `a77c04d8…`, digest `1fc901a5…277df`. |
+| 1 | Setup | Development selection "not runnable" (CI-18). The formatted selection and library view shows paths as text. The compact App-state JSON lower on the page still prints `"root":{"bytes":[…]}` arrays (`01`), so D-3 is repaired only for the formatted view (V16 F5). Draft created; review `a77c04d8…`, digest `1fc901a5…277df`. |
 | 2 | A15 dialog is readable (D-1) | The alert "Chirality — register workflow" showed the bounded statement: act, revision, workflow, library, purpose, the review named by id and sha-256 digest, the offer and its digest, the consequence, the actor, and the button meanings. The buttons were **[Cancel] … [Register] [Don't register]**. All were visible and reachable. The App window stayed rendered and readable beside the alert (`01`). |
 | 3 | **Escape** (owner) | The owner focused the alert and pressed Escape, then said "dialog closed". The App reported "native confirmation dismissed; no capture/registration" (`02`). The workspace had no capture, act-log entry or ledger line. **Escape did not act.** The App cannot show whether Escape went to Cancel or to Don't register; both record nothing. |
 | 4 | Default button | A new review, `f440554a…`, digest `ddef582c…`. **"Don't register" was highlighted as the default** (`03`). |
-| 5 | **Return** (owner) | The owner pressed Return, then said "done". The App again reported "native confirmation dismissed; no capture/registration" (`04`). There was no capture, act-log entry or ledger line. **Return chose "Don't register".** |
-| 6 | **Register** (owner) | A new review, `1db6946a…`, digest `e7ead527…` (`05`). The owner clicked the middle "Register" button, then said "done". The ledger got `registered`, sequence 1, at 03:03:57.410Z for revision `1b1733864cd8…`. One capture, an act-log entry, one revision-store folder and a published copy were written. |
+| 5 | **Return** (owner) | The owner pressed Return, then said "done". The App again reported "native confirmation dismissed; no capture/registration" (`04`). There was no capture, act-log entry or ledger line. **Return did not act.** "Don't register" was the highlighted default (`03`). The App maps every non-act result to the same status (`lib.rs:703`), so which slot Return took is not reported (V16 F2). |
+| 6 | **Register** (owner) | A new review, `1db6946a…`, digest `e7ead527…` (`05`). The owner clicked the middle "Register" button, then said "done". The ledger got its first line: `registered`, slot sequence 1, at 03:03:57.410Z, for revision `1b1733864cd8…`. One capture and an act-log entry were written, plus one revision-store folder and a published copy. The store folder and copy appear in `workspace-listing.sha256`, the post-run file listing with hashes. Their contents are not retained separately. |
 | 7 | Quit and relaunch | Quit, exit 0. Relaunched the same binary (re-hashed). The fresh process had no selection. |
 | 8 | Listing (V15 F5) | After the library was reopened, the revision read "registered — re-confirm to use in this App session", offered "Refine (RF-1); Review a draft with its bytes (DS-8)" (`06`). |
 | 9 | DS-8 | Reviewing the unchanged draft gave review `c0000a8f…`, digest `06736e59…09c5`: "Identical to revision 1, registered earlier (not verified in this session). Re-confirm revision 1 for use in this App session; no new revision is registered." (`07`) |
 | 10 | Re-confirm dialog | The statement began "re-confirm workflow revision for use (A15)", purpose "make it available again in this App session from the project library". It read "Re-confirm revision 1b1733864cd8 of project:coordinated-knowledge-work for use in this App session. This registers no new revision." The buttons were **[Cancel] [Re-confirm] [Don't re-confirm]**, and "Don't re-confirm" was the default (`08`). |
-| 11 | **Re-confirm** (owner) | The owner clicked "Re-confirm", then said "done". The ledger got a second line: `re-confirmed`, disposition *re-confirmation*, **sequence 1**, at 03:05:35.355Z, with `reconfirms` citing revision 1. No new revision-store folder or published copy was written. Status read `"newRevision": false`, `"selectable": "in this App session only"`, `"state": "re-confirmed"`, and the listing read "registered — selectable in this App session" (`09`). |
-| 12 | Select, prepare, send | The re-confirmed hot copy was selected: `runnable: true`, standing "registered revision". The run was prepared with the CK-1 advisory and sent: "selection and run_text recorded before send … run opened" with CK-2 (`10`). RS `run_opened` cites `coordinated-knowledge-work`, origin `project`, revision `1b1733864cd8…`. |
-| 13 | Model turn | `gpt-6.1-sol` (openai). The native user message began "[Chirality] Workflow run start: coordinated-knowledge-work from the project library … revision 1b1733864cd8, run run:workflow:b58720ac…". The model replied: "I received the project workflow guidance “coordinated-knowledge-work,” revision `1b1733864cd8`, for run `run:workflow:b58720ac-aa08-42a8-a063-6979c2b3766b`." That is the model's statement; adoption stays unknown. The run was left open and was not ended. |
+| 11 | **Re-confirm** (owner) | The owner clicked "Re-confirm", then said "done". The ledger got its second line (`ledger_seq` 2): `re-confirmed`, disposition *re-confirmation*, **slot sequence 1** (the same revision slot), at 03:05:35.355Z, with `reconfirms` citing revision 1 (V16 F8). `workspace-listing.sha256` still shows exactly one revision-store folder and one published copy. Status read `"newRevision": false`, `"selectable": "in this App session only"`, `"state": "re-confirmed"` (`09`). HELP_HUMAN saw the listing change to "registered — selectable in this App session" on screen, but did not retain that screen (V16 F6). |
+| 12 | Select, prepare, send | The re-confirmed hot copy was selected. HELP_HUMAN saw `runnable: true` and standing "registered revision" on screen, but did not retain that screen. The run was prepared with the CK-1 advisory and sent: "selection and run_text recorded before send … run opened" with CK-2 (`10`). RS `run_opened` cites `coordinated-knowledge-work`, origin `project`, revision `1b1733864cd8…`. |
+| 13 | Model turn | `gpt-6.1-sol` (openai). The native user message began "[Chirality] Workflow run start: coordinated-knowledge-work from the project library … revision 1b1733864cd8, run run:workflow:b58720ac…". The model replied: "I received the project workflow guidance “coordinated-knowledge-work,” revision `1b1733864cd8`, for run `run:workflow:b58720ac-aa08-42a8-a063-6979c2b3766b`." That is the model's statement; adoption stays unknown. HELP_HUMAN read the reply from the Codex rollout file in the scratch Codex home. That home was then deleted at the owner's choice, so **the reply is not verifiable from the retained evidence** (V16 F6). The run was left open and was not ended. |
 
 **Records.** The workspace records are kept byte for byte in
 `evidence/…/workspace-records/.chirality/`: captures, the act log, the
-2-line ledger, the run log and the WR records. Hashes are in `SHA256SUMS`.
+2-line ledger, the run log and the WR records. They are force-added past
+the repository's `**/.chirality/` ignore rule (V16 F1). Hashes are in
+`SHA256SUMS`. `workspace-listing.sha256` lists every workspace file after
+the run, with its hash.
+
+Several items are HELP_HUMAN's account and are not shown in the retained
+files (V16 F6):
+- the build command;
+- the supplier version and hash in use;
+- that no process remained after Quit;
+- the owner's spoken words, quoted from the chat.
 
 ## Findings from this witness
 
 - **D-1 repaired, and witnessed.** The statement is readable, the buttons
   are reachable, and the review is named by digest. The App window stays
   readable while the alert is open.
-- **V14-R1 R1-1 settled for this platform.** Escape did not act: nothing
-  was captured or registered. Return chose "Don't register", and only the
-  middle button acted. This holds for A15 on macOS 26 (Darwin 25.6), with
+- **V14-R1 R1-1 settled for this platform.** Escape did not act, and
+  neither did Return: nothing was captured or registered. "Don't register"
+  was the highlighted default. Of the controls the owner used, only the
+  middle button acted; the Cancel button was never clicked (V16 F2, F3). This holds for A15 on macOS 26 (Darwin 25.6), with
   the parentless alert, on this machine. The A16 and request-answer dialogs
   share the button code but were not witnessed natively.
 - **Native Cancel.** This is still not witnessed as such. Escape closed the

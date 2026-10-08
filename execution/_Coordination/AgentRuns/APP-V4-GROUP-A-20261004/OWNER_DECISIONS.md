@@ -257,3 +257,20 @@ Effect: the run uses the existing scratch Codex home
 which holds the owner's sign-in from the first witness, never `~/.codex`.
 The approval covers this artifact and plan only. Each dialog act is the
 owner's own key press.
+
+Clarification (V16 F11): the owner's dialog answers were two key presses
+(Escape, Return) and two clicks (Register, Re-confirm).
+
+## Scratch Codex home cleanup — 2026-10-08
+
+HELP_HUMAN asked what to do with the scratch Codex home used by both
+native witnesses. It is
+`/private/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-v4-witness-codex-home.skB5uW2FWI`,
+not `~/.codex`, and it still held the owner's ChatGPT sign-in. Answer:
+**"Delete it now (Recommended)"**. Custody: a structured answer in the
+active Claude Code chat.
+
+Effect: HELP_HUMAN checked the path pattern, confirmed that no Codex process
+was running, and deleted the folder. Its absence was verified, and
+`~/.codex` was untouched. A future native witness needs a fresh sign-in by
+the owner in a new scratch home.

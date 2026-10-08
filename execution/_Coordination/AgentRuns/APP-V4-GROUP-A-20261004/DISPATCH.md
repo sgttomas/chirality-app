@@ -120,3 +120,19 @@ CI-24 (b) now names that case as an open follow-up. This is the reviewer's
 stated minimum, and the change to the CI-24 text is sent to the reviewer
 for confirmation. The reviewer's logs are retained in
 `validation/V15R1_7f0300cf/`.
+
+R1-1, re-witness and V16 (2026-10-08):
+- The V15 reviewer confirmed that the CI-24 (b) R1-1 bullet in `8cd69ff7fc`
+  is accurate and meets its minimum; the code repair stays a follow-up. The
+  confirmation is appended to `reviews/V15-J8-RECONFIRM-R1.md`.
+- HELP_HUMAN ran the owner-approved native re-witness
+  (`probes/NATIVE_RECONFIRM_WITNESS_8cd69ff7.md`) and opened PR 1115.
+- V16, a fresh harness-native reviewer in its own worktree, reviewed head
+  `58a7bd4ccc` and returned NOT READY. F1 MAJOR: the witness
+  workspace-records were ignored by `.gitignore` (`**/.chirality/`) and
+  were not committed, for this witness or for witness 1113. F2–F7 MINOR
+  were overclaims in wording; F8–F11 were notes.
+- HELP_HUMAN repaired all of them: force-added both workspace-records trees
+  plus a post-run workspace listing, corrected the wording, and fixed the
+  PR body. The repair is sent to the V16 reviewer for confirmation.
+- The owner chose to delete the scratch Codex home (OWNER_DECISIONS).
