@@ -105,6 +105,7 @@ and graph-closure graphs remain at their original paths.
   old Design pins do not automatically adopt later changes. CP0 receiving
   notices remain adoption work. Group A C1 and CI-19…25 do not establish all
   inputs. B2/B7 check the particular contribution before relying on it.
+- **B2 bundle-content receiving (GC-8):** separate [APP-V4-BUNDLE-INPUTS-20261008](../APP-V4-BUNDLE-INPUTS-20261008/WORK_GRAPH.md), owned by distribution_integration_manager, supplies DEL-02-02 production P2 packages/shipped-revision manifest with actual LS5/LS8 proof and DEL-02-04 P3 roles.json/current guidance bindings with actual load/start/refusal identity proof. Both contributions remain pending and unqualified; this graph does not adopt them before review/receipt. The receiving graph may be on its owner's active branch until integrated.
 - **A consumes B:** existing DEP-09-09-012 (external trace uses EXP) is the
   accepted acyclic exception to group order; protocol definition exists but
   candidate qualification remains unclaimed. O-1's A–B cycle/P16 cut and held
