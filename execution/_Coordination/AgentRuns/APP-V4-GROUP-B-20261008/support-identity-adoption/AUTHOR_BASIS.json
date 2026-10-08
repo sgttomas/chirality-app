@@ -1,0 +1,24 @@
+{
+  "role": "TASK Type 2; no delegation",
+  "executor": "/root/group_b_successor/support_identity",
+  "parent": "/root/group_b_successor",
+  "mechanism": "delegated-harness-native descendant",
+  "base": "d35b29f813488e3ce344b05976cf682b576e1a39",
+  "authority": "Parent explicit initial read-only assignment, followed by concrete plan and exact write-fence confirmation in active chat. Technical additive contract adoption, not native/qualification authority.",
+  "instruction_origin": "Root AGENTS and TASK/skills/App loop inherited from the continuing task; fresh merged proposal/review and EXP/PKG sources inspected. Hashes identify actual source editions; portion reading not represented as whole-file reading.",
+  "supplied_limits": "No delegation, MEMORY, downloads, native/supplier execution, signing, credentials, H3B/S1/Host or Group C edits; manager/reviewer reserved records untouched.",
+  "actual_host": "Own managed worktree with explicit write escalation; no capability inferred from prose.",
+  "sources": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+    ".agents/skills/proposal-format/SKILL.md": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/support-identity/CI26_PROPOSAL.md": "3877ee689760691907ca4f79ed86f056f35c0e1bb3faddd14f4963b22df29882",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/support-identity/reviews/REVIEW.md": "0d533094f681bfd6d9277cc6af5ab44d5c6a0886f5d393ba3ac9bbbe7c45d14e",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md": "9494d39b7405fc6342aea13e00073fbdebe21c5014e32620b752321fa1aa6136",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/GC_RULINGS.md": "22187acaffb9a0e2c5ef6ed415cce0c62c6e6db06361405cf8caf642b5a59a92",
+    "projects/chirality-app-v4/app/examination/support_identity/declaration.v1.json": "abc7142f3c8ec6b42ee70fd5ccdbe5a2688683608b21f735211217b9e32aad44"
+  },
+  "canonical_sources": "See exact declaration plus evidence/PUBLICATION_CORRESPONDENCE.json; source-lock bytes unchanged."
+}

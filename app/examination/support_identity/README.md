@@ -1,4 +1,59 @@
-# Proposed EXP support identity bindings v1
+# EXP support identity bindings
+
+## Canonical additive method — EXP-SUPPORT-BINDING-v1
+
+`canonical.py` implements CC-EXP-SUPPORT-IDENTITY-01's additive Design method.
+Its effective adoption boundary is the independently reviewed merge of that
+named contribution, separately from the unchanged EXP-v0.2 source publication
+at PR #1077. Before that merge it is the implementation candidate. The reader
+pins the new canonical Design declaration, binding schema, EXP method and PKG
+receiving supplement in `canonical-pins.v1.json`. The writer cannot replace
+those pins or select publication through an input field.
+
+```sh
+python3 -B app/examination/support_identity/canonical.py bind review review.json \
+  --purpose current_producer_declaration
+python3 -B app/examination/support_identity/canonical.py check canonical-selection.json \
+  --selection-sha256 <previously-frozen-sha256>
+```
+
+For historical inspection use `--purpose historical_correspondence`; never
+claim that newly attaching a sidecar proves which support a past producer used.
+Even a current producer declaration leaves `producer_use_verified: false`.
+Both purposes describe a binding, not publication authority or event origin.
+The bind command emits no validation/pass claim.
+
+The canonical selection uses the same six artifact pairs and join-selection
+objects described below, replacing `format` with
+`exp-support-selection.canonical.v1`, removing `standing`, and adding
+`binding_method: EXP-SUPPORT-BINDING-v1` and `binding_purpose` with the chosen
+purpose. `declaration_sha256` must name the fixed canonical Design declaration,
+not the older proposed declaration. All six sidecars must use the canonical
+schema and the selection's purpose. The exact selected record bytes remain
+EXP-v0.2/PKG-v0.2, with no schema migration or outcome rewrite.
+
+The reader validates the closed canonical bindings, adapts only their
+representation into internal unpublished sidecars, and calls the unchanged v1
+checker and legacy package/review/change validators. It preserves original
+canonical references in its report and explicitly identifies this adapter.
+`canonical_consistency_passed` reports the result. The fixed publication
+reference is visible, while publication authority, method adoption and actual
+producer use are never claimed to be authenticated at runtime.
+
+Exit meanings remain 0 consistent, 1 joined rule failure, 2 input/source/error.
+Package prerequisite gaps remain visible even on a consistency pass. Native
+forms, SQ and S4 receiving paths retain their separate adoption obligations;
+this tool is no native/runner qualification or release.
+
+```sh
+python3 -B -m unittest discover -s app/tests -p 'group_b_support_identity_canonical_test.py' -v
+```
+
+## Preserved proposed v1 checker
+
+The following documents the original proposed checker, whose code, declaration,
+schema and source locks are byte-preserved. It remains unpublished and does not
+silently become the canonical method.
 
 This offline tool checks a frozen technical selection of EXP result, review,
 change-impact and PKG records against complete EXP §4.4 identity: version,

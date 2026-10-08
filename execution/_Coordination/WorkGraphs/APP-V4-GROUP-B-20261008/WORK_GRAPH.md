@@ -4,8 +4,8 @@
 
 Stable run: **APP-V4-GROUP-B-20261008**. WORKING_ITEMS
 `/root/group_b_successor` owns integration under HELP_HUMAN `/root`, succeeding
-PR #1126. Current graph ref: `codex/app-v4-group-b-support-identity`, based on verified
-PR #1134 merge `00ce2e10749dbf72cb69cd6814baab82e339d224`. Owner steering: “resume work on App v4”,
+PR #1126. Current graph ref: `codex/app-v4-group-b-ci26-adoption`, based on verified
+PR #1136 merge `d35b29f813488e3ce344b05976cf682b576e1a39`. Owner steering: “resume work on App v4”,
 relayed by HELP_HUMAN in the active chat. Accepted Group A closeout still governs;
 this is no 90% act. No MEMORY writes under the owner's later instruction.
 
@@ -75,7 +75,8 @@ authors. Each production slice carries its necessary documentation and checks.
 | V4 integrated consuming-path review | Separate reviewer first_slice_review; manager fan-in | Frozen B7-FX/B3-N1 code/evidence, current main | Independent contract/consumer review, affected integration tests, private-term checks and parent PR | COMPLETE PR #1126 merged 7311df06d8; exact-head review and CI retained in PR; 61 integrated Python checks |
 | B3-RUNNER cached-engine runner support | DEL-09-01 OUT-004; runner_support TASK; new app/examination/runner_support and group_b_runner tests | EXP §8.3, cached engines and runner; no downloads | Actual engine identity, sensitivity, blocked missing target, capture hashes and observed traffic; incomplete isolation never admits route; independent review | COMPLETE bounded support merged PR #1128; author ea75b4b412, exact-head review READY; successor/reviews/RUNNER.md |
 | B2-CONTENT complete-content unsigned development candidate | DEL-01-06 OUT-001/002; complete_content_build TASK; unsigned overlay/tests and complete-content evidence | Merged P2/P3 at f79317be; approved cached P1/toolchain; explicit custom-protocol/no-sign | Actual offline build; P0…4 physical bytes/modes/links, exact source/resource equality; independent exact-artifact review; no package qualification | COMPLETE bounded physical increment merged PR #1134 at 00ce2e1074; 56 files, exact P1/P2/P3; complete-content/RETURN.md |
-| B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | READY bounded proposal/tool author 37b41df42a; review 453ab46c38; 77 integrated tests; CI-26 remains open pending adoption |
+| B3-ID complete support identity | DEL-09-01 with DEL-01-06 receiving; support_identity TASK; new app/examination/support_identity, tests and support-identity run only | EXP §4.4, accepted records/validators and CI-26; no native dependency | Full version/three-schema/prototype binding, immutable exact-byte joins, mixed/missing/mutated and self-publication negatives; named adoption plan and independent review | COMPLETE bounded proposal/tool merged PR #1136 at d35b29f813; 77 integrated tests; B3-ID-ADOPT owns CI-26 disposition |
+| B3-ID-ADOPT canonical full support identity | DEL-09-01/DEL-01-06 technical receiving; support_identity TASK; additive Design supplements, new canonical reader/pins/tests, CI-26 only | Merged proposed tool, unchanged prior publication, independent source assessment | Published tuple provenance; canonical selection outside record input; joined positive/false-authority/history/mutation tests; scoped adoption and recipient notices; independent review | READY author b9b3c7131d; review e1f93f6101; 53 independent and 88 integrated tests; scoped adoption effective named merge |
 | C1 final bounded reconciliation | All B; manager; affected records within granted scope | Intended production/evidence integrated | bundled:bounded-reconciliation; both directions against three SoWs; required missing work returns to graph; only no-home material concern invokes task-management | PLANNED, single final stage |
 | M1 central receipt | All B; manager; AgentRuns receipt only | C1 | Concise result/check/limit receipt; no MEMORY writes under current owner direction | PLANNED |
 | F1 final PR | HELP_HUMAN coordinates merge; manager prepares | All required nodes/decisions, final independent review and required CI | Actual final PR merge establishes undertaking completion, never product/gate acceptance | PLANNED |
@@ -130,13 +131,16 @@ Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 s
 staged the A-IN successor proposal. Their reviews and limits remain in the run.
 Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../../AgentRuns/APP-V4-GROUP-B-20261008/resumed-production/PRIOR_GRAPH.md), not current next steps.
 
-**Next:** integrate the independently reviewed B3-ID tool/proposal, then
-DEL-09-01/DEL-01-06 assess named CC-EXP-SUPPORT-IDENTITY-01 for canonical
-publication/selection and consumer adoption. Actual offline joins bind the full
-identity and use unchanged legacy validators; independent 42 checks pass and
-manager combined 77 checks pass. Current canonical Design/schema/source locks stay
-unchanged until owning reviewed adoption. No record writer may mint a published
-support revision.
+**Next:** merge the independently reviewed B3-ID-ADOPT contribution after
+required CI and exact-head receiving backcheck. It supplies separately versioned
+EXP-SUPPORT-BINDING-v1 and its fixed canonical EXP/PKG consumer cohort, preserving
+original EXP-v0.2/PKG bytes and legacy guards. Prior source publication remains
+PR #1077 merge 09106477e351c6e5bde85259c55a00cc8fc5f7f5; new method adoption
+is effective only at this named reviewed merge. CI-26's representation and
+initial consumer gap closes at that boundary, not all M1 or native qualification.
+SQ/native-form/S4 receiving is explicitly pending in the adoption receiving
+notice. Current main 412cf7fa01 was integrated without rewriting; its Group C
+changes alter none of the relied-on EXP/PKG/legacy validator bytes.
 
 The retained unsigned development .app binds f79317be plus the unsigned-overlay patch; all
 406 App input entries (350 files) were checked against sealed source and scratch. Physical
@@ -154,7 +158,8 @@ DC-R5 whole-process isolation remain inconclusive. Prior unsigned-candidate
 evidence binds its historical f2+overlay, not this new candidate. B7 stimuli,
 mode/person/examiner and configuration inputs remain missing.
 
-**Carried limits:** CI-26 complete M1 identity, CI-27 full distribution identity,
+**Carried limits:** CI-26 downstream canonical-binding adoption and complete M1
+runner/native qualification remain separate from this scoped closure; CI-27 full distribution identity,
 SEAL-2 cold native-origin proof (Group A I3-CUST/CI-10), Group A CI-11 and
 CI-19…25 receiving matters, ST-4 usable route/recording, ST-5 real candidate-pin
 capture, account/API/local modes and native/person inputs remain open. SIGN-1
