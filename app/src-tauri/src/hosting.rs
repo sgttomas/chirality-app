@@ -116,6 +116,7 @@ pub struct HostConfig {
     /// Wait limit for the handshake and for requests (value unselected in HOSTING).
     pub wait_limit: Duration,
     pub(crate) distribution: Option<successor::Distribution>,
+    pub(crate) require_distribution_artifacts: bool,
 }
 
 impl HostConfig {
@@ -132,6 +133,7 @@ impl HostConfig {
             session_flags: vec!["analytics.enabled=false".into()],
             wait_limit: Duration::from_secs(20),
             distribution: None,
+            require_distribution_artifacts: false,
         }
     }
 }
@@ -141,6 +143,7 @@ struct Inner {
     state: String,
     start_attempt: u64,
     successor_status: Option<Value>,
+    successor_reference: Option<crate::distribution_store::Reference>,
     generation: Value,
     app_session: String,
     home: String,
@@ -390,6 +393,7 @@ pub struct Host {
     submission_contexts:Arc<Mutex<Vec<Value>>>,
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
+    distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
     inner: Arc<(Mutex<Inner>, Condvar)>,
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Child>>,
@@ -430,6 +434,7 @@ impl Host {
             submission_contexts:Arc::new(Mutex::new(Vec::new())),
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
+            distribution_store: Mutex::new(None),
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
             stdin: Mutex::new(None),
             child: Mutex::new(None),
@@ -481,6 +486,29 @@ impl Host {
 
     /// A snapshot for the interface: state, generation, identity records, lifecycle
     /// events, client requests, delivered frames (H6: native frames unchanged), threads.
+    pub(crate) fn configure_distribution_store(&self, store: Result<Arc<crate::distribution_store::Store>, String>) {
+        *self.distribution_store.lock().unwrap() = Some(store);
+    }
+    /// Read exact bytes outside source/ledger locks, then recheck the source.
+    pub(crate) fn distribution_evidence(&self, generation: &Value) -> Value {
+        let (attempt, reference) = {
+            let i = self.inner.0.lock().unwrap();
+            if &i.generation != generation { return json!({"state":"unavailable","reason":"foreign generation"}); }
+            (i.start_attempt, i.successor_reference.clone())
+        };
+        let Some(reference) = reference else { return Value::Null; };
+        let store = self.distribution_store.lock().unwrap().clone();
+        let result = match store {
+            Some(Ok(store)) => store.read(generation, &reference),
+            Some(Err(e)) => Err(e), None => Err("distribution store not configured".into()),
+        };
+        let i = self.inner.0.lock().unwrap();
+        if i.start_attempt != attempt || &i.generation != generation { return json!({"state":"unavailable","reason":"source changed during artifact read"}); }
+        match result {
+            Ok(value) => json!({"state":"read","generation":generation,"evidence":value}),
+            Err(error) => json!({"state":"unavailable","generation":generation,"reason":error}),
+        }
+    }
     pub fn snapshot(&self) -> Value {let i=self.inner.0.lock().unwrap();Self::snapshot_inner(&i)}
     fn snapshot_inner(i: &Inner) -> Value {
         json!({
@@ -557,7 +585,13 @@ impl Host {
         let frames: Vec<_> = i.journal.iter().filter(|e| {
             e["generation"] == i.generation && e["position"].as_u64().map(|p| gap || p > after).unwrap_or(false)
         }).cloned().collect();
-        json!({"snapshot":snapshot,"generation":i.generation,"position":i.receipt_position,"gap":gap,"frames":frames})
+        let current_generation = i.generation.clone();
+        let position = i.receipt_position;
+        drop(i);
+        let evidence = self.distribution_evidence(&current_generation);
+        let mut snapshot = snapshot;
+        snapshot["distributionEvidence"] = evidence;
+        json!({"snapshot":snapshot,"generation":current_generation,"position":position,"gap":gap,"frames":frames})
     }
     /// Read-only App metadata, never admission to native/act/dispatch authority.
     pub fn recovery_custody(&self) -> crate::recovery::RecoveryCustodyView {
@@ -763,6 +797,7 @@ impl Host {
             if i.app_session.is_empty() { i.app_session = opaque_id("app-session:")?; }
             i.start_attempt = i.start_attempt.checked_add(1).ok_or("start attempt exhausted")?;
             i.successor_status = None;
+            i.successor_reference = None;
             i.supplier_standing = None;
             i.version_identity = None;
             let id = match i.state.as_str() {
@@ -784,6 +819,17 @@ impl Host {
         let prepared = if let Some(distribution) = &cfg.distribution {
             match successor::prepare(distribution, cfg, prospective.as_ref().unwrap()) {
                 Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
+            }
+        } else { None };
+        let successor_reference = if let Some(p) = &prepared {
+            let store = self.distribution_store.lock().unwrap().clone();
+            match store {
+                Some(Ok(store)) => match store.publish_attempt(prospective.as_ref().unwrap(), &p.status) {
+                    Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, e),
+                },
+                Some(Err(e)) => return self.refuse_successor(attempt, e),
+                None if cfg.require_distribution_artifacts => return self.refuse_successor(attempt, "native distribution store not configured".into()),
+                None => None, // Source-only fixtures retain the explicit in-memory route.
             }
         } else { None };
         let (result, label, dist) = match &prepared {
@@ -828,6 +874,7 @@ impl Host {
         {
             let mut i = self.inner.0.lock().unwrap();
             i.successor_status = prepared.as_ref().map(|p|p.status.clone());
+            i.successor_reference = successor_reference;
             i.verification = Some(result.clone());
             if !(verified || dev_ok) {
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": result}));

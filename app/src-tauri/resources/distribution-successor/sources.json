@@ -51,6 +51,26 @@
         "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/expected-reference.s1.schema.json",
         "sha256": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd"
       }
+    },
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json",
+        "sha256": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/lifecycle-event.s1.schema.json",
+        "sha256": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181"
+      }
+    },
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json",
+        "sha256": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/observed-verification.s1.schema.json",
+        "sha256": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+      }
     }
   ]
 }

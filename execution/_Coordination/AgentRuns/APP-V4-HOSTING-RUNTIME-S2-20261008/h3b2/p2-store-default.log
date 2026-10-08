@@ -1,0 +1,83 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/Users/ryan/.codex/worktrees/hosting-h3b-artifacts/chirality/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3192:13
+     |
+3192 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `account_oauth_dismiss` is never used
+    --> src/hosting.rs:1405:19
+     |
+ 422 | impl Host {
+     | --------- method in this implementation
+...
+1405 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3849:9
+     |
+3848 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3849 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: `chirality-app-v4` (lib test) generated 7 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.43s
+     Running unittests src/lib.rs (/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-91f596577a3ebcb9)
+
+running 7 tests
+test distribution_store::tests::case_alias_vendor_containment_refuses_before_any_mkdir ... ok
+test distribution_store::tests::hardlinks_symlinks_missing_bytes_and_relocated_roots_refuse ... ok
+test distribution_store::tests::mutation_after_exact_read_is_caught_by_final_inventory ... ok
+test distribution_store::tests::reobserves_native_protection_and_refuses_vendor_overlap ... ok
+test distribution_store::tests::repeated_prospective_tuple_never_overwrites_and_foreign_tuple_refuses ... ok
+test distribution_store::tests::unsupported_standing_or_generation_never_publishes ... ok
+test distribution_store::tests::vendor_replaced_by_symlink_at_use_refuses_without_new_publication ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 495 filtered out; finished in 0.44s
+

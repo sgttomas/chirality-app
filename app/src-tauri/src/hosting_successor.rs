@@ -16,6 +16,10 @@ pub(crate) enum Distribution {
     Development { root: PathBuf },
 }
 impl Distribution {
+    pub(crate) fn vendor_root(&self) -> PathBuf {
+        match self { Self::Production { resources } => resources.join("codex"), Self::Development { root } => root.clone() }
+    }
+
     pub(crate) fn development_from_binary(binary: &Path) -> Result<Self, String> {
         if binary.file_name().is_none_or(|n| n != "codex")
             || binary
@@ -133,7 +137,7 @@ pub(crate) fn prepare(
     }
     let status = json!({"format":"host-successor-attempt.s2","verificationGeneration":generation,"inventory":inventory,
         "standing":"unverified-development","resolvedExecutable":plan.executable,"pathPrefix":root.join("codex-path"),
-        "rawVersionLabel":label,"limits":["No S3-qualified reference or installed integrity/custody issuer","In-memory attempt only; S1 observation/lifecycle artifact publication not implemented","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"]});
+        "rawVersionLabel":label,"limits":["No S3-qualified reference or installed integrity/custody issuer","S1 observation/lifecycle artifact publication not implemented; attempt may have a separate durable reference","Bounded filesystem observations, not an atomic snapshot; check-to-exec race remains"]});
     Ok(Prepared {
         plan,
         root: root.clone(),
@@ -322,6 +326,81 @@ for line in sys.stdin:
             );
             host.stop("fixture", "test complete").unwrap();
         }
+    }
+    #[test]
+    fn actual_host_lt09_passes_explicit_successor_label_join() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        let ready = host.start(&f.cfg, "fixture").unwrap();
+        let event = host.lifecycle_events().into_iter()
+            .find(|e| e["transitionId"] == "LT-09").unwrap();
+        let observation = json!({
+            "raw_version_label": ready["distributionSuccessor"]["rawVersionLabel"],
+            "observed_label": "0.160.0", "pin": "0.160.0"
+        });
+        assert_eq!(event["versionIdentity"]["observedVersionLabel"], "codex-cli 0.160.0");
+        let result = crate::distribution_semantics::validate_label_join(&event, &observation);
+        host.stop("fixture", "label join complete").unwrap();
+        result.unwrap();
+        assert_eq!(crate::distribution_semantics::label_join_identity()["semanticRevision"], "lifecycle-label-join.s2");
+    }
+    fn attach_store(host: &Host, f: &Fixture) -> PathBuf {
+        use crate::hosting::attachment_custody::{NativeHomeNamespace, NativeNamespaceBindings};
+        use crate::home_resources::{ExistingHomeReference, HomeClass};
+        let home=ExistingHomeReference::new(f.cfg.codex_home.clone(),HomeClass::Account).unwrap();
+        let probe=ExistingHomeReference::new(f.cfg.probe_home.clone(),HomeClass::Probe).unwrap();
+        let namespaces=NativeNamespaceBindings::from_root(vec![NativeHomeNamespace::received(&home,None),NativeHomeNamespace::received(&probe,None)]).unwrap();
+        let data=f.root.join("app-data");std::fs::create_dir(&data).unwrap();
+        let store=crate::distribution_store::Store::open(&data,&f.root.join("vendor"),namespaces).unwrap();
+        host.configure_distribution_store(Ok(store));data
+    }
+    #[test]
+    fn actual_host_attempt_publication_readback_and_tamper_refusal() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        let ready=host.start(&f.cfg,"fixture").unwrap();
+        let g=ready["generation"].clone();
+        let evidence=host.distribution_evidence(&g);
+        host.stop("fixture","store test complete").unwrap();
+        assert_eq!(evidence["state"],"read", "{evidence}");
+        assert_eq!(evidence["evidence"]["artifact"]["verificationGeneration"],g);
+        assert_eq!(evidence["evidence"]["transport"]["sourceSelection"],Value::Null);
+        let name=evidence["evidence"]["reference"]["publication"].as_str().unwrap();
+        let artifact=data.join("runtime/distribution").join(name).join("attempt.json");
+        let bytes=std::fs::read(&artifact).unwrap();
+        assert_eq!(tree::digest(&bytes),evidence["evidence"]["reference"]["attemptSha256"]);
+        assert_eq!(host.distribution_evidence(&json!({"appSession":"foreign","home":g["home"],"spawnCounter":1}))["state"],"unavailable");
+        std::fs::write(&artifact,b"{}").unwrap();
+        assert_eq!(host.distribution_evidence(&g)["state"],"unavailable");
+    }
+    #[test]
+    fn native_view_rechecks_artifacts_and_preserves_legacy_standing() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());let data=attach_store(&host,&f);
+        let ready=host.start(&f.cfg,"fixture").unwrap();
+        let mut receiver=crate::runtime_session::RuntimeSession::default();
+        let view=receiver.receive(&host.observe(&Value::Null,0));
+        assert_eq!(view["nativeView"]["distributionEvidence"]["state"],"read");
+        assert_eq!(view["nativeView"]["supplierStanding"],"unverified-development");
+        let evidence=host.distribution_evidence(&ready["generation"]);
+        let name=evidence["evidence"]["reference"]["publication"].as_str().unwrap();
+        std::fs::write(data.join("runtime/distribution").join(name).join("injected"),b"extra").unwrap();
+        let changed=receiver.receive(&host.observe(&ready["generation"],0));
+        host.stop("fixture","native adapter test complete").unwrap();
+        assert_eq!(changed["nativeView"]["distributionEvidence"]["state"],"unavailable");
+        assert_eq!(changed["nativeView"]["supplierStanding"],"unverified-development");
+    }
+    #[test]
+    fn store_configuration_failure_refuses_before_live_custody() {
+        let f=Fixture::new("pass");let host=Arc::new(Host::new());
+        host.configure_distribution_store(Err("fixture store failure".into()));
+        assert!(host.start(&f.cfg,"fixture").unwrap_err().contains("fixture store failure"));
+        assert!(host.snapshot()["generation"].is_null());
+        assert!(host.child.lock().unwrap().is_none());
+        let native = Arc::new(Host::new());
+        let mut cfg = f.cfg.clone();
+        cfg.require_distribution_artifacts = true;
+        assert!(native.start(&cfg,"fixture").unwrap_err().contains("store not configured"));
+        assert!(native.snapshot()["generation"].is_null());
+        assert!(native.child.lock().unwrap().is_none());
     }
     #[test]
     fn production_cannot_be_overridden_by_development_fields() {
