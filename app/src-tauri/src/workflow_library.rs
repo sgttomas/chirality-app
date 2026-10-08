@@ -144,9 +144,7 @@ impl LibraryOwner {
             let disposition = if in_place {
                 "in place"
             } else if let Some(prior) = &prior {
-                if !base.as_ref().is_some_and(|b| lineage_reaches(b, prior)) {
-                    return Err("DS-3: name taken; draft has no App-kept base in this slot".into());
-                }
+                lineage_reaches(base.as_ref(), prior, &slot)?;
                 if slot.iter().any(|e| {
                     e["outcome"] == "registered" && e["identity"]["revision"] == snapshot.revision()
                 }) {
@@ -227,12 +225,35 @@ impl LibraryOwner {
         Ok(session)
     }
 }
-fn lineage_reaches(base: &WorkflowIdentity, target: &WorkflowIdentity) -> bool {
-    base.same_slot(target)
-        || base
-            .derived_from
-            .as_deref()
-            .is_some_and(|p| lineage_reaches(p, target))
+/// SP-3: a draft is made from the slot when its App-kept base "is a revision of
+/// that slot", or the base's derived-from lineage reaches one. The first tuple in
+/// that lineage naming this slot must be a revision the ledger registered in it;
+/// otherwise the lineage is not established (DS-3), shown as ID-4's "lineage
+/// incomplete at ‹tuple›". The App-kept record is a claim, not proof (CI-21).
+fn lineage_reaches(
+    base: Option<&WorkflowIdentity>,
+    target: &WorkflowIdentity,
+    slot: &[Value],
+) -> Result<(), String> {
+    let mut node = base;
+    while let Some(n) = node {
+        if n.same_slot(target) {
+            let registered = slot.iter().any(|v| {
+                v["outcome"] == "registered"
+                    && v["identity"]["revision"] == n.revision.as_str()
+                    && v["identity"]["revision_method"] == n.revision_method.as_str()
+            });
+            if registered {
+                return Ok(());
+            }
+            return Err(format!(
+                "DS-3: name taken; App-kept base lineage incomplete at {}:{}@{} (not a revision registered in this slot; WR SP-3, ID-4)",
+                n.origin, n.name, n.revision
+            ));
+        }
+        node = n.derived_from.as_deref();
+    }
+    Err("DS-3: name taken; draft has no App-kept base in this slot".into())
 }
 #[derive(Clone, Copy)]
 enum ReviewMode {

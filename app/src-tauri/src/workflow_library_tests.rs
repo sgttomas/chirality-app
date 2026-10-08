@@ -694,3 +694,71 @@ fn j5_ledger_refusals_name_their_exact_cause() {
         "{error}"
     );
 }
+
+/// V11 J5-1: SP-3 "made from" needs the App-kept base to be a revision OF the
+/// slot, i.e. registered there per the ledger; a same-slot base the ledger never
+/// registered is "lineage not established" (DS-3), shown as ID-4's "lineage
+/// incomplete at ‹tuple›". The lineage limb (a base elsewhere whose derived-from
+/// reaches the slot) is held to the same rule.
+#[test]
+fn v11_j5_1_app_kept_base_must_name_a_revision_registered_in_the_slot() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let two = s.put("sample", false, "Two");
+    let file = s.base_files()[0].clone();
+    let original: Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+    let fabricated = "0".repeat(64);
+    let write_base = |base: Value| {
+        let mut record = original.clone();
+        record["base"] = base;
+        fs::write(&file, serde_json::to_vec(&record).unwrap()).unwrap();
+    };
+    let mut unregistered = original["base"].clone();
+    unregistered["revision"] = json!(fabricated);
+    let host = |derived: Value| {
+        json!({"kind":"workflow","origin":"host","source_root":"fixture-host","name":"sample",
+            "revision":"1".repeat(64),"revision_method":SNAPSHOT_METHOD,"derived_from":derived})
+    };
+    for (base, label) in [
+        (unregistered.clone(), "same-slot base never registered"),
+        (
+            host(unregistered.clone()),
+            "lineage limb reaching an unregistered revision",
+        ),
+    ] {
+        write_base(base);
+        let refused = s
+            .persistent_owner()
+            .review_draft("sample", two.revision())
+            .err()
+            .unwrap_or_else(|| panic!("{label}: accepted"));
+        assert!(refused.starts_with("DS-3"), "{label}: {refused}");
+        assert!(
+            refused.contains("lineage incomplete at project:sample@")
+                && refused.contains(&fabricated),
+            "{label}: {refused}"
+        );
+        assert_eq!(
+            read_ledger(&s.0).unwrap().len(),
+            1,
+            "{label}: nothing registered"
+        );
+    }
+    // The round trip (SP-3 second limb) still holds when the reached revision is registered.
+    write_base(host(serde_json::to_value(first.identity()).unwrap()));
+    let session = s
+        .persistent_owner()
+        .review_draft("sample", two.revision())
+        .unwrap();
+    assert_eq!(
+        session.current().unwrap().review_presentation()["entries"][0]["disposition"],
+        "new revision"
+    );
+    // And the ordinary same-slot base naming the registered latest stays DS-2.
+    fs::write(&file, serde_json::to_vec(&original).unwrap()).unwrap();
+    assert!(s
+        .persistent_owner()
+        .review_draft("sample", two.revision())
+        .is_ok());
+}

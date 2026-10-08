@@ -507,6 +507,19 @@ in the same library). No Design file was changed. SEAL-2 stays deferred: no old
   reading, and replaces it atomically. WR names only "App data folder" (§3 is
   PROPOSED; OI-008 open), so the sub-path and file name are this
   implementation's choice. For the WR owner: confirm or name the location.
+  **Trust assumption (V11 J5-1).** The record is a claim, not proof. Any
+  process running as the user can write it, including an agent whose Codex
+  sandbox allows full access (D3). The App checks the record's schema and
+  draft key. Since V11 it also requires that the first tuple in the base's
+  lineage naming the target slot be a revision that the slot's ledger
+  registered (SP-3: "a revision of that slot"). Otherwise the review refuses
+  with DS-3 ("lineage not established") and names the tuple as ID-4's "lineage
+  incomplete at ‹tuple›". A base naming another slot or origin cannot be
+  checked against that library's ledger. For DS-1 (empty slot) the claimed
+  base is still disclosed and becomes the new revision's `derived_from`, so a
+  forged record can still place a false `derived_from` on a first revision.
+  The `state`, `content` and `findings` fields record what the App saw when it
+  wrote the record (V11 J5-6). They are not refreshed on later edits.
 - **(b) Identical bytes cannot run again after relaunch.** DS-4 refuses content
   identical to a registered revision ("select it instead"). Cold selection of
   that revision stays refused (SEAL-2). After relaunch, the person can run the
