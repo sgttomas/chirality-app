@@ -146,6 +146,12 @@
       "revision": "e24bd8a5a2",
       "sha256": "7f1741a165313ea90a165f6f540d00a8b45af632a96d47ed1504648d3fe9c3e7",
       "coverage": "full definition/account; basis source table inspected"
+    },
+    {
+      "origin": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PRESENTATION_REVIEW.md",
+      "revision": "814c5eadd95fdb7b3024f364fe9e305851409b5f",
+      "sha256": "4c71eeb5af0d21495dfd8ce0a174da8b552394c74189202aa0586c3c48fd4e69",
+      "coverage": "full independent fidelity finding and check report; selected bounded repair"
     }
   ],
   "fixture": {

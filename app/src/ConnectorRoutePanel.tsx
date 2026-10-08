@@ -47,9 +47,10 @@ export function ConnectorRoutePanel({availability, state, onRead}: {availability
         {account.duties?.map((duty,i)=><div key={i}><p>{duty.duty}: {duty.standing} ({duty.actor_role})</p><p>Actor: {duty.actor ?? "Not recorded"}</p><p>Evidence: {duty.evidence ?? "Not recorded"}</p><p>{duty.reason ?? "Reason not recorded"}</p></div>)}
         {account.sourceCount === 0 && <p>No sources are recorded. This account does not establish an answer reconstructed from files.</p>}
         <p>Duties, actors, evidence, and time below are as recorded; inspection does not perform or independently verify them. Missing metadata remains missing. Source paths and anchors are literal citations only.</p>
-        {account.sections.map(section => <details key={section.label}><summary>{section.label} — exact recorded fields</summary><pre style={{whiteSpace: "pre-wrap", overflowWrap: "anywhere"}}>{section.text}</pre></details>)}
-        <details><summary>Complete recorded account</summary><pre>{account.accountText}</pre></details>
-        <details><summary>Cold-observed binding (not publication or prior-reference resolution proof)</summary><pre>{account.bindingText}</pre></details>
+        <p>Account fields below are the host’s parsed JSON representation, not original file bytes. Parsing and serialization normalize formatting and may round large integers or high-precision decimals. Text display avoids further JavaScript number conversion; it cannot recover precision already lost by the host parser.</p>
+        {account.sections.map(section => <details key={section.label}><summary>{section.label} — host-parsed fields</summary><pre style={{whiteSpace: "pre-wrap", overflowWrap: "anywhere"}}>{section.text}</pre></details>)}
+        <details><summary>Full host-parsed account</summary><pre>{account.accountText}</pre></details>
+        <details><summary>Cold-observed binding (not publication or prior-reference resolution proof)</summary><p>The binding hash identifies bytes observed by the host. This display does not verify those bytes or certify the precision of the parsed account representation.</p><pre>{account.bindingText}</pre></details>
       </article>)}
     </>}
   </section>;

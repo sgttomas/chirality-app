@@ -73,3 +73,13 @@ test('refresh clears old observation immediately and failure cannot retain stale
   assert.equal(routeReadTransition(old,{type:'clear'}),emptyRouteRead);
   assert.equal(routeReadTransition(pending,{type:'success',view:old.view}).view,old.view);
 });
+
+test('parsed representation and numeric limitations are visible without implying original bytes',()=>{
+  const html=render(observed());
+  assert.match(html,/host-parsed fields/); assert.match(html,/Full host-parsed account/);
+  assert.match(html,/not original file bytes/); assert.match(html,/normalize formatting and may round large integers or high-precision decimals/);
+  assert.match(html,/cannot recover precision already lost by the host parser/);
+  assert.match(html,/binding hash identifies bytes observed by the host/);
+  assert.match(html,/does not verify those bytes or certify the precision/);
+  assert.ok(!html.includes('exact recorded fields')); assert.ok(!html.includes('Complete recorded account'));
+});
