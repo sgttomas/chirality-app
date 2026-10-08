@@ -1071,3 +1071,9 @@ changed.
   PEC, Domains, fleet, examination and later research receiving work. O-D
   placement stays open before persistent writing; this correction adds no
   requirement for Group D software and changes no accepted group order.
+- **Placement follow-through:** C3-PLACE-01 / CRP-v0.2 is technically selected
+  in the Group C `C3_PLACEMENT_ADOPTION.md` after repaired independent review
+  and DEL-06-01 concurrence. It selects project-local connector records and
+  opened-directory capability containment with explicit rename residuals;
+  no continuous-path safety or finished persistence is claimed. CI-29's
+  source-only successor merged in PR #1130; backend behavior remains C3-P.

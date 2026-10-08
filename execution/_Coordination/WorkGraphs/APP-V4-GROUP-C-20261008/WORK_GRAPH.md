@@ -39,7 +39,7 @@ Provider adapters and persistent route placement require their actual inputs.
 | C1-V independent review and repair | TASK group_c_review; read-only candidate and tests | Exact C1 plus manager graph/evidence candidate | Independent source, full diff and evidence review; no unresolved blocking findings | COMPLETE at 08fcd838d1; independent review READY with no defects; final evidence-only backcheck before merge |
 | C1-I first substantive integration | Manager, parent Git integration coordination | C1-V, affected offline checks and required CI at actual head | Reviewed PR merged; evidence describes partial scope truthfully | COMPLETE; [PR #1127](https://github.com/sgttomas/chirality/pull/1127) merged before successor base 236cbc3c69; Git/PR history retains CI and review |
 | C2 PEC provider receiving join | App receiving owner with PEC owner; DEL-07-01 adapter/tests/presentation | OI-022 actual tool/response agreement; qualified/released/adopted account before reliance; current-pin hosting observation at use | Source pin → actual response → receiving action and limited/absent cases; independent review | BLOCKED for dependent adapter behavior on actual provider terms; definition/preparation remains available |
-| C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: CI-29 source successor independently READY; combined source-only integration pending; persistence and UI remain held on placement and actual inputs |
+| C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: CI-29 merged in PR #1130; CRP-v0.2 technically selected after repaired source review and fleet concurrence; bounded backend implementation may proceed, UI/source reconstruction remain unfinished |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
 | C5 later research-to-design contribution and witness | App method/receiving owner; DEL-08-02; host work remains SWBPIPE | Owner activation of later increment; C4; portable workflow, shared act row, actual host integration and human act | Source → context → candidate → actual decision witness, plus limitations; preparation/rehearsal separate | BLOCKED at activation/input points; no activation inferred from Group C resume |
 | C6 final bounded reconciliation and receipt | Manager; four deliverables and this run, no MEMORY writes | Intended production and required evidence integrated | Commitment↔result comparison under bounded-reconciliation; missing work returns to execution; conditional intake only without a home | PLANNED |
@@ -70,8 +70,9 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
   DEL-09-10 cases; D has no active group graph at entry, so carry these there
   when it is constructed. CFB reads ordinary project/fleet records as files;
   it does not require D fleet software (CFB §6, H-6).
-- **Placement question:** CFB §9 leaves route-account project placement open
-  with DEL-06-01 placement. Persistence is held outside C1. If resolving this
+- **Placement treatment:** CFB §9's open route-account placement is resolved
+  for bounded C3-P by reviewed CRP-v0.2 and DEL-06-01 concurrence. No fleet
+  implementation prerequisite is introduced. If later receiving work
   entails a C→D prerequisite, group-order reversal, cross-group cycle or
   invalidation of finished work, bring it immediately to HELP_HUMAN/owner
   under GC-7 rather than silently declaring readiness.
@@ -81,14 +82,14 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 ## Current state and recovery
 
 Successor basis: `236cbc3c693423499120b4abeadfdcc5fb670477` (includes merged PRs #1127 and #1128), isolated branch
-`codex/group-c-ci29`; this branch is the designated graph ref while ahead of
+`codex/group-c-placement`; this branch is the designated graph ref while ahead of
 main. WORKING_ITEMS `/root/group_c_successor` now owns C3 continuation under HELP_HUMAN `/root`. Manager owns graph/evidence/integration; children own isolated worktrees.
 Basis identities and reading limits: [BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/BASIS.json). Actual assignments: [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/DELEGATION.md).
 Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-Next: integrate the independently reviewed CI-29 successor source treatment after combined review and required CI. Resolve O-D project placement through its source owner before persistent writing; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
+Next: integrate CRP-v0.2 placement after combined review and required CI, then implement and independently test the selected bounded persistence/recovery seam; no dependent provider or research activation is inferred. No download, sign-in, credentials, native act, provider act,
 MEMORY write or human decision is authorized by this graph. SEAL-2 remains
 deferred. External SWBPIPE, PEC and Domains implementation stays in its own
 sessions and cross-project relay belongs to the owner. No 90% claim.
@@ -102,8 +103,10 @@ C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-202610
 
 ## C3 successor route
 
-C3-D named source treatment → C3-V independent source/consumer review → C3-I source integration. O-D placement remains open before C3-P persistence; only reviewed placement and actual source/custody inputs release that slice. Any product meaning or cross-group order change returns through HELP_HUMAN. No caller-selected or canonical path is silently chosen.
+C3-D named source treatment → C3-V independent source/consumer review → C3-I source integration. O-D placement is selected at the exact CRP-v0.2 basis in C3_PLACEMENT_ADOPTION.md; only that reviewed contract releases C3-P bounded caller-account persistence, while actual source reconstruction/custody remains separate. Any product meaning or cross-group order change returns through HELP_HUMAN. No caller-selected or canonical path is silently chosen.
 
 Actual harness-native children are TASK `/root/group_c_successor/cfb_design_owner` (DEL-07-02 Design and named C3 source evidence only) and TASK `/root/group_c_successor/cfb_design_review` (independent read/review evidence only). Both use `gpt-6-astra` low, separate managed worktrees and branches based on main. The write fences are supplied instructions, not claims of host per-file enforcement. Manager basis and reading limits: [C3_MANAGER_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_MANAGER_BASIS.json). No MEMORY writes or additional owner acts are authorized.
 
-C3-D source successor `96791613ed` was integrated unchanged as `4f610ba4a3`; independent review at `8a24e3bf2f` is READY with 16 maintained and 14 independent constructed checks. [C3_DESIGN_TREATMENT.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md) contains consumer notices and O-D alternatives; [C3_DESIGN_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_REVIEW.md) states exact reviewed scope. Source format 0.2 is proposed, old 0.1 bytes and consumer pins remain intact. The canonical connector descendant proposal was returned through HELP_HUMAN; it is not selected policy. No persistent behavior or 90% claim follows from source review.
+C3-D source successor `96791613ed` was integrated unchanged as `4f610ba4a3`; independent review at `8a24e3bf2f` is READY with 16 maintained and 14 independent constructed checks. [C3_DESIGN_TREATMENT.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_TREATMENT.md) contains consumer notices and O-D alternatives; [C3_DESIGN_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_DESIGN_REVIEW.md) states exact reviewed scope. Source format 0.2 is proposed, old 0.1 bytes and consumer pins remain intact. The initial canonical descendant proposal returned through HELP_HUMAN and is now refined and technically selected by the exact CRP-v0.2 adoption below. No persistent behavior or 90% claim follows from source review.
+
+C3-I source-only [PR #1130](https://github.com/sgttomas/chirality/pull/1130) merged as `44ade85d955e45e2c1fbba8a9ae1a9be675c18dd`, source `2a7eaf4548`, after exact-head review and all selected CI passed. C3-PLACE-01 technical adoption is recorded in [C3_PLACEMENT_ADOPTION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_PLACEMENT_ADOPTION.md); fleet concurrence and repaired independent review are linked by that account. The initial overbroad containment READY is withdrawn. C3-P now has a selected namespace/custody contract; implementation and race/durability evidence are not yet established.
