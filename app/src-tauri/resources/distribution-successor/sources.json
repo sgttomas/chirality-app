@@ -1,0 +1,56 @@
+{
+  "status": "staged successor, no production adoption",
+  "purpose": "Historical copy provenance only; runtime embeds maintained resources and never reads dated origins",
+  "resources": [
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/adoption-attestation.s1.schema.json",
+        "sha256": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/adoption-attestation.s1.schema.json",
+        "sha256": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb"
+      }
+    },
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-expected.json",
+        "sha256": "f93f8d60649f27b0890ad021d606d58abfcce85e48c82d47181b8b6f9bf149e3"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/expected.json",
+        "sha256": "f93f8d60649f27b0890ad021d606d58abfcce85e48c82d47181b8b6f9bf149e3"
+      }
+    },
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-evidence.json",
+        "sha256": "159d63ddba6a68e91a403359e0a20e26bc8ff8b761f7bad9cd2b75e219d232e3"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/synthetic-evidence.json",
+        "sha256": "159d63ddba6a68e91a403359e0a20e26bc8ff8b761f7bad9cd2b75e219d232e3"
+      }
+    },
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/synthetic-attestation.json",
+        "sha256": "f7a270126f4e7c6a651c7969e538fadcae0d85d610881d5b2b2d2abb94362754"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/attestation.json",
+        "sha256": "f7a270126f4e7c6a651c7969e538fadcae0d85d610881d5b2b2d2abb94362754"
+      }
+    },
+    {
+      "maintained": {
+        "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/expected-reference.s1.schema.json",
+        "sha256": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd"
+      },
+      "origin": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/expected-reference.s1.schema.json",
+        "sha256": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd"
+      }
+    }
+  ]
+}

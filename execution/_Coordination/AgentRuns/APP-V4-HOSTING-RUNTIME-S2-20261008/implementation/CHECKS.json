@@ -1,0 +1,37 @@
+{
+  "command": "CHIRALITY_SKIP_CODEX=1 cargo test --offline --locked --manifest-path projects/chirality-app-v4/app/src-tauri/Cargo.toml distribution_preflight --lib",
+  "cache": "existing prepared project cache; offline",
+  "exit_code": 0,
+  "passed": 13,
+  "failed": 0,
+  "filtered_out": 410,
+  "supplier_execution": false,
+  "production_manifests": [
+    {
+      "path": "projects/chirality-app-v4/app/packaging/sources.json",
+      "sha256": "ae9c55bb43f29ce9454c23e33504bfa2d827e66d209f3fb35a8860ae2bf8bf03",
+      "unchanged_from_receiving_revision": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/sources.json",
+      "sha256": "4284cebd7cfdfebbaaf87338db629f6cb6f5ed3c0cc054adb11124d0e80a2059",
+      "unchanged_from_receiving_revision": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/admission/sources.json",
+      "sha256": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511",
+      "unchanged_from_receiving_revision": true
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/sources.json",
+      "sha256": "53f1cbd7055395825323b4bfdeee0b23b12d71a43ae491e9e0398e41f1d37e08",
+      "unchanged_from_receiving_revision": true
+    }
+  ],
+  "limits": [
+    "Filtered suite only; not complete App regression",
+    "Compiled production selection absent",
+    "Synthetic callbacks only; no lifecycle/native custody qualification"
+  ],
+  "repair": "R1 final full-tree audit; ordinary and restored-mtime earlier-file mutation both refused"
+}

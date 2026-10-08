@@ -1,0 +1,102 @@
+{
+  "role": "TASK",
+  "mechanism": "harness-native descendant",
+  "parent": "/root/hosting_runtime_manager",
+  "executor": "/root/hosting_runtime_manager/runtime_slice",
+  "model": "inherited host selection; no requested-model override asserted",
+  "receiving_revision": "7311df06d81ce4d45bb1222080e52731f1ed45ba",
+  "reads": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-dev/AGENTS.md",
+      "sha256": "41995dfe123041e1d0235a73e532fddb913f2c2124a9e8ec43857a87d7e5822c"
+    },
+    {
+      "path": "projects/chirality-app-dev/README.md",
+      "sha256": "87fab441826634e0fcaa9e37287426b0c813d1ccddf075cb8f3de55111043a08"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/README.md",
+      "sha256": "cdb08450a1cb29bd5e6e10d491efc6f537cc4ca08ba2e0add395e4223e7148b2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/ADOPTION_PACKAGE.md",
+      "sha256": "74011994a880d1b3bb866c86c9f45d04d09e0871ab7ece169465dbaddeaba382"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/reviews/S1_REVIEW.md",
+      "sha256": "007f1d18a73ff7f70fad509dc7e84fcf51c491cf14aceaa75b151c27feec0590"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/model.py",
+      "sha256": "eeaa631cabb0b8650c542e4c38ce7ffeb59e40d7e40bf39d18f570a3b47a2e57"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/DISTRIBUTION_IDENTITY.md",
+      "sha256": "d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/adoption-attestation.s1.schema.json",
+      "sha256": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/inventory-artifact.s1.schema.json",
+      "sha256": "bf1630d1e1777134c2295a40dddfbecb29181826b3b1ddc18126a2c6cd256056"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/observed-verification.s1.schema.json",
+      "sha256": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/lifecycle-event.s1.schema.json",
+      "sha256": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/pkg-identity.s1.schema.json",
+      "sha256": "ce68629acaa445e0a664b5d8c95cbcae7b19f454756abf2c81b220ebbcf218de"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/expected-reference.s1.schema.json",
+      "sha256": "c51e01219bd0bdb365e1d417ace3c5951a6973bb75ba3312802575c1919c52cd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/attestation.json",
+      "sha256": "f7a270126f4e7c6a651c7969e538fadcae0d85d610881d5b2b2d2abb94362754"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/expected.json",
+      "sha256": "f93f8d60649f27b0890ad021d606d58abfcce85e48c82d47181b8b6f9bf149e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/lifecycle.json",
+      "sha256": "8a03950f7b54f5afab9a3b96d819809f28d752f1c058ce7355d1aa06fd2ca6ce"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/package.json",
+      "sha256": "d9b5124aa73fc92e0dd2d2eb62b35036f663e312dbc829482b044757fac99586"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/synthetic-evidence.json",
+      "sha256": "159d63ddba6a68e91a403359e0a20e26bc8ff8b761f7bad9cd2b75e219d232e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/inventory.json",
+      "sha256": "1d47c36ad29375e76741425d91439ae9fafa29ce10e968f287be08ee090b1c15"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_successor/contracts/examples/observed.json",
+      "sha256": "41f0b442894c1292241bbea18a116b5e3e5245ccdbe39294f403e12340e497c0"
+    }
+  ]
+}
