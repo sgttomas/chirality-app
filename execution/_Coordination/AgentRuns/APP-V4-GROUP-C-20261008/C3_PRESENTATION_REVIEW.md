@@ -1,0 +1,18 @@
+# C3-U independent presentation review
+
+Reviewer: TASK `/root/group_c_successor/cfb_design_review`, delegated by `/root/group_c_successor`; no delegation. Candidate `9d8baf3da6cf52aa5e8cedbe1723670c80efda15` against receiving main `5d562a1f11`. Full 16-path diff inspected. Selected Root/TASK/App loop and software-code-review context continues from the independently recorded source review; C3-U-READ-01 and fixture are the reviewed `e24bd8a5a2` source, not a new App-native reconstruction.
+
+## Initial verdict: NOT READY
+
+P2: `ConnectorRoutePanel.tsx` labels reserialized host values “exact recorded fields” and “Complete recorded account” without the host-parser limitation. In a disposable harness using the exact candidate's serde_json dependency, parsing `{"integer":18446744073709551617,"decimal":0.12345678901234567890123456789}` and serializing the Value produces `{"decimal":0.12345678901234568,"integer":1.8446744073709552e+19}`. The arbitrary fact-data contract admits these JSON values. Host text prevents subsequent JavaScript conversion but cannot restore original numeric precision or original bytes. Author evidence acknowledges this limitation; the visible claim does not. Repair the visible labels and disclose parsed/normalized representation and numeric precision without narrowing the schema. Keep the binding digest distinct from frontend verification. The independent probe asserted that the representation differs and passed; it does not claim a production file write.
+
+## Executed checks and boundaries
+
+- Exact candidate exported into private scratch; separate existing private Cargo target and approved offline Cargo home, no shared target writes or dependency downloads. All 35 maintained connector Rust tests passed, including four new view checks and existing persistence/standing checks.
+- Full maintained npm entrypoint: 12 passed, zero failed, one explicit supplier-handshake skip; its Rust decide-flow dependency passed four checks. All six new actual React render/state tests ran. Frontend TypeScript/Vite build passed.
+- Independent numeric probe above passed. Existing host u64 probe preserves `9007199254740993`; render tests preserve that text and escaped strings. These are distinct from arbitrary-precision support.
+- Initial scratch npm run lacked exported Design schemas and failed with a missing-file error. Exporting exact candidate execution sources repaired the test environment; the full rerun above passed. No product defect inferred from that preparation failure.
+
+Static and maintained checks cover absent/unknown/mismatched/invalid project association, read-only absent-directory behavior and unchanged existing file bytes, duplicates without winner, malformed/unsupported entries, injected incomplete discovery, missing metadata, all recorded duty states, literal unsupported/prohibited conclusions, zero-source warning, and escaped citations without links. The actual App handler invokes the no-argument host command, clears old results before reading and on failure; association is frozen in host state, with no project-switch path in this slice. The host repeats association checks, rather than trusting the availability UI. Discovery does not publish, read cited sources, resolve held references, or perform recorded duties. No source consumer adoption or scope completion is inferred.
+
+No native UI/IPC launch, provider/supplier, physical filesystem fault, or other-OS test was performed. Render tests exercise the actual component and transitions; compilation covers registration. Original persistence NOT READY history and CRP-v0.3 adoption remain intact. Candidate remains held only for the visible fidelity claim pending exact repair/backcheck.
