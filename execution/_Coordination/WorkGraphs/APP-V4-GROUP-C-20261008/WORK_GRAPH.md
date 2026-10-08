@@ -26,7 +26,7 @@ Provider adapters and persistent route placement require their actual inputs.
 | Deliverable | Existing basis and evidence | Selected continuation |
 |---|---|---|
 | DEL-07-01 PEC receiving | ScopeOfWork; PRC-v0.4 Design, schemas and constructed EU-D1 rehearsal. Exact PEC wire/tool agreement, qualification/release and App adoption remain unestablished in this basis | C2: receive actual OI-022 inputs before adapter production; preserve stamp/envelope separation, source resolution and bounded reliance |
-| DEL-07-02 connector fallback | ScopeOfWork; CFB-v0.2 pinned bytes; standing and route-account schemas and constructed rehearsal. No connector production module found in app at entry | C1 shared standing/route core; C3 actual source recovery, responsibility and presentation after placement is resolved |
+| DEL-07-02 connector fallback | ScopeOfWork; CFB-v0.2 pinned bytes; standing and route-account schemas and constructed rehearsal. No connector production module found in app at entry | C1 shared standing/route core (receiving-owner coverage assertions, no coverage verification); C3 actual source recovery, responsibility and presentation after placement is resolved |
 | DEL-08-01 Domains receiving | ScopeOfWork; DRC-v0.1 definitions and invented sources/cases; no provider/query/admission/deployment established | C4: preserve decision/allocation account; agreed inputs precede provider-dependent receiving |
 | DEL-08-02 research to design | ScopeOfWork; RTD-v0.2 proposed method, context schema and rehearsal, expressly not live verification | C5: later activation and host/admission inputs precede method implementation and connected witness; no fifth role or knowledge-browser UI |
 
@@ -34,9 +34,9 @@ Provider adapters and persistent route placement require their actual inputs.
 
 | ID / result | Owner and write scope | Required inputs | Completion check | State |
 |---|---|---|---|---|
-| C0 recovered Group C route | Manager; this graph and run evidence | Accepted grouping, live contracts, other group graphs, actual code | GC-7/8 relations and owner-held points explicit | ACTIVE; first route recovered, source account recorded in the run |
-| C1 shared connector standing and per-part route projection | TASK connector_slice; new app/src-tauri/src/connector_standing.rs and minimal module registration | CFB §§2–3; exact connector tiers; simulated inputs explicitly marked | Condition precedence/reasons, non-vacuous per-part coverage, absence/unknown refusal, PEC/Domains independence, serialized output, no owner act; targeted offline tests | ACTIVE; first bounded production slice dispatched |
-| C1-V independent review and repair | TASK group_c_review; read-only candidate and tests | Exact C1 plus manager graph/evidence candidate | Independent source, full diff and evidence review; no unresolved blocking findings | ACTIVE source preparation; exact candidate review pending |
+| C0 recovered Group C route | Manager; this graph and run evidence | Accepted grouping, live contracts, other group graphs, actual code | GC-7/8 relations and owner-held points explicit | COMPLETE recovery for first slice; basis and reading limits recorded in the run |
+| C1 shared connector standing and per-part route projection | TASK connector_slice; new app/src-tauri/src/connector_standing.rs and minimal module registration | CFB §§2–3; exact connector tiers; simulated inputs explicitly marked | Condition precedence/reasons, non-vacuous per-part coverage, absence/unknown refusal, PEC/Domains independence, serialized output, no owner act; targeted offline tests | COMPLETE bounded code/tests: c3174f5846 integrated a99ae55; 7/7 targeted Rust tests; source and coverage verification remain outside slice |
+| C1-V independent review and repair | TASK group_c_review; read-only candidate and tests | Exact C1 plus manager graph/evidence candidate | Independent source, full diff and evidence review; no unresolved blocking findings | ACTIVE; preparation found no blocker, combined exact-head review pending |
 | C1-I first substantive integration | Manager, parent Git integration coordination | C1-V, affected offline checks and required CI at actual head | Reviewed PR merged; evidence describes partial scope truthfully | PLANNED |
 | C2 PEC provider receiving join | App receiving owner with PEC owner; DEL-07-01 adapter/tests/presentation | OI-022 actual tool/response agreement; qualified/released/adopted account before reliance; current-pin hosting observation at use | Source pin → actual response → receiving action and limited/absent cases; independent review | BLOCKED for dependent adapter behavior on actual provider terms; definition/preparation remains available |
 | C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; named project placement treatment before persistence; actual source selection/custody | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | PLANNED; first slice does not implement persistence or UI |
@@ -88,7 +88,7 @@ Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
 account are retained in the run.
 
-Next: obtain C1 tested candidate and independent review, then integrate the
+Next: finish combined C1 independent review and integration checks, then integrate the
 bounded slice. No download, sign-in, credentials, native act, provider act,
 MEMORY write or human decision is authorized by this graph. SEAL-2 remains
 deferred. External SWBPIPE, PEC and Domains implementation stays in its own
@@ -96,5 +96,7 @@ sessions and cross-project relay belongs to the owner. No 90% claim.
 
 Independent source preparation found a future C3 question: the route-account
 schema requires at least one source while CFB §7 permits wholly missing sources.
-Resolve by named reviewed contract treatment before account writing; C1 emits
+CI-29 records the mismatch. Resolve by named reviewed contract treatment before account writing; C1 emits
 no account and does not weaken that schema. This issue has a current C3 home.
+
+C1 production and limits: [C1_EVIDENCE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C1_EVIDENCE.md). C1 is a programmatic library contribution; no App view or actual source recovery is complete.

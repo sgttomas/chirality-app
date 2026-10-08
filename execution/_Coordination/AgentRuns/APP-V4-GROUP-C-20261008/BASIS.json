@@ -125,6 +125,22 @@
     {
       "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Design/RESEARCH_TO_DESIGN.md",
       "sha256": "3143ee65fbfd1b4dd856aaef8bd516ec84ed2f37e771941fbf43485851a9f059"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md",
+      "sha256": "0d8e5b2774c26cde277fbb98b394fdc74a4bf6c171f1fea89904d7a6062565e8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "6ef9c0ba66ee42f6b786540aa3f26b1104a6fd82c4623d00f28d564d493afabb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/HANDOFF_STATE.md",
+      "sha256": "96a1bb5f220099b15dfe795df37e5e013849dceecc4f7bc67d0b25c4994041db"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md",
+      "sha256": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657"
     }
   ]
 }
