@@ -273,6 +273,7 @@ fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    mod s4_export { include!("hosting_s4_export.rs"); }
     use super::*;
     use crate::hosting::Host;
     use std::os::unix::fs::PermissionsExt;
