@@ -989,3 +989,24 @@ changed.
   M1 support identity is bound across package and result records before full M1
   reliance (Group B B3). Any changed interface uses a named reviewed change and
   consumer propagation; no schema or Design change is made by this slice.
+
+## CI-27 Full-distribution verification identity and PKG record coverage
+
+- **Found:** 2026-10-08, Group B B2 input inspection and separately commissioned
+  DEL-01-01 A-IN investigation; run APP-V4-GROUP-B-20261008.
+- **Source:** HOSTING §7 and U-08/U-17 leave qualified distribution identity
+  and composition/launcher selection unresolved. PKG v0.2 records the regular-file
+  manifest/counts and Mach-O identities but cannot express the complete modes
+  and directory inventory needed by the proposed full-tree comparison.
+- **Current bounded behavior:** offline B2 inventories/stages an explicitly
+  supplied tree and records preparation facts against existing v0.2 definitions.
+  Neither matching inventory nor the development main-binary digest establishes
+  verified runtime standing, a qualified expected reference or FP-2/W-4.
+- **Owning route:** HELP_HUMAN coordinates DEL-01-01 and DEL-01-06 named
+  CC-HOSTING-DISTRIBUTION-01, including versioned successor identity records and
+  verifier/consumer propagation. The A-IN proposal in
+  execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_input/
+  is investigation, not adopted Design. Supplier-reference qualification must
+  remain distinct from packaged-candidate qualification to avoid circular
+  reliance on FP-2. B2 preparation can continue; FP-2/W-4 waits for the reviewed
+  Design, qualified expected input and connected implementation.

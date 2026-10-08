@@ -28,3 +28,19 @@ it is distinct from this full-distribution verification gap.
 - `projects/chirality-app-v4/app/src-tauri/src/hosting.rs` — sha256 `108d63fa18975ec38ecf488938ec86c8e4a19a2abc7fde9c19879a1b2639331a`
 - `projects/chirality-app-v4/app/src-tauri/resources/instructions/SOURCE_MAP.json` — sha256 `ca3ff9b483d70a3c4dbe818c520cc3a16c750cbf81aa5bee88460c09c7f92f82`
 - `projects/chirality-app-v4/app/src-tauri/resources/development_workflows/SOURCE_MAP.json` — sha256 `4f49c28ba5721b492bb28ca2799b7aeff30c11964cc4e1bda293e5d3d3f666c4`
+
+## Offline continuation receiving evidence
+
+The parent-supplied [A-IN proposal](distribution_input/PROPOSAL.md), source
+commit 8ab04247db on 462f66975d, is integrated as technical investigation. It
+reproduces the complete 42-file manifest but identifies HOSTING U-08/U-17 and
+qualified expected-tree provenance as unresolved. HELP_HUMAN separately
+coordinates CC-HOSTING-DISTRIBUTION-01. FP-2/W-4 remains blocked until reviewed
+Design selection, qualified expected identity, and connected runtime/launcher
+implementation arrive; inventory equality alone cannot supply them.
+
+[Candidate values](offline-preparation/CANDIDATE_VALUES.md) retain 15.0 and
+dev.chirality.app-v4 as proposals. Supplier load commands explain the former;
+App binary compatibility and native launch have not been established. The
+identifier creates no durable signed identity before the concrete signing
+candidate is presented at the existing owner point of need.

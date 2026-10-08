@@ -95,3 +95,25 @@ explicitly retained 15.0 and dev.chirality.app-v4 as candidate recommendations,
 with no durable signed-identity or native compatibility claim. DEL-01-01 full
 supplier-distribution verification remains a separately coordinated Group A
 input before FP-2/W-4. Source inspection does not complete that contribution.
+
+## B7 return and named source correction
+
+Standalone TASK returned f7dc41307464f063621c59db1610195916169fa6. Separate
+reviewer first_slice_review independently passed nine tests, exact regeneration
+and four refusal probes, returning READY at preparation-only scope. Manager
+integrated it as 8cc429a732. No examination or native claim follows.
+
+The preserved SQ J-2/ST-4 prose/map discrepancy triggered bounded Design TASK
+sq_st4_design, requested gpt-6-astra/low with fresh context, own
+app-v4-group-b-sq-st4 worktree at 462f66975d. Its write fence is DEL-09-02
+Design/ and changes/CC-SQ-J2-ST4/ only; it may not alter case intent, scope,
+counts, route rules, shared implementation or lifecycle. HELP_HUMAN explicitly
+authorized a named source-grounded correction and independent review on this
+basis, with escalation only if accepted semantics change. Consumer source locks
+and preparation must be regenerated explicitly after reviewed correction.
+
+V2 reuses first_slice_review via followup_task on a fresh isolated review branch
+from 462f66975d. B2 and final combined candidate reviews remain pending.
+Parent supplied separate A-IN TASK return 8ab04247db, integrated as bc1aa6a485;
+its proposal is not Design adoption or runtime implementation. HELP_HUMAN is
+commissioning the named CC-HOSTING-DISTRIBUTION-01 with the source owners.
