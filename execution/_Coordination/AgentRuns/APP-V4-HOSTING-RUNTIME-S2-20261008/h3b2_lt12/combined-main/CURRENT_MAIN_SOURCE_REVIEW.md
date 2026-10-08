@@ -1,0 +1,11 @@
+# Independent current-main source integration review
+
+Source integration READY at merge 2377becab65791fcd91177fcf4ab15abcf4c1742, parents 8c8f95046f25a187e2e9020f0700707f4eb13a16 and current-main 953d8c94466db5543426a2de7b26a591564e4dca. This is source integration review only; combined tests are still owned/running elsewhere, and fresh exports plus B adoption remain pending. No current combined qualification is inferred from historical 938d/8c8 evidence.
+
+All 30 incoming changed paths match C3 current-main bytes exactly. All five LT12 maintained hashes still match frozen reviewed manifest f9b5104cce41e3ccf843597d5422eb7ff54b97f561552ebd86283f938bf4f5c1. Host, attachment custody, recovery, runtime session and current B receiving source are unchanged by the merge. The shared lib.rs delta adds only connector_reconstruction module, its prepare command wrapper and registration. Existing Host/runtime custody setup and closing hooks are preserved. Reconstruction routes through connector registries/source session/project and existing composed preparation; it introduces no call into Host terminal publication or new ordering edge to the Host controller.
+
+Reused accepted C3 review for its own 30-file scope and prior independent LT12 source review. This inspection covers fan-in, not a fresh standalone audit of the entire C3 implementation. LT12 plus connector reconstruction controls in both feature states are appropriate affected combined checks; their eventual logs/results must bind this exact merged source, and failures require assessment before export reliance. No test result is claimed here; reviewer did not use the author-owned target.
+
+lib.rs is a pinned producer source. Its new bytes intentionally invalidate prior current-source B guards even though Host bytes are unchanged. Do not claim the old cohorts qualify this merge, bypass guards, or bare-repin. Fresh exact committed/recompiled exports and separately named B adoption are required. Historical cohorts and earlier evidence remain historical. No LT12 exchange or new row/format acceptance is authorized by the merge.
+
+Worktree clean at inspection. No repository edits, tests/builds, new checkout, native/supplier actions or delegation occurred. Existing LT19/null fallback, production/S3/SEAL-2/qualification and hydration limitations remain unchanged.
