@@ -1,0 +1,20 @@
+test_additional_person_does_not_replace_requested_review_kind (__main__.AdmissionFiles.test_additional_person_does_not_replace_requested_review_kind) ... ok
+test_canonical_review_and_change_examples (__main__.AdmissionFiles.test_canonical_review_and_change_examples) ... ok
+test_changed_source_lock_and_ambiguous_json_fail_closed (__main__.AdmissionFiles.test_changed_source_lock_and_ambiguous_json_fail_closed) ... ok
+test_cited_but_missing_rerun_is_refused (__main__.AdmissionFiles.test_cited_but_missing_rerun_is_refused) ... ok
+test_cli_real_file_join_reports_no_verification_or_admission (__main__.AdmissionFiles.test_cli_real_file_join_reports_no_verification_or_admission) ... ok
+test_criterion_change_requires_matching_disposition_citation (__main__.AdmissionFiles.test_criterion_change_requires_matching_disposition_citation) ... ok
+test_current_prior_result_and_duplicate_result_ids_refused (__main__.AdmissionFiles.test_current_prior_result_and_duplicate_result_ids_refused) ... ok
+test_duplicate_finding_and_unknown_selection_fields_refused (__main__.AdmissionFiles.test_duplicate_finding_and_unknown_selection_fields_refused) ... ok
+test_exact_review_join_keeps_declared_scope (__main__.AdmissionFiles.test_exact_review_join_keeps_declared_scope) ... ok
+test_historical_outcome_evidence_and_identity_cannot_be_rewritten (__main__.AdmissionFiles.test_historical_outcome_evidence_and_identity_cannot_be_rewritten) ... ok
+test_non_independent_record_is_honest_not_upgraded (__main__.AdmissionFiles.test_non_independent_record_is_honest_not_upgraded) ... ok
+test_repair_confirmation_must_name_the_selected_reviewer (__main__.AdmissionFiles.test_repair_confirmation_must_name_the_selected_reviewer) ... ok
+test_repair_pair_checks_rerun_case_candidate_and_change_citation (__main__.AdmissionFiles.test_repair_pair_checks_rerun_case_candidate_and_change_citation) ... ok
+test_review_rejects_other_build_configuration_criterion_and_reviewer (__main__.AdmissionFiles.test_review_rejects_other_build_configuration_criterion_and_reviewer) ... ok
+test_unrun_rerun_stays_pending_and_other_affected_rows_unresolved (__main__.AdmissionFiles.test_unrun_rerun_stays_pending_and_other_affected_rows_unresolved) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.335s
+
+OK
