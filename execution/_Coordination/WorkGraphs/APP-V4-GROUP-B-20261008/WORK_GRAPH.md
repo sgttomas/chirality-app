@@ -131,7 +131,7 @@ Prior graph checkpoints are retained in [resumed-production/PRIOR_GRAPH.md](../.
 
 **Next:** integrate the independently reviewed B2-CONTENT increment. Actual
 unsigned development .app binds f79317be plus the unsigned-overlay patch; all
-406 App input files were checked against sealed source and scratch. Physical
+406 App input entries (350 files) were checked against sealed source and scratch. Physical
 P0…4 are present (56 regular files), with exact P1/P2/P3 bytes/modes/links.
 Build used explicit custom-protocol and --no-sign. Independent physical review
 READY; no rebuild after unchanged evidence/graph integration. Artifact is local
