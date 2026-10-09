@@ -1,0 +1,92 @@
+{
+  "main": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+  "candidate": "7d85a7651292e2dddcd609657d5db9f09e39c568",
+  "suppliedCandidate": "accf67337b608206bacb4a6313da85b03145bd1f",
+  "candidateDifference": "A2 only reviewed-status header differs from supplied candidate; current PR head read",
+  "sources": [
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "7b9f306d7c6fc9ceeeb4178003521afcdafe5981370f0fc87418fdf35e2644b9",
+      "size": 369983
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97",
+      "size": 357860
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_lifecycle.rs",
+      "sha256": "549fe28fe8155217ac961a29bf3dfe43b9103de12ccad585f609894e411bf7b3",
+      "size": 21053
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_supply.rs",
+      "sha256": "83e75542baa986924823ebdf7bcefa9d6761c623e536d92eb29fd2d603a81ec2",
+      "size": 13925
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/execution_custody.rs",
+      "sha256": "a9d95f8fb19efe5072a07fd090f34e2f2d90444e3838fbc47594d8ac637bbffd",
+      "size": 7957
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/native_history.rs",
+      "sha256": "5d9a268639399ff70e44b9217c2a317986ddc653d4684e64f40af6acd77922ab",
+      "size": 31657
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "8bffa29413763b41c9f3801946b491dc408ba7fd3b3a3e4e069c5234f29592ee",
+      "size": 87641
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/src/workflow_workspace.rs",
+      "sha256": "eaf5987eb1a9903baad8461123317e4fe2dfcad6e3fe4bf7ac7c512c6cdf6365",
+      "size": 43955
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/supplier/0.160.0/codex_app_server_protocol.schemas.json",
+      "sha256": "7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5",
+      "size": 863788
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_R1.md",
+      "sha256": "deb89a6d982912623b15886b0348c5a887c71fa637258dffdc9c48f4a2133610",
+      "size": 9853
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/EXECUTION_COMPATIBILITY.md",
+      "sha256": "a3001809efe5e749c158a9b33aa30180e53f0c42892a4bbb6251592b35f8c0e2",
+      "size": 356769
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "size": 14481
+    },
+    {
+      "revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+      "size": 1804
+    },
+    {
+      "revision": "7d85a7651292e2dddcd609657d5db9f09e39c568",
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec",
+      "size": 12582
+    }
+  ]
+}
