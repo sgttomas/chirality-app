@@ -1,0 +1,70 @@
+{
+  "status": "source/technical proposal; code release held",
+  "base": "9a82cbcf29c46bb6f722c074b5854de7ef470450",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_materialization.rs",
+      "sha256": "4a4dead08ecd444d624a216ccb6f169b1e13cac8070b6df02e3764fc00db6bda"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "sha256": "97e6845c5ba0937d4eedb5d8c74c5bf903a004250f85a01b8ef2943d684e0404"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "5f6b5d0e818856c8699ab1341dde7e3b6358bbbde2868a922556d11feb49c79b"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src/ConnectorSourcePanel.tsx",
+      "sha256": "e4d39f8f0686ecb1d38bfc0e24497abe870f1eec0efa73b651e0525e35edbf50"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ACCOUNT_MATERIALIZATION_v0.1.md",
+      "sha256": "627581f503ebf8f7752d8f099215f73f25358e8b7ecef4702186125640e8f4aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md",
+      "sha256": "e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e"
+    }
+  ],
+  "Host_comparison": {
+    "path": "/private/tmp/HOST_REQUEST_EXPORT_CONNECTED_ASSESSMENT.md",
+    "sha256": "ca593d604383882e20ea5b052ab3fd60f65b2976b3a05267dbd9fa9426f8a801",
+    "standing": "read-only assessment, not source export adoption"
+  },
+  "artifacts": [
+    {
+      "name": "C3_PUB_RECHECK_01.md",
+      "sha256": "a10db615a16575f78c74d12b2f3c74ebc3b1e25d01f2bae5b2a0b0cf893725bc"
+    },
+    {
+      "name": "CASES.json",
+      "sha256": "6d6166f1ee2ec668c3ba80fb6dad4f07375477c1aa1904e67a58704c7ca8ecb4"
+    }
+  ],
+  "case_count": 24,
+  "executed_cases": 0,
+  "holds": [
+    "typedrootArc resource receiving",
+    "exactHost/CRP/independentreview",
+    "singleactive read/resultmemory accounting",
+    "code release"
+  ],
+  "draft_revision": "explicit one-inflight IPC lease/noqueue, compact status-only return; not global1MiB memory",
+  "receiving": {
+    "Host_storage": {
+      "path": "/private/tmp/C3_PUB_RECHECK_HOST_STORAGE_REVIEW.md",
+      "sha256": "5e79966f995cdee0d5ed6b7f51ef5ca894ff165b6925989c5535feca8e8fea95",
+      "standing": "conditional concurrence on555d; read exact report; new exact backcheck pending"
+    },
+    "CRP": "manager-relayed conditional concurrence on555d and exact per-entry/context/cause/lease constraints; new backcheck pending"
+  },
+  "retained_findings": [
+    {
+      "original_proposal_sha256": "555d5fbf1cf5dd1d85ab2f09bb7241fda9153fda353d1ef75123cd00a425e9a0",
+      "original_cases_sha256": "ee99066df289ad5be4f6b3c3ea0ba2991c1e10a267f4cf4a5085bfc04d5b381b",
+      "original_basis_sha256": "ac024924db1cc9009142e4ed705e7602adb857989adce4246c9d3a1741cd51aa",
+      "repair": "actualAppcontext notGit; per-entry custody notglobalrevision; nonblocking bounded IO/cause preservation; separate uniquelease safeunwind; totalcoexistingFD/parse costs; no fabricated typedinstallation"
+    }
+  ]
+}
