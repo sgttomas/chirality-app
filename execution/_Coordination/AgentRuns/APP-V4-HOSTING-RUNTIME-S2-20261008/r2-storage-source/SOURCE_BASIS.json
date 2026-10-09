@@ -1,0 +1,75 @@
+{
+  "revision": "12a306d6ed7a67d13063bf908136306772a8659a",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "sha256": "edc2b3c0a61528650348729f9a9bbfcdbfc58c4adb3556d131a3385f2de27e1a",
+      "bytes": 37869
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_materialization.rs",
+      "sha256": "4a4dead08ecd444d624a216ccb6f169b1e13cac8070b6df02e3764fc00db6bda",
+      "bytes": 34315
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/recovery.rs",
+      "sha256": "d4604e4887b8cf3ec202a46424c02e3346d65d2df7f159991d307f73049fb7fb",
+      "bytes": 48606
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_source_fs.rs",
+      "sha256": "0f3befc34620234dfd59b221782236829281cdb1fb55cad53d74c023c04d4ecc",
+      "bytes": 8798
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PM05_SOURCE_PLAN_20261008.md",
+      "sha256": "3171fe946724775f7e91b3da019ca08e534b0534e628c5dca9c7986350fda63f",
+      "bytes": 8320
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_TARGET_SELECTION_20261008.md",
+      "sha256": "e1c82055e5e25c7629a3c83f32464b8fcfec83095019a50adcfcf1cd869c3b38",
+      "bytes": 4072
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/OWNER_DECISIONS.md",
+      "sha256": "5934c86c571e694d8ce2cecd0122509e16caf6e48d0e430094755f302b5aeff9",
+      "bytes": 4468
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md",
+      "sha256": "e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e",
+      "bytes": 17164
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ACCOUNT_MATERIALIZATION_v0.1.md",
+      "sha256": "627581f503ebf8f7752d8f099215f73f25358e8b7ecef4702186125640e8f4aa",
+      "bytes": 19276
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec",
+      "bytes": 12582
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "bytes": 14481
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+      "bytes": 1804
+    }
+  ],
+  "platformSources": [
+    {
+      "url": "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/flock.2.html",
+      "standing": "archived primary documentation read, not runtime proof"
+    },
+    {
+      "url": "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html",
+      "standing": "archived primary documentation read, not runtime proof"
+    }
+  ]
+}

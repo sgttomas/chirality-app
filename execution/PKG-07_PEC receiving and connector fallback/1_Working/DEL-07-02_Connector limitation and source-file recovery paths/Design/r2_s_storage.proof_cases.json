@@ -1,0 +1,210 @@
+{
+  "status": "PROPOSED designed proof obligations; not fault tests or behavioral proof",
+  "numericPolicy": "N,S,D,T,Q and secondary caps unselected",
+  "cases": [
+    {
+      "id": "ADMIT_LAST",
+      "fault_or_race": "Two processes contend for last quota slot",
+      "required_outcome": "Only writer-exclusion winner reserves; second rereads actual quota",
+      "invariant": "no per-process quota"
+    },
+    {
+      "id": "LOCK_REPLACE",
+      "fault_or_race": "Lock/control entry replaced while old descriptor held",
+      "required_outcome": "observed mismatch unavailable; transient hostile ABA remains unproven",
+      "invariant": "no false universal exclusion"
+    },
+    {
+      "id": "UNSUPPORTED_FS",
+      "fault_or_race": "Filesystem refuses locking or required sync",
+      "required_outcome": "no confirmed mutation/admission",
+      "invariant": "no primitive fallback"
+    },
+    {
+      "id": "RESERVE_CRASH",
+      "fault_or_race": "Crash after identity/quota reservation before initial snapshot",
+      "required_outcome": "reservation remains counted, explicit incomplete journal",
+      "invariant": "no identity reuse"
+    },
+    {
+      "id": "INACTIVE_TORN",
+      "fault_or_race": "Partial inactive write before sync",
+      "required_outcome": "old descriptor remains current; incomplete candidate ignored for advancement",
+      "invariant": "active slot untouched"
+    },
+    {
+      "id": "SNAP_SYNC",
+      "fault_or_race": "Crash after inactive sync before descriptor publish",
+      "required_outcome": "old committed selection; new slot uncommitted",
+      "invariant": "no newest timestamp"
+    },
+    {
+      "id": "DESC_TORN",
+      "fault_or_race": "Partial temporary descriptor",
+      "required_outcome": "old descriptor, counted leftover",
+      "invariant": "one bounded temp"
+    },
+    {
+      "id": "RENAME_UNCERTAIN",
+      "fault_or_race": "Descriptor replace result ambiguous",
+      "required_outcome": "uncertain commit; reconcile exact observed pair",
+      "invariant": "no blind write or supplier retry"
+    },
+    {
+      "id": "DIR_SYNC_FAIL",
+      "fault_or_race": "New descriptor visible but directory sync fails",
+      "required_outcome": "no confirmed acknowledgement; preserve both slots",
+      "invariant": "visibility not durability"
+    },
+    {
+      "id": "ACK_LOST",
+      "fault_or_race": "Commit fully synced; caller loses acknowledgement",
+      "required_outcome": "cold observed committed pair; prior delivery/dispatch unknown",
+      "invariant": "no auto replay"
+    },
+    {
+      "id": "CORRUPT_ACTIVE",
+      "fault_or_race": "Selected snapshot hash/length/identity wrong",
+      "required_outcome": "unavailable not silent prior rollback",
+      "invariant": "exact selected pair"
+    },
+    {
+      "id": "ORPHAN_NEWER",
+      "fault_or_race": "Inactive has higher revision than valid descriptor",
+      "required_outcome": "do not promote; report uncommitted candidate",
+      "invariant": "revision alone not authority"
+    },
+    {
+      "id": "FORKED_ID",
+      "fault_or_race": "Same journal ID appears in two slots/descriptors",
+      "required_outcome": "forked/unavailable",
+      "invariant": "no merge/newest winner"
+    },
+    {
+      "id": "ROLLBACK",
+      "fault_or_race": "Whole self-consistent older control/snapshot copied back",
+      "required_outcome": "freshness cannot be proven without external anchor",
+      "invariant": "limit exposed"
+    },
+    {
+      "id": "ROOT_SWAP",
+      "fault_or_race": "Opened project path renamed/substituted or symlink/hardlink supplied",
+      "required_outcome": "no-follow identity refusal on observed mismatch",
+      "invariant": "descriptor operations stay anchored"
+    },
+    {
+      "id": "OVERSIZED_DESCRIPTOR",
+      "fault_or_race": "Claimed length/JSON depth/member count exceeds selected limits",
+      "required_outcome": "refuse with bounded read before allocation",
+      "invariant": "untrusted metadata"
+    },
+    {
+      "id": "OVERSIZED_SNAPSHOT",
+      "fault_or_race": "Actual stream exceeds S despite small stat length",
+      "required_outcome": "stop at S+1; no parse/full allocation",
+      "invariant": "reader bound"
+    },
+    {
+      "id": "ENUM_OVERFLOW",
+      "fault_or_race": "Directory contains more unknown entries than metadata bound",
+      "required_outcome": "refuse boundedly; no unlimited issue vector",
+      "invariant": "quota includes unknowns"
+    },
+    {
+      "id": "REF_SLOT",
+      "fault_or_race": "Next snapshot references bytes only in soon overwritten old slot",
+      "required_outcome": "refuse replacement or preserve exact bytes within budget",
+      "invariant": "hash-only not survival"
+    },
+    {
+      "id": "REF_MISSING",
+      "fault_or_race": "Immutable claimed object missing/changed",
+      "required_outcome": "required recovery state incomplete; no retirement",
+      "invariant": "resolution not trust label"
+    },
+    {
+      "id": "EVIDENCE_GROWTH",
+      "fault_or_race": "Exact cumulative recovery evidence exceeds selected S/Q",
+      "required_outcome": "refuse advance, retain current state and gap",
+      "invariant": "no truncate/summarize"
+    },
+    {
+      "id": "INTENT_ONLY",
+      "fault_or_race": "Crash after confirmed intent before possible dispatch",
+      "required_outcome": "request outcome unknown unless independently observed",
+      "invariant": "no no-write inference"
+    },
+    {
+      "id": "EFFECT_NO_RECORD",
+      "fault_or_race": "Supplier effect precedes failed outcome checkpoint",
+      "required_outcome": "effect/status uncertain; matching bytes only corroboration",
+      "invariant": "journal not action transaction"
+    },
+    {
+      "id": "UNTRACKED",
+      "fault_or_race": "External Codex work observed without App intent",
+      "required_outcome": "record missing original intent/source",
+      "invariant": "no fabricated writeahead"
+    },
+    {
+      "id": "FINAL_ONLY",
+      "fault_or_race": "CRP publishes final account then journal update fails",
+      "required_outcome": "retain distinct publication attempt; reconcile no token revival",
+      "invariant": "no hash cycle"
+    },
+    {
+      "id": "JOURNAL_ONLY",
+      "fault_or_race": "Journal final-intent commits but CRP fails/unknown",
+      "required_outcome": "no final success from journal alone",
+      "invariant": "one-use CAM unchanged"
+    },
+    {
+      "id": "RETIRE_EARLY",
+      "fault_or_race": "Unresolved attempt or required referenced bytes would be lost",
+      "required_outcome": "retirement prohibited",
+      "invariant": "no capacity eviction"
+    },
+    {
+      "id": "MARKER_CRASH",
+      "fault_or_race": "Crash before durable terminal marker",
+      "required_outcome": "bulk retained and counted",
+      "invariant": "no quota reclaim"
+    },
+    {
+      "id": "DELETE_CRASH",
+      "fault_or_race": "Crash after marker during allowed future bulk reclamation",
+      "required_outcome": "marker retained; physical leftovers counted/reconciled",
+      "invariant": "no oldID rebinding"
+    },
+    {
+      "id": "MARKER_FULL",
+      "fault_or_race": "Finite terminal identity capacity exhausted",
+      "required_outcome": "visible refusal; no reset/eviction",
+      "invariant": "policy unselected"
+    },
+    {
+      "id": "MEMORY_DOUBLE",
+      "fault_or_race": "Parse/serialize attempts two full resident snapshots",
+      "required_outcome": "refuse or prove transfer/streaming within common envelope",
+      "invariant": "two disk slots not two memory payloads"
+    },
+    {
+      "id": "COLD_AUTH",
+      "fault_or_race": "Cold valid snapshot carries role/request/grant JSON",
+      "required_outcome": "historical state only",
+      "invariant": "no capability revival"
+    },
+    {
+      "id": "CAM64",
+      "fault_or_race": "Journal frees storage but CAM has64 consumed entries",
+      "required_outcome": "no new CAM identity without separate policy",
+      "invariant": "R2 not product-capacity waiver"
+    },
+    {
+      "id": "APPEND_TAIL",
+      "fault_or_race": "R2-L has parseable unconfirmed appended tail",
+      "required_outcome": "committed boundary only; uncertain tail",
+      "invariant": "append comparator not shortcut"
+    }
+  ]
+}
