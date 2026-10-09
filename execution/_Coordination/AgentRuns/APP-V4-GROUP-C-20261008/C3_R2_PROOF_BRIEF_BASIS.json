@@ -31,7 +31,7 @@
   "artifacts": [
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_IMPLEMENTATION_BRIEF.md",
-      "sha256": "6d36e6be18b814f8867a09edfbc728d73f56c978fd3064636ef93a6f7a389b03"
+      "sha256": "44421a4cffe1ec5ac47eb1cd4b7b15a2aabde27ca1169cff5532159e7bf53717"
     },
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_STORAGE_CONCURRENCE.md",

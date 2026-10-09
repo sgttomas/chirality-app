@@ -102,7 +102,7 @@ existing namespace or lock is not permission to initialize/replace it.
 
 Before journal admission, hold that same lock, inspect bounded namespace state,
 check N and worst-case Q reservation and uniqueness. Select a never-used fixed
-slot index in0..N (not an argument-derived path). Exclusively mkdirat journal
+slot index with0 ≤ index < N (not an argument-derived path). Exclusively mkdirat journal
 slot; fsync naming namespace. Create immutable admission metadata exclusively
 with namespace/journal/undertaking ID, policy and reserved slot identity, bounded
 by D; fsync metadata. Create A and B placeholders exclusively, verify regular
@@ -131,7 +131,10 @@ the old acknowledgment. It creates/replaces/deletes no entries. An incomplete
 bootstrap/admission still refuses; there is no repair fallback. Existing selected
 snapshot/descriptor and uncertainty are preserved, not reset to revision0. This
 lets a fresh test session continue from complete observed state without claiming
-old hot custody. All prior attempts/outcome distinctions remain historical data.
+old hot custody. Retain available original attempts in their live custody. After cold reopen,
+missing original attempt/acknowledgment evidence stays unavailable or unknown;
+never reconstruct it from matching files. Retained outcome distinctions remain
+historical data.
 
 Inject cuts before/after namespace mkdir/root sync; lock create/sync/directory
 sync; control create/write/sync/directory sync/readback; journal mkdir/parent sync;
