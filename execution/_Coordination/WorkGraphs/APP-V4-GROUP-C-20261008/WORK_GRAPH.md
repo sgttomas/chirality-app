@@ -97,8 +97,8 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `12a306d6ed7a67d13063bf908136306772a8659a`
-(PR #1183 reviewed brief merged; only bounded read-only code is released).
+The current checked main basis is `58e10166a6e5ae1bab1a12b4851e122f293e1c2e`
+(PR #1185 R2 storage source proposal merged; bounded reader candidate reviewed).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
@@ -277,7 +277,10 @@ bounded reads. No production resource-sufficiency claim follows.
 HELP_HUMAN released only the merged brief's bounded development cold-consumer
 code after independent review and PR #1183. Actual assignment and fence are in
 [C3_AO_COLD_IMPLEMENTATION_RELEASE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_AO_COLD_IMPLEMENTATION_RELEASE.md).
-Existing route_persistence executes; independent exact-code review precedes fan-in. R2 journal/W2 integration are not blanket reader gates.
+Existing route_persistence returned5f184ee52b; independent exact-code review
+READY and unchanged manager integration be5cd2b are retained in
+[C3_AO_COLD_IMPLEMENTATION_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_AO_COLD_IMPLEMENTATION_REVIEW.md).
+Final combined backcheck and required CI precede merge. R2 journal/W2 integration are not blanket reader gates.
 
 ## Received A→C delegated role source proposal
 
@@ -288,3 +291,19 @@ for C3, not implemented TASK admission or retroactive deficiency in completed A
 work. Actual C3 initiating boundary, SL-4 fresh-child interpretation and combined
 WR/role/Host ordering remain source prerequisites before authored answer code.
 The current read-only0.5 consumer is independent and cannot mint that evidence.
+
+## Cold-consumer candidate and R2 receiving
+
+C3-AO-COLD-01 is independently READY at its bounded development scope: actual
+constructed files through read backend/view, full0.5 unselected subsets refused,
+shared write/freeze0.5 still unsupported. Author frontend checks passed; reviewer
+frontend execution lacked dependencies and is not claimed, with static review
+and independent84 default/84 feature connector tests separately recorded.
+No actual authored producer or generic pre-acquisition memory bound is supplied.
+
+PR #1185 retains R2_S_STORAGE_INTERFACE_PROPOSAL and34 designed cases. C3's
+owning semantic review concurred with ordinary-operation intent/unknown outcome,
+reference survival and separate confirmed account versus uncertain journal
+standing after a wording repair. Physical storage/runtime review remains its
+own evidence; no N/caps/retirement/CAM64 policy or journal implementation is
+adopted by receipt of this source/proof hypothesis.
