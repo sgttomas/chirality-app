@@ -1,0 +1,439 @@
+id: DEL-02-03
+name: Workflow execution compatibility and round-trip support
+needs:
+- from: DEL-02-01
+  condition: 'Receive the portable workflow/role/checkpoint declarations and shared-allocation contract
+    for selected-workflow execution and transfer.
+
+
+    Notes: FACT: source-stated relationship. RequiredMaturity=INITIALIZED is local contract maturity only;
+    the stated technical input or handoff remains unverified. CLM-001 explicitly identifies DEL-02-01
+    and DEL-02-02 as the two contract sources; OUT-001 positively consumes portable declarations.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-02-02
+  condition: 'Receive the workflow-making, reviewed-registration and source-qualified selection contract,
+    and the run-start text (and App-written run-end line) DEL-02-02 composes for each run this slice starts,
+    with its content identity and supply-check record; route host-origin changed drafts through its existing
+    receiving interface.
+
+
+    Notes: FACT: source-stated relationship. RequiredMaturity=INITIALIZED is local contract maturity only;
+    the stated technical input or handoff remains unverified. CLM-001 explicitly identifies DEL-02-02
+    as owner and says this slice receives those contracts; this is one bidirectional receiving interface
+    recorded UPSTREAM for its contract input. UPDATE 20261003 (SCA-V4-003 DX): SC3-02-02-9 (D5 R2.4):
+    Statement extended with the run-start text, its identity and supply check, which DEL-02-02''s revised
+    CLM-003 states DEL-02-03 receives; this register''s own SoW does not restate it, so the extension
+    rests on that paired ledger row and is noted here. Quote unchanged and verbatim. Identity, direction,
+    type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'Consume the capability/catalog semantics contract to interpret current-host capability information
+    for required-tool checks; actual host capability evidence remains separately required.
+
+
+    Notes: FACT: source-stated relationship. RequiredMaturity=INITIALIZED is local contract maturity only;
+    the stated technical input or handoff remains unverified. CLM-002 resolves capability/catalog semantics
+    to DEL-03-01; the external host owns its actual implementation and observations.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Use only the identified adopted operation policy for dependent workflow cases, preserving
+    the owner and host policy owner as decision actors for unresolved classes.
+
+
+    Notes: FACT: source-stated relationship. RequiredMaturity=INITIALIZED is local contract maturity only;
+    the stated technical input or handoff remains unverified. CLM-002 resolves the policy carrier to DEL-04-01.
+    UPDATE 20260929: TBD-001/TBD-002 now record the first-increment OI-001/OI-002 rulings (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2/D3), with DEL-04-01 carrying the adopted result and not deciding it; operation-specific additions
+    remain with OI-021 (DEP-02-03-019). Source mentions and contract maturity do not establish adoption.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Receive the content/scope/purpose act-binding and run-record format to faithfully record
+    actual checkpoint acts and content-change lapse.
+
+
+    Notes: FACT: source-stated relationship. RequiredMaturity=INITIALIZED is local contract maturity only;
+    the stated technical input or handoff remains unverified. CLM-002 identifies DEL-04-03 as record-format/writer-reader
+    owner; VER-003 positively uses its format. Actual human performance and receipt evidence remain distinct
+    from this format input.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: external:OI-013
+  condition: 'Shared contract owner with SWB implementation owner must supply the stated decision: Agree
+    the host-specific construction and any reusable common contribution, then choose loop placement, parsing,
+    persistence and panel assembly without transferring SWB ownership by implication. Point of need: Before
+    shared/host implementation boundary contracts.
+
+
+    Notes: FACT: source-stated relationship. Owner=Shared contract owner with SWB implementation owner;
+    point_of_need=Before shared/host implementation boundary contracts; source OI remains OPEN. Applies
+    only to dependent cases; independent local definition/checking proceeds. No decision or blanket project
+    hold is inferred.
+
+
+    Target description — TargetName: Per-host loop placement and persistence — Shared contract owner with
+    SWB implementation owner; TargetRefID: OI-013; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-013'
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: external:OI-014
+  condition: 'App/shared contract owners must supply the stated decision: Place shared contracts/components
+    against actual consumer responsibilities; agree ownership before any common implementation, without
+    presuming a common service. Point of need: Before structural/production contract allocation.
+
+
+    Notes: FACT: source-stated relationship. Owner=App/shared contract owners; point_of_need=Before structural/production
+    contract allocation; source OI remains OPEN. Applies only to dependent cases; independent local definition/checking
+    proceeds. No decision or blanket project hold is inferred.
+
+
+    Target description — TargetName: Shared contract/component placement — App/shared contract owners;
+    TargetRefID: OI-014; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-014'
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: external:OI-021
+  condition: 'Owner via outside SWB session and App/shared owner must supply the stated decision: Choose
+    useful operation, permitted autonomy and exact candidate environment. Point of need: Before connected-activity
+    SoW and execution.
+
+
+    Notes: FACT: source-stated relationship. Owner=Owner via outside SWB session and App/shared owner;
+    point_of_need=Before connected-activity SoW and execution; source OI remains OPEN. Applies only to
+    dependent cases; independent local definition/checking proceeds. No decision or blanket project hold
+    is inferred.
+
+
+    Target description — TargetName: First connected activity definition — Owner via outside SWB session
+    and App/shared owner; TargetRefID: OI-021; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-021'
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: external:DEP-001
+  condition: 'Receive the human-relayed external SWBPIPE host catalog/domain route, views, origins, human-act
+    recording, local loop integration, live control and candidate evidence before corresponding connected-journey
+    integration/examination and fallback-replacement decision.
+
+
+    Notes: FACT: source-stated relationship. External reference DEP-001 is the accepted external-register
+    identifier, not a local DEP schema ID or App deliverable. source_reported_state=OWNER_REPORTED_BUILDING_BEFORE_AGENT_ACTION_INTEGRATION;
+    neither delivered/adopted handoff nor joined witness is claimed. Independent App definition proceeds;
+    host construction is not assigned here.
+
+
+    Target description — TargetName: SWBPIPE outside implementation session — host contributions; TargetRefID:
+    DEP-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-001'
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: external:Human checkpoint actor and separate recorder — positive fixture evidence
+  condition: 'The positive faithful-recording verification case requires evidence that the person actually
+    performed the checkpoint act, with a separate recorder preserving actor/content/scope/purpose.
+
+
+    Notes: FACT: source-stated relationship. Point of need: the positive VER-003 fixture observation only.
+    No provider or named person is assigned by the source. Negative/absent-act cases and independent definition
+    proceed. This records an actual verification input, not a blanket production prerequisite derived
+    from runtime checkpoint rules; no synthetic sequence among execution, acceptance, checking, approval
+    or reliance.
+
+
+    Target description — TargetName: Human checkpoint actor and separate recorder — positive fixture evidence;
+    TargetLocation: ScopeOfWork.md#Production and Verification Method — Praxeology/VER-003'
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-05-01
+  condition: 'Receive checkpoint arrival observation, subject binding and loop events from host loops
+    through the DEL-05-01 receiving contract for checkpoint request/recording behavior; its host-loop
+    hold applies only in the governance phase.
+
+
+    Notes: FACT: CLM-002 (revised by SCA-V4-001) states that DEL-05-01 supplies these items. ASSUMPTION:
+    this slice is the receiver, because OUT-001 consumes act evidence "through the named interfaces" and
+    CLM-002 names them; the clause does not name the recipient, hence IMPLICIT/MEDIUM. Supersedes the
+    prior-run note that DEL-05-01 was named only as an owner. Host-loop hold is governance phase only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'Receive observed stock-Codex supplier facts from DEL-01-01 as capability information for
+    App-side execution compatibility; supplier observation stays with DEL-01-01.
+
+
+    Notes: FACT: CLM-002 (revised by SCA-V4-001) states the supply; REQ-006 keeps supplier observation
+    with DEL-01-01. ASSUMPTION: the facts serve this slice''s required-tool/compatibility behavior in
+    the standalone App (CLM-003: the App executes through stock Codex); the recipient is not named, hence
+    IMPLICIT/MEDIUM.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: external:Owner — governance-phase enforced-checkpoint decision (TBD-006)
+  condition: 'Before any App or host checkpoint hold is claimed enforced, the owner decides when a workflow
+    needs enforced checkpoints, then App/shared owners decide placement (OI-014); App-side run holds (DECISION-2
+    D6) re-open then.
+
+
+    Notes: FACT: added by SCA-V4-001 TBD-006 (phasing decided by APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+    D4-1). Applies only to governance-phase hold claims; current-phase checkpoint request/recording proceeds.
+    The SWBPIPE relay SQ-02 answer is an input to that future decision, not to this deliverable, and is
+    not extracted. No stable OI ID; TargetRefID blank.
+
+
+    Target description — TargetName: Owner — governance-phase enforced-checkpoint decision (TBD-006)'
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Consume DEL-03-02''s per-item dispositions, item-left events, all-items-decided indication,
+    change-item content identities and applied outcomes with their resulting objects for checkpoint recording
+    and interrupted or replayed history (REQ-002, REQ-003); this slice does not define them.
+
+
+    Notes: FACT: added by SCA-V4-002 revision of CLM-002 (SOW_REVISIONS F-0203-01; APP-V4-BASIS-ALIGN-20260928-DECISION-10
+    routed this consumption statement). Positive consumption statement ("consumes, and does not define"),
+    not the CLM-002/REQ-006 ownership clause, which alone remains a non-edge. The quoted clause continues
+    "for checkpoint recording and interrupted or replayed history (REQ-002, REQ-003)". RequiredMaturity=INITIALIZED
+    is local contract maturity only; receipt is unverified. UPDATE 20261003 (SCA-V4-003 DX): Re-quoted
+    in place: CLM-002 now inserts the DEL-01-02 clause after "This slice consumes, and does not define:",
+    so the prior quote no longer occurs; the DEL-03-02 clause itself is unchanged. Identity, direction,
+    type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-03-03
+  condition: 'Consume DEL-03-03''s observations of checkpoint arrivals and act records on the external
+    channel, which this slice records (REQ-002, REQ-003); this slice does not define the external-channel
+    receiving.
+
+
+    Notes: FACT: added by SCA-V4-002 revision of CLM-002 (SOW_REVISIONS F-0203-01). The clause sits in
+    the sentence "This slice consumes, and does not define: ..."; the CLM-002 ownership clause for DEL-03-03
+    (external-channel receiving and governance-phase carriage assurance) alone remains a non-edge. Current-phase
+    recording input; carriage assurance is governance phase and not extracted. RequiredMaturity=INITIALIZED
+    is local contract maturity only; receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-01-04
+  condition: 'Consume DEL-01-04''s App act control (person identity as APP-V4-DESIGN-PASS-2-20260930-DECISION-K1
+    K1-4 sets it) for the App-side positive capture fixtures (OUT-003, VER-003), which await that later
+    undertaking; this slice does not construct the control.
+
+
+    Notes: FACT: added by SCA-V4-002 revision of CLM-002 (SOW_REVISIONS F-0203-01). The clause sits in
+    the sentence "This slice consumes, and does not define: ...". Narrow input: only the App-side positive
+    capture fixtures (OUT-003, VER-003) wait for it; definition work and the negative/absent-act cases
+    proceed. DEL-01-04 is a later undertaking (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D1) per CLM-002;
+    the CLM-002/REQ-006 ownership clauses for its construction alone remain non-edges. RequiredMaturity=INITIALIZED
+    is local contract maturity only; the constructed control must actually be received before those fixtures
+    run. UPDATE 20261003 (SCA-V4-003 DX): R2-02-03-j: Statement and quote refreshed ("App act control
+    and person identity" → "App act control (person identity as K1-4 sets it)"); the prior quote no longer
+    occurs. DEL-01-04 now mirrors this row (its REQ-008 names DEL-02-03 as user). Identity, direction,
+    type, target, maturity and closure unchanged; existing held arc.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Consume DEL-01-02''s custody events (observation lost and recovered, App-restart interruption)
+    and its run-reference tag and look-up, so that a run interrupted by a Codex stop or an App relaunch
+    is recovered as the same run and its checkpoint history is preserved (REQ-002); this slice does not
+    define them.
+
+
+    Notes: FACT: new consumer row (ledger NR-01; D1 NR-D1-1; R22-4; grounded by P1-01). The clause sits
+    in the sentence "This slice consumes, and does not define: …". New admitted arc DEL-02-03 → DEL-01-02:
+    DEL-01-02 reaches only DEL-01-01, DEL-01-05 and DEL-04-01, none in SCC-002, so the admitted layer
+    stays acyclic (ARC_EFFECT §2); R17-10 holds (DEL-01-02 is the supplier). DEL-01-02 declares the supply
+    in its own revised CLM-001 (mirror extracted there). INITIALIZED is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Consume DEL-04-02''s grant display states (including set by person, not yet confirmed; unconfirmed;
+    refused) for recording A12 checkpoints (REQ-002, REQ-003); this slice does not define them.
+
+
+    Notes: FACT: consumer-side row added by SCA-V4-003 (SC2-02-03-3); mirror of DEP-04-02-023 on an existing
+    held arc (ledger R2-02-03-a); no topology change. INITIALIZED is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-02-03 receives this supplier boundary: observed supplier facts, as capability
+    information for App-side execution compatibility; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-09); supplier-side mirror of the
+    consumer row DEP-02-03-023 on an existing arc (ledger R-11-1); no topology change. The sentence states
+    that each receiver declares it upstream in its own register and that none of their acts is transferred
+    here. INITIALIZED is the local contract-maturity default only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Serve App v4 DEL-02-03 with run tags and custody events from this slice''s main-process
+    custody; DEL-02-03 declares the consumption upstream.
+
+
+    Notes: FACT: supplier-side mirror of the new admitted arc DEL-02-03 → DEL-01-02 (NR-01), whose consumer
+    row is extracted from DEL-02-03''s revised ScopeOfWork in this run; the sentence states that each
+    receiver declares it upstream in its own register. Ledger R3-01-02-e. This deliverable consumes nothing
+    from DEL-02-03 (R17-10 guard: DEL-01-02 is a supplier only). INITIALIZED is the local contract-maturity
+    default only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-01-04
+  condition: 'Supply the App act control to App DEL-02-03 for its App-side positive capture fixtures;
+    DEL-02-03 declares the use upstream.
+
+
+    Notes: FACT: supplier-side mirror of the consumer row DEP-02-03-027 (X-1) on an existing held arc
+    (ledger R2-01-04-a, F0 M-7); no topology change. The DEL-02-02 part of the same sentence is already
+    mirrored by DEP-01-04-010 (refreshed in this run), so no second DEL-02-02 row. REQ-008 names DEL-04-01
+    and DEL-04-03 only as suppliers ("takes its act wording and kinds from"; "writes its records through
+    the writer of"): no DOWNSTREAM row to either (G-0104-09 guard). INITIALIZED is local contract maturity
+    only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-02-03 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-02-03-009 on an existing held arc (ledger R2-02-01-a..f); no topology change.
+    The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity only;
+    no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-02-02
+  condition: 'Supply App v4 DEL-02-03 with the run-start text (and the App-written run-end line) with
+    its content identity and supply-check record for each run DEL-02-03 starts, and with this workspace''s
+    draft, registration and selection contract; DEL-02-03 declares them upstream.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC3-02-02-12); supplier-side mirror
+    of the consumer row DEP-02-03-010 on an existing held arc (ledger R3-02-02-b); no topology change.
+    The second clause of the same sentence also names DEL-02-03 as receiver of the draft, registration
+    and selection contract. INITIALIZED is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'App v4 DEL-02-03 receives this catalog/read-basis contract (capability semantics for required-tool
+    checks) and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-06); supplier-side mirror of the
+    consumer row DEP-02-03-011 on an existing held arc (ledger R-01-1); no topology change. The sentence
+    closes "each of which declares it upstream in its own register". INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'App v4 DEL-02-03 receives this contract''s proposal, validation and outcome meanings (item
+    dispositions and content identities for checkpoint subjects) and declares them upstream in its own
+    register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-07); supplier-side mirror of the
+    consumer row DEP-02-03-025 on an existing held (N-21) arc (ledger R-02-2); no topology change. INITIALIZED
+    is local contract maturity only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies operation-policy and human-act meaning to DEL-02-03 for its named consuming
+    responsibility; actual policy content and applicable adopted decisions must be provided.
+
+
+    Notes: FACT: CLM-002 explicitly identifies this consumer and positively supplies its policy meaning;
+    ownership list alone was not used. INITIALIZED is only the local contract threshold, not actual policy
+    handoff or receiving implementation. Satisfaction unassessed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Supply DEL-04-02 visible autonomy state to App DEL-02-03, which the source names as a receiver.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) names this receiver of the visible autonomy state.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; actual contribution receipt/fulfilment
+    is unclaimed. SatisfactionStatus PENDING follows this register''s convention for unfulfilled execution
+    inputs. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code/bold markers
+    included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-02-03,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-02-03-013 on an existing held arc (ledger R2-04-03-a..d);
+    no topology change. Typed INTERFACE for consistency with DEP-04-03-029..032; the package rows DEP-04-03-011/-012
+    stay, as the ledger allows. RequiredMaturity=INITIALIZED is the local contract threshold only; actual
+    receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/hosting_request_event_join.rs
+- app/src-tauri/src/native_requests.rs
+- app/src-tauri/src/recorder.rs
+- app/src-tauri/src/role_lifecycle.rs
+- app/src-tauri/src/role_supply.rs
+- app/src-tauri/src/runtime_session.rs
+checks:
+- app/src-tauri/src/compatibility_report_tests.rs
+- app/tests/validate-records.test.mjs
+- execution/PKG-02/DEL-02-03/Design/checkpoint-record-entries.schema.json
+- execution/PKG-02/DEL-02-03/Design/prototype/checkpoint_recorder.py
+- execution/PKG-02/DEL-02-03/Design/prototype/required_tool_check.py

@@ -1,0 +1,62 @@
+id: DEL-01-02
+name: Durable execution and request recovery
+needs:
+- from: DEL-01-01
+  condition: 'Consume the supplied stock-Codex process/protocol boundary and selected-version types from
+    App-v4 DEL-01-01 for execution/recovery implementation; resolve applicable allocation and supplier/version/environment
+    inputs at their points of need.
+
+
+    Notes: FACT: The technical input is the supplied boundary and selected-version types, not mere existence
+    of the supplier contract. OI-008 allocation, OI-012 supplier pin and DEP-005 inputs remain open as
+    stated. Stock/direct hosting and optional legacy reuse are preserved; no wire fields or Runtime service
+    are selected. INITIALIZED is the approved local-contract maturity threshold only; actual artifact/input/transfer
+    availability and fulfilment remain unclaimed. No lifecycle or readiness advancement. UPDATE 20261003
+    (SCA-V4-003 DX): R3-01-02-d: revised TBD-001 (G-0102-17) records that APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D4 selected Codex 0.158.0 as the definition and generation pin, not a qualification; the pin used
+    for qualification remains open with the App implementation owner (also the Owner, DECISION-L L-7),
+    and OI-008''s main-process division is proposed as HOSTING §12 option O-1, not selected. Identity,
+    direction, type, target, quote, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the applicable adopted operation policy carried by App-v4 DEL-04-01: for this scope
+    the reserved acts (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2) and the person''s own tool-permission
+    and sandbox modes (D3); beyond this scope OI-001/OI-002 stay open with the owner and App/SWB contract
+    owners at the operation-policy/permission-implementation point of need. Independent recovery definition
+    can proceed.
+
+
+    Notes: FACT: The actual condition is an applicable adopted policy at the affected point of need; no
+    always-reserved list or classifier mode is selected and no blanket project hold or future-human-act
+    prerequisite is created. INITIALIZED is the approved local-contract maturity threshold only; actual
+    artifact/input/transfer availability and fulfilment remain unclaimed. No lifecycle or readiness advancement.
+    UPDATE 20261003 (SCA-V4-003 DX): R3-01-02-c: TBD-003 and CLM-004 now record D2/D3 as applying for
+    this scope, carried by DEL-04-01 (ACT §10.1 V-21), with OI-001/OI-002 open beyond it; Statement refreshed.
+    The quoted sentence is unchanged and verbatim. Identity, direction, type, target, maturity and closure
+    unchanged; DEL-04-01 gains no supplier (this row is DEL-01-02 consuming).
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-01-02 consumes this deliverable''s stock supplier boundary for its own named
+    production responsibility; the receiving act remains with that owner.
+
+
+    Notes: FACT: Positive receiving statement, not an edge inferred from the exclusion inventory. INITIALIZED
+    is the local contract-maturity default only; actual supplier-boundary artifacts and any candidate
+    qualification/receiving evidence remain required and unclaimed. Receiving production ownership is
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+checks:
+- execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
+- execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py

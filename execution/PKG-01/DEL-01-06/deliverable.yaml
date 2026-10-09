@@ -1,0 +1,124 @@
+id: DEL-01-06
+name: macOS packaging and distribution evidence
+needs:
+- from: DEL-01-01
+  condition: 'Packaging consumes the identified stock Codex binary and App hosting basis actually supplied
+    by App DEL-01-01.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; the identified binary and hosting input
+    must actually be supplied. Receipt, selected pin and qualification are not established here.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: external:chirality-app-v4:OI-011
+  condition: 'Receive the OI-011 owners’ definition of signing, notarisation and required Codex entitlements
+    for the selected App/Codex candidate before the packaged distribution witness.
+
+
+    Notes: FACT: OI-011 remains OPEN; required definition/receiving work is IN. Technical means, allocation
+    and code-mode applicability remain unresolved. Authoring or recording the contract is not the owners’
+    decision; no blanket start gate.
+
+
+    Target description — TargetName: App implementation owner with SWB owner — signing, notarisation and
+    required Codex entitlements; TargetRefID: chirality-app-v4:OI-011; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-011'
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-005
+  condition: 'Production uses applicable selected Codex/Tauri packaging interfaces, with actual version
+    and environment to be defined before respective implementation/qualification witnesses.
+
+
+    Notes: FACT: DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE. Only selected Codex/Tauri packaging
+    interfaces are in this row; no provider version, current capability or sibling implementation inferred.
+
+
+    Target description — TargetName: Selected stock Codex and Tauri supplier packaging interfaces; TargetRefID:
+    chirality-app-v4:DEP-005; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005'
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-004
+  condition: 'Obtain and retain the actual written supplier position through the owner before public release
+    beyond owner use; future Anthropic/Claude terms apply only if that sign-in need arises.
+
+
+    Notes: FACT: OI-007 OPEN; DEP-004 UNCONFIRMED. Relevant supplier supplies the position; owner obtains
+    it; recorder retains source, custody and applicability. Missing terms constrain public distribution
+    only, not owner use or independent development. No legal conclusion or response receipt claimed.
+
+
+    Target description — TargetName: OpenAI and conditional future Anthropic — written distributed-sign-in
+    terms response obtained by owner; TargetRefID: chirality-app-v4:DEP-004; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-004'
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: external:SWBPIPE
+  condition: 'Useful reusable packaging knowledge may be received from external SWBPIPE through its actual
+    human-relayed coordination route.
+
+
+    Notes: FACT: Optional knowledge input, never an external host completion or qualification prerequisite.
+    External source location and actual receipt remain TBD. Human relay is distinct from delivery or adoption;
+    neither project’s package evidence qualifies the other.
+
+
+    Target description — TargetName: External SWBPIPE packaging knowledge via human-relayed coordination;
+    TargetRefID: SWBPIPE'
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-01-06 consumes this deliverable''s stock supplier boundary for its own named
+    production responsibility; the receiving act remains with that owner.
+
+
+    Notes: FACT: Positive receiving statement, not an edge inferred from the exclusion inventory. INITIALIZED
+    is the local contract-maturity default only; actual supplier-boundary artifacts and any candidate
+    qualification/receiving evidence remain required and unclaimed. Receiving production ownership is
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: package:PKG-09
+  condition: 'Supply the packaged App candidate and its local install/launch evidence to App PKG-09 for
+    joined examination.
+
+
+    Notes: FACT: Package-level consumer only: no specific PKG-09 Deliverable invented. Native local witness
+    remains required; this handoff does not establish joined examination, shipping or public release.
+
+
+    Target description — TargetName: Candidate examination and connected journeys; TargetRefID: PKG-09;
+    TargetLocation: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-004
+  condition: 'The owner public distribution decision consumes the written supplier position retained with
+    source, actual custody and applicability.
+
+
+    Notes: FACT: Records the explicit consumer of the terms contribution, not a prerequisite between human
+    acts. The owner decision remains separate and unclaimed; receiving or recording a response does not
+    itself release or approve distribution.
+
+
+    Target description — TargetName: Owner public distribution decision — consumer of written supplier
+    position; TargetRefID: chirality-app-v4:DEP-004; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-004'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'Supply reusable examination support and evidence interfaces to the named owner of DEL-01-06
+    for its own scoped work.
+
+
+    Notes: FACT: Positive handoff statement in REQ-008 applies to its explicitly named owners; ownership/exclusion
+    text alone is not the evidence. This does not perform or qualify the receiving owner''s act. INITIALIZED
+    means receiving contract maturity only; actual support handoff and contributions are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+checks:
+- execution/PKG-01/DEL-01-06/Design/prototype/check_pkg.py

@@ -30,7 +30,7 @@ class SQReceivingTests(unittest.TestCase):
     def setUpClass(cls):
         cls.consumer = reader.Receiver()
         cls.support = canonical.CanonicalSupport()
-        schema = next((APP.parent / 'execution').glob('PKG-09*/1_Working/DEL-09-01*/Design/exam.result-record.schema.json'))
+        schema = next((APP.parent / 'execution').glob('PKG-09/DEL-09-01/Design/exam.result-record.schema.json'))
         cls.result_validator = Draft202012Validator(json.loads(schema.read_bytes()))
 
     def setUp(self):

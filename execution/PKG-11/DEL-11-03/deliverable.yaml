@@ -1,0 +1,183 @@
+id: DEL-11-03
+name: Owner replacement evidence packet
+needs:
+- from: DEL-09-02
+  condition: 'Consume the actual candidate-specific App qualification dossier to produce the v3.0.1 core-loop
+    comparison and applicable V4-EXM-10/11 observations.
+
+
+    Notes: FACT: source-stated relationship. INITIALIZED is the local contract threshold only; actual
+    input/handoff condition remains unfulfilled by setup. Preserve candidate/configuration/date, each
+    required behavior, outcome standing and evidence limits; qualification production stays with its owner.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: DEL-09-07
+  condition: 'Consume the actual joined local host dossier for one live local-model SWBPIPE request-to-human-acceptance
+    journey, preserving original basis, configuration, outcomes and receipts.
+
+
+    Notes: FACT: source-stated relationship. INITIALIZED is the local contract threshold only; actual
+    input/handoff condition remains unfulfilled by setup. The actual connected witness remains required;
+    OI-021/DEP-001 outside SWB/App inputs retain their point of need under TBD-002. No external delivery,
+    human acceptance, provider readiness or wider fleet qualification inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: DEL-11-01
+  condition: 'Consume the current App continuity account and continuing obligations in the exact owner
+    replacement decision package.
+
+
+    Notes: FACT: source-stated relationship. INITIALIZED is the local contract threshold only; actual
+    input/handoff condition remains unfulfilled by setup. Replacement, consumer adoption, retirement,
+    release and professional reliance remain separate acts; no automatic retirement.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: DEL-09-12
+  condition: 'Consume the actual practitioner validation account and its standing, retaining absent or
+    unagreed validation, limitations and relevant observations.
+
+
+    Notes: FACT: source-stated relationship. INITIALIZED is the local contract threshold only; actual
+    input/handoff condition remains unfulfilled by setup. Owner chooses activities and period under OI-016;
+    no invented duration, score, favorable outcome or third replacement gate.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: unknown
+  condition: 'Use the named v3.0.1 reference to compare the identified candidate across the required core-loop
+    elements.
+
+
+    Notes: FACT: source-stated relationship. The source requires the baseline/reference but does not resolve
+    its artifact type or exact locator. TargetType UNKNOWN and TargetLocation TBD preserve that gap; no
+    baseline version beyond v3.0.1 invented.
+
+
+    Target description — TargetName: Named v3.0.1 core-loop baseline/reference'
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: doc:execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv
+  condition: 'Compare packet continuity and unresolved-input statements with the accepted open-issue rows,
+    retaining OI-001/016/021/024 owners and actual points of need.
+
+
+    Notes: FACT: source-stated relationship. Document locator resolved from this ScopeOfWork source table
+    and local references only; target contents not read or asserted current. Accepted and current editions
+    remain distinct; no blanket project hold.
+
+
+    Target description — TargetName: Accepted App v4 open-issue rows; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv'
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: doc:execution/_Decomposition/Open_Issues.csv
+  condition: 'Compare packet continuity and unresolved-input statements with the current open-issue rows,
+    retaining OI-001/016/021/024 owners and actual points of need.
+
+
+    Notes: FACT: source-stated relationship. Document locator resolved from this ScopeOfWork source table
+    and local references only; target contents not read or asserted current. Accepted and current editions
+    remain distinct; no blanket project hold.
+
+
+    Target description — TargetName: Current App v4 open-issue rows; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv'
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: external:Owner — App v4 fallback replacement decision-maker
+  condition: 'Receive an attributable actual owner response tied to the exact presented candidate/evidence
+    subject before recording an actual disposition; otherwise preserve pending standing and the fallback.
+
+
+    Notes: FACT: source-stated relationship. Point of need is faithful recording of the actual decision,
+    not preparation of the packet. Actor, subject, response, source/custody and act-versus-recording time
+    remain distinct. Negative/deferred responses remain valid; no favorable result required.
+
+
+    Target description — TargetName: Owner — App v4 fallback replacement decision-maker'
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: DEL-09-02
+  condition: 'Supply the single identified standalone candidate qualification dossier, named scenario
+    outcomes, evidence and remaining limits to DEL-11-03 for its replacement-evidence packet.
+
+
+    Notes: FACT: Partial, blocked, failed, not-run and inconclusive standing must remain explicit; no
+    standalone pass establishes connected-host qualification, owner replacement, release, retirement or
+    professional reliance. No dossier receipt or completion claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
+- from: DEL-09-07
+  condition: 'Supply the local-host qualification dossier and linked candidate-specific evidence, including
+    completed live-witness standing, gaps and limitations, to the owner replacement evidence packet.
+
+
+    Notes: FACT: INITIALIZED is only the receiving local contract threshold. Actual dossier production/examination
+    and required live local-model witness remain unclaimed. Handoff does not establish standalone App
+    qualification, replacement, adoption, release or professional reliance; the owner decides replacement.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: DEL-11-01
+  condition: 'DEL-11-01 supplies continuity obligations and the continuing-obligation disposition account
+    to the separately owned DEL-11-03 replacement evidence package.
+
+
+    Notes: FACT: This is an evidence handoff, not performance of candidate qualification or the owner
+    replacement decision; replacement does not establish retirement or professional reliance. RequiredMaturity=INITIALIZED
+    is only local contract maturity; actual artifact receipt or handoff and reliance remain unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
+- from: DEL-11-02
+  condition: 'Supply truthful adoption status from the received change/verification account to DEL-11-03
+    for its continuity or replacement-evidence contribution.
+
+
+    Notes: FACT: CLM-004 identifies replacement-evidence preparation as DEL-11-03. This is an output handoff
+    only; no receipt, acceptance, replacement or retirement decision is inferred. INITIALIZED describes
+    the local receiving contract only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
+- from: external:Owner — App v4 fallback replacement decision-maker
+  condition: 'Present both distinct obligation accounts with actual standing, exact proposed replacement
+    scope/candidate, supplied evidence and continuing obligations to the owner.
+
+
+    Notes: FACT: source-stated relationship. Decision package handoff does not perform or establish the
+    owner decision. No actual response or favorable disposition claimed.
+
+
+    Target description — TargetName: Owner — App v4 fallback replacement decision-maker'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: external:Affected consumers — App v4 replacement continuity recipients
+  condition: 'Return the recorded owner disposition and continuing obligations to affected consumers,
+    preserving each later receiving adoption or retirement decision.
+
+
+    Notes: FACT: source-stated relationship. Affected consumers are not individually identified by the
+    source. OI-024/DEP-006 receiving adoption and obligation disposition remain at each consumer transition;
+    no same-numbered App target, all-project adoption, retirement or release inferred.
+
+
+    Target description — TargetName: Affected consumers — App v4 replacement continuity recipients'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md

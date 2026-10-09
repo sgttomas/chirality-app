@@ -1,0 +1,277 @@
+id: DEL-04-02
+name: Visible autonomy and result standing
+needs:
+- from: DEL-04-01
+  condition: 'Consume the identified adopted operation/autonomy policy from App DEL-04-01 for receiving
+    components, contract and fixtures; the checked definition alone supplies no concrete policy decision
+    or implemented product.
+
+
+    Notes: FACT: CLM-002 identifies DEL-04-01 as the policy provider; REQ-006 requires identified adopted
+    inputs. OI-001/OI-002 decisions remain with their actual owners at their distinct points of need.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; actual contribution receipt/fulfilment
+    is unclaimed. UPDATE 20260929 (SCA-V4-002 DX): CLM-004 (SOW_REVISIONS F-0402-01) now records that
+    the owner ruled OI-001/OI-002 for the first increment''s App/shared contracts (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2/D3; TBD-001, TBD-002) and that the Owner with App/SWB contract owners decides only the matters
+    those rulings do not cover, with operation-specific additions under OI-021 (DEP-04-02-024). The earlier
+    note "OI-001/OI-002 decisions remain with their actual owners" is historical. Identity, direction,
+    type, target, quote, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Receive the App DEL-04-03 run-record contribution, including recorded settings, attributable
+    human-act evidence and changed-content lapse, for comparison and evidence-bounded display.
+
+
+    Notes: FACT: The source identifies the record owner as App DEL-04-03. Human decision actor remains
+    distinct from a recorder; this input creates no required sequence between human acts. RequiredMaturity=INITIALIZED
+    is the local contract threshold only; actual contribution receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:App-v4:DEP-001:SWBPIPE
+  condition: 'Receive the corresponding real-host control/origin/undo, receipt and candidate evidence
+    from the external host owner before corresponding connected-journey integration/examination and fallback-replacement
+    decision; preserve missing evidence without blocking independent App definition.
+
+
+    Notes: FACT: TBD-005 qualifies SWBPIPE as the outside implementation session; present satisfaction
+    is OWNER_REPORTED_BUILDING_BEFORE_AGENT_ACTION_INTEGRATION, not delivered/adopted capability. Local
+    fixtures establish only their observed cases; actual host claims require supplied host evidence. External
+    identity is not an App Deliverable.
+
+
+    Target description — TargetName: SWBPIPE outside implementation session — required host evidence and
+    receiving contribution; TargetRefID: App-v4:DEP-001:SWBPIPE; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-001'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:App-v4:OI-001
+  condition: 'Use the owner''s OI-001 ruling for the first increment (DECISION-1 D2) as the identified
+    adopted reserved-act input; the host names and enforces its own list; App DEL-04-01 carries adopted
+    policy and is not the decision actor.
+
+
+    Notes: FACT: refreshed in place (same target) after SCA-V4-001 revised TBD-001 from OPEN to ruled
+    for the first increment; the prior quote no longer appears. Operation-specific additions are the separate
+    OI-021 row. Current Open_Issues.csv OI-001 still reads OPEN (updated through its own route). SatisfactionStatus
+    unchanged (not assessed by extraction). UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly,
+    inline-code/bold markers included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Target description — TargetName: Reserved human acts — OI-001 ruled for first-increment App/shared
+    contracts (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2); TargetRefID: App-v4:OI-001; TargetLocation:
+    projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md#APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:App-v4:OI-002
+  condition: 'Use the owner''s OI-002 ruling (DECISION-1 D3) as the identified adopted input: routine
+    tool-permission and sandbox modes remain the user''s Codex setting and never stand in for a reserved
+    or professional act; hosts have no classifier permission mode in the first increment.
+
+
+    Notes: FACT: refreshed in place (same target) after SCA-V4-001 revised TBD-002 to ruled with no open
+    part for the first increment; the prior quote no longer appears. Current Open_Issues.csv OI-002 still
+    reads OPEN (own route). SatisfactionStatus unchanged (not assessed by extraction). UPDATE 20260929
+    (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code/bold markers included (ASC-ISS-008;
+    V12 F1); no other field changed.
+
+
+    Target description — TargetName: Classifier routine permissions — OI-002 ruled (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D3); TargetRefID: App-v4:OI-002; TargetLocation: projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md#APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D3'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:App-v4:OI-013
+  condition: 'Shared contract owner with SWB implementation owner must resolve OI-013 at its stated point
+    of need: Before shared/host implementation boundary contracts. Agree host-specific construction and
+    any reusable common contribution, then choose loop placement, parsing, persistence and panel assembly
+    without transferring SWB ownership.
+
+
+    Notes: FACT: OPEN choice retained at its exact owner/point of need; not a blanket project hold and
+    not evidence of a performed decision. Policy/record/component ownership does not transfer this choice.
+    Independent definition remains possible.
+
+
+    Target description — TargetName: Per-host loop placement and persistence — Shared contract owner with
+    SWB implementation owner; TargetRefID: App-v4:OI-013; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-013'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:App-v4:OI-014
+  condition: 'App/shared contract owners must resolve OI-014 at its stated point of need: Before structural/production
+    contract allocation. Place shared contracts/components against actual consumer responsibilities and
+    agree ownership before common implementation without presuming a common service.
+
+
+    Notes: FACT: OPEN choice retained at its exact owner/point of need; not a blanket project hold and
+    not evidence of a performed decision. Policy/record/component ownership does not transfer this choice.
+    Independent definition remains possible.
+
+
+    Target description — TargetName: Shared contract/component placement — App/shared contract owners;
+    TargetRefID: App-v4:OI-014; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-014'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Consume App DEL-03-02 proposal/outcome and direct-application origin semantics for the receiving
+    components, contract and fixtures.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) states the consumption explicitly. RequiredMaturity=INITIALIZED
+    is the local contract threshold only; actual contribution receipt/fulfilment is unclaimed. SatisfactionStatus
+    PENDING follows this register''s convention for unfulfilled execution inputs. UPDATE 20260929 (SCA-V4-002
+    DX): EvidenceQuote re-quoted exactly, inline-code/bold markers included (ASC-ISS-008; V12 F1); no
+    other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'Consume App DEL-03-01 read-basis and standing facets for evidence-bounded result-standing
+    display.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) states the consumption explicitly. RequiredMaturity=INITIALIZED
+    is the local contract threshold only; actual contribution receipt/fulfilment is unclaimed. SatisfactionStatus
+    PENDING follows this register''s convention for unfulfilled execution inputs. UPDATE 20260929 (SCA-V4-002
+    DX): EvidenceQuote re-quoted exactly, inline-code/bold markers included (ASC-ISS-008; V12 F1); no
+    other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'Consume App DEL-02-03 checkpoint recording annotations for the current-phase receiving display;
+    the hold-support values are retained for the governance phase (TBD-006) and are not a current-phase
+    display input.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) states the consumption explicitly; the parenthetical
+    and TBD-006 limit the current phase to recording annotations. RequiredMaturity=INITIALIZED is the
+    local contract threshold only; actual contribution receipt/fulfilment is unclaimed. SatisfactionStatus
+    PENDING follows this register''s convention for unfulfilled execution inputs. UPDATE 20260929 (SCA-V4-002
+    DX): EvidenceQuote re-quoted exactly, inline-code/bold markers included (ASC-ISS-008; V12 F1); no
+    other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-05-01
+  condition: 'Consume from App DEL-05-01 a host agent''s network-destination allow list, in-work destination
+    grants and contacted-destination record, which APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5 requires
+    to be shown.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001, applying DECISION-5) states the consumption explicitly.
+    Distinct from the opposite-direction visible-autonomy handover to DEL-05-01. RequiredMaturity=INITIALIZED
+    is the local contract threshold only; actual contribution receipt/fulfilment is unclaimed. SatisfactionStatus
+    PENDING follows this register''s convention for unfulfilled execution inputs. UPDATE 20260929 (SCA-V4-002
+    DX): EvidenceQuote re-quoted exactly, inline-code/bold markers included (ASC-ISS-008; V12 F1); no
+    other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:App-v4:OI-021
+  condition: 'Operation-specific reserved-act additions remain open under OI-021 before the connected-activity
+    SoW; receiving components, contract and fixtures carry no guessed value for them (REQ-006).
+
+
+    Notes: FACT: open decision with owner and point of need (TBD-001, revised under SCA-V4-001); split
+    from the prior OI-001 open constraint. Not a blanket project hold; independent definition remains
+    possible.
+
+
+    Target description — TargetName: Operation-specific reserved-act additions — owner via the outside
+    SWB session and App/shared owner (OI-021); TargetRefID: App-v4:OI-021; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-021'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: external:APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+  condition: 'Hold-support display and App-side run holds belong to the later governance layer; the owner
+    takes it up when a workflow needs enforced checkpoints, before hold-display fixtures run. In the current
+    phase the display shows checkpoint arrivals and acts as observation only.
+
+
+    Notes: FACT: TBD-006 states the owner and an exact point of need for this deliverable (hold-display
+    fixtures). Non-topological EXTERNAL target. No hold, hold-support value or governance-phase adoption
+    is inferred. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code/bold markers
+    included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Target description — TargetName: Owner — enforced-checkpoint governance layer (hold-support display
+    and App-side run holds; DECISION-2 D6 closed for the current phase); TargetRefID: APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4;
+    TargetLocation: projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md#APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+    D4-1'
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'App v4 DEL-04-02 receives this slice''s report, recording meanings and transfer contract
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-03-6); supplier-side mirror
+    of the consumer row DEP-04-02-017 on an existing held arc (ledger R2-02-03-b..i); no topology change.
+    The receivers sentence spans two quoted fragments ("…received by `DEL-02-01`, … `DEL-05-02`," / "`DEL-09-02`,
+    … each of which declares it upstream in its own register."). INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'App v4 DEL-04-02 receives this catalog/read-basis contract (read-basis and standing facets)
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-06); supplier-side mirror of the
+    consumer row DEP-04-02-016 on an existing held arc (ledger R-01-1); no topology change. The sentence
+    closes "each of which declares it upstream in its own register". INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Supply standing and direct-autonomy origin semantics to DEL-04-02.
+
+
+    Notes: FACT; Host origin/undo controls stay external; consumer implementation is unclaimed. INITIALIZED
+    denotes checked local contract maturity only; actual technical inputs and adopted distinctions must
+    be present when relied upon. No fulfilment or adoption inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies operation-policy and human-act meaning to DEL-04-02 for its named consuming
+    responsibility; actual policy content and applicable adopted decisions must be provided.
+
+
+    Notes: FACT: CLM-002 explicitly identifies this consumer and positively supplies its policy meaning;
+    ownership list alone was not used. INITIALIZED is only the local contract threshold, not actual policy
+    handoff or receiving implementation. Satisfaction unassessed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies run evidence to App DEL-04-02 for standing/autonomy display.
+
+
+    Notes: FACT; RequiredMaturity=INITIALIZED is the approved local-contract threshold only; the named
+    handoff still requires actual run evidence with its observed standing. UI construction and received
+    evidence remain separate responsibilities. Fulfilment is not established by this extraction.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+checks:
+- execution/PKG-04/DEL-04-02/Design/prototype/validate_settings_in.py

@@ -11,7 +11,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'b3fbb66efaf32e6c4200b5b0d023afc333d0a958cd394742bba1db2eb2414277'
+PINS_SHA256 = '828dd8c40a93d01606df58ebc4228c9fb80248e79025f72226c9a673813662e5'
 FORMAT = 'group-b-s1-terminal-reader-exchange.v1'
 ADOPTION = 'B-S4-STOP-ADMISSION-TERMINAL-v1'
 LIMITS = [
@@ -32,7 +32,7 @@ def load(name, path, raw=None):
 
 
 # Verify the captured helper bytes before executing their definitions.
-HELPER_SHA256 = '3af5b2e4547381e7473a38d5e0d49d17c5d6d7a5b687c9ff66d7a4b2389e2b7e'
+HELPER_SHA256 = '6825032e6d30a1464e08189aa05ba6930346eca41df59e734ee4535195022d50'
 helper_raw = (HERE / 'receive.py').read_bytes()
 if hashlib.sha256(helper_raw).hexdigest() != HELPER_SHA256:
     raise ValueError('frozen predecessor engine changed')

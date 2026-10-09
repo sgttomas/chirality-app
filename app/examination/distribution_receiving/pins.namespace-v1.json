@@ -43,7 +43,7 @@
       },
       "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
       "origin": {
-        "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+        "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
         "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
       }
     },
@@ -54,8 +54,8 @@
   "unsupported_envelopes": "Only actual LT-09 is published; pre-spawn/restart/other legacy envelopes unavailable",
   "transport_limit": "Creation correspondence only; no future integrity, issuer, qualification or live custody assertion",
   "sources": {
-    "app/examination/support_identity/canonical-pins.v1.json": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4",
-    "app/examination/support_identity/canonical.py": "320728cdebdd87cadeac4621ce100807fbe228bff1787f04ca625b4a2873cb20",
+    "app/examination/support_identity/canonical-pins.v1.json": "29543c5ef6a3efd9b0cd063359c52f4b08ad6e867add2ac76c10684d8eae0c37",
+    "app/examination/support_identity/canonical.py": "e41d321842e8a059161ddd0539a78dfc8b840b82a8f4c284c98d9008d74f9dda",
     "app/src-tauri/resources/distribution-successor/DISTRIBUTION_EVIDENCE_TRANSPORT.md": "133daddf0f7c15369479e42e8b3efa5aae73d6e8a03d7f74bf55f63035d1ec3b",
     "app/src-tauri/resources/distribution-successor/LIFECYCLE_LABEL_JOIN.md": "f7d9dd292aaa3a3144c052f5b8f994783f8cfea61a34d8c062dd49071776944e",
     "app/src-tauri/resources/distribution-successor/NAMESPACE_ADMISSION.md": "73616d72bbd4c43ad021205fa9eaf396e921f7258025398ae8c20dbddfdf8f26",
@@ -90,7 +90,7 @@
     "app/src-tauri/src/runtime_session.rs": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97"
   },
   "adoption": "B-S4-NAMESPACE-ADOPTION-v1",
-  "predecessor_pins_sha256": "649590877b2a6935c26620eafd2d81707b270efe03899a39dfa2390d5acc4280",
+  "predecessor_pins_sha256": "526c214262ed9fb860888b5b031bd6cc972598ca36b4740530892b89d3d614b8",
   "reader_changes": {
     "closureReaderSha256": {
       "previous": "914c7619118e12308dca70b201941383b76e75c08dd5799b3a3b5c44696d02f5",

@@ -1,0 +1,90 @@
+id: DEL-08-01
+name: Domains query, admission and freshness contract
+needs:
+- from: DEL-05-01
+  condition: 'Use DEL-05-01 App/shared embedded-integration receiving requirements and demonstrate query/tool
+    compatibility with the host-agent destination constraint (PRD V4-HOST-02 as revised by APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5:
+    data only to the model service the person selected and to destinations the person has allowed) at
+    the actual point of need before reliance.
+
+
+    Notes: FACT: Required input is the receiving requirements and applicable compatibility evidence. External
+    host construction/enforcement is not imported as this contract''s implementation responsibility; no
+    remote transport or privacy conflict is presumed. INITIALIZED is local checked-contract maturity only;
+    actual technical input/transfer remains separately required and fulfilment is unclaimed. | 2026-09-29
+    DX-3 UPDATE (APP-V4-BASIS-ALIGN-20260928): FACT: Statement refreshed in place for the SCA-V4-001 revision
+    of CLM-003 (edit E-0801-01; local data boundary → host-agent destination constraint). A local/in-process
+    arrangement adds no destination; a remote query service is contacted only as a person-allowed destination.
+    Quote, type, target, RequiredMaturity and SatisfactionStatus unchanged; arc DEL-08-01 -> DEL-05-01
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: DEL-07-02
+  condition: 'Use the common connector limitation/source-file recovery behavior for Domains-specific unavailable,
+    unsuitable and stale-source cases.
+
+
+    Notes: FACT: Required input is the supported recovery/responsibility behavior at local case preparation/exercise.
+    Managers and human retain fallback coordination; PEC availability is independent. INITIALIZED is local
+    checked-contract maturity only; actual technical input/transfer remains separately required and fulfilment
+    is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-003
+  condition: 'Actual Domains query access and source-admission evidence are required before research-context
+    reliance; local receiving definition can continue without them.
+
+
+    Notes: FACT: Supplier remains Domains provider owner/allocation TBD (OI-026). Query access is not
+    established by INITIALIZED status, a successful fixture or external knowledge development. No deployment,
+    transport, data destination or future program allocation is selected.
+
+
+    Target description — TargetName: Domains query access; provider owner/allocation TBD (OI-026); TargetRefID:
+    chirality-app-v4:DEP-003; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-003'
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: unknown
+  condition: 'Candidate fixtures require admitted test sources against identified query meanings, with
+    source references, standing, freshness and limitations; unsupplied input leaves affected cases unexercised.
+
+
+    Notes: FACT: Source identities and admission party are unresolved under OI-023. This is the concrete
+    fixture/source input, distinct from live query access; this contract''s own query definition is not
+    made into a self-edge. Neither PEC presence nor a new standing human gate supplies admission.
+
+
+    Target description — TargetName: Admitted test sources and identified source/admission/freshness basis'
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: external:chirality-app-v4:OI-023
+  condition: 'Receive the actual OI-023 source-admission, query/provenance/freshness, workflow/receiving
+    milestone and compatible deployment/data-boundary resolutions at their points of need before the later
+    Domains-enabled design increment.
+
+
+    Notes: FACT: Each interface/source input is needed before its dependent implementation or reliance;
+    no blanket hold on definition work. Record actual decision subject, actor and evidence separately
+    from the App recording act. No synthetic ordering of independent acts.
+
+
+    Target description — TargetName: Owner with Domains/SWB/App receiving owners — Domains receiving resolution;
+    TargetRefID: chirality-app-v4:OI-023; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-023'
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: external:chirality-app-v4:OI-026
+  condition: 'Receive actual provider-construction allocation and receiving-boundary resolution before
+    allocating Domains provider production and committing integration.
+
+
+    Notes: FACT: Allocation is unresolved, not assigned externally or excluded from future program scope.
+    Knowledge developed outside the repository does not settle deployment or tool ownership. Faithfully
+    recorded actual resolution requires its own actor/evidence; no authority is created by this register.
+
+
+    Target description — TargetName: Owner with App/Domains/SWB definition owners — provider allocation
+    and receiving-boundary resolution; TargetRefID: chirality-app-v4:OI-026; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-026'
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md

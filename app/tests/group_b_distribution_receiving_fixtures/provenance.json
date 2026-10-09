@@ -16,8 +16,8 @@
     "sourceRevision": "f2671306a3e167a5a858b11d04b6b1090771139a"
   },
   "exchange_sha256": {
-    "selected": "6101b24548823effdf6ddca311fae20b657fe5c6f0cd884b80c8e96f6a290fe8",
-    "unselected": "a0e02184fc08c1b06570a8f4be10f9e1dca846cf1c0c60850c91367ed9e31229"
+    "selected": "dba8d97fcc0051b218b78ade60801d16718317c3e1ceec15c3a7bccaf73e011e",
+    "unselected": "b4cfded5ff7850d8db63109261a404973f2f0dc9c791aebedcd7e113aba3bb03"
   },
   "exporter_sources": {
     "app/src-tauri/src/hosting_s4_export.rs": "3114efc75f4c2ca9b3118d82b63d30d25e48455f053bff2c8a75f0ec8c7b1d4c",

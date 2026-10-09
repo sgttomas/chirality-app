@@ -1,0 +1,112 @@
+id: DEL-09-12
+name: Practitioner validation and feedback disposition
+needs:
+- from: external:OI-016
+  condition: 'Obtain and preserve the actual owner agreement on period and selected realistic activities
+    before practitioner validation in use; a proposed arrangement does not supply agreement.
+
+
+    Notes: FACT: source-observed relationship; Point of need: before practitioner validation in use (TBD-001);
+    owner remains the deciding actor. Definition work continues; no agreement or date is supplied by this
+    extraction.
+
+
+    Target description — TargetName: Owner agreement on App and SWBPIPE validation activities and period;
+    TargetRefID: OI-016'
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: unknown
+  condition: 'The selected App validation activity consumes the identified candidate and its named available
+    contributions, retaining candidate/configuration/date and material identity.
+
+
+    Notes: FACT: source-observed relationship; The local source does not identify the particular App candidate-producing
+    Deliverable; resolve only for the selected activity. No blanket all-feature prerequisite or favorable
+    readiness inference. No candidate or availability witness supplied.
+
+
+    Target description — TargetName: Identified App candidate contributions for owner-selected realistic
+    work'
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: external:APP-V4:DEP-001
+  condition: 'The SWBPIPE validation activity consumes actual identified external host contributions and
+    the applicable validation route; retain human-relayed custody and candidate/readiness evidence before
+    corresponding connected-journey examination.
+
+
+    Notes: FACT: source-observed relationship; External SWBPIPE is not an App Deliverable ID. CLM-004
+    resolves ownership; the positive candidate-consumption statement supplies the edge. Prepared handoff,
+    contract initialization and owner-reported building state do not prove delivery, adoption or joined
+    use. No external location or candidate identity is invented. TargetRefID qualifies the App v4 external-dependency
+    register key DEP-001; it is not a local v3.1 dependency-row ID.
+
+
+    Target description — TargetName: External SWBPIPE implementation owner: selected host candidate and
+    validation route; TargetRefID: APP-V4:DEP-001'
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: 'external:Owner practitioner: actual use records and observations'
+  condition: 'Receive source-linked evidence of the owner doing realistic work in both expressions, including
+    candidate/configuration/date, observed conditions and limits, to produce the faithful OUT-002 account.
+
+
+    Notes: FACT: source-observed relationship; Actual owner use is distinct from agreement and from automated
+    or agent-operated verification. Invented material is eligible during real owner use. Missing and unfavorable
+    observations stay visible; no use witness exists in this definition source.
+
+
+    Target description — TargetName: Owner practitioner: actual use records and observations'
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the applicable adopted operation policy for recording the selected acts without
+    deciding unsettled classes or manufacturing human acceptance.
+
+
+    Notes: FACT: source-observed relationship; INITIALIZED is defined-contract maturity only; applicable
+    adopted policy and any OI-001/OI-002 resolution require their own evidence where the selected work
+    depends on them. Owner with App/SWB contract owners retains the policy decisions and their stated
+    points of need. No universal acceptance-before-checking prerequisite.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: external:OI-021
+  condition: 'For a selected connected activity, obtain the useful operation, permitted autonomy and exact
+    candidate environment decision at its stated point of need before connected-activity SoW and execution.
+
+
+    Notes: FACT: source-observed relationship; Conditional interface for selected connected work; not
+    an extra gate on authorized independent definition. This is distinct from OI-016 period/activity agreement
+    and from receipt of actual external host capability. No operation, autonomy or environment value selected.
+
+
+    Target description — TargetName: Owner via outside SWB session and App/shared owner: connected-activity
+    choices; TargetRefID: OI-021'
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'Supply reusable examination support and evidence interfaces to the named owner of DEL-09-12
+    for its own scoped work.
+
+
+    Notes: FACT: Positive handoff statement in REQ-008 applies to its explicitly named owners; ownership/exclusion
+    text alone is not the evidence. This does not perform or qualify the receiving owner''s act. INITIALIZED
+    means receiving contract maturity only; actual support handoff and contributions are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: unknown
+  condition: 'Route each feature-related fitness-for-use observation with its owning requirement/source
+    identity, conditions and proposed treatment to the responsible feature recipient; preserve actual
+    disposition evidence.
+
+
+    Notes: FACT: source-observed relationship; The precise feature Deliverable is observation-specific
+    and unresolved here; no sibling list is converted into edges. Method feedback has the separately resolved
+    DEL-10-02 row. Changes/checks remain with the recipient; routing alone claims no acceptance.
+
+
+    Target description — TargetName: Responsible feature owners for observation-specific requirement feedback'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md

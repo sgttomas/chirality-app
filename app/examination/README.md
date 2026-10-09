@@ -1,5 +1,15 @@
 # Offline examination record support
 
+
+The current source selection is the **flat-deliverable migration successor**
+(2026-10-09 efficiency reset). Its source paths and their dependent byte bindings
+follow the current deliverable folders. Earlier pins and fixture bytes remain in
+Git history. This successor changes source location and corresponding technical
+identities only; it does not establish new publication, qualification, native
+observation, or owner acceptance. The existing consistency checks and negative
+fixtures retain their purpose. Review this source-selection change with the
+migration PR before relying on the successor.
+
 This maintained file tool validates EXP-v0.2 result records and PKG-v0.2 package
 identity records against the unchanged canonical Design schemas and their
 applicable semantic rules. It checks a selected pair against an explicit App

@@ -1,0 +1,191 @@
+id: DEL-09-05
+name: Fleet coordination and longer-work recovery witness
+needs:
+- from: DEL-06-01
+  condition: 'The joined witness consumes actual bounded briefs, current file graph and native-delegation
+    associations, with focused checks and actual ownership/return observations on the identified candidate.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
+    and observed evidence remain unclaimed. CLM-001 explicitly identifies DEL-06-01 among the consumed
+    contributions. Brief existence is not proof of child execution; file-native method bootstrap is not
+    gated by product fleet software.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: DEL-06-02
+  condition: 'The joined witness consumes the supplied return/waiting/decision views and their focused
+    checks to exercise pending review, waiting causes and recoverable file-derived cross-session state
+    on the candidate.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
+    and observed evidence remain unclaimed. CLM-001 explicitly identifies DEL-06-02 among the consumed
+    contributions. Returned, reviewed, integrated and waiting states require separate observations; no
+    blanket method-setup gate is implied.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: DEL-01-03
+  condition: 'The joined witness consumes native descendant identity/activity presentation and focused
+    checks, correlating actual launch/return events and live worker observations rather than inferring
+    execution from a brief.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
+    and observed evidence remain unclaimed. CLM-001 explicitly names App DEL-01-03. REQ-005 and VER-001/003
+    require actual mechanism, parentage, supplied basis, scopes, limits and observed returns on the candidate.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'At the human-act attribution examination, use the actual adopted policy for the affected
+    operation; unresolved reserved-act or permission classes remain with their real owners at their points
+    of need.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
+    and observed evidence remain unclaimed. CLM-002 resolves the adopted-policy contribution to App DEL-04-01.
+    No invented global reserved-act list or acceptance-before-other-act rule; open classes are conditional
+    inputs, not blanket definition barriers.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'The joined witness consumes supplied content-bound decision/run formats and App recording,
+    comparing the bound subject and recorded actor against the actual human decision and retaining separate
+    acts and standing.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
+    and observed evidence remain unclaimed. CLM-002 identifies App DEL-04-03 as the decision/run-format
+    and App-recording owner; the Praxeology positively consumes decision contributions. The record implementation
+    does not perform the human act.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'The joined candidate examination uses available common examination support and focused-check
+    links while recording actual candidate/configuration/date, outcome standing and independent findings
+    for this witness.
+
+
+    Notes: FACT: INITIALIZED is only local contract maturity; receipt, working candidate contribution
+    and observed evidence remain unclaimed. CLM-003 resolves common candidate/evidence support to App
+    DEL-09-01. Support does not establish candidate inputs or an executed pass; actual candidate source,
+    configuration and observed findings bind each outcome.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: external:Human decision actor for the one exact-act decision
+  condition: 'The attribution witness requires an actual performed human decision with its bound subject,
+    so the record can be compared against the act and retain actor distinct from recorder.
+
+
+    Notes: FACT: Actual decision participation is required at VER-004/AC-004 only; software recording,
+    tool success, silence, timeout and another act cannot supply it. The source identifies the human actor
+    role without naming a person; no extra human approval or professional-reliance sequence is added.
+
+
+    Target description — TargetName: Human decision actor for the one exact-act decision; TargetLocation:
+    ScopeOfWork.md#Production and Verification Method — Praxeology / VER-004'
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: external:projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005
+  condition: 'Before the respective product qualification witness, supply the identified supported Codex
+    pin and relevant supplier/environment qualification; neither version nor endpoint capability is established
+    by the definition.
+
+
+    Notes: FACT: External source identity is accepted External_Dependencies.csv#DEP-005, not an App Deliverable
+    or the local DEP-09-05 row namespace. OI-012 remains with App implementation owner before protocol
+    generation and qualification. No supplier, endpoint or additional host construction is selected; actual
+    input condition stays at qualification.
+
+
+    Target description — TargetName: Pinned Codex/Tauri/local-server suppliers; TargetRefID: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005;
+    TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005'
+  evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
+- from: DEL-01-03
+  condition: 'Hand this slice''s native descendant identity/activity views and focused checks to App DEL-09-05
+    before its joined witness; the witness stays with DEL-09-05.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC3-01-03-8); supplier-side mirror
+    of the consumer row DEP-09-05-008 on an existing admitted arc (ledger R3-01-03-c, F0 M-3); no topology
+    change. The sentence states that each receiver declares it upstream in its own register. This deliverable
+    consumes nothing from DEL-09-05 (R17-10 guard). INITIALIZED is the local contract-maturity default
+    only; no receipt or witness result is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-09-05,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-09-05-010 on an existing admitted arc (ledger RP1-MX-0403);
+    no topology change. Typed INTERFACE for consistency with DEP-04-03-029..032; the package rows DEP-04-03-011/-012
+    stay, as the ledger allows. RequiredMaturity=INITIALIZED is the local contract threshold only; actual
+    receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: DEL-06-01
+  condition: 'Supply candidate-bound changed-basis/interruption record fixtures and recovery comparisons
+    to DEL-09-05 for the joined fleet/longer-work recovery witness.
+
+
+    Notes: FACT: VER-004 states the fixture contribution. INITIALIZED does not provide examined candidate
+    records or satisfy the joined witness. Preserve actual worker, return pending review, independent
+    finding and separately evidenced review/integration.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-06-02
+  condition: 'Supply candidate/source-bound local fixture results and the derivation/ownership boundary
+    to DEL-09-05 for its joined fleet and longer-work recovery examination.
+
+
+    Notes: FACT: Candidate identity, relevant file/record inputs, outcomes and limitations accompany the
+    handoff (Praxeology step 4). The joined examination and its actual acceptance remain with their owners.
+    INITIALIZED is the local contract threshold only; the stated actual input/handoff remains separately
+    required and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'Supply reusable examination support and evidence interfaces to the named owner of DEL-09-05
+    for its own scoped work.
+
+
+    Notes: FACT: Positive handoff statement in REQ-008 applies to its explicitly named owners; ownership/exclusion
+    text alone is not the evidence. This does not perform or qualify the receiving owner''s act. INITIALIZED
+    means receiving contract maturity only; actual support handoff and contributions are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+checks:
+- execution/PKG-09/DEL-09-05/Design/prototype/fw04_check.py

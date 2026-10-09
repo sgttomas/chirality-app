@@ -4,84 +4,84 @@
     {
       "file": "access.conversation-selection.schema.json",
       "sha256": "e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/access.conversation-selection.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/access.conversation-selection.schema.json",
       "sourceSha256": "e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed",
       "standing": "maintained unchanged Design schema"
     },
     {
       "file": "hosting.server-request-entry.schema.json",
       "sha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/hosting.server-request-entry.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.server-request-entry.schema.json",
       "sourceSha256": "b295fc5891e3fee8435f1293f731a9939d43383ce80ec87b8a993f35b0adce7f",
       "standing": "maintained unchanged Design schema"
     },
     {
       "file": "npt.plan-revision.schema.json",
       "sha256": "12395230e57d9397fca5d02fb011c70b6c9990992c459748f6daf8b8474b8a16",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Design/npt.plan-revision.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/npt.plan-revision.schema.json",
       "sourceSha256": "12395230e57d9397fca5d02fb011c70b6c9990992c459748f6daf8b8474b8a16",
       "standing": "maintained unchanged Design schema"
     },
     {
       "file": "plans.constructed.jsonl",
       "sha256": "08327e8d5f1f965a2b504665af4c83fb61cb0866614b638a2f9186dbf23b02ae",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Design/prototype/fixtures/native/plans.jsonl",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/prototype/fixtures/native/plans.jsonl",
       "sourceSha256": "08327e8d5f1f965a2b504665af4c83fb61cb0866614b638a2f9186dbf23b02ae",
       "standing": "constructed Design fixture; no supplier observation"
     },
     {
       "file": "recovery.app-ledger-entry.schema.json",
       "sha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.schema.json",
       "sourceSha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.v0.2.schema.json",
       "sha256": "3f1d7f27f68a523c459ebcb9ce3dcd40a5de54fc4b9b16d20fd4e6b4c3f05c67",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.v0.2.schema.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.v0.2.schema.json",
       "sourceSha256": "3f1d7f27f68a523c459ebcb9ce3dcd40a5de54fc4b9b16d20fd4e6b4c3f05c67",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.item-turn.empty-turn.invalid.json",
       "sha256": "bcd7ca07f8f0f7be8d6d870dbb61aef844b8a1387ccd8337d66c07b348fa1d4d",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.item-turn.empty-turn.invalid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.empty-turn.invalid.json",
       "sourceSha256": "bcd7ca07f8f0f7be8d6d870dbb61aef844b8a1387ccd8337d66c07b348fa1d4d",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.item-turn.null-turn.invalid.json",
       "sha256": "a5c0e830c894c0214ebfe4ac83fb136a99dea3a3064aa4cacc8356130129643a",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.item-turn.null-turn.invalid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.null-turn.invalid.json",
       "sourceSha256": "a5c0e830c894c0214ebfe4ac83fb136a99dea3a3064aa4cacc8356130129643a",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.item-turn.payload.invalid.json",
       "sha256": "20be8a6b953c00e441aced9640e68fcd4a99932cf8e79e5c1ac0220825286510",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.item-turn.payload.invalid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.payload.invalid.json",
       "sourceSha256": "20be8a6b953c00e441aced9640e68fcd4a99932cf8e79e5c1ac0220825286510",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.item-turn.competing-turns.valid.json",
       "sha256": "34a04a4fb66c00669f9f78be4dde128714e05412c792fad0fd3dd8a69ae03abd",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.item-turn.competing-turns.valid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.competing-turns.valid.json",
       "sourceSha256": "34a04a4fb66c00669f9f78be4dde128714e05412c792fad0fd3dd8a69ae03abd",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.item-turn.item-only.valid.json",
       "sha256": "73a9c24b612b2cd9b6d6bebc45eb2304bf6e33fc0dac8866495330c9b763d88e",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.item-turn.item-only.valid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.item-only.valid.json",
       "sourceSha256": "73a9c24b612b2cd9b6d6bebc45eb2304bf6e33fc0dac8866495330c9b763d88e",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     },
     {
       "file": "recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json",
       "sha256": "b961aab3df10a904820b71245f2dbd5df98ffe067291130995f8f96ba7355c01",
-      "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json",
+      "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/recovery.app-ledger-entry.item-turn.legacy-unknown.valid.json",
       "sourceSha256": "b961aab3df10a904820b71245f2dbd5df98ffe067291130995f8f96ba7355c01",
       "standing": "exact CC-REC-ITEM-TURN-CUSTODY reviewed/adopted0.3 source; archived0.2 and examples retain their standing"
     }

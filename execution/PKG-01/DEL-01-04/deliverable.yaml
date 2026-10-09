@@ -1,0 +1,393 @@
+id: DEL-01-04
+name: Native requests, outcomes and attachments
+needs:
+- from: DEL-01-01
+  condition: 'Native views require the actual stock Codex hosting boundary, selected supplier identity,
+    generated native protocol types and protocol qualification supplied by App DEL-01-01.
+
+
+    Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical
+    input/usable interface and applicable candidate evidence remain separately required and receipt is
+    unverified. No historical version number establishes a v4 supplier pin; OI-012 and DEP-005 remain
+    separate actual contributions.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Receive the actual session/request interface, observed and recovered execution state and
+    outstanding requests from App DEL-01-02; route native responses through its interface while leaving
+    durable settlement and recovery ownership there.
+
+
+    Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical
+    input/usable interface and applicable candidate evidence remain separately required and receipt is
+    unverified. Unknown outcomes, response attempts, received acknowledgment and descendant state remain
+    distinct; no receipt or settlement inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-02-02
+  condition: 'Receive source-qualified draft identity and actual draft/registration/collision/refusal
+    transitions from the workflow workspace for native presentation, the A15 descriptor (one per act:
+    one reviewed draft, or several library entries registered in place) bound to the exact reviewed content,
+    and the run-start text and run-end line App DEL-02-02 supplies for the turns this slice composes.
+
+
+    Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical
+    input/usable interface and applicable candidate evidence remain separately required and receipt is
+    unverified. Input transition evidence is separate from the native interactions handed back in DEP-01-04-010;
+    no runtime registration requirement is promoted into a project start gate. UPDATE 20261003 (SCA-V4-003
+    DX): R3-01-04-a (D3 R2.5, corrected to R21-3): Statement appended with the A15 descriptor ("A15 is
+    presented from one descriptor of the workflow workspace", REQ-008) and the run-start text and run-end
+    line ("supplied by App `DEL-02-02`", REQ-001). Quote unchanged and verbatim. Identity, direction,
+    type, target, maturity and closure unchanged; existing held arc.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the adopted operation-policy and human-act distinction interface carried by App
+    DEL-04-01 when implementing and checking UI labels and attribution; actual adopted policy must exist
+    for the affected operation.
+
+
+    Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical
+    input/usable interface and applicable candidate evidence remain separately required and receipt is
+    unverified. CLM-005 resolves the policy supplier; OI-001/OI-002 decisions remain with the Owner and
+    App/SWB contract owners at their respective points of need. UPDATE 20260929 (SCA-V4-002 DX): CLM-005
+    and VER-005 (F-0104-01/F-0104-02) now state that the owner ruled OI-001/OI-002 for the first increment
+    (DECISION-1 D2/D3), that the adopted reserved acts and classifier treatment are those rulings as carried
+    through the PKG-04 interface, and that the Owner with App/SWB contract owners decides only matters
+    the rulings do not cover (operation-specific additions under OI-021). This row is the successor for
+    the retired OI-002 constraint DEP-01-04-014. Identity, direction, type, target, quote, maturity and
+    closure unchanged. UPDATE 20261003 (SCA-V4-003 DX): REQ-008 (G-0104-09) also states that the App act
+    control "takes its act wording and kinds from DEL-04-01": a further basis for this existing UPSTREAM
+    row. DEL-04-01 remains a supplier only (no DOWNSTREAM row to DEL-04-01; DEL-04-01 gains no supplier).
+    Identity, direction, type, target, quote, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Consume the content-bound act/run-record and recording interface, distinct actor/subject
+    evidence and supplied content-change lapse standing owned by App DEL-04-03 for faithful native presentation/recording.
+
+
+    Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical
+    input/usable interface and applicable candidate evidence remain separately required and receipt is
+    unverified. CLM-005 resolves the evidence-record owner. Runtime act/host-receipt behavior is not independently
+    promoted to a global production gate; the actual positive VER-005 witness is separately recorded.
+    UPDATE 20261003 (SCA-V4-003 DX): REQ-008 (G-0104-09) also states that the act control "writes its
+    records through the writer of DEL-04-03", and OUT-005 names the direct-capture record: a further basis
+    for this existing UPSTREAM row (held arc). No DOWNSTREAM row to DEL-04-03. Identity, direction, type,
+    target, quote, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: external:OI-001
+  condition: 'Any reserved-act matter that the first-increment ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2) does not cover stays with the Owner with App/SWB contract owners, point of need before operation-policy
+    production contracts; operation-specific additions remain OPEN under OI-021. This slice consumes the
+    adopted policy through CLM-005 (DEP-01-04-011) and does not decide a reserved list.
+
+
+    Notes: FACT: Actual owner decision is unverified. PointOfNeed=Before operation-policy production contracts.
+    This affects dependent choices only; independent receiving-definition work proceeds. No blanket project
+    hold or new implementation authority. UPDATE 20260929 (SCA-V4-002 DX): refreshed in place (same target
+    OI-001, same owner and point of need) after SCA-V4-002 F-0104-03 revised TBD-001: OI-001 is ruled
+    for the first increment''s App/shared contracts by DECISION-1 D2 (marking checked; accepting a proposal
+    where the autonomy requires one; engineering approval; professional reliance; changing the grant or
+    enabling external access); the prior quote ("Choose always-reserved acts by concrete operation and
+    consequence") no longer appears. The residual constraint is narrowed to matters the ruling does not
+    cover; OI-021 additions are named in the same TBD without an owner or point of need in this SoW and
+    are carried in this row rather than as a separate row. Current Open_Issues.csv OI-001 still reads
+    OPEN (own route). RequiredMaturity/SatisfactionStatus unchanged.
+
+
+    Target description — TargetName: Owner with App/SWB contract owners — Reserved human acts (matters
+    not covered by the first-increment ruling D2; OI-021 additions); TargetRefID: OI-001; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-001'
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: external:OI-008
+  condition: 'The App implementation owner must choose Rust/TypeScript allocation before affected architecture
+    production contracts while preserving main-process session/request ownership; UI/storage details remain
+    open.
+
+
+    Notes: FACT: Actual owner decision is unverified. PointOfNeed=Before architecture production contracts.
+    This affects dependent choices only; independent receiving-definition work proceeds. No blanket project
+    hold or new implementation authority.
+
+
+    Target description — TargetName: App implementation owner — App process division; TargetRefID: OI-008;
+    TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-008'
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: external:OI-012
+  condition: 'The App implementation owner must supply the remaining OI-012 decisions before protocol
+    generation and qualification for an identified App candidate: the pin used for implementation and
+    for qualification. The definition and generation pin 0.158.0 was selected by APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D4 and is re-examined before implementation; no historical pin is adopted.
+
+
+    Notes: FACT: Actual owner decision is unverified. PointOfNeed=Before protocol generation and qualification.
+    This affects dependent choices only; independent receiving-definition work proceeds. No blanket project
+    hold or new implementation authority. UPDATE 20260929 (SCA-V4-002 DX): refreshed in place (same target
+    OI-012, same owner and point of need) after SCA-V4-002 F-0104-05 revised TBD-004: 0.158.0 selected
+    for definition and generation by DECISION-1 D4; the prior quote ("Select an identified supported supplier
+    pin") no longer appears. The quoted clause continues "for that candidate". RequiredMaturity/SatisfactionStatus
+    unchanged.
+
+
+    Target description — TargetName: App implementation owner — OI-012 remaining pin decisions (implementation
+    and qualification pin; 0.158.0 selected for definition/generation by D4); TargetRefID: OI-012; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-012'
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: external:OI-014
+  condition: 'The App/shared contract owners must place shared contracts/components against actual consumer
+    responsibilities and agree ownership before any common implementation at the structural/production
+    allocation point of need.
+
+
+    Notes: FACT: Actual owner decision is unverified. PointOfNeed=Before structural/production contract
+    allocation. This affects dependent choices only; independent receiving-definition work proceeds. No
+    blanket project hold or new implementation authority.
+
+
+    Target description — TargetName: App/shared contract owners — Shared contract/component placement;
+    TargetRefID: OI-014; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-014'
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: external:DEP-005
+  condition: 'Obtain the pinned suppliers'' published interfaces and configured endpoints needed by the
+    respective implementation/qualification witnesses; the selected supplier basis and environment remain
+    to be defined.
+
+
+    Notes: FACT: DEP-005 is the accepted external register identity, not a local DEP-PKG-DEL-SEQ or App
+    deliverable ID. Supplier publication/environment contributions differ from DEL-01-01 local hosting/types/qualification.
+    Applicability remains respective; no blanket endpoint or provider delivery gate is inferred. UPDATE
+    20260929 (SCA-V4-002 DX): revised TBD-004 (F-0104-05) records the 0.158.0 definition/generation pin
+    (DECISION-1 D4); the quoted DEP-005 sentence is unchanged and the implementation/qualification pin
+    and environment remain to be defined. No field other than Notes changed.
+
+
+    Target description — TargetName: Pinned Codex/Tauri/local-server suppliers — respective implementation/qualification
+    inputs; TargetRefID: DEP-005; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005'
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: external:Person performing the positive human-act case and separate faithful recorder
+  condition: 'For the positive VER-005 qualification case, obtain evidence of the person actually performing
+    the act on identified content and a separate recorder preserving it, with decision actor distinct
+    from recorder.
+
+
+    Notes: FACT: Qualification-witness input only; individual identity and evidence location remain unassigned.
+    No execution success, prior proposal acceptance, agent output or test construction substitutes for
+    the actual human act; no professional certification is claimed. UPDATE 20261003 (SCA-V4-003 DX): Re-quoted
+    in place: VER-005''s positive case now reads "identified App content through the App act control";
+    the prior quote no longer occurs. The act control is this slice''s own output (OUT-005, REQ-008),
+    not a new supplier. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Target description — TargetName: Person performing the positive human-act case and separate faithful
+    recorder'
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-01-03
+  condition: 'Receive the collaboration mode (sent explicitly after plan mode was used) and the plan-mode
+    element, item anchors and delegation availability supplied by App DEL-01-03 when composing the turns
+    this slice sends.
+
+
+    Notes: FACT: new consumer row (ledger NR-05; R18-1 C-06; grounded by SC3-01-04-10). New admitted arc
+    DEL-01-04 → DEL-01-03: DEL-01-03 does not reach SCC-002, so the admitted layer stays acyclic (ARC_EFFECT
+    §2). DEL-01-03 declares the supply in its own revised CLM-003 (its DOWNSTREAM mirror is extracted
+    in this run). The CLM-001/REQ-006 ownership clauses for DEL-01-03 alone remain non-edges. RequiredMaturity
+    INITIALIZED denotes the checked local target contract only; actual technical input/usable interface
+    and applicable candidate evidence remain separately required and receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-01-05
+  condition: 'Receive the model-selection state and the reported Codex account from App DEL-01-05: the
+    selection state for showing that no model is selected until the person chooses, and the account used
+    for the person''s identity at act capture.
+
+
+    Notes: FACT: new consumer row (ledger NR-07; D3 NR-3 = D4 NR-1; grounded by SC3-01-04-6 as amended).
+    REQ-002 also states "The Codex account App DEL-01-05 reports is the one used for the person''s identity
+    at act capture." New admitted arc DEL-01-04 → DEL-01-05: DEL-01-05 reaches only DEL-01-01 (SCC-001),
+    not SCC-002 (ARC_EFFECT §2). RequiredMaturity INITIALIZED denotes the checked local target contract
+    only; actual technical input/usable interface and applicable candidate evidence remain separately
+    required and receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Receive the checkpoint overlay and standing facets defined by App DEL-04-02, which this
+    slice places in the App (OUT-002).
+
+
+    Notes: FACT: new consumer row (ledger NR-08; D3 NR-1; grounded by SC3-01-04-5). CLM-001 also states
+    "this slice also places the checkpoint and standing display that App `DEL-04-02` and App `DEL-02-03`
+    define (OUT-002)." New arc DEL-01-04 → DEL-04-02. Both ends lie in SCC-002, so the arc is held and
+    SCC-neutral (ARC_EFFECT §2). RequiredMaturity INITIALIZED denotes the checked local target contract
+    only; actual technical input/usable interface and applicable candidate evidence remain separately
+    required and receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'Receive the checkpoint display meanings defined by App DEL-02-03, whose behaviour in the
+    App this slice owns (OUT-002).
+
+
+    Notes: FACT: new consumer row (ledger NR-09; D3 NR-2; grounded by SC3-01-04-5). New arc DEL-01-04
+    → DEL-02-03, reciprocal with the existing DEL-02-03 → DEL-01-04 (DEP-02-03-027, X-1). Both ends lie
+    in SCC-002, so the arc is held and SCC-neutral (ARC_EFFECT §2). RequiredMaturity INITIALIZED denotes
+    the checked local target contract only; actual technical input/usable interface and applicable candidate
+    evidence remain separately required and receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'Receive the role list App DEL-02-04 supplies (with the registry default preselected and
+    clearable, and no role allowed) for the new-conversation role offer; the role stays fixed for the
+    conversation.
+
+
+    Notes: FACT: new consumer row (ledger NR-4; D3 R2.5, NIR IF-15; adopted by R22-1; grounded by SC3-01-04-11).
+    DEL-02-04 declares the supply in its own revised receivers sentence (its DOWNSTREAM mirror is extracted
+    in this run). New arc DEL-01-04 → DEL-02-04. Both ends lie in SCC-002, so the arc is held and SCC-neutral
+    (ARC_EFFECT §2). RequiredMaturity INITIALIZED denotes the checked local target contract only; actual
+    technical input/usable interface and applicable candidate evidence remain separately required and
+    receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-01-04 consumes this deliverable''s stock supplier boundary for its own named
+    production responsibility; the receiving act remains with that owner.
+
+
+    Notes: FACT: Positive receiving statement, not an edge inferred from the exclusion inventory. INITIALIZED
+    is the local contract-maturity default only; actual supplier-boundary artifacts and any candidate
+    qualification/receiving evidence remain required and unclaimed. Receiving production ownership is
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Provide state/request interfaces and observed events with explicitly unknown outcomes to
+    the App-v4 DEL-01-04 receiving UI.
+
+
+    Notes: FACT: This is a produced interface, not an implementation-order assertion. Actual human acts
+    require their own actors/evidence; transport success, settlement and recovery do not create an act.
+    Conversation recovery does not claim whole-undertaking recovery. INITIALIZED is the approved local-contract
+    maturity threshold only; actual artifact/input/transfer availability and fulfilment remain unclaimed.
+    No lifecycle or readiness advancement.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-01-03
+  condition: 'Supply this slice''s plan-mode element, item anchors and delegation availability to App
+    DEL-01-04, which composes turns and request cards from them.
+
+
+    Notes: FACT: supplier-side mirror of the new admitted arc DEL-01-04 → DEL-01-03 (NR-05), whose consumer
+    row is extracted from DEL-01-04''s revised ScopeOfWork in this run (ledger R3-01-03-d). The CLM-003
+    ownership sentence for DEL-01-04 alone remains a non-edge. This deliverable consumes nothing from
+    DEL-01-04 (R17-10 guard). INITIALIZED is the local contract-maturity default only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: DEL-02-02
+  condition: 'Supply App v4 DEL-01-04 with this workspace''s draft, registration and selection contract
+    and, for turn composition, the run-start text and run-end line with their supply-check record; DEL-01-04
+    declares them upstream.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC3-02-02-12); supplier-side mirror
+    of the consumer row DEP-01-04-009 on an existing held arc (ledger R3-02-02-a); no topology change.
+    The run-text part is the clause "the run text and its supply-check record are received by `DE…" of
+    the same sentence. INITIALIZED is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'App v4 DEL-01-04 receives this deliverable''s role list and guidance-changed signal for
+    its new-conversation role offer and declares them upstream in its own register.
+
+
+    Notes: FACT: supplier-side mirror of the new held arc DEL-01-04 → DEL-02-04 (NR-4, adopted by R22-1),
+    whose consumer row is extracted from DEL-01-04''s revised ScopeOfWork in this run (ledger R3-02-04-c).
+    Both ends lie in SCC-002 (held, SCC-neutral). This deliverable consumes nothing new: NR-06 (→ DEL-01-03)
+    and NR-10 (→ DEL-02-02) were withdrawn and are not extracted. INITIALIZED is local contract maturity
+    only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies the distinction of the registration act (A15) to DEL-01-04, whose App
+    act control captures it; it consumes nothing from DEL-01-04.
+
+
+    Notes: FACT: REQ-002 (revised under SCA-V4-003, SC2-04-01-4; optional item accepted under Q-11) positively
+    states the supply and ends "it consumes nothing from either"; supplier-side mirror of the consumer
+    row DEP-01-04-011 on an existing admitted arc (ledger RP1-MX-0401); no topology change. DEL-04-01
+    gains no supplier (no UPSTREAM row to DEL-01-04; DEL-01-04''s REQ-008 names DEL-04-01 only as a supplier).
+    INITIALIZED is only the local contract threshold.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-01-04,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-01-04-012 on an existing held arc (ledger RP1-MX-0403);
+    no topology change. This is DEL-01-04 consuming this record contract; DEL-01-04''s own register has
+    no DOWNSTREAM row to DEL-04-03 (G-0104-09 guard). Typed INTERFACE for consistency with DEP-04-03-029..032;
+    the package rows DEP-04-03-011/-012 stay, as the ledger allows. RequiredMaturity=INITIALIZED is the
+    local contract threshold only; actual receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/act_control.rs
+- app/src-tauri/src/canonical.rs
+- app/src-tauri/src/recovery.rs
+checks:
+- app/src-tauri/tests/explicit_context.rs
+- app/tests/validate-records.test.mjs

@@ -1,0 +1,78 @@
+id: DEL-10-02
+name: Proportionate undertaking controls and practice feedback
+needs:
+- from: DEL-10-01
+  condition: 'Consume DEL-10-01''s applicable project execution basis and identified manual/method adoption
+    when applying the controls and grounding practice observations.
+
+
+    Notes: FACT: CLM-002 identifies DEL-10-01 as supplier. Actual reliance needs the applicable recorded
+    basis, manual editions/content identities and adopted sections; INITIALIZED is only local contract
+    maturity. Own _REFERENCES.md records the later scoped OI-017 selection at projects/chirality-app-v4/execution/_Coordination/CURRENT_EXECUTION_BASIS.md;
+    do not reopen it as a new edition choice or infer full DEL-10-01 delivery. Fulfilment is not assessed
+    here.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-10/DEL-10-02/ScopeOfWork.md
+- from: DEL-10-04
+  condition: 'When a current production DAG has been accepted, undertaking work selection uses DEL-10-04''s
+    accepted DAG within its scope and currency; independent authorized definition remains permitted before
+    that event.
+
+
+    Notes: FACT: conditional input at work selection after actual DAG acceptance. CLM-003 identifies the
+    supplier; required input is accepted current DAG evidence, not merely its INITIALIZED contract. This
+    row is not a prerequisite to defining these controls, using file-native controls, constructing future
+    fleet software or accepting an honest DAG with pending contributions. No acceptance, availability
+    or closure is asserted.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-10/DEL-10-02/ScopeOfWork.md
+- from: DEL-09-12
+  condition: 'Hand method observations and traceable proposed/actual dispositions to the method-feedback
+    consumer, preserving selected source section, existing work record, recipient, actor and decision
+    standing.
+
+
+    Notes: FACT: source-observed relationship; INITIALIZED is receiving-contract maturity only; actual
+    observation transfer/disposition remains unperformed. Routing does not establish revision, adoption
+    or a human decision.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: external:App owner at the applicable selected-method decision or stage discussion
+  condition: 'At the applicable selected-method decision or stage discussion, provide the relevant node-linked
+    practice notes to the owner for an actual scoped disposition and preserve that disposition when made.
+
+
+    Notes: FACT: explicit owner-facing handoff outside this deliverable; EXTERNAL denotes the receiving
+    human actor, not an outside-project service or another App deliverable. Applies only at the relevant
+    discussion with observed notes. No actual handoff or decision is claimed, no synthetic prerequisite
+    between human acts is created, and independently authorized work continues. OI-019/020 remain at their
+    consequential-gap/manual-revision points of need; this row grants no instruction or manual edit.
+
+
+    Target description — TargetName: App owner at the applicable selected-method decision or stage discussion'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-10/DEL-10-02/ScopeOfWork.md
+- from: DEL-10-04
+  condition: 'Once available, supply the accepted current project graph and live satisfaction evidence
+    for the undertaking-route/control contribution in App DEL-10-02, preserving limits and held work.
+
+
+    Notes: FACT: REQ-008 explicitly names consuming undertaking routes; CLM-002 resolves their App owner.
+    INITIALIZED is recipient contract maturity only. Actual accepted current graph and live evidence are
+    required for this later handoff; authorized pre-DAG route preparation remains permitted. The reverse
+    CLM-002 input is separate production evidence, not a scheduling cycle decision.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md

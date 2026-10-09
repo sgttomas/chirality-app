@@ -1,0 +1,130 @@
+id: DEL-10-01
+name: Project execution basis and manual application
+needs:
+- from: doc:execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md
+  condition: 'Use the actual accepted composite and its recorded standing to produce the execution-basis
+    account; preserve historical source identity.
+
+
+    Notes: FACT: Actual required basis for OUT-001, not a new acceptance request or proof that OUT-001
+    is produced. Target located from the source key.
+
+
+    Target description — TargetName: Accepted v4 composite basis; TargetRefID: APP-V4-BASIS-20260926;
+    TargetLocation: projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md
+  condition: 'Carry the accepted later clarification into the execution basis, preserving included definition
+    work and coherent treatment of method constraints.
+
+
+    Notes: FACT: Qualifying direction is explicitly part of required basis; source key C identifies the
+    actual clarification. No new instruction or product scope is inferred.
+
+
+    Target description — TargetName: Accepted scoped v4 clarification; TargetRefID: APP-V4-CLARIFICATION-20260927;
+    TargetLocation: projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md
+  condition: 'Consume the final accepted decomposition and its actual decisions when preparing the basis
+    and setup/local-contract handoff.
+
+
+    Notes: FACT: Accepted DECISION.md and HANDOFF_STATE.md establish standing; preserved candidate labels
+    in frozen canonical bytes remain historical. No repeated Group3 or setup approval is required.
+
+
+    Target description — TargetName: Accepted final decomposition and downstream-use decision; TargetRefID:
+    GROUP3-20260928T001055Z; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:execution/_Coordination/_COORDINATION.md
+  condition: 'Use already approved coordination and lifecycle choices for OUT-002 and distinguish missing
+    artifact/input evidence from contract maturity.
+
+
+    Notes: FACT: Actual required choice record, not a new representation decision. FULL_GRAPH/INITIALIZED
+    do not prove artifact delivery, dependency fulfillment or DAG acceptance.
+
+
+    Target description — TargetName: Approved v4 coordination and lifecycle policy; TargetRefID: APP-V4-_COORDINATION;
+    TargetLocation: projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md
+  condition: 'Use Field Book v1 for its assigned role in the manual-purpose/application/departure account,
+    limited to relevant practice and actual receiving use.
+
+
+    Notes: FACT: Positive required application, not mere citation. Local _REFERENCES subsequent current-basis
+    disposition records scoped OI-017 resolution for this definition run. No full manual-body read or
+    another loop adoption is claimed.
+
+
+    Target description — TargetName: Field Book v1; TargetRefID: F; TargetLocation: docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md
+  condition: 'Use Consolidated manual v7 for its assigned role in the manual-purpose/application/departure
+    account, limited to relevant practice and actual receiving use.
+
+
+    Notes: FACT: Positive required application, not mere citation. Local _REFERENCES subsequent current-basis
+    disposition records scoped OI-017 resolution for this definition run. No full manual-body read or
+    another loop adoption is claimed.
+
+
+    Target description — TargetName: Consolidated manual v7; TargetRefID: M; TargetLocation: docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md
+  condition: 'Use Agent User Manual v3 for its assigned role in the manual-purpose/application/departure
+    account, limited to relevant practice and actual receiving use.
+
+
+    Notes: FACT: Positive required application, not mere citation. Local _REFERENCES subsequent current-basis
+    disposition records scoped OI-017 resolution for this definition run. No full manual-body read or
+    another loop adoption is claimed.
+
+
+    Target description — TargetName: Agent User Manual v3; TargetRefID: U; TargetLocation: docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: doc:execution/_Coordination/CURRENT_EXECUTION_BASIS.md
+  condition: 'Use the owning selection/adoption record and scope to bind actual manual and method edition/content
+    identities before dependent reliance.
+
+
+    Notes: FACT: Target resolved by local _REFERENCES.md Subsequent current-basis disposition and dispatch
+    direction: OI-017 is resolved for this App-v4 definition run. Frozen SoW historical OPEN text remains
+    unchanged. Record availability does not fulfill every output; no further edition choice or blanket
+    hold is created.
+
+
+    Target description — TargetName: Scoped current execution-basis and adopted edition identities; TargetRefID:
+    APP-V4-CURRENT-EXECUTION-BASIS; TargetLocation: projects/chirality-app-v4/execution/_Coordination/CURRENT_EXECUTION_BASIS.md'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: external:App-v4 owner
+  condition: 'Where the manual-application account identifies a consequential adoption or departure requiring
+    a decision, retain the actual owner decision at that affected point of need.
+
+
+    Notes: FACT: Conditional requirement stated by OUT-003; owner identified by CLM-004. Not a new decision
+    request, synthetic universal act order or hold on unrelated definition. No particular departure, adoption
+    decision or fulfillment is asserted.
+
+
+    Target description — TargetName: Owner consequential adoption/departure decision; TargetRefID: App-v4
+    owner'
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: unknown
+  condition: 'Provide usable execution-basis and local-contract handoff outputs to the named setup, local-SoW
+    and project-definition readers; no individual Deliverable dependency is inferred.
+
+
+    Notes: FACT: The required handoff and readers are explicit, but no single canonical receiving Deliverable
+    is identified. TargetType UNKNOWN preserves that limit. This does not retroactively gate completed
+    setup/INIT or create edges to every SoW.
+
+
+    Target description — TargetName: Setup, local-SoW and project-definition consumers'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+checks:
+- execution/PKG-10/DEL-10-01/Design/prototype/eb1_check.py

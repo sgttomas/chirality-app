@@ -1,0 +1,154 @@
+id: DEL-03-01
+name: Capability catalog and read-basis contract
+needs:
+- from: DEL-04-01
+  condition: 'Receive adopted operation-policy/human-act classes from App v4 DEL-04-01 before fixing the
+    affected operation-policy representation; unresolved assignments remain explicit during definition.
+
+
+    Notes: FACT: INITIALIZED checks the local input contract only; actual owner/App/SWB policy decision
+    and carried adopted classes are separately required at the affected point of need (TBD-001; OI-001/OI-002).
+    No blanket definition hold. UPDATE 20260929: revised TBD-001/REQ-002 (SCA-V4-001) record OI-001/OI-002
+    as ruled for the first increment at App/shared level by APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2/D3, carried by DEL-04-01. Still open: operation-specific additions (OI-021) and host adoption/enforcement
+    (DEP-001); conformance claims depending on an unadopted assignment remain held. An operation without
+    an adopted class is represented explicitly (no policy basis).
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: external:SWBPIPE
+  condition: 'Receive actual host operation definitions, tables, diagnostics, availability and basis semantics
+    from the host owner before claiming conformance for that host.
+
+
+    Notes: FACT: External custody qualified by CLM-001 and TBD-004/DEP-001; outside SWB session communicates
+    through human-relayed files. This does not authorize host construction or claim external delivery/adoption;
+    independent contract definition continues. UPDATE 20260929: revised REQ-002/REQ-004 (SCA-V4-001, integration
+    rulings R-6/R-9/R8-4) add host-supplied items to this host input: host-declared exposure per consumer
+    surface, a canonical content identity with its identity-method designation, and a host-supplied subject
+    content identity per object/row (the App never computes identities). Same external supplier; no new
+    edge. UPDATE 20261003 (SCA-V4-003 DX): R-01-3 (edition part, S-01-3): revised OUT-001 adds the identity
+    of the catalog edition a consumer discovered and the event by which a host reports a new edition,
+    and REQ-001 has consumers resolve operation references against an identified catalog edition: the
+    host input also supplies its catalog edition identity and edition-change event. Revised OUT-001/REQ-002
+    also add, for an entry through which a host''s embedded agent reaches a network destination, the host-declared
+    external-contact declaration, the host''s destination-request entry and its non-success results (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5).
+    Same external supplier; no new edge. The basis-profile part (R13-1, S-01-4) is held (Q-7) and not
+    extracted. Quote unchanged and verbatim.
+
+
+    Target description — TargetName: Host owner including external SWBPIPE implementation session; TargetRefID:
+    SWBPIPE'
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Receive App v4 DEL-03-02 proposal refusal/application behavior for VER-004 read-to-action
+    basis comparison; this catalog contract does not implement that behavior.
+
+
+    Notes: FACT: A distinct return input from the downstream identity/basis handoff; no finish-to-start
+    ordering or graph closure inferred. INITIALIZED is contract maturity only; actual behavior input remains
+    pending.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: external:OI-003
+  condition: 'Receive the actual owner-with-host-contract-owner retain/narrow/defer disposition before
+    claiming the all-actor/no-separate-work extension promise or fixing its dependent acceptance criterion.
+
+
+    Notes: FACT: Split from the formerly combined trace-and-ruling row. The actual OI-003 disposition
+    belongs to Owner with host contract owner, not DEL-09-09. DEP-03-01-030 separately records the trace
+    input. Preserve the original promise pending the actual ruling; an examination report or open-position
+    account does not supply that act. Independent contract definition and bounded trace preparation continue.
+
+
+    Target description — TargetName: Owner with host contract owner — automatic catalog-extension disposition;
+    TargetRefID: OI-003; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-003'
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: unknown
+  condition: 'Agree catalog/schema placement, host/provider serialization, canonical content hashing representation
+    and adapter realization before the dependent schema implementation/conformance.
+
+
+    Notes: FACT: Actual agreement required at affected point of need; no target artifact identity/path,
+    wire name, hash algorithm, service or deployment inferred. Semantic fields remain fixed; unresolved
+    implementation choices do not hold independent definition. UPDATE 20260929: OUT-001/REQ-004 now state
+    that the canonical content hash is received as a canonical content identity with its identity-method
+    designation and the algorithm stays unselected under TBD-003; the agreement remains open.
+
+
+    Target description — TargetName: App/shared and affected host/consumer technical agreement'
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: external:SWBPIPE
+  condition: 'Identify the connected operation, autonomy and candidate environment with the owner via
+    the outside SWB session and App/shared owner before live joined examination.
+
+
+    Notes: FACT: External SWB coordination qualified by DEP-001/OI-021. This is a later live-examination
+    input, distinct from actual host catalog contributions needed for host conformance. No live qualification
+    gate on independent App contract definition; delivery/adoption remain unclaimed.
+
+
+    Target description — TargetName: Owner via outside SWB session and App/shared owner: connected examination
+    inputs; TargetRefID: SWBPIPE'
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-09-09
+  condition: 'Receive the candidate-bound extension trace and generated/adapted-work account from DEL-09-09
+    before fixing or claiming the dependent extension capability; the owner''s retain/narrow/defer ruling
+    is separately required under DEP-03-01-027.
+
+
+    Notes: FACT: Positive producer resolution from accepted G3 ScopeLedger SOW-073/SOW-203, Deliverables.csv
+    DEL-09-09 and its OUT-002/OUT-003. This records the trace contribution separated from DEP-03-01-027;
+    DEL-09-09 does not perform or choose the owner''s disposition. Candidate-bound trace evidence remains
+    unsupplied and the retained absolute promise is not weakened.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Receive the DEL-04-03 act field set and lapse vocabulary that read results carry as standing
+    (human-act evidence and lapse state); this catalog contract consumes and does not define them.
+
+
+    Notes: FACT: added by SCA-V4-001 revision of CLM-002. Explicit consumption statement; supersedes the
+    2026-09-27 run note that the DEL-04-03 exclusion creates no edge (the REQ-007 exclusion of record-format
+    construction still creates none). INITIALIZED is contract maturity only; actual field set and vocabulary
+    receipt remain pending.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies operation-policy and human-act meaning to DEL-03-01 for its named consuming
+    responsibility; actual policy content and applicable adopted decisions must be provided.
+
+
+    Notes: FACT: CLM-002 explicitly identifies this consumer and positively supplies its policy meaning;
+    ownership list alone was not used. INITIALIZED is only the local contract threshold, not actual policy
+    handoff or receiving implementation. Satisfaction unassessed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-03-01,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-03-01-031 on an existing held arc (ledger R2-04-03-a..d);
+    no topology change. Typed INTERFACE for consistency with DEP-04-03-029..032; the package rows DEP-04-03-011/-012
+    stay, as the ledger allows. RequiredMaturity=INITIALIZED is the local contract threshold only; actual
+    receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+checks:
+- execution/PKG-03/DEL-03-01/Design/prototype/validate_all.py

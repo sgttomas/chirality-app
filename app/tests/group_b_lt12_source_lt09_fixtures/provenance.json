@@ -15,8 +15,8 @@
     "sourceRevision": "938d20ef4bf0d07a7cc706d575e74f844d8caccf"
   },
   "exchange_sha256": {
-    "selected": "e5bea1191123a34aaadaa185ebb75bfb9fc430a767a02baa0ba0a982089ae15f",
-    "unselected": "e39c2e9046ae7134d5da67e233e52a0941c48e3aaaef0e0e8090c870abe7ff8f"
+    "selected": "0f110876cf229af683d8a2e8a5495063f8baea650ca450f72db7cdc75703f2c4",
+    "unselected": "742d2d17cc6d75de07f1bd8661a57eda0bc12ba1ab429336f9ec060685c5a6a0"
   },
   "standing": "Actual synthetic LT09 exports; no LT12 exchange, native authority or qualification",
   "receipt_sha256": "739c05d3bc96128cdde6964279dbb258ae5e89abae0d3d16516a9184834ad956"

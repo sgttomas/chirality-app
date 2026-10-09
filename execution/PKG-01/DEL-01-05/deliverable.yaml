@@ -1,0 +1,105 @@
+id: DEL-01-05
+name: Native OAuth/sign-in, API-key and local-provider access
+needs:
+- from: DEL-01-01
+  condition: 'DEL-01-05 consumes the identified selected Codex protocol/pin supplied by DEL-01-01 before
+    its mode/provider implementation and qualification depend on that input.
+
+
+    Notes: FACT: actual selected protocol/pin input remains required; INITIALIZED is only the local contract
+    threshold and does not establish input receipt. OI-012/DEP-005 supplier identity, protocol and endpoint
+    capability evidence remain unresolved. Distinct from embedding-qualification evidence in DEP-01-05-013.
+    UPDATE 20261003 (SCA-V4-003 DX): R3-01-05-e: revised TBD-003 (G-0105-15) records 0.158.0 as the definition
+    and generation pin (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4); OI-012 and DEP-005 retain the
+    qualification pin, which the App implementation owner selects through DEL-01-01 before qualification.
+    Quote unchanged and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'Account/provider and local-server qualification requires DEL-01-01 embedding-qualification
+    input linked to the actual candidate; observed outcomes and limits must remain explicit.
+
+
+    Notes: FACT: required qualification-witness contribution; INITIALIZED contract maturity is not the
+    actual embedding-qualification artifact or its acceptance. Distinct consumed input from selected protocol/pin
+    in DEP-01-05-012; neither proves supplier readiness.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
+- from: doc:execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native
+    OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_HOME_DECISION_RECORD.md
+  condition: 'The account-home decision record carries the choice made by the Owner, who is also the App
+    implementation owner, before account integration depends on it. The choice is decided at choice level
+    by APP-V4-DESIGN-PASS-3-20261001-DECISION-K3 K-1 (shared Codex settings, providers and MCP servers,
+    with a separate sign-in custodied by Codex in an App-owned Codex home); the mechanism was observed
+    at Codex 0.158.0 without a credential and is confirmed on the pinned version before account integration.
+
+
+    Notes: FACT: required decision record/actual human act at the stated point of need; accountable participants
+    are Owner with App implementation owner. OI-009 remains OPEN; record path and choice are unresolved.
+    Root/v3 separation does not select the v4 account home. No blanket project hold or inferred approval
+    sequence. UPDATE 20261003 (SCA-V4-003 DX): R3-01-05-c: re-quoted in place (REQ-005 now names the Owner
+    as also the App implementation owner; the prior quote no longer occurs). TargetLocation TBD → the
+    decision record TBD-001 names (Design/ACCOUNT_HOME_DECISION_RECORD.md); TargetName set to the Owner''s
+    choice (L-7). FACT: decided at choice level (K-1); mechanism observed (OBS-2 O-6) at 0.158.0 without
+    a credential; separation with a real credential not observed (L-6); confirmation on the pinned version
+    precedes account integration, and if a pinned Codex cannot share settings the App keeps a separated
+    home. Open_Issues OI-009 now reads RESOLVED_BY_OWNER_DECISION (SCA-V4-003 Q-10; Open_Issues.csv sha256
+    9c2d916c…515d); REQ-005''s retain-open clause is unchanged in the SoW. SatisfactionStatus kept PENDING
+    (no closure advanced by extraction). Identity, direction, type, target type and maturity unchanged.
+
+
+    Target description — TargetName: Account-home decision record — the Owner''s choice (the Owner is
+    also the App implementation owner, APP-V4-DESIGN-PASS-3-20261001-DECISION-L L-7); TargetRefID: OI-009;
+    TargetLocation: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native
+    OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_HOME_DECISION_RECORD.md'
+  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
+- from: doc:execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native
+    OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md §10 (draft)
+  condition: 'The App implementation owner must establish supported API-key sign-in/account behavior against
+    the identified pinned protocol before dependent API-key implementation or qualification; OI-010 remains
+    open until supported behavior is established.
+
+
+    Notes: FACT: required definition record within OUT-003, with actual App implementation owner responsibility
+    and protocol evidence; not a separate invented deliverable or external provider commitment. Record
+    path and supported behavior remain unresolved; the three access modes remain IN. UPDATE 20261003 (SCA-V4-003
+    DX): R3-01-05-d: TargetLocation TBD → the definition record TBD-002 now names (Design/ACCOUNT_AND_PROVIDER_ACCESS.md
+    §10, draft). OI-010 stays OPEN until supported behaviour is observed (deferred by the owner, DECISION-L
+    L-6). Quote unchanged and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Target description — TargetName: Supported API-key sign-in/account behavior definition by App implementation
+    owner; TargetRefID: OI-010; TargetLocation: projects/chirality-app-v4/execution/PKG-01_Native App
+    and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider
+    access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md §10 (draft)'
+  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'Supply the selected embedding-protocol qualification and local-provider protocol requirement
+    account to the App v4 DEL-01-05 account/provider receiver, distinguishing published requirements from
+    observed candidate capability.
+
+
+    Notes: FACT: Positive receiving statement, not an edge inferred from the exclusion inventory. INITIALIZED
+    is the local contract-maturity default only; actual supplier-boundary artifacts and any candidate
+    qualification/receiving evidence remain required and unclaimed. Receiving production ownership is
+    unchanged. UPDATE 20261003 (SCA-V4-003 DX): R-11-3 (accepted ledger annotation; source pass-2 C1-B
+    §8 and pass-3 C1-B §4.3, HOSTING §8.1 L-3; not restated in the ScopeOfWork and not read by this extraction):
+    the local-provider requirements account is to carry the namespace route limit (F-31) and the approval-carrier
+    quirk (F-32); delegation tools travel in the same namespace tool (OBS-2 O-4, via an adapter); the
+    account now sits at ACCESS §11 CH-1…CH-8. Identity, direction, type, target, quote, maturity and closure
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/act_control.rs
+checks:
+- execution/PKG-01/DEL-01-05/Design/prototype/check_explicit_project_context.py

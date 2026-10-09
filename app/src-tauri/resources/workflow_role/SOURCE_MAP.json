@@ -1,47 +1,47 @@
 [
   {
     "resource": "workflow-declaration.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/workflow-declaration.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/workflow-declaration.schema.json",
     "sha256": "bb01a004e40da89e20183876774afc2308a921376eee4cf75e0c66fcdb405337"
   },
   {
     "resource": "workspace-registration.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workspace-registration.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/workspace-registration.schema.json",
     "sha256": "6f772b3b0f51abf750fc0970a169ea3ff601d2015f3a6941308aff87c1ef51f5"
   },
   {
     "resource": "checkpoint-record-entries.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/checkpoint-record-entries.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/checkpoint-record-entries.schema.json",
     "sha256": "00d5203a2fa9d099b25f2f8da5732f2d869a18fd0846ebe33d25c9ae2ae135d3"
   },
   {
     "resource": "compatibility-report.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/compatibility-report.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/compatibility-report.schema.json",
     "sha256": "8e2bf4a257422fcc6184bc9222ed9e0d1d27be7a2807a3dd5ebe7d5e5bcafd24"
   },
   {
     "resource": "role-limit-account.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/role-limit-account.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/role-limit-account.schema.json",
     "sha256": "69ea538ccc2ac8a1763878427d7cce796cd3cc3e094c8aceee9c71e454b7f84c"
   },
   {
     "resource": "role-supply-record.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/role-supply-record.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/role-supply-record.schema.json",
     "sha256": "eaa6e682aa6077f8ab89858e3f52d0e91d7117b5c03ea4c68c72ec0d95c5f639"
   },
   {
     "resource": "workflow-declaration.valid.example.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/workflow-declaration.valid.example.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/workflow-declaration.valid.example.json",
     "sha256": "b484a5a2210a63f049be684799f21003d7d1001819b12c7edc27a44785b1e187"
   },
   {
     "resource": "workflow-declaration.invalid.example.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/workflow-declaration.invalid.example.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/workflow-declaration.invalid.example.json",
     "sha256": "16cf6486474570430d63de4e01a80c6dbe76237c72228c86c5462d5bc1d229f2"
   },
   {
     "resource": "workflow-record-envelope.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/workflow-record-envelope.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/workflow-record-envelope.schema.json",
     "sha256": "be51751cd1eb833630ef6a0763f26872cba9745d9ed8815184c037b4d83565c7"
   }
 ]

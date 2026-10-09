@@ -15,8 +15,8 @@
     "sourceRevision": "2377becab65791fcd91177fcf4ab15abcf4c1742"
   },
   "exchange_sha256": {
-    "selected": "7a20dfe47d4ffe708c5670890ae30cadacd6e246ae435101703596dcdf9778aa",
-    "unselected": "f3b8874a80fcbbcb0dca3152f407b697d9839ea127ac522532eb97436575180e"
+    "selected": "49e047a939b6be236f4f1de0cd693c066c9affff65beae7a94bae1d42e37798d",
+    "unselected": "6f9f4b69f001c560ff76cee2f7f8953e9cc05aae67ebd0a7f331693625df1191"
   },
   "standing": "Actual synthetic existing-row exports; no LT12 exchange/native authority/qualification",
   "receipt_sha256": "d140bc8932a408e5ea6348a0a134e1efda4b10778ddafd184e6bcf972b1a8f91"

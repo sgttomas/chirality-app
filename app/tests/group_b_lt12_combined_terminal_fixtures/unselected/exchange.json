@@ -102,8 +102,8 @@
       },
       {
         "path": ".chirality-s1/transport.json",
-        "sha256": "f89fbcd32ce9860da25f42c777033b6f29f22e75df53451c2036af310183f8ec",
-        "size": 3760
+        "sha256": "a43f4dda6e6870b67002f2387abefa2bbfe65d2f43b9b3cff15b7aadbeca382f",
+        "size": 3661
       }
     ],
     "readback": {
@@ -413,7 +413,7 @@
               },
               "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
               "origin": {
-                "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+                "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
                 "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
               }
             },
@@ -422,7 +422,7 @@
           },
           "transport": {
             "path": ".chirality-s1/transport.json",
-            "sha256": "f89fbcd32ce9860da25f42c777033b6f29f22e75df53451c2036af310183f8ec"
+            "sha256": "a43f4dda6e6870b67002f2387abefa2bbfe65d2f43b9b3cff15b7aadbeca382f"
           }
         },
         "standing": "unverified-development",
@@ -492,7 +492,7 @@
               },
               "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
               "origin": {
-                "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+                "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
                 "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
               }
             },
@@ -576,8 +576,8 @@
       },
       {
         "path": ".chirality-s1/transport.json",
-        "sha256": "1c0ff99d3b974f9ceb83bfb7a0f508f1b4d22dcae6606a89d05efd7aa018917c",
-        "size": 3760
+        "sha256": "086d206a9806c41a07796e7aa2c7b9607041f91755d441c4a9fd62c0110c8c8b",
+        "size": 3661
       }
     ],
     "readback": {
@@ -842,7 +842,7 @@
               },
               "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
               "origin": {
-                "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+                "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
                 "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
               }
             },
@@ -851,7 +851,7 @@
           },
           "transport": {
             "path": ".chirality-s1/transport.json",
-            "sha256": "1c0ff99d3b974f9ceb83bfb7a0f508f1b4d22dcae6606a89d05efd7aa018917c"
+            "sha256": "086d206a9806c41a07796e7aa2c7b9607041f91755d441c4a9fd62c0110c8c8b"
           }
         },
         "standing": "unverified-development",
@@ -921,7 +921,7 @@
               },
               "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
               "origin": {
-                "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+                "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
                 "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
               }
             },

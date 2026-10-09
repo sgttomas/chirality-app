@@ -1,0 +1,87 @@
+id: DEL-01-01
+name: Stock Codex hosting and supplier contract
+needs:
+- from: external:chirality-app-v4:OI-008
+  condition: 'The App implementation owner must supply the actual Rust/TypeScript responsibility allocation
+    beyond fixed main-process invariants decision before architecture production contracts; the choice
+    remains open in this source.
+
+
+    Notes: FACT: Internal-project owner decision, external to this bounded unit only; EXTERNAL does not
+    imply supplier/provider ownership or new allocation. Included work retains its named actor and point
+    of need. RequiredMaturity=TBD for the non-deliverable act; fulfilment unclaimed; no blanket project
+    hold.
+
+
+    Target description — TargetName: App v4 implementation owner — Rust/TypeScript responsibility allocation
+    beyond fixed main-process invariants; TargetRefID: chirality-app-v4:OI-008; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-008'
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: external:chirality-app-v4:OI-012
+  condition: 'The App implementation owner must supply the remaining OI-012 decisions: re-examination
+    of the 0.158.0 definition/generation pin (selected by APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4)
+    before implementation, and the pin used for qualification on an identified App candidate.
+
+
+    Notes: FACT: refreshed in place (same target OI-012) after SCA-V4-001 revised CLM-003, REQ-006 and
+    TBD-002: the definition/generation pin 0.158.0 was selected by owner decision DECISION-1 D4 and establishes
+    no qualification; the prior quote ("OI-012 is OPEN ... before protocol generation and qualification")
+    no longer appears. Internal-project owner decision, external to this bounded unit only. RequiredMaturity=TBD;
+    SatisfactionStatus unchanged (TBD; not assessed by extraction); no blanket project hold. UPDATE 20260929
+    (SCA-V4-002 DX): the [N] source line (revised under SCA-V4-002 F-0101-01) now agrees with CLM-003/REQ-006/TBD-002:
+    OI-012 still open; 0.158.0 selected for definition and generation by APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D4; no implementation or qualification version or environment is established. Identity, direction,
+    type, target, quote, maturity and closure unchanged. UPDATE 20261003 (SCA-V4-003 DX): TBD-002 now
+    also points to the dated observation records at 0.158.0 (OBS-1, OBS-1b, OBS-2, OBS-3; "not qualification");
+    the quoted OI-012 sentence is unchanged. Identity, direction, type, target, quote, maturity and closure
+    unchanged.
+
+
+    Target description — TargetName: App v4 implementation owner — OI-012 remaining pin decisions (re-examination
+    before implementation; qualification pin); TargetRefID: chirality-app-v4:OI-012; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv#OI-012'
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-005
+  condition: 'The respective implementation/qualification witnesses require published stock supplier interfaces
+    on an identified version/environment; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
+    witnesses. The 0.158.0 definition/generation pin (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4) establishes
+    no qualification or endpoint capability.
+
+
+    Notes: FACT: External supplier contribution, not an App Deliverable. Statement refreshed in place
+    after SCA-V4-001 revised CLM-003/TBD-002 (definition/generation pin selected; DEP-005 still to define
+    for qualification witnesses); the quoted CLM-003 sentence is unchanged. RequiredMaturity=TBD; SatisfactionStatus
+    unchanged. Actual interface availability and candidate qualification require separate evidence; no
+    supplier/currentness inquiry or deployment choice made. UPDATE 20260929 (SCA-V4-002 DX): the [N] source
+    line (revised under SCA-V4-002 F-0101-01) now states that no implementation or qualification version
+    or environment is established; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
+    witnesses. Identity, direction, type, target, quote, maturity and closure unchanged. UPDATE 20261003
+    (SCA-V4-003 DX): R-11-2: revised TBD-002 (G-0101-03) records Design/OBS_1_0.158.0.md (OBS-1, OBS-1b),
+    OBS_2 and OBS_3 as dated observations at 0.158.0 against a local LM Studio model, "not qualification".
+    Per the accepted ledger row R-11-2 (source pass-2 C1-B §8; HOSTING §10.1), those observations record
+    that the Responses wire worked and MCP tools were not delivered; the ScopeOfWork does not restate
+    them and the Design records were not read by this extraction. DEP-005 unchanged (VERSION_AND_ENVIRONMENT_TO_DEFINE);
+    no qualification follows. Identity, direction, type, target, quote, maturity and closure unchanged.
+
+
+    Target description — TargetName: Published stock supplier interfaces — version and environment to
+    define; TargetRefID: chirality-app-v4:DEP-005; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv#DEP-005'
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-01-05
+  condition: 'Receive native sign-in and server-substitution evidence from the App v4 DEL-01-05 account/provider
+    owner when needed for the local qualification witness; the source does not impose an unconditional
+    prerequisite.
+
+
+    Notes: FACT: Conditional technical-evidence input (when needed); INITIALIZED denotes contract maturity
+    only and does not establish evidence receipt. Distinct from the opposite-direction protocol-requirement
+    handoff; neither direction creates a generic act sequence or overall closure verdict.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/hosting.rs
+checks:
+- app/tests/validate-records.test.mjs
+- execution/PKG-01/DEL-01-01/Design/distribution-s1/test_model.py
+- execution/PKG-01/DEL-01-01/Design/prototype/distribution_identity/test_inventory.py

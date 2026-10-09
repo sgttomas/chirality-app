@@ -15,8 +15,8 @@
     "sourceRevision": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71"
   },
   "exchange_sha256": {
-    "selected": "9815b031e0295ca06c145c4ce50a840979dbf8895dfe9165bef36f5caa858552",
-    "unselected": "6f7c94c2768d5a3740e7f1f9b716bebc514816fe443dd57c43b0aa07ac0babb5"
+    "selected": "2bcced9fb5a9020f4f25b40c6109a91ab36025f5ea58a61f0fd737203a91f45f",
+    "unselected": "35c7446bcd89ec0c4586fc0ec56ffecdf6f33cae5f9ca4057c6739925a88782c"
   },
   "standing": "Actual unchanged v1 LT09 exports from9af source; no terminal evidence",
   "committed_export_receipt_sha256": "931f688f3c6d9bae2b335ea118f6c5cb9196e474c97ca998f10d6bc30d7478e1",

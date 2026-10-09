@@ -1,0 +1,100 @@
+id: DEL-02-04
+name: Additive role selection and supply
+needs:
+- from: DEL-01-01
+  condition: 'Consume DEL-01-01''s identified supported native supplier receiving contract to implement
+    and exercise additive role supply at the actual supplier boundary, including the native agent-role
+    configuration through which delegated children receive product guidance and their role, and the surfaces
+    through which a task agent''s delegation is recorded and shown.
+
+
+    Notes: FACT: The App supplier-integration owner owns this input. Actual identified supplier contract
+    and boundary evidence remain required; INITIALIZED is only local contract maturity. OI-012: App implementation
+    owner decides Codex version pin Before protocol generation and qualification; historical examples
+    are not pins. UPDATE 20261003 (SCA-V4-003 DX): SC3-02-04-8 (F0 ST-4, amended D6 R2.3): Statement extended
+    per revised REQ-002/REQ-003. Per the accepted ledger row, the supplier surfaces concerned are status,
+    delegation-item (completed spawnAgent, thread/read) and configuration-read surfaces; the ScopeOfWork
+    states the behaviours, not these surface names. OI-012 now reads: 0.158.0 is the definition and generation
+    pin (D4); the qualification pin is separate (DEL-01-01). Quote unchanged and verbatim. Identity, direction,
+    type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'Consume the portable four-role receiving contract and applicable shared allocation from
+    DEL-02-01 when developing local role supply.
+
+
+    Notes: FACT: CLM-002 resolves the portable contract to DEL-02-01, owned by the App/shared workflow-contract
+    owner with affected consumer owners confirming responsibilities. OI-014: App/shared contract owners
+    decide placement Before structural/production contract allocation. Actual receiving contract/allocation
+    is required; INITIALIZED supplies neither. No common service or fixed placement inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: external:DEP-006
+  condition: 'For the VER-005 positive case, consume evidence of an actual consumer adoption with the
+    proper actor and scope; a publication/supply-only case remains distinct and cannot substitute.
+
+
+    Notes: FACT: Actual qualification-witness input, not an invented prerequisite between execution, checking,
+    approval or reliance acts. DEP-006 retains external supplier identity from TBD-001; a human act already
+    performed may be recorded faithfully. OI-024 owner: Owner with affected consumers; point: Before each
+    adoption/retirement decision. DEP-006 contribution is needed Before each consumer transitions or old
+    arrangement retires; transition/adoption remains through PKG-11, not a blanket gate on DEL-02-04.
+    No evidence receipt claimed.
+
+
+    Target description — TargetName: Owners of affected Root/Runtime/App/Piping consumers — actual consumer-adoption
+    evidence; TargetRefID: DEP-006; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-006'
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: external:OI-008
+  condition: 'Obtain the owning App process-division choice at its stated point of need before architecture
+    production contracts determine guidance composition placement.
+
+
+    Notes: FACT: Rust/TypeScript placement of guidance composition remains unfixed in this source. Preserve
+    the owner decision at that point of need; independent authorized work may continue. No implementation
+    allocation or decision result invented.
+
+
+    Target description — TargetName: App implementation owner — App process division; TargetRefID: OI-008;
+    TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-008'
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: external:OI-018
+  condition: 'Obtain the instruction distribution/adoption mechanism choice before instruction changes
+    or dependent supply, retaining source/supply evidence without inventing precedence or prematurely
+    distributing changed instructions.
+
+
+    Notes: FACT: This is a point-of-need decision, not project-wide suspension. Source identity, actual
+    supply, provider adoption, observed behavior and consumer adoption remain separate facts; no decision
+    or fulfilled supply is claimed. UPDATE 20261003 (SCA-V4-003 DX): R3-02-04-d: the OI-018 table row
+    and TBD-001 (revised, G-0204-12, G-0204-13) record OI-018 as answered for the App by APP-V4-DESIGN-PASS-3-20261001-DECISION-K3
+    K-9 as amended by DECISION-L L-2 (default role guidance shipped, editable copy seeded, change applied
+    to new conversations with an open conversation shown that its guidance changed, guidance recorded
+    by content); host distribution remains open with the same owners. The quoted owner/point-of-need cells
+    are unchanged and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Target description — TargetName: Owner with shared/project instruction owners — instruction distribution/adoption
+    mechanism; TargetRefID: OI-018; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-018'
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-02-04 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-02-04-011 on an existing held arc (ledger RP1-MX-0201); no topology change.
+    The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity only;
+    no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md

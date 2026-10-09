@@ -167,9 +167,9 @@ fn currency_is_view_only_and_not_a_start_gate_or_receipt() {
 
 // ---- J2: production entry point, EXEC report publication and R14 receipt ----
 
-const DESIGN_SCHEMA: &str = include_str!("../../../execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/compatibility-report.schema.json");
-const DESIGN_VALID: &str = include_str!("../../../execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/compatibility-report.example.valid.json");
-const DESIGN_INVALID: &str = include_str!("../../../execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/compatibility-report.example.invalid.json");
+const DESIGN_SCHEMA: &str = include_str!("../../../execution/PKG-02/DEL-02-03/Design/compatibility-report.schema.json");
+const DESIGN_VALID: &str = include_str!("../../../execution/PKG-02/DEL-02-03/Design/compatibility-report.example.valid.json");
+const DESIGN_INVALID: &str = include_str!("../../../execution/PKG-02/DEL-02-03/Design/compatibility-report.example.invalid.json");
 
 /// Independent of the production validator: compiles the Design file's own bytes
 /// through the existing declared-ID registry (no rewrite, no retrieval).

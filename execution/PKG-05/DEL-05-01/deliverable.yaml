@@ -1,0 +1,358 @@
+id: DEL-05-01
+name: Minimal-loop and model receiving contract
+needs:
+- from: DEL-03-01
+  condition: 'Receive the adopted capability-catalog/read-basis schemas and catalog identity for loop
+    argument validation and catalog-bound fixtures; this deliverable does not define those schemas.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner. UPDATE 20261003 (SCA-V4-003 DX): R-0501-2 (accepted ledger annotation;
+    source pass-2 C1-C §7, LOOP §5.3 DF-1; not restated in this ScopeOfWork): the destination flow also
+    consumes the catalog''s host-declared external-contact declaration and the destination-request entry
+    kind, which DEL-03-01''s revised OUT-001/REQ-002 now define. Same supplier and arc; quote unchanged
+    and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Consume the proposal/validation/outcome contract meaning at the loop boundary so schema
+    validity does not substitute for host validation, acceptance or a human act. Actual adopted meaning
+    remains an incoming contract input.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'Receive adopted portable workflow/role/checkpoint declarations for loop checkpoint/event
+    definitions and fixtures; consume their shared meaning without deciding common-component allocation.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'Consume DEL-02-03''s workflow execution/checkpoint receiving behavior at the loop boundary:
+    in the current phase the loop evaluates reached-when and records checkpoint arrivals and acts as observation;
+    for the governance phase it realizes DEL-02-03''s retained hold machine and hold-support values. Actual
+    adopted behavior/identity must be supplied at use.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner. UPDATE 20260929: revised REQ-006 (SCA-V4-001, APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
+    D4-1) names the hold machine and hold-support values of DEL-02-03 as realized by the loop in the governance
+    phase; stating those receiving obligations is local work, not implementation of DEL-02-03.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Receive the adopted operation-policy/human-act distinction contract for checkpoint/event/evidence
+    examples; unresolved operation classes remain decisions of the owner and host policy owner, and no
+    generic human-act sequence is introduced.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner. UPDATE 20260929: CLM-004 now records APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2 (including D2(e)) and D3 for first-increment App/shared contracts; operation-specific additions
+    remain under OI-021 and host adoption under DEP-001. Edge unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Receive adopted shared human-act/run-record meanings and format for loop event/checkpoint
+    and record receiving definitions and examples; actual execution, acceptance, checking, approval and
+    reliance remain separately evidenced.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-05-02
+  condition: 'Receive the App/shared panel receiving needs and meaning at the loop boundary for the receiving/allocation
+    account; host-specific panel assembly remains external and common implementation remains unallocated.
+
+
+    Notes: FACT: CLM-002 explicitly says this deliverable consumes the listed meanings at the loop boundary.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; adopted technical artifacts and
+    interface identities remain required at actual use and unconfirmed. Definition/implementation ownership
+    stays with the named owner.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: external:DEP-001
+  condition: 'Receive identified SWBPIPE host-candidate evidence of native routing/destination enforcement,
+    the destination record, script/key/credential separation, validation/failure behavior and responsiveness
+    before claiming actual host conformance. This is required at host claims and connected receiving/examination
+    points, not to prepare the local receiving definition.
+
+
+    Notes: FACT: source identifies SWBPIPE as the separate external host under DEP-001; DEP-001 is the
+    App external-dependency record, not an App Deliverable ID. Owner-reported building establishes no
+    delivered/adopted handoff, joined witness or qualified host. App contract definition does not construct
+    the host; actual evidence remains unreceived/unconfirmed. UPDATE 20260929: VER-002 revised by SCA-V4-001
+    (destination record; credentials); quote refreshed. TBD-003 now records that host joins are deferred
+    until the owner resumes SWBPIPE UI-SUCCESSOR (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3); this qualifies
+    the DEP-001 point of need and is not a separate row. GUARD: TBD-003 names DEL-09-06 Design/RELAY_QUESTIONS_SWBPIPE.md
+    and RELAY_ANSWERS_SWBPIPE.md as "a coordination route, not an input this deliverable consumes"; no
+    DEL-09-06 input or prerequisite row is extracted from them.
+
+
+    Target description — TargetName: SWBPIPE external host candidate and native-loop conformance evidence;
+    TargetRefID: DEP-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-001'
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: external:OI-013
+  condition: 'The shared contract owner and SWB implementation owner must agree host-specific construction
+    and any reusable common contribution, then choose loop placement, streaming/parsing, conversation
+    persistence and panel assembly before the affected shared/host implementation boundary contracts.
+    Receiving definition can continue while these means remain open.
+
+
+    Notes: FACT: OI-013 remains OPEN and owner-selected. Target is the required owner agreement at this
+    point of need, not register-file existence or host construction by App. Exact choices remain unresolved;
+    no blanket project hold or fabricated implementation sequence.
+
+
+    Target description — TargetName: Shared contract owner and SWB implementation owner — host placement/persistence
+    agreement; TargetRefID: OI-013; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-013'
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: external:OI-014
+  condition: 'App/shared contract owners and affected consumers allocate shared contracts/components against
+    actual consumer responsibility before affected structural/production allocation. Any common-loop construction
+    requires a concrete agreed repeated responsibility; shared meaning alone does not select a common
+    service or implementation.
+
+
+    Notes: FACT: OI-014 remains OPEN. This is the owner-allocation decision at its stated point of need,
+    distinct from incoming portable declaration meaning. No common implementation, service or allocation
+    is selected; local receiving definition can continue.
+
+
+    Target description — TargetName: App/shared contract owners and affected consumers — shared allocation
+    decision; TargetRefID: OI-014; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-014'
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: unknown
+  condition: 'Supply or agree the actual model-interface identity and detailed protocol/fixture representation
+    at their points of fixture/conformance use; exact supplier/version/wire details remain unselected
+    until the actual basis is available. This is distinct from adopted catalog semantics and actual SWB
+    host observations.
+
+
+    Notes: FACT: source requires an actual adopted basis but does not identify its concrete supplier/artifact
+    or wire representation; target kind/location remain UNKNOWN/TBD. No current provider, Pi dependency,
+    protocol version, payload field or live experiment is invented. Receipt/agreement remains unconfirmed.
+    UPDATE 20260929: TBD-003 records that SWBPIPE has no model-interface basis selected (SQ-29 answer),
+    so the target stays UNKNOWN; the relay answer is a statement of current state, not a commitment or
+    a delivered basis. UPDATE 20261003 (SCA-V4-003 DX): R-0501-1 (pairs with S-0501-1): re-quoted in place
+    (OUT-002 now allows a named fixture basis until one is adopted; the prior quote no longer occurs).
+    TBD-003 now names FB-CC-1 (a published Chat Completions reference, Design LOOP_RECEIVING_CONTRACT.md
+    §4.1; R12-8) as this deliverable''s fixture basis, "not a product selection": it names no adopted
+    basis for any host, so TargetType stays UNKNOWN and SatisfactionStatus PENDING. Identity, direction,
+    type, target and maturity unchanged.
+
+
+    Target description — TargetName: Adopted host model-interface and detailed protocol/fixture basis'
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Receive the autonomy-grant display states and standing exchange from DEL-04-02 and consume
+    them as the grant in force carried on each loop dispatch; this deliverable does not define those states.
+
+
+    Notes: FACT: added by SCA-V4-001 revision of CLM-002/REQ-006; CLM-002 explicitly states consumption.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; the adopted grant/standing interface
+    remains required at actual use and unconfirmed. Definition stays with DEL-04-02. UPDATE 20261003 (SCA-V4-003
+    DX): R-0501-3 (accepted ledger annotation; source pass-2 C1-C §7, B4 §7; not restated in this ScopeOfWork):
+    the grant in force carried on each dispatch is now defined (AS §12.1; LOOP §6.2). Quote unchanged
+    and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-01-05
+  condition: 'Receive App v4 DEL-01-05''s local-server capability requirements and qualification limits
+    (its capability handoff) as information, keeping the App''s provider interface distinct from a host''s
+    model interface; no requirement of this contract is taken from them.
+
+
+    Notes: FACT: consumer-side row added by SCA-V4-003 (P1-10); mirror of DEP-01-05-014 on the existing
+    admitted arc DEL-05-01 → DEL-01-05 (ledger R-0501-4; F0 M-5); no topology change. Informational input:
+    the sentence ends "no requirement of this contract is taken from them". RequiredMaturity=INITIALIZED
+    is the local contract threshold only; the actual handoff is unconfirmed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-01-05
+  condition: 'DEL-01-05 supplies applicable local-server capability requirements and qualification limits
+    to DEL-05-01 receiving, preserving App-provider versus host-model interface distinctions.
+
+
+    Notes: FACT: actual capability/limit handoff remains required. INITIALIZED refers only to the receiving
+    local contract; no handoff, host conformance or host implementation is claimed. Host-specific construction
+    and separately agreed shared construction remain outside this contribution.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-05-01 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-05-01-016 on an existing held arc (ledger R2-02-01-a..f); no topology change.
+    The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity only;
+    no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'App v4 DEL-05-01 receives this slice''s report, recording meanings and transfer contract
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-03-6); supplier-side mirror
+    of the consumer row DEP-05-01-017 on an existing held arc (ledger R2-02-03-b..i); no topology change.
+    The receivers sentence spans two quoted fragments ("…received by `DEL-02-01`, … `DEL-05-02`," / "`DEL-09-02`,
+    … each of which declares it upstream in its own register."). INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'App v4 DEL-05-01 receives this catalog/read-basis contract (schemas and catalog identity
+    for loop validation) and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-06); supplier-side mirror of the
+    consumer row DEP-05-01-014 on an existing held arc (ledger R-01-1); no topology change. The sentence
+    closes "each of which declares it upstream in its own register". INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'App v4 DEL-05-01 receives this contract''s proposal, validation and outcome meanings (the
+    loop boundary) and declares them upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-07); supplier-side mirror of the
+    consumer row DEP-05-01-015 on an existing held arc (ledger R-02-2); no topology change. INITIALIZED
+    is local contract maturity only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies operation-policy and human-act meaning to DEL-05-01, which the source
+    states declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted
+    decisions must be provided.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) positively states this policy-meaning supply to the
+    named consumer. Typed HANDOVER and INITIALIZED threshold for consistency with DEP-04-01-012..016;
+    INITIALIZED is only the local contract threshold, not actual policy handoff or receiving implementation.
+    The consumer-side upstream declaration is asserted by this source and was not read here (read boundary).
+    Satisfaction unassessed. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code
+    backticks included (ASC-ISS-008; V12 F1); no other field changed. UPDATE 20261003 (SCA-V4-003 DX):
+    Re-quoted in place: CLM-002''s second supply sentence now also names `DEL-09-06` (SC2-04-01-1), so
+    the prior quote no longer occurs. Identity, direction, type, target, statement, maturity and closure
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Supply DEL-04-02 visible autonomy state to App DEL-05-01, which the source names as a receiver.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) names this receiver of the visible autonomy state.
+    RequiredMaturity=INITIALIZED is the local contract threshold only; actual contribution receipt/fulfilment
+    is unclaimed. SatisfactionStatus PENDING follows this register''s convention for unfulfilled execution
+    inputs. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code/bold markers
+    included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-05-01;
+    the receiving documentation identifies how it is consumed.
+
+
+    Notes: FACT; REQ-005 (revised under SCA-V4-001) names this consumer of the record meaning. Typed INTERFACE
+    for consistency with the package consumer rows DEP-04-03-011..013. RequiredMaturity=INITIALIZED is
+    the local contract threshold only; actual contribution receipt/fulfilment is unclaimed. Fulfilment
+    is not established by this extraction. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly,
+    inline-code backticks included (ASC-ISS-008; V12 F1); no other field changed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:DEP-001
+  condition: 'Carry this deliverable''s host questions for its loop receiving inputs to the external SWBPIPE
+    owner through the authorized human-relayed file path; preparing a file is not delivery or adoption,
+    and returned answers are recorded separately.
+
+
+    Notes: FACT: new EXTERNAL handover row (ledger R-0501-5; first increment R5-1-3), mirroring DEP-05-02-018.
+    TBD-003 adds "The questions for these inputs are relayed through the coordination file DEL-09-06 `Design/RELAY_QUESTIONS_SWBPIPE.md`";
+    that file is a coordination route, so the target is the external owner (DEP-001), not DEL-09-06 (guard).
+    Confidence MEDIUM: the source says "coordinate", read as an artifact handoff of the questions, as
+    the paired DEL-05-02 row does. Non-topological. The human performs the relay; no delivery, answer
+    or adoption is claimed.
+
+
+    Target description — TargetName: External SWBPIPE owner — loop receiving questions via App manager/human
+    file relay; TargetRefID: DEP-001; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-001'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/catalog.rs
+- app/src-tauri/src/receiving.rs

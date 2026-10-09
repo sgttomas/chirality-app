@@ -5,7 +5,7 @@ use serde_json::{json,Value};
 use std::path::{Path,PathBuf};
 fn examples()->Vec<Value>{
  let root=Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
- let execution=root.join("execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RS_RECORD.valid.act-log.example.jsonl");
+ let execution=root.join("execution/PKG-04/DEL-04-03/Design/RS_RECORD.valid.act-log.example.jsonl");
  std::fs::read_to_string(execution).unwrap().lines().map(|l|serde_json::from_str(l).unwrap()).collect()
 }
 fn single()->Value{examples()[0].clone()}

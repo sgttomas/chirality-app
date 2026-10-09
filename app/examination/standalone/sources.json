@@ -3,88 +3,88 @@
   "sources": [
     {
       "role": "step_map",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.step-map.json",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.step-map.json",
       "sha256": "sha256:a35592a9fbaa3338c128f765bd59b78021565ce6423ea9b77cce274370f9e7d1"
     },
     {
       "role": "sq_design",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/STANDALONE_QUALIFICATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/STANDALONE_QUALIFICATION.md",
       "sha256": "sha256:9f88209d7bac08137d0c92e65b8a344c619248bae683bf70a3137b0f00c5443b"
     },
     {
       "role": "sq_schema",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/sq.dossier.schema.json",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/sq.dossier.schema.json",
       "sha256": "sha256:16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6"
     },
     {
       "role": "sq_rules",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/prototype/check_sq.py",
-      "sha256": "sha256:60ea83a3dff7220a1e95a3f3054c22ec5a11e70a67ee56c10eb29bfe85a9c093"
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
+      "sha256": "sha256:65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac"
     },
     {
       "role": "sq_scope",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/ScopeOfWork.md",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-02/ScopeOfWork.md",
       "sha256": "sha256:327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
     },
     {
       "role": "exp_design",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md",
       "sha256": "sha256:ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
     },
     {
       "role": "exp_schema",
-      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+      "path": "projects/chirality-app-v4/execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json",
       "sha256": "sha256:f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
     },
     {
       "role": "DEL-01-03/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-03/Design/NATIVE_PLANS_TOOLS_DELEGATION.md",
       "sha256": "sha256:8b8d0e46a25b6872e806aa49cc9e7604515d643bbd4a51c0913bbcace2585c54"
     },
     {
       "role": "DEL-02-02/WORKSPACE_AND_REGISTRATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Design/WORKSPACE_AND_REGISTRATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md",
       "sha256": "sha256:6bfb2277006a16e6089e7e862da24e9ed7fe749a08f0e63e35e50f25ea251838"
     },
     {
       "role": "DEL-01-04/NATIVE_INTERACTION_RECEIVING.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/NATIVE_INTERACTION_RECEIVING.md",
-      "sha256": "sha256:e287ab26591c52b0f46410afa3dde9dd4f3d6d8da80c1862ef6a91c2cdccd764"
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/NATIVE_INTERACTION_RECEIVING.md",
+      "sha256": "sha256:1be54376e9a6ca21d5eeaec03572f3678b6bb57e02e92c4ddea559141a17928c"
     },
     {
       "role": "DEL-01-02/EXECUTION_AND_RECOVERY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/EXECUTION_AND_RECOVERY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md",
       "sha256": "sha256:088cb70f9124e09845b27dad785009fca56674e276f11dd32ae650622bdb1856"
     },
     {
       "role": "DEL-02-01/WORKFLOW_DECLARATION.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
       "sha256": "sha256:a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d"
     },
     {
       "role": "DEL-01-04/APP_ACT_CONTROL.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/APP_ACT_CONTROL.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/APP_ACT_CONTROL.md",
       "sha256": "sha256:94409f56399da79793866f1979829c2bcd0962f8a6a47ca4d20eaf74d4f71426"
     },
     {
       "role": "DEL-04-03/RECORD_SEMANTICS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "path": "projects/chirality-app-v4/execution/PKG-04/DEL-04-03/Design/RECORD_SEMANTICS.md",
       "sha256": "sha256:910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae"
     },
     {
       "role": "DEL-02-03/EXECUTION_COMPATIBILITY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/EXECUTION_COMPATIBILITY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-02/DEL-02-03/Design/EXECUTION_COMPATIBILITY.md",
       "sha256": "sha256:a3001809efe5e749c158a9b33aa30180e53f0c42892a4bbb6251592b35f8c0e2"
     },
     {
       "role": "DEL-01-01/HOSTING_BOUNDARY.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/HOSTING_BOUNDARY.md",
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md",
       "sha256": "sha256:9839cb38310ff55045657e51f7bb7dcfcb2024eb43ec3bab364959e33e5c1e85"
     },
     {
       "role": "DEL-01-05/ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "sha256": "sha256:26659864fd1b720d51bc5bf8038311238e9d6b1775f62a4e08fd2917dba4f9ec"
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md",
+      "sha256": "sha256:996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036"
     }
   ]
 }

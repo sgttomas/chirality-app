@@ -22,7 +22,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const app = join(here, "..");
 const exec = join(app, "..", "execution");
-const design = (pkg, del) => join(exec, pkg, "1_Working", del, "Design");
+const design = (pkg, del) => join(exec, pkg.split("_")[0], del.split("_")[0], "Design");
 const D0101 = design("PKG-01_Native App and third-party harness integration", "DEL-01-01_Stock Codex hosting and supplier contract");
 const D0104 = design("PKG-01_Native App and third-party harness integration", "DEL-01-04_Native requests, outcomes and attachments");
 const D0203 = design("PKG-02_Workflow and role portability", "DEL-02-03_Workflow execution compatibility and round-trip support");

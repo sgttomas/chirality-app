@@ -20,7 +20,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '79b91412ce200a2118d373fb0a5c1309372880982ec338ccf960bdc08357d3f4'
+PINS_SHA256 = 'd7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9'
 FORMAT = 'group-b-s1-reader-exchange.v1'
 MAX_BYTES = 32 * 1024 * 1024
 LIMITS = [

@@ -14,8 +14,8 @@
     "sourceRevision": "9af67409ed0e625fcd8e0e9a0c59975fccfcae71"
   },
   "exchange_sha256": {
-    "selected": "272b38d7cf532431c17b041fe996696c95b2a70fed349781d6bc02c81b1754bf",
-    "unselected": "e9be5bba2b1d6afb26cfa4a7107cc0ff773667399d265b96e46a0c04f135cb4b"
+    "selected": "da0be8194038bd5121db3c6e5017ff401ad5d3c58cce397686373012260f1ce6",
+    "unselected": "b4558f0f44ea7610ac569965fe9df786124cc312f46abe49d7c2ff809e77120e"
   },
   "standing": "Actual synthetic completed LT09/LT23 export pair, not native capability or qualification",
   "exporter_source_sha256": "bf2e76f064ab49a9c7d530f980c9a2d14b6697d851e5840d3fed977fcc9dc4e8",

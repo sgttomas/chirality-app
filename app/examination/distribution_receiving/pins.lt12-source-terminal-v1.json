@@ -43,7 +43,7 @@
       },
       "method": "literal TRANSITIONS extraction from Python AST; exact 24 transition tuples",
       "origin": {
-        "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/prototype/boundary_model.py",
+        "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
         "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873"
       }
     },
@@ -55,8 +55,8 @@
   "transport_limit": "Creation correspondence only; no future integrity, issuer, qualification or live custody assertion",
   "sources": {
     "app/examination/distribution_receiving/receive.py": "d3902ff62136bf0f5e1b8bb10d9948ec5d2e07493428804425cca1b5c214c787",
-    "app/examination/support_identity/canonical-pins.v1.json": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4",
-    "app/examination/support_identity/canonical.py": "320728cdebdd87cadeac4621ce100807fbe228bff1787f04ca625b4a2873cb20",
+    "app/examination/support_identity/canonical-pins.v1.json": "29543c5ef6a3efd9b0cd063359c52f4b08ad6e867add2ac76c10684d8eae0c37",
+    "app/examination/support_identity/canonical.py": "e41d321842e8a059161ddd0539a78dfc8b840b82a8f4c284c98d9008d74f9dda",
     "app/src-tauri/resources/distribution-successor/DISTRIBUTION_EVIDENCE_TRANSPORT.md": "133daddf0f7c15369479e42e8b3efa5aae73d6e8a03d7f74bf55f63035d1ec3b",
     "app/src-tauri/resources/distribution-successor/LIFECYCLE_LABEL_JOIN.md": "f7d9dd292aaa3a3144c052f5b8f994783f8cfea61a34d8c062dd49071776944e",
     "app/src-tauri/resources/distribution-successor/LT23_PUBLICATION.md": "84ad932f86d69525a327e8a17f81020e2d39f747ee3a261a0c706a3ea0f98e5b",
@@ -94,7 +94,7 @@
     "app/src-tauri/src/runtime_session.rs": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97"
   },
   "adoption": "B-S4-LT12-SOURCE-TERMINAL-v1",
-  "predecessor_pins_sha256": "9eec244ce922b2750af2965f85b1292f98efd68271e66870110011f72ff88a53",
+  "predecessor_pins_sha256": "f27068ceaa0d7235f3d25b4e3fac31cdf952c50734a24afe17856d4f5d91ca3c",
   "reader_changes": {
     "storeReaderSha256": {
       "previous": "e89b7a56022fc2c5d0860788fa423a94d8072ca0ed184304183e5923ddbe8c57",

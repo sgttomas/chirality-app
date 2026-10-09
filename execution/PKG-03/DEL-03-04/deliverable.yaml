@@ -1,0 +1,476 @@
+id: DEL-03-04
+name: Host boundary and integration guide
+needs:
+- from: DEL-03-01
+  condition: 'The guide integrates and checks the checked catalog/read-basis definition from App v4 DEL-03-01
+    at the relevant guide entry and completeness comparison; actual identified input and evidence limits
+    are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. No host conformance, automatic extension or joined result is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'The guide integrates and checks the checked proposal/validation/outcome and basis-association
+    definition from App v4 DEL-03-02 at the relevant guide entry and completeness comparison; actual identified
+    input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Actual host route, receipt and conformance evidence remain distinct later inputs; no second
+    mutation route is introduced.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-03-03
+  condition: 'The guide integrates and checks the App external-agent receiving definition and its evidence
+    limits from App v4 DEL-03-03 at the relevant guide entry and completeness comparison; actual identified
+    input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Conditional enabled-access path; disabled/unavailable paths remain valid. Endpoint and
+    candidate evidence are required before connection claims, not to initialize the guide.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'The guide integrates and checks portable workflow/four-role and shared-allocation receiving
+    semantics from App v4 DEL-02-01 at the relevant guide entry and completeness comparison; actual identified
+    input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Identified method/compatibility and actual checkpoint evidence are required before dependent
+    workflow use; host construction and method authorship remain with their owners.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'The guide integrates and checks workflow compatibility, checkpoint and transfer receiving
+    semantics from App v4 DEL-02-03 at the relevant guide entry and completeness comparison; actual identified
+    input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Identified method/compatibility and actual checkpoint evidence are required before dependent
+    workflow use; host construction and method authorship remain with their owners.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'The guide integrates and checks additive role guidance and supply receiving semantics from
+    App v4 DEL-02-04 at the relevant guide entry and completeness comparison; actual identified input
+    and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Identified method/compatibility and actual checkpoint evidence are required before dependent
+    workflow use; host construction and method authorship remain with their owners.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'The guide integrates and checks the adopted operation/autonomy policy and human-act distinctions
+    carried by App v4 DEL-04-01 (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2/D3), keeping each remaining
+    class decision (operation-specific additions, OI-021) at its owner and point of need, at the relevant
+    guide entry and completeness comparison; actual identified input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. OI-001 is needed before operation-policy production contracts; OI-002 before permission-policy
+    implementation. The guide carries held/unresolved classes; DEL-04-01 is not the decision actor. |
+    2026-09-29 DX-3 UPDATE (APP-V4-BASIS-ALIGN-20260928): FACT: Statement/SourceRef refreshed in place
+    for the SCA-V4-001 revision of REQ-004 and TBD-001/TBD-002 (C1 S-04-1, edit E-0304-01): the D2/D3
+    rulings are carried by DEL-04-01. Quote, type, direction, target, RequiredMaturity and SatisfactionStatus=TBD
+    unchanged. Arc DEL-03-04 -> DEL-04-01 unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'The guide integrates and checks autonomy/standing and origin/undo/proposal-presentation
+    receiving semantics from App v4 DEL-04-02 at the relevant guide entry and completeness comparison;
+    actual identified input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Actual settings, controls and host evidence are distinct from checked definitions; unresolved
+    classes and declared checkpoints remain visible.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'The guide integrates and checks content-bound human-act and compact-run-record definitions
+    from App v4 DEL-04-03 at the relevant guide entry and completeness comparison; actual identified input
+    and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Actual actor/subject/content and separately attributable recorder evidence are required
+    before dependent act/record reliance. No prerequisite is invented between independent human acts.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-05-01
+  condition: 'The guide integrates and checks minimal-loop/model receiving requirements from App v4 DEL-05-01
+    at the relevant guide entry and completeness comparison; actual identified input and evidence limits
+    are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Agreed contribution allocation and actual host evidence are needed before dependent integration/conformance.
+    OI-013/OI-014 placement choices stay with owners at their points of need; common construction is not
+    authorized.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-05-02
+  condition: 'The guide integrates and checks panel/shared-interaction receiving requirements from App
+    v4 DEL-05-02 at the relevant guide entry and completeness comparison; actual identified input and
+    evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Agreed contribution allocation and actual host evidence are needed before dependent integration/conformance.
+    OI-013/OI-014 placement choices stay with owners at their points of need; common construction is not
+    authorized.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-07-01
+  condition: 'The guide integrates and checks PEC first-consumer receiving and adoption-evidence expectations
+    from App v4 DEL-07-01 at the relevant guide entry and completeness comparison; actual identified input
+    and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Conditional connector coverage in guide, not a connector availability prerequisite. PEC
+    qualified/released coverage and receiving adoption are required only before covered claim reliance;
+    D108 accepts retained MAJOR/partly-met limitations as-is, not repair/release/adoption. Domains source/query/method/host/actual-approval
+    inputs remain separately evidenced for the later increment; provider deployment/allocation stays unresolved,
+    and initial work may proceed without either connector.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-07-02
+  condition: 'The guide integrates and checks independent connector limitation and source-file recovery
+    responsibilities from App v4 DEL-07-02 at the relevant guide entry and completeness comparison; actual
+    identified input and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Conditional connector coverage in guide, not a connector availability prerequisite. PEC
+    qualified/released coverage and receiving adoption are required only before covered claim reliance;
+    D108 accepts retained MAJOR/partly-met limitations as-is, not repair/release/adoption. Domains source/query/method/host/actual-approval
+    inputs remain separately evidenced for the later increment; provider deployment/allocation stays unresolved,
+    and initial work may proceed without either connector.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-08-01
+  condition: 'The guide integrates and checks Domains receiving/query/admission and freshness requirements
+    from App v4 DEL-08-01 at the relevant guide entry and completeness comparison; actual identified input
+    and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Conditional connector coverage in guide, not a connector availability prerequisite. PEC
+    qualified/released coverage and receiving adoption are required only before covered claim reliance;
+    D108 accepts retained MAJOR/partly-met limitations as-is, not repair/release/adoption. Domains source/query/method/host/actual-approval
+    inputs remain separately evidenced for the later increment; provider deployment/allocation stays unresolved,
+    and initial work may proceed without either connector.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-08-02
+  condition: 'The guide integrates and checks the later research-to-design receiving contribution from
+    App v4 DEL-08-02 at the relevant guide entry and completeness comparison; actual identified input
+    and evidence limits are required.
+
+
+    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
+    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
+    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
+    unclaimed. Conditional connector coverage in guide, not a connector availability prerequisite. PEC
+    qualified/released coverage and receiving adoption are required only before covered claim reliance;
+    D108 accepts retained MAJOR/partly-met limitations as-is, not repair/release/adoption. Domains source/query/method/host/actual-approval
+    inputs remain separately evidenced for the later increment; provider deployment/allocation stays unresolved,
+    and initial work may proceed without either connector.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: doc:docs/HOST_INTEGRATION.md
+  condition: 'Use the identified H §10 host integration checklist as the required comparison basis for
+    guide completeness, read with the qualifications stated in this ScopeOfWork.
+
+
+    Notes: FACT: Explicit comparison input, not a row emitted merely because H is cited. Required identified
+    version and comparison have not been established by this extraction. H itself was not opened; location
+    resolved only from own ScopeOfWork and references.
+
+
+    Target description — TargetName: App v4 host integration basis — HOST_INTEGRATION.md §10; TargetLocation:
+    projects/chirality-app-v4/docs/HOST_INTEGRATION.md'
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'The guide integrates App v4 DEL-01-01''s supplier boundary (native surfaces for optional
+    external access, and the supplier facts on run holds, supplied guidance and model destination that
+    the guide''s human-act, autonomy and host-method entries cite), citing it without performing its acts;
+    actual identified input and evidence limits are required.
+
+
+    Notes: FACT: CLM-003 final sentence (added under SCA-V4-001, C1 S-04-6, edit E-0304-06) states positive
+    consumption by the guide, citing the input without performing its acts. Typed INTERFACE like the register''s
+    other guide-input rows. INITIALIZED is local contract maturity only; actual identified input and fulfilment
+    unclaimed. Design files were not read (SOURCE_DOCS=ScopeOfWork.md). Arc DEL-03-04 -> DEL-01-01 (N-B9;
+    new). UPDATE 20261003 (SCA-V4-003 DX): R-04-1 (S-04-1): Statement and quote refreshed in place; CLM-003''s
+    final sentence now adds the supplier facts on run holds, supplied guidance and model destination,
+    so the prior quote no longer occurs. DEL-01-01 now names DEL-03-04 as a receiver (mirror extracted
+    there). Identity, direction, type, target, maturity and closure unchanged; existing admitted arc N-B9.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-09-06
+  condition: 'The guide integrates App v4 DEL-09-06''s relay questions and recorded SWBPIPE answers for
+    the host-contribution column and its connected-activity contract (step map, staging and evidence ladder),
+    citing them without performing their acts; recorded answers are not commitments, delivery or adoption.
+
+
+    Notes: FACT: CLM-003 final sentence (added under SCA-V4-001, C1 S-04-6, edit E-0304-06) states positive
+    consumption by the guide, citing the input without performing its acts. Typed INTERFACE like the register''s
+    other guide-input rows. INITIALIZED is local contract maturity only; actual identified input and fulfilment
+    unclaimed. Design files were not read (SOURCE_DOCS=ScopeOfWork.md). Arc DEL-03-04 -> DEL-09-06 (N-B10;
+    new). No reverse row (DEL-09-06 -> DEL-03-04, E-5) is implied. UPDATE 20261003 (SCA-V4-003 DX): R-04-2
+    (S-04-2): Statement and quote refreshed in place; CLM-003''s final sentence now adds DEL-09-06''s
+    connected-activity contract, so the prior quote no longer occurs. Identity, direction, type, target,
+    maturity and closure unchanged; existing admitted arc N-B10. DEL-03-04 is not an SCC-002 member, so
+    the DEL-09-06 guard is not engaged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-09-09
+  condition: 'The guide integrates App v4 DEL-09-09''s external trace cases, citing them without performing
+    their acts; actual identified input and evidence limits are required.
+
+
+    Notes: FACT: CLM-003 final sentence (added under SCA-V4-001, C1 S-04-6, edit E-0304-06) states positive
+    consumption by the guide, citing the input without performing its acts. Typed INTERFACE like the register''s
+    other guide-input rows. INITIALIZED is local contract maturity only; actual identified input and fulfilment
+    unclaimed. Design files were not read (SOURCE_DOCS=ScopeOfWork.md). Arc DEL-03-04 -> DEL-09-09 (N-B11;
+    new). No reverse row (DEL-09-09 -> DEL-03-04, E-2) is implied. UPDATE 20261003 (SCA-V4-003 DX): Re-quoted
+    in place only: CLM-003''s final sentence was extended before this clause (R-04-2), so the prior quote
+    no longer occurs; the DEL-09-09 clause is unchanged. Identity, direction, type, target, statement,
+    maturity and closure unchanged; existing admitted arc N-B11.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-03-04 receives this supplier boundary: native surfaces for optional external
+    access; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-09); supplier-side mirror of the
+    consumer row DEP-03-04-021 on an existing arc (ledger R-11-1); no topology change. The sentence states
+    that each receiver declares it upstream in its own register and that none of their acts is transferred
+    here. INITIALIZED is the local contract-maturity default only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-03-04 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-03-04-008 on an existing admitted arc (ledger R2-02-01-a..f); no topology
+    change. The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'App v4 DEL-03-04 receives this slice''s report, recording meanings and transfer contract
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-03-6); supplier-side mirror
+    of the consumer row DEP-03-04-009 on an existing admitted arc (ledger R2-02-03-b..i); no topology
+    change. The receivers sentence spans two quoted fragments ("…received by `DEL-02-01`, … `DEL-05-02`,"
+    / "`DEL-09-02`, … each of which declares it upstream in its own register."). INITIALIZED is local
+    contract maturity only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-02-04
+  condition: 'App v4 DEL-03-04 receives this deliverable''s role-guidance semantics and declares them
+    upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC3-02-04-9); supplier-side mirror
+    of the consumer row DEP-03-04-010 on an existing admitted arc (ledger R3-02-04-a); no topology change.
+    INITIALIZED is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+- from: DEL-03-01
+  condition: 'App v4 DEL-03-04 receives this catalog/read-basis contract (catalog/read-basis definitions)
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-06); supplier-side mirror of the
+    consumer row DEP-03-04-005 on an existing admitted arc (ledger R-01-1); no topology change. The sentence
+    closes "each of which declares it upstream in its own register". INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-03-02
+  condition: 'Supply the operation-contract responsibility map to DEL-03-04.
+
+
+    Notes: FACT; Local contract map is an input to the integrated guide, not guide completion. INITIALIZED
+    denotes checked local contract maturity only; actual technical inputs and adopted distinctions must
+    be present when relied upon. No fulfilment or adoption inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
+- from: DEL-03-03
+  condition: 'Supply this adapter''s external-agent receiving definition and evidence limits to App DEL-03-04
+    (the integration guide), which declares it upstream in its own register.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-08); supplier-side mirror of the
+    consumer row DEP-03-04-007 on an existing admitted arc (ledger R-03-1); no topology change. INITIALIZED
+    is local contract maturity only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies operation-policy and human-act meaning to DEL-03-04, which the source
+    states declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted
+    decisions must be provided.
+
+
+    Notes: FACT: CLM-002 (revised under SCA-V4-001) positively states this policy-meaning supply to the
+    named consumer. Typed HANDOVER and INITIALIZED threshold for consistency with DEP-04-01-012..016;
+    INITIALIZED is only the local contract threshold, not actual policy handoff or receiving implementation.
+    The consumer-side upstream declaration is asserted by this source and was not read here (read boundary).
+    Satisfaction unassessed. UPDATE 20260929 (SCA-V4-002 DX): EvidenceQuote re-quoted exactly, inline-code
+    backticks included (ASC-ISS-008; V12 F1); no other field changed. UPDATE 20261003 (SCA-V4-003 DX):
+    Re-quoted in place: CLM-002''s second supply sentence now also names `DEL-09-06` (SC2-04-01-1), so
+    the prior quote no longer occurs. Identity, direction, type, target, statement, maturity and closure
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-02
+  condition: 'Supply DEL-04-02 visible autonomy state to App DEL-03-04, which the source states declares
+    it upstream in its own register.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-04-02-1); supplier-side mirror
+    of the consumer row DEP-03-04-012 on an existing admitted arc (ledger R2-04-02-a..c); no topology
+    change. Typed HANDOVER like DEP-04-02-019..023. INITIALIZED is local contract maturity only; no receipt
+    or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-03-04,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-03-04-013 on an existing admitted arc (ledger R2-04-03-a..d);
+    no topology change. Typed INTERFACE for consistency with DEP-04-03-029..032; the package rows DEP-04-03-011/-012
+    stay, as the ledger allows. RequiredMaturity=INITIALIZED is the local contract threshold only; actual
+    receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md

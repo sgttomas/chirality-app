@@ -1,0 +1,138 @@
+id: DEL-01-03
+name: Native plans, tools and delegation views
+needs:
+- from: DEL-01-01
+  condition: 'Consume supplied generated native types, selected supplier identity and its qualification
+    evidence from App DEL-01-01 for the native views and pinned fixtures. Missing selected inputs block
+    only the affected implementation or qualification witness.
+
+
+    Notes: FACT: positive supplier-input relationship. INITIALIZED is local contract maturity only; actual
+    native type/version/qualification input availability is unclaimed. OI-012 selected pin remains App
+    implementation owner choice through this supplier before protocol generation/qualification; DEP-005
+    establishes no current version or capability. UPDATE 20261003 (SCA-V4-003 DX): R3-01-03-f: revised
+    TBD-001 (G-0103-10) records that APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D4 selected Codex 0.158.0
+    as the definition and generation pin, not a qualification; qualification remains with the Owner, also
+    the App implementation owner (DECISION-L L-7), through DEL-01-01 (OI-012). REQ-004 now labels experimental
+    supplier surfaces (plan mode at 0.158.0). Identity, direction, type, target, quote, maturity and closure
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Consume actual durable execution and outstanding-request/recovery state from App DEL-01-02
+    to define and implement truthful native presentation seams.
+
+
+    Notes: FACT: CLM-002 names App DEL-01-02 as the execution/recovery-state owner. INITIALIZED is checked
+    contract maturity only; actual execution-state input and implementation availability are not established.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: external:OI-008
+  condition: 'Obtain the App implementation owner process-division choice at affected architecture allocation,
+    retaining main-process session/request ownership.
+
+
+    Notes: FACT: explicitly retained human-owned decision at its stated point of need. This is a point-of-need
+    choice, not a project-wide start gate; its decision/technical availability is unclaimed. Decision
+    artifact/location remains unspecified.
+
+
+    Target description — TargetName: App implementation owner — process-division choice; TargetRefID:
+    OI-008'
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: external:OI-014
+  condition: 'Resolve any shared contract/component placement with the App/shared contract owners against
+    actual consumer responsibilities before allocating corresponding common implementation.
+
+
+    Notes: FACT: explicitly retained human-owned decision at its stated point of need. Conditional on
+    common implementation allocation; no new shared construction or fixed registry/checker/UI reuse is
+    authorized. Decision artifact/location remains unspecified.
+
+
+    Target description — TargetName: App/shared contract owners — shared contract/component placement;
+    TargetRefID: OI-014'
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: external:OI-001;OI-002
+  condition: 'For this scope the always-reserved acts and classifier permissions are decided by APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2 (reserved acts) and D3 (routine tool permission is the person''s own Codex setting); beyond this
+    scope they remain with the owner and affected App/SWB contract owners (OI-001/002, rows OPEN) before
+    the affected operation-policy contract or permission implementation.
+
+
+    Notes: FACT: explicitly retained human-owned decision at its stated point of need. Scoped policy-choice
+    constraint; source-grounded truthful-actor presentation can proceed. No blanket reserved-act list,
+    classifier default, acceptance-first ordering or fabricated professional-reliance act. Decision artifact/location
+    remains unspecified. UPDATE 20261003 (SCA-V4-003 DX): R3-01-03-e: re-quoted in place after TBD-003
+    was revised (the prior quote "Exact always-reserved acts … (OI-001/002), …" no longer occurs). Refreshed
+    to the residue beyond this scope: OI-002 is recorded as ruled for this scope by D3 (and OI-001 by
+    D2); the revised text keeps both open beyond it, so the row is kept as one combined row and noted
+    rather than split or retired (the ledger leaves split/retire or note to extraction). Identity, direction,
+    type, target, maturity and closure unchanged; no arc.
+
+
+    Target description — TargetName: Owner and affected App/SWB contract owners — reserved acts and classifier
+    permissions; TargetRefID: OI-001;OI-002'
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: external:OI-006
+  condition: 'Obtain the owner further-fleet-scope choice during FEED before defining its corresponding
+    production contracts, if that further scope is pursued.
+
+
+    Notes: FACT: explicitly retained human-owned decision at its stated point of need. Conditional further-scope
+    constraint only. Current native delegation visibility and the existing PKG-06 receiving interface
+    remain included; no additional fleet feature or external-host completion gate. Decision artifact/location
+    remains unspecified.
+
+
+    Target description — TargetName: Owner — further fleet management scope; TargetRefID: OI-006'
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'Supply selected-version identity/verification and native plan/revision information at the
+    supplier seam to the App v4 DEL-01-03 presentation receiver; registry/checker implementation remains
+    a choice.
+
+
+    Notes: FACT: Positive receiving statement, not an edge inferred from the exclusion inventory. INITIALIZED
+    is the local contract-maturity default only; actual supplier-boundary artifacts and any candidate
+    qualification/receiving evidence remain required and unclaimed. Receiving production ownership is
+    unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Serve App v4 DEL-01-03 with the durable execution and outstanding-request/recovery interfaces
+    this slice owns; the receiving presentation stays with DEL-01-03.
+
+
+    Notes: FACT: supplier-side mirror of the consumer row DEP-01-03-012 on an existing admitted arc (ledger
+    R3-01-02-a, F0 M-1); no topology change. The quoted clause also covers DEL-01-04 (existing row DEP-01-02-019)
+    and DEL-09-02. This deliverable consumes nothing from DEL-01-03 (R17-10 guard). INITIALIZED is the
+    local contract-maturity default only.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: package:PKG-06
+  condition: 'Provide native delegation identities and visible descendant activity to the PKG-06 fleet
+    receiving interface, without inferring descendant return, review, integration or joined-fleet completion.
+
+
+    Notes: FACT: positive native-identity handoff at the named package interface. No particular PKG-06
+    deliverable is named as receiver here; do not invent a deliverable edge or a fleet-completion gate.
+
+
+    Target description — TargetName: File-based fleet coordination; TargetRefID: PKG-06; TargetLocation:
+    projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-06'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md

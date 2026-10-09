@@ -1,0 +1,142 @@
+id: DEL-06-02
+name: Return, waiting and human-decision workspace
+needs:
+- from: DEL-06-01
+  condition: 'Consume the versioned bounded brief/current undertaking work-graph records and native-delegation
+    associations from DEL-06-01 to derive return, waiting and ownership views.
+
+
+    Notes: FACT: Native running observations retain their own subject and never prove review/integration.
+    Actual identified record contract and file inputs are needed for dependent view implementation. INITIALIZED
+    is the local contract threshold only; the stated actual input/handoff remains separately required
+    and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the adopted operation-policy and human-act distinctions applicable to each exposed
+    act; unresolved choices stay with their owners at their stated points of need.
+
+
+    Notes: FACT: CLM-002 identifies DEL-04-01 as the adopted policy contract owner. No reserved list,
+    classifier default or blanket project hold is inferred. INITIALIZED is the local contract threshold
+    only; the stated actual input/handoff remains separately required and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Consume the content-bound decision/run record format and owning reader/writer interface;
+    actual view and witness inputs must preserve content/scope/purpose, actor versus recorder and changed-content
+    lapse.
+
+
+    Notes: FACT: CLM-002 identifies DEL-04-03 as the format/reader/writer owner. A contract file does
+    not supply actual human evidence; each act keeps independent standing without a synthetic acceptance
+    prerequisite. INITIALIZED is the local contract threshold only; the stated actual input/handoff remains
+    separately required and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:Host owners — receipts and offered/recorded/presented human-act interfaces
+  condition: 'Receive applicable host receipts and offered/recorded/presented human-act interfaces through
+    their identified owning contracts when used by the view; do not infer a specific host deployment.
+
+
+    Notes: FACT: External host-owned contribution; exact host/interface identity remains unresolved in
+    this local source. Host construction and actual acts are not claimed. Absence does not prevent independent
+    file-native behavior.
+
+
+    Target description — TargetName: Host owners — receipts and offered/recorded/presented human-act interfaces;
+    TargetLocation: ScopeOfWork.md#Deliverable Definition — Ontology / CLM-002'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:Person performing the attributable human act — VER-004 positive witness
+  condition: 'For the positive faithful-recording verification case, obtain evidence of an actually performed
+    human act with its actor distinct from the recorder and its content-bound record; preserve independent
+    acts without inferred ordering.
+
+
+    Notes: FACT: Point of need is the positive VER-004 witness, not every implementation step. Actual
+    person identity and evidence remain to be supplied. Negative no-human-evidence cases are separately
+    required; software success cannot fabricate the act.
+
+
+    Target description — TargetName: Person performing the attributable human act — VER-004 positive witness;
+    TargetLocation: ScopeOfWork.md#Production and Verification Method — Praxeology / VER-004'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:OI-001
+  condition: 'Obtain the operation/consequence-specific reserved-act choice before the affected operation-policy
+    production contract; only a concrete unruled operation waits for its applicable ruling.
+
+
+    Notes: FACT: Actual owner ruling remains pending/unclaimed; truthful view definition and independently
+    supported work continue. Policy contract definition does not perform this choice; host policy ownership
+    is retained by CLM-002.
+
+
+    Target description — TargetName: Owner with App/SWB contract owners — reserved-human-act choice; TargetRefID:
+    OI-001; TargetLocation: ScopeOfWork.md#Governing Values and Decisions — Axiology / TBD-001'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:OI-002
+  condition: 'Resolve App/host treatment distinguishing routine tool permissions from professional acts
+    before dependent permission-policy implementation.
+
+
+    Notes: FACT: No classifier behavior is selected; this is a point-of-need decision, not a blanket hold
+    on file-native work.
+
+
+    Target description — TargetName: Owner with App/SWB contract owners — classifier routine-permission
+    choice; TargetRefID: OI-002; TargetLocation: ScopeOfWork.md#Governing Values and Decisions — Axiology
+    / TBD-002'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: external:PEC owning project / OI-022 / DEP-002
+  condition: 'Before operational reliance on covered PEC consumer claims, obtain the first consumer questions,
+    exact response/tool contract, coverage/freshness/limits, no-response fallback and release/adoption
+    evidence from the PEC/App receiving owners.
+
+
+    Notes: FACT: Conditional future consumption only, through the identified adopted interface; PKG-07
+    owns App receiving/qualification and no exact local DEL is inferred. File-native views proceed with
+    PEC absent/limited. D108 accepts limitations as-is and proves neither repair, readiness, release nor
+    adoption. No provider construction is authorized.
+
+
+    Target description — TargetName: PEC owning project with App consumer owner — conditional adopted
+    receiving envelope; TargetRefID: PEC owning project / OI-022 / DEP-002; TargetLocation: ScopeOfWork.md#Governing
+    Values and Decisions — Axiology / TBD-004'
+  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
+- from: DEL-06-01
+  condition: 'Supply source coordination files to DEL-06-02 for return-review, waiting-cause and prepared
+    decision-package views; preserve actual ownership and separate returned, reviewed and integrated standing.
+
+
+    Notes: FACT: CLM-003 states the consumption. INITIALIZED is the consumer contract threshold only;
+    actual versioned source files are the handoff. A returned artifact does not establish manager review/integration.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-07-02
+  condition: 'Hand off the source-file recovery route to DEL-06-02 fleet views when those views are available;
+    file reconstruction continues without them.
+
+
+    Notes: FACT; INITIALIZED is only local contract maturity; actual technical input remains required
+    at its stated point of need and is not established by this extraction. CLM-003 resolves fleet return/waiting/decision-view
+    ownership to DEL-06-02. Conditional downstream handoff only; no fleet implementation readiness or
+    upstream start gate.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/decision_view.rs

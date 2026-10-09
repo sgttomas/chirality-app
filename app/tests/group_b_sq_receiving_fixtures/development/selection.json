@@ -2,7 +2,7 @@
   "format": "sq-exp-receiving-selection.v1",
   "purpose": "current_producer_declaration",
   "support": {
-    "declaration_sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248",
+    "declaration_sha256": "06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701",
     "support_identity": {
       "exp_version": "EXP-v0.2",
       "schema_ids": {
@@ -10,7 +10,7 @@
         "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
         "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
       },
-      "prototype_sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+      "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
     }
   },
   "candidate": {
@@ -33,11 +33,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-1.json",
-        "sha256": "64bb8e229d6d54d96a53570a649076c44453cf8b00e49c157cf7faef805caa3d"
+        "sha256": "deba1e55cc3ea94d9746de08b9d2598207a4d79c1948adeed06877ad05f737e4"
       },
       "binding": {
         "path": "result-J-1.binding.json",
-        "sha256": "c862a26fd55954098c59ebaa47fe02376b7caf5e80eb2dde60d53abb6b21679e"
+        "sha256": "91ba3eaa6ea711c6d019f8dbaecd3d4ed4bfdbfd1fd9a528e72becf30e265ba7"
       }
     },
     {
@@ -45,11 +45,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-2.json",
-        "sha256": "84408b2f9ed6914e13426ad61bb932d772e53894d180264635ea56b0bc245525"
+        "sha256": "82fd7815a3daf9e0852bff97e8d7f770bb8f981633ee5ec636fe1262337a1c94"
       },
       "binding": {
         "path": "result-J-2.binding.json",
-        "sha256": "79fc1b5d28eafcb4186a4a537c51e00f1803835a155e89eebda0af8b3c07ec33"
+        "sha256": "a0d0af28a2bdb84033eadc7a527b88d4c7e9d50030d2b9eec9ad225a3791d93a"
       }
     },
     {
@@ -57,11 +57,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-3.json",
-        "sha256": "4679f4ff682654467d7d44bf8bde037095f5e58787ddcd0045e2217e6fa82b4c"
+        "sha256": "904a9229ef0670137d1fc735475711e7ef15f6e78100316ea4e1886e6c092fc2"
       },
       "binding": {
         "path": "result-J-3.binding.json",
-        "sha256": "b69367d5755c947b46adcb84ca4f5988fb2d9d594df7083fb1c3f0f9355b00c1"
+        "sha256": "6643f9d3b7aff64b70e8831d2a4931dc48ff34be20a42288c30a1358dae5113c"
       }
     },
     {
@@ -69,11 +69,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-4.json",
-        "sha256": "ddcdfed35b3f1b99c8bbc36391ad585753feea4e578ca2f080470888042237e1"
+        "sha256": "3a7ca26c40f1fab8e5cd24cd74d079a3cc2731f2411f62d812e8a2f2beec716b"
       },
       "binding": {
         "path": "result-J-4.binding.json",
-        "sha256": "d3564017717298dcd01e9d48537338797b4dd4a0e0c6f7214b506b3a5fa655f7"
+        "sha256": "80851922b80f9ab4a88f8cf43c09798152b5c3944b5d246c35f090cdbf42ccdc"
       }
     },
     {
@@ -81,11 +81,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-5.json",
-        "sha256": "f0c8a18c508687367f6e7983efada7d4f197bf8643bafbac585e50201b244770"
+        "sha256": "234e37ce0599a909e4f28979e3049b043ffe402711f3d3223670bbae7e1f61dd"
       },
       "binding": {
         "path": "result-J-5.binding.json",
-        "sha256": "02e4b20636f9043eb7eb50eccfdf5a75e3998bd82ac66238575bab94a396217f"
+        "sha256": "ed5829a180dc043afc644705cd72f3270df35f0bb33114be5c514a1fac72aec3"
       }
     },
     {
@@ -93,11 +93,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-6.json",
-        "sha256": "ee360997c7b4246a4ba5786d643a94f7cb7ff1f9d2b219dc29cbf3212f5b8d33"
+        "sha256": "b51ac8c4f3a636ce82f87ca86ef1ebf52be19b8a67a7e5f694fe23bcff2ebf60"
       },
       "binding": {
         "path": "result-J-6.binding.json",
-        "sha256": "a2baede2a6b057638f990de766dbbd7478fa769bbb8927f91fa4e4532f7a6955"
+        "sha256": "b78fb0c6ab67897049bd9489c044d1946778ec6c0492a2c4a9d8f362948fd8f5"
       }
     },
     {
@@ -105,11 +105,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-7.json",
-        "sha256": "e9081f7305edffd68b28fe2e25b50caf73ee80a8f4a4cbab15d5398ab1223669"
+        "sha256": "d718a37414446218f2fcffe481ac857e730973378f39bac73779d762cedf72ef"
       },
       "binding": {
         "path": "result-J-7.binding.json",
-        "sha256": "f955d07a73fc7b371a724467a3ee3449c6b1e7ff03db98d37251e6fa45024fc6"
+        "sha256": "478c210715a0c88830fc86244b0b12a3c2d9354a934266098180e1aa0608b2af"
       }
     },
     {
@@ -117,11 +117,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-8.json",
-        "sha256": "51eb143b2146641746ecc1e3da148e1652b1fb1eef886dd10d3593c643084229"
+        "sha256": "7989eb32a6af209705f332ae1d9e1007ed6b8188da47afdd82ff647e0e904e26"
       },
       "binding": {
         "path": "result-J-8.binding.json",
-        "sha256": "779391bbc5aef1093a5a838fe446241ab16e60941145b82569ff10372f4e5a72"
+        "sha256": "6eec9bad3c48a8066a4f360797e60622c09cdbfba3bb4b76bb64b8d8554515ee"
       }
     },
     {
@@ -129,11 +129,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-8R.json",
-        "sha256": "acfc6554d21506117fb0d0cd72d161f1a3baedc3e623e3336ef04763675c8ea5"
+        "sha256": "163f54355f9ad67ff14365ac8132626914819208960d889858ec4a8875576249"
       },
       "binding": {
         "path": "result-J-8R.binding.json",
-        "sha256": "22fbb86449753e59822da95ad029bcd343a7446f08b049d122aca4eaf9ccaf05"
+        "sha256": "f5bdfed7697e8794b33bfea9dff353efe709c7235dd9a376bc35363b2113e629"
       }
     },
     {
@@ -141,11 +141,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-9.json",
-        "sha256": "93fda0ece64b03a9cdeefe9f5764cef698867601fad0d40aab218a387c064bed"
+        "sha256": "c85a98dda31393ca1a0c17f8807b8930bf598384d9e4d5dac01b49db9f4cfe36"
       },
       "binding": {
         "path": "result-J-9.binding.json",
-        "sha256": "0fede615e11828e06c5c1eb01ba02c59dcd22855cb99bb30768e26ed73622747"
+        "sha256": "9f88c7feba5308ca6407e1a926439bec87cd343cd9a86839e5514f5890dbd02f"
       }
     },
     {
@@ -153,11 +153,11 @@
       "kind": "result",
       "record": {
         "path": "result-J-9R.json",
-        "sha256": "c56867bfdcc3e5b03921e38d5233399d796bef21379d5ae32a456aeb2166d34b"
+        "sha256": "4c2323f4aa2dcedb505e113a5e0221f74640286c72ee1ab200c280520b1850e5"
       },
       "binding": {
         "path": "result-J-9R.binding.json",
-        "sha256": "0f592e0f095f23b5098077aac1ebe4d5bd5a741567ea6d0c1be7a5816ab02083"
+        "sha256": "698a26918bbc479b8f07dcdad025b2e0311c461a338d70e1eeb408bbe33252fc"
       }
     },
     {
@@ -165,11 +165,11 @@
       "kind": "result",
       "record": {
         "path": "result-S11-1.json",
-        "sha256": "3fd7ddcf92297813a1ecbdda5a557ca0a22a0cffdabc24e51dd35f2686c0c979"
+        "sha256": "fa1a1bd0b7a2c99d59e27e4ec4d4a8a8445fac0c05afb792148239d069708dd6"
       },
       "binding": {
         "path": "result-S11-1.binding.json",
-        "sha256": "61ff3417eeb0c30d8e6f89450efe2444bd63145d95fd716c35c16dc5af71fe47"
+        "sha256": "d655bb53b1eb69df98fb778b2ec0fb66df22252edd8d3ed8189864a91783b13e"
       }
     },
     {
@@ -177,11 +177,11 @@
       "kind": "result",
       "record": {
         "path": "result-S11-2.json",
-        "sha256": "661b3ab1bbc509d125ec1aed745f3e76c3b6935373c6eea05bf3bd38a7428424"
+        "sha256": "b9a4f38b9f5f054fdf8e27ced10bc67398092b0320bd2f46f33fd5f471d7fb42"
       },
       "binding": {
         "path": "result-S11-2.binding.json",
-        "sha256": "a473346f8df4616dd6e23ff3df5ae6cfcc18737b3bbffe8ffb31c1dbe9a68a74"
+        "sha256": "434a5c25688b64345495124863fe6a03fdcb16dc2bb0fd395087cb2be7051cf5"
       }
     },
     {
@@ -189,11 +189,11 @@
       "kind": "result",
       "record": {
         "path": "result-S11-3.json",
-        "sha256": "86de1442277d2debf8370ea6014e9fd5615d8e6e34a646c2bfd6782ba2d9a201"
+        "sha256": "c3f6a4c767ecda0b1dae362352437c89100dc60ff045c21af91c9453a94a2176"
       },
       "binding": {
         "path": "result-S11-3.binding.json",
-        "sha256": "562623283da9a268ded0c8ef71f934025a6db4b8d9e71fc5550e81fc29e101d8"
+        "sha256": "3cc8fb4e7ab1f903bfcd3a730912a7663e5c1a02bbb1719aaa9f5327f349b5cb"
       }
     },
     {
@@ -201,11 +201,11 @@
       "kind": "result",
       "record": {
         "path": "result-S11-4.json",
-        "sha256": "87978a12b1f67d675b482ae78cf240266ed3ad952ec40941cf7bc8841a29b7a3"
+        "sha256": "c2d0e12dcc1910ed648bccdb2e44d70ace225e43c35759a6aad035d2fb7f7c2e"
       },
       "binding": {
         "path": "result-S11-4.binding.json",
-        "sha256": "cb1ed2a824b711f5e81b82056043bd41b6372b42f65fc30a7b78cf9900ba3519"
+        "sha256": "f2689121533db776aed408cb247c279df383c15e6312e9febbce38768f838982"
       }
     },
     {
@@ -213,11 +213,11 @@
       "kind": "result",
       "record": {
         "path": "result-S11-5.json",
-        "sha256": "1faf5d7dc59c22b6b7cae225bd5d7f2e29e1c5d145a08f5671815a066480c1d4"
+        "sha256": "079a2a1a0f254b1a75887247af38178c400f3bc822e384602f1c9738558f3ba0"
       },
       "binding": {
         "path": "result-S11-5.binding.json",
-        "sha256": "0fae2a21399e070969317c2ac53aab9d191d5da206f72c630593c088d2399adc"
+        "sha256": "e53e464be16bc95aa7a6ffcb7e1cc70ef1dc3055ed609f9aa898318b22f85247"
       }
     },
     {
@@ -225,11 +225,11 @@
       "kind": "result",
       "record": {
         "path": "result-S11-6.json",
-        "sha256": "6ed139128c867d957e123ac4a8029ef07d769ace0a0b0c7122a5947bb392bd37"
+        "sha256": "8aceb8e84192b8adbadcfa5204b8ed33d56e2802611a448a23ea3c38dcd7d2b6"
       },
       "binding": {
         "path": "result-S11-6.binding.json",
-        "sha256": "a07cbc1d314b4f3fafbb2c09ec95e44e197f63bf92f47312fd69d1f5096d44e7"
+        "sha256": "909ca8e3ea68779411bafa1bc421c93a37bc4e67334a16936a20d54d1a6ed8fd"
       }
     },
     {
@@ -237,11 +237,11 @@
       "kind": "result",
       "record": {
         "path": "result-M12-1.json",
-        "sha256": "39413d05bf7b4136e42891fb95a4debccb037c808ddcda8ff47185baef8e3c8d"
+        "sha256": "eeaccf70d95fdc47741c38234f50110eadb7662d01aa57df9b347bf91c0dad7c"
       },
       "binding": {
         "path": "result-M12-1.binding.json",
-        "sha256": "0c761681dfad71ff5714055d6dc339793c497ca9277afc0488767ad979585c6c"
+        "sha256": "fd5a2ac8bdc1b3b4769b848cad56b3add2e47e39da8ba30a989506329ad0715a"
       }
     },
     {
@@ -249,11 +249,11 @@
       "kind": "result",
       "record": {
         "path": "result-M12-2.json",
-        "sha256": "0f21f1926d853acef8f426d52b27b9f81a36d8a5193f4ca4ed385ad5f9a7ccea"
+        "sha256": "98fb8910900cfe6f2ae3c24f04235b379f5deaa24551468e6dcd21fd96b9b5b4"
       },
       "binding": {
         "path": "result-M12-2.binding.json",
-        "sha256": "e46130429274bc594fd3ee6c4ad0014ba914577a161af52e8e576e1b74cbd086"
+        "sha256": "ef2302af965f1775041b7305db8e183f050ab1b6a64d6239adbfe0ed7a0b5ab1"
       }
     },
     {
@@ -261,11 +261,11 @@
       "kind": "result",
       "record": {
         "path": "result-M12-3.json",
-        "sha256": "96eb88ce80ae96bb03e4fd7d29d16b4ed1f0a42b2ebf2b0a06de5ce26417b7c1"
+        "sha256": "a75ab52a815cbc86ebe38d363e6b1b513466428ebaebd68a2c747224391c488b"
       },
       "binding": {
         "path": "result-M12-3.binding.json",
-        "sha256": "c364bd4bf58ec72981f48570ca9effda800fd0e665192fd8c9b4ad78bc57cbb9"
+        "sha256": "0d4dda60aafaefffa0f30de7ac20741b939be76d0f8daaa133338f690b5c7849"
       }
     },
     {
@@ -273,11 +273,11 @@
       "kind": "result",
       "record": {
         "path": "result-M12-4.json",
-        "sha256": "1e1c0480a569d598d3510d7e24037c73f762971927d35fb47787aa162bc4b6cf"
+        "sha256": "66fbf65f13a302a4440efe2d2f79a4e9c65221321028bc3f0480b7fba50fb7ba"
       },
       "binding": {
         "path": "result-M12-4.binding.json",
-        "sha256": "4ccab16df1cfa8cb552ddad80a9f0f3fa769e737b88eb087c378b979b945054f"
+        "sha256": "10b39a3fade7a16f317502f21b42b173fae48c172f3ae5921c04e13706dcc0f9"
       }
     },
     {
@@ -285,11 +285,11 @@
       "kind": "result",
       "record": {
         "path": "result-M12-5.json",
-        "sha256": "242562946829b0c3e4e4ff839ba5206e4adef07d0ceacfc6afb5456a121d9dc9"
+        "sha256": "cc604a4c9a01f6ebb9a1a237b67c872cf71a158eabf5a2e7369f4ad3c2c4d43e"
       },
       "binding": {
         "path": "result-M12-5.binding.json",
-        "sha256": "5ce162d283cc58f5becfccf71b348f7bd37df93e870e8a7d3437c40f14946d77"
+        "sha256": "80a0c996a026b55451bfa2919eb0a6a0fbd3cbd8e474ece6d2b0ed3f3ed57001"
       }
     },
     {
@@ -297,11 +297,11 @@
       "kind": "result",
       "record": {
         "path": "result-M12-6.json",
-        "sha256": "caf8a210d5af7b70d1603b66fe681d86d6a309b427166d6fe9e1b2831b59d5e9"
+        "sha256": "0887626ffd92d5b217df853c7eebe182758e7c1236945c4315608b3874f8db6c"
       },
       "binding": {
         "path": "result-M12-6.binding.json",
-        "sha256": "20f0b385fcff4ce32af1ccca34fc4fc41a6a2cdc62382a9fbc827b030ae03232"
+        "sha256": "c1fdd33a5225a7d93dd178fcb9f0affa27f4da48fe049445e40009d8447da414"
       }
     },
     {
@@ -313,7 +313,7 @@
       },
       "binding": {
         "path": "review.binding.json",
-        "sha256": "133fba96c617757160527e6ce5bd067383716af17ce206e07fb48fe2912f1ea2"
+        "sha256": "6c539e0450099b32da5e83e6b94a2933649df2725e4fa5d01536edb1e937d209"
       }
     }
   ],

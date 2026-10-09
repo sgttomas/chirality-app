@@ -15,7 +15,7 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-DECLARATION_SHA256 = 'abc7142f3c8ec6b42ee70fd5ccdbe5a2688683608b21f735211217b9e32aad44'
+DECLARATION_SHA256 = 'c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92'
 SCHEMA_SHA256 = 'aeda3b2d3e98b94ba3823dfadb3bad4f14e5b73c00da62b19c5e32aab8c431b0'
 KINDS = {'before': 'result', 'after': 'result', 'rerun': 'result',
          'review': 'review', 'change': 'change', 'package': 'package'}

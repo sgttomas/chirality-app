@@ -16,8 +16,8 @@
     "sourceRevision": "5c9aabcfb400bab3ef1e283362dc378414621da7"
   },
   "exchange_sha256": {
-    "selected": "81dc753b49d58abc6ec976f5ec5221dc8eb970eb0b8d8432e43afe64ed7e3402",
-    "unselected": "2aae7c973b0841d7ce43c684466cbfa1fcc0ebc971d46a00b1a919aa95daa55a"
+    "selected": "9585bb541b67c35573b5a33948527cdf39c79c8e01c1d593c519e7da84ea64ae",
+    "unselected": "4629561f8337e5db8a9384f79f3d0fe2c368ecb2231c036d16fc7d896fe97489"
   },
   "predecessor_export_source": "b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0",
   "standing": "Actual synthetic LT09 exports from LT23-capable source; no terminal evidence or authority",

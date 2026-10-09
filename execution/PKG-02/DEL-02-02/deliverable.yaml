@@ -1,0 +1,231 @@
+id: DEL-02-02
+name: Workflow-making workspace and registration
+needs:
+- from: DEL-01-03
+  condition: 'Receive native plans, revisions, tool and delegation presentation from DEL-01-03 for the
+    standalone workflow-making join; actual native contribution is required for dependent behavior.
+
+
+    Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
+    only; the stated technical contribution and its actual receipt/use remain unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-01-04
+  condition: 'Receive native requests, outcomes, attachments, the draft-UI receiving interface and the
+    App act control that captures registration (with its capture evidence) from DEL-01-04; actual supplied
+    content and native transitions remain required, and the person performs the registration act.
+
+
+    Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
+    only; the stated technical contribution and its actual receipt/use remain unverified. UPDATE 20261003
+    (SCA-V4-003 DX): SC3-02-02-6 (F0 ST-2): Statement extended with the App act control and capture evidence
+    (CLM-002; REQ-002 "Explicit registration is performed by the person through the App act control of
+    `DEL-01-04`"). Pairs with DEP-01-04-010. Quote unchanged and verbatim. Identity, direction, type,
+    target, maturity and closure unchanged; existing held arc.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'Receive the portable declaration and shared-allocation contract from DEL-02-01 to define
+    receiving joins before dependent behavior; preserve unresolved placement rather than presume common
+    construction.
+
+
+    Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
+    only; the stated technical contribution and its actual receipt/use remain unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'Receive capability/checkpoint execution and round-trip support from DEL-02-03 for the standalone
+    workspace join, preserving missing capability, required checkpoint and unknown-outcome conditions;
+    for each run DEL-02-03 starts, this workspace composes the run-start text (and the App-written run-end
+    line), records its content identity and checks it against Codex''s history.
+
+
+    Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
+    only; the stated technical contribution and its actual receipt/use remain unverified. External host
+    execution remains with its external host owner; local receiving fixtures are not a live external round-trip
+    claim or blanket standalone gate. UPDATE 20261003 (SCA-V4-003 DX): SC3-02-02-9 (D5 R2.4): Statement
+    extended with the run-start text, its identity and the supply check (CLM-003). Quote unchanged and
+    verbatim. Identity, direction, type, target, maturity and closure unchanged; existing held arc.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'Consume the adopted operation-policy and human-act distinctions carried by DEL-04-01, including
+    the wording and kind of the registration act (A15, register workflow revision) the person performs
+    through DEL-01-04''s App act control; unresolved classes remain for the owner and host policy owner
+    at their stated points of need.
+
+
+    Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
+    only; the stated technical contribution and its actual receipt/use remain unverified. The settled
+    reviewed-registration rule is already usable; no blanket project hold or invented ordering of acts
+    follows. UPDATE 20260929 (SCA-V4-002 DX): revised TBD-001 (SOW_REVISIONS F-0202-01) records OI-001/OI-002
+    as ruled for the first increment''s App/shared contracts by APP-V4-FIRST-INCREMENT-20260928-DECISION-1
+    D2/D3, with broader operation-level reserved-act decisions D2 does not cover remaining with the owner
+    and affected App/SWB contract owners (PointOfNeed "Before operation-policy production contracts")
+    and operation-specific additions under OI-021; the quoted consumption sentence is unchanged. Identity,
+    direction, type, target, quote, maturity and closure unchanged. UPDATE 20261003 (SCA-V4-003 DX): SC3-02-02-7
+    (F0 ST-3; pass-2 C1-A note B4 §7): Statement names A15. Note on wording: "A15" (register workflow
+    revision) is the act-kind label DEL-01-04 REQ-008 and the accepted ledger use; this ScopeOfWork describes
+    the act (the person''s explicit registration through DEL-01-04''s App act control, bound to the exact
+    reviewed content) without the label. Quote unchanged and verbatim. Identity, direction, type, target,
+    maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'Receive content-bound decision and compact run-record behavior from DEL-04-03, including
+    the record kind for the registration act (A15) bound to the exact reviewed content, for truthful review/registration
+    presentation binding actual actor, content, scope and purpose.
+
+
+    Notes: FACT: explicit local source information flow. INITIALIZED requires a checked local contract
+    only; the stated technical contribution and its actual receipt/use remain unverified. Records do not
+    create human acts; host-supplied receipts and actual acts retain their own source and evidence. UPDATE
+    20261003 (SCA-V4-003 DX): SC3-02-02-7 (F0 ST-3; pass-2 C1-A note B4 §7): Statement names A15 and its
+    run-record (RS) kind. Note on wording: "A15" (register workflow revision) is the act-kind label DEL-01-04
+    REQ-008 and the accepted ledger use; this ScopeOfWork describes the act (the person''s explicit registration
+    through DEL-01-04''s App act control, bound to the exact reviewed content) without the label. Quote
+    unchanged and verbatim. Identity, direction, type, target, maturity and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Consume DEL-01-02''s definitions of ending a run (distinct from interrupting a turn or stopping
+    Codex) and its App-start reconciliation event for chained runs and interrupted registration attempts;
+    this workspace does not define them.
+
+
+    Notes: FACT: new consumer row (ledger NR-04; D5 NR-1; R22-4; grounded by P1-03). The same sentence
+    ends "this workspace consumes those definitions and that App-start event and does not define them."
+    New admitted arc DEL-02-02 → DEL-01-02: DEL-01-02 reaches only DEL-01-01, DEL-01-05 and DEL-04-01,
+    none in SCC-002, so the admitted layer stays acyclic (ARC_EFFECT §2); R17-10 holds (DEL-01-02 is the
+    supplier). DEL-01-02 declares the supply in its own revised CLM-001 (mirror extracted there). INITIALIZED
+    is local contract maturity only; the definitions'' actual receipt is unverified.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-01-02
+  condition: 'Serve App v4 DEL-02-02 with the definitions of a turn interrupt, a run end and a Codex stop,
+    and App-start reconciliation; DEL-02-02 declares the consumption upstream.
+
+
+    Notes: FACT: supplier-side mirror of the new admitted arc DEL-02-02 → DEL-01-02 (NR-04), whose consumer
+    row is extracted from DEL-02-02''s revised ScopeOfWork in this run; the sentence states that each
+    receiver declares it upstream in its own register. Ledger R3-01-02-h. This deliverable consumes nothing
+    from DEL-02-02 (R17-10 guard: DEL-01-02 is a supplier only). INITIALIZED is the local contract-maturity
+    default only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-01-03
+  condition: 'Supply local native plan/tool interaction to App DEL-02-02 for its complete workflow-making
+    journey; joined integration remains with the workflow-experience integration owner.
+
+
+    Notes: FACT: positive receiving contribution, not inferred from the REQ-007 exclusion list. INITIALIZED
+    refers only to the receiving local contract; delivered local views and complete workflow-making qualification
+    are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+- from: DEL-01-04
+  condition: 'Supply native attachment and draft-transition receiving interactions, together with the
+    receiving contract, and the App act control that captures workflow registration (A15), to App DEL-02-02
+    for its complete workflow-making workspace; the registration that follows is DEL-02-02''s operation.
+
+
+    Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical
+    input/usable interface and applicable candidate evidence remain separately required and receipt is
+    unverified. Distinct outgoing native contribution and incoming workflow-state interface; local fixtures
+    do not qualify the full joined workflow journey. UPDATE 20261003 (SCA-V4-003 DX): SC3-01-04-9 (F0
+    ST-1): Statement extended with the App act control capturing A15 (CLM-004, REQ-008 "It is used by
+    DEL-02-02 (A15)"); this row already mirrors the held arc DEL-02-02 → DEL-01-04 (DEP-02-02-013), so
+    REQ-008 adds no new row. Quote unchanged and verbatim. Identity, direction, type, target, maturity
+    and closure unchanged.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-02-01
+  condition: 'App v4 DEL-02-02 receives this portable workflow/role/checkpoint contract and shared allocation
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-01-2); supplier-side mirror
+    of the consumer row DEP-02-02-014 on an existing held arc (ledger RP1-MX-0201); no topology change.
+    The CLM-002 ownership list alone remains a non-edge. INITIALIZED is local contract maturity only;
+    no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-02-03
+  condition: 'App v4 DEL-02-02 receives this slice''s report, recording meanings and transfer contract
+    and declares it upstream in its own register; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (SC2-02-03-6); supplier-side mirror
+    of the consumer row DEP-02-02-015 on an existing held arc (ledger RP1-MX-0203); no topology change.
+    The receivers sentence spans two quoted fragments ("…received by `DEL-02-01`, … `DEL-05-02`," / "`DEL-09-02`,
+    … each of which declares it upstream in its own register."). INITIALIZED is local contract maturity
+    only; no receipt or closure is claimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-04-01
+  condition: 'DEL-04-01 supplies the distinction of the registration act (A15: a person''s act with its
+    own actor, subject and evidence) to DEL-02-02, whose registration it governs; it consumes nothing
+    from DEL-02-02.
+
+
+    Notes: FACT: REQ-002 (revised under SCA-V4-003, SC2-04-01-4; optional item accepted under Q-11) positively
+    states the supply and ends "it consumes nothing from either"; supplier-side mirror of the consumer
+    row DEP-02-02-016 on an existing admitted arc (ledger RP1-MX-0401); no topology change. DEL-04-01
+    gains no supplier. INITIALIZED is only the local contract threshold.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-02-02,
+    which the source states declares it upstream in its own register.
+
+
+    Notes: FACT: REQ-005 (revised under SCA-V4-003, SC2-04-03-1) names this consumer of the record meaning;
+    supplier-side mirror of the consumer row DEP-02-02-017 on an existing held arc (ledger RP1-MX-0403);
+    no topology change. Typed INTERFACE for consistency with DEP-04-03-029..032; the package rows DEP-04-03-011/-012
+    stay, as the ledger allows. RequiredMaturity=INITIALIZED is the local contract threshold only; actual
+    receipt/fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md

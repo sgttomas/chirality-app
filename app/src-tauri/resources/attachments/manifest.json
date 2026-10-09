@@ -1,19 +1,19 @@
 [
   {
     "file": "nir.attachment-supply-record.example.invalid.json",
-    "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/nir.attachment-supply-record.example.invalid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/nir.attachment-supply-record.example.invalid.json",
     "sha256": "835cd85dcbed2f7c176e3750f430e75a183495a88d9fd2bf19302f097ef87da6",
     "kind": "design_fixture"
   },
   {
     "file": "nir.attachment-supply-record.example.valid.json",
-    "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/nir.attachment-supply-record.example.valid.json",
+    "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/nir.attachment-supply-record.example.valid.json",
     "sha256": "ac5f161cf90a3d890dcc9dd49574b65ec8f793b3fb7a7dba99b42a78e948bbe3",
     "kind": "design_fixture"
   },
   {
     "file": "nir.attachment-supply-record.schema.json",
-    "source": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/nir.attachment-supply-record.schema.json",
+    "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-04/Design/nir.attachment-supply-record.schema.json",
     "sha256": "6562b8efacb75a3814f59b5918cdac9210e968f008059544864fa234e550a8c1",
     "kind": "schema"
   }

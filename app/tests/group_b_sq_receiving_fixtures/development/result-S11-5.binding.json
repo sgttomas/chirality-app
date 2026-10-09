@@ -1,6 +1,6 @@
 {
   "format": "exp-support-binding.canonical.v1",
-  "declaration_sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248",
+  "declaration_sha256": "06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701",
   "support_identity": {
     "exp_version": "EXP-v0.2",
     "schema_ids": {
@@ -8,12 +8,12 @@
       "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
       "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
     },
-    "prototype_sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+    "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
   },
   "artifact": {
     "kind": "result",
     "record_id": "INVENTED-SQ-S11-5",
-    "sha256": "1faf5d7dc59c22b6b7cae225bd5d7f2e29e1c5d145a08f5671815a066480c1d4"
+    "sha256": "079a2a1a0f254b1a75887247af38178c400f3bc822e384602f1c9738558f3ba0"
   },
   "binding_method": "EXP-SUPPORT-BINDING-v1",
   "binding_purpose": "current_producer_declaration"

@@ -1,0 +1,128 @@
+id: DEL-09-01
+name: Candidate examination infrastructure and evidence protocol
+needs:
+- from: unknown
+  condition: 'Each actual examination requires an identified candidate with applicable source criteria,
+    selected configuration and available named contributions.
+
+
+    Notes: FACT: Point of need: each actual examination, not support definition. Exact candidate/contribution
+    artifacts and suppliers remain unresolved; no available or examined candidate is claimed.
+
+
+    Target description — TargetName: Identified candidate examination basis'
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: doc:Focused feature-owner evidence
+  condition: 'Use feature-owner evidence as the input for selecting and joining examination seams.
+
+
+    Notes: FACT: Point of need: seam selection/joining. Feature owners retain evidence production; no
+    feature Deliverable identity is inferred from generic ownership.
+
+
+    Target description — TargetName: Focused feature-owner evidence'
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: doc:Identified recorded real protocol exchanges
+  condition: 'Repeatable replay-based seam examination consumes identified recorded real exchanges with
+    origin and applicable configuration, where feasible.
+
+
+    Notes: FACT: Point of need: replay-based seam checks. Source REQ-001 preserves actual origin/configuration
+    and deliberate live selection; replay does not supply a live or actual-host witness.
+
+
+    Target description — TargetName: Identified recorded real protocol exchanges'
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: DEL-01-06
+  condition: 'Consume the actual targeted App package for native smoke examination and identified packaging
+    evidence before relying on a packaged distribution witness.
+
+
+    Notes: FACT: CLM-005 identifies DEL-01-06 as App packaging producer; VER-008 requires actual targeted
+    packaged applications. INITIALIZED is only local contract maturity; receipt of the actual package
+    and packaging evidence remains unclaimed. Native host inputs cannot be replaced by a browser pass.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: doc:Independently produced candidate review record
+  condition: 'Checking independent-review support requires the actual independently produced review record
+    bound to the candidate and its author basis.
+
+
+    Notes: FACT: Point of need: VER-007. Record actual reviewer separation and exposed model identity/limits;
+    Codex preference and stated different-model Claude fallback remain source conditions. A method statement
+    supplies no actual review or family-diversity evidence.
+
+
+    Target description — TargetName: Independently produced candidate review record'
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: doc:Evidence of an actually performed human act
+  condition: 'The positive faithful-record check consumes evidence of an actually performed human act
+    and its scope, keeping the actor distinct from the recorder.
+
+
+    Notes: FACT: Point of need: the VER-004 positive human-act record only. No human act is manufactured
+    for a fixture; execution, acceptance, checking, approval and reliance retain separate actors/evidence
+    and no synthetic ordering.
+
+
+    Target description — TargetName: Evidence of an actually performed human act'
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'The selected Codex version pin is needed before protocol generation and qualification; historical
+    version examples do not select the replay/qualification pin.
+
+
+    Notes: FACT: App DEL-01-01 is the selected-pin producer under accepted G3 SOW-135 and its OUT-002/REQ-006.
+    The actual version, decision artifact and qualification remain unresolved under OI-012 before protocol
+    generation and qualification. Target identity does not select a historical version or hold independent
+    examination-support definition.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: external:External Domains receiving owners — later research-fixture admission input
+  condition: 'A later research fixture requires explicit provider/admission responsibility and the applicable
+    admission input at that fixture point of need.
+
+
+    Notes: FACT: Conditional later research fixture only; admission/query/provenance/freshness and privacy-compatible
+    receiving arrangements remain with Domains/SWB/App receiving owners. No provider construction, deployment
+    or allocation is inferred; no external DEL number is mapped to App.
+
+
+    Target description — TargetName: External Domains receiving owners — later research-fixture admission
+    input'
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: DEL-01-01
+  condition: 'App v4 DEL-09-01 receives the selected Codex pin from this supplier boundary before protocol
+    generation and qualification; its acts are not transferred here.
+
+
+    Notes: FACT: positive receiving statement added by SCA-V4-003 (P1-09); supplier-side mirror of the
+    consumer row DEP-09-01-019 on an existing arc (ledger R-11-1); no topology change. The sentence states
+    that each receiver declares it upstream in its own register and that none of their acts is transferred
+    here. INITIALIZED is the local contract-maturity default only; no receipt or closure is claimed. The
+    consumer row records RequiredMaturity TBD; this side keeps the register default INITIALIZED (no cross-register
+    convention is set here; R-02-4 is deferred).
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: unknown
+  condition: 'Return candidate-specific examination results and limitations to the named independent reviewer.
+
+
+    Notes: FACT: Journey-owner reusable-support handoffs are separately resolved by REQ-008. The independent
+    reviewer identity is candidate-specific and unresolved; supplying results neither supplies an independent
+    review nor establishes acceptance/release.
+
+
+    Target description — TargetName: Candidate independent reviewer'
+  direction: downstream
+  gating: false
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+checks:
+- app/tests/group_b_sq_receiving_test.py
+- execution/PKG-09/DEL-09-01/Design/prototype/check_exp.py

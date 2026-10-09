@@ -13,16 +13,16 @@
     "specified_in": "DEL-03-01 C-v0.8 §10.8",
     "files": [
       {
-        "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/prototype/simhost.py",
+        "path": "PKG-03/DEL-03-01/Design/prototype/simhost.py",
         "sha256": "27693ccf00e0baa9b80475c609342cddb4c026f332d899bfc980e1eb25447434"
       },
       {
-        "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Design/prototype/run_fixture.py",
+        "path": "PKG-03/DEL-03-01/Design/prototype/run_fixture.py",
         "sha256": "88b8a5300320b793ffd403a76b59e2be0b800fa0851486c8f10478906b22c050"
       },
       {
-        "path": "PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Design/prototype/observe_map.py",
-        "sha256": "1e0402c016a73920e95c5d7d5fc03b4d384f156e7286d59fd75087df2b6b971a"
+        "path": "PKG-03/DEL-03-03/Design/prototype/observe_map.py",
+        "sha256": "df4cf59cbc3d132de93ff7a1fec0607c2c9e0b038f52ae7fb0c949ead85b9f37"
       }
     ],
     "invented_material": "FX-PIPE-01 (C §10); SH-1 holds a subset (C §10.8)"

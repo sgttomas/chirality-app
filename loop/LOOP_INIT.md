@@ -2,10 +2,15 @@
 
 Work in `projects/chirality-app-v4` relative to the repository root. Read Root
 `AGENTS.md`, the assigned role, `docs/PRD.md` and its named companions, and the
-affected deliverables under `execution/PKG-*/1_Working/DEL-*/`. ScopeOfWork and
-Design hold commitments; `Dependencies.csv` holds needs until the pilot
-migration. Query only the relevant neighbourhood; the deliverable CLI will
-replace manual dependency discovery when it lands. Build and test entry points
+affected deliverables under `execution/PKG-*/DEL-*/`. ScopeOfWork and Design
+hold commitments; `deliverable.yaml` holds each consumer's needs, relevant code
+paths and check references. From the repository root, run
+`python3 -m tools.deliverables --project projects/chirality-app-v4 neighborhood DEL-xx-xx`
+for direct connections, `impact` for downstream reach, `touches <diff|PR>` for
+relevant deliverables, `dag-diff <tag>` for changes, and `check` for malformed
+metadata or unresolved references. Queries report facts and unknowns, never
+completion. Edit conditions when the need changes; do not refresh unchanged rows.
+Build and test entry points
 are in `app/README.md`. Use `coordinated-knowledge-work` for coordination.
 The current objective comes from the init prompt and subsequent owner steering.
 

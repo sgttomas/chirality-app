@@ -1,0 +1,95 @@
+id: DEL-07-02
+name: Connector limitation and source-file recovery paths
+needs:
+- from: DEL-07-01
+  condition: 'Use DEL-07-01 actual PEC receiving terms before PEC-dependent implementation or reliance;
+    the source-file route can be defined and used independently.
+
+
+    Notes: FACT; INITIALIZED is only local contract maturity; actual technical input remains required
+    at its stated point of need and is not established by this extraction. OI-022 remains open until the
+    receiving owners supply actual terms; no inferred schema, freshness cutoff, provider delivery or blanket
+    start gate.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+- from: DEL-08-01
+  condition: 'Consume DEL-08-01 Domains admission/query/provenance/freshness meanings and the applicable
+    resolved data-boundary terms when integrating the Domains-specific path; common fallback and independent
+    work continue without Domains.
+
+
+    Notes: FACT; INITIALIZED is only local contract maturity; actual technical input remains required
+    at its stated point of need and is not established by this extraction. CLM-003 identifies DEL-08-01
+    as the Domains terms owner. OI-023/OI-026 remain with their actual decision owners; provider allocation,
+    deployment, transport and query readiness are unresolved. PEC has no prerequisite role.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+- from: DEL-07-01
+  condition: 'For a later operational PEC join, consume the App receiving-owner evidence account for the
+    exact envelope coverage, qualification, release and deliberate App adoption; unsupported material
+    retains source recovery.
+
+
+    Notes: FACT; INITIALIZED is only local contract maturity; actual technical input remains required
+    at its stated point of need and is not established by this extraction. Distinct from receiving-term
+    production: this row concerns actual claim/use evidence. Only the dependent operational PEC use needs
+    that evidence; no global provider-completion or v4 restart gate. Simulation, contract maturity and
+    D108 acceptance establish neither qualification nor release/adoption.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+- from: doc:Question-specific project graphs, decisions, revisions and other source records
+  condition: 'Use available actual project graphs, decisions, revisions and other source records to reconstruct
+    the affected question and identify source gaps; if necessary records are unavailable retain an explicit
+    unresolved need and responsible route.
+
+
+    Notes: FACT; Question-specific record identities/locations remain unresolved until actual recovery.
+    Existing source-record input is positive evidence; no fleet-production dependency or authority inferred
+    from reading files.
+
+
+    Target description — TargetName: Question-specific project graphs, decisions, revisions and other
+    source records'
+  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+- from: DEL-07-01
+  condition: 'DEL-07-01 hands DEL-07-02 the affected coordination question, unsupported conclusions, source-file
+    route context and accountable agent/manager/human responsibility for fallback treatment.
+
+
+    Notes: FACT: Distinct output flow from the upstream route interface; REQ-005 and VER-005 support the
+    limitation/source-route handoff. Actual handoff remains unclaimed; execution, integration and human
+    decisions stay with their owners.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
+- from: DEL-08-01
+  condition: 'Supply Domains-specific admission/query cases to the common connector limitation/source-file
+    recovery contribution.
+
+
+    Notes: FACT: The CLM-005 antecedents identify DEL-07-02 and DEL-09-10 as consumers. This handoff is
+    distinct from the upstream common recovery policy; no reciprocal start gate is inferred. INITIALIZED
+    is local checked-contract maturity only; actual technical input/transfer remains separately required
+    and fulfilment is unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: false
+  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/connector_standing.rs
+checks:
+- app/src-tauri/src/connector_route_store_tests.rs
+- execution/PKG-07/DEL-07-02/Design/check_record_reconstruction_v04.py
+- execution/PKG-07/DEL-07-02/Design/check_route_account_v02.py

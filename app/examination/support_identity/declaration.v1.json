@@ -9,23 +9,23 @@
       "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
       "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
     },
-    "prototype_sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+    "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
   },
   "sources": {
     "app/examination/admission/admission_check.py": "c51f02c8f4f05361b0a299fb85dfce98228f419913bde967fa22447628a6c49a",
     "app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
-    "app/examination/admission/sources.json": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511",
+    "app/examination/admission/sources.json": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458",
     "app/examination/check.py": "53c17e131f854da4ed3acbd9eb5f192059e200fc465d7d2d6f9211622276368b",
     "app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
-    "app/examination/sources.json": "4284cebd7cfdfebbaaf87338db629f6cb6f5ed3c0cc054adb11124d0e80a2059",
-    "execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4",
-    "execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/pkg.identity-record.schema.json": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a",
-    "execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
-    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
-    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
-    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081",
-    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
-    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/prototype/check_exp.py": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210",
-    "execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a"
+    "app/examination/sources.json": "ad2893c1566bd31a55d3f8f03bef3158b472cd8057cf7f2437d555ccf2fef6d1",
+    "execution/PKG-01/DEL-01-06/Design/PACKAGING_AND_DISTRIBUTION.md": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4",
+    "execution/PKG-01/DEL-01-06/Design/pkg.identity-record.schema.json": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a",
+    "execution/PKG-01/DEL-01-06/Design/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
+    "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
+    "execution/PKG-09/DEL-09-01/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
+    "execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081",
+    "execution/PKG-09/DEL-09-01/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
+    "execution/PKG-09/DEL-09-01/Design/prototype/check_exp.py": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce",
+    "execution/PKG-09/DEL-09-01/ScopeOfWork.md": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a"
   }
 }

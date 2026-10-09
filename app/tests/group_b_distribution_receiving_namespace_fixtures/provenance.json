@@ -16,8 +16,8 @@
     "sourceRevision": "b7e9639d87b84af9a218e05f9e4f3c85fe00ebc0"
   },
   "exchange_sha256": {
-    "selected": "11f5dc9d1a770e862a25548edefef83b95ffb4fd443825ea7be0d14cb92dea36",
-    "unselected": "a34926b2de7c95e41ce857faeafa14419a897ccd52d209d46505da00a46cf896"
+    "selected": "bab6270d7210553f42b2ea5039df5540d4341296403f8b7abafb25aa2275f1b3",
+    "unselected": "64c711ab2b6b0ebc193740f9ed2c11e0ececbc859afcd0c7740a7e44912638a3"
   },
   "predecessor_export_source": "f2671306a3e167a5a858b11d04b6b1090771139a",
   "standing": "actual-synthetic-host-export-not-native-app-examination",

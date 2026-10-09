@@ -1,0 +1,116 @@
+id: DEL-09-11
+name: Later run reconstruction witness
+needs:
+- from: DEL-04-03
+  condition: 'Consume App DEL-04-03 identified compact run/decision records and relevant reference/lapse
+    fixtures for the actual reconstruction and supporting checks.
+
+
+    Notes: FACT: CLM-001 names App DEL-04-03 and explicitly consumes its records/fixtures. INITIALIZED
+    is checked contract maturity only; actual identified records must be supplied. Supporting fixtures
+    retain separate provenance and cannot substitute for live-journey reconstruction. Actual recorded
+    acceptance is evidence of its own act, not new approval.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: DEL-09-07
+  condition: 'Consume App DEL-09-07 actual identified V4-EXM-20 host-run evidence and host receipt references,
+    including the source journey date needed for the week-later witness.
+
+
+    Notes: FACT: actual journey and receipt availability are required independently of contract lifecycle.
+    Only the relevant journey contribution is consumed, not an automatic pass of every DEL-09-07 scenario.
+    REQ-002/003 require evidence of actual acceptance/change with actors and scope; no future favorable
+    approval, validation or reliance is inferred.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: external:External SWBPIPE implementation owner — authoritative source-journey receipts
+  condition: 'Receive authoritative host receipt/hash/origin evidence for the identified source journey
+    from the external SWBPIPE owner through the DEL-09-07 receiving contribution.
+
+
+    Notes: FACT: source TBD-001 positively requires the external journey/receipt contribution; CLM-002
+    preserves external host authority and domain truth. External source row DEP-001; no App Deliverable
+    ID assigned to SWBPIPE. This and DEL-09-07 are provenance legs of the same receiving chain, not two
+    host implementations. Human-relayed files or owner-reported building do not establish delivery/adoption.
+
+
+    Target description — TargetName: External SWBPIPE implementation owner — authoritative source-journey
+    receipts; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv'
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: external:Separate named reconstructing reader — actual week-later account
+  condition: 'Integrate the actual read-and-compare account returned by a named reader separate from the
+    source-run author, performed a week after the identified host journey with both dates evidenced.
+
+
+    Notes: FACT: REQ-001 and the production paragraph require the actual distinct reader contribution
+    and week-later observation. A plan, immediate reread, elapsed time alone or synthetic clock advancement
+    is insufficient. Reader assignment, identity, actual return and dates remain unestablished. This records
+    the required contribution, not a prerequisite on completing the entire deliverable or a new approval/reliance
+    act.
+
+
+    Target description — TargetName: Separate named reconstructing reader — actual week-later account'
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: external:Owner with App/SWB contract owners — applicable operation and permission policy
+  condition: 'Use the identified applicable operation/permission policy from the OI-001 and OI-002 owners
+    when needed to settle an affected reconstruction examination criterion.
+
+
+    Notes: FACT: source requires resulting applicable policy at its actual point of need, beyond naming
+    owners. OI-001/OI-002 and PRD OQ-02 retain Owner with App/SWB contract owners. This is a conditional
+    criterion input, not blanket approval for witness definition or a guessed reserved-act/default permission
+    policy. Actual choice and application remain unestablished.
+
+
+    Target description — TargetName: Owner with App/SWB contract owners — applicable operation and permission
+    policy; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv'
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: external:Owner via outside SWB session and App/shared owner — connected activity and affected
+    criterion
+  condition: 'Retain the OI-021 owners'' actual connected-activity choice and settled affected criterion
+    for execution: useful operation, permitted autonomy and exact candidate environment.
+
+
+    Notes: FACT: TBD-003 makes the settled affected criterion an execution condition and identifies OI-021
+    owners; OQ-11 names App manager, human and external SWBPIPE owner. No activity, autonomy or candidate
+    environment is invented. Definition proceeds independently; prepared/relayed files are not delivered/adopted
+    commitments, and no favorable human approval or professional reliance is required.
+
+
+    Target description — TargetName: Owner via outside SWB session and App/shared owner — connected activity
+    and affected criterion; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv'
+  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
+- from: DEL-04-03
+  condition: 'DEL-04-03 supplies compact records to App DEL-09-11 for its separate later reconstruction
+    witness.
+
+
+    Notes: FACT; RequiredMaturity=INITIALIZED is the approved local-contract threshold only; actual records
+    must be handed over. This is a produced-record handoff, not a requirement that the later witness or
+    its reader participate in DEL-04-03 production. Fulfilment is not established by this extraction.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: DEL-09-01
+  condition: 'Supply reusable examination support and evidence interfaces to the named owner of DEL-09-11
+    for its own scoped work.
+
+
+    Notes: FACT: Positive handoff statement in REQ-008 applies to its explicitly named owners; ownership/exclusion
+    text alone is not the evidence. This does not perform or qualify the receiving owner''s act. INITIALIZED
+    means receiving contract maturity only; actual support handoff and contributions are unclaimed.
+
+
+    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  gating: true
+  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+checks:
+- execution/PKG-09/DEL-09-11/Design/prototype/run_standing_check.py

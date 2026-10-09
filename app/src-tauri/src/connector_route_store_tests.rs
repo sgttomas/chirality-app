@@ -45,7 +45,7 @@ fn failure() -> StoreError {
 
 #[test]
 fn embedded_schemas_match_maintained_design_and_validate_exact_versions() {
-    let design = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design");
+    let design = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../execution/PKG-07/DEL-07-02/Design");
     for (name, text) in RESOURCES {
         assert_eq!(fs::read_to_string(design.join(name)).unwrap(), *text);
     }

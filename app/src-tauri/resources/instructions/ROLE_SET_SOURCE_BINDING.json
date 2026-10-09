@@ -8,23 +8,23 @@
   },
   "sources": [
     {
-      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Design/ROLE_SUPPLY.md",
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/Design/ROLE_SUPPLY.md",
       "sha256": "b279a23a5c8d8b2170618a062b3a5ccc3ea07a1cecdfcec7c61d0320f6559ba9",
       "readExtent": "4.1; GS-1 through GS-7; 6.1; U-R6/U-R11"
     },
     {
-      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Design/WORKFLOW_DECLARATION.md",
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-01/Design/WORKFLOW_DECLARATION.md",
       "sha256": "a7a2ce85f573e4dd4a6a40de27080c6a5d8a55860b66a19ae26a34bf3ad51b1d",
       "readExtent": "5.1\u20135.2"
     },
     {
-      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md",
+      "repositoryPath": "projects/chirality-app-v4/execution/PKG-02/DEL-02-04/ScopeOfWork.md",
       "sha256": "2327508f2290e7cf2528950d65bc331d72a80d8413a13fe31ea8f867cce4d176",
       "readExtent": "REQ-001 through REQ-006"
     },
     {
       "repositoryPath": "projects/chirality-app-v4/app/src-tauri/resources/instructions/SOURCE_MAP.json",
-      "sha256": "ca3ff9b483d70a3c4dbe818c520cc3a16c750cbf81aa5bee88460c09c7f92f82",
+      "sha256": "1ca424c0c8462cee9da1a493ce043d3b942186bfa91a459b5ea0ffe2ca6ffef6",
       "readExtent": "Historical source/output binding, unchanged"
     }
   ],
