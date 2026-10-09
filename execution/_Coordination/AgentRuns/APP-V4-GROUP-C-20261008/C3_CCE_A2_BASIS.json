@@ -1,5 +1,5 @@
 {
-  "status": "proposed source candidate; independent review and owning interface adoption pending",
+  "status": "independently reviewed source proposal; technical selection and owning interface adoption pending",
   "role": "WORKING_ITEMS /root/group_c_successor; no child delegation",
   "basis": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
   "sources": [
@@ -132,12 +132,17 @@
       "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
       "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
       "sha256": "c0e20df2c0d7f3c2cf749fe393f2bbd75635c98b508af6aa11dda592c33d71f5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_W1_AGENT_ENTRY_ASSESSMENT_20261008.md",
+      "source_revision": "1fad47b03a5c707b792a46cdbec77b3a0a586b06",
+      "sha256": "d779dd7386cc7127858aab428acd78986e8e8e52d15322dec2e8b4fe3e7f60f8"
     }
   ],
   "artifacts": [
     {
       "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
-      "sha256": "37235c20d9d17a44e5c1aef7d5a76841dbe33c10f2af93dbba9078a5bdee311f"
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec"
     },
     {
       "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_lifecycle_a2.cases.json",
@@ -153,7 +158,7 @@
     },
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_CCE_A2_CHECKS.md",
-      "sha256": "ed2f0d551830d58ec96db56e24c7701af64827e36c6c60cc8bbbebbbb443e392"
+      "sha256": "3d30b7f6a01f2d14c2c3fad4121837a5ee60db7f272b0c22e92b38a401ae8f62"
     }
   ],
   "reading_limits": "Current CCE/R1, selection, graph, PM05 and concurrence; relevant Host private receipt, role binding/history closure, RS section9; existing method/role context. No new full governance audit or supplier source/runtime qualification. Group A/B graph relationship passages inspected.",
@@ -164,5 +169,6 @@
     "positive content-only review representation",
     "new Host/role combined capability adoption"
   ],
-  "checks": "51 existing definition cases;10 focused cold probes;32 designed lifecycle obligations, not runtime tests"
+  "checks": "51 existing definition cases;10 focused cold probes;32 designed lifecycle obligations, not runtime tests",
+  "receiving_main": "1fad47b03a5c707b792a46cdbec77b3a0a586b06"
 }

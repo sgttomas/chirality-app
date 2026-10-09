@@ -1,6 +1,6 @@
 # CCE-A2 — answer/review custody and historical stage closure
 
-PROPOSED named source amendment for C3-R2-S. Not reviewed, adopted, or released
+PROPOSED named source amendment for C3-R2-S. Independently reviewed as a proposal; not adopted or released
 for implementation. Basis: fc92dd1591 (merged PR #1172). WORKING_ITEMS prepares
 this bounded DEL-07-02 proposal; it does not amend ACT, Host, role or RS owners'
 accepted contracts or supply their concurrence. CCE-v0.1 and R1 remain pinned

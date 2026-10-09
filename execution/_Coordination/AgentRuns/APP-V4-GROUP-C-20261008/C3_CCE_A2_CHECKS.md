@@ -1,6 +1,7 @@
 # CCE-A2 source candidate checks and limits
 
-Candidate status: PROPOSED, awaiting parent-arranged independent review. No code
+Candidate status: independently READY as a source-only PROPOSAL at
+accf67337b608206bacb4a6313da85b03145bd1f by existing cfb_design_review. No code
 release, contract adoption, original-source mint or native/supplier test occurred.
 WORKING_ITEMS authored the source and performed these checks; they are not an
 independent verdict. Current source basis is merged PR #1172, fc92dd15917290a22dd439d6e556119b39ef1ce8.
@@ -48,10 +49,11 @@ Fresh review of a historical minted answer similarly needs an explicit owning
 request/custody treatment; current-shape acceptance does not supply that method.
 
 D1 scope/treatment/writer and D2 recovery/journal/capacity remain owner-held. This
-packet changes neither. The parent separately prepared
-`C3_W1_AGENT_ENTRY_ASSESSMENT_20261008.md` in its checkout, with reported review;
-it is not in this candidate basis and was not modified or adopted here. Once
-merged, receive its exact bytes if a later selected writer needs that seam. The
+packet changes neither. The separately reviewed parent note
+`C3_W1_AGENT_ENTRY_ASSESSMENT_20261008.md` merged in PR #1173 at
+1fad47b03a5c707b792a46cdbec77b3a0a586b06 and was received unchanged.
+It is a conditional source assessment, not W1 selection; it was not modified
+or adopted as an implemented interface here. The
 answer/review amendment does not require a dynamic-tool adapter to be selected.
 
 ## Coordination
