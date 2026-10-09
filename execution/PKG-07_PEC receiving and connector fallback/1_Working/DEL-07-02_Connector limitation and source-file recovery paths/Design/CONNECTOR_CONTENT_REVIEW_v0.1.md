@@ -1,7 +1,7 @@
 # CCR-v0.1 — positive content-only manager review
 
-PROPOSED source-only message representation, independent review/technical
-selection pending. Basis: 2254d6b2806158211411aa05f74001465ce829b4, after CCE-A2
+PROPOSED source-only message representation, independently reviewed; technical
+selection and adoption pending. Basis: 2254d6b2806158211411aa05f74001465ce829b4, after CCE-A2
 and W2/R2 impact proposals merged. No implementation or accepted Host/ACT/RS
 amendment. Proposed identifier `reviewed_content_only` is a technical candidate,
 not an owner quote or adopted enum. Old message0.1 and account0.1–0.5 stay unchanged.

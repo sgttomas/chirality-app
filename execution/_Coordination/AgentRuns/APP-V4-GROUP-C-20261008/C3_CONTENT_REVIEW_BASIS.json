@@ -1,5 +1,5 @@
 {
-  "status": "named source/message proposal; not independently reviewed, selected or production-adopted",
+  "status": "independently reviewed source/message proposal; not technically selected or production-adopted",
   "basis": "2254d6b2806158211411aa05f74001465ce829b4",
   "role": "WORKING_ITEMS /root/group_c_successor; no delegation",
   "sources": [
@@ -62,12 +62,17 @@
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_RS_MESSAGE_ORIGIN_CONCURRENCE.md",
       "revision": "2254d6b2806158211411aa05f74001465ce829b4",
       "sha256": "b9041b59c2b84e63ec14c681b346283b33ab5b896c67c56fb04117be9c1e40c3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_TARGET_SELECTION_20261008.md",
+      "revision": "40984dfdc640dd32575b6ceb125b2b3c7d94d67b",
+      "sha256": "e1c82055e5e25c7629a3c83f32464b8fcfec83095019a50adcfcf1cd869c3b38"
     }
   ],
   "artifacts": [
     {
       "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTENT_REVIEW_v0.1.md",
-      "sha256": "f84ab5c64b3f7cbb72d36b0831bb1b7d4a66344d7188055b57d571f3525feed1"
+      "sha256": "091a625cc9a047ea2f852e06f62b01b1e574a7cd57fbc3087880ba1c113184e7"
     },
     {
       "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.2.schema.json",
@@ -97,6 +102,7 @@
     "old0.5 outer shape acceptance is not semantic compatibility",
     "Host/role joined capability still absent, assessment not adoption",
     "no positive-review to integration/human-act promotion",
-    "technical W2-M/R2-S sequencing reported by parent; separate record pending receipt; no storage implementation/quota/retirement/CAM choice"
-  ]
+    "W2-M/R2-S technical source/proof sequencing received at PR1178; no storage implementation/quota/retirement/CAM choice"
+  ],
+  "receiving_main": "40984dfdc640dd32575b6ceb125b2b3c7d94d67b"
 }
