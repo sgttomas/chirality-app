@@ -558,7 +558,15 @@ impl MetadataRequest {
 pub struct RoleBindings {
     bindings: BTreeMap<(String, String), RoleBinding>,
 }
+// Issued only after successful original manager insertion; not a generic binding.
+pub(crate) struct CceInserted { pin: crate::hosting::call_custody::StartPin }
+impl CceInserted {pub(crate) fn into_pin(self)->crate::hosting::call_custody::StartPin{self.pin}}
 impl RoleBindings {
+    pub(crate) fn insert_cce_original(&mut self,binding:RoleBinding,pin:crate::hosting::call_custody::StartPin)->Result<crate::hosting::call_custody::ManagerOwner,String>{
+        if !matches!(binding.origin,Origin::Start)||binding.original.parts.len()!=2||!pin.role_matches(&binding.home,&binding.thread,&binding.observation.generation,&binding.observation.request_id,&binding.observation.request_ref,&binding.supply_ref,binding.original.role,&binding.original.text,&binding.original.parts[0].bytes,&binding.original.parts[1].bytes){return Err("original manager insertion/source handoff mismatch".into())}
+        self.insert(binding)?;
+        Ok(crate::hosting::call_custody::ManagerOwner::from_inserted(CceInserted{pin}))
+    }
     pub fn insert(&mut self, binding: RoleBinding) -> Result<(), String> {
         let key = (binding.home.clone(), binding.thread.clone());
         if self.bindings.contains_key(&key) {
