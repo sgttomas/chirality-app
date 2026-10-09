@@ -1,0 +1,140 @@
+{
+  "base_revision": "c9d42dc9462378c9a5b7bd0369ad763cf6c16aa8",
+  "selected_reviewed_proposal_revision": "28afb804b187b0674f1db8ff3b979080483ad496",
+  "source_selection_is_not_integration_or_owner_review": true,
+  "existing_sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/proposal-format/SKILL.md",
+      "sha256": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md",
+      "sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+      "sha256": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.valid.examples.json",
+      "sha256": "fcbd53d8936b9c73d8177a403795e438aab9dbc5e71b32f7f87ef4b121bec72e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/prototype/check_exp.py",
+      "sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/support-identity-v1/METHOD.md",
+      "sha256": "acbdb61f2301462a802aefe72c6d73953624b206e3a8c66fac6338ca19928588"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/support-identity-v1/declaration.json",
+      "sha256": "c5937e66510f51aece2f51e56a9a22d179e4288e7f765472d27be62471e6c248"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md",
+      "sha256": "21b2ccfa0f63d61671eddcebe5c2a41dccd2fc5f901e529808605bd017b3fc11"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/reviews/RV-EXP-U1.md",
+      "sha256": "4decd5b3dd973cd1cb1094372832a0f5272955a2a8d64e019dd998d2ce30ca2a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Evidence/EXP/EXP-VC-09-fef109a510/BOUNDARY_REVIEW.md",
+      "sha256": "084defdb051b555f45a10a03f627c3b7990c4c1e828cd739d978c2969f840906"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/sources.json",
+      "sha256": "4284cebd7cfdfebbaaf87338db629f6cb6f5ed3c0cc054adb11124d0e80a2059"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/admission/sources.json",
+      "sha256": "fed9ce17ee106ce24a8fb6ab2e221156d99c2fb260cbea93c2be111209114511"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/sources.json",
+      "sha256": "53f1cbd7055395825323b4bfdeee0b23b12d71a43ae491e9e0398e41f1d37e08"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/support_identity/declaration.v1.json",
+      "sha256": "abc7142f3c8ec6b42ee70fd5ccdbe5a2688683608b21f735211217b9e32aad44"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/support_identity/canonical-pins.v1.json",
+      "sha256": "9ad24d5d6fa38afbeaa39b532f9a10d9550f964f463a8a49356ef254caba35b4"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.pins.json",
+      "sha256": "e12b994ce886c7fae13fd162a68a841e7875a51692a494f889ffb4b30d87f9d0"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/native_forms/sources.json",
+      "sha256": "7d22f5f0ba1cfa1226c545964a23e3578be5910a16f7c3942575c83d7b701ca8"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/native_forms/pre_run_form.pins.json",
+      "sha256": "5909d3b3b3eb73b41168b927f96a163f58d0b7eb0a2d0bb565f5d43dad849daa"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/sq_receiving/pins.json",
+      "sha256": "10adf42fd3855fbbbbfc20b1f67e10d55bb3c10ee54a453e133551d65073c2a8"
+    }
+  ],
+  "proposal_custody": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/vc09-in5-correction-proposal/PROPOSAL.md",
+      "git_revision": "28afb804b187b0674f1db8ff3b979080483ad496",
+      "sha256": "7fd8f81baf217c74fb667850f26c0a345c9e9fb7c837c98a0ca8a1ec7d0dd2af"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/vc09-in5-correction-proposal/PROPOSED_TEXT.patch.txt",
+      "git_revision": "28afb804b187b0674f1db8ff3b979080483ad496",
+      "sha256": "039c1b7dbf35f5229d7b64342855f1fb8428b8a8c101a859a12feb4c918a9c41"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/vc09-in5-correction-proposal/COUNTEREXAMPLES.json",
+      "git_revision": "28afb804b187b0674f1db8ff3b979080483ad496",
+      "sha256": "722c413c54353bcc66c376d2fded648bbb75fe97ab9ce4a4410ee986730b4746"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/vc09-in5-correction-proposal/SOURCE_BASIS.json",
+      "git_revision": "28afb804b187b0674f1db8ff3b979080483ad496",
+      "sha256": "13fbc02289e35ac91f41a6cccdab9bec01c12511c4d2a22c2a5a11e013202d29"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/vc09-in5-correction-proposal/RETURN.md",
+      "git_revision": "28afb804b187b0674f1db8ff3b979080483ad496",
+      "sha256": "de9b013d3f8f3e240ac829ee337ed02b39de8f2ce517b2836c25ed6079d5ff22"
+    }
+  ],
+  "clarification": {
+    "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/clarifications/CC-EXP-IN5-01.md",
+    "method_version": "EXP-IN5-CLARIFICATION-v1",
+    "sha256": "6234ee4b3b1c2c0cb39911ef94850d87114446fd63cf54adb56196ea3c5d81c1"
+  },
+  "checks": {
+    "exact_selected_if_absent_text": true,
+    "prior_sources_unchanged": 24,
+    "existing_files_modified": false
+  }
+}
