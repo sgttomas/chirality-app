@@ -69,7 +69,11 @@ pub fn read(
 fn project(discovery: Discovery) -> Value {
     // JSON text keeps every supported account field and u64 binding identity out
     // of JavaScript's numeric conversion. These strings are displayed, never run.
-    let accounts: Vec<Value> = discovery.accounts.into_iter().map(|observed| json!({
+    let accounts: Vec<Value> = discovery.accounts.into_iter().map(|observed| {
+        if let Some(evidence)=observed.answer_only {
+            return json!({"relativePath":observed.reference.relative_path,"accountId":observed.reference.account_id,"formatVersion":"0.5","standing":observed.account["standing"],"answerOnly":evidence,"recordedAnswerAccount":observed.account,"bindingText":serde_json::to_string_pretty(&observed.reference).unwrap(),"sections":[]});
+        }
+        json!({
         "relativePath":observed.reference.relative_path,
         "accountId":observed.reference.account_id,
         "formatVersion":observed.account["formatVersion"],
@@ -84,7 +88,7 @@ fn project(discovery: Discovery) -> Value {
         "accountText":serde_json::to_string_pretty(&observed.account).unwrap(),
         "sections":([("Question", "question"), ("Trigger", "trigger"), ("Sources and revisions", "sources"), ("Anchored facts", "facts"), ("Gaps, effects and responsibility", "gaps"), ("Supported, unsupported and prohibited conclusions", "conclusions"), ("Duties", "duties"), ("Recorder", "recorder"), ("Written time", "written_at"), ("Time provenance", "written_at_source")].iter().chain(if observed.account["formatVersion"]=="0.3" {[("Draft standing","standing"),("Compact evidence receipt and limits","evidence"),("Unreviewed caller interpretations","interpretations")].as_slice()}else if observed.account["formatVersion"]=="0.4" {[("Comparison standing","standing"),("Compact evidence receipt and limits","evidence"),("Checked comparisons","comparisons"),("Attributed claims","claims"),("Unresolved contradictions","contradictions"),("Unverified contribution reports","contribution_reports")].as_slice()}else{&[]}).map(|(label,key)|json!({"label":label,"text":observed.account.get(*key).map(|value|serde_json::to_string_pretty(value).unwrap()).unwrap_or_else(||"Not recorded".into())})).collect::<Vec<_>>()),
         "sourceCount":observed.account["sources"].as_array().map_or(0, Vec::len),
-    })).collect();
+    })}).collect();
     json!({"status":"observed","projectDisplay":discovery.resolved_project.to_string_lossy(),
         "projectIdentityText":attachments::native_path_identity(&discovery.resolved_project).to_string(),
         "directoryAbsent":discovery.directory_absent,"enumerationComplete":discovery.enumeration_complete,

@@ -1,0 +1,1138 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "formatVersion",
+    "account_id",
+    "standing",
+    "base_account",
+    "question_id",
+    "answer",
+    "review",
+    "plan",
+    "integration",
+    "known_conflicts",
+    "gaps",
+    "human_responsibility",
+    "recorder",
+    "written_at",
+    "written_at_source",
+    "cold_limit",
+    "integration_attempt"
+  ],
+  "properties": {
+    "format": {
+      "const": "chirality.connector.route-account"
+    },
+    "formatVersion": {
+      "const": "0.5"
+    },
+    "account_id": {
+      "type": "string",
+      "pattern": "^ra:[A-Za-z0-9._-]+$"
+    },
+    "standing": {
+      "const": "recorded_contributions_not_acceptance"
+    },
+    "base_account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "formatVersion",
+        "account_id",
+        "relative_path",
+        "byte_length",
+        "sha256",
+        "project_identity",
+        "method",
+        "resolution_at_write"
+      ],
+      "properties": {
+        "formatVersion": {
+          "const": "0.4"
+        },
+        "account_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^\\.chirality/records/connectors/route-accounts/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.json$"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "project_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "device",
+            "inode"
+          ],
+          "properties": {
+            "device": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "inode": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            }
+          }
+        },
+        "method": {
+          "const": "sha256:original_file_bytes"
+        },
+        "resolution_at_write": {
+          "const": "resolved"
+        }
+      }
+    },
+    "question_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact",
+        "receipt"
+      ],
+      "properties": {
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text",
+            "sha256",
+            "byte_length"
+          ],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 131072
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "byte_length": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 262144
+            }
+          }
+        },
+        "receipt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "home_reference",
+            "generation_reference",
+            "thread_id",
+            "turn_id",
+            "item_id",
+            "request_reference",
+            "role_supply_reference",
+            "supplied_role",
+            "input_sha256",
+            "content_sha256",
+            "dispatch_receipt_floor",
+            "item_receipt_position",
+            "terminal_receipt_position",
+            "phase",
+            "terminal_status",
+            "standing",
+            "item_type",
+            "generation",
+            "sources",
+            "liveness_at_recording",
+            "response_receipt_position"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "answer_emission",
+                "manager_review_emission",
+                "file_change"
+              ]
+            },
+            "home_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "generation_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "thread_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "turn_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "item_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "request_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "role_supply_reference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "supplied_role": {
+              "enum": [
+                "TASK",
+                "HELP_HUMAN",
+                "WORKING_ITEMS"
+              ]
+            },
+            "input_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "content_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "dispatch_receipt_floor": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "item_receipt_position": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "terminal_receipt_position": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            "phase": {
+              "enum": [
+                "final_answer",
+                null
+              ]
+            },
+            "terminal_status": {
+              "const": "completed"
+            },
+            "standing": {
+              "const": "recorded_live_source_observation_not_hot_capability"
+            },
+            "item_type": {
+              "enum": [
+                "agentMessage",
+                "fileChange"
+              ]
+            },
+            "generation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "appSession",
+                "home",
+                "spawnCounter"
+              ],
+              "properties": {
+                "appSession": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "home": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "spawnCounter": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              }
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "identity",
+                  "method",
+                  "sha256",
+                  "resolution_at_write"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "request",
+                      "result",
+                      "item_event",
+                      "terminal_event",
+                      "role_supply"
+                    ]
+                  },
+                  "identity": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "method": {
+                    "enum": [
+                      "sha256:host_parsed_frame_json_utf8",
+                      "sha256:role_guidance_utf8"
+                    ]
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "resolution_at_write": {
+                    "const": "resolved"
+                  }
+                }
+              }
+            },
+            "liveness_at_recording": {
+              "enum": [
+                "current",
+                "historical_after_source_close"
+              ]
+            },
+            "response_receipt_position": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifact",
+            "receipt"
+          ],
+          "properties": {
+            "artifact": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "sha256",
+                "byte_length"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 131072
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "byte_length": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 262144
+                }
+              }
+            },
+            "receipt": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "home_reference",
+                "generation_reference",
+                "thread_id",
+                "turn_id",
+                "item_id",
+                "request_reference",
+                "role_supply_reference",
+                "supplied_role",
+                "input_sha256",
+                "content_sha256",
+                "dispatch_receipt_floor",
+                "item_receipt_position",
+                "terminal_receipt_position",
+                "phase",
+                "terminal_status",
+                "standing",
+                "item_type",
+                "generation",
+                "sources",
+                "liveness_at_recording",
+                "response_receipt_position"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "answer_emission",
+                    "manager_review_emission",
+                    "file_change"
+                  ]
+                },
+                "home_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "generation_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "thread_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "turn_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "item_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "request_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "role_supply_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "supplied_role": {
+                  "enum": [
+                    "TASK",
+                    "HELP_HUMAN",
+                    "WORKING_ITEMS"
+                  ]
+                },
+                "input_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "content_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "dispatch_receipt_floor": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "item_receipt_position": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "terminal_receipt_position": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "phase": {
+                  "enum": [
+                    "final_answer",
+                    null
+                  ]
+                },
+                "terminal_status": {
+                  "const": "completed"
+                },
+                "standing": {
+                  "const": "recorded_live_source_observation_not_hot_capability"
+                },
+                "item_type": {
+                  "enum": [
+                    "agentMessage",
+                    "fileChange"
+                  ]
+                },
+                "generation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "appSession",
+                    "home",
+                    "spawnCounter"
+                  ],
+                  "properties": {
+                    "appSession": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "home": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "spawnCounter": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    }
+                  }
+                },
+                "sources": {
+                  "type": "array",
+                  "minItems": 5,
+                  "maxItems": 5,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "identity",
+                      "method",
+                      "sha256",
+                      "resolution_at_write"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "request",
+                          "result",
+                          "item_event",
+                          "terminal_event",
+                          "role_supply"
+                        ]
+                      },
+                      "identity": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "method": {
+                        "enum": [
+                          "sha256:host_parsed_frame_json_utf8",
+                          "sha256:role_guidance_utf8"
+                        ]
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "resolution_at_write": {
+                        "const": "resolved"
+                      }
+                    }
+                  }
+                },
+                "liveness_at_recording": {
+                  "enum": [
+                    "current",
+                    "historical_after_source_close"
+                  ]
+                },
+                "response_receipt_position": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text",
+            "sha256",
+            "byte_length"
+          ],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 131072
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "byte_length": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 262144
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "integration": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "target_path",
+            "preimage_sha256",
+            "postimage_sha256",
+            "reread_sha256",
+            "prefix_sha256",
+            "suffix_sha256",
+            "preimage_identity",
+            "postimage_identity",
+            "reread_identity",
+            "observed_postimage_length",
+            "inserted_block_sha256",
+            "standing",
+            "target_observations"
+          ],
+          "properties": {
+            "operation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "home_reference",
+                "generation_reference",
+                "thread_id",
+                "turn_id",
+                "item_id",
+                "request_reference",
+                "role_supply_reference",
+                "supplied_role",
+                "input_sha256",
+                "content_sha256",
+                "dispatch_receipt_floor",
+                "item_receipt_position",
+                "terminal_receipt_position",
+                "phase",
+                "terminal_status",
+                "standing",
+                "item_type",
+                "generation",
+                "sources",
+                "liveness_at_recording",
+                "response_receipt_position"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "answer_emission",
+                    "manager_review_emission",
+                    "file_change"
+                  ]
+                },
+                "home_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "generation_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "thread_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "turn_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "item_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "request_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "role_supply_reference": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "supplied_role": {
+                  "enum": [
+                    "TASK",
+                    "HELP_HUMAN",
+                    "WORKING_ITEMS"
+                  ]
+                },
+                "input_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "content_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "dispatch_receipt_floor": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "item_receipt_position": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "terminal_receipt_position": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "phase": {
+                  "enum": [
+                    "final_answer",
+                    null
+                  ]
+                },
+                "terminal_status": {
+                  "const": "completed"
+                },
+                "standing": {
+                  "const": "recorded_live_source_observation_not_hot_capability"
+                },
+                "item_type": {
+                  "enum": [
+                    "agentMessage",
+                    "fileChange"
+                  ]
+                },
+                "generation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "appSession",
+                    "home",
+                    "spawnCounter"
+                  ],
+                  "properties": {
+                    "appSession": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "home": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "spawnCounter": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    }
+                  }
+                },
+                "sources": {
+                  "type": "array",
+                  "minItems": 5,
+                  "maxItems": 5,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "identity",
+                      "method",
+                      "sha256",
+                      "resolution_at_write"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "request",
+                          "result",
+                          "item_event",
+                          "terminal_event",
+                          "role_supply"
+                        ]
+                      },
+                      "identity": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "method": {
+                        "enum": [
+                          "sha256:host_parsed_frame_json_utf8",
+                          "sha256:role_guidance_utf8"
+                        ]
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "resolution_at_write": {
+                        "const": "resolved"
+                      }
+                    }
+                  }
+                },
+                "liveness_at_recording": {
+                  "enum": [
+                    "current",
+                    "historical_after_source_close"
+                  ]
+                },
+                "response_receipt_position": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              }
+            },
+            "target_path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "preimage_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "postimage_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "reread_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "prefix_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "suffix_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "preimage_identity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "device",
+                "inode"
+              ],
+              "properties": {
+                "device": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "inode": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                }
+              }
+            },
+            "postimage_identity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "device",
+                "inode"
+              ],
+              "properties": {
+                "device": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "inode": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                }
+              }
+            },
+            "reread_identity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "device",
+                "inode"
+              ],
+              "properties": {
+                "device": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "inode": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                }
+              }
+            },
+            "observed_postimage_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 262144
+            },
+            "inserted_block_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "standing": {
+              "const": "operation_reported_and_bytes_changed_as_expected_not_exclusive_causality"
+            },
+            "target_observations": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "identity",
+                  "method",
+                  "sha256",
+                  "file_identity",
+                  "resolution_at_write"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "preimage",
+                      "postimage",
+                      "reread"
+                    ]
+                  },
+                  "identity": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "method": {
+                    "const": "sha256:original_file_bytes"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "file_identity": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "device",
+                      "inode"
+                    ],
+                    "properties": {
+                      "device": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$"
+                      },
+                      "inode": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$"
+                      }
+                    }
+                  },
+                  "resolution_at_write": {
+                    "const": "resolved"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "known_conflicts": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference",
+          "sha256",
+          "effect"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "effect": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gap",
+          "effect",
+          "responsibility"
+        ],
+        "properties": {
+          "gap": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "effect": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "responsibility": {
+            "enum": [
+              "agent",
+              "manager",
+              "person",
+              "unassigned"
+            ]
+          }
+        }
+      }
+    },
+    "human_responsibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standing",
+        "reason",
+        "limit"
+      ],
+      "properties": {
+        "standing": {
+          "enum": [
+            "outstanding",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "limit": {
+          "const": "no_acceptance_reliance_coordination_or_waiver_inferred"
+        }
+      }
+    },
+    "recorder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "properties": {
+        "kind": {
+          "const": "app"
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "written_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "written_at_source": {
+      "const": "observed_clock"
+    },
+    "cold_limit": {
+      "const": "recorded_receipts_do_not_revive_hot_authorship_or_write_authority"
+    },
+    "integration_attempt": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "request_reference",
+            "target_path",
+            "standing",
+            "detail"
+          ],
+          "properties": {
+            "request_reference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "standing": {
+              "enum": [
+                "pending",
+                "refused",
+                "failed",
+                "uncertain",
+                "mismatch"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-07-02:route-account:0.5",
+  "title": "CCE linked contribution account0.5; PROPOSED OPEN lifecycle, no implementation adoption",
+  "description": "Persisted shape of source-owned observations; matching schema does not mint source custody, actual performance, authority or acceptance."
+}
