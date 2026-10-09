@@ -1,4 +1,4 @@
-# R2-PROOF-01-B1 — exact dormant snapshot implementation brief
+# R2-PROOF-01-B2 — exact dormant snapshot implementation brief
 
 PROPOSED brief awaiting independent review. Parent technically releases only
 after this exact brief is frozen/reviewed. Source selection76071c0038 merged
@@ -53,11 +53,15 @@ uncertainty resolution. No retirement/ID reuse or conversion to a CAM token.
 
 Parser: actual bounded read at S+1 or D+1; sentinel refuses before full parsing.
 A nonallocating full-buffer structural scan bounds nesting16 and total object
-member separators512, respecting quoted/escaped strings. This is not a prefix
+members512 by counting each structural colon outside quoted/escaped strings,
+including the first member (not commas/n-minus-one). This is not a prefix
 classifier; serde still validates the whole JSON syntax and trailing EOF. Typed
 Deserialize with deny_unknown_fields rejects duplicate/unknown fields; bounded
 sequence visitors stop before item33 for artifacts and65 for references/issues.
-Explicit duplicate artifact/required/attempt IDs refuse. Decoded IDs ≤128 UTF8
+Explicit duplicate artifact/required/attempt IDs refuse. Maintained tests must
+actually reject duplicate keys in control, admission, descriptor and snapshot,
+not rely on a serde comment; scanner tests count a single member as1 and exercise
+exact512/513 plus punctuation inside escaped strings. Decoded IDs ≤128 UTF8
 bytes, artifact strings ≤16384; string decoding may temporarily use the already
 bounded input size, counted by allocation instrumentation, not falsely claimed
 pre-allocation per-string rejection. Other text fields obey named identifier or
@@ -82,6 +86,60 @@ No duplicated fd masquerades as independent acquisition, PID-stale override or
 upgrade. Reader and writer use the same exclusive lock protocol. Recheck lock,
 root/entry and control identity around operations; no continuous-path or hostile
 same-user replace/restore protection claimed.
+
+### Bootstrap and admission, before first snapshot
+
+Test setup owns a fresh temporary root; the core must not interpret a pre-existing
+partial namespace as empty. Under its opened-root capability, initialization
+exclusively mkdirat's the fixed fixture namespace, opens/rechecks it no-follow,
+and fsyncs the root that names it. Create stable lock via exclusive openat,
+fstat regular/single-link, acquire exclusive nonblocking flock on that open,
+fsync lock then namespace directory. Create control exclusively, write bounded
+exact namespace/policy bytes, fsync control and namespace, then reopen/read strict
+exact bytes/identity. Recheck opened root, namespace and lock entry. Only after
+all sync/readback checks return a new NamespaceConfirmed receipt. A competing
+existing namespace or lock is not permission to initialize/replace it.
+
+Before journal admission, hold that same lock, inspect bounded namespace state,
+check N and worst-case Q reservation and uniqueness. Select a never-used fixed
+slot index in0..N (not an argument-derived path). Exclusively mkdirat journal
+slot; fsync naming namespace. Create immutable admission metadata exclusively
+with namespace/journal/undertaking ID, policy and reserved slot identity, bounded
+by D; fsync metadata. Create A and B placeholders exclusively, verify regular
+single-link identity, fsync each; descriptor and temp must be absent for revision0.
+Fsync journal directory then namespace; reopen/read admission and verify the
+complete expected initial set, identities and zero-length placeholders. Return
+AdmissionConfirmed only then. First commit refuses without current confirmed
+namespace/admission and the held lock. No journal ID escapes as admitted earlier.
+
+Before any filesystem mutation attempt, refusal reports no bootstrap/admission
+attempt. Once creation/write is attempted, failure reports IncompleteOrUncertain
+bootstrap/admission with original attempt and observed created entries; it never
+claims nothing was created or gives back the slot. Partial, missing, conflicting
+or unacknowledged state counts as occupied/reserved or blocks the whole namespace
+when identity/accounting cannot be resolved. Never silently treat it empty,
+reinitialize, delete or reuse quota. Error standing is distinct from a later
+snapshot NotCommitted/Uncertain result. No snapshot can claim successful state
+merely because a control/admission file is visible.
+
+Cold inspection independently opens/rechecks all control/admission/lock paths and
+reports observed state, not original initialization acknowledgment. The first
+proof permits an explicit test-only confirm-existing step under the same lock:
+only a complete identity/policy-consistent expected set may be resynchronized,
+reopened and rechecked, issuing a new current confirmation, never reconstructing
+the old acknowledgment. It creates/replaces/deletes no entries. An incomplete
+bootstrap/admission still refuses; there is no repair fallback. Existing selected
+snapshot/descriptor and uncertainty are preserved, not reset to revision0. This
+lets a fresh test session continue from complete observed state without claiming
+old hot custody. All prior attempts/outcome distinctions remain historical data.
+
+Inject cuts before/after namespace mkdir/root sync; lock create/sync/directory
+sync; control create/write/sync/directory sync/readback; journal mkdir/parent sync;
+admission create/write/sync; each placeholder create/sync; journal/parent sync;
+and final admission readback/acknowledgment. Assert incomplete states consume
+reservation or block, repeat initialization/admission cannot reuse them, no first
+commit follows failure, and explicit confirmation of complete existing state
+neither recreates original ack nor silently discards an unknown attempt.
 
 Select only descriptor's active slot. Open validated inactive slot, truncate/write
 only it, enforce S during streaming serialization/hash, fsync file and bounded

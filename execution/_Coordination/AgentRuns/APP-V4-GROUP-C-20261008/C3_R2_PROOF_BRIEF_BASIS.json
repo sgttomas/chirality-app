@@ -1,5 +1,5 @@
 {
-  "status": "exact dormant implementation brief pending storage-owner and independent backcheck; no code started",
+  "status": "B2 bootstrap/counting repair; storage and independent backchecks pending; no code",
   "basis": "04b06eb2f781a8344bc0582ea0dbd190f441dcce",
   "sources": [
     {
@@ -31,7 +31,7 @@
   "artifacts": [
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_IMPLEMENTATION_BRIEF.md",
-      "sha256": "4efbb9cbc86a14bf74b7c71aa1adeb05351be417c10ec9b86310dbe151f191c4"
+      "sha256": "6d36e6be18b814f8867a09edfbc728d73f56c978fd3064636ef93a6f7a389b03"
     },
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_STORAGE_CONCURRENCE.md",
@@ -40,6 +40,10 @@
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_RS_RECEIVING.md",
       "sha256": "a0e7131388dcc7c4c032b77fef3586bb665595de3a2b7e9e772d8c7d361d0dd5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_B1_STORAGE_BACKCHECK.md",
+      "sha256": "fdc50cab62ed620dc177a6b776a390bf57e6d992c8d99356681161b697ce215a"
     }
   ],
   "checks": [
@@ -48,5 +52,10 @@
     "initial logical reservation 2*(2*32768+3*4096)+2*4096=163840 <=262144; checked arithmetic required",
     "no runtime test or code implementation yet"
   ],
-  "release_boundary": "Parent conditional technical release after exact brief independent review; no product policy/new owner choice/RS adoption"
+  "release_boundary": "Parent conditional technical release after exact brief independent review; no product policy/new owner choice/RS adoption",
+  "retained_first_finding": {
+    "source": "C3_R2_PROOF_B1_STORAGE_BACKCHECK.md",
+    "sha256": "fdc50cab62ed620dc177a6b776a390bf57e6d992c8d99356681161b697ce215a",
+    "finding": "Missing exact namespace/control/admission sync/error/readback/fault order; B1 not released for code"
+  }
 }
