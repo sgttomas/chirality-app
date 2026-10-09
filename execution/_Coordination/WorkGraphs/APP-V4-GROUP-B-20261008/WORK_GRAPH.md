@@ -128,6 +128,17 @@ and graph-closure graphs remain at their original paths.
 
 ## Current state and recovery
 
+**AA-CAP current-source disposition:** HELP_HUMAN selected option B at exact
+Host head `4de801c8b98477b25403b20002bf6af7cc836c48` (reviewed source
+`e83dbefb5f2f3512462063153c8378dc339a238a`). CURRENT-source S4 positive
+reliance is unavailable/HELD: both active 35/38-member Stop-admission pin sets
+refuse changed hosting.rs and already-drifted lib.rs. All historical receipts,
+fixtures and pins remain untouched and historical. No export, repin or positive
+compatibility claim is made. Exact hashes, later named renewal and required-CI
+failure disposition: `aa-cap-receiving/RECEIVING.md` in the Group B run.
+Green unrelated CI is not B compatibility evidence.
+
+
 Current receiving source: merged P2/P3 and S2 foundation, f79317be86. PR #1117 supplied partial EXP→PKG support;
 #1119 supplied unsigned supplier staging and source-bound standalone preparation;
 #1121 supplied review/change-impact joins; #1122 preserved accepted contracts and
