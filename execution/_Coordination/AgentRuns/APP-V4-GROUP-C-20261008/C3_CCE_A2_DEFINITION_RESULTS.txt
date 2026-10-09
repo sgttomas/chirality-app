@@ -1,0 +1,53 @@
+CCE definition consistency cases: 51 passed; NO native mint/authority/lifecycle implementation qualification
+{
+  "standing": "Invented cold fixtures only; accepts do not establish emission/capability/lifecycle. No production code modified.",
+  "results": [
+    {
+      "case": "representable nonintegration cannot_assess",
+      "result": "accept cold consistency only"
+    },
+    {
+      "case": "answer only",
+      "result": "accept cold consistency only"
+    },
+    {
+      "case": "historical answer plus current review recorded shape",
+      "result": "accept cold consistency only"
+    },
+    {
+      "case": "positive integration disposition without plan",
+      "result": "reject",
+      "reason": "review plan binding"
+    },
+    {
+      "case": "exact answer whitespace changed with stale review",
+      "result": "reject",
+      "reason": "review exact answer"
+    },
+    {
+      "case": "omitted base gap",
+      "result": "reject",
+      "reason": "omitted limitations"
+    },
+    {
+      "case": "invented support identity",
+      "result": "reject",
+      "reason": "unsupported claim reference"
+    },
+    {
+      "case": "same role conversation promoted to manager",
+      "result": "reject",
+      "reason": "separate manager role conversation"
+    },
+    {
+      "case": "same request reused as separate review",
+      "result": "reject",
+      "reason": "distinct contribution request"
+    },
+    {
+      "case": "parsed frame mislabeled wire bytes",
+      "result": "reject",
+      "reason": "schema refusal"
+    }
+  ]
+}

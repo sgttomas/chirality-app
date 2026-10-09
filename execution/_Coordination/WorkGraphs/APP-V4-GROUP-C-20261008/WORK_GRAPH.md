@@ -44,7 +44,7 @@ interrupted-work recovery and provider adapters remain separate obligations.
 | C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; placement, source custody and exact Git inputs | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: bounded backend/view/source producers and format-0.4 comparison merged through PR #1155; C3-NW-03 native synthetic witness recorded in PR #1170. Full answer/review/integration and actual duties remain unfinished; source and policy decisions below precede graph-write code |
 | C3-D1 original scope, treatment and controlled operation | HELP_HUMAN with DEL-04-01/02/03, DEL-01-04, Host/role receiving owners; decision and named Design changes only | Reviewed C3 target-scope packet and CCE/RS concurrence; current policy and actual App entry capabilities | Owner's S/T/W choices or explicit deferral recorded with exact custody; affected interfaces and consumer consequences named and independently reviewed before graph-write code | READY for concrete owner decision; W1 is a recommendation, no scope producer, class or adapter is selected |
 | C3-D2 interrupted-work recovery and capacity | HELP_HUMAN with C3 and PM-05 owners; decision and selected recovery contract only | Comparative R0/R1/R2 assessment/review, current 64-identity/one-payload policy and C3-D1 writer choice where relevant | Owner selects or qualifies recovery/product-capacity treatment; source checks address its retained uncertainty and cost before whole-product sufficiency claim | READY for owner consideration as a comparison; no storage or capacity policy selected |
-| C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; named CCE/ACT/Host/RS contracts, no graph target write | C3-D1 choices; CCE lifecycle-A source/refinement and scoped concurrences; C3-D2 where recovery semantics are part of the selected source | Exact source/consumer changes and negative cases independently reviewed; scope, act and Host custody not inferred from renderer text | BLOCKED for graph-write contract on C3-D1; bounded source refinement may continue without implementation release |
+| C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; named CCE/ACT/Host/RS contracts, no graph target write | C3-D1 choices; CCE lifecycle-A source/refinement and scoped concurrences; C3-D2 where recovery semantics are part of the selected source | Exact source/consumer changes and negative cases independently reviewed; scope, act and Host custody not inferred from renderer text | ACTIVE bounded writer-independent lifecycle-A source refinement CCE-A2; candidate awaiting independent review. Graph-write contract remains BLOCKED on C3-D1; no implementation release |
 | C3-R2-I implementation and connected witness | Bounded TASK implementers under Group C manager; App source/tests and synthetic fixtures; later native operation only on point authorization | Reviewed C3-R2-S source, genuine Host/entry and scope producers, applicable treatment/acceptance/direct-grant producers under selected C3-D1, applicable recovery decision, current candidate and test resources | Answer/review and controlled graph outcome use the same admitted operation; independent code review, joined checks and actual connected witness; no person-act or provider claim without its own evidence | PLANNED, not released; C3-NW-03 covers only the earlier source-to-account slice |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
 | C5 later research-to-design contribution and witness | App method/receiving owner; DEL-08-02; host work remains SWBPIPE | Owner activation of later increment; C4; portable workflow, shared act row, actual host integration and human act | Source → context → candidate → actual decision witness, plus limitations; preparation/rehearsal separate | BLOCKED at activation/input points; no activation inferred from Group C resume |
@@ -96,13 +96,14 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `07438d7664f9fdd38c5871c004c3513dc1c8fa9d`
-(PR #1170 merged). HELP_HUMAN `/root` maintains this graph refresh on
-`codex/app-v4-group-c-graph-refresh`; the prior WORKING_ITEMS
-`/root/group_c_successor` has completed its assignment. That manager's
-historical source and review returns remain in the run; no active Group C child
-or native App process is being carried by this graph update. One maintainer
-integrates future graph changes against the then-current main revision.
+The current checked main basis is `fc92dd1591` (PR #1172 merged).
+PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
+HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
+Group C graph maintainer for bounded C3-R2-S lifecycle-A source refinement,
+on `codex/group-c-cce-answer-review-source`, based on merged main
+`fc92dd1591` (PR #1172). No child is commissioned and no native process is
+carried by this assignment. Prior historical returns remain in the run; changes
+are integrated against then-current main by this one maintainer.
 Basis identities and reading limits: [BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/BASIS.json). Actual assignments: [DELEGATION.md](../../AgentRuns/APP-V4-GROUP-C-20261008/DELEGATION.md).
 Delegation uses harness-native descendants, with instruction fences, not a
 claim of per-file sandbox enforcement. Launch messages and source identity
@@ -210,3 +211,15 @@ and independently review the selected contracts before bounded code. C2 (PEC), C
 input or activation points; no provider readiness or new group-order relation is
 inferred. C6/C7 follow actual intended production and evidence, not this graph
 refresh or the native witness alone.
+
+## C3-R2-S bounded source continuation
+
+CCE-A2 proposes answer/review original-source custody, per-contribution closure,
+historical recording and negative-definition cases without graph-write authority.
+See [C3_CCE_A2_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_CCE_A2_BASIS.json)
+and [C3_CCE_A2_CHECKS.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_CCE_A2_CHECKS.md).
+No accepted schema or ACT/Host/RS contract is amended. Combined Host mint/recheck
+and truthful positive content-review representation remain explicit source
+interfaces needing owning review; S/T/W and R2 journal remain unselected. Parent
+arranges independent review before any technical selection. No C3 implementation,
+new native act, external adoption or whole-product claim follows.

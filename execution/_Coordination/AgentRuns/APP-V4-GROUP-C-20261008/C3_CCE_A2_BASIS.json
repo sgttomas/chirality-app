@@ -1,0 +1,168 @@
+{
+  "status": "proposed source candidate; independent review and owning interface adoption pending",
+  "role": "WORKING_ITEMS /root/group_c_successor; no child delegation",
+  "basis": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "workflows/construct-local-work-graph/WORKFLOW.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "aa708883ba496c0b7574a87c860af544b4b2be0da2637e1f5eebe4312b09e0f6"
+    },
+    {
+      "path": "workflows/coordinated-knowledge-work/WORKFLOW.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/PRD.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "7b9f306d7c6fc9ceeeb4178003521afcdafe5981370f0fc87418fdf35e2644b9"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_lifecycle.rs",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "549fe28fe8155217ac961a29bf3dfe43b9103de12ccad585f609894e411bf7b3"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_materialization.rs",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "4a4dead08ecd444d624a216ccb6f169b1e13cac8070b6df02e3764fc00db6bda"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_v0.1.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "71bdbfa0538ed335bef97e0ab11f3180b2b49628174f285dc9f9dbd32e329bc4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_R1.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "deb89a6d982912623b15886b0348c5a887c71fa637258dffdc9c48f4a2133610"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.1.schema.json",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "3c11053965d864b78d274993629564d77ee90baf8da63049692f8744627c8b87"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.5.schema.json",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "327ca15977a73a6b6d2f72ed27fde07259f4ba6c4ea9781d4ca17ad72b860108"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_contribution_evidence_v01.py",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "f7895b1778141235c0d71c407254c1aa26a590413557ce00cbdf9234b5c67ba9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_CCE_A_BRIDGE_SOURCE_SELECTION.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "5dfb4ed016772501bf6ec0b1adf8118b81aba946f7796c5ed6aeaafe714a209c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_RS_MESSAGE_ORIGIN_CONCURRENCE.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "b9041b59c2b84e63ec14c681b346283b33ab5b896c67c56fb04117be9c1e40c3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PM05_RECOVERY_ASSESSMENT.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "927f94d863af1e1952dca6f16f212b573f2867548530c931a026dc0167d205ef"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_PM05_RECOVERY_REVIEW.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "5be5e1fc86c87a65f0131c09ec34bc9a46a4f79e0df940520c1441353805b449"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_OWNER_DECISION_BRIEF_20261008.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "10e3b065499496e40c89cc91aeacec22f1e966df71ee80b34a48396bf8bafd71"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-A-20261004/WORK_GRAPH.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "6093db7cbfc067d90cec8647ca1cb79bbc8709bb89484b527ec839c759be9605"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "b32eae1d6f9833c1b9e27ca96b77c4cfebec7875dd285bda9c8cfce1c4e3b6e5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "source_revision": "fc92dd15917290a22dd439d6e556119b39ef1ce8",
+      "sha256": "c0e20df2c0d7f3c2cf749fe393f2bbd75635c98b508af6aa11dda592c33d71f5"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "sha256": "37235c20d9d17a44e5c1aef7d5a76841dbe33c10f2af93dbba9078a5bdee311f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_lifecycle_a2.cases.json",
+      "sha256": "072cc197082a06e6f34d405a65e8cbbcd4b86d6c4c0d129225a1b741b040d385"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/c3_a2_definition_probes.py",
+      "sha256": "4ad0b66d0c0ce86433a48722efd2c61b40106fa40557492053923522478cd19a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_CCE_A2_DEFINITION_RESULTS.txt",
+      "sha256": "73580a75ad14e81251a9bbc5cf5e3242264267b200ce6f5115863dec341a88c0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_CCE_A2_CHECKS.md",
+      "sha256": "ed2f0d551830d58ec96db56e24c7701af64827e36c6c60cc8bbbebbbb443e392"
+    }
+  ],
+  "reading_limits": "Current CCE/R1, selection, graph, PM05 and concurrence; relevant Host private receipt, role binding/history closure, RS section9; existing method/role context. No new full governance audit or supplier source/runtime qualification. Group A/B graph relationship passages inspected.",
+  "unselected": [
+    "S/T/W",
+    "R2 journal",
+    "CAM retirement/capacity policy",
+    "positive content-only review representation",
+    "new Host/role combined capability adoption"
+  ],
+  "checks": "51 existing definition cases;10 focused cold probes;32 designed lifecycle obligations, not runtime tests"
+}
