@@ -1,0 +1,43 @@
+{
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-VC-01-B7-REVIEW-789b119b",
+  "subject": {
+    "kind": "definition",
+    "identity": "B7 maintained fixture set, 13 roles @ 789b119b24ff5988fc8e6048e1ea4bd8a37bc7a2; manifest sha256:3c7a992fdacb09d13e05dbd765158c66ba344ced3902bb7d809e6cf20672cf38"
+  },
+  "evidence_set": [
+    "INSPECTION.md sha256:d5612181c75b7fcb03e8b0e0e8445f7f6a5def813bb3e89a0ed3a9792cd3355a",
+    "ROLE_MATRIX.csv sha256:1d59e3f5bea66e324cf87aa352634410e4bfdff7daad5faab9f90f3047c9b29a",
+    "SOURCE_FIXTURE_MANIFEST.json sha256:3c7a992fdacb09d13e05dbd765158c66ba344ced3902bb7d809e6cf20672cf38"
+  ],
+  "authors": [
+    {
+      "identity": "TASK /root/group_b_successor/support_identity (known related support author)",
+      "kind": "agent",
+      "model_identity": "not_exposed"
+    }
+  ],
+  "reviewer": {
+    "identity": "TASK /root/group_b_successor/support_identity (known related support author)",
+    "kind": "agent",
+    "model_identity": "not_exposed",
+    "separation": "not_separate"
+  },
+  "review_kind": "v4_ops_34",
+  "reported_as_independent": false,
+  "preference": {
+    "preferred": "codex",
+    "used": "codex"
+  },
+  "family_claim": "not_established",
+  "findings": [],
+  "standing": "no_findings",
+  "limits": [
+    "No findings only for the explicitly selected 13 static B7 roles; no full journey or VC-01/AC-001 pass.",
+    "Actual source inspection only; no fixture execution, App consumption, model/native result, canonical binding or candidate-attaching sidecar.",
+    "Related support author; not independent; historical authorship not exhaustively reconstructed.",
+    "Future candidate/configuration/pin, actual case-definition and admission obligations remain."
+  ],
+  "date": "2026-10-09"
+}
