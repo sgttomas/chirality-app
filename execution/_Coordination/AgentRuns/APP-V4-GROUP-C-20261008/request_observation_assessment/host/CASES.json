@@ -1,0 +1,165 @@
+{
+  "standing": "designed only; not executed",
+  "cases": [
+    {
+      "id": "original_pipe_join",
+      "setup": "Real original small pipe write, native response, actual selector page to inspector",
+      "expected": "Complete write and correlated response facts render; no added request"
+    },
+    {
+      "id": "registered_no_attempt",
+      "setup": "Inspect reservation before final send cut",
+      "expected": "null attempt; no complete write; no fabricated receipt"
+    },
+    {
+      "id": "inflight_early_reply",
+      "setup": "Native response arrives before write returns",
+      "expected": "in-progress plus actual response position coexist"
+    },
+    {
+      "id": "failed_with_response",
+      "setup": "Simulated write failure and actual retained response",
+      "expected": "Both facts; canonical projection unavailable; no delivery claim"
+    },
+    {
+      "id": "prewrite_refusal",
+      "setup": "Source limit with no attempt",
+      "expected": "no-attempt and limit-present; no error content"
+    },
+    {
+      "id": "closed_retained",
+      "setup": "Close generation before read",
+      "expected": "historical-retained, original facts preserved"
+    },
+    {
+      "id": "superseded",
+      "setup": "New generation retains prior request",
+      "expected": "historical with current watermark domain distinct"
+    },
+    {
+      "id": "foreign_selector",
+      "setup": "Wrong H5/home/requestRef or RPC",
+      "expected": "binding refusal; no guessed source"
+    },
+    {
+      "id": "restart_absent",
+      "setup": "Copied prior selector in new Host",
+      "expected": "unavailable; no cold revival"
+    },
+    {
+      "id": "duplicate_reply",
+      "setup": "Second contradictory reply after pending removed",
+      "expected": "first retained response only; duplicate coverage not-inspected"
+    },
+    {
+      "id": "late_frame",
+      "setup": "Reply after close",
+      "expected": "no invented response/receipt from journal"
+    },
+    {
+      "id": "auth_exclusion",
+      "setup": "account/login/start and projected request",
+      "expected": "never eligible; no secrets/error echo"
+    },
+    {
+      "id": "multimodal",
+      "setup": "Two inputs or nontext input",
+      "expected": "unsupported without changing native request"
+    },
+    {
+      "id": "metadata_bounds",
+      "setup": "Huge ID/thread/selector strings",
+      "expected": "bounded refusal or skipped listing row before clone"
+    },
+    {
+      "id": "deep_frame",
+      "setup": "Depth17 or 4097nodes or width129",
+      "expected": "preclone refusal; no digest truncation"
+    },
+    {
+      "id": "byte_bounds",
+      "setup": "Text16385 or serialized frame131073bytes",
+      "expected": "whole export unavailable; native request unaffected"
+    },
+    {
+      "id": "response_bounds",
+      "setup": "Oversized retained reply including unknown members",
+      "expected": "unavailable, no partial reply digest"
+    },
+    {
+      "id": "unicode_digest",
+      "setup": "Non-ASCII text, escapes, varied object insertion order",
+      "expected": "Exact text UTF8 hash; deterministic sorted parsed digest; no raw-wire alias"
+    },
+    {
+      "id": "page_empty",
+      "setup": "64 slots contain no eligible singletext rows",
+      "expected": "empty rows and advancing cursor, not false end"
+    },
+    {
+      "id": "page_snapshot",
+      "setup": "Requests added after fixed through",
+      "expected": "not in this walk; explicit new walk required"
+    },
+    {
+      "id": "large_counters",
+      "setup": "Counters above JS safe integer and u64max edges",
+      "expected": "decimal strings, checked arithmetic, no rounding/wrap"
+    },
+    {
+      "id": "project_unknown",
+      "setup": "Current workspace/native cwd/REC row differs",
+      "expected": "original project unknown; no backfill"
+    },
+    {
+      "id": "busy",
+      "setup": "Second concurrent list/inspect",
+      "expected": "busy no queue/additional export allocation"
+    },
+    {
+      "id": "invariant",
+      "setup": "Missing client index/response-position mismatch",
+      "expected": "source-invariant-unavailable no panic"
+    },
+    {
+      "id": "route_change",
+      "setup": "Active Home Arc changes after cut",
+      "expected": "C3 command discards, no attachment to successor"
+    },
+    {
+      "id": "late_ui",
+      "setup": "Request/selection epoch changed during async read",
+      "expected": "late render discarded"
+    },
+    {
+      "id": "allocation",
+      "setup": "Largest admissible projection plus encoded output",
+      "expected": "measured incremental<=512KiB; retained Host/framework costs excluded"
+    },
+    {
+      "id": "ordinary_unchanged",
+      "setup": "Read/list errors, unsupported input and normal notifications",
+      "expected": "zero sender/receiver/closure mutation; full notifications remain"
+    },
+    {
+      "id": "no_mint",
+      "setup": "Try copied observation as answer/role/SourceRequest",
+      "expected": "no accepted API or capability construction"
+    },
+    {
+      "id": "page_output_bound",
+      "setup": "64 maximally eligible metadata rows",
+      "expected": "encoded<=128KiB; row escaped bound<=1024; no unbounded map clone"
+    },
+    {
+      "id": "repeated_selector",
+      "setup": "Copy/replay exact selector while original source remains retained",
+      "expected": "Fresh actual lookup/capture allowed; copied selector is not proof or evidence import"
+    },
+    {
+      "id": "text_bytes_distinct",
+      "setup": "Original text contains ASCII, accented and supplementary Unicode plus quote/newline escaping",
+      "expected": "request.textBytes equals original borrowed UTF-8 byte length under same cut; differs where appropriate from Unicode scalar/JS UTF-16 counts, JSON escaped size and full frame.bytes; decimal string and <=16384; no consumer-derived substitute"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "basis": "f8660a8906c6cb8c85d681e4037c1f50f1882e01",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/app/src/App.tsx",
+      "revision": "f8660a8906c6cb8c85d681e4037c1f50f1882e01",
+      "sha256": "02800f062728c9598ed45f9661dcb26af7831be554b5c77aa82016ada01c4f19"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "revision": "f8660a8906c6cb8c85d681e4037c1f50f1882e01",
+      "sha256": "a0629915ca6e0c828c31415abdb7ade19e2e239bcf72863ee9f6027859e035d4"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "revision": "f8660a8906c6cb8c85d681e4037c1f50f1882e01",
+      "sha256": "ad0f738d8656f489a3039fbec64aa1369e56925a4ac0f012066c30db3248b45d"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "revision": "f8660a8906c6cb8c85d681e4037c1f50f1882e01",
+      "sha256": "de0dfab5abeed13c1bf8a8ede3f0a1ec7144517766df14f95db3c408c10eef8e"
+    }
+  ],
+  "assessment": {
+    "path": "/private/tmp/HOST_REQUEST_EXPORT_CONNECTED_ASSESSMENT.md",
+    "sha256": "ca593d604383882e20ea5b052ab3fd60f65b2976b3a05267dbd9fa9426f8a801"
+  },
+  "standing": "DEFERRED technical option pending original C3 association or separately selected global diagnostics; no implementation release",
+  "Host_source": {
+    "path": "/private/tmp/c3-host-request-export/HOST_REQUEST_OBSERVATION_SOURCE.md",
+    "sha256": "87034dcbe8535619808f137601d3436ad223f5d1851a0bf2a687c62e9772fbb3"
+  },
+  "artifacts": [
+    {
+      "name": "C3_REQUEST_INSPECTOR_SOURCE.md",
+      "sha256": "fe6fa5f61e3066bbb9fba387a4f78815bf3e93174dca40151ef3cc2d3c799c40"
+    },
+    {
+      "name": "CASES.json",
+      "sha256": "c8f5303991c1305779ce4adf994fbe30e0fe1c3a89fcfae6c8a68294361d5d2e"
+    }
+  ],
+  "designed_case_count": 34,
+  "executed_cases": 0,
+  "receiving_limits": [
+    "exactHost+CRP/independentreviewpending",
+    "newexternalobservation noRSrecord/adoption",
+    "no role/TASK/answer mint",
+    "noNW04/native/store"
+  ],
+  "retained_findings": [
+    {
+      "original_source_sha256": "74866d0a512976a4f9fc05e8961068174e5e8bece8f921ae99240258d657510c",
+      "original_cases_sha256": "a8d8f1d71a50debb0d98fd33431ee67e0a583d817cba11121b998bec906d80f7",
+      "original_basis_sha256": "1f06f8a9e383dd3e9dfc09b19ae75fbc1ad5d6304f78e4e7498e0f8d0df320a3",
+      "finding": "consumer promised raw text byte length absent from closed Hostpayload; earlyfieldmappingwording stale",
+      "repair": "bind newHost5d94 textBytes actualUTF8 count; Unicode and missingfield cases; obsoletependingwording removed",
+      "history": "original hashes retained; original consumer temp files revised in place"
+    },
+    {
+      "original_source_sha256": "0f76d441ec85faecee6c88fb6626bcc7970b640890b6515289f505a821e97296",
+      "original_cases_sha256": "18bbfc36aa1fcb2484e0aa8808a1077d9c8a61bfc3a88d86f022806f7421fad4",
+      "original_basis_sha256": "b790d709ced51270eaf4856d9a22fe06f4db1afa2626d21fa50d644bb258fe30",
+      "finding": "unassociated samehome text may be crossproject; C3 panel placement implies relevance without original association",
+      "repair": "defer preferredC3 implementation; actualinitiationassociation remains missing; separatelyselected collapsed globalmetadata-first diagnostics alternative only"
+    },
+    {
+      "prior_consumer_source_sha256": "e96558e51f9ca4cca8ba8bf3c0e460d6d652ba8bdea9212b65a9c2e345796b45",
+      "change": "Host pin refresh to deferred87034; technical method unchanged, both implementation paths remain unselected/deferred"
+    }
+  ],
+  "prior_host_receiving": {
+    "path": "/private/tmp/C3_REQUEST_INSPECTOR_HOST_RECEIVING.md",
+    "sha256": "b0c38c7230e87b7a9b5b17b118e3681a9f142820496fbc1b36f8191fc92ab0fa",
+    "standing": "concur on74866/607429 only; newbackcheck pending"
+  }
+}

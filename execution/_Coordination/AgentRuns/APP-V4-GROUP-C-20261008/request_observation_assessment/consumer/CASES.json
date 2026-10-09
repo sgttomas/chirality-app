@@ -1,0 +1,175 @@
+{
+  "standing": "designed connected consumer cases; not executed",
+  "cases": [
+    {
+      "id": "joined",
+      "setup": "Actual pipe registration/write/synthetic response\u2192command\u2192panel",
+      "expected": "Exact source selector/text/hash and independent localwrite/response shown"
+    },
+    {
+      "id": "pending",
+      "setup": "Written request no receivedreply position",
+      "expected": "Pending/absent response; no fabricatedreceipt/terminal"
+    },
+    {
+      "id": "response_early",
+      "setup": "Correlated response before localwrite completes",
+      "expected": "Both observations preserved separately"
+    },
+    {
+      "id": "failed_plus_response",
+      "setup": "Simulated writefailure with actualcorrelatedresponse",
+      "expected": "No coerced completewrite or response suppression"
+    },
+    {
+      "id": "noattempt",
+      "setup": "Originalregistered source refused beforeattempt",
+      "expected": "No-send only from actualsource evidence"
+    },
+    {
+      "id": "historical",
+      "setup": "SameHost retained original olderH5",
+      "expected": "Historicalretained, no newlivelease"
+    },
+    {
+      "id": "source_lost",
+      "setup": "Originalrequest entry missing",
+      "expected": "Unavailable no coldreconstruction"
+    },
+    {
+      "id": "foreign_selector",
+      "setup": "WrongH5/RPC/requestRef/Host",
+      "expected": "Refuse no searchnewer"
+    },
+    {
+      "id": "route_switch",
+      "setup": "ActiveHomeArc changes duringcommand",
+      "expected": "Stalecommand result discarded"
+    },
+    {
+      "id": "ui_switch",
+      "setup": "Userselects anotherrequest whilefirstreadpending",
+      "expected": "Latefirstreply discarded"
+    },
+    {
+      "id": "unknown_project",
+      "setup": "CurrentAppprojectknown butrequestassociationabsent",
+      "expected": "Showselectedcontext and originalunknown separately"
+    },
+    {
+      "id": "hostile_text",
+      "setup": "Selected text contains HTML/script-lookingcontent",
+      "expected": "Escapedplaintext only"
+    },
+    {
+      "id": "auth",
+      "setup": "Caller supplies account/authmethod selector",
+      "expected": "Hostrefusal, no credential/response exposure"
+    },
+    {
+      "id": "oversize",
+      "setup": "Selected originalshape/text overHostmethodcap",
+      "expected": "Unavailable notsilenttruncation"
+    },
+    {
+      "id": "cold_copy",
+      "setup": "Cold account/copied JSON claims matching request but original source absent/foreign or evidence fabricated",
+      "expected": "No source reconstruction/association/authorship/ack/role"
+    },
+    {
+      "id": "no_actions",
+      "setup": "List/inspect existingrequest",
+      "expected": "No sender/history/fs/store/RSwrite"
+    },
+    {
+      "id": "page_empty",
+      "setup": "No eligibleturn/start in numeric64registration-slot page",
+      "expected": "Emptydisplay advances actualHostcursor, no endlesssamepage retry"
+    },
+    {
+      "id": "busy",
+      "setup": "Secondinspection whileHostinspectionmutexbusy",
+      "expected": "Typedbusy, no queue/secondallocation"
+    },
+    {
+      "id": "generation_closes",
+      "setup": "Closure immediately aftercurrent-at-cut",
+      "expected": "Point-in-timecapture only; observedclosure relabelhistorical/clear"
+    },
+    {
+      "id": "huge_existing_history",
+      "setup": "Existinghost_status broaderhistorylarge",
+      "expected": "No wholeAppmemory bound inferred; newselector nofullclone"
+    },
+    {
+      "id": "exportfailure",
+      "setup": "Readbudget/refusal",
+      "expected": "Originalturn behavior unchanged"
+    },
+    {
+      "id": "exact_selector_repeat",
+      "setup": "Copied/repeated exact selector still names same genuine retained original source",
+      "expected": "Fresh bounded observation allowed; selector never source capability or page-origin proof"
+    },
+    {
+      "id": "unknown_wire_version",
+      "setup": "Unexpected Host envelopeformat/reason or malformed success",
+      "expected": "consumer-unavailable, no rawJSON fallback"
+    },
+    {
+      "id": "lossless_u64",
+      "setup": "Selector counters aboveJSsafeinteger range but withinu64",
+      "expected": "canonicalstrings roundtrip exactly, no Number coercion"
+    },
+    {
+      "id": "fixed_watermark",
+      "setup": "Newrequests arrive while paging",
+      "expected": "keeporiginal through/advance empty numericpages; explicitrefresh fornewwatermark"
+    },
+    {
+      "id": "projection_limits",
+      "setup": "Result-member response with sourceLimit/duplicatecoverage unknown",
+      "expected": "show everyindependentflag; no terminal/delivery/redaction completeness"
+    },
+    {
+      "id": "foreign_unknown_project_samehome",
+      "setup": "Selectedhome retains request fromother/unknownproject while currentAppproject/coldaccount differs",
+      "expected": "UNASSOCIATED label; no projectfilter/ownership/backfill/coldjoin"
+    },
+    {
+      "id": "unicode_text_bytes",
+      "setup": "Original text contains multibyte Unicode plus quote/newline; captured textBytes differs from JSUTF16 length and serializedframe bytes",
+      "expected": "Display exact Host UTF8 decimal count and frame count separately"
+    },
+    {
+      "id": "missing_textBytes",
+      "setup": "Old/malformed projection omits textBytes or uses number/noncanonical decimal",
+      "expected": "consumer-unavailable, no JS length/frame.bytes fallback"
+    },
+    {
+      "id": "default_global_metadata_only",
+      "setup": "Conditional globaldiagnostics mounted/refreshed with selectorpage",
+      "expected": "Collapsed; no autoselection/observationcall/text fetch or display"
+    },
+    {
+      "id": "selection_not_read",
+      "setup": "Request selected or nextpage arrives",
+      "expected": "No text read until separate explicit Read action after crossproject disclosure"
+    },
+    {
+      "id": "foreignproject_placement",
+      "setup": "Samehome request belongs to other/unknownproject",
+      "expected": "Never besideprojectC3 default or called selectedquestion evidence; diagnostic only if separatelyselected"
+    },
+    {
+      "id": "no_fake_dispatch_association",
+      "setup": "Currentworkspace/REC/cwd/newcallerfield offered as originalquestion/projectassociation",
+      "expected": "Reject inference; preferredC3 dependency remains absent"
+    },
+    {
+      "id": "diagnostic_hide",
+      "setup": "Close/hide globaldiagnostic after explicitread",
+      "expected": "Cleartransienttext; no persistence/autorefresh"
+    }
+  ]
+}
