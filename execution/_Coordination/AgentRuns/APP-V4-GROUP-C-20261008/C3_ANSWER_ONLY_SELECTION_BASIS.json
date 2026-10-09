@@ -1,0 +1,99 @@
+{
+  "status": "proposed technical selection only; independent review and HELP_HUMAN release pending",
+  "basis": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_v0.1.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "71bdbfa0538ed335bef97e0ab11f3180b2b49628174f285dc9f9dbd32e329bc4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.5.schema.json",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "327ca15977a73a6b6d2f72ed27fde07259f4ba6c4ea9781d4ca17ad72b860108"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.1.schema.json",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "3c11053965d864b78d274993629564d77ee90baf8da63049692f8744627c8b87"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_contribution_evidence_v01.py",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "f7895b1778141235c0d71c407254c1aa26a590413557ce00cbdf9234b5c67ba9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTENT_REVIEW_v0.1.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "091a625cc9a047ea2f852e06f62b01b1e574a7cd57fbc3087880ba1c113184e7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/CCE_HOST_ROLE_JOIN_PROPOSAL.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "7a19e2d7079014dc0cd1bfa9d1cbced4d1863dc3dd1b7f8e18946a36cad28224"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/cce_host_role_join.definition_cases.json",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "4e5cea59e9974c298ea61a6784f15853babe64be976d55ead6c702767b33c9d8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_RS_MESSAGE_ORIGIN_CONCURRENCE.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "b9041b59c2b84e63ec14c681b346283b33ab5b896c67c56fb04117be9c1e40c3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_TARGET_SELECTION_20261008.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "e1c82055e5e25c7629a3c83f32464b8fcfec83095019a50adcfcf1cd869c3b38"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/OWNER_DECISIONS.md",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "5934c86c571e694d8ce2cecd0122509e16caf6e48d0e430094755f302b5aeff9"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "edc2b3c0a61528650348729f9a9bbfcdbfc58c4adb3556d131a3385f2de27e1a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_view.rs",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "20856c84c41baf559c34a7d46ddb74040494d8693f84aeeaea86677a539e26d2"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_materialization.rs",
+      "revision": "5d6a28acb1d2f0e085df62219ef366d545efe26f",
+      "sha256": "4a4dead08ecd444d624a216ccb6f169b1e13cac8070b6df02e3764fc00db6bda"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_ANSWER_ONLY_SELECTION_CANDIDATE.md",
+      "sha256": "c1ef026f22fc69f58458477a870a59f5a0c99bf69e0d8cfdccebe24007743ca7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "8bcec6eaf4bec194d1eb7800c3d536dc7a238cb5b172023e51e4fe8b0df8ce1a"
+    }
+  ],
+  "checks": {
+    "unchanged_definition_suite": 51,
+    "answer_only_current_and_historical_semantics": "both accepted by existing checker after explicitly nulling review/plan/integration/integration_attempt",
+    "App_version_dispatch": "source inspection supports only0.1\u20130.4; no production0.5 claimed",
+    "runtime_test": false
+  },
+  "pending_concurrences": [
+    "Host owner exact interface adoption",
+    "role source/notice composition owning concurrence reported separately underway",
+    "RS exact new reference/interface concurrence",
+    "C3 answer-only0.5 consumer selection and independent review"
+  ],
+  "release_limits": "No code, new carrier, graph write, native act, journal or capacity policy selected. New message0.2 review remains separately versioned work."
+}

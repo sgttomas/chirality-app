@@ -44,7 +44,7 @@ interrupted-work recovery and provider adapters remain separate obligations.
 | C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; placement, source custody and exact Git inputs | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: bounded backend/view/source producers and format-0.4 comparison merged through PR #1155; C3-NW-03 native synthetic witness recorded in PR #1170. Full answer/review/integration and actual duties remain unfinished; source and policy decisions below precede graph-write code |
 | C3-D1 ordinary graph work and observation | HELP_HUMAN owner-decision custody; Group C and affected interface owners assess consequences | Merged C3-OD-01, accepted App/host basis and CCE evidence distinctions | Ordinary Codex file work under actual host permissions; App reports observed effects without pre-dispatch confinement or inferred authority | SELECTED direction in PR #1175; W1 App-owned graph insert/default per-edit preview is not selected. W2 source/parity impact assessment independently reviewed and merged PR #1177; exact interface adoption remains outstanding |
 | C3-D2 interrupted-work recovery and capacity | Group C with PM05 and storage/source owners | Merged C3-OD-02 and comparative assessment | Recoverable current status with exact recovery-critical evidence; older full intermediate snapshots replaceable only when required facts survive | SELECTED R2 source-design/proof target in PR #1175; finite quota, storage/retirement and separate final CAM64 product treatment remain open |
-| C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; no graph target write | C3-OD-01/02; reviewed CCE-A2; exact Host/RS and applicable policy interfaces | Named W2/CCE and R2/PM05 source changes, consumer consequences and negatives independently reviewed; no authority from text | ACTIVE positive content-only review message source CCR-v0.1, independently READY as a source-only proposal; PR integration pending. CCE-A2 and W2/R2 proposals merged PR #1174/#1177. HELP_HUMAN subsequently chose W2-M and R2-S as source/proof sequencing targets, not adopted mechanisms; its durable selection record merged PR #1178 |
+| C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; no graph target write | C3-OD-01/02; reviewed CCE-A2; exact Host/RS and applicable policy interfaces | Named W2/CCE and R2/PM05 source changes, consumer consequences and negatives independently reviewed; no authority from text | ACTIVE answer-only0.5 selection/consumer candidate; positive content-only message source merged PR #1179, not implementation release. CCE-A2 and W2/R2 proposals merged PR #1174/#1177. HELP_HUMAN subsequently chose W2-M and R2-S as source/proof sequencing targets, not adopted mechanisms; its durable selection record merged PR #1178 |
 | C3-R2-I implementation and connected witness | Bounded implementers only after release; later native/supplier tests point-authorized | Reviewed selected C3-R2-S contracts, genuine Host sources and actual permissions, applicable recovery/product choices | Actual authored answer, separate manager contribution and supported ordinary-write observations; independent code/connected checks | PLANNED, not released; no W1 writer or universal A5/A12/grant prerequisite introduced by W2 direction |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
 | C5 later research-to-design contribution and witness | App method/receiving owner; DEL-08-02; host work remains SWBPIPE | Owner activation of later increment; C4; portable workflow, shared act row, actual host integration and human act | Source → context → candidate → actual decision witness, plus limitations; preparation/rehearsal separate | BLOCKED at activation/input points; no activation inferred from Group C resume |
@@ -102,7 +102,7 @@ The current checked main basis is `2254d6b2806158211411aa05f74001465ce829b4`
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
-on `codex/group-c-content-review-source`. CCE-A2 source proposal merged as PR #1174
+on `codex/group-c-answer-only-selection`. CCE-A2 source proposal merged as PR #1174
 `fb61e741b7dbd5975b9830988ada607face73772`; it does not release code. No child is commissioned and no native process is
 carried by this assignment. Prior historical returns remain in the run; changes
 are integrated against then-current main by this one maintainer.
@@ -247,3 +247,14 @@ not another owner ruling or selection of quota, retirement, CAM policy or
 implementation. Exact technical sequencing is retained in
 [C3_SOURCE_TARGET_SELECTION_20261008.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_SOURCE_TARGET_SELECTION_20261008.md),
 merged PR #1178. It does not adopt the proposed interfaces.
+
+## First usable answer-only implementation route — selection candidate
+
+[C3_ANSWER_ONLY_SELECTION_CANDIDATE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_ANSWER_ONLY_SELECTION_CANDIDATE.md)
+proposes only existing0.5 answer-only production/reading, with explicit absent
+review/plan/integration/attempt. Host/role source adoption, exact0.5 semantic
+reader/CRP-CAM/view receiving and independent selection remain before code.
+Merged PR #1180 is a Host interface proposal, not an adopted capability.
+R2 journal and W2-M graph implementation are not blanket gates for this bounded
+answer-only increment; lifecycle-A/PM05 and capacity limits remain product gaps.
+No code release, supplier/native act or source truth is inferred.
