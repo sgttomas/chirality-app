@@ -97,8 +97,8 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `2254d6b2806158211411aa05f74001465ce829b4`
-(PR #1177 impact/source options merged; OD-01/02 remain the owner direction).
+The current checked main basis is `5d6a28acb1d2f0e085df62219ef366d545efe26f`
+(PR #1179 message proposal and #1180 Host interface proposal merged).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,

@@ -76,11 +76,11 @@
   "artifacts": [
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_ANSWER_ONLY_SELECTION_CANDIDATE.md",
-      "sha256": "c1ef026f22fc69f58458477a870a59f5a0c99bf69e0d8cfdccebe24007743ca7"
+      "sha256": "f4ef94cb310906513e03fbbed6be78d03643e965e028dc89167f2b58af6ecc07"
     },
     {
       "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
-      "sha256": "8bcec6eaf4bec194d1eb7800c3d536dc7a238cb5b172023e51e4fe8b0df8ce1a"
+      "sha256": "5dcff99a71b000225bc73241c4fa76c2c93429b9453eb2985865a14b4232a297"
     }
   ],
   "checks": {
@@ -95,5 +95,6 @@
     "RS exact new reference/interface concurrence",
     "C3 answer-only0.5 consumer selection and independent review"
   ],
-  "release_limits": "No code, new carrier, graph write, native act, journal or capacity policy selected. New message0.2 review remains separately versioned work."
+  "release_limits": "No code, new carrier, graph write, native act, journal or capacity policy selected. New message0.2 review remains separately versioned work.",
+  "independent_consumer_candidate": "Read-only0.5 answer-only semantic discovery/view may be separately released after consumer selection; Host mint is not a blanket gate, no constructed authorship claim."
 }

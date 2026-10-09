@@ -27,7 +27,7 @@ null review/plan/integration/attempt. Existing definition checker has explicit
 answer-only and historical-answer positive cases; CCE-A2 probes reproduced them.
 These are definition evidence, not already supported App behavior or hot custody.
 
-## Current versus required before code
+## Current versus required before authored-path code
 
 | Interface | Current supplied basis | Required owning review/selection |
 |---|---|---|
@@ -123,3 +123,24 @@ publication/cold read does not satisfy PM05 for multistage interrupted work.
 R2-S storage proof, quota/retirement and final CAM64 product suitability remain
 separate work before whole-product90. The candidate neither performs manager
 integration nor narrows the owner-selected recovery objective.
+
+## Independently releasable cold-consumer sub-slice for review
+
+After this0.5 consumer source selection is independently READY, a separately
+bounded technical release may implement read-only discovery, schema+semantic
+validation and view using constructed exact answer-only accounts before Host
+mint implementation. It cannot expose a production compose/mint/publish command
+or create an account claiming actual emission. Test fixtures explicitly remain
+constructed, even when all hashes and recorded receipt fields are consistent.
+Read success proves inspected byte/reference consistency only, never original
+authorship, permissions, performance or recoverable prefreeze status.
+
+The reader must distinguish unknown version, recognized but unadopted0.5 subset,
+invalid semantic content and unresolved references without dropping old-reader
+behavior. Its tests join real file discovery through the actual read command and
+view, plus old0.1–0.4 regressions, duplicate/unknown/malformed cases and forged
+receipt fields that cannot be promoted. Host/role producer concurrence is not a
+blanket dependency for this no-mint read-only consumer; exact RS/reference and
+C3 consumer semantics still need their owning review. Any shared lib/UI change
+requires a named fence against current main. This is a proposed sequencing split,
+not code release or a substitute for the later authored end-to-end path.
