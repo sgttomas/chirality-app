@@ -271,6 +271,14 @@ fn publish_connector_draft(state:State<'_,AppState>,token:String,generation:Stri
     #[cfg(any(target_os="macos",target_os="linux"))] {connector_materialization::publish(&state.connector_drafts,&state.connector_sources,&token,&generation,project)}
     #[cfg(not(any(target_os="macos",target_os="linux")))] {Err("Materialization unsupported on this platform".into())}
 }
+fn recheck_published_connector_for(state:&AppState,token:&str,generation:&str)->Result<Value,Value>{
+    #[cfg(any(target_os="macos",target_os="linux"))]
+    {connector_materialization::recheck(&state.connector_drafts,token,generation,||source_project(state).map(|p|p.to_path_buf()))}
+    #[cfg(not(any(target_os="macos",target_os="linux")))]
+    {let _=(state,token,generation);Err(json!({"kind":"unavailable","detail":"Published inspection unsupported on this platform"}))}
+}
+#[tauri::command(async)]
+fn recheck_published_connector_draft(state:State<'_,AppState>,token:String,generation:String)->Result<Value,Value>{recheck_published_connector_for(&state,&token,&generation)}
 #[tauri::command]
 fn cancel_connector_draft(state:State<'_,AppState>,token:String,generation:String)->Result<Value,String>{
     #[cfg(any(target_os="macos",target_os="linux"))] {state.connector_drafts.lock().map_err(|_|"Draft registry unavailable")?.cancel(&token,&generation)}
@@ -1259,7 +1267,7 @@ pub fn run() {
             read_connector_routes,
             prepare_connector_source, select_connector_source, anchor_connector_source, revise_connector_source,
             read_connector_git, cancel_connector_git, anchor_connector_git,
-            prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
+            recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
             host_status,
             select_home,
             read_home_access,
@@ -1369,6 +1377,20 @@ mod p3_role_entry_tests;
 #[cfg(all(test,unix))]
 mod connector_git_guard_tests {
     use super::*;
+    #[test]
+    fn connector_published_recheck_actual_appstate_handler_and_project_guards(){
+      for version in ["0.3","0.4"]{
+       let(r,source,registry,token,generation)=connector_materialization::tests::published_fixture(version);
+       let(root,mut state,_,_,_,_)=workflow_root_context_tests::fixture();state.workspace=Some(r.root.clone());state.connector_sources=source;state.connector_drafts=registry;
+       assert!(recheck_published_connector_for(&state,&token,&generation).is_err());state.project_context_limit=None;
+       state.project_context=recovery::ExplicitAppProjectContext::known(r.root.to_str().unwrap(),recovery::AppProjectSource::ConfiguredDirectory).unwrap();
+       *state.connector_sources.lock().unwrap()=connector_source::Session::default();
+       let result=recheck_published_connector_for(&state,&token,&generation).unwrap();assert_eq!(result["inspection"]["status"],"current_match");
+       if let Ok(dir)=std::env::var("C3_PUB_RECHECK_TEST_OUTPUT"){let p=PathBuf::from(dir);std::fs::create_dir_all(&p).unwrap();std::fs::write(p.join(format!("handler-{version}.json")),serde_json::to_vec(&json!({"registry":state.connector_drafts.lock().unwrap().view(),"reply":result})).unwrap()).unwrap();}
+       state.workspace=Some(r.root.join("mismatch"));assert!(recheck_published_connector_for(&state,&token,&generation).is_err());state.workspace=None;assert!(recheck_published_connector_for(&state,&token,&generation).is_err());
+       std::fs::remove_dir_all(root).unwrap();
+      }
+    }
     #[test]
     fn connector_git_shared_command_guard_refuses_unknown_mismatch_and_absent_project() {
         let(root,mut state,_,_,_,_)=workflow_root_context_tests::fixture();

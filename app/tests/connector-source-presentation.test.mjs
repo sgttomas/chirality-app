@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
@@ -89,7 +93,7 @@ test('actual panel handlers send only opaque session and pin/side arguments, wit
 });
 test('draft handlers freeze only explicit refs/claims and keep actual publication result after cancellation reply',async()=>{
  let cursor=0;const slots=[];const localExports={};const require=connectedRequire;
- new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
+ new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}}:require(name),localExports);
  const calls=[];let finishPublish;
  const source=state({...view,sessionToken:'session',generation:'generation',git:{operation:'completed',result:{reference:'git-ref',historical:false,observation:{at:{status:'Git-object-verified',object:{reference:'side-ref',readCommit:'commit'}},since:null},anchors:[]}}});
  const frozen={revision:'1',used:1,capacity:64,entries:[{token:'draft-token',generation:'draft-generation',accountId:'ra:fixture',status:'prepared',draft:{byteLength:500,sha256:'frozen-hash',account:{question:{text:'Frozen question',at_revision:'commit'},sources:[],interpretations:[],gaps:[],duties:[]}},outcomeText:'null',reconciliationText:'null'}]};
@@ -117,7 +121,7 @@ test('draft handlers freeze only explicit refs/claims and keep actual publicatio
  assert.equal(localExports.acceptDraftReply(published,publishing),published,'stale cancellation reply cannot replace actual newer result');
 });
 test('record-comparison handler carries explicit references and edits invalidate the frozen token',async()=>{
- let cursor=0;const slots=[];const local={};new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];}}:connectedRequire(name),local);
+ let cursor=0;const slots=[];const local={};new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];}}:connectedRequire(name),local);
  const calls=[];const source=state({...view,sessionToken:'private-session',generation:'private-generation',git:{operation:'completed',result:{reference:'git-reference',historical:false,observation:{at:{status:'Git-object-verified',object:{reference:'at-ref',readCommit:'at-pin'}},since:{status:'Git-object-verified',object:{reference:'since-ref',readCommit:'since-pin'}}},anchors:[{reference:'at-anchor',side:'at',sideObservationReference:'at-ref',anchor:'L1',text:'after'},{reference:'since-anchor',side:'since',sideObservationReference:'since-ref',anchor:'L1',text:'before'}]}}});
  const response={revision:'1',used:1,capacity:64,entries:[{token:'frozen',generation:'frozen-generation',status:'prepared',accountId:'ra:test',draft:null}]};const command=async(name,args)=>{calls.push({name,args});return response;};const draw=()=>{cursor=0;return local.ConnectorDraftPanel({source,availability:{enabled:true},command});};
  const nodes=(x,out=[])=>{if(Array.isArray(x))x.forEach(n=>nodes(n,out));else if(x&&typeof x==='object'){out.push(x);nodes(x.props?.children,out);}return out;};
@@ -133,7 +137,7 @@ test('format toggle remount preserves unique pair and claim keys and existing ci
  const nodes=(x,out=[])=>{if(Array.isArray(x))x.forEach(n=>nodes(n,out));else if(x&&typeof x==='object'){out.push(x);nodes(x.props?.children,out);}return out;};
  let parentCursor=0,childCursor=0,childSlots=[];const parentSlots=[],child={},parent={};
  new Function('require','exports',reconstructionCode)(name=>name==='react'?{...React,useRef(initial){const i=childCursor++;if(!(i in childSlots))childSlots[i]={current:initial};return childSlots[i];}}:createRequire(reconstructionUrl)(name),child);
- new Function('require','exports',compiled.outputText)(name=>name==='./ConnectorReconstruction'?child:name==='react'?{...React,useEffect(){},useState(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]=typeof initial==='function'?initial():initial;return[parentSlots[i],v=>parentSlots[i]=typeof v==='function'?v(parentSlots[i]):v];}}:connectedRequire(name),parent);
+ new Function('require','exports',compiled.outputText)(name=>name==='./ConnectorReconstruction'?child:name==='react'?{...React,useEffect(){},useRef(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]={current:initial};return parentSlots[i];},useState(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]=typeof initial==='function'?initial():initial;return[parentSlots[i],v=>parentSlots[i]=typeof v==='function'?v(parentSlots[i]):v];}}:connectedRequire(name),parent);
  const draw=()=>{parentCursor=0;return parent.ConnectorDraftPanel({source:state(),availability:{enabled:true},command:async()=>({})});};
  const toggle=version=>{nodes(draw()).find(n=>n.type==='label'&&n.props.children?.[0]==='Account format').props.children[1].props.onChange({target:{value:version}});if(version==='0.3')childSlots=[];};
  const element=()=>nodes(draw()).find(n=>n.type===child.ReconstructionFields);
@@ -147,4 +151,47 @@ test('format toggle remount preserves unique pair and claim keys and existing ci
  element().props.onChange({...value,pairs:value.pairs.slice(1),claims:value.claims.slice(1).map(c=>({...c,pairs:[pair]}))});
  toggle('0.3');toggle('0.4');add('Add explicit excerpt pair');add('Add attributed claim');value=element().props.value;
  assert.ok(value.pairs.every(p=>p.key!==pair));assert.ok(value.claims.every(c=>c.key!==claim));assert.deepEqual(value.contradictions[0].claims,[claim]);
+});
+
+function recheckHarness(registry,reply){
+ let cursor=0;const slots=[],local={},calls=[];let availability={enabled:true,status:'available',projectReference:'project-one'},pending;const requests=[];
+ new Function('require','exports',compiled.outputText)(name=>name==='react'?{...React,useEffect(){},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];}}:connectedRequire(name),local);
+ const command=async(name,args)=>{calls.push({name,args});if(name==='inspect_connector_drafts')return registry;return new Promise((resolve,reject)=>{pending={resolve,reject};requests.push(pending);});};
+ const draw=()=>{cursor=0;return local.ConnectorDraftPanel({source:emptySourceUi,availability,command});};
+ const nodes=(n,out=[])=>{if(Array.isArray(n))n.forEach(x=>nodes(x,out));else if(n&&typeof n==='object'){out.push(n);nodes(n.props?.children,out);}return out;};
+ const button=label=>nodes(draw()).find(n=>n.type==='button'&&n.props.children===label);
+ return{draw,nodes,button,calls,finish:()=>pending.resolve(reply),finishAt:(index,value)=>requests[index].resolve(value),fail:e=>pending.reject(e),project:value=>availability=value};
+}
+test('published inspection handler sends only original token/generation, escapes detail and preserves outcome',async()=>{
+ const entry={token:'published-token',generation:'published-generation',status:'published',accountId:'ra:fixture',recheckAvailable:true,outcomeText:'Original exact publication binding',reconciliationText:'null'};
+ const reply={token:entry.token,generation:entry.generation,inspection:{status:'changed',detail:'<script>untrusted</script>',limit:'No namespace uniqueness'}};
+ const h=recheckHarness({entries:[entry],used:1,capacity:64},reply);await h.button('Refresh retained draft outcomes').props.onClick();
+ assert.equal(h.button('Recheck this published file').props.disabled,false,'source session absent does not erase published custody');
+ const work=h.button('Recheck this published file').props.onClick();assert.deepEqual(h.calls.at(-1),{name:'recheck_published_connector_draft',args:{token:entry.token,generation:entry.generation}});h.finish();await work;
+ const html=renderToStaticMarkup(h.draw());assert.match(html,/Original exact publication binding/);assert.match(html,/Current exact-file inspection/);assert.match(html,/&lt;script&gt;/);assert.doesNotMatch(html,/<script>/);assert.match(html,/namespace uniqueness/);
+ const failed=h.button('Recheck this published file').props.onClick();h.fail({kind:'busy',detail:'No read queued'});await failed;assert.match(renderToStaticMarkup(h.draw()),/Inspection not completed/);assert.doesNotMatch(renderToStaticMarkup(h.draw()),/untrusted/);
+});
+test('published inspection late reply is discarded across project change',async()=>{
+ const entry={token:'t',generation:'g',status:'published',accountId:'ra:a',recheckAvailable:true,outcomeText:'Original retained result'};
+ const h=recheckHarness({entries:[entry]}, {token:'t',generation:'g',inspection:{status:'current_match',detail:'LATE_RESULT'}});await h.button('Refresh retained draft outcomes').props.onClick();const work=h.button('Recheck this published file').props.onClick();
+ h.project({enabled:false,status:'absent',projectReference:'another'});h.draw();h.finish();await work;
+ assert.doesNotMatch(renderToStaticMarkup(h.draw()),/LATE_RESULT/);assert.match(renderToStaticMarkup(h.draw()),/Original retained result/);assert.equal(h.button('Recheck this published file').props.disabled,true);
+});
+test('actual host command projection renders both published formats through maintained joined test',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'published-recheck-view-'));
+ try{
+ const result=spawnSync('cargo',['test','--offline','--locked','--manifest-path','src-tauri/Cargo.toml','--lib','connector_git_guard_tests::connector_published_recheck_actual_appstate_handler_and_project_guards','--','--exact','--test-threads=1'],{cwd:fileURLToPath(new URL('..',import.meta.url)),env:{...process.env,CARGO_NET_OFFLINE:'true',CARGO_INCREMENTAL:'0',CHIRALITY_SKIP_CODEX:'1',C3_PUB_RECHECK_TEST_OUTPUT:dir},encoding:'utf8',timeout:120000});
+ assert.equal(result.status,0,result.stderr||result.error?.message);
+ for(const version of ['0.3','0.4']){const {registry,reply}=JSON.parse(readFileSync(`${dir}/handler-${version}.json`,'utf8'));assert.equal(reply.inspection.status,'current_match');const h=recheckHarness(registry,reply);await h.button('Refresh retained draft outcomes').props.onClick();const work=h.button('Recheck this published file').props.onClick();h.finish();await work;const html=renderToStaticMarkup(h.draw());assert.match(html,/current_match/);assert.ok(html.includes(reply.inspection.observed.sha256));assert.match(html,/Original publication outcome/);assert.match(html,/namespace uniqueness/);}
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('published inspection older selected-entry reply cannot replace newer selection',async()=>{
+ const entries=['first','second'].map(token=>({token,generation:'g',status:'published',accountId:token,recheckAvailable:true,outcomeText:'Retained '+token}));
+ const h=recheckHarness({entries},null);await h.button('Refresh retained draft outcomes').props.onClick();
+ const buttons=()=>h.nodes(h.draw()).filter(n=>n.type==='button'&&n.props.children==='Recheck this published file');
+ const first=buttons()[0].props.onClick();const second=buttons()[1].props.onClick();
+ h.finishAt(1,{token:'second',generation:'g',inspection:{status:'current_match',detail:'SECOND_CURRENT'}});await second;
+ h.finishAt(0,{token:'first',generation:'g',inspection:{status:'changed',detail:'FIRST_LATE'}});await first;
+ const html=renderToStaticMarkup(h.draw());assert.match(html,/SECOND_CURRENT/);assert.doesNotMatch(html,/FIRST_LATE/);assert.match(html,/Retained first/);assert.match(html,/Retained second/);
 });

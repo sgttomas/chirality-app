@@ -430,7 +430,7 @@ pub(crate) fn compose_base(
 }
 #[cfg(all(test, any(target_os = "macos", target_os = "linux")))]
 #[path = "connector_materialization_tests.rs"]
-mod tests;
+pub(crate) mod tests;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 mod registry {
     use super::*;
@@ -457,6 +457,7 @@ mod registry {
         relative: PathBuf,
         association: String,
     }
+    struct PublishedCustody { store:Arc<ProjectRouteStore>, reference:BoundReference, project:PathBuf }
     struct Entry {
         generation: String,
         account_id: String,
@@ -465,12 +466,16 @@ mod registry {
         outcome: Value,
         reconciliation: Value,
         recovery: Option<(Arc<ProjectRouteStore>, Attempt)>,
+        published:Option<Arc<PublishedCustody>>,
+        custody_revision:u64,
     }
     pub struct Registry {
         recorder: Result<String, String>,
         entries: BTreeMap<String, Entry>,
         inflight: Option<String>,
         revision: u128,
+        inspection:Option<u64>,
+        next_inspection:u64,
     }
     impl Default for Registry {
         fn default() -> Self {
@@ -479,12 +484,13 @@ mod registry {
                 entries: BTreeMap::new(),
                 inflight: None,
                 revision: 0,
+                inspection:None,next_inspection:0,
             }
         }
     }
     impl Registry {
         pub fn view(&self) -> Value {
-            json!({"revision":self.revision.to_string(),"capacity":CAPACITY,"used":self.entries.len(),"inflight":self.inflight,"limit":"Development safety bound, not final product capacity. No eviction/reset/retry or restart recovery is provided.","entries":self.entries.iter().map(|(token,e)|json!({"token":token,"generation":e.generation,"accountId":e.account_id,"status":e.status,"outcomeText":serde_json::to_string_pretty(&e.outcome).unwrap(),"reconciliationText":serde_json::to_string_pretty(&e.reconciliation).unwrap(),"draft":e.payload.as_ref().map(|p|json!({"account":serde_json::from_slice::<Value>(&p.bytes).unwrap(),"byteLength":p.bytes.len(),"sha256":sha256_hex(&p.bytes)}))})).collect::<Vec<_>>()})
+            json!({"revision":self.revision.to_string(),"capacity":CAPACITY,"used":self.entries.len(),"inflight":self.inflight,"limit":"Development safety bound, not final product capacity. No eviction/reset/retry or restart recovery is provided.","entries":self.entries.iter().map(|(token,e)|json!({"token":token,"generation":e.generation,"accountId":e.account_id,"status":e.status,"recheckAvailable":e.status=="published"&&e.published.as_ref().is_some_and(|p|matches!(p.reference.format_version.as_str(),"0.3"|"0.4")),"outcomeText":serde_json::to_string_pretty(&e.outcome).unwrap(),"reconciliationText":serde_json::to_string_pretty(&e.reconciliation).unwrap(),"draft":e.payload.as_ref().map(|p|json!({"account":serde_json::from_slice::<Value>(&p.bytes).unwrap(),"byteLength":p.bytes.len(),"sha256":sha256_hex(&p.bytes)}))})).collect::<Vec<_>>()})
         }
         fn entry(&mut self, token: &str, generation: &str) -> Result<&mut Entry, String> {
             self.entries
@@ -648,6 +654,7 @@ mod registry {
                 outcome: Value::Null,
                 reconciliation: Value::Null,
                 recovery: None,
+                published:None,custody_revision:0,
             },
         );
         registry.revision += 1;
@@ -701,6 +708,171 @@ mod registry {
         }
         Ok(account)
     }
+    fn refusal(kind: &str, detail: impl Into<String>) -> Value {
+        json!({"kind":kind,"detail":detail.into()})
+    }
+    struct InspectionLease<'a> {
+        registry: &'a Mutex<Registry>,
+        revision: u64,
+    }
+    impl Drop for InspectionLease<'_> {
+        fn drop(&mut self) {
+            // All registry guards are in inner scopes and drop before this lease.
+            let mut r = self
+                .registry
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if r.inspection == Some(self.revision) {
+                r.inspection = None;
+            }
+        }
+    }
+    pub fn recheck(
+        registry: &Mutex<Registry>,
+        token: &str,
+        generation: &str,
+        project: impl FnMut() -> Result<PathBuf, String>,
+    ) -> Result<Value, Value> {
+        recheck_using(registry, token, generation, project, |s, r, p| {
+            s.inspect_published(r, p)
+        })
+    }
+    pub(super) fn recheck_using(
+        registry: &Mutex<Registry>,
+        token: &str,
+        generation: &str,
+        mut project: impl FnMut() -> Result<PathBuf, String>,
+        inspect: impl FnOnce(&ProjectRouteStore, &BoundReference, &Path) -> Value,
+    ) -> Result<Value, Value> {
+        let before = project().map_err(|e| refusal("unavailable", e))?;
+        let (custody, entry_cut, lease_cut) = {
+            let mut r = registry.try_lock().map_err(|e| match e {
+                std::sync::TryLockError::WouldBlock => {
+                    refusal("busy", "Registry busy; no inspection queued")
+                }
+                std::sync::TryLockError::Poisoned(_) => refusal("unavailable", "Registry unavailable"),
+            })?;
+            if r.inspection.is_some() {
+                return Err(refusal(
+                    "busy",
+                    "An inspection is already in flight; no second read queued",
+                ));
+            }
+            let e = r
+                .entries
+                .get(token)
+                .filter(|e| e.generation == generation)
+                .ok_or_else(|| refusal("invalid_token", "Unknown original token/generation"))?;
+            let custody = e
+                .published
+                .as_ref()
+                .filter(|_| e.status == "published")
+                .cloned()
+                .ok_or_else(|| {
+                    refusal(
+                        "unavailable",
+                        "Original typed published custody unavailable; no JSON/cold reconstruction",
+                    )
+                })?;
+            if !matches!(custody.reference.format_version.as_str(), "0.3" | "0.4") {
+                return Err(refusal(
+                    "unavailable",
+                    "Published version is outside direct inspection",
+                ));
+            }
+            if before != custody.project {
+                return Err(refusal(
+                    "stale",
+                    "Current explicit project association differs from publication",
+                ));
+            }
+            let entry_cut = e.custody_revision;
+            let lease_cut = r
+                .next_inspection
+                .checked_add(1)
+                .ok_or_else(|| refusal("unavailable", "Inspection revision exhausted"))?;
+            r.next_inspection = lease_cut;
+            r.inspection = Some(lease_cut);
+            (custody, entry_cut, lease_cut)
+        };
+        let lease = InspectionLease {
+            registry,
+            revision: lease_cut,
+        };
+        let observation = inspect(&custody.store, &custody.reference, &before);
+        let after = project().map_err(|e| refusal("stale", e))?;
+        if before != after {
+            return Err(refusal(
+                "stale",
+                "Project association changed during inspection",
+            ));
+        }
+        {
+            let r = registry
+                .lock()
+                .map_err(|_| refusal("unavailable", "Registry unavailable after inspection"))?;
+            let valid = r.inspection == Some(lease_cut)
+                && r.entries.get(token).is_some_and(|e| {
+                    e.generation == generation
+                        && e.status == "published"
+                        && e.custody_revision == entry_cut
+                        && e.published
+                            .as_ref()
+                            .is_some_and(|p| Arc::ptr_eq(p, &custody))
+                });
+            if !valid {
+                return Err(refusal(
+                    "stale",
+                    "Entry/custody/inspection changed; result discarded",
+                ));
+            }
+        }
+        drop(lease);
+        Ok(
+            json!({"token":token,"generation":generation,"inspectionRevision":lease_cut.to_string(),"inspection":observation}),
+        )
+    }
+    #[cfg(test)]
+    impl Registry {
+        pub(super) fn test_forget_published(&mut self, token: &str) {
+            self.entries.get_mut(token).unwrap().published = None;
+        }
+        pub(super) fn test_change_entry_cut(&mut self, token: &str) {
+            self.entries.get_mut(token).unwrap().custody_revision += 1;
+        }
+        pub(super) fn test_replace_lease(&mut self) -> u64 {
+            self.next_inspection += 1;
+            self.inspection = Some(self.next_inspection);
+            self.next_inspection
+        }
+        pub(super) fn test_lease(&self) -> Option<u64> {
+            self.inspection
+        }
+        pub(super) fn test_resources(&self) -> (usize, usize, usize) {
+            let mut roots = std::collections::HashSet::new();
+            let mut metadata = 0;
+            let mut payload = 0;
+            for e in self.entries.values() {
+                if let Some(p) = &e.published {
+                    roots.insert(Arc::as_ptr(&p.store) as usize);
+                    metadata += std::mem::size_of::<PublishedCustody>()
+                        + 4 * std::mem::size_of::<usize>()
+                        + p.store.retained_size()
+                        + p.project.capacity()
+                        + p.reference.relative_path.capacity()
+                        + p.reference.account_id.capacity()
+                        + p.reference.format_version.capacity()
+                        + p.reference.sha256.capacity()
+                        + p.reference.directories.capacity()
+                            * std::mem::size_of::<crate::connector_route_store::FileIdentity>();
+                }
+                if let Some(p) = &e.payload {
+                    payload += p.bytes.capacity();
+                }
+            }
+            (roots.len(), metadata, payload)
+        }
+    }
     pub fn publish(
         registry: &Mutex<Registry>,
         source: &Mutex<Session>,
@@ -737,17 +909,17 @@ mod registry {
             r.revision += 1;
             p
         };
-        let (status, outcome, recovery) = match prepublish(&payload, source, project) {
+        let (status, outcome, recovery, published) = match prepublish(&payload, source, project) {
             Err(reason) => (
                 "refused",
                 json!({"state":"refused_before_write","reason":reason,"effect":"No writer invocation; token consumed"}),
-                None,
+                None,None,
             ),
             Ok(account) => match writer(&payload.store, &account) {
                 Ok(reference) => (
                     "published",
                     json!({"state":"published","reference":reference,"limit":"Exact CRP result; no source truth or duty claim"}),
-                    None,
+                    None,Some(Arc::new(PublishedCustody{store:payload.store.clone(),reference,project:project.to_path_buf()})),
                 ),
                 Err(error) => {
                     let recovery = error
@@ -761,7 +933,7 @@ mod registry {
                             "refused"
                         },
                         json!({"state":if error.uncertain_commit{"uncertain"}else{"definite_refusal"},"error":error,"limit":"No automatic retry, rollback or unlink"}),
-                        recovery,
+                        recovery,None,
                     )
                 }
             },
@@ -769,11 +941,13 @@ mod registry {
         drop(payload); // No retained full payload after an actual outcome.
         let mut r = registry
             .lock()
-            .map_err(|_| "Draft registry unavailable after writer returned")?;
-        let e = r.entry(token, generation)?;
+            .map_err(|_| format!("Draft registry installation unavailable after writer returned; actual writer outcome (not an admitted entry): {outcome}"))?;
+        let e = r.entry(token, generation).map_err(|error|format!("{error}; registry installation failed; actual writer outcome (not an admitted entry): {outcome}"))?;
         e.status = status;
         e.outcome = outcome;
         e.recovery = recovery;
+        e.published=published;
+        if e.published.is_some(){e.custody_revision=1;}
         r.inflight = None;
         r.revision += 1;
         Ok(r.view())
@@ -782,7 +956,7 @@ mod registry {
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub(crate) use registry::prepare_composed;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
-pub use registry::{prepare, publish, Registry};
+pub use registry::{prepare, publish, recheck, Registry};
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 #[derive(Default)]
 pub struct Registry;
