@@ -100,12 +100,12 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `6b904385a96f9bd2d076a72c5abc4a749cd50cc9`
-(PR #1186 bounded development cold reader merged).
+The current checked main basis is `3cbfac7b8eb49aaee9ceb2068125319b1995f8aa`
+(PR #1188 initiation/ordering source options merged; no producer release).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
-on `codex/group-c-authored-answer-route`. CCE-A2 source proposal merged as PR #1174
+on `codex/group-c-r2-first-proof`. CCE-A2 source proposal merged as PR #1174
 `fb61e741b7dbd5975b9830988ada607face73772`; it does not release code. No child is commissioned and no native process is
 carried by this assignment. Prior historical returns remain in the run; changes
 are integrated against then-current main by this one maintainer.
@@ -323,3 +323,24 @@ Distribution initiation/SL-4/WR ordering source assessment is pending; no actual
 entry/tool/lease or Fleet child-dispatch equivalence is inferred. Parent may
 release a reviewed private core independently, but this route itself releases
 no code or Type2 assignment. Existing source owners retain their interfaces.
+
+## R2 first bounded proof candidate
+
+[R2-PROOF-01](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_FIRST_PROOF_SELECTION.md)
+proposes a dormant private current-status snapshot/descriptor core with test-only
+activation, embedded exact critical evidence and no retirement. Explicit small
+TestBudget constants exercise bounds; they are not product N/S/D/T/Q selections.
+[Designed cases](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_FIRST_PROOF_CASES.json)
+are not executed tests. Source/owning and independent review precedes technical
+release; no code, real journal, policy, new owner decision or CAM change occurs.
+Production shared quota, physical Q/support/threat model, retirement and final
+CAM64 suitability remain open before product90. R2-L stays comparator.
+
+Initiation/ordering proposal PR #1188 is received as options only: actual manager
+receiver/managed-session or native TASK role carrier, SL-4, post-cut WR meaning
+and combined lock proof remain unresolved. It does not release AA-TASK. Parent
+reports AA-CAP narrowed to borrowed bounded join-field predicates; full native
+schema validation is not performed by that core and belongs to a future issuer
+outside Inner plus guarded recheck. Provisional consistency is not schema-qualified
+native success or authorship. The core's exact boundary remains with Host owning
+review. No shared Host/lib code is being edited by this R2 source assignment.
