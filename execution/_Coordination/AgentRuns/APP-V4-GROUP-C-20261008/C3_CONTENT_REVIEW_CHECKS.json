@@ -1,0 +1,29 @@
+{
+  "standing": "definition-only; no actual manager emission, authority or adopted carrier",
+  "count": 23,
+  "checks": [
+    "valid constructed content-only message",
+    "old message0.1 refuses new enum",
+    "fake plan",
+    "changed answer hash",
+    "wrong base",
+    "wrong question",
+    "omitted gap",
+    "unknown contradiction",
+    "missing finding",
+    "extra finding",
+    "duplicate claim finding",
+    "cannot_assess substitution",
+    "integration promotion",
+    "human act field",
+    "grant field",
+    "answer whitespace changes exact binding",
+    "later plan cannot promote existing review",
+    "duplicate JSON keys",
+    "unknown support despite matching revised answer hash",
+    "old account shape alone accepts opaque text: not compatibility",
+    "old account semantic reader refuses new meaning",
+    "legacy answer shape supported in new schema",
+    "legacy review shape supported in new schema"
+  ]
+}
