@@ -69,3 +69,15 @@ cross-process or hostile-actor qualification; no rollback freshness or product Q
 proof. TestBudget is not product policy and no retirement/ID reset is introduced.
 Constructed/historical bytes never mint authorship, role, grant, act or performed
 duty. This result does not establish App recovery, PM05 sufficiency or90%.
+
+## Merged bounded proof
+
+Final integrated heada676b11b3dd256a04c359801f70fb5e37a7aaa8b received
+independent exact-head READY with unchanged repaired App bytes. All selected
+repository CI passed, including App Runtime integration and Harness pre-merge;
+unselected checks skipped. R2-specific32+32 proof evidence remains the local
+author/independent runs, not a new platform qualification inferred from CI.
+PR #1193 mergedb59e08b9a5fa89e065db65d2c4cc2ebabedf9d91 at
+2026-10-09T08:32:54Z after unchanged-head/MERGEABLE recheck. Only this dormant
+test-proof increment is complete; production adoption, policy and product limits
+remain as stated above.

@@ -100,8 +100,8 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `f028d12edcd23c8aaf6a1b67e6efc66a3cfda19b`
-(PR #1192 dormant call-custody source proposal merged; no TASK producer).
+The current checked main basis is `b59e08b9a5fa89e065db65d2c4cc2ebabedf9d91`
+(PR #1193 dormant R2 proof merged; no production R2 or TASK producer).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
@@ -363,6 +363,6 @@ false-confirmation defect. Maintained red tests reproduced it; repairedceca6e972
 received independent READY and32 default/32 feature passes. Exact failure,
 repair, proportionality and reuse/retirement limits are in
 [C3_R2_PROOF_INDEPENDENT_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_INDEPENDENT_REVIEW.md).
-Manager integration99d7c246e9 preserves identical App bytes. Final head review
-and selected CI remain before merge. This is a test-only storage proof, not
+Manager integration99d7c246e9 preserves identical App bytes. Final head review was READY ata676b11b3d; selected CI passed and PR #1193
+mergedb59e08b9a5. The bounded proof is COMPLETE. This is a test-only storage proof, not
 production R2 activation, RS adoption, capacity/retirement selection or PM05 closure.
