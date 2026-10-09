@@ -24,6 +24,8 @@
 
 #[path = "execution_custody.rs"]
 mod execution_custody;
+#[path = "hosting_request_event_join.rs"]
+mod request_event_join;
 #[path = "hosting_successor.rs"]
 pub(crate) mod successor;
 #[path = "attachment_custody.rs"]
@@ -140,6 +142,8 @@ impl HostConfig {
 
 #[derive(Default)]
 struct Inner {
+    aa_capture: Option<request_event_join::Core>,
+    aa_epoch: u64,
     state: String,
     start_attempt: u64,
     start_admission: Option<StartAdmission>,
@@ -485,6 +489,12 @@ pub struct Host {
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Child>>,
     #[cfg(test)]
+    aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
+    #[cfg(test)]
+    aa_after_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
+    #[cfg(test)]
+    aa_simulated_write: Mutex<Option<&'static str>>,
+    #[cfg(test)]
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
@@ -533,6 +543,12 @@ impl Host {
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
             stdin: Mutex::new(None),
             child: Mutex::new(None),
+            #[cfg(test)]
+            aa_before_write: Mutex::new(None),
+            #[cfg(test)]
+            aa_after_write: Mutex::new(None),
+            #[cfg(test)]
+            aa_simulated_write: Mutex::new(None),
             #[cfg(test)]
             before_thread_insert: Mutex::new(None),
             #[cfg(test)]
@@ -1077,6 +1093,7 @@ impl Host {
             // recreated Hosts within this same genuine App custody.
             if prospective.is_none() { self.allocate_home_spawn(&mut i,home_identity)?; }
             i.attachment_pipe_epoch += 1;
+            i.aa_capture=None;
             i.generation = json!({"appSession": i.app_session, "home": i.home, "spawnCounter": i.spawn_counter});
             i.start_admission=Some(StartAdmission::Installed{attempt,generation:i.generation.clone()});
             i.receipt_position = 0;
@@ -1218,6 +1235,7 @@ impl Host {
 
     /// H10: every pending client request of the closing generation becomes unknown.
     fn close_generation(i: &mut Inner) -> Value {
+        if let Some(c)=i.aa_capture.as_mut(){c.retire();}
         let mut unknown = 0;
         for (_, (idx, _)) in i.pending.drain() {
             if let Some(r) = i.client_requests.get_mut(idx) {
@@ -1303,10 +1321,10 @@ impl Host {
     fn request_begin_scoped(&self, method: &str, params: Value, initiator: Value,
         handshake: bool, expected_generation: Option<&Value>) -> Result<SourceRequest, String> {
         auth_rpc::generic_guard(method,&params)?;
-        self.request_begin_scoped_private(method,params,initiator,handshake,expected_generation,false,None)
+        self.request_begin_scoped_private(method,params,initiator,handshake,expected_generation,false,None,None)
     }
     fn request_begin_scoped_private(&self, method: &str, params: Value, initiator: Value,
-        handshake: bool, expected_generation: Option<&Value>, private_credential: bool, oauth_cancel:Option<&SourceRequest>) -> Result<SourceRequest, String> {
+        handshake: bool, expected_generation: Option<&Value>, private_credential: bool, oauth_cancel:Option<&SourceRequest>, aa_reservation:Option<request_event_join::CaptureReservation>) -> Result<SourceRequest, String> {
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         let ok_state = if handshake {i.state=="handshaking"} else {i.state=="ready"};
@@ -1348,7 +1366,13 @@ impl Host {
         if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
         if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":frame["params"]["threadId"],"turnId":frame["params"]["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
         let captured=self.capture_pipe(&i);
-        i.source_requests.get_mut(&id.to_string()).unwrap().source_pipe=captured.as_ref().ok().map(|bound|(bound.epoch,bound.identity));drop(i);
+        i.source_requests.get_mut(&id.to_string()).unwrap().source_pipe=captured.as_ref().ok().map(|bound|(bound.epoch,bound.identity));
+        #[cfg(test)] let aa_selected=aa_reservation.is_some();
+        if let Some(reservation)=aa_reservation {
+            let core=request_event_join::Core::bind(reservation,&self.inner,i.aa_epoch,&i.generation,request.request_ref(),&request.frame,captured.as_ref().ok().map(|b|(b.epoch,b.identity)));
+            i.aa_capture=Some(core);
+        }
+        drop(i);
         let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential{
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
         }else{self.frame_write.lock().unwrap()};
@@ -1359,8 +1383,15 @@ impl Host {
                     let state=Self::oauth_scope(&i,original)?;
                     if state.controller.observation().phase!=oauth_control::Phase::Cancelling||state.cancel_request.as_ref()!=Some(&json!(id)){return Err("original OAuth cancel control ended before final dispatch; no replacement write".into());}
                 }
-                i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);}
-            let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result})();
+                i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);
+                let epoch=i.aa_epoch;let cut=i.receipt_position;
+                if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
+            #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
+            #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else{None};
+            #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
+            #[cfg(not(test))] let result=Self::write_complete(&mut bound.file,&bytes);
+            #[cfg(test)] if aa_selected {let hook=self.aa_after_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
+            drop(serial);result})();
         drop(bytes);
         let mut i=self.inner.0.lock().unwrap();let key=id.to_string();let closed=i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||!matches!(i.state.as_str(),"ready"|"handshaking");
         let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
@@ -1382,6 +1413,12 @@ impl Host {
             if write!=oauth_control::WriteFinish::Written{state.controller.cancel_completed(&state.pin,oauth_control::CancelFinish::Unknown);}
             else if let Some(finish)=state.cancel_finish.take(){state.controller.cancel_completed(&state.pin,finish);}
         }
+        if i.aa_capture.is_some() {
+            let e=i.source_requests.get(&key).unwrap();let pipe=e.source_pipe;
+            let written=e.written&&!e.write_attempt_in_progress&&e.write_error.is_none()&&e.source_limit.is_none()&&!closed&&pipe.is_some_and(|(epoch,_)|epoch==i.attachment_pipe_epoch);
+            let epoch=i.aa_epoch;
+            if let Some(c)=i.aa_capture.as_mut(){c.settle(&request.generation,epoch,request.request_ref(),pipe,written);}
+        }
         Ok(request)
     }
 
@@ -1398,7 +1435,7 @@ impl Host {
     pub(crate) fn account_login_api_key(&self,generation:&Value,input:auth_rpc::TransientApiKey,policy:Option<&SourceRequest>)->Result<SourceRequest,String>{
         let policy_standing=self.account_key_policy_standing(generation,policy)?;
         let params=input.into_params();Self::validate_native_result("LoginAccountParams",&params).map_err(|_|"native API-key input shape invalid; sensitive diagnostic withheld".to_string())?;
-        let source=self.request_begin_scoped_private("account/login/start",params,json!({"kind":"person-directed"}),false,Some(generation),true,None)?;
+        let source=self.request_begin_scoped_private("account/login/start",params,json!({"kind":"person-directed"}),false,Some(generation),true,None,None)?;
         let mut i=self.inner.0.lock().unwrap();if let Some(e)=i.source_requests.get_mut(&source.request_id().to_string()){e.auth_policy_standing=Some(format!("{policy_standing}; Unit A transport only, native secure-entry/H-key owner not qualified; validity unknown until actual use"));}Ok(source)
     }
     fn account_key_policy_standing(&self,generation:&Value,policy:Option<&SourceRequest>)->Result<&'static str,String>{
@@ -1505,7 +1542,7 @@ impl Host {
         let mut params=None;
         permit.with_login_id(||self.check_oauth_source(&login.source).map_err(|_|()),|id|params=Some(json!({"loginId":id}))).map_err(|e|format!("OAuth cancel source unavailable: {e:?}"))?;
         let params=params.ok_or("OAuth cancel serialization unavailable")?;
-        let result=self.request_begin_scoped_private("account/login/cancel",params,json!({"kind":"person-directed"}),false,Some(&login.source.generation),true,Some(&login.source));
+        let result=self.request_begin_scoped_private("account/login/cancel",params,json!({"kind":"person-directed"}),false,Some(&login.source.generation),true,Some(&login.source),None);
         if result.is_err(){if let Some(state)=self.inner.0.lock().unwrap().oauth.get_mut(login.source.request_ref()){state.controller.cancel_completed(&state.pin,oauth_control::CancelFinish::Unknown);}}
         result
     }
@@ -2092,6 +2129,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":frame,"sourceProjection":if projected{Some("sensitive account projection; not original bytes")}else{None}}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
+        let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
+        if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
         let class=if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"};
         let mut automatic_reply=None;
         let private_auth_reply=if let Some((id,token_refresh))=private_auth_id{Some((self.capture_pipe(&i),id,token_refresh))}else{None};
