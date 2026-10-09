@@ -1,0 +1,81 @@
+{
+  "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+  "mechanism": "manager direct source authoring; no children",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "bytes": 14481
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665",
+      "bytes": 1804
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "7b9f306d7c6fc9ceeeb4178003521afcdafe5981370f0fc87418fdf35e2644b9",
+      "bytes": 369983
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "15425f6a48b31570447ab498b2a7c92f7870b2700d75fc9de1aef891af221f97",
+      "bytes": 357860
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_lifecycle.rs",
+      "sha256": "549fe28fe8155217ac961a29bf3dfe43b9103de12ccad585f609894e411bf7b3",
+      "bytes": 21053
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_supply.rs",
+      "sha256": "83e75542baa986924823ebdf7bcefa9d6761c623e536d92eb29fd2d603a81ec2",
+      "bytes": 13925
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/execution_custody.rs",
+      "sha256": "a9d95f8fb19efe5072a07fd090f34e2f2d90444e3838fbc47594d8ac637bbffd",
+      "bytes": 7957
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/native_history.rs",
+      "sha256": "5d9a268639399ff70e44b9217c2a317986ddc653d4684e64f40af6acd77922ab",
+      "bytes": 31657
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/lib.rs",
+      "sha256": "8bffa29413763b41c9f3801946b491dc408ba7fd3b3a3e4e069c5234f29592ee",
+      "bytes": 87641
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/workflow_workspace.rs",
+      "sha256": "eaf5987eb1a9903baad8461123317e4fe2dfcad6e3fe4bf7ac7c512c6cdf6365",
+      "bytes": 43955
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/OWNER_DECISIONS.md",
+      "sha256": "5934c86c571e694d8ce2cecd0122509e16caf6e48d0e430094755f302b5aeff9",
+      "bytes": 4468
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_HOST_ROLE_JOIN_ASSESSMENT.md",
+      "sha256": "ed1c8951f562848121201cfc733df2c92401bea9a23e9c452c56d259735a3c60",
+      "bytes": 16494
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_HOST_ROLE_JOIN_SOURCES.json",
+      "sha256": "2b4e3b9bf8d2979840301a136d956cef1187ef3261a0d78f9aafec2ee4281d5e",
+      "bytes": 4266
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec",
+      "bytes": 12582
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_R1.md",
+      "sha256": "deb89a6d982912623b15886b0348c5a887c71fa637258dffdc9c48f4a2133610",
+      "bytes": 9853
+    }
+  ]
+}
