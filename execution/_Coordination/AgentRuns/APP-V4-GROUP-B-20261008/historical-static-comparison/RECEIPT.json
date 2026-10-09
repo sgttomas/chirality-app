@@ -1,0 +1,186 @@
+{
+  "role": "TASK",
+  "child": "/root/group_b_successor/complete_content_build",
+  "parent": "/root/group_b_successor",
+  "delegation": false,
+  "basis_revision": "7262736ab1315e611426a5f012caef78c0ee64c2",
+  "artifact_source": "f79317be861bb63553512de3197b22d556268198",
+  "overlay_commit": "3269a2c288bdd3b34dbc7c3eb69f868e637a3cf6",
+  "artifact_manifest_sha256": "cd0e8f7216d6c85b1b1cee96300e3b1f4aeaea15bbc6185214345290bdb83c15",
+  "scanner_sha256": "03f02e9417ca66544c7c06b154b5350186a4092131d4f334fd6ce3f1023dd792",
+  "scanner_declared_source": "543735f459eb7edd0d2ea6bd72a92e597c36dd36",
+  "scanner_example_sha256": "3bc4ed010a6f322a88b902bcfc90cc705cbe1cb79b1678bcb717ede376537a71",
+  "scanner_provenance": "Operator-selected bytes matching prior independent review; authenticated build provenance not claimed",
+  "commands": [
+    {
+      "argv": [
+        "<selected-scanner>",
+        "scan",
+        "<approved-cached-vendor>"
+      ],
+      "exit": 0,
+      "stdout": "published.before.json",
+      "stdout_sha256": "2fbfa63fdf538eb72288520a9f130f97370c39c3f0149fca900ef38ec7622dc6",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "scan",
+        "<retained-bundle>/Contents/Resources/codex"
+      ],
+      "exit": 0,
+      "stdout": "packaged.before.json",
+      "stdout_sha256": "2fbfa63fdf538eb72288520a9f130f97370c39c3f0149fca900ef38ec7622dc6",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "compare",
+        "published.before.json",
+        "packaged.before.json"
+      ],
+      "exit": 0,
+      "stdout": "comparison.json",
+      "stdout_sha256": "79c15e865f25e42be6a75cdf62983adf051bf449106cab107761b56580e6dac9",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "compare",
+        "published.before.json",
+        "control-file-hash.json"
+      ],
+      "exit": 0,
+      "stdout": "control-file-hash.result.json",
+      "stdout_sha256": "c3b98498e88e56ec14725a4d1a4622eca97536b4fce7799fe6958f2bc7482048",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "compare",
+        "published.before.json",
+        "control-directory-mode.json"
+      ],
+      "exit": 0,
+      "stdout": "control-directory-mode.result.json",
+      "stdout_sha256": "c3b98498e88e56ec14725a4d1a4622eca97536b4fce7799fe6958f2bc7482048",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "compare",
+        "published.before.json",
+        "control-missing-entry.json"
+      ],
+      "exit": 0,
+      "stdout": "control-missing-entry.result.json",
+      "stdout_sha256": "c3b98498e88e56ec14725a4d1a4622eca97536b4fce7799fe6958f2bc7482048",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "scan",
+        "<approved-cached-vendor>"
+      ],
+      "exit": 0,
+      "stdout": "published.after.json",
+      "stdout_sha256": "2fbfa63fdf538eb72288520a9f130f97370c39c3f0149fca900ef38ec7622dc6",
+      "stderr_empty": true
+    },
+    {
+      "argv": [
+        "<selected-scanner>",
+        "scan",
+        "<retained-bundle>/Contents/Resources/codex"
+      ],
+      "exit": 0,
+      "stdout": "packaged.after.json",
+      "stdout_sha256": "2fbfa63fdf538eb72288520a9f130f97370c39c3f0149fca900ef38ec7622dc6",
+      "stderr_empty": true
+    }
+  ],
+  "controls": [
+    {
+      "mutation": "file-hash",
+      "entry": "bin/codex",
+      "equal": false,
+      "exit": 0
+    },
+    {
+      "mutation": "directory-mode",
+      "entry": "bin",
+      "equal": false,
+      "exit": 0
+    },
+    {
+      "mutation": "missing-entry",
+      "entry": "bin/codex",
+      "equal": false,
+      "exit": 0
+    }
+  ],
+  "scanner_unchanged": true,
+  "trees_before_after_equal": true,
+  "full_bundle_before_after_equals_prior": true,
+  "published_entries": 53,
+  "packaged_entries": 53,
+  "source_reads": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/examples/distribution-static.rs",
+      "sha256": "3bc4ed010a6f322a88b902bcfc90cc705cbe1cb79b1678bcb717ede376537a71"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs",
+      "sha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/packaging/static_distribution/README.md",
+      "sha256": "b03152b8278e750638753c494d9ba406d51b8c8a8730b1e00c36587ab28587bc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/distribution_static/REVIEW.md",
+      "sha256": "149c5e9b0901f4e8f34cc688ccb7c3d75e5c7d5c56fa2a39940f6163fbf45cb4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/complete-content/BUNDLE_INVENTORY.json",
+      "sha256": "37a20b94a325e9d87bedaab0bddc5e730f780a9e6e9ef1a4f3f3fbd103abd79f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/complete-content/RETURN.md",
+      "sha256": "d4d09ee9a6ae9db9bcb15b5322edf5b4ebea0e3943cfeea77b2fc62fc8d7089d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/complete-content/P1_COMPARISON.json",
+      "sha256": "44aed7b0854eecb0416def69933936d8767e9ba9acb703f2ea4ed370529d5dab"
+    }
+  ],
+  "standing": "historical-development-comparison-only",
+  "full_static_consumer_run": false,
+  "S3": false,
+  "native_qualification": false,
+  "FP_qualification_claimed": false,
+  "supplier_executed": false,
+  "native_app_launched": false
+}

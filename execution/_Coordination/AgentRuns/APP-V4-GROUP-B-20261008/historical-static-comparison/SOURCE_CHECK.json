@@ -1,0 +1,12 @@
+[
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/examples/distribution-static.rs",
+    "sha256": "3bc4ed010a6f322a88b902bcfc90cc705cbe1cb79b1678bcb717ede376537a71",
+    "matches_selected_reviewed_source": true
+  },
+  {
+    "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs",
+    "sha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411",
+    "matches_selected_reviewed_source": true
+  }
+]
