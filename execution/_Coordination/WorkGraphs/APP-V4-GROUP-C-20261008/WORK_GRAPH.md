@@ -278,3 +278,13 @@ HELP_HUMAN released only the merged brief's bounded development cold-consumer
 code after independent review and PR #1183. Actual assignment and fence are in
 [C3_AO_COLD_IMPLEMENTATION_RELEASE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_AO_COLD_IMPLEMENTATION_RELEASE.md).
 Existing route_persistence executes; independent exact-code review precedes fan-in. R2 journal/W2 integration are not blanket reader gates.
+
+## Received A→C delegated role source proposal
+
+PR #1184 merged `2e5c32e72d1ecdc4f81be98ebbfe8f7a740cf18a`, retaining
+[the role-owner return](../../AgentRuns/APP-V4-GROUP-C-20261008/role_source_proposal/RETURN.md)
+and named CCE_ROLE_SOURCE_LEASE_PROPOSAL. This is a new A-owned source interface
+for C3, not implemented TASK admission or retroactive deficiency in completed A
+work. Actual C3 initiating boundary, SL-4 fresh-child interpretation and combined
+WR/role/Host ordering remain source prerequisites before authored answer code.
+The current read-only0.5 consumer is independent and cannot mint that evidence.
