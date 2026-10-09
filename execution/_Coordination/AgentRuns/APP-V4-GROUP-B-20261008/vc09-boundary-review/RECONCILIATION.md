@@ -25,3 +25,20 @@ review record. Independent reviewer separately checks source fidelity and
 coverage. Missing owner authority or conflicting dispositions remain findings;
 this does not accept graph closure, a90percentgate, product or journey qualification.
 Manager owns this reconciliation/graph; no canonical contract change is selected.
+
+## Actual production return
+
+Author75e4e3a51459454d8c7b03004744481c60797f26 produced eight evidence-only
+files:46exact source identities,17owner mappings,15open-matter rows and actual
+EXP definition-subject review record. Findings remain open. F-VC09-01 identifies
+IN-5 missing-package blocked wording conflicting with later not-run rule/schema;
+Domains provider allocation remains explicitly TBD. No canonical source repaired.
+
+Independent reviewd0168fafa56a581bcdfcc6a1f6a35ec6f07d2fb0 is READY to
+integrate the evidence: source/evidence bindings, actual reviewer separation,
+schema/rules and passive source guards checked. Manager independently ran the
+existing admission validate-review path: file checks pass, zero errors, record
+SHA2560a01e4b3adfa9048aa6854cccfe908818319e161c623a8ba7e229fef58a4db89.
+This validates the record, not its observations or authority. Exact combined-head
+review and required CI follow. VC09 work is actual reviewed evidence with an
+open local finding, not a blanket AC009/VER009 or qualification pass.
