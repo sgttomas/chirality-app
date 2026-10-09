@@ -1,0 +1,29 @@
+{
+  "standing": "constructed fixture only; no native action",
+  "project": "/private/tmp/chirality-c3-r1-native-witness/project",
+  "states": {
+    "since": {
+      "commit": "35fd888497452fdb304af7258a09411c2250b78e",
+      "blob": "25793ed8de76d60f07060a17ea1a8060fb0f1284",
+      "bytes_utf8": "status: planned\nowner: unassigned\n",
+      "sha256": "6c71a4c547976c99932333ddd655d362b74a344c102804ed97a564d781b66a18",
+      "excerpt": "status: planned\n",
+      "excerpt_sha256": "e721f319d794b5f2d6e48690730b4ec537b444d08036bb9f7450294ecd7607e2"
+    },
+    "at": {
+      "commit": "d69d175dc6c2283010a957144e0a8980dd87c19b",
+      "blob": "53e4169e2c8892b57e153a2c5a134833bdce32ec",
+      "bytes_utf8": "status: recorded\nowner: unassigned\n",
+      "sha256": "3f46b0d9ff96bfe2c2c0fec2deea4607e5311a4e965f56ee57e8e70666bba168",
+      "excerpt": "status: recorded\n",
+      "excerpt_sha256": "faaef71997d93f040ae43d0de4f662dc0022781b1a68c6a5e478c65e15e3389a"
+    },
+    "local": {
+      "bytes_utf8": "status: local-only\nowner: unassigned\n",
+      "sha256": "2a13a47772bc545641c67aaa5b08612152d8cffdc8a132935974cf93227a9654"
+    }
+  },
+  "status": "M evidence.txt",
+  "remotes": "",
+  "hooks": "/dev/null"
+}
