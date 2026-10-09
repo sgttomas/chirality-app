@@ -1,0 +1,17 @@
+{
+  "source_revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8",
+  "source_hash_checks": {
+    "count": 46,
+    "passed": true
+  },
+  "review_schema": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+  "schema_errors": 0,
+  "existing_review_rule_violations": [],
+  "exact_review_evidence_references": 5,
+  "source_subject_digest_matches": true,
+  "standing": "findings_open",
+  "reported_as_independent": false,
+  "native_execution": false,
+  "product_qualification": false,
+  "scope": "Actual source-review record validity and identity only; not a VER/product pass"
+}

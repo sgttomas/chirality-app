@@ -1,0 +1,55 @@
+{
+  "record_kind": "exam_review",
+  "format": "EXP-v0.2",
+  "record_id": "EXP-VC-09-REVIEW-fef109a510",
+  "subject": {
+    "kind": "definition",
+    "identity": "EXP-v0.2 boundary and maintained interfaces @ fef109a510dafa400c2f1e839e21cdbd3c84d5f8; source-manifest sha256:a56af0d5396fb0fccfb62921bed62243793c4f5e846956c9c61d3d30296378fd"
+  },
+  "evidence_set": [
+    "BOUNDARY_REVIEW.md sha256:084defdb051b555f45a10a03f627c3b7990c4c1e828cd739d978c2969f840906",
+    "OPEN_MATTERS.csv sha256:95753e3dbd1d8e668bb59012ec04cbad739cafe9725bd1152cb96180a45cea77",
+    "OWNER_INTERFACE_MATRIX.csv sha256:44bbb66f1cb04092b799ded73626c8c7963fba295b899cc20b8589014394dede",
+    "SOURCE_GUARD_OBSERVATIONS.json sha256:252157202ad90289049ca8f3f126635bee9cff948ab351844f0e18f28d05b862",
+    "SOURCE_MANIFEST.json sha256:a56af0d5396fb0fccfb62921bed62243793c4f5e846956c9c61d3d30296378fd"
+  ],
+  "authors": [
+    {
+      "identity": "TASK /root/group_b_successor/support_identity (known overlapping support contributor)",
+      "kind": "agent",
+      "model_identity": "not_exposed"
+    }
+  ],
+  "reviewer": {
+    "identity": "TASK /root/group_b_successor/support_identity (known overlapping support contributor)",
+    "kind": "agent",
+    "model_identity": "not_exposed",
+    "separation": "not_separate"
+  },
+  "review_kind": "v4_ops_34",
+  "reported_as_independent": false,
+  "preference": {
+    "preferred": "codex",
+    "used": "codex"
+  },
+  "family_claim": "not_established",
+  "findings": [
+    {
+      "id": "F-VC09-01",
+      "claim": "Missing-package disposition in EXP IN-5 agrees with later rule/schema",
+      "evidence": "BOUNDARY_REVIEW.md F-VC09-01; SOURCE_MANIFEST EXP and RESULT_SCHEMA",
+      "consequence": "An unattempted missing-package case could be labelled blocked although schema requires packaged identity for that outcome.",
+      "disposition": {
+        "state": "open"
+      }
+    }
+  ],
+  "standing": "findings_open",
+  "limits": [
+    "Actual source review only; no native/candidate/model test result or blanket VER/AC pass.",
+    "Known overlapping author; not independent. Other historical authors were not exhaustively reconstructed.",
+    "Domains provider allocation remains TBD; decision owners do not substitute for a provider owner.",
+    "No source/Git/chat authority authentication, product qualification or owner acceptance."
+  ],
+  "date": "2026-10-09"
+}
