@@ -1,0 +1,82 @@
+{
+  "status": "development read-only implementation brief candidate; independent source/consumer review and code release pending",
+  "basis": "bd3861e7ce912c3f182ec8a036d8182090341985",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_ANSWER_ONLY_SELECTION_CANDIDATE.md",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "f4ef94cb310906513e03fbbed6be78d03643e965e028dc89167f2b58af6ecc07"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_ANSWER_ONLY_SELECTION_BASIS.json",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "eba53a82e3b987cf74d8f6d56a74193783afa99268e4dc0a665566ad8de10470"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.5.schema.json",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "327ca15977a73a6b6d2f72ed27fde07259f4ba6c4ea9781d4ca17ad72b860108"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.1.schema.json",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "3c11053965d864b78d274993629564d77ee90baf8da63049692f8744627c8b87"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_contribution_evidence_v01.py",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "f7895b1778141235c0d71c407254c1aa26a590413557ce00cbdf9234b5c67ba9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_evidence_v01.fixture.json",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "08b5fa515b35a92c889a1b69ed71e9d9c1a613598bf9c4933e5e8e807ad434cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "edc2b3c0a61528650348729f9a9bbfcdbfc58c4adb3556d131a3385f2de27e1a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_route_view.rs",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "20856c84c41baf559c34a7d46ddb74040494d8693f84aeeaea86677a539e26d2"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/connector_materialization.rs",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "4a4dead08ecd444d624a216ccb6f169b1e13cac8070b6df02e3764fc00db6bda"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src/ConnectorRoutePanel.tsx",
+      "revision": "bd3861e7ce912c3f182ec8a036d8182090341985",
+      "sha256": "227557bc50e89e140623010de8fcb888f3865f996b3131c1f2bdf2424d448c06"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_AO_COLD_CONSUMER_IMPLEMENTATION_BRIEF.md",
+      "sha256": "bfac38818edb5d4ecf68b001f880493720acb839f8a6074f619129160d766b8e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-GROUP-C-20261008/WORK_GRAPH.md",
+      "sha256": "530a8040b77323a45a3f2eb82cbf2da19ea1f320c3016bbce48f9cdeb4bf2d1d"
+    }
+  ],
+  "parent_technical_selection": "Current HELP_HUMAN coordination explicitly selected first development gap-limited generic discovery, honest post-acquisition0.5 cap, bounded reads only when exact reference independently known, no shared write/freeze exposure; not product sufficiency. This is parent direction, not a new human quote.",
+  "parent_role_return": "Role owner found ordinary delegated=false/primary TASK refusal and absent native child role supply. Source proposal separately commissioned; no concurrence or implementation claimed here.",
+  "checks": [
+    "source comparison of shared validate_account/read/publication routing",
+    "old generic read-before-cap limitation preserved explicitly",
+    "named subset refuses even schema-valid full0.5",
+    "graph includes acquisition owner/proof condition and authored TASK hold",
+    "source hashes and links checked; no runtime/build/native test run for a brief"
+  ],
+  "limits": [
+    "outer generic discovery remains unbounded before format known",
+    "future read-only code needs exact subset/semantic/base proof",
+    "no0.5 writer/mint/freeze adoption",
+    "no actual authorship from constructed fixtures",
+    "no R2/W2 graph or product90 claim"
+  ]
+}
