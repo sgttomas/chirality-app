@@ -1,0 +1,237 @@
+{
+  "review_case": "EXP-VC-09",
+  "source_revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8",
+  "scope": "Actual source review of EXP boundaries and selected maintained output interfaces; not product execution",
+  "sources": [
+    {
+      "key": "EXP",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93"
+    },
+    {
+      "key": "SOW",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md",
+      "sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a"
+    },
+    {
+      "key": "REVIEW_SCHEMA",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.review-record.schema.json",
+      "sha256": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508"
+    },
+    {
+      "key": "RESULT_SCHEMA",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.result-record.schema.json",
+      "sha256": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+    },
+    {
+      "key": "EXP_RULES",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/prototype/check_exp.py",
+      "sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210"
+    },
+    {
+      "key": "DEC",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+      "sha256": "14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982"
+    },
+    {
+      "key": "HANDOFF",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/HANDOFF_STATE.md",
+      "sha256": "96a1bb5f220099b15dfe795df37e5e013849dceecc4f7bc67d0b25c4994041db"
+    },
+    {
+      "key": "ACCEPTED_MANIFEST",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/ACCEPTED_MANIFEST.csv",
+      "sha256": "33004257fdf2a5ff05635c4f2837bf6a27802526d801d3b0879201242de9234b"
+    },
+    {
+      "key": "DELIVERABLES",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+      "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+    },
+    {
+      "key": "PACKAGES",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+      "sha256": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd"
+    },
+    {
+      "key": "SCOPE",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv",
+      "sha256": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73"
+    },
+    {
+      "key": "OBJECTIVES",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+      "sha256": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248"
+    },
+    {
+      "key": "OI_ORIGINAL",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+      "sha256": "b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821"
+    },
+    {
+      "key": "EXTERNAL_ORIGINAL",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+      "sha256": "fa2922f7a4d8c5b31e86752ef44fb654ec037cc46995153ced6345e90c84c134"
+    },
+    {
+      "key": "DECOMP_CURRENT",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "6ef9c0ba66ee42f6b786540aa3f26b1104a6fd82c4623d00f28d564d493afabb"
+    },
+    {
+      "key": "SCOPE_CURRENT",
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md",
+      "sha256": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657"
+    },
+    {
+      "key": "SCA003_DECISION",
+      "path": "projects/chirality-app-v4/execution/_ScopeChange/checkpoint_snapshots/SCA-V4-003_GROUP-3_2026-10-03/DECISION.md",
+      "sha256": "b6e90900b32b7ca38c2fc50e49c85619812dace6fee4c10cb5c28e7b6d81af60"
+    },
+    {
+      "key": "OI",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+      "sha256": "9c2d916c277f8ce4b847c9c532822d0566e59517ba9e0a86b650fe0450f3515d"
+    },
+    {
+      "key": "EXTERNAL",
+      "path": "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+      "sha256": "055703d9a7147ab982731b783366b5fde2ef1ba805a9fe60b6c2b742182aa56e"
+    },
+    {
+      "key": "D2_D3_D4",
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md",
+      "sha256": "a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c"
+    },
+    {
+      "key": "R23",
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/R23_RESOLUTIONS.md",
+      "sha256": "21b2ccfa0f63d61671eddcebe5c2a41dccd2fc5f901e529808605bd017b3fc11"
+    },
+    {
+      "key": "PKG",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "sha256": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4"
+    },
+    {
+      "key": "PKG_S1",
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/DISTRIBUTION_S1_ADOPTION.md",
+      "sha256": "be52fe4330ee61bcc55bd15d75c8ec4a5946cd825d360f4c1524e10795325831"
+    },
+    {
+      "key": "SQ_README",
+      "path": "projects/chirality-app-v4/app/examination/sq_receiving/README.md",
+      "sha256": "ab6ad39bf239de1f11a5e58ed0fb696f7b09f8d15ca619808decf2b81ce90ef9"
+    },
+    {
+      "key": "SQ_WORKER",
+      "path": "projects/chirality-app-v4/app/examination/sq_receiving/worker.py",
+      "sha256": "b6f9a436cedc697aa3b2ddd1e81c293f902796da8d876d0041b0c0dccb3cf6cf"
+    },
+    {
+      "key": "SQ_PINS",
+      "path": "projects/chirality-app-v4/app/examination/sq_receiving/pins.json",
+      "sha256": "10adf42fd3855fbbbbfc20b1f67e10d55bb3c10ee54a453e133551d65073c2a8"
+    },
+    {
+      "key": "CANONICAL",
+      "path": "projects/chirality-app-v4/app/examination/support_identity/canonical.py",
+      "sha256": "320728cdebdd87cadeac4621ce100807fbe228bff1787f04ca625b4a2873cb20"
+    },
+    {
+      "key": "S4_README",
+      "path": "projects/chirality-app-v4/app/examination/distribution_receiving/README.md",
+      "sha256": "710668840b64be70113f5a2db448dce687cdbe761eeeedf6a537f49a52d5965c"
+    },
+    {
+      "key": "S4_READER",
+      "path": "projects/chirality-app-v4/app/examination/distribution_receiving/receive.py",
+      "sha256": "3af5b2e4547381e7473a38d5e0d49d17c5d6d7a5b687c9ff66d7a4b2389e2b7e"
+    },
+    {
+      "key": "S4_LT09_PINS",
+      "path": "projects/chirality-app-v4/app/examination/distribution_receiving/pins.stop-admission-lt09-v1.json",
+      "sha256": "79b91412ce200a2118d373fb0a5c1309372880982ec338ccf960bdc08357d3f4"
+    },
+    {
+      "key": "S4_TERMINAL_PINS",
+      "path": "projects/chirality-app-v4/app/examination/distribution_receiving/pins.stop-admission-terminal-v1.json",
+      "sha256": "b3fbb66efaf32e6c4200b5b0d023afc333d0a958cd394742bba1db2eb2414277"
+    },
+    {
+      "key": "RUNNER_README",
+      "path": "projects/chirality-app-v4/app/examination/runner_support/README.md",
+      "sha256": "0136735b8e748331a1a70e7206ff4687414c3049c532ac5fd56cade598796b33"
+    },
+    {
+      "key": "RUNNER",
+      "path": "projects/chirality-app-v4/app/examination/runner_support/runner.mjs",
+      "sha256": "0bf884dd63bfecd04b34d2c16e0cc2fff8be0ceb7917a83e121a112972652ab8"
+    },
+    {
+      "key": "PREP_README",
+      "path": "projects/chirality-app-v4/app/packaging/README.md",
+      "sha256": "82377f878d5efbd7eaedf2dd0ff02c364c100d95e44d4cc4c89fae68057053e9"
+    },
+    {
+      "key": "STATIC_README",
+      "path": "projects/chirality-app-v4/app/packaging/static_distribution/README.md",
+      "sha256": "b03152b8278e750638753c494d9ba406d51b8c8a8730b1e00c36587ab28587bc"
+    },
+    {
+      "key": "STATIC_CHECK",
+      "path": "projects/chirality-app-v4/app/packaging/static_distribution/check.py",
+      "sha256": "2c63e5949ad47df3cf2614beba5ca485282322614a35da3691bb3997067cc50f"
+    },
+    {
+      "key": "B7_README",
+      "path": "projects/chirality-app-v4/app/examination/standalone/README.md",
+      "sha256": "79782a49b0f15698e742d3aee1d9ff9165a3946d50ffd08fc16eeeb6dedca4d8"
+    },
+    {
+      "key": "B7_PREP",
+      "path": "projects/chirality-app-v4/app/examination/standalone/prepare.py",
+      "sha256": "99df421b8bce6af634bd661d3112216e04a817e713de244b9b9b05935d105109"
+    },
+    {
+      "key": "B7_INPUTS",
+      "path": "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.py",
+      "sha256": "12453ca2d440707e034a8024c75ed5f7f17424aa93f9a3ccdf27cd82c2ab17a0"
+    },
+    {
+      "key": "B7_PINS",
+      "path": "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.pins.json",
+      "sha256": "e12b994ce886c7fae13fd162a68a841e7875a51692a494f889ffb4b30d87f9d0"
+    },
+    {
+      "key": "FORMS_README",
+      "path": "projects/chirality-app-v4/app/examination/native_forms/README.md",
+      "sha256": "3403ca4d0945b58e00650292779f830e238374131f254cb3b1b2ddaff0d696a2"
+    },
+    {
+      "key": "FORMS",
+      "path": "projects/chirality-app-v4/app/examination/native_forms/pre_run_form.py",
+      "sha256": "5b602cbe561034da28294b24d7669afd284a0e285a46cdf777e97d5e5c54e678"
+    },
+    {
+      "key": "ROOT",
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "key": "TASK",
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "key": "CHANGE_SKILL",
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "key": "LOOP",
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    }
+  ]
+}
