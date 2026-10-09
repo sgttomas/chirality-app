@@ -1,0 +1,199 @@
+{
+  "case": "EXP-VC-01",
+  "bounded_scope": "Only 13 maintained B7 fixture roles; actual source inspection, no execution or candidate attachment",
+  "source_revision": "789b119b24ff5988fc8e6048e1ea4bd8a37bc7a2",
+  "fixture_origin_commit": "f0cef79f963ef3b9b700c9c6aa8a8d09362bc59c",
+  "context_sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/PRD.md",
+      "sha256": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md",
+      "sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md",
+      "sha256": "ff0187dafd9e1f0268a19f9266914bdba64f39e0c8befdcaf20d3da7a7206a93",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/exam.review-record.schema.json",
+      "sha256": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/prototype/check_exp.py",
+      "sha256": "f7e11fc7cd9dd3126ccbe49db907c2feb69612dd185b56cc0d21560119d71210",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Design/STANDALONE_QUALIFICATION.md",
+      "sha256": "9f88209d7bac08137d0c92e65b8a344c619248bae683bf70a3137b0f00c5443b",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.pins.json",
+      "sha256": "e12b994ce886c7fae13fd162a68a841e7875a51692a494f889ffb4b30d87f9d0",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/pre_run_inputs.py",
+      "sha256": "12453ca2d440707e034a8024c75ed5f7f17424aa93f9a3ccdf27cd82c2ab17a0",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/README.md",
+      "sha256": "79782a49b0f15698e742d3aee1d9ff9165a3946d50ffd08fc16eeeb6dedca4d8",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/README.md",
+      "sha256": "403d9c06b27714e015e2f7a6514ab1c1957336a4f8b9b437e08a38c8d8a5f092",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/examination/standalone/missing-inputs.json",
+      "sha256": "b86d2e34e3ad4c2748d871015a3605e222e51b9c5b8ca8143693d2e42cbdc215",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/fixture-consumer/RETURN.md",
+      "sha256": "756c64f327a2cd17a07bc16c34d7a861f2ba7d7339f51dfe846ec160f835bca3",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/current-unsigned-observation/UNSIGNED_OBSERVATION.json",
+      "sha256": "c6ea10fe378087131f63b1c3ddfd8218e8153ac0e53f1ca96091460199fcb7a2",
+      "reading_scope": "Relevant supplied criterion, preparation boundary, metadata or origin record; unsigned artifact observation is context only"
+    }
+  ],
+  "fixture_roles": [
+    {
+      "role": "revision_1_workflow",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "4e80c92e011d47ac5ebd0514266701aa6e697e2ab2d4c76f9a4a86cbd1ef3fb1",
+      "bytes": 2721,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "revision_1_tool",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/tally.py",
+      "sha256": "030d9e5f4ce80a77d977cdee978395221ace984b47fd59d47295d3ee4cb43897",
+      "bytes": 1749,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "revision_2_workflow",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/revision-2/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "e6f63268b22d7f3b2ef2ee6f12cdc1e0b5d7114ac8710b686564b8d0870de9d8",
+      "bytes": 2727,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "revision_2_tool",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/revision-2/invented-pipe-inventory/tally.py",
+      "sha256": "41cc47e00889f31b1afb7f3891d94271511a6ec3d5098bb176e17854a5a3ef1e",
+      "bytes": 1749,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "revision_3_workflow",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/revision-3/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "4a559bd1bc5e5427435f51d6cd3f448dcf2e6c96bba94c08ff55691f41e5eccf",
+      "bytes": 2731,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "revision_3_tool",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/revision-3/invented-pipe-inventory/tally.py",
+      "sha256": "57a83df469eec4b4fcf5add1221f2ea64a21313a22f76ea1f227e38b504c153c",
+      "bytes": 1749,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "collision_workflow",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/user-collision/invented-pipe-inventory/WORKFLOW.md",
+      "sha256": "d4f16033331b16d00285829d80ff7f7b785a33e46917a229c8dda68e8276ac3c",
+      "bytes": 2765,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "collision_tool",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/user-collision/invented-pipe-inventory/tally.py",
+      "sha256": "e81b36590fc6f438b838319711c44f4858d71591f6dbe7a094168c9b9151573e",
+      "bytes": 1753,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "initial_input",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/inputs/initial.csv",
+      "sha256": "0fbee944c7bfb763f440e712eff28853da19cc34e171c2450d3d147848e0b844",
+      "bytes": 46,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "reuse_input",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/inputs/reuse.csv",
+      "sha256": "c45cf5efb99246bca123405992e1ad17c7509d38c9343885ad4ba6cec7c7081b",
+      "bytes": 45,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "refinement_2_input",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/inputs/refinement-2.csv",
+      "sha256": "75dfe90d012a77897a88340912fdc968c2dc9e692a15c9730341a6d55974bdbd",
+      "bytes": 46,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "refinement_3_input",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/inputs/refinement-3.csv",
+      "sha256": "b0f887268f401cffab28dc80cf2d0ec641aa3ad5d97af6fcc6651126a1bca086",
+      "bytes": 46,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    },
+    {
+      "role": "duplicate_negative_input",
+      "path": "projects/chirality-app-v4/app/examination/standalone/fixtures/inputs/duplicate-negative.csv",
+      "sha256": "91b77746e5172194ae79af9b9db9a20d800775cd31bd9d1f442e49fca35ce8ec",
+      "bytes": 46,
+      "matches_current_git_and_existing_pin": true,
+      "unchanged_since_origin_commit": true
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "workflow_file_hashes_sizes_pass": true,
+  "workflow_package_revision": "1b1733864cd89fd6d8ca74bf3e2084ff1105c1fc7d76537eefb42e2ae9a41e83",
+  "workflow_revision_pass": true,
+  "roles_json_digest_pass": true,
+  "guidance_digests_sizes_pass": true,
+  "guidance_count": 5,
+  "standing": "Exact byte-binding check only; no runnable or source-adoption promotion",
+  "checked_algorithm_source": {
+    "path": "projects/chirality-app-v4/app/src-tauri/src/workflow_workspace.rs",
+    "sha256": "eaf5987eb1a9903baad8461123317e4fe2dfcad6e3fe4bf7ac7c512c6cdf6365"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "app_fingerprints": [
+    {
+      "path": "target/debug/.fingerprint/chirality-app-v4-5033c0c200b08938/lib-chirality_app_v4_lib.json",
+      "sha256": "1ce6f442848d50e8aae2f55214cf644dc0164bebffc3ef6f0d61931bda5a539b",
+      "features": [
+        "custom-protocol"
+      ]
+    }
+  ],
+  "successor_enabled": false,
+  "synthetic_anchor_enabled": false
+}

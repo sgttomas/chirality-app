@@ -1,0 +1,15 @@
+{
+  "base_revision": "789b119b24ff5988fc8e6048e1ea4bd8a37bc7a2",
+  "fixture_roles": 13,
+  "matrix_rows": 13,
+  "context_sources": 17,
+  "source_hashes_passed": true,
+  "review_schema_valid": true,
+  "existing_review_rule_violations": [],
+  "evidence_hashes_matched": 3,
+  "standing": "no_findings for selected finite source scope only",
+  "reported_as_independent": false,
+  "fixture_execution": false,
+  "App_artifact_rescan": false,
+  "full_VC01_or_qualification_pass": false
+}
