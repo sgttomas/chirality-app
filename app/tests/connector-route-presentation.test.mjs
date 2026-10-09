@@ -99,3 +99,13 @@ test('0.4 keeps mechanical evidence, attributed claims and reported performance 
  assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>'));assert.ok(html.includes('&lt;img'));
  a.sources=[];a.facts=[];a.comparisons=[];a.claims=[];a.contribution_reports=[];const empty=render(observed([{...account(a),formatVersion:'0.4',reconstruction:a}]));assert.ok(!empty.includes('the work is complete'));assert.ok(empty.includes('No sources are recorded'));
 });
+test('answer-only view consumes actual filesystem read-backend projection and preserves recorded-only standing',async()=>{
+ const {mkdtempSync,rmSync}=await import('node:fs');const {tmpdir}=await import('node:os');const {join}=await import('node:path');const {spawnSync}=await import('node:child_process');const {fileURLToPath}=await import('node:url');
+ const dir=mkdtempSync(join(tmpdir(),'ao-view-'));const output=join(dir,'projection.json');
+ try{
+  const result=spawnSync('cargo',['test','--offline','--locked','--manifest-path','src-tauri/Cargo.toml','--lib','connector_answer_only_actual_read_projection_and_write_barrier'],{cwd:fileURLToPath(new URL('..',import.meta.url)),env:{...process.env,CARGO_NET_OFFLINE:'true',CARGO_INCREMENTAL:'0',CHIRALITY_SKIP_CODEX:'1',CHIRALITY_AO_VIEW_EXPORT:output},encoding:'utf8',timeout:120000});
+  assert.equal(result.status,0,result.stderr||result.error?.message);const projected=JSON.parse(readFileSync(output,'utf8'));const ao=projected.accounts.find(a=>a.formatVersion==='0.5');assert.ok(ao,'actual constructed files were admitted by the backend');
+  const html=render({...projected,accounts:[ao]});for(const text of ['Recorded answer-only account','Internally consistent receipt strings can be fabricated','Manager review and integration outstanding','Human responsibilities remain separate','900719925474099312345','known exact','post-acquisition','Original account text observed by the host'])assert.ok(html.toLowerCase().includes(text.toLowerCase()),text);
+  assert.ok(html.includes('&lt;script&gt;Recorded answer&lt;/script&gt;'));assert.ok(!html.includes('<script>'));assert.ok(html.includes(ao.recordedAnswerAccount.base_account.sha256));assert.ok(!html.includes('No sources are recorded'));assert.ok(!html.includes('Recorded duties'));assert.ok(html.includes(ao.answerOnly.answer.claims[0].claim_id));
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

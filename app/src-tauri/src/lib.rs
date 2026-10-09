@@ -13,6 +13,7 @@ pub mod canonical;
 pub mod catalog;
 pub mod connector_standing;
 pub mod connector_route_store;
+mod connector_answer_only;
 mod connector_route_view;
 mod connector_source;
 mod connector_materialization;
