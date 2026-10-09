@@ -5,8 +5,10 @@ use crate::{
     connector_source::{self, Question, Session},
 };
 use std::{fs, sync::Mutex};
-fn prepared() -> (Repo, Mutex<Session>, PrepareInput) {
+fn prepared() -> (Repo, Mutex<Session>, PrepareInput) { prepared_layout(false) }
+fn prepared_layout(existing_store:bool) -> (Repo, Mutex<Session>, PrepareInput) {
     let r = Repo::new("sha1");
+    if existing_store {fs::create_dir_all(r.root.join(".chirality/records/connectors/route-accounts")).unwrap();}
     let mut s = Session::default();
     let prepared = s
         .prepare(
@@ -1032,4 +1034,298 @@ fn connector_reconstruction_prepublication_refusals_and_atomic_stale_freeze() {
     );
     assert!(failed.is_err());
     assert_eq!(reg.lock().unwrap().view()["used"], 0);
+}
+
+// Actual constructed Git -> injected selection -> immutable draft -> real publication.
+// This helper does not mint a published entry or reconstruct custody from JSON.
+pub(crate) fn published_fixture(
+    version: &str,
+) -> (Repo, Mutex<Session>, Mutex<Registry>, String, String) {
+    let (r, s, i) = prepared();
+    let registry = Mutex::new(Registry::default());
+    let v = if version == "0.4" {
+        crate::connector_reconstruction::prepare(
+            &registry,
+            &s,
+            reconstruction_input(&s, i),
+            &r.root,
+        )
+        .unwrap()
+    } else {
+        prepare(&registry, &s, i, &r.root).unwrap()
+    };
+    let (t, g) = current_draft(&v);
+    let (t, g) = (t.to_owned(), g.to_owned());
+    let result = publish(&registry, &s, &t, &g, &r.root).unwrap();
+    assert_eq!(result["entries"][0]["status"], "published");
+    (r, s, registry, t, g)
+}
+pub(crate) fn direct_account() -> Value {
+    let (_r, s, i) = prepared();
+    account(&s, &i)
+}
+#[test]
+fn connector_materialization_recheck_actual_publications_survive_source_close_without_mutating_outcome(
+) {
+    for version in ["0.3", "0.4"] {
+        let (r, s, reg, t, g) = published_fixture(version);
+        let original = reg.lock().unwrap().view();
+        *s.lock().unwrap() = Session::default();
+        let result = recheck(&reg, &t, &g, || Ok(r.root.clone())).unwrap();
+        assert_eq!(result["inspection"]["status"], "current_match");
+        assert_eq!(result["inspection"]["observed"]["formatVersion"], version);
+        assert_eq!(reg.lock().unwrap().view(), original);
+        assert_eq!(reg.lock().unwrap().test_resources().0, 1);
+        assert_eq!(reg.lock().unwrap().test_resources().2, 0);
+        assert_eq!(
+            recheck(&reg, &t, "forged", || Ok(r.root.clone())).unwrap_err()["kind"],
+            "invalid_token"
+        );
+        reg.lock().unwrap().test_forget_published(&t);
+        assert_eq!(
+            recheck(&reg, &t, &g, || Ok(r.root.clone())).unwrap_err()["kind"],
+            "unavailable"
+        );
+    }
+}
+#[test]
+fn connector_materialization_recheck_offlock_busy_entry_cut_and_safe_unwind() {
+    let (r, _s, reg, t, g) = published_fixture("0.3");
+    let result = super::registry::recheck_using(
+        &reg,
+        &t,
+        &g,
+        || Ok(r.root.clone()),
+        |store, binding, path| {
+            assert!(reg.try_lock().is_ok(), "I/O does not hold registry mutex");
+            assert_eq!(
+                recheck(&reg, &t, &g, || Ok(r.root.clone())).unwrap_err()["kind"],
+                "busy"
+            );
+            store.inspect_published(binding, path)
+        },
+    )
+    .unwrap();
+    assert_eq!(result["inspection"]["status"], "current_match");
+    let stale = super::registry::recheck_using(
+        &reg,
+        &t,
+        &g,
+        || Ok(r.root.clone()),
+        |store, binding, path| {
+            reg.lock().unwrap().test_change_entry_cut(&t);
+            store.inspect_published(binding, path)
+        },
+    )
+    .unwrap_err();
+    assert_eq!(stale["kind"], "stale");
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        super::registry::recheck_using(
+            &reg,
+            &t,
+            &g,
+            || Ok(r.root.clone()),
+            |_, _, _| panic!("injected inspection unwind"),
+        )
+    }));
+    assert!(panic.is_err());
+    assert_eq!(reg.lock().unwrap().test_lease(), None);
+    let newer = std::cell::Cell::new(0);
+    let stale = super::registry::recheck_using(
+        &reg,
+        &t,
+        &g,
+        || Ok(r.root.clone()),
+        |_, _, _| {
+            newer.set(reg.lock().unwrap().test_replace_lease());
+            json!({"status":"current_match"})
+        },
+    )
+    .unwrap_err();
+    assert_eq!(stale["kind"], "stale");
+    assert_eq!(
+        reg.lock().unwrap().test_lease(),
+        Some(newer.get()),
+        "old Drop must not clear newer lease"
+    );
+}
+#[test]
+fn connector_materialization_recheck_project_change_discards_completed_observation() {
+    let (r, _s, reg, t, g) = published_fixture("0.3");
+    let mut calls = 0;
+    let result = super::registry::recheck_using(
+        &reg,
+        &t,
+        &g,
+        || {
+            calls += 1;
+            Ok(if calls == 1 {
+                r.root.clone()
+            } else {
+                r.root.join("different")
+            })
+        },
+        |store, binding, path| store.inspect_published(binding, path),
+    )
+    .unwrap_err();
+    assert_eq!(result["kind"], "stale");
+    assert_eq!(reg.lock().unwrap().test_lease(), None);
+    assert_eq!(
+        recheck(&reg, &t, &g, || Ok(r.root.clone())).unwrap()["inspection"]["status"],
+        "current_match"
+    );
+}
+
+#[test]
+fn connector_materialization_recheck_no_custody_for_prepared_or_uncertain_and_original_attempt_unchanged(
+) {
+    let (r, s, i) = prepared();
+    let reg = Mutex::new(Registry::default());
+    let v = prepare(&reg, &s, i, &r.root).unwrap();
+    let (t, g) = current_draft(&v);
+    assert_eq!(
+        recheck(&reg, t, g, || Ok(r.root.clone())).unwrap_err()["kind"],
+        "unavailable"
+    );
+    let v = super::registry::publish_with(&reg, &s, t, g, &r.root, |store, a| {
+        store.test_write_uncertain(a)
+    })
+    .unwrap();
+    assert_eq!(v["entries"][0]["status"], "uncertain");
+    assert_eq!(
+        recheck(&reg, t, g, || Ok(r.root.clone())).unwrap_err()["kind"],
+        "unavailable"
+    );
+    assert_eq!(reg.lock().unwrap().view(), v);
+    assert_eq!(reg.lock().unwrap().test_resources().0, 0);
+}
+#[test]
+fn connector_materialization_recheck_successful_write_installation_failure_preserves_exceptional_result(
+) {
+    let (r, s, i) = prepared();
+    let reg = Mutex::new(Registry::default());
+    let v = prepare(&reg, &s, i, &r.root).unwrap();
+    let (t, g) = current_draft(&v);
+    let result = super::registry::publish_with(&reg, &s, t, g, &r.root, |store, a| {
+        let binding = store.write(a)?;
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = reg.lock().unwrap();
+            panic!("injected installation poison");
+        }));
+        Ok(binding)
+    })
+    .unwrap_err();
+    assert!(
+        result.contains("published"),
+        "actual result retained: {result}"
+    );
+    assert!(result.contains("sha256"));
+    assert_eq!(
+        recheck(&reg, t, g, || Ok(r.root.clone())).unwrap_err()["kind"],
+        "unavailable"
+    );
+    assert_eq!(reg.lock().err().unwrap().into_inner().test_resources().0, 0);
+}
+#[test]
+fn connector_materialization_recheck_sixty_four_successes_retain_bounded_roots_without_payloads() {
+    let (r, s, mut input) = prepared_layout(true);
+    input.sources.clear();
+    input.interpretations.clear();
+    let reg = Mutex::new(Registry::default());
+    let mut first = None;
+    for n in 0..64 {
+        let v = prepare(&reg, &s, input.clone(), &r.root).unwrap();
+        let (t, g) = current_draft(&v);
+        if n == 0 {
+            first = Some((t.to_owned(), g.to_owned()));
+        }
+        let v = publish(&reg, &s, t, g, &r.root).unwrap();
+        assert!(v["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|e| e["status"] == "published"));
+    }
+    let (t, g) = first.unwrap();
+    let before = reg.lock().unwrap().view();
+    let (resources, metadata, payload) = reg.lock().unwrap().test_resources();
+    assert_eq!(resources, 64);
+    assert_eq!(payload, 0);
+    println!("retained typed custody explicit allocation capacities: {metadata} bytes, {resources} root Files; excludes allocator bookkeeping/registry outcomes/other App state");
+    assert!(prepare(&reg, &s, input, &r.root)
+        .unwrap_err()
+        .contains("capacity"));
+    assert_eq!(
+        recheck(&reg, &t, &g, || Ok(r.root.clone())).unwrap()["inspection"]["status"],
+        "current_match"
+    );
+    assert_eq!(reg.lock().unwrap().view(), before);
+}
+#[test]
+fn connector_materialization_recheck_unrelated_entry_change_does_not_stale_original() {
+    let (r, s, mut input) = prepared_layout(true);
+    input.sources.clear();
+    input.interpretations.clear();
+    let reg = Mutex::new(Registry::default());
+    let v = prepare(&reg, &s, input.clone(), &r.root).unwrap();
+    let (t, g) = current_draft(&v);
+    publish(&reg, &s, t, g, &r.root).unwrap();
+    let other = prepare(&reg, &s, input, &r.root).unwrap();
+    let (ot, og) = current_draft(&other);
+    let result=super::registry::recheck_using(&reg,t,g,||Ok(r.root.clone()),|store,binding,path|{let payload_bytes=reg.lock().unwrap().test_resources().2;assert!(payload_bytes>0,"a separate frozen payload coexists with inspection");let result=store.inspect_published(binding,path);println!("simultaneous frozen payload capacity: {payload_bytes}; direct read capped at1MiB+sentinel; parsed/schema allocations additional, not a total bound");reg.lock().unwrap().cancel(ot,og).unwrap();result}).unwrap();
+    assert_eq!(result["inspection"]["status"], "current_match");
+}
+
+#[test]
+fn connector_materialization_recheck_concurrent_backend_request_does_not_queue_or_read() {
+    let (r, _s, reg, t, g) = published_fixture("0.3");
+    let start = std::sync::Barrier::new(2);
+    let finish = std::sync::Barrier::new(2);
+    std::thread::scope(|scope| {
+        let first = scope.spawn(|| {
+            super::registry::recheck_using(
+                &reg,
+                &t,
+                &g,
+                || Ok(r.root.clone()),
+                |store, binding, path| {
+                    start.wait();
+                    finish.wait();
+                    store.inspect_published(binding, path)
+                },
+            )
+        });
+        start.wait();
+        let second = super::registry::recheck_using(
+            &reg,
+            &t,
+            &g,
+            || Ok(r.root.clone()),
+            |_, _, _| panic!("second inspection must never run"),
+        );
+        assert_eq!(second.unwrap_err()["kind"], "busy");
+        finish.wait();
+        assert_eq!(
+            first.join().unwrap().unwrap()["inspection"]["status"],
+            "current_match"
+        );
+    });
+    let before = reg.lock().unwrap().view();
+    fs::write(
+        r.root.join("literal [*].txt"),
+        "Changed unrelated working source",
+    )
+    .unwrap();
+    fs::write(
+        r.root.join(".git/config"),
+        "changed invalid Git config; no Git operation allowed",
+    )
+    .unwrap();
+    for _ in 0..2 {
+        assert_eq!(
+            recheck(&reg, &t, &g, || Ok(r.root.clone())).unwrap()["inspection"]["status"],
+            "current_match"
+        );
+    }
+    assert_eq!(reg.lock().unwrap().view(), before);
 }

@@ -236,6 +236,8 @@ mod platform {
         },
     };
 
+    #[cfg(test)] thread_local!{static INSPECTION_AUDIT:std::cell::RefCell<Option<Vec<String>>>=const{std::cell::RefCell::new(None)};}
+    #[cfg(test)] pub(super) fn audit_inspection<T>(f:impl FnOnce()->T)->(T,Vec<String>){INSPECTION_AUDIT.with(|a|*a.borrow_mut()=Some(Vec::new()));let value=f();let audit=INSPECTION_AUDIT.with(|a|a.borrow_mut().take().unwrap());(value,audit)}
     fn ioerr(context: &str, e: std::io::Error) -> StoreError {
         let kind = match e.raw_os_error() {
             Some(libc::ENOENT) => ErrorKind::Missing,
@@ -253,6 +255,7 @@ mod platform {
         })
     }
     fn open_at(parent: &File, name: &OsStr, flags: i32) -> Result<File> {
+        #[cfg(test)] INSPECTION_AUDIT.with(|a|{if let Some(v)=a.borrow_mut().as_mut(){v.push(format!("open:{}",name.to_string_lossy()));}});
         let name = CString::new(name.as_bytes())
             .map_err(|_| StoreError::new(ErrorKind::InvalidInput, "NUL in component"))?;
         // SAFETY: valid parent descriptor and NUL-terminated single component;
@@ -516,6 +519,24 @@ mod platform {
         Published,
         Verified,
     }
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub(crate) enum InspectionStep {
+        BeforeRead,
+        AfterRead,
+        BeforePostcheck,
+    }
+    fn inspection_failure(e: StoreError) -> Value {
+        let status = match e.kind {
+            ErrorKind::Missing => "missing",
+            ErrorKind::UnsafeEntry | ErrorKind::InvalidInput => "unsafe",
+            ErrorKind::ChangedContent
+            | ErrorKind::LocationMismatch
+            | ErrorKind::InvalidAccount
+            | ErrorKind::UnsupportedFormat => "changed",
+            _ => "unavailable",
+        };
+        json!({"status":status,"detail":e.detail.chars().take(512).collect::<String>(),"limit":"Direct exact-file observation only; namespace uniqueness not checked; original publication outcome unchanged"})
+    }
     impl ProjectRouteStore {
         pub fn open(explicit_project: &Path) -> Result<Self> {
             if !explicit_project.is_absolute()
@@ -587,6 +608,210 @@ mod platform {
                 ));
             }
             Ok(())
+        }
+        fn inspection_chain(&self, expected: &[FileIdentity]) -> Result<Chain> {
+            let mut handles = vec![self
+                .directory
+                .try_clone()
+                .map_err(|e| ioerr("duplicate inspection root", e))?];
+            let mut ids = vec![self.root_identity.clone()];
+            for (index, part) in PARTS.iter().enumerate() {
+                let dir = child(handles.last().unwrap(), part, false)?;
+                let id = identity(&dir)?;
+                if expected.get(index + 1) != Some(&id) {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Original directory identity changed",
+                    ));
+                }
+                ids.push(id);
+                handles.push(dir);
+            }
+            Ok(Chain { handles, ids })
+        }
+        #[cfg(test)]
+        pub(crate) fn retained_size(&self) -> usize {
+            std::mem::size_of::<Self>() + self.root.capacity()
+        }
+        /// A direct, bounded comparison, deliberately not full unique reference resolution.
+        pub(crate) fn inspect_published(&self, reference: &BoundReference, project: &Path) -> Value {
+            self.inspect_published_with(reference, project, |_| Ok(()))
+        }
+        pub(super) fn inspect_published_with(
+            &self,
+            reference: &BoundReference,
+            project: &Path,
+            mut hook: impl FnMut(InspectionStep) -> std::io::Result<()>,
+        ) -> Value {
+            let run = (|| -> Result<Value> {
+                if !matches!(reference.format_version.as_str(), "0.3" | "0.4") {
+                    return Err(StoreError::new(
+                        ErrorKind::UnsupportedCapability,
+                        "Direct published inspection supports only known0.3/0.4",
+                    ));
+                }
+                let parts = relative_parts(&reference.relative_path)?;
+                let (name, ancestors) = parts.split_last().unwrap();
+                if ancestors != PARTS
+                    || !canonical_name(name)
+                    || reference.directories.len() != PARTS.len() + 1
+                    || reference.directories.first() != Some(&self.root_identity)
+                {
+                    return Err(StoreError::new(
+                        ErrorKind::InvalidInput,
+                        "Original canonical path/root binding required",
+                    ));
+                }
+                let check_project = || -> Result<()> {
+                    // Keep original errors, unlike the legacy compare wrapper.
+                    let current = open_path(&self.root)?;
+                    if identity(&current)? != self.root_identity {
+                        return Err(StoreError::new(
+                            ErrorKind::ChangedContent,
+                            "Original project root was replaced",
+                        ));
+                    }
+                    let resolved = project
+                        .canonicalize()
+                        .map_err(|e| ioerr("current explicit project", e))?;
+                    if resolved != self.root {
+                        return Err(StoreError::new(
+                            ErrorKind::ChangedContent,
+                            "Current project association differs from original store",
+                        ));
+                    }
+                    Ok(())
+                };
+                check_project()?;
+                let chain = self.inspection_chain(&reference.directories)?;
+                if chain.ids != reference.directories {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Original directory identities changed",
+                    ));
+                }
+                let mut file = open_at(chain.last(), OsStr::new(name), libc::O_RDONLY)?;
+                let before = file
+                    .metadata()
+                    .map_err(|e| ioerr("inspection metadata", e))?;
+                if !before.is_file() || before.nlink() != 1 {
+                    return Err(StoreError::new(
+                        ErrorKind::UnsafeEntry,
+                        "Inspection target must be regular and single-link",
+                    ));
+                }
+                if identity(&file)? != reference.file {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Original file identity changed",
+                    ));
+                }
+                hook(InspectionStep::BeforeRead).map_err(|e| ioerr("inspection read", e))?;
+                let mut bytes = Vec::new();
+                (&mut file)
+                    .take((crate::connector_materialization::BYTE_LIMIT + 1) as u64)
+                    .read_to_end(&mut bytes)
+                    .map_err(|e| ioerr("bounded inspection read", e))?;
+                if bytes.len() > crate::connector_materialization::BYTE_LIMIT {
+                    return Err(StoreError::new(
+                        ErrorKind::UnsupportedCapability,
+                        "Exact-file inspection exceeded1MiB sentinel; no wider read",
+                    ));
+                }
+                #[cfg(test)]
+                INSPECTION_AUDIT.with(|a| {
+                    if let Some(v) = a.borrow_mut().as_mut() {
+                        v.push(format!(
+                            "raw-bytes:{};raw-capacity:{}",
+                            bytes.len(),
+                            bytes.capacity()
+                        ));
+                    }
+                });
+                hook(InspectionStep::AfterRead).map_err(|e| ioerr("inspection readback", e))?;
+                let digest = crate::util::sha256_hex(&bytes);
+                if digest != reference.sha256 {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Original raw account hash changed",
+                    ));
+                }
+                let account = crate::connector_answer_only::parse(&bytes).map_err(|_| {
+                    StoreError::new(
+                        ErrorKind::InvalidAccount,
+                        "Strict JSON/UTF8/depth validation failed",
+                    )
+                })?;
+                if account["formatVersion"] != reference.format_version
+                    || account["account_id"] != reference.account_id
+                {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Original account ID/version changed",
+                    ));
+                }
+                validate_account(&account).map_err(|_| {
+                    StoreError::new(
+                        ErrorKind::InvalidAccount,
+                        "Owning account semantic/schema validation failed",
+                    )
+                })?;
+                // No parsed content is retained or returned by this method.
+                drop(account);
+                let byte_length = bytes.len();
+                drop(bytes);
+                hook(InspectionStep::BeforePostcheck).map_err(|e| ioerr("inspection postcheck", e))?;
+                let after = file
+                    .metadata()
+                    .map_err(|e| ioerr("inspection post-read metadata", e))?;
+                if !after.is_file() || after.nlink() != 1 {
+                    return Err(StoreError::new(
+                        ErrorKind::UnsafeEntry,
+                        "Inspection target no longer regular/single-link",
+                    ));
+                }
+                if before.len() != after.len()
+                    || before.mtime() != after.mtime()
+                    || before.mtime_nsec() != after.mtime_nsec()
+                    || before.ctime() != after.ctime()
+                    || before.ctime_nsec() != after.ctime_nsec()
+                {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Account metadata changed during inspection",
+                    ));
+                }
+                {
+                    let named = open_at(chain.last(), OsStr::new(name), libc::O_RDONLY)?;
+                    let m = named
+                        .metadata()
+                        .map_err(|e| ioerr("reopened inspection metadata", e))?;
+                    if !m.is_file() || m.nlink() != 1 {
+                        return Err(StoreError::new(
+                            ErrorKind::UnsafeEntry,
+                            "Reopened inspection target unsafe",
+                        ));
+                    }
+                    if identity(&named)? != reference.file {
+                        return Err(StoreError::new(
+                            ErrorKind::ChangedContent,
+                            "Named account replaced during inspection",
+                        ));
+                    }
+                }
+                check_project()?;
+                let after_chain = self.inspection_chain(&reference.directories)?;
+                if after_chain.ids != chain.ids {
+                    return Err(StoreError::new(
+                        ErrorKind::ChangedContent,
+                        "Directory chain changed during inspection",
+                    ));
+                }
+                Ok(
+                    json!({"status":"current_match","observed":{"accountId":reference.account_id,"formatVersion":reference.format_version,"sha256":digest,"byteLength":byte_length,"fileIdentity":{"device":reference.file.device.to_string(),"inode":reference.file.inode.to_string()}},"limit":"Direct exact-file observation only; namespace uniqueness not checked; no continuous pathname guarantee, source truth, duty or new publication proof"}),
+                )
+            })();
+            run.unwrap_or_else(inspection_failure)
         }
         /// One explicit attempt; a collision or uncertain outcome is never retried.
         #[cfg(test)]
@@ -1111,6 +1336,7 @@ mod platform {
     /// Independent open file description, so concurrent enumerations do not share
     /// an offset. errno distinguishes an interrupted/failed readdir from EOF.
     fn names(dir: &File) -> Result<(Vec<std::ffi::OsString>, Option<StoreError>)> {
+        #[cfg(test)] INSPECTION_AUDIT.with(|a|{if let Some(v)=a.borrow_mut().as_mut(){v.push("enumerate".into());}});
         use std::os::fd::IntoRawFd;
         let scan = open_at(dir, OsStr::new("."), libc::O_RDONLY | libc::O_DIRECTORY)?;
         let fd = scan.into_raw_fd();

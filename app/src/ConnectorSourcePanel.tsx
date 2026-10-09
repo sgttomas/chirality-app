@@ -156,6 +156,18 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
 export function acceptDraftReply(previous:Json,next:Json){return !previous||BigInt(next.revision??"0")>=BigInt(previous.revision??"0")?next:previous;}
 export function ConnectorDraftPanel({source,availability,command}:{source:SourceUiState;availability?:RouteAvailability;command:(name:string,args:Record<string,unknown>)=>Promise<Json>}){
  const [registry,setRegistry]=useState<Json>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(false),[dirty,setDirty]=useState(true);
+ const [inspection,setInspection]=useState<Json>(null),[inspecting,setInspecting]=useState(false);
+ const inspectionCut=useRef(0),inspectionContext=useRef("");
+ const projectCut=JSON.stringify([availability?.enabled,availability?.projectReference,availability?.status]);
+ // Advance synchronously on render so even a reply before effects run cannot cross projects.
+ if(inspectionContext.current!==projectCut){inspectionContext.current=projectCut;inspectionCut.current++;}
+ useEffect(()=>{setInspection(null);setInspecting(false);return()=>{inspectionCut.current++;};},[projectCut]);
+ const recheck=async(entry:Json)=>{const cut=++inspectionCut.current,context=inspectionContext.current;setInspecting(true);setInspection(null);
+  try{const reply=await command("recheck_published_connector_draft",{token:entry.token,generation:entry.generation});
+   if(cut===inspectionCut.current&&context===inspectionContext.current&&reply.token===entry.token&&reply.generation===entry.generation)setInspection({token:entry.token,generation:entry.generation,context,reply});
+  }catch(e){if(cut===inspectionCut.current&&context===inspectionContext.current)setInspection({token:entry.token,generation:entry.generation,context,error:typeof e==="string"?e:JSON.stringify(e)});}
+  finally{if(cut===inspectionCut.current&&context===inspectionContext.current)setInspecting(false);}
+ };
  const [connector,setConnector]=useState("");
  const [format,setFormat]=useState("0.3"),[reconstruction,setReconstruction]=useState<any>(emptyReconstruction);
  const [choices,setChoices]=useState<Record<string,{selected:boolean;role:string;anchors:string[]}>>({});
@@ -206,7 +218,12 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  <button disabled={busy||dirty||!eligible} onClick={()=>action("publish_connector_draft",{token:entry.token,generation:entry.generation})}>Publish this frozen draft once</button></>}
  {(entry.status==="prepared"||entry.status==="publishing")&&<button onClick={()=>action("cancel_connector_draft",{token:entry.token,generation:entry.generation})}>Cancel draft (started publication may finish)</button>}
  {entry.status==="uncertain"&&<button onClick={()=>action("reconcile_connector_draft",{token:entry.token,generation:entry.generation})}>Inspect exact uncertain attempt</button>}
- <pre>{entry.outcomeText}</pre><pre>{entry.reconciliationText}</pre></article>)}
+ <h4>Original publication outcome</h4><pre>{entry.outcomeText}</pre><pre>{entry.reconciliationText}</pre>
+ {entry.recheckAvailable&&<button disabled={!availability?.enabled||inspecting} onClick={()=>recheck(entry)}>Recheck this published file</button>}
+ {inspection?.context===projectCut&&inspection?.token===entry.token&&inspection?.generation===entry.generation&&<div aria-label="Current exact-file inspection"><h4>Current exact-file inspection</h4>
+ {inspection.error?<p role="alert">Inspection not completed: {inspection.error}</p>:<><p>{inspection.reply.inspection.status}</p><pre>{JSON.stringify(inspection.reply.inspection.observed??null,null,2)}</pre><p>{inspection.reply.inspection.detail}</p><p>{inspection.reply.inspection.limit}</p></>}
+ <p>The original publication outcome is unchanged. This checks only its retained exact file; namespace uniqueness, source truth and performed duties are not established.</p></div>}
+ </article>)}
  <p>Actual outcomes outlive source preparation for this App instance. Process loss loses hot tokens; cold records neither prove prior publication nor restore custody. No automatic retry, rollback or unlink.</p>
  </section>;
 }

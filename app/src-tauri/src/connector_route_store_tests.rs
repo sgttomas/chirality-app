@@ -981,3 +981,203 @@ fn ambiguous_syscall_failure_reports_absent_observation_and_retains_temporary() 
         ErrorKind::Missing
     );
 }
+
+fn inspection_fixture() -> (Scratch, PathBuf, ProjectRouteStore, BoundReference) {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open(&p).unwrap();
+    let binding = store
+        .write(&crate::connector_materialization::tests::direct_account())
+        .unwrap();
+    (scratch, p, store, binding)
+}
+#[test]
+fn published_inspection_direct_only_ignores_hostile_unrelated_and_duplicate_accounts() {
+    let (_scratch, p, store, binding) = inspection_fixture();
+    let dir = p.join(DIRECTORY);
+    let unrelated = fs::File::create(dir.join("unrelated-large.json")).unwrap();
+    unrelated.set_len(64 * 1024 * 1024).unwrap();
+    fs::copy(
+        p.join(&binding.relative_path),
+        dir.join(format!("{KEY}.json")),
+    )
+    .unwrap();
+    let (result, operations) =
+        super::platform::audit_inspection(|| store.inspect_published(&binding, &p));
+    println!("direct inspection acquisition accounting: {operations:?}");
+    assert_eq!(result["status"], "current_match");
+    assert!(
+        operations
+            .iter()
+            .all(|x| x != "enumerate" && !x.contains("unrelated-large") && !x.contains(KEY)),
+        "{operations:?}"
+    );
+    assert!(
+        store.resolve(&binding).is_err(),
+        "full resolver still detects ambiguity"
+    );
+}
+#[test]
+fn published_inspection_missing_replaced_links_fifo_and_root_refusals() {
+    for kind in 0..6 {
+        let (_scratch, p, store, binding) = inspection_fixture();
+        let path = p.join(&binding.relative_path);
+        let saved = path.with_extension("saved");
+        fs::rename(&path, &saved).unwrap();
+        match kind {
+            0 => {}
+            1 => {
+                fs::copy(&saved, &path).unwrap();
+            }
+            2 => {
+                symlink(&saved, &path).unwrap();
+            }
+            3 => {
+                fs::hard_link(&saved, &path).unwrap();
+            }
+            4 => {
+                use std::os::unix::ffi::OsStrExt;
+                let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+                assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            }
+            _ => {
+                fs::rename(&saved, &path).unwrap();
+                let moved = p.with_extension("moved");
+                fs::rename(&p, &moved).unwrap();
+                fs::create_dir(&p).unwrap();
+            }
+        }
+        let result = store.inspect_published(&binding, &p);
+        assert_eq!(
+            result["status"],
+            match kind {
+                0 => "missing",
+                1 | 5 => "changed",
+                _ => "unsafe",
+            },
+            "{kind}: {result}"
+        );
+    }
+}
+#[test]
+fn published_inspection_actual_growth_sentinel_and_io_error_are_unavailable() {
+    use super::platform::InspectionStep;
+    let (_scratch, p, store, binding) = inspection_fixture();
+    let grown = store.inspect_published_with(&binding, &p, |step| {
+        if step == InspectionStep::BeforeRead {
+            fs::OpenOptions::new()
+                .write(true)
+                .open(p.join(&binding.relative_path))?
+                .set_len((crate::connector_materialization::BYTE_LIMIT + 1) as u64)?;
+        }
+        Ok(())
+    });
+    assert_eq!(grown["status"], "unavailable");
+    let failure = store.inspect_published_with(&binding, &p, |_| {
+        Err(std::io::Error::from_raw_os_error(libc::EMFILE))
+    });
+    assert_eq!(failure["status"], "unavailable");
+    assert!(failure["detail"]
+        .as_str()
+        .unwrap()
+        .contains("inspection read"));
+}
+#[test]
+fn published_inspection_post_read_replacement_and_ancestor_change_are_not_match() {
+    use super::platform::InspectionStep;
+    for ancestor in [false, true] {
+        let (_scratch, p, store, binding) = inspection_fixture();
+        let result = store.inspect_published_with(&binding, &p, |step| {
+            if step == InspectionStep::BeforePostcheck {
+                let path = if ancestor {
+                    p.join(".chirality")
+                } else {
+                    p.join(&binding.relative_path)
+                };
+                let moved = path.with_extension("moved");
+                fs::rename(&path, &moved)?;
+                if ancestor {
+                    fs::create_dir(&path)?;
+                } else {
+                    fs::copy(&moved, &path)?;
+                }
+            }
+            Ok(())
+        });
+        assert_eq!(result["status"], "changed");
+    }
+}
+#[test]
+fn published_inspection_strict_json_and_semantic_checks_not_just_matching_hash() {
+    for bytes in [
+        b"{\"formatVersion\":\"0.3\",\"formatVersion\":\"0.3\"}".to_vec(),
+        vec![b'['; 200],
+        b"{\"formatVersion\":\"0.3\",\"account_id\":\"wrong\"}".to_vec(),
+    ] {
+        let (_scratch, p, store, mut binding) = inspection_fixture();
+        fs::write(p.join(&binding.relative_path), &bytes).unwrap();
+        binding.sha256 = crate::util::sha256_hex(&bytes);
+        assert_eq!(store.inspect_published(&binding, &p)["status"], "changed");
+    }
+    let (_scratch, p, store, mut binding) = inspection_fixture();
+    for version in ["0.1", "0.2", "0.5"] {
+        binding.format_version = version.into();
+        assert_eq!(
+            store.inspect_published(&binding, &p)["status"],
+            "unavailable"
+        );
+    }
+}
+
+#[test]
+fn published_inspection_unsafe_ancestors_and_valid_deep_json_refuse() {
+    for kind in 0..3 {
+        let (_scratch, p, store, binding) = inspection_fixture();
+        let ancestor = p.join(".chirality");
+        let saved = p.join("saved-control");
+        fs::rename(&ancestor, &saved).unwrap();
+        match kind {
+            0 => symlink(&saved, &ancestor).unwrap(),
+            1 => {
+                fs::write(&ancestor, b"not directory").unwrap();
+            }
+            _ => {
+                use std::os::unix::ffi::OsStrExt;
+                let name = std::ffi::CString::new(ancestor.as_os_str().as_bytes()).unwrap();
+                assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            }
+        }
+        assert_eq!(store.inspect_published(&binding, &p)["status"], "unsafe");
+    }
+    let (_scratch, p, store, mut binding) = inspection_fixture();
+    let bytes = format!("{}0{}", "[".repeat(200), "]".repeat(200)).into_bytes();
+    fs::write(p.join(&binding.relative_path), &bytes).unwrap();
+    binding.sha256 = crate::util::sha256_hex(&bytes);
+    let result = store.inspect_published(&binding, &p);
+    assert_eq!(result["status"], "changed");
+    assert!(result["detail"].as_str().unwrap().contains("depth"));
+}
+
+#[test]
+fn published_inspection_hash_then_private_binding_semantic_version_checks() {
+    let (_scratch, p, store, mut binding) = inspection_fixture();
+    let path = p.join(&binding.relative_path);
+    let mut account: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    account["duties"][1] = account["duties"][0].clone();
+    let bytes = serde_json::to_vec(&account).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let actual = store.inspect_published(&binding, &p);
+    assert_eq!(actual["status"], "changed");
+    assert!(actual["detail"].as_str().unwrap().contains("raw account hash"));
+    // Only a private test reference is altered to reach validation after hash comparison.
+    // The production command accepts no reference or account bytes from its caller.
+    binding.sha256 = crate::util::sha256_hex(&bytes);
+    let semantic = store.inspect_published(&binding, &p);
+    assert_eq!(semantic["status"], "changed");
+    assert!(semantic["detail"].as_str().unwrap().contains("semantic/schema"));
+    account["formatVersion"] = json!("0.4");
+    let bytes = serde_json::to_vec(&account).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    binding.sha256 = crate::util::sha256_hex(&bytes);
+    assert!(store.inspect_published(&binding, &p)["detail"].as_str().unwrap().contains("ID/version"));
+}
