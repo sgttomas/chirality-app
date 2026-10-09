@@ -43,3 +43,11 @@ requiring actual owner purpose/development CF5 selections, CF1 identity/team and
 account-act direction. No credentials are handled by agents. Notary/DMG route,
 S3/runtime/qualified-pin and later native witnesses remain separate. This packet
 is not a signing request, authorization, product release or claim of owner review.
+
+The executable-action annex383073bf3d6f478d48043c511c870d4f2e8f5098 is
+independently READY as proposed preparation, review5784bb1d1272d106dbc945138bb98fad9b2dde42.
+It defines an exact refuse-existing copy target, original/copy/P1 identity gates,
+P0/outer signing and deep-strict verification sequence, stop conditions and
+owner-only identity/account handling. No proposed command was executed. The
+choice is limited experiment now on current development CF5/no extra entitlements
+or defer; neither is needed to accept this unsigned B2 evidence.
