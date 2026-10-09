@@ -56,6 +56,15 @@ as well, while the fixed hybrid still embeds it. No ranking establishes a
 production choice. Retaining multiple different generations or terminal records
 can grow the external pool even when individual snapshots remain small.
 
+A reference to a raw 1 MiB base still requires bounded acquisition, semantic
+reading and actual Host handoff without exceeding the resident envelope. No
+carrier alone solves those operations. The quote-review hybrid snapshot remains
+large because it embeds the escaped review; a threshold must follow measured
+complete-workload and memory constraints, not this demonstration partition.
+Counting shared exact bytes once is only arithmetic here: production sharing
+requires proved identity, immutable custody and lifetime across every referring
+record. Without that proof, quota must not credit the apparent sharing.
+
 ## Resource gaps and source consequences
 
 | Dimension | Available warrant | Still missing |
