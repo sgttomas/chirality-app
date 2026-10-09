@@ -105,7 +105,7 @@ The current checked main basis is `3cbfac7b8eb49aaee9ceb2068125319b1995f8aa`
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
-on `codex/group-c-r2-first-proof`. CCE-A2 source proposal merged as PR #1174
+on `codex/group-c-r2-proof-manager`. CCE-A2 source proposal merged as PR #1174
 `fb61e741b7dbd5975b9830988ada607face73772`; it does not release code. No child is commissioned and no native process is
 carried by this assignment. Prior historical returns remain in the run; changes
 are integrated against then-current main by this one maintainer.
@@ -344,3 +344,14 @@ schema validation is not performed by that core and belongs to a future issuer
 outside Inner plus guarded recheck. Provisional consistency is not schema-qualified
 native success or authorship. The core's exact boundary remains with Host owning
 review. No shared Host/lib code is being edited by this R2 source assignment.
+
+## Released R2 dormant test-only proof
+
+PR #1191 merged04b06eb2f7 retains the first proof selection. The exact B2
+implementation brief is independently READY and storage-owner CONCUR after the
+retained B1 bootstrap correction. HELP_HUMAN explicitly released only this
+dormant test-only code; actual assignment and serial build fence are in
+[C3_R2_PROOF_CODE_RELEASE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_CODE_RELEASE.md).
+Existing route_persistence executes; independent exact-code review precedes
+fan-in. No production constructor, RS carrier, quota/retirement or CAM policy
+is selected. Parent RS receiving assessment is not RS source-owner adoption.
