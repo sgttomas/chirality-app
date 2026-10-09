@@ -45,3 +45,13 @@ Result is a development read-only answer-only0.5 consumer. It proves no actual
 agent authorship, role admission, manager integration, human act, R2 recovery,
 capacity sufficiency or90% gate. Exact candidate CI and final backcheck remain
 required before merge; integration here is not product acceptance.
+
+## Merged bounded result
+
+Final integrated head dd63e028d63fe3229a5e0e4a6b1b39394afb9637 received
+independent exact-head READY against58e10166a6, with unchanged App tree. All
+selected CI passed, including App Runtime integration, Harness pre-merge,
+governance harness and PEC checks (unselected checks skipped). PR #1186 merged
+6b904385a96f9bd2d076a72c5abc4a749cd50cc9 at2026-10-09T05:46:19Z after unchanged
+head/MERGEABLE recheck. This closes only the development read-only consumer; all
+authorship, acquisition, role-source, R2 and product limits above remain.

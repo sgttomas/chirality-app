@@ -97,8 +97,8 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `58e10166a6e5ae1bab1a12b4851e122f293e1c2e`
-(PR #1185 R2 storage source proposal merged; bounded reader candidate reviewed).
+The current checked main basis is `6b904385a96f9bd2d076a72c5abc4a749cd50cc9`
+(PR #1186 bounded development cold reader merged).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
@@ -280,7 +280,8 @@ code after independent review and PR #1183. Actual assignment and fence are in
 Existing route_persistence returned5f184ee52b; independent exact-code review
 READY and unchanged manager integration be5cd2b are retained in
 [C3_AO_COLD_IMPLEMENTATION_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_AO_COLD_IMPLEMENTATION_REVIEW.md).
-Final combined backcheck and required CI precede merge. R2 journal/W2 integration are not blanket reader gates.
+Final combined backcheck was READY atdd63e028d6; selected CI passed and
+PR #1186 merged6b904385a96f. Only the bounded read-only consumer is complete. R2 journal/W2 integration are not blanket reader gates.
 
 ## Received A→C delegated role source proposal
 
@@ -294,7 +295,7 @@ The current read-only0.5 consumer is independent and cannot mint that evidence.
 
 ## Cold-consumer candidate and R2 receiving
 
-C3-AO-COLD-01 is independently READY at its bounded development scope: actual
+C3-AO-COLD-01 is COMPLETE at its bounded development scope, merged PR #1186: actual
 constructed files through read backend/view, full0.5 unselected subsets refused,
 shared write/freeze0.5 still unsupported. Author frontend checks passed; reviewer
 frontend execution lacked dependencies and is not claimed, with static review
