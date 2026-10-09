@@ -1,0 +1,224 @@
+{
+  "status": "Preparation-only real App bundle; no launch/Launch Services registration/CUA compatibility witness",
+  "source": "ba500defa498a454be182ed46db795fc3e04d627",
+  "app_tree": "2d58516379fdb0e0c583764b3ec95336cd407ffa",
+  "source_relation": "App tree byte-identical to ec5d397359c2f00e147254fdc797e437be54b91f, previously connector77/77 and npm26pass/1skip; packaging changes only overlays/resources/metadata",
+  "branch": "codex/group-c-r1-native-bundle",
+  "source_status": "clean; no repository edits or commit",
+  "bundle_path": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/Chirality App v4 (development candidate).app",
+  "executable": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4",
+    "bytes": 58390016,
+    "sha256": "593977b3dfe04d89787da9f946bcb1103cb42c664bb3d8355a1d2dd736d024ab"
+  },
+  "bundle_inventory": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/bundle-manifest.json",
+    "bytes": 3797,
+    "sha256": "feb2fb58370149a4c4c4085cdb317e0f3385838f2f437d95ba92c58e03bfc9fb"
+  },
+  "bundle_total_regular_file_bytes": 58444447,
+  "bundle_identity_rule": "Manifest SHA256 binds sorted relative paths/kinds/modes/link targets and regular-file hashes; no ambiguous directory hash claim",
+  "info_plist": {
+    "CFBundleDevelopmentRegion": "English",
+    "CFBundleDisplayName": "Chirality App v4 (development candidate)",
+    "CFBundleExecutable": "chirality-app-v4",
+    "CFBundleIdentifier": "dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+    "CFBundleInfoDictionaryVersion": "6.0",
+    "CFBundleName": "Chirality App v4 (development candidate)",
+    "CFBundlePackageType": "APPL",
+    "CFBundleShortVersionString": "0.0.0",
+    "CFBundleVersion": "0.0.0",
+    "CSResourcesFileMapped": true,
+    "LSMinimumSystemVersion": "15.0",
+    "CFBundleIconFile": "Chirality App v4 (development candidate).icns",
+    "LSRequiresCarbon": true,
+    "NSHighResolutionCapable": true
+  },
+  "info_plist_file": {
+    "path": "Contents/Info.plist",
+    "bytes": 1103,
+    "sha256": "5ecd3dc284f6fe7435284198fcd6fab5f329dfe7a727142bf2395ccff54ab9c2"
+  },
+  "effective_config": {
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "Chirality App v4 (development candidate)",
+    "version": "0.0.0",
+    "identifier": "dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+    "build": {
+      "beforeDevCommand": "npm run dev",
+      "devUrl": "http://127.0.0.1:1420",
+      "beforeBuildCommand": "npm run build",
+      "frontendDist": "../dist"
+    },
+    "app": {
+      "windows": [
+        {
+          "title": "Chirality App v4 \u2014 walking skeleton",
+          "width": 1100,
+          "height": 800
+        }
+      ],
+      "security": {
+        "csp": null
+      }
+    },
+    "bundle": {
+      "active": true,
+      "icon": [
+        "icons/icon.png"
+      ],
+      "targets": [
+        "app"
+      ],
+      "resources": {
+        "resources/instructions/": "instructions/",
+        "resources/production_workflows/": "workflows/"
+      },
+      "macOS": {
+        "minimumSystemVersion": "15.0"
+      }
+    }
+  },
+  "effective_config_sha256": "3c2b6a24ec5213378873311fc653e493b085c30cf87d39979d322df0dc043d24",
+  "effective_config_hash_basis": "UTF8 compact sorted-key JSON",
+  "resource_comparison": [
+    {
+      "source": "src-tauri/resources/instructions",
+      "bundle": "Contents/Resources/instructions",
+      "files": 8,
+      "exact_file_inventory_and_hash_match": true
+    },
+    {
+      "source": "src-tauri/resources/production_workflows",
+      "bundle": "Contents/Resources/workflows",
+      "files": 3,
+      "exact_file_inventory_and_hash_match": true
+    }
+  ],
+  "supplier_resources": "No codex/vendor/distribution-reference supplied or present; no supplier overlay, distribution-successor or synthetic-distribution-anchor feature",
+  "features": [
+    "custom-protocol"
+  ],
+  "command": "node node_modules/@tauri-apps/cli/tauri.js build --debug --no-sign --bundles app --features custom-protocol --config packaging/unsigned/tauri.development.conf.json --config '{\"identifier\":\"dev.chirality.app-v4.c3-r1-bundle-witness-20261008\"}' -- --offline --locked",
+  "cwd": "projects/chirality-app-v4/app",
+  "environment": {
+    "construction": "fresh allowlist, no inherited variables beyond listed names",
+    "preserved_names": [
+      "HOME",
+      "PATH",
+      "TMPDIR",
+      "USER",
+      "LOGNAME",
+      "LANG"
+    ],
+    "HOME": "unchanged normal user home; no Codex-home redirection",
+    "CARGO_HOME": "$HOME/Library/Caches/chirality-dev/cargo-home-group-a",
+    "CARGO_TARGET_DIR": "/private/tmp/chirality-route-presentation-target.L13TDM",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_INCREMENTAL": "0",
+    "CHIRALITY_SKIP_CODEX": "1",
+    "signing_notary_variables": "absent; --no-sign explicit",
+    "config": "Tauri CLI merges the two explicit overlays; no inherited TAURI_CONFIG"
+  },
+  "inputs": [
+    {
+      "path": "package-lock.json",
+      "bytes": 70346,
+      "sha256": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa"
+    },
+    {
+      "path": "src-tauri/Cargo.lock",
+      "bytes": 122943,
+      "sha256": "c1910cffc3fc311fc50cae1117d5aa379dc374142c643c3b22ad85998dbf86b2"
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "bytes": 573,
+      "sha256": "5f848cc760814808e8013aac972c1ecf90251818b41f4358ee0f342359c4b3ec"
+    },
+    {
+      "path": "src-tauri/Cargo.toml",
+      "bytes": 1067,
+      "sha256": "3264e00bb5f1fe64e106831c061527d2c64b3fcfd1917683c381007fdda4bf4f"
+    },
+    {
+      "path": "src-tauri/build.rs",
+      "bytes": 39,
+      "sha256": "487059eaf8a947b80f20a9aacac038a5047b2ad69d2401b827376c67d6fe847f"
+    },
+    {
+      "path": "packaging/unsigned/tauri.development.conf.json",
+      "bytes": 429,
+      "sha256": "c0a947f0e5db49e74d9a9a7559ba0d9656551c982ba37decd38fdb541d7288b8"
+    },
+    {
+      "path": "packaging/unsigned/README.md",
+      "bytes": 3832,
+      "sha256": "b469d1b53a0be6804dc788f005acf1b4613a98b41eec85e163e3422c0c1dac67"
+    },
+    {
+      "path": "src-tauri/icons/icon.png",
+      "bytes": 105,
+      "sha256": "a56fcc572bf88c66724b07d82c30a4e607f2f7fa4271dfc9a602c1ede3ddfe60"
+    },
+    {
+      "path": "node_modules/@tauri-apps/cli-darwin-arm64/cli.darwin-arm64.node",
+      "bytes": 14543304,
+      "sha256": "3757b121aa7478a8b2e846b708033f7b23c70139f7704eefbf1b7889081d8577"
+    }
+  ],
+  "frontend": [
+    {
+      "path": "dist/assets/index-DuKEt6p-.js",
+      "bytes": 306421,
+      "sha256": "7830043b822a2219c5bc05f3a7d2cde7e104b219ebf8ba17d9101c56c27cd2b0"
+    },
+    {
+      "path": "dist/index.html",
+      "bytes": 336,
+      "sha256": "8cd6a5917d49742fc03545eed1705649ab85a3c864b58ba6dc52788f4958fa3c"
+    }
+  ],
+  "tools": {
+    "tauri_cli": "2.11.1 existing local binary",
+    "rustc": "1.92.0 (ded5c06cf 2025-12-08)",
+    "cargo": "1.92.0 (344c4567c 2025-10-21)",
+    "node": "v24.5.0",
+    "npm": "11.5.2",
+    "clang": "Apple clang21.0.0 (clang-2100.3.34.2)"
+  },
+  "build_result": "passed21.53s; frontend TypeScript/Vite passed; bundle generated; --no-sign warning retained",
+  "log": {
+    "path": "/private/tmp/chirality-crr-witness-bundle-build.log",
+    "bytes": 15273,
+    "sha256": "e4756d39300fe98d7d077424084383f6a9b3671ca601f82e5183a49b960dae95"
+  },
+  "codesign": {
+    "display": "incidental arm64 linker ad-hoc signature; Info.plist not bound; no TeamIdentifier; no sealed resources",
+    "bundle_verification_exit": 1,
+    "bundle_verification_error": "code has no resources but signature indicates they must be present",
+    "meaning": "No manual signing, Developer ID, notarization or release qualification. This verification failure is retained, not repaired or labeled unsigned binary. Runtime launch acceptance remains untested."
+  },
+  "expected_native_boundary": {
+    "entrypoint": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4",
+    "application_identifier": "dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+    "app_data": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+    "standing": "Expected metadata paths only; neither Launch Services nor CUA/getApp registration or window visibility tested",
+    "supplier_guard": "Exact App source returns from host_config_from_env on absent CHIRALITY_CODEX_BIN before probe_home. Selected features omit distribution-successor; setup only spawns supplier under Ok(host_config). Static inspection, not runtime sandbox proof.",
+    "resources": "Packaged role and workflow consumers remain failclosed; P2/P3 exact candidate content is not qualification. C3 commands use explicit project/private source state and do not need supplier/model controls.",
+    "side_effects": "Any future launch still has App-data instruction seeding, project decision-writer continuation, recovery/namespace setup attempts and native/WebView effects; requires separate exact point selection.",
+    "operator": "Any proposed operator remains agent, not a person-act witness."
+  },
+  "preservation": {
+    "old_standalone": "/private/tmp/chirality-c3-r1-native-witness-artifact",
+    "older_standalone": "/private/tmp/chirality-c3-native-witness-artifact",
+    "fixture_Appdata_capturelock": "Not inspected, mutated or cleaned",
+    "target": "Same owned target; no copy/cleanup beyond one bounded final .app copy"
+  },
+  "prohibitions_observed": [
+    "No native App launch or dialog",
+    "No Launch Services registration/CUA test",
+    "No download/supplier/model/sign-in/credentials",
+    "No source semantic change/manual signing/new worktree/new agent"
+  ]
+}

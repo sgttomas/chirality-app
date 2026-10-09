@@ -1,0 +1,152 @@
+[
+  {
+    "path": ".",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/Info.plist",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 1103,
+    "sha256": "5ecd3dc284f6fe7435284198fcd6fab5f329dfe7a727142bf2395ccff54ab9c2"
+  },
+  {
+    "path": "Contents/MacOS",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/MacOS/chirality-app-v4",
+    "mode": "0o755",
+    "kind": "file",
+    "bytes": 58068720,
+    "sha256": "4f2b993dea138f423251d7ff92623e516d2b2235a44723eb5403092664f1d223"
+  },
+  {
+    "path": "Contents/Resources",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/Resources/Chirality App v4 (development candidate).icns",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 1096,
+    "sha256": "c38ca00f95eda8a39c26ae1c90a11c412ec2fec682558d4b6b53b978143c40a1"
+  },
+  {
+    "path": "Contents/Resources/instructions",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/Resources/instructions/AGENTS.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 3858,
+    "sha256": "d9233f5af0393e045f0d50fe14b60ede6ec3558da625c1a0deec84fae07afc27"
+  },
+  {
+    "path": "Contents/Resources/instructions/ROLE_SET_SOURCE_BINDING.json",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 3013,
+    "sha256": "6e5a54ef25077a05f4a42a88c483902ac53cfc44f2f6c718e5267abe9e377a7b"
+  },
+  {
+    "path": "Contents/Resources/instructions/SOURCE_MAP.json",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 9532,
+    "sha256": "ca3ff9b483d70a3c4dbe818c520cc3a16c750cbf81aa5bee88460c09c7f92f82"
+  },
+  {
+    "path": "Contents/Resources/instructions/agents",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/Resources/instructions/agents/AGENT_HELPS_HUMANS.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 990,
+    "sha256": "9306048b3229f63170cde5dbbb1280e048aae8aa434b1934085598bf8e649158"
+  },
+  {
+    "path": "Contents/Resources/instructions/agents/AGENT_HELP_HUMAN.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 969,
+    "sha256": "11e619e41acad799b90552dda19a3d49c4d3921bcebbce7317254a58d03e04be"
+  },
+  {
+    "path": "Contents/Resources/instructions/agents/AGENT_TASK.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 856,
+    "sha256": "aaab8c8c20b1d5c3592f04d1337b3335f82ff44428a2304614c191cce71ba3cc"
+  },
+  {
+    "path": "Contents/Resources/instructions/agents/AGENT_WORKING_ITEMS.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 1111,
+    "sha256": "4be2e37da843353cde22bd2ed65f8756f00a865171939f1ac2c6d65adf025914"
+  },
+  {
+    "path": "Contents/Resources/instructions/roles.json",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 1106,
+    "sha256": "15fa4ca9d30f391a0b4c606b374b6255ab31bc994cf4a0a298907f786844f7d4"
+  },
+  {
+    "path": "Contents/Resources/workflows",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/Resources/workflows/MANIFEST.json",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 989,
+    "sha256": "d603629fc2a1574a5f8e79089efdbed9788846dc7eba714ac2d3f99673dc607d"
+  },
+  {
+    "path": "Contents/Resources/workflows/coordinated-knowledge-work",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/Resources/workflows/coordinated-knowledge-work/REVIEW-NOTES.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 13778,
+    "sha256": "4ab54fd3e222382561b075741ed3b7e281e5f11003f12bd1304ffa3c747d81ab"
+  },
+  {
+    "path": "Contents/Resources/workflows/coordinated-knowledge-work/WORKFLOW.md",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 16030,
+    "sha256": "44049bcd38b88378cd757ea34516f01edb0b0e93d8e9e3ac2b47ac61c9271b18"
+  },
+  {
+    "path": "Contents/_CodeSignature",
+    "mode": "0o755",
+    "kind": "directory"
+  },
+  {
+    "path": "Contents/_CodeSignature/CodeResources",
+    "mode": "0o644",
+    "kind": "file",
+    "bytes": 5562,
+    "sha256": "cfb62c4968447e456295dbba5fbbd96618ddaae7ff86f8d6c94de4231d14453e"
+  }
+]

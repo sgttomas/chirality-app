@@ -1,0 +1,147 @@
+{
+  "status": "Locally ad-hoc sealed test bundle; strict verification passed; unlaunched and awaiting independent artifact review/point decision",
+  "source_commit": "ba500defa498a454be182ed46db795fc3e04d627",
+  "app_tree": "2d58516379fdb0e0c583764b3ec95336cd407ffa",
+  "authority": "Parent explicitly authorized one copy with codesign --sign - after independent inventory confirmed only own main executable; no --deep/vendor resigning/credential/notary/entitlement changes",
+  "source_receipt": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/receipt.json",
+    "bytes": 9753,
+    "sha256": "e3fc3e552e8ab4abf735af41651f5b2ebea89f230db509e5ce44ed80e70fda67"
+  },
+  "original_failed_bundle": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/Chirality App v4 (development candidate).app",
+  "original_failure": "codesign verification failed: code has no resources but signature indicates they must be present",
+  "original_unchanged": true,
+  "copy_bundle": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app",
+  "bundle_manifest_before": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/pre-sign-manifest.json",
+    "bytes": 3797,
+    "sha256": "feb2fb58370149a4c4c4085cdb317e0f3385838f2f437d95ba92c58e03bfc9fb"
+  },
+  "bundle_manifest_after": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/post-sign-manifest.json",
+    "bytes": 4093,
+    "sha256": "481301bbb4bc881b25e5bef4feb6a2175ecd60f8e20cdcc68efa89c4a180c521"
+  },
+  "changes": [
+    {
+      "path": "Contents/MacOS/chirality-app-v4",
+      "before": {
+        "path": "Contents/MacOS/chirality-app-v4",
+        "mode": "0o755",
+        "kind": "file",
+        "bytes": 58390016,
+        "sha256": "593977b3dfe04d89787da9f946bcb1103cb42c664bb3d8355a1d2dd736d024ab"
+      },
+      "after": {
+        "path": "Contents/MacOS/chirality-app-v4",
+        "mode": "0o755",
+        "kind": "file",
+        "bytes": 58068720,
+        "sha256": "4f2b993dea138f423251d7ff92623e516d2b2235a44723eb5403092664f1d223"
+      }
+    },
+    {
+      "path": "Contents/_CodeSignature",
+      "before": null,
+      "after": {
+        "path": "Contents/_CodeSignature",
+        "mode": "0o755",
+        "kind": "directory"
+      }
+    },
+    {
+      "path": "Contents/_CodeSignature/CodeResources",
+      "before": null,
+      "after": {
+        "path": "Contents/_CodeSignature/CodeResources",
+        "mode": "0o644",
+        "kind": "file",
+        "bytes": 5562,
+        "sha256": "cfb62c4968447e456295dbba5fbbd96618ddaae7ff86f8d6c94de4231d14453e"
+      }
+    }
+  ],
+  "executable_before": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-artifact/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4",
+    "bytes": 58390016,
+    "sha256": "593977b3dfe04d89787da9f946bcb1103cb42c664bb3d8355a1d2dd736d024ab"
+  },
+  "executable_after": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4",
+    "bytes": 58068720,
+    "sha256": "4f2b993dea138f423251d7ff92623e516d2b2235a44723eb5403092664f1d223"
+  },
+  "sign_command": [
+    "codesign",
+    "--force",
+    "--sign",
+    "-",
+    "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app"
+  ],
+  "strict_verify_command": [
+    "codesign",
+    "--verify",
+    "--strict",
+    "--verbose=2",
+    "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app"
+  ],
+  "strict_verify_exit": 0,
+  "strict_verify_output": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app: valid on disk\n/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app: satisfies its Designated Requirement",
+  "signature": {
+    "type": "local ad-hoc, not Developer ID",
+    "identifier": "dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+    "Info_plist_entries": 14,
+    "TeamIdentifier": null,
+    "sealed_resources": "version2,rules13,files12",
+    "entitlements_stdout_empty": true,
+    "meaning": "Local integrity seal only; no trusted developer identity/notarization/release qualification. No launch acceptance or CUA compatibility inferred."
+  },
+  "resource_preservation": "All original Info.plist/icon/instruction/workflow bytes and modes unchanged. Only the main executable file and new _CodeSignature/CodeResources differ in bundle inventory. No vendor or nested executable exists.",
+  "logs": [
+    {
+      "path": "/private/tmp/chirality-crr-witness-adhoc-sign.log",
+      "bytes": 134,
+      "sha256": "dd90b08f5486de1e7a6b68f51572663b3a20e512504674689e4983138197b668"
+    },
+    {
+      "path": "/private/tmp/chirality-crr-witness-adhoc-verify.log",
+      "bytes": 261,
+      "sha256": "e8e59b5ff7013638c3c974c61360251a87fb03926310782e51001a3f0a9c173f"
+    },
+    {
+      "path": "/private/tmp/chirality-crr-witness-adhoc-display.log",
+      "bytes": 479,
+      "sha256": "353afe305d131d167221525438464efc40d1e45b724663206491f0a42b3af5d7"
+    }
+  ],
+  "future_operator": "agent, not person-act witness",
+  "entrypoint": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4",
+  "CUA_identifier": "dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+  "expected_app_data": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.c3-r1-bundle-witness-20261008",
+  "limits": [
+    "No App launch, Launch Services registration or CUA getApp test",
+    "No fixture/Appdata/capturelock mutation or cleanup",
+    "No source/config/entitlement/supplier semantic changes",
+    "Original failed bundle and older standalone artifacts retained",
+    "Reverify artifact manifest and signature immediately before any separately authorized native act"
+  ],
+  "macho_section_comparison": {
+    "path": "/private/tmp/chirality-c3-r1-bundle-witness-adhoc-artifact/macho-section-comparison.json",
+    "bytes": 12313,
+    "sha256": "13dc9f8eed406cfaf363d5472dd34dd56b77c3e9f166bc7fbacd2ac9d07861c9",
+    "all_sections_identical": true,
+    "file_backed_sections": 14,
+    "total_sections": 17,
+    "before_signature": {
+      "offset": 57937232,
+      "bytes": 452784,
+      "sha256": "f3a16973398dfe87e95fb170d35c94b0f9c3a9505481e21ceac0447e4dd2db32"
+    },
+    "after_signature": {
+      "offset": 57937232,
+      "bytes": 131488,
+      "sha256": "539deb102c39a8cb09ea3371c4df901d1c1f898faf72059ce807f3b8c0a26592"
+    },
+    "limit": "Section comparison establishes these code/data section bytes unchanged. Whole binary and signature/load-command/linkedit metadata differ; no claim of byte-identical executable or runtime equivalence witness."
+  }
+}
