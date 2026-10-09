@@ -908,6 +908,7 @@ pub fn steer_conversation_turn(
 /// view is never an operational thread register or a trusted cold-replay source.
 #[derive(Default)]
 pub struct HistorySession {
+    cce_manager_owner: Option<crate::hosting::call_custody::ManagerOwner>,
     history: Option<crate::native_history::NativeHistory>,
     roles: crate::role_lifecycle::RoleBindings,
     limits: Vec<String>,
@@ -1111,8 +1112,13 @@ impl HistorySession {
                 Ok(binding) => match host.thread_start_dispatch_finish(&pending.receipt) {
                     Ok(_) => {
                         pending.evidence["activeAdmission"] = json!(true);
-                        if let Err(error) = self.roles.insert(binding) {
-                            self.limits.push(error);
+                        match host.cce_original_start_pin(&pending.receipt) {
+                            Ok(Some(pin)) => match self.roles.insert_cce_original(binding,pin) {
+                                Ok(owner) => {if let Err(error)=host.cce_adopt_manager(&owner){self.limits.push(error);}self.cce_manager_owner=Some(owner);},
+                                Err(error)=>self.limits.push(error),
+                            },
+                            Ok(None)=>if let Err(error)=self.roles.insert(binding){self.limits.push(error);},
+                            Err(error)=>{self.limits.push(error);if let Err(error)=self.roles.insert(binding){self.limits.push(error);}},
                         }
                     }
                     Err(error) => self.limits.push(error),

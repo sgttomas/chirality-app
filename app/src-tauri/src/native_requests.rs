@@ -208,7 +208,7 @@ impl RequestRegister {
     pub fn records(&self) -> Vec<Value> {
         self.entries.iter().map(|e| {
             let method=e["method"].as_str().unwrap_or("");
-            let class=if e["classification"]!="known-answerable" {"none"}else if method=="currentTime/read" {"named-service"}else if matches!(method,"item/tool/requestUserInput"|"mcpServer/elicitation/request") {"person-input"}else{"a14"};
+            let class=if e["classification"]!="known-answerable" {"none"}else if method=="currentTime/read" || (method=="item/tool/call" && e["cceOfferedProvenance"]==true) {"named-service"}else if matches!(method,"item/tool/requestUserInput"|"mcpServer/elicitation/request") {"person-input"}else{"a14"};
             let mut record=json!({"recordKind":"server-request-entry","requestIdentity":e["requestId"],"generation":e["generation"],"method":method,
                 "classification":e["classification"],"originClass":class,"nativeParameters":e["nativeParameters"],"receiptPosition":e["receiptPosition"],
                 "state":if class=="none"&&e["state"]=="settling" {json!("received")}else{e["state"].clone()},"replyWriteResult":e["replyWriteResult"],
@@ -239,6 +239,12 @@ impl RequestRegister {
         frame: &Value,
         capabilities: &Value,
     ) -> Result<Option<Value>, String> {
+        self.receive_scoped(generation,position,frame,capabilities,None)
+    }
+    pub(crate) fn receive_offered(&mut self,generation:&Value,position:u64,frame:&Value,capabilities:&Value,admission:Result<&crate::hosting::call_custody::Admission,crate::hosting::call_custody::Refusal>)->Result<Option<Value>,String>{
+        self.receive_scoped(generation,position,frame,capabilities,Some(admission))
+    }
+    fn receive_scoped(&mut self,generation:&Value,position:u64,frame:&Value,capabilities:&Value,offered:Option<Result<&crate::hosting::call_custody::Admission,crate::hosting::call_custody::Refusal>>)->Result<Option<Value>,String>{
         if generation.as_object().map(|o| o.len() != 3).unwrap_or(true)
             || generation["appSession"]
                 .as_str()
@@ -267,6 +273,10 @@ impl RequestRegister {
         }
         let method = frame["method"].as_str().ok_or("malformed-request")?;
         let (class, origin, error) = match method {
+            "item/tool/call" if offered.is_some() => match offered.as_ref().unwrap() {
+                Ok(_) => ("known-answerable","app-rule:managed-service-unavailable",None),
+                Err(reason) => ("known-app-unsupported","app-rule:managed-service-unavailable",Some(reason.message())),
+            },
             "item/tool/call" => (
                 "known-app-unsupported",
                 "app-rule:no-dynamic-tools",
@@ -292,14 +302,32 @@ impl RequestRegister {
         let mut entry = json!({"generation":generation,"requestId":frame["id"],"method":method,"classification":class,
             "nativeParameters":frame.get("params").cloned().unwrap_or(Value::Null),"receiptPosition":position,
             "state":if error.is_some(){"received"}else{"outstanding"},"replyWriteResult":"not-attempted","acknowledgment":"not-observed"});
+        if matches!(offered,Some(Ok(_))) {entry["cceOfferedProvenance"]=json!(true);}
         let reply = error.map(|message| {
-            let content = json!({"code":-32601,"message":message});
+            let invalid=matches!(offered,Some(Err(crate::hosting::call_custody::Refusal::Shape|crate::hosting::call_custody::Refusal::Limit)));
+            let content = json!({"code":if invalid{-32602}else{-32601},"message":message});
             entry["settlement"] = json!({"origin":origin,"error":content});
             entry["state"] = json!("settling");
             json!({"id":frame["id"],"error":content})
         });
         self.entries.push(entry);
         Ok(reply)
+    }
+    pub(crate) fn original_offered_index(&self,generation:&Value,id:&Value,position:u64)->Option<usize>{
+        let n=self.entries.len().checked_sub(1)?;let e=&self.entries[n];
+        (e["generation"]==*generation&&e["requestId"]==*id&&e["receiptPosition"]==position&&e["cceOfferedProvenance"]==true).then_some(n)
+    }
+    pub(crate) fn original_offered(&self,index:usize,generation:&Value,id:&Value)->Option<&Value>{
+        let e=self.entries.get(index)?;
+        (e["generation"]==*generation&&e["requestId"]==*id&&e["method"]=="item/tool/call"&&e["cceOfferedProvenance"]==true).then_some(e)
+    }
+    pub(crate) fn prepare_offered_unavailable(&mut self,index:usize,generation:&Value,id:&Value)->Result<Value,String>{
+        if self.is_closed(generation){return Err("generation-closed".into())}
+        let e=self.original_offered(index,generation,id).ok_or("original offered entry absent")?;
+        if e["state"]!="outstanding"{return Err("original offered call already settled/resolved".into())}
+        let content=crate::hosting::call_custody::unavailable();let e=&mut self.entries[index];
+        e["settlement"]=json!({"origin":"app-rule:managed-service-unavailable","content":content});e["state"]=json!("settling");
+        Ok(json!({"id":id,"result":content}))
     }
     fn index(&self, generation: &Value, id: &Value) -> Result<usize, String> {
         self.entries
