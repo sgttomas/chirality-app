@@ -1,0 +1,13 @@
+{
+  "CANDIDATE.patch": "5c896423cdccfa6987137c1edee554bc0b9f7e770e443f05bf7193de7fa6c461",
+  "CANDIDATE_FILES.json": "fa1f025fb488ae6b9771edcf5ef321bb43ea6aff72077dae89bb494a39ce8c77",
+  "RETURN.md": "41e685d2d1a13a95ed0f29d3b3d597b5f8d598107edd4029259da50d53eb375b",
+  "default-final.log": "19a5268e46d6b1e6526aacd21e3ac417674a7262a8bfc3becab8c7828710e67f",
+  "default-r3.log": "c56f58140cb0df6a5837c897b24b7eab8514268cafa783e93c5d326d35f392e9",
+  "default.log": "46dcc0b8d5b2d77226b24074c357d44b6f6c3faa2fa508fff291c12e784152d2",
+  "diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "original-red.log": "9f6fed99b1211b9ae3d2dc991074808b72bcdcf5be258f550289e6f9f066f787",
+  "original-server-request-vector.rs": "c0c09205b1ba95dd5641fa672523916ed0763003cd874f1d50d7258856fbf90c",
+  "private.log": "5dd237f39efb735d9193993b6b08d1376888dc5165278d4a7938a6164aa6677d",
+  "production.log": "979583bf077e2bb5b221ebabba345839d5a2c7e5346b63b99f6ef8c070638741"
+}
