@@ -1,0 +1,110 @@
+{
+  "standing": "designed proof obligations, not executed tests or production policy",
+  "cases": [
+    {
+      "id": "SURVIVAL",
+      "stimulus": "third update reuses old slot",
+      "expected": "all prior required bytes and unknown attempts survive exactly"
+    },
+    {
+      "id": "DROPPED_ARTIFACT",
+      "stimulus": "new snapshot omits one required prior artifact",
+      "expected": "refuse before active selection changes"
+    },
+    {
+      "id": "REBOUND_ID",
+      "stimulus": "same artifact ID has changed bytes",
+      "expected": "refuse; no convenient rebinding"
+    },
+    {
+      "id": "MUTABLE_REF",
+      "stimulus": "required bytes referenced only by reusable slot",
+      "expected": "refuse; embedded-only first proof"
+    },
+    {
+      "id": "CAPACITY",
+      "stimulus": "independent N/S/D/Q boundary and one-over",
+      "expected": "bounded visible refusal; current committed state retained"
+    },
+    {
+      "id": "NO_POLICY",
+      "stimulus": "absent/zero N-S-D-Q/overflow/inconsistent TestBudget; T=0 explicitly permitted",
+      "expected": "refuse; no product defaults"
+    },
+    {
+      "id": "NO_RETIRE",
+      "stimulus": "terminal/cancel state requests reclaim with T=0",
+      "expected": "refuse retirement/reuse; no CAM reset"
+    },
+    {
+      "id": "WRITE_CUTS",
+      "stimulus": "fault before/after snapshot sync, descriptor replace and dir sync",
+      "expected": "old selection before replace; uncertain after replace until confirmed"
+    },
+    {
+      "id": "TORN",
+      "stimulus": "truncated descriptor/snapshot",
+      "expected": "no partial-prefix/newest promotion"
+    },
+    {
+      "id": "FORK",
+      "stimulus": "duplicate journal or conflicting descriptor",
+      "expected": "ambiguous; no winner"
+    },
+    {
+      "id": "GROWTH",
+      "stimulus": "actual file grows beyond declared size after metadata",
+      "expected": "stop at limit plus sentinel"
+    },
+    {
+      "id": "ENUM",
+      "stimulus": "too many unknown entries/issues",
+      "expected": "bounded refusal without unlimited vector"
+    },
+    {
+      "id": "LOCK",
+      "stimulus": "independent opener busy or lock identity changes",
+      "expected": "refuse; do not claim cross-process/hostile exclusion"
+    },
+    {
+      "id": "ROLLBACK",
+      "stimulus": "self-consistent old project/control/snapshot restored",
+      "expected": "freshness unproven, not silently fresh"
+    },
+    {
+      "id": "INTENT_GAP",
+      "stimulus": "confirmed intent then unknown whether dispatched",
+      "expected": "recover unknown; no external retry"
+    },
+    {
+      "id": "ACCOUNT_CONFIRMED",
+      "stimulus": "confirmed BoundReference then journal write fails",
+      "expected": "retain definite account in live custody; separate journal uncertainty"
+    },
+    {
+      "id": "ACK_MISSING",
+      "stimulus": "restart with matching final bytes but no retained acknowledgment",
+      "expected": "observed match only; no original confirmation/CAM token revival"
+    },
+    {
+      "id": "BOUNDS",
+      "stimulus": "raw+parsed+serialized buffers overlap",
+      "expected": "count peak or transfer ownership; no second full uncounted payload"
+    },
+    {
+      "id": "NO_CAPABILITY",
+      "stimulus": "valid cold state contains role/grant/native receipt strings",
+      "expected": "historical data only; no live mint/authority"
+    },
+    {
+      "id": "NO_ACTIVATION",
+      "stimulus": "ordinary App startup/read commands run",
+      "expected": "no R2 activation or file creation"
+    },
+    {
+      "id": "COLD_REPEAT",
+      "stimulus": "reopen selected pair after memory cleared",
+      "expected": "exact selected bytes/state, no claim that original caller was acknowledged"
+    }
+  ]
+}
