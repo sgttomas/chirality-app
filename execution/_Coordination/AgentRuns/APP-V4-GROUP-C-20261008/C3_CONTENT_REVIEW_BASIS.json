@@ -1,0 +1,102 @@
+{
+  "status": "named source/message proposal; not independently reviewed, selected or production-adopted",
+  "basis": "2254d6b2806158211411aa05f74001465ce829b4",
+  "role": "WORKING_ITEMS /root/group_c_successor; no delegation",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.1.schema.json",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "3c11053965d864b78d274993629564d77ee90baf8da63049692f8744627c8b87"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.5.schema.json",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "327ca15977a73a6b6d2f72ed27fde07259f4ba6c4ea9781d4ca17ad72b860108"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_contribution_evidence_v01.py",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "f7895b1778141235c0d71c407254c1aa26a590413557ce00cbdf9234b5c67ba9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_evidence_v01.fixture.json",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "08b5fa515b35a92c889a1b69ed71e9d9c1a613598bf9c4933e5e8e807ad434cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/record_reconstruction_v04.fixture.json",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/OWNER_DECISIONS.md",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "5934c86c571e694d8ce2cecd0122509e16caf6e48d0e430094755f302b5aeff9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_HOST_ROLE_JOIN_ASSESSMENT.md",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "ed1c8951f562848121201cfc733df2c92401bea9a23e9c452c56d259735a3c60"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_HOST_ROLE_JOIN_SOURCES.json",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "2b4e3b9bf8d2979840301a136d956cef1187ef3261a0d78f9aafec2ee4281d5e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_W2_CCE_IMPACT_20261008.md",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "74e65c77d8fe59961af3ba1a4442da0583c49b0c9d209e3e1b7e5b59dc8dc591"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PM05_SOURCE_PLAN_20261008.md",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "3171fe946724775f7e91b3da019ca08e534b0534e628c5dca9c7986350fda63f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_RS_MESSAGE_ORIGIN_CONCURRENCE.md",
+      "revision": "2254d6b2806158211411aa05f74001465ce829b4",
+      "sha256": "b9041b59c2b84e63ec14c681b346283b33ab5b896c67c56fb04117be9c1e40c3"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTENT_REVIEW_v0.1.md",
+      "sha256": "f84ab5c64b3f7cbb72d36b0831bb1b7d4a66344d7188055b57d571f3525feed1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.2.schema.json",
+      "sha256": "1f378e4c80ca7c6addd3e6275537feae8f5c354bfa882f3693e936fee97770a3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_content_review_v02.fixture.json",
+      "sha256": "3e3348eee17c29e7c5721c21a684f1b66b16d2cd445ed695fb4f176a2fe9f8d1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_content_review_v02.py",
+      "sha256": "53f59b1696077dee954f149833f720429be263df9dacfbaee1dd61d9f667ba93"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_CONTENT_REVIEW_CHECKS.json",
+      "sha256": "6d244a11106ac92a322957c03b18764b23cb71efca4fa802ca8f7b899a4a6fb0"
+    }
+  ],
+  "checks": {
+    "new_definition_cases": 23,
+    "unchanged_CCE_cases": 51,
+    "live_authorship_or_native_tests": false,
+    "App_or_old_schema_changes": false
+  },
+  "limits": [
+    "message only; no durable carrier/version adoption",
+    "old0.5 outer shape acceptance is not semantic compatibility",
+    "Host/role joined capability still absent, assessment not adoption",
+    "no positive-review to integration/human-act promotion",
+    "technical W2-M/R2-S sequencing reported by parent; separate record pending receipt; no storage implementation/quota/retirement/CAM choice"
+  ]
+}

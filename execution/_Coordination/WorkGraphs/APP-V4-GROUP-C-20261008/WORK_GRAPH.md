@@ -44,7 +44,7 @@ interrupted-work recovery and provider adapters remain separate obligations.
 | C3 source-file recovery and visible route | App receiving owner; DEL-07-02 backend/view/tests | C1; placement, source custody and exact Git inputs | Same question reconstructed with source identities/gaps and agent/manager/person duties; no inferred authority; independent review and connected checks | ACTIVE: bounded backend/view/source producers and format-0.4 comparison merged through PR #1155; C3-NW-03 native synthetic witness recorded in PR #1170. Full answer/review/integration and actual duties remain unfinished; source and policy decisions below precede graph-write code |
 | C3-D1 ordinary graph work and observation | HELP_HUMAN owner-decision custody; Group C and affected interface owners assess consequences | Merged C3-OD-01, accepted App/host basis and CCE evidence distinctions | Ordinary Codex file work under actual host permissions; App reports observed effects without pre-dispatch confinement or inferred authority | SELECTED direction in PR #1175; W1 App-owned graph insert/default per-edit preview is not selected. W2 source and parity applicability assessment pending review |
 | C3-D2 interrupted-work recovery and capacity | Group C with PM05 and storage/source owners | Merged C3-OD-02 and comparative assessment | Recoverable current status with exact recovery-critical evidence; older full intermediate snapshots replaceable only when required facts survive | SELECTED R2 source-design/proof target in PR #1175; finite quota, storage/retirement and separate final CAM64 product treatment remain open |
-| C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; no graph target write | C3-OD-01/02; reviewed CCE-A2; exact Host/RS and applicable policy interfaces | Named W2/CCE and R2/PM05 source changes, consumer consequences and negatives independently reviewed; no authority from text | ACTIVE bounded impact/source options; CCE-A2 proposal merged PR #1174, not implementation release. W2-M observation and R2-S storage are proposed options, not adopted contracts |
+| C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; no graph target write | C3-OD-01/02; reviewed CCE-A2; exact Host/RS and applicable policy interfaces | Named W2/CCE and R2/PM05 source changes, consumer consequences and negatives independently reviewed; no authority from text | ACTIVE positive content-only review message source CCR-v0.1, awaiting independent review. CCE-A2 and W2/R2 proposals merged PR #1174/#1177. HELP_HUMAN subsequently chose W2-M and R2-S as source/proof sequencing targets, not adopted mechanisms; its separate durable selection record is pending receipt |
 | C3-R2-I implementation and connected witness | Bounded implementers only after release; later native/supplier tests point-authorized | Reviewed selected C3-R2-S contracts, genuine Host sources and actual permissions, applicable recovery/product choices | Actual authored answer, separate manager contribution and supported ordinary-write observations; independent code/connected checks | PLANNED, not released; no W1 writer or universal A5/A12/grant prerequisite introduced by W2 direction |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
 | C5 later research-to-design contribution and witness | App method/receiving owner; DEL-08-02; host work remains SWBPIPE | Owner activation of later increment; C4; portable workflow, shared act row, actual host integration and human act | Source → context → candidate → actual decision witness, plus limitations; preparation/rehearsal separate | BLOCKED at activation/input points; no activation inferred from Group C resume |
@@ -97,12 +97,12 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `0580a56a3718f4801f73d1b6a072fb332a15d28f`
-(PR #1175 owner directions merged).
+The current checked main basis is `2254d6b2806158211411aa05f74001465ce829b4`
+(PR #1177 impact/source options merged; OD-01/02 remain the owner direction).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
-on `codex/group-c-w2-r2-impact`. CCE-A2 source proposal merged as PR #1174
+on `codex/group-c-content-review-source`. CCE-A2 source proposal merged as PR #1174
 `fb61e741b7dbd5975b9830988ada607face73772`; it does not release code. No child is commissioned and no native process is
 carried by this assignment. Prior historical returns remain in the run; changes
 are integrated against then-current main by this one maintainer.
@@ -218,8 +218,8 @@ bounded observation and manager-linked successor options, and preserve actual
 permissions/acts. No blanket App exception or implemented parity is claimed.
 [R2 source/proof plan](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PM05_SOURCE_PLAN_20261008.md)
 compares bounded snapshot and append designs, retains uncertain outcomes and
-separate final-account capacity. Both await independent review; no accepted
-contract or App behavior changes. Exact source pins and checks are in
+separate final-account capacity. Both received independent proposal review and merged in PR #1177; no accepted
+contract or App behavior changed. Exact source pins and checks are in
 [C3_W2_R2_IMPACT_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_W2_R2_IMPACT_BASIS.json).
 
 Positive content-only review remains a separate named additive-representation
@@ -229,3 +229,20 @@ return the exact conflict to HELP_HUMAN/owner rather than silently narrowing it.
 Any changed finished Group A interface follows GC-7/8. External C2/C4/C5 holds
 and Group B's optional relation remain unchanged. No code, actual graph target
 edit, native/supplier act, MEMORY write or product90 claim is authorized here.
+
+## Content-only review source candidate
+
+CCR-v0.1 proposes message0.2 `reviewed_content_only` with null plan and exact
+answer/claim/limitation binding. Old message0.1 and account0.5 semantics stay
+unchanged; old readers reject this new meaning. A future explicit carrier
+version/adoption is required before durable production use. No automatic
+integration promotion, performed-duty claim or human act. The candidate's
+[C3_CONTENT_REVIEW_BASIS.json](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_CONTENT_REVIEW_BASIS.json)
+retains source/artifact pins and definition-check evidence. Parent arranges
+independent review; no code release follows.
+
+HELP_HUMAN's current sequencing message selects W2-M manager-linked observed
+integration and R2-S two-slot snapshot/descriptor as source/proof targets, with
+W2-O fallback and R2-L comparator. This is technical sequencing within OD-01/02,
+not another owner ruling or selection of quota, retirement, CAM policy or
+implementation. Receive its separate durable record before subsequent adoption.
