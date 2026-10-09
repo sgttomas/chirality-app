@@ -1,7 +1,7 @@
 {
   "standing": "constructed byte comparison only; no production carrier/store/admission/Host custody",
-  "source_revision": "9031b63ef62282145bfd6949bad2e7b35348773d",
-  "script_sha256": "3d7abe9a8fefd2aa3a601bf562be433d8d23c2b5605cddb2f267852b48b5b976",
+  "source_revision": "2843b69045b3126b637a482b9e2853b31f5100de",
+  "script_sha256": "5cb63e45af8257d42afa0ed6e5c11c05f4e01eec7c87c497be9b4eef0202538b",
   "sources": [
     {
       "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/record_reconstruction_v04.fixture.json",
@@ -593,7 +593,7 @@
   "missing_actual_critical_set": [
     "original Host input/role/request/response/parsed-event and terminal custody with generation/positions",
     "actual answer and content-review emissions (fixtures only)",
-    "selected scope/treatment and controlled writer/adapter, real target pre/post/reread and original attempts",
+    "actual ordinary-task/request context and source-bound manager contribution; reported ordinary operation and independently observed target pre/post/reread where available; original attempts or explicit missing evidence; no confined-writer claim",
     "adopted combined carrier, actual immutable-store lifetime/retirement/resolution",
     "real producer workload and independent complete critical-set review"
   ],
