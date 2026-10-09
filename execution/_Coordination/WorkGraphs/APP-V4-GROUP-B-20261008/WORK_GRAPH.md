@@ -128,6 +128,16 @@ and graph-closure graphs remain at their original paths.
 
 ## Current state and recovery
 
+**Call-custody receiving hold:** At frozen Host source
+`674cdd2569ea57cf663c41b46e37b51e13165e86`, CURRENT-source S4 positives
+remain unavailable/HELD under the existing option-B disposition. Historical
+cohorts remain intact; no export, repin or active compatibility is claimed.
+Exact unchanged 35/38 selections, current source differences and later renewal/
+required-CI failure conditions are in Group B run
+`call-custody-receiving/RECEIVING.md`. This is a successor hold, not AA-CAP
+requalification or Host code acceptance.
+
+
 **AA-CAP current-source disposition:** HELP_HUMAN selected option B at exact
 Host head `4de801c8b98477b25403b20002bf6af7cc836c48` (reviewed source
 `e83dbefb5f2f3512462063153c8378dc339a238a`). CURRENT-source S4 positive
