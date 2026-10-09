@@ -1,0 +1,48 @@
+{
+  "role": "TASK",
+  "native_descendant": "/root/group_b_successor/complete_content_build",
+  "parent": "/root/group_b_successor",
+  "delegation": false,
+  "selected_source": "9a82cbcf29c46bb6f722c074b5854de7ef470450",
+  "brief_commit": "de9e7bc04e94402947366d7ff3a94d62485c8300",
+  "execution_release": "Parent WORKING_ITEMS explicit native message after independent READY; Group C serial window confirmed",
+  "instructions": "Root/TASK/loop/change guidance retained from preceding assignment; artifact-specific brief read and followed",
+  "origins": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/current-unsigned-observation/BUILD_BRIEF.md",
+      "sha256": "970ebd5e27b037cf8fd086a2188e88b14264ca45c1d65894bbb8aaf39cf7494d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-B-20261008/current-unsigned-observation/INPUT_CHECK.json",
+      "sha256": "b9d5d6bedc70719e3488fabd5f68573619ec67a931d5e80323b37e6cd539d8f2"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/packaging/unsigned/README.md",
+      "sha256": "b469d1b53a0be6804dc788f005acf1b4613a98b41eec85e163e3422c0c1dac67"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/PACKAGING_AND_DISTRIBUTION.md",
+      "sha256": "0d8d14d2ce08d859ec3b304f5c8c250afa7f0a6fe95eae3a61920f71d2a442b4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Design/prototype/read_tree.py",
+      "sha256": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb"
+    }
+  ]
+}
