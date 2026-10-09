@@ -59,3 +59,17 @@ its changes since9a82 are Group B evidence/graph only, no App source overlap.
 Reviewed author code was merged without edits in4011e649479df98dea4bc9455be04817636fb75a.
 App bytes match the independently reviewed candidate. Final exact-head metadata/
 range backcheck and required CI remain pending; this record does not claim merge.
+
+## Final integration and merge receipt
+
+Independent reviewer backchecked full19-file final head
+16b5864782fa4860c611e6fa10018a7cb79f9375 against8a7801a5ef0e23f771e50da73078af02020b96ca:
+READY, unchanged reviewed App bytes, truthful source/evidence scopes, links and
+whitespace pass.19-file range private-term screen passed with zero findings.
+All selected CI completed SUCCESS or expected SKIPPED, including App Runtime
+integration, Harness pre-merge, PEC workspace and required governance harness.
+PR #1205 merged unchanged head under standing Git authorization as
+f8660a8906c6cb8c85d681e4037c1f50f1882e01 at2026-10-09T10:59:05Z.
+No bypass, native witness, namespace-uniqueness/source-authority claim, product
+capacity selection or full Group C completion follows. This receipt is retained
+on the manager branch for the next substantive integration; no receipt-only PR.
