@@ -1,0 +1,47 @@
+{
+  "basis": "9135e218eafe2dc4a4d1a3ccba260238dbb25ae9",
+  "standing": "read-only source options; implementation and process execution not released",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "ad0f738d8656f489a3039fbec64aa1369e56925a4ac0f012066c30db3248b45d"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_successor.rs",
+      "sha256": "81996c7b8def7717aca5183c565b02b82de2985a7305d95c95d34dd3c7693c9a"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_s4_export.rs",
+      "sha256": "3114efc75f4c2ca9b3118d82b63d30d25e48455f053bff2c8a75f0ec8c7b1d4c"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_terminal_export.rs",
+      "sha256": "bf2e76f064ab49a9c7d530f980c9a2d14b6697d851e5840d3fed977fcc9dc4e8"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight.rs",
+      "sha256": "b98786879402fc26c4c9d2beca558d71ef1fba5b54693d5905fae2d0d8e52411"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_preflight_tests.rs",
+      "sha256": "a8a864b5472d95bce914b8e45de069946c076c303ede31831373b29a2c5d0fef"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_store.rs",
+      "sha256": "9a5fd0308c80bc73b5fc4ca772f9aa13f3e0a73ca8dd271a9a87bc82205ba903"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/distribution_store_s1.rs",
+      "sha256": "51195cd106e75c81992e3508a1b435ea64d58b58fefc8d3f9f682baa52b9d0be"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/child-custody-examination/CHILD_CUSTODY_DESIGN.md",
+      "sha256": "3b408153091967c97148328fcae68af70309ca5f47254df9d88fd8f386fc221b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-HOSTING-RUNTIME-S2-20261008/child-custody-examination/CHILD_CUSTODY_EXECUTION_REVIEW.md",
+      "sha256": "6ad6ab6ee7fe59d0dfa6b407b0e1cf1b2d762105d7ca365a04b3a66a7e4b7f44"
+    }
+  ],
+  "proposal_sha256": "61cedc0ce67ab6b4b2e80249e5ae60db5e6b7fa8c9af130a584c46799e8fcf07"
+}
