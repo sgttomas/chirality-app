@@ -130,6 +130,14 @@ and graph-closure graphs remain at their original paths.
 
 ## Current state and recovery
 
+**F-VC09-01 clarification:** CC-EXP-IN5-01 source is independently READY, with
+B-owned documentation dispositions and DEL-01-06 exact-source CONCUR recorded in
+`vc09-in5-adoption/RECEIVING.md`. Additive repair is ready for publication only
+on the selected clarified basis; required CI/merge remain pending. Published
+EXP-v0.2, all prior pins and original findings_open review bytes stay unchanged.
+Future journey/case-owner adoption and full boundary closure are not inferred.
+
+
 **Call-custody receiving hold:** At frozen Host source
 `674cdd2569ea57cf663c41b46e37b51e13165e86`, CURRENT-source S4 positives
 remain unavailable/HELD under the existing option-B disposition. Historical
