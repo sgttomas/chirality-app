@@ -1,0 +1,109 @@
+{
+  "standing": "implementation candidate; independent exact-code review pending; no push or PR",
+  "branch": "codex/group-c-published-recheck",
+  "base": "9a82cbcf29c46bb6f722c074b5854de7ef470450",
+  "delegation": "existing TASK under group_c_successor; no descendants",
+  "source": {
+    "C3_PUB_RECHECK_HOST_STORAGE_REVIEW.md": "5e79966f995cdee0d5ed6b7f51ef5ca894ff165b6925989c5535feca8e8fea95",
+    "BASIS.json": "6338665dc8ace3b9596a11c99008285cd20085c520e671c13d6a504df9cc47c9",
+    "HOST_STORAGE_BACKCHECK.md": "ef46772265a4b0856ebfb1f8036fa65006663519fd098e8fa797c6e4b167e868",
+    "C3_PUB_RECHECK_01.md": "a10db615a16575f78c74d12b2f3c74ebc3b1e25d01f2bae5b2a0b0cf893725bc",
+    "CASES.json": "6d6166f1ee2ec668c3ba80fb6dad4f07375477c1aa1904e67a58704c7ca8ecb4",
+    "HOST_REQUEST_EXPORT_CONNECTED_ASSESSMENT.md": "ca593d604383882e20ea5b052ab3fd60f65b2976b3a05267dbd9fa9426f8a801",
+    "REVIEW_AND_RELEASE_INTERFACE.md": "a3f6049e183ba016151387443dd2a3a8ea895fece351a9851bc902b7ecb003b9",
+    "CODE_RELEASE.md": "b0704ca19a063fd20741f3920743e161d33f12ff4e230fede80a1f45bfaa8c2a"
+  },
+  "changed_files": {
+    "projects/chirality-app-v4/app/src-tauri/src/connector_materialization.rs": "37ff28e398a22d90f52a7df3d53db8bb35b884ba24d3ff58b383d11d9e29269e",
+    "projects/chirality-app-v4/app/src-tauri/src/connector_materialization_tests.rs": "a565ba64a6a9f602986a616b71a7df5a65a28c45270e0ab323b7488684938cb1",
+    "projects/chirality-app-v4/app/src-tauri/src/connector_route_store.rs": "5d6bb27d4aad37cf41f5b0b6d535905644e68f1988e1b35ac9b881f2edc2d73b",
+    "projects/chirality-app-v4/app/src-tauri/src/connector_route_store_tests.rs": "0ffad4dddae8d0b7726adb8c660ed9f775e302206618161a19e094dfccf0919a",
+    "projects/chirality-app-v4/app/src-tauri/src/lib.rs": "a0629915ca6e0c828c31415abdb7ade19e2e239bcf72863ee9f6027859e035d4",
+    "projects/chirality-app-v4/app/src/ConnectorSourcePanel.tsx": "e3d7ae5b6b115dd032f1db8c0952f363426aeca6ee1745efdeb2f910bf4e8b7a",
+    "projects/chirality-app-v4/app/tests/connector-source-presentation.test.mjs": "33acf6e39436a0c5a3ebbf771b6372a5fdccdb7f2e4193f12b3200f90df30bab"
+  },
+  "instruction_origins": {
+    "AGENTS.md": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+    "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+    ".agents/skills/chirality-change/SKILL.md": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+    "projects/chirality-app-v4/loop/LOOP_INIT.md": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+    "docs/alignment-manual/README.md": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3"
+  },
+  "instruction_read_scope": "Root/TASK/loop/chirality-change continued selected basis, re-read TASK/skill/loop and manual index/headings/section11 this turn. Field Book continued prior full-read basis; no new workflow or role loaded. Actual source packet read from manager worktree at selected hash.",
+  "logs": {
+    "/private/tmp/c3-pub-recheck-npm-final.log": {
+      "sha256": "bd064ac226ff7dceb8c7fa4c4af9656cc9512b855d3d83d9b2406d4229e24f4b",
+      "bytes": 18850
+    },
+    "/private/tmp/c3-pub-recheck-frontend-build.log": {
+      "sha256": "ca476010df8f9191d212c51453ae19ca303a67aa88e644e86ac2466d98484627",
+      "bytes": 355
+    },
+    "/private/tmp/c3-pub-recheck-final-distribution.log": {
+      "sha256": "bcf8592cd47429d6d37995fd8a73bdd6dd09f3165ac018d7ac5fa935a5fc9cdf",
+      "bytes": 11595
+    },
+    "/private/tmp/c3-pub-recheck-registry-first.log": {
+      "sha256": "fc8b48efed9ebd6d99051946e35b282cf8542736ff6646ce38adcfab0b40fa24",
+      "bytes": 6993
+    },
+    "/private/tmp/c3-pub-recheck-ui-joined.log": {
+      "sha256": "3e3e633b3f9e2e1a9c5c4ca2cbb0111b3dfdcd468aa6327ad9e6aa5bec6a635a",
+      "bytes": 1637
+    },
+    "/private/tmp/c3-pub-recheck-production-check.log": {
+      "sha256": "ee781cc268a3c3bb83d8b36118117c99f8036ff3771dd6fc276b45a8691ba770",
+      "bytes": 14779
+    },
+    "/private/tmp/c3-pub-recheck-npm.log": {
+      "sha256": "753b1c8c4fa60ba418c685ac174aedb27b8e7a59c30b90e4da7977c1cc5b12e4",
+      "bytes": 7221
+    },
+    "/private/tmp/c3-pub-recheck-first-rust.log": {
+      "sha256": "c37390655e3fd1aa1d2f0acec47fcf95df7a7ec2fd73eed36eb2eeed84c5490f",
+      "bytes": 4770
+    },
+    "/private/tmp/c3-pub-recheck-ui-first.log": {
+      "sha256": "7a9de73e5d920b0cd35b36fcc886eaf71b97843f8d6a2e32e825c1f08fce3833",
+      "bytes": 1323
+    },
+    "/private/tmp/c3-pub-recheck-final-default.log": {
+      "sha256": "13f0c56b996916b894709d9d8969fc61da4e19bd2c8aec431cc5b9d959963b66",
+      "bytes": 12748
+    },
+    "/private/tmp/c3-pub-recheck-npm-offline.log": {
+      "sha256": "cbb3703eff21394185171c29b19b28e94e866c5a7d345c05d88a82223bd75498",
+      "bytes": 18916
+    },
+    "/private/tmp/c3-pub-recheck-distribution.log": {
+      "sha256": "0fb0b27002615dcbdfa990241733e184d1765eb99f560c964920855cb7def36b",
+      "bytes": 16281
+    },
+    "/private/tmp/c3-pub-recheck-default.log": {
+      "sha256": "27d0e74541eb27f779254a58b57f6966e6a0f9cce62631626f427bfe1feecf9c",
+      "bytes": 15126
+    },
+    "/private/tmp/c3-pub-recheck-private-staged.log": {
+      "sha256": "a78f092a306119431e587684f5abf7beb8168f770c8e31d8af892c0549a4b5f0",
+      "bytes": 73
+    }
+  },
+  "environment": {
+    "CARGO_HOME": "approved Library/Caches/chirality-dev/cargo-home-group-a",
+    "CARGO_TARGET_DIR": "/private/tmp/chirality-route-presentation-target.L13TDM",
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_INCREMENTAL": "0",
+    "CHIRALITY_SKIP_CODEX": "1",
+    "supplier_bin": "not supplied; handshake skipped"
+  },
+  "tools": {
+    "rustc": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+    "cargo": "cargo 1.92.0 (344c4567c 2025-10-21)",
+    "node": "v24.5.0",
+    "npm": "11.5.2"
+  },
+  "candidate": "3b99b5718426510fcf9da792f5f5b084efbd09cc",
+  "clean_worktree": true
+}
