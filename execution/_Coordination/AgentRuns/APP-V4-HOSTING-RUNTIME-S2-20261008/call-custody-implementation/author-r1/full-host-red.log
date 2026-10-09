@@ -1,0 +1,121 @@
+   Compiling chirality-app-v4 v0.0.0-skeleton (/private/tmp/cce-call-custody/projects/chirality-app-v4/app/src-tauri)
+warning: unused imports: `ProductionBundlePackage` and `ProductionHoldingCopy`
+  --> src/workflow_workspace.rs:14:9
+   |
+14 |         ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^                     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `role_supply` and `workflow_declaration`
+ --> src/workflow_catalog_tests.rs:3:13
+  |
+3 | use crate::{role_supply, workflow_declaration, util};
+  |             ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/hosting.rs:3501:13
+     |
+3501 | ...   let mut failed=NativePagePipe::new();let mut h=native_page_selected();let q=h.items_page("turn",None,Direction::Asc).unwrap();*fail...
+     |           ----^^^^^^
+     |           |
+     |           help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `admin` and `common` are never read
+  --> src/connector_git.rs:44:5
+   |
+42 | struct Association {
+   |        ----------- fields in this struct
+43 |     root: PathBuf,
+44 |     admin: PathBuf,
+   |     ^^^^^
+45 |     common: PathBuf,
+   |     ^^^^^^
+   |
+   = note: `Association` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `write_frame`, `account_oauth_dismiss`, and `kill_group` are never used
+    --> src/hosting.rs:1307:8
+     |
+ 538 | impl Host {
+     | --------- methods in this implementation
+...
+1307 |     fn write_frame(&self,frame:&Value)->Result<(),String>{ self.write_frame_scoped(frame,None) }
+     |        ^^^^^^^^^^^
+...
+1562 |     pub(crate) fn account_oauth_dismiss(&self,login:&OAuthLogin)->Result<Value,String>{
+     |                   ^^^^^^^^^^^^^^^^^^^^^
+...
+2373 |     fn kill_group(&self) {
+     |        ^^^^^^^^^^
+
+warning: variants `Duplicate` and `AlreadyAttempted` are never constructed
+  --> src/hosting_call_custody.rs:25:5
+   |
+19 | pub(crate) enum Refusal {
+   |                 ------- variants in this enum
+...
+25 |     Duplicate,
+   |     ^^^^^^^^^
+26 |     Origin,
+27 |     AlreadyAttempted,
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: `Refusal` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `reference` is never read
+    --> src/runtime_session.rs:3882:9
+     |
+3881 | pub(crate) struct WorkflowReviewContext {
+     |                   --------------------- field in this struct
+3882 |     pub reference: String,
+     |         ^^^^^^^^^
+
+warning: method `standing` is never used
+   --> src/workflow_catalog.rs:101:12
+    |
+ 94 | impl HoldingCopySelection {
+    | ------------------------- method in this implementation
+...
+101 |     pub fn standing(&self) -> &'static str {
+    |            ^^^^^^^^
+
+warning: field `0` is never read
+    --> src/workflow_library.rs:1018:19
+     |
+1018 |     RepairPending(String),
+     |     ------------- ^^^^^^
+     |     |
+     |     field in this variant
+     |
+     = note: `PublicationOutcome` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+     |
+1018 -     RepairPending(String),
+1018 +     RepairPending(()),
+     |
+
+warning: `chirality-app-v4` (lib test) generated 9 warnings (run `cargo fix --lib -p chirality-app-v4 --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.77s
+     Running unittests src/lib.rs (/private/tmp/hosting-s2-target/debug/deps/chirality_app_v4_lib-007aa6e39be0839b)
+
+running 1 test
+test hosting::call_custody::call_custody_tests::call_custody_rejected_second_invocation_cannot_cancel_first_preparation ... 
+thread 'hosting::call_custody::call_custody_tests::call_custody_rejected_second_invocation_cannot_cancel_first_preparation' (5662598) panicked at src/hosting_call_custody_tests.rs:700:9:
+assertion `left == right` failed: rejected second invocation cannot cancel another invocation's preparation
+  left: 5
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hosting::call_custody::call_custody_tests::call_custody_rejected_second_invocation_cannot_cancel_first_preparation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 669 filtered out; finished in 0.17s
+
+error: test failed, to rerun pass `--lib`

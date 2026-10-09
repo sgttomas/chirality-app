@@ -1,0 +1,7 @@
+second=Err("original call already attempted"); first_attempt_state=5
+
+thread 'main' (5659250) panicked at /private/tmp/cce-call-independent/one_shot_negative.rs:10:2:
+assertion `left == right` failed: a rejected duplicate must not finalize the first invocation's prepared attempt
+  left: 5
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

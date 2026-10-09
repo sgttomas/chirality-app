@@ -1,0 +1,10 @@
+{
+  "omitted": [
+    {
+      "source": "/private/tmp/cce-call-independent/one_shot_negative",
+      "sha256": "cdd8376d8995e524aba6cb9efdf59c3167b5a0e26059eeb75d6e7d803aaadde3",
+      "reason": "compiled inert reproduction; source and result retained"
+    }
+  ],
+  "sourceCopies": "Author source/ directories omitted: initial bytes recoverable by applying retained initial patch to f028; R1 source is exact commit674cdd2569ea57cf663c41b46e37b51e13165e86. Duplicate R1 basis/ omitted; retained basis/ has identical exact files."
+}
