@@ -1,0 +1,7 @@
+PROPOSED ONLY — NOT APPLIED. Conceptual row correction for an explicitly reviewed successor/edit route; do not apply to frozen EXP-v0.2 in place. Preferred initial route is the additive clarification in PROPOSAL.md.
+
+--- projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md (frozen existing source)
++++ projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Design/EXAMINATION_PROTOCOL.md (prospective explicitly adopted successor only)
+@@ §2.1 IN-5 / If absent @@
+-| IN-5 | Package and its OUT-002 identity record; install/launch witness | DEL-01-06 | DEP-09-01-016, **held** (SCC-003) | Before the native packaged smoke (SCC-003 M2) | Native packaged route `blocked`, never replaced by a browser pass (§9) |
++| IN-5 | Package and its OUT-002 identity record; install/launch witness | DEL-01-06 | DEP-09-01-016, **held** (SCC-003) | Before the native packaged smoke (SCC-003 M2) | Before a candidate is named, list the missing input without a result; once planned for a named candidate, missing package means `not-run` with that input. With the package present, an attempted case stopped by another stated prerequisite may be `blocked`; never substitute a browser pass (§6.1; §9 NB-2/NB-3; EXP-R2) |
