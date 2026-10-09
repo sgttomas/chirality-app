@@ -1,0 +1,30 @@
+{
+  "basis": "7c8c2190e70333e8d3f9b131aee708d493f15b63",
+  "branch": "codex/app-v4-aa-cap-core",
+  "files": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/AA_CAP_CORE.md",
+      "sha256": "8a4c5609f640bf617ac901db2559e455afeeb2b25f4db564f39b8d571283b70d",
+      "bytes": 4950,
+      "preimageSha256": null
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "5c989bb4264ca3430040cbe05e2353c3305902d4b88f12034c92c292ee9af08d",
+      "bytes": 372556,
+      "preimageSha256": "7b9f306d7c6fc9ceeeb4178003521afcdafe5981370f0fc87418fdf35e2644b9"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_request_event_join.rs",
+      "sha256": "8694a0a0a76cb3ee041f20dc0dc2a18a7144d2e9da6ece9c7ccefd24785bfbf4",
+      "bytes": 17108,
+      "preimageSha256": null
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_request_event_join_tests.rs",
+      "sha256": "eeac8343d448b2c72e1fa275aeba371092f80526a905204f76457fbd0104cd8d",
+      "bytes": 27585,
+      "preimageSha256": null
+    }
+  ]
+}
