@@ -1,0 +1,25 @@
+{
+  "basis": "7c8c2190e70333e8d3f9b131aee708d493f15b63",
+  "files": [
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/AA_CAP_CORE.md",
+      "sha256": "be2dc9d8da83c041e57e5782946e748869211b132332761606ef87737573b477",
+      "bytes": 5153
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "5c989bb4264ca3430040cbe05e2353c3305902d4b88f12034c92c292ee9af08d",
+      "bytes": 372556
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_request_event_join.rs",
+      "sha256": "9cb103da8e730be0f04cca554537acf4e2f221125e4318acf8edb58ba36276fc",
+      "bytes": 17548
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting_request_event_join_tests.rs",
+      "sha256": "046d728463fd64e21882bba96020c2b29d49df84088e89221a6cf73720af34be",
+      "bytes": 31179
+    }
+  ]
+}
