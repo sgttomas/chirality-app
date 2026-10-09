@@ -24,7 +24,21 @@ as the subject of this decision delta, not as a rewrite of its evidence.
 | Actual configuration | Development debug, arm64, custom-protocol only; default legacy distribution; no successor/synthetic anchor |
 | CF5 values | dev.chirality.app-v4.skeleton; version0.0.0; minimum macOS15.0; no microphone key |
 
-The retained paths are those in RETURN.md and the independent artifact review.
+The exact retained subjects are:
+
+- App: `/private/tmp/chirality-b2-current-9a82cbcf/target/debug/bundle/macos/Chirality App v4 (development candidate).app`.
+- ZIP: `/private/tmp/chirality-b2-current-9a82cbcf/artifacts/Chirality-App-v4-development-9a82cbcf.app.zip`.
+
+The App's regular-file logical size is 393058909 bytes (not allocated disk
+space); P0 is 60035952 bytes. The ZIP size and all content identities are above.
+These local temporary files are **not durable artifact storage**. Keep both exact
+reviewed originals untouched until the owner decides or an identified successor
+supersedes them. Temporary-directory cleanup or loss across a restart would require
+recovery from an independently retained exact copy, or a new build/archive and
+fresh identities plus affected review; do not assume a rebuild reproduces these
+hashes. No copy to durable storage is performed or implicitly authorized here.
+Never commit the145MB ZIP or App binary to the public repository. Only evidence
+and this decision preparation are committed.
 P1/P2/P3 equal their selected sources. P1 is cached development0.160.0, not an
 R23-22 qualification selection. P0 remains incidental linker-ad-hoc, without an
 App Developer ID, sealed resources or bound Info.plist. The actual unsigned ZIP
