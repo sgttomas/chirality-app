@@ -149,7 +149,7 @@
     {
       "id": "FINAL_ONLY",
       "fault_or_race": "CRP publishes final account then journal update fails",
-      "required_outcome": "retain distinct publication attempt; reconcile no token revival",
+      "required_outcome": "Retain original confirmed account BoundReference; journal update separately failed/unknown; preserve distinct attempts without token revival",
       "invariant": "no hash cycle"
     },
     {
