@@ -46,7 +46,7 @@ interrupted-work recovery and provider adapters remain separate obligations.
 | C3-D2 interrupted-work recovery and capacity | Group C with PM05 and storage/source owners | Merged C3-OD-02 and comparative assessment | Recoverable current status with exact recovery-critical evidence; older full intermediate snapshots replaceable only when required facts survive | SELECTED R2 source-design/proof target in PR #1175; finite quota, storage/retirement and separate final CAM64 product treatment remain open |
 | C3-R2-S source successor and receiving adoption | Group C manager and affected Design owners; no graph target write | C3-OD-01/02; reviewed CCE-A2; exact Host/RS and applicable policy interfaces | Named W2/CCE and R2/PM05 source changes, consumer consequences and negatives independently reviewed; no authority from text | ACTIVE staged authored-answer source route; bounded development cold consumer complete in PR #1186; answer-only candidate merged PR #1181; positive content-only message source merged PR #1179, not implementation release. CCE-A2 and W2/R2 proposals merged PR #1174/#1177. HELP_HUMAN subsequently chose W2-M and R2-S as source/proof sequencing targets, not adopted mechanisms; its durable selection record merged PR #1178 |
 | C3-R2-I implementation and connected witness | Bounded implementers only after release; later native/supplier tests point-authorized | Reviewed selected C3-R2-S contracts, genuine Host sources and actual permissions, applicable recovery/product choices | Actual authored answer, separate manager contribution and supported ordinary-write observations; independent code/connected checks | PLANNED, not released; no W1 writer or universal A5/A12/grant prerequisite introduced by W2 direction |
-| C3-AA-CAP private Host capture core | Host owner and independent reviewer; source-selected dormant core only | Exact core hook/cut/equality/budget and test-only activation review | Provisional request/event consistency, no role mint/public producer or artifact | SOURCE route proposed; owning boundary under review, no C3 code assignment |
+| C3-AA-CAP private Host capture core | Host owner and independent reviewer; source-selected dormant core only | Exact core hook/cut/equality/budget and test-only activation review | Provisional request/event consistency, no role mint/public producer or artifact | COMPLETE bounded dormant AA-CAP core in PR #1190; borrowed predicates only, no full native schema validation or authorship mint |
 | C3-AA-TASK genuine answer-only producer | C3, role, EXEC/WR, Host and RS owners | Actual initiating/delegated TASK admission, combined WR/role/Host ordering and selected0.5 producer | Original request/emission→guarded mint→one-use0.5 publication→cold view, with synthetic/live proof limits separate | HELD on named source adoption, not on R2/W2 completion; current cold reader supplies no authorship |
 | C3-AA-REVIEW separate manager content review | C3 and role/Host/RS owners | Genuine separate manager source, exact answer binding, selected message0.2 and new carrier | Content review remains distinct from integration and human acts | LATER source/consumer work; no old0.5 reinterpretation |
 | C4 Domains contract and receiving | App receiving owner with external owners; DEL-08-01 | OI-023 terms and admission inputs; OI-026 allocation before provider production/integration | Identified contract/admitted-source cases, freshness and unsuitable/absent behavior, exact decision custody | BLOCKED at dependent implementation; no provider allocation inferred |
@@ -100,12 +100,12 @@ future entries will be routed through HELP_HUMAN at closeout, not written here.
 
 ## Current state and recovery
 
-The current checked main basis is `3cbfac7b8eb49aaee9ceb2068125319b1995f8aa`
-(PR #1188 initiation/ordering source options merged; no producer release).
+The current checked main basis is `f028d12edcd23c8aaf6a1b67e6efc66a3cfda19b`
+(PR #1192 dormant call-custody source proposal merged; no TASK producer).
 PR #1170 retains the completed bounded native witness. The prior HELP_HUMAN graph refresh and WORKING_ITEMS assignment are complete.
 HELP_HUMAN now assigns WORKING_ITEMS `/root/group_c_successor` as the sole
 Group C graph maintainer for bounded C3-R2-S W2/R2 impact and source options,
-on `codex/group-c-r2-first-proof`. CCE-A2 source proposal merged as PR #1174
+on `codex/group-c-r2-proof-manager`. CCE-A2 source proposal merged as PR #1174
 `fb61e741b7dbd5975b9830988ada607face73772`; it does not release code. No child is commissioned and no native process is
 carried by this assignment. Prior historical returns remain in the run; changes
 are integrated against then-current main by this one maintainer.
@@ -344,3 +344,25 @@ schema validation is not performed by that core and belongs to a future issuer
 outside Inner plus guarded recheck. Provisional consistency is not schema-qualified
 native success or authorship. The core's exact boundary remains with Host owning
 review. No shared Host/lib code is being edited by this R2 source assignment.
+
+## Released R2 dormant test-only proof
+
+PR #1191 merged04b06eb2f7 retains the first proof selection. The exact B2
+implementation brief is independently READY and storage-owner CONCUR after the
+retained B1 bootstrap correction. HELP_HUMAN explicitly released only this
+dormant test-only code; actual assignment and serial build fence are in
+[C3_R2_PROOF_CODE_RELEASE.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_CODE_RELEASE.md).
+Existing route_persistence executes; independent exact-code review precedes
+fan-in. No production constructor, RS carrier, quota/retirement or CAM policy
+is selected. Parent RS receiving assessment is not RS source-owner adoption.
+
+## R2 dormant proof candidate reviewed
+
+Author7e1105579c had an independently found post-replacement admission-binding
+false-confirmation defect. Maintained red tests reproduced it; repairedceca6e972f
+received independent READY and32 default/32 feature passes. Exact failure,
+repair, proportionality and reuse/retirement limits are in
+[C3_R2_PROOF_INDEPENDENT_REVIEW.md](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_INDEPENDENT_REVIEW.md).
+Manager integration99d7c246e9 preserves identical App bytes. Final head review
+and selected CI remain before merge. This is a test-only storage proof, not
+production R2 activation, RS adoption, capacity/retirement selection or PM05 closure.
