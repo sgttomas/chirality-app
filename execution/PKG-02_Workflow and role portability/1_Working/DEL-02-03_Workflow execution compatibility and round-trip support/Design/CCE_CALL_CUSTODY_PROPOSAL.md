@@ -48,7 +48,9 @@ base acceptance, writes or managed records. Later C3 resolution must reject esca
 staleness and missing claims under the associated project before sealing intent.
 No role, permission, home, policy or output/write scope may be supplied as authority
 through arguments. Existing transport limits continue to apply; this slice does
-not invent new accepted project limits or silently truncate arguments.
+not invent new accepted project limits or silently truncate arguments. Before
+code release, specify bounded validation/allocation and outstanding-call caps
+with boundary vectors; no unbounded retained request queue is allowed.
 
 ## Offer and original-call lifecycle
 
@@ -78,7 +80,8 @@ value and receipt in the existing journal, respecting existing sensitive-source
 projection limits; this is not a claim to preserve original wire bytes; the private handle is not a client
 SourceRequest, role lease or grant. Validate shape and the offered tool before
 minting. Recheck current source and unsettled original request before reply;
-never accept reconstructed handles or replayed evidence. Duplicate identities
+never accept reconstructed handles or replayed evidence. Classify private offers
+before the default automatic error; preserve ordinary unoffered classification. Duplicate identities
 and supplier resolution retain existing request lifecycle behavior.
 
 ## Response and refusal
@@ -99,7 +102,10 @@ only while their original request is unsettled and reply-eligible. Closed or
 superseded generations, duplicates and supplier-resolved calls retain existing
 refusal/resolution evidence without a new reply, retargeting or delivery claim.
 No success or outstanding request is manufactured. Preserve complete journaling, reply-write and resolution
-evidence; failed writes never imply delivery. No child launch or durable managed
+evidence; failed writes never imply delivery. Check final reply eligibility
+at the existing serialized prewrite cut: earlier closure/resolution refuses;
+after that cut or during IO bytes cannot be unsent. Preserve actual write and
+resolution order without acknowledgment, retry or delivery inference. No child launch or durable managed
 session is created even when a schema-valid call is received.
 
 ## Ownership and adoption gates
