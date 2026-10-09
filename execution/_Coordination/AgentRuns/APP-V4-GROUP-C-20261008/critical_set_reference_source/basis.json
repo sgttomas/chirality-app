@@ -1,0 +1,113 @@
+{
+  "standing": "frozen draft for owning review; no adoption/schema/code/product choice",
+  "source_revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+      "sha256": "1cc050fc3e18446d82e922b879ed49290ac42e7c08a80112a32f5bf8f4a4e6ec"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_CONTENT_REVIEW_v0.1.md",
+      "sha256": "091a625cc9a047ea2f852e06f62b01b1e574a7cd57fbc3087880ba1c113184e7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/R2_S_STORAGE_INTERFACE_PROPOSAL.md",
+      "sha256": "9e938f1c170d30bba34066ca3ce88b1d112ac116aed21f22b116bf9b4b986cb7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ACCOUNT_MATERIALIZATION_v0.1.md",
+      "sha256": "627581f503ebf8f7752d8f099215f73f25358e8b7ecef4702186125640e8f4aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/CONNECTOR_ROUTE_PLACEMENT_v0.3.md",
+      "sha256": "e52f5ed0b9c3be99a50a834101470ecfc67078aab0e5dc90e9bc201706a6598e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PM05_SOURCE_PLAN_20261008.md",
+      "sha256": "3171fe946724775f7e91b3da019ca08e534b0534e628c5dca9c7986350fda63f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_W2_CCE_IMPACT_20261008.md",
+      "sha256": "74e65c77d8fe59961af3ba1a4442da0583c49b0c9d209e3e1b7e5b59dc8dc591"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_RESOURCE_ENVELOPE.md",
+      "sha256": "6ff4a2b84324cfd4ab1bb9f52b8526d5f9a2ed438d1409bd1ddb59ad4098d5c7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Design/CCE_CALL_CUSTODY_PROPOSAL.md",
+      "sha256": "caa033bb091308fa77ba9b86ce9351d8eb44771654ac86ea3fb7cb947a944561"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/resources/distribution-successor/CCE_CALL_CUSTODY_CORE.md",
+      "sha256": "49ccc66171b6f28f93f01f37ce03ba5e9cb79bc74963b8ad4a40ee29be5c4377"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Design/RECORD_SEMANTICS.md",
+      "sha256": "910e4473575d06ba1cd4799c6ad29a31f19015b3e1665dae65641af68c4f8fae",
+      "revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/hosting.rs",
+      "sha256": "ad0f738d8656f489a3039fbec64aa1369e56925a4ac0f012066c30db3248b45d",
+      "revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/role_lifecycle.rs",
+      "sha256": "81987d5f917bf67bfff8ae193ca70ad8d1e69eddd6cb9b1effbee20210379075",
+      "revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8"
+    },
+    {
+      "path": "projects/chirality-app-v4/app/src-tauri/src/runtime_session.rs",
+      "sha256": "de0dfab5abeed13c1bf8a8ede3f0a1ec7144517766df14f95db3c408c10eef8e",
+      "revision": "fef109a510dafa400c2f1e839e21cdbd3c84d5f8"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "CRITICAL_SET_REFERENCE_CARRIER_v0.1_PROPOSAL.md",
+      "sha256": "49ba1d89b8ee3a6a33d7ad68fae95cbedec8ccd72bb942887be457025487b796"
+    },
+    {
+      "name": "negative_definition_cases.json",
+      "sha256": "5e5e46f63d47e5730fbc5780871cc1879626e8d2f52b6e0a3a4f736eb90585ad"
+    }
+  ],
+  "case_count": 39,
+  "case_execution": "designed definition vectors only; not run",
+  "source_endorsement": "DEL07-02 proposed semantic inventory only; Host/storage/CRP exact draft review pending",
+  "RS": "actual owner concurrence absent; prior reference advice not adopted",
+  "supplied_CRP_CAM_constraints": "manager-routed implementation-owner receiving input, not historical design-owner concurrence or exact-draft approval",
+  "limits": [
+    "no runtime mint/role capability",
+    "W2 ordinary operation only",
+    "no0.6/oldreader/writer expansion",
+    "no arbitraryN/S/D/T/Q or final carrier selection"
+  ],
+  "retained_findings": [
+    {
+      "original_proposal_sha256": "103b1bef60c4c5f0b1536ecd70c1468d0e6fd77a2dcc5d00d889b98a3f9533ad",
+      "original_cases_sha256": "8e2c514374bd91bde016db8c2017a953e2cefafca26a6a14c322f438b0d83c30",
+      "original_basis_sha256": "7f74f0238731a2aedfc76f36c4d9e4668f4ab0ffd95a8df9a0202534845c411e",
+      "finding": "journal_commit current snapshot self-hash/confirmation ambiguity",
+      "repair": "manifest prior results only; current identity/hash/read resolution and actual confirmation external to manifest; no cold acknowledgement reconstruction",
+      "history_limit": "original draft not saved in Git; original hashes retained, files revised in place"
+    },
+    {
+      "finding": "universal closure refusal could prevent useful durable gap recording",
+      "repair": "permit truthful incomplete-state/gap recording while retaining existing critical evidence; refuse destructive loss or unwarranted completion/retirement"
+    },
+    {
+      "reviewed_proposal_sha256": "9cef8113d490ba7d0720a614bc4cc8d8c58b648276710c351ff56ff1107a1728",
+      "reviewed_cases_sha256": "c69f2eaebe5763b1be028facc614e706a5bfd00c477d10cf19c50281808ff28f",
+      "reviewed_basis_sha256": "10c23f2b4dbc05dcddeb1e33be46c31e08764989495ada719a2f1e1e5e912652",
+      "finding": "unqualified final-account binding could gate existing publication; richer states might imply RS enum adoption",
+      "repair": "future adopted carrier-linked path only; existing publication/read-only path unchanged; explicit RS mapping gap"
+    },
+    {
+      "reviewed_proposal_sha256": "21df982cd0735b3292e54b6ddfcabbf6dd0e1608ab208d1154c1e7958aa0b7f5",
+      "finding": "broad role-producer denial obscured test-only handoff; prior snapshot refs could imply recursive all-history retention",
+      "repair": "name actual test-only manager handoff while excluding production CCE RoleSourceLease; distinguish historical subject identities from required recovery dependencies without dropping unresolvedattempts/prefinal evidence"
+    }
+  ]
+}

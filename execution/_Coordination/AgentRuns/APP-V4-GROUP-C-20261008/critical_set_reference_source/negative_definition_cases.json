@@ -1,0 +1,200 @@
+{
+  "standing": "designed source-definition vectors; not executed or production tests",
+  "cases": [
+    {
+      "id": "wrong_route_version",
+      "mutation_or_condition": "Dispatch proposed carrier as route-account0.6",
+      "expected": "refuse unsupported format/version; no fallback"
+    },
+    {
+      "id": "old_reader",
+      "mutation_or_condition": "Send carrier to existing0.1\u20130.5 reader",
+      "expected": "refuse; no compatibility by shape"
+    },
+    {
+      "id": "message02_old_final",
+      "mutation_or_condition": "Put reviewed_content_only into old final carrier and claim compatibility",
+      "expected": "unavailable representation; owning semantic refusal"
+    },
+    {
+      "id": "base_shape_only",
+      "mutation_or_condition": "Rebind hashes after invalid CRR fact mutation",
+      "expected": "refuse owner semantic invalid base"
+    },
+    {
+      "id": "base_whitespace_change",
+      "mutation_or_condition": "Change original serialized base bytes without new answer/review binding",
+      "expected": "stale dependencies"
+    },
+    {
+      "id": "same_hash_changed_custody",
+      "mutation_or_condition": "Same bytes/hash from another Host generation or RoleBinding",
+      "expected": "preserve byte equality but reject original source substitution"
+    },
+    {
+      "id": "same_hash_target_inode",
+      "mutation_or_condition": "Matching target bytes on substituted inode/root",
+      "expected": "changed source identity; no original observation restoration"
+    },
+    {
+      "id": "missing_reference",
+      "mutation_or_condition": "Remove required retained raw artifact",
+      "expected": "record missing and incomplete closure; allow durable gap report, refuse complete-closure/retirement claim"
+    },
+    {
+      "id": "mutable_slot",
+      "mutation_or_condition": "Reference current/slot snapshot expected to be overwritten",
+      "expected": "refuse immutable-retention claim"
+    },
+    {
+      "id": "dropped_uncertainty",
+      "mutation_or_condition": "Omit unresolved original attempt after later matching bytes",
+      "expected": "refuse semantic completeness"
+    },
+    {
+      "id": "account_journal_conflation",
+      "mutation_or_condition": "Account confirmed but journal update fails; mark both uncertain",
+      "expected": "retain distinct actual original outcomes"
+    },
+    {
+      "id": "cold_ack",
+      "mutation_or_condition": "Find matching final account after restart without original acknowledgement",
+      "expected": "record current bytes; confirmation unavailable"
+    },
+    {
+      "id": "absent_task_producer",
+      "mutation_or_condition": "Dormant unavailable-response treated as emitted TASK answer",
+      "expected": "unavailable producer; no answer or role mint"
+    },
+    {
+      "id": "cold_role",
+      "mutation_or_condition": "Deserialize role/source receipt and claim live capability",
+      "expected": "refuse capability restoration"
+    },
+    {
+      "id": "wire_hash",
+      "mutation_or_condition": "Label parsed Value frame hash as original wire hash",
+      "expected": "refuse method mismatch"
+    },
+    {
+      "id": "request_absence",
+      "mutation_or_condition": "No request record therefore never dispatched",
+      "expected": "unknown rather than negative-effect assertion"
+    },
+    {
+      "id": "untracked_intent",
+      "mutation_or_condition": "Invent durable intent for unrelated supplier fileChange",
+      "expected": "retain not-supplied intent and untracked boundary"
+    },
+    {
+      "id": "content_review_promotion",
+      "mutation_or_condition": "Positive message0.2 review fills manager reconciliation/integration",
+      "expected": "refuse distinct-stage promotion"
+    },
+    {
+      "id": "same_stream_collision",
+      "mutation_or_condition": "Different events reuse original generation/receipt position",
+      "expected": "conflicting source evidence"
+    },
+    {
+      "id": "event_before_response",
+      "mutation_or_condition": "Valid original completion precedes correlated start response",
+      "expected": "allow recorded ordering only after complete consistent join"
+    },
+    {
+      "id": "source_close_before_mint",
+      "mutation_or_condition": "Complete missing source using late/history item",
+      "expected": "unavailable fresh mint; retain historical gap"
+    },
+    {
+      "id": "cycle",
+      "mutation_or_condition": "Final account hashes journal revision that hashes same final account",
+      "expected": "refuse cycle; pre-final reference required"
+    },
+    {
+      "id": "fork",
+      "mutation_or_condition": "Same journal identity/revision yields competing valid descriptors",
+      "expected": "conflicting; no newest winner"
+    },
+    {
+      "id": "matching_postimage",
+      "mutation_or_condition": "Current target equals intended content without original operation evidence",
+      "expected": "corroborates bytes only; cause/operation remains unknown"
+    },
+    {
+      "id": "quota_pressure",
+      "mutation_or_condition": "Drop exact answer/attempt to fit selected future cap",
+      "expected": "refuse destructive advancement, never truncate; allow bounded truthful gap record preserving existing critical evidence"
+    },
+    {
+      "id": "forged_consistent",
+      "mutation_or_condition": "All copied hashes/refs internally consistent but no original custody",
+      "expected": "consistency only; no authenticity/performance"
+    },
+    {
+      "id": "changed_write_resolution",
+      "mutation_or_condition": "Cold current missing replaces recorded write-time resolved status",
+      "expected": "retain historical write status plus separate read missing"
+    },
+    {
+      "id": "actual_rs_absent",
+      "mutation_or_condition": "Treat earlier RS reference advice as new carrier concurrence",
+      "expected": "review gap; no adoption"
+    },
+    {
+      "id": "snapshot_self_reference",
+      "mutation_or_condition": "Manifest includes its own current snapshot hash or descriptor hash depending on it",
+      "expected": "refuse cyclic current-commit binding; current hash belongs to external envelope"
+    },
+    {
+      "id": "current_commit_ack",
+      "mutation_or_condition": "Prepared manifest claims original successful acknowledgement of its own publication",
+      "expected": "refuse unobserved/future confirmation; only prior available result may be recorded"
+    },
+    {
+      "id": "cold_envelope_ack",
+      "mutation_or_condition": "Cold matching descriptor/snapshot is labeled original caller confirmation",
+      "expected": "report observed current bytes only; acknowledgement unavailable"
+    },
+    {
+      "id": "gap_recording_preserves_old",
+      "mutation_or_condition": "New producer unavailable or ref missing; retain earlier critical bytes and original unresolved attempts plus explicit gap",
+      "expected": "allow truthful incomplete-state recording; no artifact fabrication or complete-closure claim"
+    },
+    {
+      "id": "drop_old_critical_on_gap",
+      "mutation_or_condition": "New gap status removes previously retained required answer bytes or original uncertain attempt",
+      "expected": "refuse destructive replacement even though gap itself is truthful"
+    },
+    {
+      "id": "existing04_writer_journal_gate",
+      "mutation_or_condition": "Refuse otherwise valid existing0.4 CRP/CAM publication solely because no R2 journal exists",
+      "expected": "reject proposed blanket gate; existing writer contract unchanged"
+    },
+    {
+      "id": "existing_incremental_publication",
+      "mutation_or_condition": "Existing supported0.1\u20130.4 publication proceeds under its current CRP/CAM checks without new carrier/journal",
+      "expected": "preserve existing behavior; no R2 prerequisite or new adoption inferred"
+    },
+    {
+      "id": "rich_state_as_RS_enum",
+      "mutation_or_condition": "Emit carrier changed/stale/not_checked as accepted RS write-resolution literals",
+      "expected": "refuse compatibility claim; mapping gap and original RS literal retained"
+    },
+    {
+      "id": "dormant_manager_handoff",
+      "mutation_or_condition": "Observe test-only successful manager-insertion handoff in dormant original-call seam",
+      "expected": "retain actual test-only handoff; do not promote to production CCE RoleSourceLease/TASK/answer capability or deny handoff exists"
+    },
+    {
+      "id": "repeated_commit_no_full_chain",
+      "mutation_or_condition": "Repeated commits retain exact current critical artifacts/unresolvedattempts and bounded historical receipt identities, replacing obsolete full snapshots",
+      "expected": "allow definition when required artifact closure survives without recursive all-snapshot dependency"
+    },
+    {
+      "id": "required_ref_relabelled_historical",
+      "mutation_or_condition": "Relabel unresolvedattempt evidence or required pre-final subject bytes as historical-only to discard them",
+      "expected": "refuse destructive loss; historical-reference distinction cannot waive required recovery closure"
+    }
+  ]
+}
