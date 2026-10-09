@@ -1,0 +1,273 @@
+{
+  "script_sha256": "6305e6974dc666101cbe8631cb595608f49cda2bdb1786afe04c6b2a07620b87",
+  "standing": "constructed definition fixtures only; no production carrier, allocation, physical disk or Host evidence",
+  "source_revision": "bb61c5a2c857c21678fb11fa8c2f1a87c2ee4b1f",
+  "sources": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/record_reconstruction_v04.fixture.json",
+      "sha256": "1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_evidence_v01.fixture.json",
+      "sha256": "08b5fa515b35a92c889a1b69ed71e9d9c1a613598bf9c4933e5e8e807ad434cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/contribution_content_review_v02.fixture.json",
+      "sha256": "3e3348eee17c29e7c5721c21a684f1b66b16d2cd445ed695fb4f176a2fe9f8d1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.2.schema.json",
+      "sha256": "1f378e4c80ca7c6addd3e6275537feae8f5c354bfa882f3693e936fee97770a3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.contribution-message.v0.1.schema.json",
+      "sha256": "3c11053965d864b78d274993629564d77ee90baf8da63049692f8744627c8b87"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.4.schema.json",
+      "sha256": "7fa9002696c62bd1300763f88e0381d120907ee1de8f4fbe15b1e4aba489246c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.route-account.v0.5.schema.json",
+      "sha256": "327ca15977a73a6b6d2f72ed27fde07259f4ba6c4ea9781d4ca17ad72b860108"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_content_review_v02.py",
+      "sha256": "53f59b1696077dee954f149833f720429be263df9dacfbaee1dd61d9f667ba93"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_contribution_evidence_v01.py",
+      "sha256": "f7895b1778141235c0d71c407254c1aa26a590413557ce00cbdf9234b5c67ba9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/check_record_reconstruction_v04.py",
+      "sha256": "a55cb0edfae2c82f69cd261b88b72946d13e40d876d651931dc6175efb8005dd"
+    }
+  ],
+  "rows": [
+    {
+      "name": "base0.4 exact file",
+      "unicode_codepoints": 8504,
+      "raw_utf8_bytes": 8504,
+      "raw_sha256": "1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf",
+      "json_string_utf8_bytes": 9393,
+      "json_string_overhead": 889,
+      "object_text_utf8_bytes": 9402,
+      "ensure_ascii_true_string_bytes": 9393
+    },
+    {
+      "name": "answer exact artifact text",
+      "unicode_codepoints": 629,
+      "raw_utf8_bytes": 629,
+      "raw_sha256": "b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75",
+      "json_string_utf8_bytes": 681,
+      "json_string_overhead": 52,
+      "object_text_utf8_bytes": 690,
+      "ensure_ascii_true_string_bytes": 681
+    },
+    {
+      "name": "message0.2 positive review exact file",
+      "unicode_codepoints": 736,
+      "raw_utf8_bytes": 736,
+      "raw_sha256": "3e3348eee17c29e7c5721c21a684f1b66b16d2cd445ed695fb4f176a2fe9f8d1",
+      "json_string_utf8_bytes": 785,
+      "json_string_overhead": 49,
+      "object_text_utf8_bytes": 794,
+      "ensure_ascii_true_string_bytes": 785
+    },
+    {
+      "name": "base0.4 padded to1MiB exact bytes",
+      "unicode_codepoints": 1048576,
+      "raw_utf8_bytes": 1048576,
+      "raw_sha256": "7531f50b38507a991c23f9ebcdaab6a1c04f238381781744f3753fca6fb5512b",
+      "json_string_utf8_bytes": 1049465,
+      "json_string_overhead": 889,
+      "object_text_utf8_bytes": 1049474,
+      "ensure_ascii_true_string_bytes": 1049465
+    },
+    {
+      "name": "base0.4 LF padded to1MiB exact bytes",
+      "unicode_codepoints": 1048576,
+      "raw_utf8_bytes": 1048576,
+      "raw_sha256": "34bf33a3f304b41af991a6ace373232ecd9383962af1035570d298675813ac46",
+      "json_string_utf8_bytes": 2089537,
+      "json_string_overhead": 1040961,
+      "object_text_utf8_bytes": 2089546,
+      "ensure_ascii_true_string_bytes": 2089537
+    }
+  ],
+  "illustrative_three_string_envelope": {
+    "normal_bytes": 10888,
+    "padded_base_bytes": 1050958,
+    "padded_exceeds1MiB_by": 2382,
+    "meaning": "illustrative compact JSON object, NOT selected carrier; exact bytes retained, not parsed-and-normalized"
+  },
+  "padded_base": {
+    "schema_and_owner_semantics_valid": true,
+    "bytes": 1048576,
+    "padding_bytes": 1040072,
+    "new_answer_review_bindings_valid": true,
+    "meaning": "constructed hash rebinding only; no new authorship/review performance; original bindings would be stale"
+  },
+  "schema_bounds": [
+    {
+      "path": "$/$defs/answer/properties/question_id/maxLength",
+      "value": 4096
+    },
+    {
+      "path": "$/$defs/answer/properties/retained_gap_pointers/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/answer/properties/retained_contradiction_ids/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/answer/properties/retained_contradiction_ids/items/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/answer/properties/answer_text/maxLength",
+      "value": 65536
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/claim_id/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/statement/maxLength",
+      "value": 16384
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/base_claim_ids/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/base_claim_ids/items/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/fact_ids/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/fact_ids/items/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/comparison_ids/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/answer/properties/claims/items/properties/comparison_ids/items/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/review/properties/question_id/maxLength",
+      "value": 4096
+    },
+    {
+      "path": "$/$defs/review/properties/retained_gap_pointers/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/review/properties/retained_contradiction_ids/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/review/properties/retained_contradiction_ids/items/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/review/properties/review_text/maxLength",
+      "value": 65536
+    },
+    {
+      "path": "$/$defs/review/properties/claim_findings/maxItems",
+      "value": 32
+    },
+    {
+      "path": "$/$defs/review/properties/claim_findings/items/properties/claim_id/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/review/properties/claim_findings/items/properties/finding/maxLength",
+      "value": 16384
+    },
+    {
+      "path": "$/$defs/plan/properties/target_path/maxLength",
+      "value": 4096
+    },
+    {
+      "path": "$/$defs/plan/properties/scope_reference/maxLength",
+      "value": 4096
+    },
+    {
+      "path": "$/$defs/plan/properties/selection_reference/maxLength",
+      "value": 4096
+    },
+    {
+      "path": "$/$defs/plan/properties/block_marker/maxLength",
+      "value": 128
+    },
+    {
+      "path": "$/$defs/plan/properties/block_template/maxLength",
+      "value": 65536
+    }
+  ],
+  "stress_rows": [
+    {
+      "case": "ascii",
+      "review_text_codepoints": 65536,
+      "review_text_raw_utf8_bytes": 65536,
+      "schema_valid": true,
+      "whole_message_utf8_bytes": 66093,
+      "whole_message_inline_string_bytes": 66141,
+      "owner_message_validator_accepts": true,
+      "refusal": null
+    },
+    {
+      "case": "quote",
+      "review_text_codepoints": 65536,
+      "review_text_raw_utf8_bytes": 65536,
+      "schema_valid": true,
+      "whole_message_utf8_bytes": 131629,
+      "whole_message_inline_string_bytes": 262749,
+      "owner_message_validator_accepts": true,
+      "refusal": null
+    },
+    {
+      "case": "LF",
+      "review_text_codepoints": 65536,
+      "review_text_raw_utf8_bytes": 65536,
+      "schema_valid": true,
+      "whole_message_utf8_bytes": 131629,
+      "whole_message_inline_string_bytes": 197213,
+      "owner_message_validator_accepts": true,
+      "refusal": null
+    },
+    {
+      "case": "four_byte_unicode",
+      "review_text_codepoints": 65536,
+      "review_text_raw_utf8_bytes": 262144,
+      "schema_valid": true,
+      "whole_message_utf8_bytes": 262701,
+      "whole_message_inline_string_bytes": 262749,
+      "owner_message_validator_accepts": false,
+      "refusal": "message byte bound"
+    }
+  ],
+  "limits": {
+    "message_artifact_utf8_cap": 262144,
+    "current_account_serialized_cap": 1048576,
+    "measurement": "Python UTF8 compact ensure_ascii=False except explicitly labeled alternative; no heap/disk multiplier inferred"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "standing": "PROPOSED measurement and product-decision preparation; no adoption",
+  "base": "bb61c5a2c857c21678fb11fa8c2f1a87c2ee4b1f",
+  "author": "/root/group_c_successor",
+  "measurement_author": "/root/group_c_successor/cfb_design_owner",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": ".agents/skills/proposal-format/SKILL.md",
+      "sha256": "63e6d2545c31df939511a5a137c214d5444ca562f6abf9b048de3aa2f8dac59d"
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/PRD.md",
+      "sha256": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_IMPLEMENTATION_EVIDENCE.md",
+      "sha256": "b3153cdb7311db92a64ffc11c43d143c58f5b0a4bacb06c0fbb24bb80ee2e0b8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PM05_SOURCE_PLAN_20261008.md",
+      "sha256": "3171fe946724775f7e91b3da019ca08e534b0534e628c5dca9c7986350fda63f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_IMPLEMENTATION_BRIEF.md",
+      "sha256": "44421a4cffe1ec5ac47eb1cd4b7b15a2aabde27ca1169cff5532159e7bf53717"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_PROOF_INDEPENDENT_REVIEW.md",
+      "sha256": "a5f5e5de6a4e6996457661defa434177092edb731e35f45734b0637e926275e5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/R2_S_STORAGE_INTERFACE_PROPOSAL.md",
+      "sha256": "9e938f1c170d30bba34066ca3ce88b1d112ac116aed21f22b116bf9b4b986cb7"
+    }
+  ]
+}

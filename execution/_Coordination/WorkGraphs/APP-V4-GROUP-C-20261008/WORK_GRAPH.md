@@ -366,3 +366,9 @@ repair, proportionality and reuse/retirement limits are in
 Manager integration99d7c246e9 preserves identical App bytes. Final head review was READY ata676b11b3d; selected CI passed and PR #1193
 mergedb59e08b9a5. The bounded proof is COMPLETE. This is a test-only storage proof, not
 production R2 activation, RS adoption, capacity/retirement selection or PM05 closure.
+
+### R2 resource-envelope receiving checkpoint
+
+PR #1193 merged the dormant constructed-file proof as `b59e08b9a5fa89e065db65d2c4cc2ebabedf9d91`; no production opener or PM05 recovery was released. PR #1194 merged dormant original-call/unavailable-response custody as `52f5f3494b97f0bd7547fd437b656483450a9ae5`; it supplies no TASK admission, managed-session service or authored answer producer. C3-AA-TASK remains held on its named role/initiation/source joins, not on R2 completion.
+
+[R2 resource envelope and evidence retention](../../AgentRuns/APP-V4-GROUP-C-20261008/C3_R2_RESOURCE_ENVELOPE.md) is the next proposed technical decision package. Its constructed byte matrix informs carrier/resource work; product N/S/D/T/Q, terminal retention, platform qualification and separate CAM64 suitability remain open. Real recovery-critical Host/operation carriers and workload/resource measurements are still missing. C2/C4/C5 external holds remain separate; no whole-product90 claim.
