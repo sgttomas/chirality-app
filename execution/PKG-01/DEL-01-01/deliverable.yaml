@@ -84,4 +84,5 @@ code_paths:
 checks:
 - app/tests/validate-records.test.mjs
 - execution/PKG-01/DEL-01-01/Design/distribution-s1/test_model.py
+- execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py
 - execution/PKG-01/DEL-01-01/Design/prototype/distribution_identity/test_inventory.py

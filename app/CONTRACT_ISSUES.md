@@ -1057,6 +1057,17 @@ changed.
   CI-27 remains OPEN: Group B graph A-IN-S1…S5 assigns versioned contracts,
   connected implementation, reference qualification, consumer joins and final
   packaged witness. Staging satisfies none of those successor obligations.
+- **A-IN-S3 reference authored, 2026-10-10:** DEL-01-01 now holds an
+  `expected-reference.s1` record for stock Codex 0.160.0 macOS arm64 at
+  `execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/`
+  (`expected.json` SHA-256 `754eebae…2a37`, bundle root DEL-01-01/Design). It
+  binds owner-authorized acquisition and custody, a recomputed full vendor-tree
+  inventory, an isolated H-probe label `codex-cli 0.160.0`, and the maintained
+  generated-output identity with its R23-22 version-advance basis. It has no
+  `adoption-attestation.s1` yet. Independent review and technical adoption
+  through HELP_HUMAN must precede any qualified reliance or build selection.
+  CI-27 stays OPEN for attestation, connected production verification (S2),
+  receiving joins (S4) and the packaged witness (S5).
 
 ## CI-28 SQ J-2 omitted its already required ST-4 stimulus
 
