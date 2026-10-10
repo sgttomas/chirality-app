@@ -10,8 +10,10 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
 
-/** Roles a person may start a conversation with here. TASK is a bounded
- * executor for delegated work, not a conversation entry. */
+/** Roles a person may start a conversation with (ROLE SL-1; owner ruling
+ * 2026-10-10: "TASK is not a conversational role"). TASK stays one of the four
+ * standing roles: a manager assigns bounded work to it, and its guidance is
+ * supplied for that delegation. The host's role set names the same list. */
 export const CONVERSATION_ROLES = ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS"];
 
 export function roleName(appRole: Json): string {
@@ -44,20 +46,20 @@ export function RoleLimits({ limits, role }: { limits: Json; role: string | null
  * preselection the person can change or clear before starting. */
 export function RoleChoice({ roleSet, limits, role, setRole, preselected }: { roleSet: Json; limits: Json; role: string; setRole: (role: string) => void; preselected: boolean }) {
   if (!roleSet?.available) return <p>Role set unavailable: {text(roleSet?.reason)}. Only “No role” can be chosen.</p>;
-  const roles = list(roleSet.roles);
+  const offered: string[] = Array.isArray(roleSet.conversationRoles) ? roleSet.conversationRoles.map(text) : CONVERSATION_ROLES;
+  const roles = list(roleSet.roles).filter((r: Json) => offered.includes(text(r.name)));
   return <fieldset>
     <legend>Conversation role (fixed for the conversation's life)</legend>
     {roles.map((r: Json) => {
       const name = text(r.name);
-      const offered = CONVERSATION_ROLES.includes(name);
       return <div key={name}>
-        <label><input type="radio" name="conversation-role" value={name} checked={role === name} disabled={!offered} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
-        {!offered && <small> Not offered as a conversation role here: a bounded executor for delegated work.</small>}
+        <label><input type="radio" name="conversation-role" value={name} checked={role === name} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
         {role === name && <RoleLimits limits={limits} role={name} />}
       </div>;
     })}
     <label><input type="radio" name="conversation-role" value="" checked={role === ""} onChange={() => setRole("")} /> <b>No role</b>: product guidance only.</label>
     <p><small>{text(limits?.standing)}</small></p>
+    <p><small>TASK is not a conversation role: a manager assigns bounded work to it, and its guidance is supplied for that delegation.</small></p>
   </fieldset>;
 }
 

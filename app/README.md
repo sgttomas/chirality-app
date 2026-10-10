@@ -247,9 +247,13 @@ performed an act.
     role labelled as a preselection (the bundled set marks none today, U-R11),
     "No role", and each role's limits as the limit account hands them (TASK
     "A task agent does not delegate: Stated, not enforced"; a modified copy
-    reads not known). TASK is listed but not offered as a conversation role,
-    as before; ROLE SL-1/CA-1 and NIR ST-5 name all four, so whether TASK may
-    start a conversation is an open owner choice. The conversation header shows the role, fixed for the
+    reads not known). The start display and Continue as offer HELP_HUMAN,
+    HELPS_HUMANS and WORKING_ITEMS (the host's `roleSet.conversationRoles`)
+    and No role. TASK is not listed as a choice: it is the role a manager
+    assigns bounded work to, and its guidance is supplied for that delegation
+    (ROLE SL-1, CA-1; NIR ST-5; owner ruling 2026-10-10, "TASK is not a
+    conversational role"). A TASK start that reaches composition anyway is
+    refused before anything is sent. The conversation header shows the role, fixed for the
     conversation's life, and its relation (its own start, continued from, or
     fork of). **Guidance changed since this conversation started** appears
     only when a file the conversation started with now differs or is missing;

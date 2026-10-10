@@ -28,6 +28,9 @@ impl Role {
             Self::TASK => "TASK",
         }
     }
+    /// ROLE SL-1 (owner ruling 2026-10-10): TASK is not a conversation role.
+    /// It is never offered at start or in "Continue as"; this guard refuses a
+    /// TASK start that reaches composition anyway.
     pub fn primary_entry(self) -> bool {
         self != Self::TASK
     }

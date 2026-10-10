@@ -59,6 +59,30 @@ fn p3_entry_host_metadata_uses_the_exact_four_role_asset() {
     assert_eq!(metadata["available"], true);
     assert_eq!(metadata["roles"].as_array().unwrap().len(), 4);
     assert!(metadata["defaultRole"].is_null());
+    // ROLE SL-1: TASK stays a standing role but is not offered as a conversation role.
+    assert_eq!(
+        metadata["conversationRoles"],
+        json!(["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS"])
+    );
+    assert!(metadata["roles"].as_array().unwrap().iter().any(|r| r["name"] == "TASK"));
+}
+#[test]
+fn p3_entry_task_start_is_refused_before_send_and_task_guidance_stays_for_delegation() {
+    let (base, editable, _package) = stores();
+    let error = prepare_role_entry(&editable, Some(role_supply::Role::TASK), true, || {
+        unreachable!()
+    })
+    .unwrap_err();
+    assert!(error.contains("not a primary entry"), "{error}");
+    assert_eq!(refused_role_entry(Some(role_supply::Role::TASK), &error)["state"], "refused-before-send");
+    for role in [role_supply::Role::HELP_HUMAN, role_supply::Role::HELPS_HUMANS, role_supply::Role::WORKING_ITEMS] {
+        prepare_role_entry(&editable, Some(role), true, || unreachable!()).unwrap();
+    }
+    // The shipped TASK guidance is still composed for a delegated child.
+    let common = role_supply::Guidance::read_seeded(&editable, "AGENTS.md", runtime_session::INSTRUCTION_RELEASE, runtime_session::COMMON_DEFAULT).unwrap();
+    let task = role_supply::Guidance::read_seeded(&editable, "agents/AGENT_TASK.md", runtime_session::INSTRUCTION_RELEASE, runtime_session::role_default(role_supply::Role::TASK)).unwrap();
+    role_supply::Composition::new(&common, Some((role_supply::Role::TASK, &task)), true).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
     assert_eq!(
         metadata["identity"],
         role_supply::content(role_supply::BUNDLED_ROLE_SET)

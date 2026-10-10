@@ -163,9 +163,16 @@ are read from the actual acting route, never inferred from0.160.0 or this sample
 
 ### 3.1 Rules
 
-- **SL-1 Four roles.** HELP_HUMAN, HELPS_HUMANS, WORKING_ITEMS and TASK with
-  their WD §5.1 meanings, from the bundled role set (§4.1). Both schemas
-  enumerate the four.
+- **SL-1 Four roles; three conversation roles.** HELP_HUMAN, HELPS_HUMANS,
+  WORKING_ITEMS and TASK with their WD §5.1 meanings, from the bundled role
+  set (§4.1). Both schemas enumerate the four. A conversation is started
+  with HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS, or with no role (SL-2).
+  TASK is not a conversation role: it is the role a manager assigns bounded
+  work to, and its guidance is supplied for that delegation (§5.3; owner
+  ruling 2026-10-10: "That scope is wrong. TASK is not a conversational
+  role. Fix the scope of work as recommended."). The start display does not
+  list TASK as a choice; a TASK start that reaches composition anyway is
+  refused before anything is sent (`refused-before-send`).
 - **SL-2 No role.** A conversation may have no role (R17-9); it is supplied
   the product guidance alone, shown as "No role", never as a fifth role.
 - **SL-3 Preselection.** A new conversation preselects the role whose
@@ -215,7 +222,8 @@ cases RC-01, RC-07, RC-15…RC-17, RC-19.
 ### 3.3 Another role, and forks (R19-3, R19-8)
 
 - **CA-1 "Continue as ‹role›".** From a started conversation the person may
-  choose "Continue as ‹role›" (any of the four, or no role). The App opens a
+  choose "Continue as ‹role›" (HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS, or
+  no role; not TASK, SL-1). The App opens a
   **new** conversation in *draft* with that role and pre-fills its first
   message with a **handoff summary**, which the person sees and can edit; it
   is not sent until the person sends it. The source conversation is unchanged.
