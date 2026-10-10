@@ -1269,7 +1269,21 @@ changed.
   `~`-relative folder, or a content-addressed supply copy under
   `.chirality/workflow-supply/` for any other holding copy, and refuses the run
   start when that copy fails. A trial names its snapshot the same way (TT-8).
-- **State:** OPEN until WR §17 step 2 implements TX-7.
+- **State:** CLOSED for the App's run start by WR §17 step 2 (CC-WR-TRIALS
+  phase 1). `runtime_session.rs` names the folder through
+  `workflow_workspace::files_folder` (TX-7): a holding folder inside the
+  explicit project is named project-relative (in the test fixture, the
+  registered `coordinated-knowledge-work` holding copy picked at
+  `.chirality/workflows/coordinated-knowledge-work` is named so, beside
+  `REVIEW-NOTES.md`), one inside the home folder `~/`-relative, and any
+  other gets a content-addressed supply copy under
+  `.chirality/workflow-supply/`, recomputed before it is named; a copy that
+  cannot be written refuses the start with the cause. The composer refuses
+  absolute and malformed labels. Bundled (LS-5) and other non-registered
+  selections still do not run (`run_admission`, CI-18); when they do, TX-7's
+  case (c) already covers them. Tests: `workflow_trials_tests.rs`
+  (`files_folder_…`, `copy_destinations_…`) and `runtime_session.rs`
+  (`run_start_files_line_names_a_usable_folder_or_refuses_the_start`).
 
 ## CI-33 Examination source pins need re-freezing
 
@@ -1278,3 +1292,12 @@ changed.
   `app/examination/standalone/{sources.json,pre_run_inputs.pins.json}` and
   `app/examination/sq_receiving/pins.json` need a reviewed re-freeze before the
   next examination dispatch run; the WR pin was already stale on `main`.
+- Pinned text that went stale with CC-WR-TRIALS (#1241) and is left unedited
+  until that re-freeze: `execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md`
+  line 757 still speaks of "AT-8 trial attachments" retaining WR's draft/source
+  handle. Since CC-WR-TRIALS a trial reaches its agent as the trial text (WR
+  TT-3, TT-8), not as draft attachments; the attachment pre-fill remains only
+  until WR §17 step 8. Reword it with the re-freeze. The WR Design itself
+  changed again with CC-WR-TRIALS phase 1 (TX-7 retention and destination
+  handling, the §3 supply-copy row, §8, §12, §17), so its pin moves further
+  from the frozen hash.

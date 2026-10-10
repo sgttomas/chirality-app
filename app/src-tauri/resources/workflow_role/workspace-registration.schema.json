@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-02-02:workspace-registration:WR-v0.2",
   "title": "Workflow workspace and registration records (DEL-02-02 WR-v0.2) - PROPOSED",
-  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check; CC-WR-RECONFIRM, in place, adds the DS-8 re-confirmation of a registered revision to registration_disposition, draft_transition, a15_descriptor and library_entry). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
+  "description": "The formats the workflow workspace hands to its receivers (WORKSPACE_AND_REGISTRATION.md section 8; v0.2 adds C-02's two elements, the L-4 multi-entry A15 descriptor and shipped-revision standing, and the R19-7 run text and supply check; CC-WR-RECONFIRM, in place, adds the DS-8 re-confirmation of a registered revision to registration_disposition, draft_transition, a15_descriptor and library_entry; CC-WR-TRIALS, in place, extends trial_pointer to the TT-4 trial link and adds trial_observation). PROPOSED (R17-1); Chirality names only, snake_case as WD's schema; no supplier wire field. Every record names its kind in record_kind. Workflow identities are WD's tuple, referenced by WD's $id (workflow-declaration.schema.json#/$defs/workflow_identity); RS spells the same tuple in camelCase (RS $defs/workflowTuple). Keywords are kept to the subset that DEL-04-03's design validator (prototype/minischema.py) checks, which has no maxLength, so the name's length bound is written as a pattern lookahead. Rules a schema cannot state (for example that an A15 descriptor's subject revision equals its bound content value) are reader checks, listed in WR section 8.",
   "type": "object",
   "required": [
     "record_kind"
@@ -28,6 +28,9 @@
     },
     {
       "$ref": "#/$defs/trial_pointer"
+    },
+    {
+      "$ref": "#/$defs/trial_observation"
     },
     {
       "$ref": "#/$defs/a15_multi_descriptor"
@@ -1284,7 +1287,7 @@
       ]
     },
     "trial_pointer": {
-      "description": "WR section 4.2 TT-4 (K-7): an App-kept pointer that the person tried a draft in an ordinary conversation. It names draft content, never a workflow identity, and is not a run record, compatibility evidence or A15 evidence.",
+      "description": "WR section 4.2 TT-4 (K-7; CC-WR-TRIALS): the trial link, an App-kept record that the person sent a trial of one draft version, written when the host acknowledges the send. It names draft content, never a workflow identity, and is not a run record, compatibility evidence or A15 evidence. A link with `trial` is a CC-WR-TRIALS trial and carries TT-4's standing sentence; a link without it was written before CC-WR-TRIALS (the draft's files sent as attachments) and keeps its earlier standing sentence: it is listed as an earlier attachment trial. `conversation` is the authoring conversation for a delegated trial and the trial conversation for a clean one; reader checks (WR section 8): for a delegated trial it equals trial.authoring_conversation, for a clean trial it equals trial.clean_conversation, and one trial reference has one link.",
       "type": "object",
       "required": [
         "record_kind",
@@ -1312,9 +1315,465 @@
           "$ref": "#/$defs/text"
         },
         "standing": {
-          "const": "draft tried in conversation; not a run of any workflow identity"
+          "enum": [
+            "draft tried in conversation; not a run of any workflow identity",
+            "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance"
+          ]
+        },
+        "trial": {
+          "$ref": "#/$defs/trial_link"
+        }
+      },
+      "anyOf": [
+        {
+          "not": {
+            "required": [
+              "trial"
+            ]
+          },
+          "properties": {
+            "standing": {
+              "const": "draft tried in conversation; not a run of any workflow identity"
+            }
+          }
+        },
+        {
+          "required": [
+            "trial"
+          ],
+          "properties": {
+            "standing": {
+              "const": "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance"
+            }
+          }
+        }
+      ]
+    },
+    "trial_reference": {
+      "description": "WR section 4.2 TT-3: a trial's reference, `trial:` and a UUID. It is the run reference inside the trial text and is never a run identity.",
+      "type": "string",
+      "pattern": "^trial:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "trial_link": {
+      "description": "WR section 4.2 TT-4 (CC-WR-TRIALS): what a trial link adds to a trial pointer. sequence is the draft's trial number (display only); text_identity is the trial text's exact-bytes identity (TX-4) and text_bytes its size; snapshot_folder is the folder the trial text's files line names (TT-8; project- or home-relative, never absolute); client_message and turn are the sent message's client identity and, when the acknowledgment carried it, its turn; clean_conversation is the fresh conversation of a clean trial and null for a delegated one.",
+      "type": "object",
+      "required": [
+        "reference",
+        "sequence",
+        "kind",
+        "text_identity",
+        "text_bytes",
+        "snapshot_folder",
+        "authoring_conversation",
+        "client_message",
+        "turn",
+        "clean_conversation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "#/$defs/trial_reference"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kind": {
+          "enum": [
+            "delegated",
+            "clean"
+          ]
+        },
+        "text_identity": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "text_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snapshot_folder": {
+          "type": "string",
+          "pattern": "^(?![/\\\\])[^\\r\\n]+$"
+        },
+        "authoring_conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "client_message": {
+          "$ref": "#/$defs/text"
+        },
+        "turn": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clean_conversation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "delegated"
+            },
+            "clean_conversation": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "clean"
+            },
+            "clean_conversation": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        }
+      ]
+    },
+    "trial_fidelity": {
+      "description": "WR section 4.2 TT-9: one fidelity reading of a trial's first input (a delegated trial's linked sub-agent, or a clean trial's first turn). verbatim: the trial text from its start line through the end marker occurs as one contiguous exact byte sequence in one text element (header_present says whether the header came too); differs: TX-3's extraction gives the difference; not checked: no child linked, or the read failed (limits say which). observed_text is the identity of the text element read. read_thread is the thread read, null when none was linked.",
+      "type": "object",
+      "required": [
+        "state",
+        "read_thread",
+        "limits"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "verbatim",
+            "differs",
+            "not checked"
+          ]
+        },
+        "difference": {
+          "enum": [
+            "framing differs, workflow body equal",
+            "workflow body differs",
+            "workflow not found"
+          ]
+        },
+        "header_present": {
+          "type": "boolean"
+        },
+        "read_thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_text": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "limits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "state": {
+              "const": "verbatim"
+            },
+            "read_thread": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "header_present",
+            "observed_text"
+          ],
+          "not": {
+            "required": [
+              "difference"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "differs"
+            },
+            "read_thread": {
+              "$ref": "#/$defs/text"
+            }
+          },
+          "required": [
+            "difference",
+            "observed_text"
+          ],
+          "not": {
+            "required": [
+              "header_present"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "not checked"
+            },
+            "limits": {
+              "type": "array",
+              "minItems": 1
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "difference"
+                ]
+              },
+              {
+                "required": [
+                  "header_present"
+                ]
+              },
+              {
+                "required": [
+                  "observed_text"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "trial_transcript": {
+      "description": "WR section 4.2 TT-10: the transcript element a bring-back message carried: its exact-bytes identity (TX-4), size, and every shortening named.",
+      "type": "object",
+      "required": [
+        "identity",
+        "bytes",
+        "shortenings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/text_identity"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "shortenings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
         }
       }
+    },
+    "trial_observation": {
+      "description": "WR section 4.2 TT-4, TT-9, TT-10 (CC-WR-TRIALS): one later App-observed fact about a trial, in its own create-once record beside the trial links, citing the trial reference. sub-agent linked / unlinked: the child thread and, for a link, how it was linked; fidelity: one reading (trial_fidelity); brought back: the target conversation and the transcript sent. Never relabelled: a later read is a new observation. Carries no workflow identity and is not a run record, registration, checking or acceptance. Reader check (WR section 8): trial names an existing trial link.",
+      "type": "object",
+      "required": [
+        "record_kind",
+        "observation_id",
+        "trial",
+        "observation",
+        "time",
+        "standing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "record_kind": {
+          "const": "trial_observation"
+        },
+        "observation_id": {
+          "type": "string",
+          "pattern": "^trial-observation:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "trial": {
+          "$ref": "#/$defs/trial_reference"
+        },
+        "observation": {
+          "enum": [
+            "sub-agent linked",
+            "sub-agent unlinked",
+            "fidelity",
+            "brought back"
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/text"
+        },
+        "child_thread": {
+          "$ref": "#/$defs/text"
+        },
+        "linked_by": {
+          "enum": [
+            "begin marker found",
+            "by the person"
+          ]
+        },
+        "fidelity": {
+          "$ref": "#/$defs/trial_fidelity"
+        },
+        "target_conversation": {
+          "$ref": "#/$defs/text"
+        },
+        "transcript": {
+          "$ref": "#/$defs/trial_transcript"
+        },
+        "standing": {
+          "const": "observation of a trial; not a run record, registration, checking or acceptance"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "observation": {
+              "const": "sub-agent linked"
+            }
+          },
+          "required": [
+            "child_thread",
+            "linked_by"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "fidelity"
+                ]
+              },
+              {
+                "required": [
+                  "target_conversation"
+                ]
+              },
+              {
+                "required": [
+                  "transcript"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "observation": {
+              "const": "sub-agent unlinked"
+            }
+          },
+          "required": [
+            "child_thread"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "linked_by"
+                ]
+              },
+              {
+                "required": [
+                  "fidelity"
+                ]
+              },
+              {
+                "required": [
+                  "target_conversation"
+                ]
+              },
+              {
+                "required": [
+                  "transcript"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "observation": {
+              "const": "fidelity"
+            }
+          },
+          "required": [
+            "fidelity"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "child_thread"
+                ]
+              },
+              {
+                "required": [
+                  "linked_by"
+                ]
+              },
+              {
+                "required": [
+                  "target_conversation"
+                ]
+              },
+              {
+                "required": [
+                  "transcript"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "observation": {
+              "const": "brought back"
+            }
+          },
+          "required": [
+            "target_conversation",
+            "transcript"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "child_thread"
+                ]
+              },
+              {
+                "required": [
+                  "linked_by"
+                ]
+              },
+              {
+                "required": [
+                  "fidelity"
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     "hex64": {
       "type": "string",

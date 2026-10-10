@@ -609,5 +609,148 @@
       "conversation": "thr-40",
       "selected_at": "t16"
     }
+  },
+  {
+    "case": "INV-18 trial link: a CC-WR-TRIALS trial carrying the earlier attachment standing sentence (TT-4)",
+    "kind": "trial_pointer",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "trial_pointer",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "spacing-review"
+      },
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "d-02"
+      },
+      "conversation": "thr-30",
+      "time": "t30",
+      "standing": "draft tried in conversation; not a run of any workflow identity",
+      "trial": {
+        "reference": "trial:6f1c2a4e-0b7d-4c55-9a1e-3d2f8b9c0a11",
+        "sequence": 1,
+        "kind": "delegated",
+        "text_identity": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "7d62a66f33a8133527fb8ceb80f4564e98c02798151d2f70865223a080e3e795"
+        },
+        "text_bytes": 1840,
+        "snapshot_folder": ".chirality/workflow-trials/spacing-review/d4f30cd12f5820f2ae477a18ccae6827c4eda5d4adf2a11b2706c5f3e9cd7c8d/spacing-review",
+        "authoring_conversation": "thr-30",
+        "client_message": "workflow-trial-message:1",
+        "turn": "turn-30-4",
+        "clean_conversation": null
+      }
+    }
+  },
+  {
+    "case": "INV-19 trial link: a clean trial without its fresh conversation (TT-3b: always a new conversation)",
+    "kind": "trial_pointer",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "trial_pointer",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "spacing-review"
+      },
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "d-02"
+      },
+      "conversation": "thr-41",
+      "time": "t41",
+      "standing": "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance",
+      "trial": {
+        "reference": "trial:9b3e5d7f-1c2a-4e6b-8d0f-2a4c6e8b0d22",
+        "sequence": 2,
+        "kind": "clean",
+        "text_identity": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "017ac1b0bc44ba24c5bb67c8c0492695d821db23d563fece9bd8f4fbe9b4d2de"
+        },
+        "text_bytes": 1840,
+        "snapshot_folder": ".chirality/workflow-trials/spacing-review/d4f30cd12f5820f2ae477a18ccae6827c4eda5d4adf2a11b2706c5f3e9cd7c8d/spacing-review",
+        "authoring_conversation": "thr-30",
+        "client_message": "workflow-trial-message:2",
+        "turn": "turn-41-1",
+        "clean_conversation": null
+      }
+    }
+  },
+  {
+    "case": "INV-20 trial link: an absolute snapshot folder (TT-8, TX-7: never an absolute path)",
+    "kind": "trial_pointer",
+    "expect": "does not match pattern",
+    "instance": {
+      "record_kind": "trial_pointer",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": "fx-proj (LIB-A1)",
+        "name": "spacing-review"
+      },
+      "content": {
+        "method": "proto-sha256-list-0",
+        "value": "d-02"
+      },
+      "conversation": "thr-30",
+      "time": "t30",
+      "standing": "trial of a draft; not a run of any workflow identity; not registration, checking or acceptance",
+      "trial": {
+        "reference": "trial:6f1c2a4e-0b7d-4c55-9a1e-3d2f8b9c0a11",
+        "sequence": 1,
+        "kind": "delegated",
+        "text_identity": {
+          "method": "chirality.app.exact-bytes.sha256/v1",
+          "value": "7d62a66f33a8133527fb8ceb80f4564e98c02798151d2f70865223a080e3e795"
+        },
+        "text_bytes": 1840,
+        "snapshot_folder": "/Users/someone/project/.chirality/workflow-trials/spacing-review",
+        "authoring_conversation": "thr-30",
+        "client_message": "workflow-trial-message:1",
+        "turn": "turn-30-4",
+        "clean_conversation": null
+      }
+    }
+  },
+  {
+    "case": "INV-21 trial observation: 'verbatim' without the observed text identity (TT-9)",
+    "kind": "trial_observation",
+    "expect": "matches no anyOf branch",
+    "instance": {
+      "record_kind": "trial_observation",
+      "observation_id": "trial-observation:1b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d55",
+      "trial": "trial:6f1c2a4e-0b7d-4c55-9a1e-3d2f8b9c0a11",
+      "observation": "fidelity",
+      "time": "t32",
+      "standing": "observation of a trial; not a run record, registration, checking or acceptance",
+      "fidelity": {
+        "state": "verbatim",
+        "header_present": true,
+        "read_thread": "thr-30-child-1",
+        "limits": []
+      }
+    }
+  },
+  {
+    "case": "INV-22 trial observation: an observation that names a workflow identity (K-7, TT-2)",
+    "kind": "trial_observation",
+    "expect": "additional property 'identity' not allowed",
+    "instance": {
+      "record_kind": "trial_observation",
+      "observation_id": "trial-observation:0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c44",
+      "trial": "trial:6f1c2a4e-0b7d-4c55-9a1e-3d2f8b9c0a11",
+      "observation": "sub-agent linked",
+      "time": "t31",
+      "child_thread": "thr-30-child-1",
+      "linked_by": "begin marker found",
+      "standing": "observation of a trial; not a run record, registration, checking or acceptance",
+      "identity": {
+        "kind": "workflow",
+        "name": "spacing-review"
+      }
+    }
   }
 ]

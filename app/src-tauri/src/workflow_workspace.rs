@@ -20,6 +20,10 @@ pub mod production_catalog {
 #[path = "workflow_library.rs"]
 pub(crate) mod registration;
 
+/// Content-addressed package copies: TX-7 supply copies and TT-8 trial snapshots.
+#[path = "workflow_package_copy.rs"]
+pub(crate) mod package_copy;
+
 /// Read only a regular file through the opened descriptor. Nonblocking/no-follow
 /// open prevents a substituted FIFO or final-component link from hanging or
 /// redirecting candidate manifest/registry checks before descriptor validation.
@@ -625,6 +629,20 @@ impl Selection {
             admission: SelectionAdmission::SyntheticFixture,
         })
     }
+    /// Synthetic fixture only: a project or user library revision selected as a
+    /// registered run would select it, for composition tests (WR-VC-21). It
+    /// carries no native A15 and no registration standing.
+    #[cfg(test)]
+    pub fn synthetic_registered(snapshot: Snapshot, identity: WorkflowIdentity) -> Result<Self, String> {
+        identity.validate()?;
+        if !["project", "user"].contains(&identity.origin.as_str())
+            || identity.revision != snapshot.revision
+            || identity.revision_method != SNAPSHOT_METHOD
+        {
+            return Err("registered identity does not bind bytes".into());
+        }
+        Ok(Self { identity, snapshot, admission: SelectionAdmission::SyntheticFixture })
+    }
     pub fn identity(&self) -> &WorkflowIdentity {
         &self.identity
     }
@@ -662,46 +680,10 @@ impl Selection {
         }
         Ok(())
     }
-    /// WR-FRAME-1. The person's brief travels in a second text element.
+    /// WR-FRAME-1. The person's brief travels in a second text element. The
+    /// text is `compose_run_text`'s, the one composer a trial text also uses.
     pub fn run_start_text(&self, run: &str, folder_label: &str) -> Result<String, String> {
-        if run.is_empty() || run.contains(['\n', '\r']) || folder_label.contains(['\n', '\r']) {
-            return Err("run reference / folder label must be single line".into());
-        }
-        let id = &self.identity;
-        let rev = &id.revision[..id.revision.len().min(12)];
-        let start=format!("[Chirality] Workflow run start: {} from the {} library \"{}\", revision {}, run {}. Follow the workflow between the two markers below for this run, until the person ends the run.",id.name,id.origin,id.source_root.replace('"',"'"),rev,run);
-        let proposal=format!("[Chirality] When you judge this workflow finished, end the message with a line of its own \"Workflow finished: {}:{}\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it. The person decides; nothing ends or starts until they confirm.",id.origin,id.name);
-        let mut lines = vec![start, proposal];
-        let others: Vec<_> = self
-            .snapshot
-            .files
-            .iter()
-            .filter(|(p, _)| p.as_str() != "WORKFLOW.md")
-            .map(|(p, b)| format!("{p} (sha256 {})", &sha256_hex(b)[..12]))
-            .collect();
-        if !others.is_empty() {
-            if folder_label.is_empty() || Path::new(folder_label).is_absolute() {
-                return Err(
-                    "project-relative or home-relative holding-folder label required".into(),
-                );
-            }
-            lines.push(format!(
-                "[Chirality] Other files of this revision, in the folder \"{}\": {}",
-                folder_label,
-                others.join("; ")
-            ));
-        }
-        lines.push(format!(
-            "<<<chirality-workflow {}@{} begin>>>",
-            id.name, rev
-        ));
-        Ok(format!(
-            "{}\n{}\n<<<chirality-workflow {}@{} end>>>",
-            lines.join("\n"),
-            self.snapshot.workflow_text(),
-            id.name,
-            rev
-        ))
+        compose_run_text(&self.identity, &self.snapshot, run, folder_label)
     }
     pub fn run_turn_params(
         &self,
@@ -725,6 +707,362 @@ impl Selection {
 /// Collision inventory includes every origin; a selected tuple never follows discovery changes.
 pub fn collisions<'a>(name: &str, entries: &'a [WorkflowIdentity]) -> Vec<&'a WorkflowIdentity> {
     entries.iter().filter(|e| e.name == name).collect()
+}
+
+/// WR §16.2 lines 2–7 (WR-FRAME-1) for one identity and the exact package
+/// bytes it names: the start line, the proposal line, the files line when the
+/// package has files besides `WORKFLOW.md`, the begin marker, the body exactly,
+/// and the end marker. This is the one composer: a registered run's text
+/// (`Selection::run_start_text`, with TX-5's chain line placed before it by
+/// `PreparedRunText::start`) and a trial's (`TrialText`, under its header) are
+/// both this function's output, so they differ only in the identity's origin
+/// fields, the run reference and the folder label (WR TT-3, AC-009).
+pub(crate) fn compose_run_text(
+    identity: &WorkflowIdentity,
+    snapshot: &Snapshot,
+    run: &str,
+    folder_label: &str,
+) -> Result<String, String> {
+    if run.is_empty() || run.contains(['\n', '\r']) || folder_label.contains(['\n', '\r']) {
+        return Err("run reference / folder label must be single line".into());
+    }
+    if identity.revision != snapshot.revision {
+        return Err("workflow identity does not name these package bytes".into());
+    }
+    let id = identity;
+    let rev = &id.revision[..id.revision.len().min(12)];
+    let start=format!("[Chirality] Workflow run start: {} from the {} library \"{}\", revision {}, run {}. Follow the workflow between the two markers below for this run, until the person ends the run.",id.name,id.origin,id.source_root.replace('"',"'"),rev,run);
+    let proposal=format!("[Chirality] When you judge this workflow finished, end the message with a line of its own \"Workflow finished: {}:{}\". To propose that another registered workflow runs next, end the message with a line of its own \"Next workflow: <origin>:<name>\", where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it. The person decides; nothing ends or starts until they confirm.",id.origin,id.name);
+    let mut lines = vec![start, proposal];
+    let others = other_files(snapshot);
+    if !others.is_empty() {
+        if !valid_folder_label(folder_label) {
+            return Err(
+                "project-relative or home-relative holding-folder label required (WR TX-7: never an absolute path or a placeholder)".into(),
+            );
+        }
+        lines.push(format!(
+            "[Chirality] Other files of this revision, in the folder \"{}\": {}",
+            folder_label,
+            others.join("; ")
+        ));
+    }
+    lines.push(format!("<<<chirality-workflow {}@{} begin>>>", id.name, rev));
+    Ok(format!(
+        "{}\n{}\n<<<chirality-workflow {}@{} end>>>",
+        lines.join("\n"),
+        snapshot.workflow_text(),
+        id.name,
+        rev
+    ))
+}
+fn other_files(snapshot: &Snapshot) -> Vec<String> {
+    snapshot
+        .files
+        .iter()
+        .filter(|(p, _)| p.as_str() != "WORKFLOW.md")
+        .map(|(p, b)| format!("{p} (sha256 {})", &sha256_hex(b)[..12]))
+        .collect()
+}
+
+/// WR §16.2 line 4 and TX-7: a folder the files line may name. It is relative
+/// to the conversation's project (`.chirality/…`) or to the home folder
+/// (`~/…`), one line, with no `"`, backslash or control character and no empty,
+/// `.` or `..` component. Never an absolute path.
+pub(crate) fn valid_folder_label(label: &str) -> bool {
+    let rest = label.strip_prefix("~/").unwrap_or(label);
+    !rest.is_empty()
+        && !rest.starts_with('~')
+        && !rest.starts_with('/')
+        && !label.chars().any(|c| c.is_control() || c == '"' || c == '\\')
+        && rest.split('/').all(|c| !c.is_empty() && c != "." && c != "..")
+}
+
+/// WR §3 and TX-7(c): where the App writes content-addressed supply copies.
+pub const SUPPLY_AREA: &str = "workflow-supply";
+/// WR §3 and TT-8: where the App writes trial snapshots.
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+pub const TRIAL_AREA: &str = "workflow-trials";
+
+/// How the files line's folder was established (TX-7).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FilesFolderBasis {
+    /// The package is `WORKFLOW.md` only: there is no files line.
+    NoOtherFiles,
+    /// (a) The holding folder is inside the explicitly opened project.
+    ProjectRelative,
+    /// (b) The holding folder is inside the home folder.
+    HomeRelative,
+    /// (c) A content-addressed supply copy in the project names the files;
+    /// `reused` when an identical copy was already there.
+    SupplyCopy { path: std::path::PathBuf, reused: bool },
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FilesFolder {
+    /// The folder the files line names; empty when there is no files line.
+    pub label: String,
+    pub basis: FilesFolderBasis,
+}
+impl FilesFolder {
+    pub fn describe(&self) -> serde_json::Value {
+        match &self.basis {
+            FilesFolderBasis::NoOtherFiles => serde_json::json!({"basis":"no other files; no files line"}),
+            FilesFolderBasis::ProjectRelative => serde_json::json!({"basis":"holding folder inside the project","folder":self.label}),
+            FilesFolderBasis::HomeRelative => serde_json::json!({"basis":"holding folder inside the home folder","folder":self.label}),
+            FilesFolderBasis::SupplyCopy { reused, .. } => serde_json::json!({"basis":if *reused {"supply copy in the project (already present, recomputed)"} else {"supply copy in the project (written, recomputed)"},"folder":self.label,"retention":"never rewritten or removed by the App; if deleted, the next run start recreates it"}),
+        }
+    }
+}
+/// The label for `folder` when it is inside `project` (project-relative) or
+/// inside `home` (`~/`-relative), in that order; None otherwise. Lexical: both
+/// roots are the App's absolute paths, and a folder reached through another
+/// spelling of them is treated as outside (and gets a supply copy).
+pub(crate) fn relative_folder_label(
+    folder: &Path,
+    project: Option<&Path>,
+    home: Option<&Path>,
+) -> Option<(String, FilesFolderBasis)> {
+    let relative = |root: &Path| -> Option<String> {
+        if !root.is_absolute() {
+            return None;
+        }
+        let rest = folder.strip_prefix(root).ok()?;
+        let parts = rest
+            .components()
+            .map(|c| match c {
+                std::path::Component::Normal(s) => s.to_str().map(str::to_owned),
+                _ => None,
+            })
+            .collect::<Option<Vec<_>>>()?;
+        (!parts.is_empty()).then(|| parts.join("/"))
+    };
+    if let Some(label) = project.and_then(relative).filter(|l| valid_folder_label(l)) {
+        return Some((label, FilesFolderBasis::ProjectRelative));
+    }
+    home.and_then(relative)
+        .map(|r| format!("~/{r}"))
+        .filter(|l| valid_folder_label(l))
+        .map(|l| (l, FilesFolderBasis::HomeRelative))
+}
+/// WR §16.2 TX-7: the folder a run text's files line names for `snapshot`
+/// held at `holding`: (a) project-relative, (b) `~/`-relative, or (c) a
+/// content-addressed supply copy under
+/// `<project>/.chirality/workflow-supply/<name>/<content key>/<name>/`, written
+/// from the selected bytes (or reused when identical) and recomputed before it
+/// is named. Refused, with the cause, when the copy cannot be written or does
+/// not recompute: the run does not start. Never absolute, never a placeholder.
+pub fn files_folder(
+    snapshot: &Snapshot,
+    identity: &WorkflowIdentity,
+    holding: &Path,
+    project: &Path,
+    home: Option<&Path>,
+) -> Result<FilesFolder, String> {
+    if identity.revision != snapshot.revision {
+        return Err("workflow identity does not name these package bytes".into());
+    }
+    if other_files(snapshot).is_empty() {
+        return Ok(FilesFolder { label: String::new(), basis: FilesFolderBasis::NoOtherFiles });
+    }
+    if let Some((label, basis)) = relative_folder_label(holding, Some(project), home) {
+        return Ok(FilesFolder { label, basis });
+    }
+    let refuse = |cause: String| format!("other files of this revision could not be supplied: {cause}");
+    if !project.is_absolute() {
+        return Err(refuse("no explicit absolute project folder to hold a supply copy".into()));
+    }
+    let dest = package_copy::content_folder(project, SUPPLY_AREA, &identity.name, &snapshot.revision);
+    let (label, _) = relative_folder_label(&dest, Some(project), None)
+        .ok_or_else(|| refuse(format!("{} cannot be named relative to the project", dest.display())))?;
+    let copy = package_copy::write_content_copy(snapshot, &dest).map_err(refuse)?;
+    Ok(FilesFolder {
+        label,
+        basis: FilesFolderBasis::SupplyCopy { path: copy.path, reused: copy.reused },
+    })
+}
+
+/// The front-matter `name` of `WORKFLOW.md`, read as the review reads it (HY-2).
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+pub(crate) fn declared_name(snapshot: &Snapshot) -> Option<String> {
+    let normalized = snapshot.workflow_text().replace("\r\n", "\n").replace('\r', "\n");
+    normalized
+        .strip_prefix("---\n")
+        .and_then(|s| s.split_once("\n---"))
+        .and_then(|(fm, _)| fm.lines().find_map(|l| l.strip_prefix("name:").map(|n| n.trim().to_owned())))
+}
+
+/// WR §4.2 TT-3 (framing WR-TRIAL-1): the text a trial's agent receives. One
+/// trial header line, then the run text `compose_run_text` gives for a
+/// registered run of the draft's exact content in its target slot (SP-2: the
+/// draft's library, under its folder name; revision = the draft content
+/// identity, ID-2), with the trial reference as the run reference, no chain
+/// line, and the trial snapshot folder (TT-8) in the files line. It opens no
+/// run and is never a run text (TT-2, TX-1): there is no `run_text` or
+/// `supply_check` record for it, and nothing here writes anything.
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+pub struct TrialText {
+    reference: String,
+    sequence: u64,
+    location: String,
+    name: String,
+    content: String,
+    snapshot_folder: String,
+    header_len: usize,
+    text: String,
+}
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+pub(crate) fn valid_trial_reference(reference: &str) -> bool {
+    reference
+        .strip_prefix("trial:")
+        .is_some_and(|u| u.len() == 36 && uuid::Uuid::parse_str(u).is_ok_and(|p| p.hyphenated().to_string() == u))
+}
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+impl TrialText {
+    pub fn compose(
+        location: &str,
+        source_root: &str,
+        name: &str,
+        snapshot: &Snapshot,
+        sequence: u64,
+        reference: &str,
+        snapshot_folder: &str,
+    ) -> Result<Self, String> {
+        if !["project", "user"].contains(&location) {
+            return Err("a draft's location is project or user".into());
+        }
+        if sequence == 0 || !valid_trial_reference(reference) {
+            return Err("trial sequence and `trial:<uuid>` reference required".into());
+        }
+        let mut findings = snapshot.hygiene_findings();
+        if !valid_name(name) {
+            findings.push(format!("HY-2: folder name {name:?} does not follow the workflow name rule"));
+        } else if declared_name(snapshot).as_deref() != Some(name) {
+            findings.push(format!("HY-2: front-matter name differs from the folder name {name:?}"));
+        }
+        if !findings.is_empty() {
+            return Err(format!("cannot be tried: {}", findings.join("; ")));
+        }
+        let target = snapshot.identity(location, source_root, name, None)?;
+        let run_text = compose_run_text(&target, snapshot, reference, snapshot_folder)?;
+        let rev = &snapshot.revision[..snapshot.revision.len().min(12)];
+        let header = format!("[Chirality] Workflow trial {sequence} of draft {location}:{name}, content {rev} (trial {reference}). Not registered; not a workflow run. The lines below are the run text a registered run of this exact content would receive, except its run reference and the folder named for other files.");
+        Ok(Self {
+            reference: reference.into(),
+            sequence,
+            location: location.into(),
+            name: name.into(),
+            content: snapshot.revision.clone(),
+            snapshot_folder: snapshot_folder.into(),
+            header_len: header.len(),
+            text: format!("{header}\n{run_text}"),
+        })
+    }
+    /// The whole trial text: header line, line feed, run text.
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+    pub fn header(&self) -> &str {
+        &self.text[..self.header_len]
+    }
+    /// The trial text less its header: the §16.2 run text of this content.
+    pub fn run_text(&self) -> &str {
+        &self.text[self.header_len + 1..]
+    }
+    /// TX-4 exact-bytes identity of the whole trial text.
+    pub fn identity(&self) -> serde_json::Value {
+        exact_text_identity(&self.text)
+    }
+    pub fn bytes(&self) -> usize {
+        self.text.len()
+    }
+    pub fn reference(&self) -> &str {
+        &self.reference
+    }
+    pub fn sequence(&self) -> u64 {
+        self.sequence
+    }
+    pub fn location(&self) -> &str {
+        &self.location
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    /// The draft content identity value (SNAPSHOT_METHOD) this text tries.
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+    pub fn snapshot_folder(&self) -> &str {
+        &self.snapshot_folder
+    }
+    /// The begin-marker line TT-9 links a sub-agent by.
+    pub fn begin_marker(&self) -> String {
+        format!("<<<chirality-workflow {}@{} begin>>>", self.name, &self.content[..self.content.len().min(12)])
+    }
+    /// TT-9's fidelity reading of one first user message's text elements, as
+    /// read. Pure: it reads nothing and records nothing.
+    pub fn fidelity(&self, texts: &[&str]) -> FidelityReading {
+        let run = self.run_text();
+        if let Some(found) = texts.iter().find(|t| t.contains(run)) {
+            return FidelityReading::Verbatim {
+                header_present: found.contains(self.text.as_str()),
+                observed: exact_text_identity(found),
+            };
+        }
+        let marker = self.begin_marker();
+        let Some(chosen) = texts.iter().find(|t| t.contains(&marker)).or(texts.first()) else {
+            return FidelityReading::NotChecked {
+                limits: vec!["the first user message carries no text element".into()],
+            };
+        };
+        let expected = expected_marker_body(run, run);
+        let observed = expected_marker_body(run, chosen);
+        let difference = match observed {
+            None => FidelityDifference::WorkflowNotFound,
+            Some(body) if Some(body) == expected => FidelityDifference::FramingDiffers,
+            Some(_) => FidelityDifference::BodyDiffers,
+        };
+        FidelityReading::Differs { difference, observed: exact_text_identity(chosen) }
+    }
+}
+/// TT-9 readings (schema `trial_fidelity`).
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+pub enum FidelityReading {
+    Verbatim { header_present: bool, observed: serde_json::Value },
+    Differs { difference: FidelityDifference, observed: serde_json::Value },
+    NotChecked { limits: Vec<String> },
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // the trial flows (WR §17 steps 5–8) are its callers
+pub enum FidelityDifference {
+    FramingDiffers,
+    BodyDiffers,
+    WorkflowNotFound,
+}
+#[allow(dead_code)]
+impl FidelityDifference {
+    pub fn text(self) -> &'static str {
+        match self {
+            Self::FramingDiffers => "framing differs, workflow body equal",
+            Self::BodyDiffers => "workflow body differs",
+            Self::WorkflowNotFound => "workflow not found",
+        }
+    }
+}
+#[allow(dead_code)]
+impl FidelityReading {
+    /// The schema `trial_fidelity` object for this reading of `read_thread`.
+    pub fn record(&self, read_thread: Option<&str>, mut limits: Vec<String>) -> serde_json::Value {
+        match self {
+            Self::Verbatim { header_present, observed } => serde_json::json!({"state":"verbatim","header_present":header_present,"read_thread":read_thread,"observed_text":observed,"limits":limits}),
+            Self::Differs { difference, observed } => serde_json::json!({"state":"differs","difference":difference.text(),"read_thread":read_thread,"observed_text":observed,"limits":limits}),
+            Self::NotChecked { limits: own } => {
+                limits.extend(own.iter().cloned());
+                serde_json::json!({"state":"not checked","read_thread":read_thread,"limits":limits})
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, PartialEq, Eq)]

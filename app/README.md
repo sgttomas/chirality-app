@@ -312,6 +312,7 @@ performed an act.
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states, TT-3 composer sources, TT-4 trial pointers) and its list presentation in NIR §7 words; nothing here registers, reviews or runs |
+| `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies, TT-8 trial snapshots, and the create-once TT-4 trial links and observations; the trial flows and their interface are not built yet, so drafts are still tried by the attachment pre-fill |
 | `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with their recorded listing and arrivals, the run-record write notice, output standing facets from the record only (AS §8), readable advisory compatibility |
 | `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
@@ -459,10 +460,15 @@ Unwritable or incomplete targets report limits without silent relocation.
 Attachment metadata arrays and pointer-only client request records live under
 the App user-data `runtime/nir/attachment-supplies/` and
 `runtime/hosting/client-requests/` directories. App-kept draft bases and draft
-trial pointers live under `runtime/wr/draft-bases/` and
-`runtime/wr/trial-pointers/` there (WR §3). They contain no selected text,
-native transcript or generated supplier prompt cache. REC owns project/context
-tags through the existing pointer ledger; no competing ledger is opened.
+trial pointers (and the trial links and observations of WR TT-4) live under
+`runtime/wr/draft-bases/` and `runtime/wr/trial-pointers/` there (WR §3). They
+contain no selected text, native transcript or generated supplier prompt cache.
+REC owns project/context tags through the existing pointer ledger; no competing
+ledger is opened. In the project, `.chirality/workflow-supply/` holds
+content-addressed copies of workflow package files named by a run text's files
+line (WR TX-7) and `.chirality/workflow-trials/` trial snapshots (TT-8); the
+App never rewrites or removes either, and recreates a deleted one when it is
+next needed.
 
 Trustworthy persistent cold replay and SEAL-2 remain unfinished under CI-10 and
 I3-CUST. Current code refuses unverified replay while preserving evidence.

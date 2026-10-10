@@ -515,105 +515,13 @@ pub(crate) struct TrialSources {
     pub not_attached: Vec<Value>,
 }
 
-/// TT-4 trial pointers, App-kept in the App data folder. Each pointer is one
-/// WR `trial_pointer` record in its own create-once file; a pointer that
-/// cannot be read back is reported, never dropped silently or rewritten.
-#[derive(Default)]
-pub(crate) struct TrialPointers {
-    dir: Option<PathBuf>,
-    pointers: Vec<Value>,
-    limits: Vec<String>,
-}
-impl TrialPointers {
-    /// Reads every pointer already kept under `app_data`.
-    pub(crate) fn open(app_data: &Path) -> Self {
-        let dir = app_data.join(TRIAL_POINTERS);
-        let mut store = Self {
-            dir: Some(dir.clone()),
-            pointers: vec![],
-            limits: vec![],
-        };
-        if let Err(cause) = storage::check_path(&dir) {
-            store.limits.push(format!("trial pointers not readable: {cause}"));
-            store.dir = None;
-            return store;
-        }
-        let entries = match fs::read_dir(&dir) {
-            Ok(entries) => entries,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return store,
-            Err(e) => {
-                store.limits.push(format!("trial pointers unreadable: {}: {e}", dir.display()));
-                return store;
-            }
-        };
-        let mut files: Vec<PathBuf> = vec![];
-        for entry in entries {
-            match entry {
-                Ok(entry) => files.push(entry.path()),
-                Err(e) => store.limits.push(format!("trial pointers listing incomplete: {}: {e}", dir.display())),
-            }
-        }
-        let mut files: Vec<PathBuf> = files
-            .into_iter()
-            .filter(|p| {
-                p.extension().is_some_and(|x| x == "json")
-                    && !p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))
-            })
-            .collect();
-        files.sort();
-        for file in files {
-            let shown = file.display().to_string();
-            let read = crate::workflow_workspace::read_regular_file(&file)
-                .map_err(|e| format!("trial pointer unreadable: {shown}: {e}"))
-                .and_then(|bytes| {
-                    serde_json::from_slice::<Value>(&bytes)
-                        .map_err(|e| format!("trial pointer malformed: {shown}: {e}"))
-                })
-                .and_then(|value| {
-                    crate::workflow_workspace::wr_validate("trial_pointer", &value)
-                        .map(|()| value)
-                        .map_err(|e| format!("trial pointer malformed: {shown}: {e}"))
-                });
-            match read {
-                Ok(value) => store.pointers.push(value),
-                Err(limit) => store.limits.push(limit),
-            }
-        }
-        store
-            .pointers
-            .sort_by(|a, b| a["time"].as_str().cmp(&b["time"].as_str()));
-        store
-    }
-    /// Records that the person sent this draft's content into `conversation`.
-    /// Without an App data folder the pointer is held in this process only.
-    pub(crate) fn record(&mut self, key: &Value, content: &Value, conversation: &str) -> Result<Value, String> {
-        let pointer = json!({"record_kind":"trial_pointer","draft":key,"content":content,
-            "conversation":conversation,"time":crate::util::now_rfc3339(),"standing":TRIAL_STANDING});
-        crate::workflow_workspace::wr_validate("trial_pointer", &pointer)?;
-        match &self.dir {
-            Some(dir) => {
-                let file = dir.join(format!("{}.json", crate::util::opaque_id("trial-")?));
-                storage::create_json(&file, &pointer)?;
-            }
-            None => self
-                .limits
-                .push("trial pointer held in process memory only: App data folder not attached (WR §3)".into()),
-        }
-        self.pointers.push(pointer.clone());
-        Ok(pointer)
-    }
-    /// The pointers of one draft key, oldest first.
-    pub(crate) fn for_draft(&self, key: &Value) -> Vec<Value> {
-        self.pointers
-            .iter()
-            .filter(|p| &p["draft"] == key)
-            .cloned()
-            .collect()
-    }
-    pub(crate) fn limits(&self) -> &[String] {
-        &self.limits
-    }
-}
+/// Trials (WR TT-3, TT-4, TT-8, TT-9): the trial snapshot and text, and the
+/// App-kept trial links and observations.
+#[path = "workflow_trials.rs"]
+pub(crate) mod trials;
+pub(crate) use trials::TrialLinks;
+/// The store's earlier name: the TT-4 trial pointers are now trial links.
+pub(crate) type TrialPointers = TrialLinks;
 
 #[cfg(test)]
 #[path = "workflow_drafts_tests.rs"]

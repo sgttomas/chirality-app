@@ -1173,7 +1173,7 @@ def main():
     for i, inst in enumerate(valid, 1):
         kinds.add(inst["record_kind"])
         check("S-1.%d" % i, "valid example %s conforms" % inst["record_kind"], not conforms(inst), conforms(inst))
-    check("S-2", "valid examples cover all 10 record kinds", len(kinds) == 10, sorted(kinds))
+    check("S-2", "valid examples cover all 11 record kinds", len(kinds) == 11, sorted(kinds))
     for c in json.load(open(INVALID, encoding="utf-8")):
         top = minischema.validate(c["instance"], wr, reg)
         sub = minischema.validate(c["instance"], {"$ref": WR_ID + "#/$defs/" + c["kind"]}, reg)

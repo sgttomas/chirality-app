@@ -237,9 +237,13 @@ code_paths:
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/workflow_drafts.rs
 - app/src-tauri/src/workflow_library.rs
+- app/src-tauri/src/workflow_package_copy.rs
+- app/src-tauri/src/workflow_trials.rs
+- app/src-tauri/src/workflow_workspace.rs
 - app/src/WorkflowDrafts.tsx
 checks:
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/workflow_drafts_tests.rs
 - app/src-tauri/src/workflow_journey_tests.rs
+- app/src-tauri/src/workflow_trials_tests.rs
 - app/tests/workflow-drafts.test.mjs

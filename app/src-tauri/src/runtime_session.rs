@@ -4692,10 +4692,24 @@ impl WorkflowRootSession {
             selection_ref: selected.reference.clone(),
             revision_store: selected.package.clone(),
         };
+        // WR §16.2 TX-7 (CI-32): the files line names the holding folder relative
+        // to the project or the home folder, or a content-addressed supply copy
+        // written into the project; the run does not start when that fails.
+        let home_folder = std::env::var_os("HOME")
+            .map(std::path::PathBuf::from)
+            .filter(|p| p.is_absolute());
+        let files = crate::workflow_workspace::files_folder(
+            selected.selection.snapshot(),
+            selected.selection.identity(),
+            &selected.package,
+            &project_root,
+            home_folder.as_deref(),
+        )
+        .map_err(|e| format!("{e}; the workflow run is not prepared or sent"))?;
         let prepared = crate::workflow_workspace::PreparedRunText::start(
             &selected.selection,
             scope,
-            "selected native workflow holding copy",
+            &files.label,
             prior.as_ref().map(|(_, end)| end),
         )?;
         // WR PR-4: a start confirmed from an agent proposal says so in its records.
@@ -4725,7 +4739,7 @@ impl WorkflowRootSession {
             source: None,
             attempted: false,
             turn_id: None,
-            status: json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed"}),
+            status: json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed","otherFiles":files.describe()}),
             supply: Value::Null,
             checks: Vec::new(),
             follows: prior.map(|(run, _)| run),
@@ -5323,16 +5337,26 @@ pub(crate) fn start_workflow_run(
     if let Some(e) = reserved {
         return Err(format!("{e}. Nothing sent"));
     }
+    // Declared before the run guard so that, on a panic in `run.send()`, the
+    // guard drops first (poisoning the run's lock) and the holds' Drop then
+    // reads the starting run's `attempted` through the Poisoned branch.
+    let holds: StartHolds;
     let mut run = shared_run.try_lock().map_err(|_| "Original run operation pending")?;
     if run.hold_open_for.is_some() {
         return Err("This successor's start is already in progress; nothing sent".into());
     }
-    let holds = StartHolds::new(hold_notices_for_start(&others, reference)?, reference, Some(&shared_run));
+    holds = StartHolds::new(hold_notices_for_start(&others, reference)?, reference, Some(&shared_run));
     let result = run.send();
     let attempted = run.attempted;
     drop(run);
     holds.release(attempted);
     result
+}
+#[cfg(test)]
+thread_local! {
+    /// Test hook: the next `WorkflowRun::send` panics while its lock is held,
+    /// before (`Some(false)`) or after (`Some(true)`) its write is attempted.
+    static PANIC_IN_SEND: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
 }
 /// A start's notice holds (TX-5), released exactly once: by `release` with the
 /// start's outcome on the normal path, or on drop if the start's send path
@@ -6120,7 +6144,17 @@ impl WorkflowRun {
         self.evaluate_compatibility(
             crate::execution_compatibility::report::Occasion::BeforeFirstAction,
         );
+        #[cfg(test)]
+        if PANIC_IN_SEND.with(|p| p.get()) == Some(false) {
+            PANIC_IN_SEND.with(|p| p.set(None));
+            panic!("fixture: the start's send path panicked before its write was attempted");
+        }
         self.attempted = true;
+        #[cfg(test)]
+        if PANIC_IN_SEND.with(|p| p.get()) == Some(true) {
+            PANIC_IN_SEND.with(|p| p.set(None));
+            panic!("fixture: the start's send path panicked after its write was attempted");
+        }
         let prepared = self.publication.prepared().clone();
         let source = match self.home.host.turn_start_prepared_run_text(
             &prepared.scope().generation,
@@ -7691,6 +7725,67 @@ for line in sys.stdin:
                 assert!(notice_state(&root,&a).starts_with("not sent: the successor run's chain line"));
             }else{
                 assert!(notice_state(&root,&a).starts_with("pending"));
+                assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_ok());
+                assert_eq!(notice_frames(&peer),1);
+            }
+        }
+    }
+    // CI-32 / WR TX-7 on the real run start: the shipped coordinated-knowledge-work has
+    // REVIEW-NOTES.md, so the files line names a folder. Held inside the project, it is the
+    // project-relative holding folder (never the old placeholder label). Held outside the run's
+    // project, a content-addressed supply copy is written into the project and named; when that
+    // copy cannot be written the run is not prepared, recorded or sent.
+    #[test]
+    fn run_start_files_line_names_a_usable_folder_or_refuses_the_start(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let a=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),peer.project()).unwrap();
+        let text=root.runs[&a].lock().unwrap().prepared().text().to_owned();
+        assert!(text.contains("[Chirality] Other files of this revision, in the folder \".chirality/workflows/coordinated-knowledge-work\": REVIEW-NOTES.md (sha256 "),"{text}");
+        assert!(!text.contains("selected native workflow holding copy"));
+        assert_eq!(root.runs[&a].lock().unwrap().status["otherFiles"]["basis"],"holding folder inside the project");
+        // Another explicit project: the holding copy is outside it.
+        let other=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("workflow-supply-project-").unwrap());
+        std::fs::create_dir(&other).unwrap();
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let b=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),Some(&other)).unwrap();
+        let (text,revision)={let run=root.runs[&b].lock().unwrap();(run.prepared().text().to_owned(),run.prepared().workflow().revision.clone())};
+        let label=format!(".chirality/workflow-supply/coordinated-knowledge-work/{}/coordinated-knowledge-work",crate::storage::key(&revision));
+        assert!(text.contains(&format!("in the folder \"{label}\": REVIEW-NOTES.md (sha256 ")),"{text}");
+        let copy=crate::workflow_workspace::Snapshot::capture(&other.join(&label)).unwrap();
+        assert_eq!(copy.revision(),revision,"the supply copy recomputes to the selected revision");
+        // A third project whose supply area cannot be written: refused with the cause, nothing prepared.
+        let blocked=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("workflow-supply-blocked-").unwrap());
+        std::fs::create_dir_all(blocked.join(".chirality")).unwrap();std::fs::write(blocked.join(".chirality/workflow-supply"),b"x").unwrap();
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let runs=root.runs.len();
+        let refused=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person".into(),Some(&blocked)).unwrap_err();
+        assert!(refused.contains("other files of this revision could not be supplied")&&refused.contains("not prepared or sent"),"{refused}");
+        assert_eq!(root.runs.len(),runs,"no run prepared");
+        assert!(!blocked.join(".chirality/records/workflow").exists(),"nothing recorded");
+        let _=std::fs::remove_dir_all(&other);let _=std::fs::remove_dir_all(&blocked);
+    }
+    // PR #1239 recheck: on the real path the start's send panics while the starting run's lock
+    // is held. The run guard drops first (declared after the holds), so the holds' Drop reads
+    // `attempted` through the Poisoned branch: an attempted write supersedes the held notice;
+    // a panic before the write leaves it pending for the next turn.
+    #[test]
+    fn tc2_a_start_that_panics_holding_its_run_lock_reads_attempted_on_unwind(){
+        for attempted in [true,false]{
+            let peer=Peer::new();let (root,a)=ended_run(&peer);
+            let b={let mut r=root.lock().unwrap();r.prepare_run(peer.home.clone(),&peer.generation,"thread","next".into(),peer.project()).unwrap()};
+            let run=root.lock().unwrap().runs[&a].clone();
+            let starting=root.lock().unwrap().runs[&b].clone();
+            PANIC_IN_SEND.with(|p|p.set(Some(attempted)));
+            let unwound=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||start_workflow_run(&root,&b)));
+            PANIC_IN_SEND.with(|p|p.set(None));
+            assert!(unwound.is_err(),"the fixture panic propagates");
+            assert!(starting.is_poisoned(),"the panic happened while the starting run's lock was held");
+            assert_eq!(starting.lock().unwrap_or_else(std::sync::PoisonError::into_inner).attempted,attempted);
+            assert!(run.lock().unwrap().notice_held_by_start.is_none(),"released on unwind");
+            if attempted{
+                assert!(notice_state(&root,&a).starts_with("not sent: the successor run's chain line"),"{}",notice_state(&root,&a));
+            }else{
+                assert!(notice_state(&root,&a).starts_with("pending"),"{}",notice_state(&root,&a));
                 assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_ok());
                 assert_eq!(notice_frames(&peer),1);
             }
