@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Build EB-1's input-set manifest (DEL-10-01 EB-v0.1 §8; RRM-v0.1 format, schema unchanged).
 
+Historical reproduction only: regenerate from a checkout of archive/pre-efficiency-cleanup-2026-10-09; six pinned inputs were archived in #1217.
+
 Design prototype, not product code. Reads files only; writes one JSON file
 (default: ../eb1/IS-EB1-1.input-set.json). Paths in the manifest are
 repository-relative so the dispatcher can copy them into a scratch folder
