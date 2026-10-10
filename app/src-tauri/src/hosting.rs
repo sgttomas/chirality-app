@@ -199,6 +199,9 @@ struct Inner {
     execution_custody: execution_custody::ExecutionCustody,
     turn_request_threads: HashMap<String, (Value, String, u64)>,
     interrupt_requests: Vec<Value>,
+    /// The generation for which the person confirmed Stop/Restart Codex:
+    /// from then on no new turn or steer is sent in it (only interrupts).
+    stop_confirmed: Option<Value>,
     stderr_bytes: u64,
     child_pid: Option<i32>,
 }
@@ -655,6 +658,26 @@ impl Host {
         }
     }
     pub fn snapshot(&self) -> Value {let i=self.inner.0.lock().unwrap();Self::snapshot_inner(&i)}
+    /// Stop/Restart Codex confirmed for `generation`: from now on this Host
+    /// sends no new `turn/start` or `turn/steer` there (text, mode, workflow or
+    /// attachment), so no work begins that the stop would end unlabelled.
+    /// Interrupts and request answers stay possible.
+    pub fn close_to_new_turns(&self, generation: &Value) -> Result<(), String> {
+        let mut i=self.inner.0.lock().unwrap();
+        if i.generation!=*generation||i.server_requests.is_closed(generation){return Err("Codex changed since this view (another Codex process); nothing stopped".into());}
+        i.stop_confirmed=Some(generation.clone());Ok(())
+    }
+    /// Reopens `generation` to new turns when its confirmed stop was refused.
+    pub fn reopen_to_new_turns(&self, generation: &Value) {
+        let mut i=self.inner.0.lock().unwrap();
+        if i.stop_confirmed.as_ref()==Some(generation){i.stop_confirmed=None;}
+    }
+    fn check_send_admitted(i: &Inner, method: &str) -> Result<(), String> {
+        if matches!(method,"turn/start"|"turn/steer")&&i.stop_confirmed.as_ref()==Some(&i.generation) {
+            return Err(format!("refused-not-sent: Stop Codex was confirmed for this Codex process; no {method} is sent"));
+        }
+        Ok(())
+    }
     /// This App's receiving reading of one turn, without a whole snapshot
     /// (Stop Codex polls it while waiting for interrupted turns to end).
     pub fn conversation_turn(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Option<Value> {
@@ -1373,6 +1396,7 @@ impl Host {
             return Err(format!("refused-not-sent(not-ready): state {}",i.state));
         }
         if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
+        Self::check_send_admitted(&i,method)?;
         if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
         let oauth_mode=if method=="account/login/start" {match params["type"].as_str(){Some("chatgpt")=>Some(oauth_control::OAuthMode::Chatgpt),Some("chatgptDeviceCode")=>Some(oauth_control::OAuthMode::DeviceCode),_=>None}}else{None};
         if oauth_mode.is_some(){
@@ -1420,6 +1444,7 @@ impl Host {
         }else{self.frame_write.lock().unwrap()};
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
+                Self::check_send_admitted(&i,method)?;
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -1876,7 +1901,7 @@ impl Host {
         Self::validate_native_result(if expected_turn.is_some(){"TurnSteerParams"}else{"TurnStartParams"},&params)?;
         let(tx,rx)=channel();let(source,client,pipe_identity,pipe_epoch)={
             let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
-            Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
+            Self::check_send_admitted(&i,method)?;Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
             i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
             let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
@@ -1906,6 +1931,7 @@ impl Host {
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
             let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
+            Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
             Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
             let mut bound=self.capture_pipe(&i)?;if bound.identity!=prepared.pipe_identity{return Err("actual source pipe changed; nothing sent".into());}
             let key=prepared.source.request_id().to_string();let index=i.source_requests[&key].index;let sender=i.source_requests.get_mut(&key).unwrap().reserved_sender.take().ok_or("reserved RPC already consumed")?;
@@ -2071,15 +2097,31 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     /// Native interrupt acknowledgment is distinct from turn completion.
     pub fn turn_interrupt(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Result<Value, String> {
-        self.turn_interrupt_within(generation, thread_id, turn_id, Duration::from_secs(20))
-    }
-    /// The same request with the caller's wait for its acknowledgment (Stop
-    /// Codex bounds the whole stop by its stop wait limit, RECOVERY SR-10).
-    /// When the wait ends the request stays pending; nothing is resent.
-    pub fn turn_interrupt_within(&self, generation: &Value, thread_id: &str, turn_id: &str, wait: Duration) -> Result<Value, String> {
         if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
         self.conversation_operation("turn/interrupt", generation,
-            json!({"threadId":thread_id,"turnId":turn_id}), wait)
+            json!({"threadId":thread_id,"turnId":turn_id}), Duration::from_secs(20))
+    }
+    /// The same request, written without waiting for its acknowledgment, so
+    /// Stop Codex can write every interrupt before waiting on one shared
+    /// deadline (RECOVERY SR-01, SR-10).
+    pub fn turn_interrupt_begin(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Result<SourceRequest, String> {
+        if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
+        crate::recovery::generation_ref(generation)?;
+        self.request_begin_scoped("turn/interrupt", json!({"threadId":thread_id,"turnId":turn_id}), json!({"kind":"person-directed"}), false, Some(generation))
+    }
+    /// Waits up to `wait` for that interrupt's acknowledgment, read as
+    /// `turn_interrupt` reads it. When the wait ends the request stays
+    /// pending; nothing is resent. An acknowledgment is not the turn's end.
+    pub fn turn_interrupt_acknowledgment(&self, source: &SourceRequest, wait: Duration) -> Result<Value, String> {
+        if source.frame["method"] != "turn/interrupt" { return Err("not an interrupt request".into()); }
+        let response = self.wait_source_response(source, wait)?;
+        let i = self.inner.0.lock().unwrap();
+        if i.generation != source.generation || i.server_requests.is_closed(&source.generation) || i.state != "ready" {
+            return Err("turn/interrupt response belongs to closed/replaced generation; native response retained in journal".into());
+        }
+        if let Some(error) = response.get("error") { return Err(format!("turn/interrupt native error: {error}")); }
+        if !response.get("result").map(Value::is_object).unwrap_or(false) { return Err("turn/interrupt has no native acknowledgment object".into()); }
+        Ok(response)
     }
 
     /// Native expected-turn precondition, never a fallback start or settings edit.

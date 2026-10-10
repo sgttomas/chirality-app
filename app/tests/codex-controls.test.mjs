@@ -66,3 +66,21 @@ test('the activity shows the App label beside Codex status, newest outcome first
   assert.ok(html.includes('App label: <b>interrupted by Stop Codex (final status not observed)</b> (Codex reported no end before the stop)'));
   assert.equal(renderToStaticMarkup(React.createElement(StopLabel,{stop:null})),'');
 });
+
+test('a refused stop is a refusal: no Stop label for its turns, here or in the activity',()=>{
+  const refused={...outcome,state:'stop refused',stop:{state:'refused',reading:'stop already requested for this source generation'},
+    turns:[{threadId:'thread',turnId:'t1',label:null,codexReported:null,interruptRequest:{state:'acknowledged',reading:"Codex acknowledged the interrupt request. An acknowledgment is not the turn's end."}}],historyNote:null};
+  const html=renderToStaticMarkup(React.createElement(StopOutcome,{outcome:refused}));
+  assert.ok(html.includes('Codex not stopped: stop already requested for this source generation'));
+  assert.ok(html.includes('turn t1: no Stop Codex label (Codex was not stopped) · Codex reported no end'));
+  assert.ok(!html.includes('<b>interrupted by Stop Codex'),'no label shown');
+  // A later stop that did not name t1 leaves no label either; an older stopped outcome still does.
+  assert.equal(stopLabel(stops([refused]),'thread','t1'),null);
+  assert.equal(stopLabel(stops([outcome,refused]),'thread','t1').label,'interrupted by Stop Codex');
+});
+
+test('conversation sends are paused while Stop or Restart Codex runs',()=>{
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
+  assert.ok(app.includes('<ConversationPanel codexBusy={processBusy}'));
+  assert.ok(app.includes('const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");'));
+});

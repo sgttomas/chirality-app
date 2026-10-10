@@ -447,30 +447,17 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
 /// without it (the App quit path is separate). See `codex_stop`.
 #[tauri::command(async)]
 fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Value, restart: bool) -> Result<Value, String> {
-    let _question = state.codex_stop_gate.try_lock().map_err(|_| "A Stop or Restart Codex question is already open; nothing else asked")?;
+    let _question = codex_stop::question_gate(&state.codex_stop_gate)?;
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
     if restart {
-        // Restart must be able to start again; otherwise nothing is stopped.
-        home.host_config.as_ref().map_err(|e| format!("Restart Codex cannot start Codex again here ({e}); nothing stopped"))?;
-        state.validate_home_source(&home).map_err(|e| format!("Restart Codex cannot start Codex again here ({e}); nothing stopped"))?;
+        codex_stop::restart_precheck(home.host_config.as_ref().map(|_| ()).map_err(Clone::clone), || state.validate_home_source(&home))?;
     }
     let (title, act) = if restart { ("Restart Codex", act_control::native_statement::RESTART_CODEX) } else { ("Stop Codex", act_control::native_statement::STOP_CODEX) };
     let mut refused = None;
     let result = codex_stop::stop_native_home(&home, &state.workflows, &generation, restart,
         |view| confirm_choice(&app, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act, &mut refused),
         || start_home(&state, &home, "the person: Restart Codex"));
-    let outcome = act_control::native_statement::refusal_or(refused, result)?;
-    if outcome["state"] == "cancelled" { return Ok(outcome); }
-    {
-        let mut kept = state.codex_stops.lock().unwrap();
-        kept.push(outcome.clone());
-        let excess = kept.len().saturating_sub(codex_stop::OUTCOMES_KEPT);
-        kept.drain(..excess);
-    }
-    if outcome["state"] != "stopped" {
-        return Err(format!("{title}: Codex was not stopped: {}", outcome["stop"]["reading"].as_str().unwrap_or("reason not reported")));
-    }
-    Ok(outcome)
+    codex_stop::finish(&state.codex_stops, title, refused, result)
 }
 
 fn role_set_metadata() -> Value {

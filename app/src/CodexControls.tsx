@@ -10,12 +10,13 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const text = (v: unknown) => (v === null || v === undefined ? "" : typeof v === "string" ? v : JSON.stringify(v));
 const list = (v: unknown): Json[] => (Array.isArray(v) ? v : []);
 
-/** The App's Stop Codex label for a turn, from the newest outcome that names it. */
+/** The App's Stop Codex label for a turn, from the newest outcome that stopped
+ *  Codex and names it. A refused stop gives no label (the turn kept running). */
 export function stopLabel(stops: Json, threadId: string | null | undefined, turnId: string | null | undefined): Json | null {
   if (!threadId || !turnId) return null;
-  const outcomes = list(stops?.outcomes);
+  const outcomes = list(stops?.outcomes).filter((o: Json) => o?.state === "stopped");
   for (let i = outcomes.length - 1; i >= 0; i--) {
-    const turn = list(outcomes[i]?.turns).find((t: Json) => t?.threadId === threadId && t?.turnId === turnId);
+    const turn = list(outcomes[i]?.turns).find((t: Json) => t?.threadId === threadId && t?.turnId === turnId && typeof t?.label === "string");
     if (turn) return turn;
   }
   return null;
@@ -28,8 +29,8 @@ export function StopOutcome({ outcome }: { outcome: Json }) {
     <p><b>{text(outcome?.action) || "Stop Codex"}</b> confirmed by you at {text(outcome?.confirmedAt) || "time not reported"} · home {text(outcome?.modeHomeClass) || "not reported"} · {outcome?.state === "stopped" ? "Codex stopped" : `Codex not stopped: ${text(outcome?.stop?.reading) || "reason not reported"}`}.</p>
     {turns.length === 0 ? <p>No live turn was observed, so no interrupt was sent.</p> : <ul>
       {turns.map((t: Json) => <li key={`${text(t.threadId)}/${text(t.turnId)}`}>
-        Conversation {text(t.threadId)} · turn {text(t.turnId)}: <b>{text(t.label)}</b>
-        {t.codexReported ? ` · Codex reported: ${text(t.codexReported)}` : " · Codex reported no end before the stop"}
+        Conversation {text(t.threadId)} · turn {text(t.turnId)}: {t.label ? <b>{text(t.label)}</b> : "no Stop Codex label (Codex was not stopped)"}
+        {t.codexReported ? ` · Codex reported: ${text(t.codexReported)}` : outcome?.state === "stopped" ? " · Codex reported no end before the stop" : " · Codex reported no end"}
         {" "}· interrupt request: {text(t.interruptRequest?.reading) || text(t.interruptRequest?.state)}
       </li>)}
     </ul>}
@@ -53,7 +54,7 @@ export function CodexProcessControls({ host, busy, act }: { host: Json; busy: bo
       <button disabled={busy || !running} onClick={() => act("codex_stop", { generation: host?.generation, restart: false })}>Stop Codex…</button>{" "}
       <button disabled={busy || !running} onClick={() => act("codex_stop", { generation: host?.generation, restart: true })}>Restart Codex…</button>
     </p>
-    <p>Stop Codex and Restart Codex ask first. A native question lists the live turns, waiting requests, delegated agents and workflow runs in force, and waits for your answer with no time limit. <b>Keep Codex running</b> (the default) and Cancel change nothing. If you confirm, the App asks Codex to interrupt each live turn, waits up to {text(stops?.stopWaitLimitSeconds) || "10"} s for those turns to end, then stops Codex. Waiting requests are not answered, and no workflow run ends. Restart then starts Codex again; it continues no conversation until you choose <b>Continue selected conversation</b>.</p>
+    <p>Stop Codex and Restart Codex ask first. A native question lists the live turns, waiting requests, delegated agents and workflow runs in force, and waits for your answer with no time limit. <b>Keep Codex running</b> (the default) and Cancel change nothing. If you confirm, the App stops sending new turns to this Codex process and checks the list again; if it changed, you are asked again. It then asks Codex to interrupt each live turn, waits up to {text(stops?.stopWaitLimitSeconds) || "10"} s for those turns to end, and stops Codex. Waiting requests are not answered, and no workflow run ends. Restart then starts Codex again; it continues no conversation until you choose <b>Continue selected conversation</b>.</p>
     <p>Stopping Codex is your operational choice, not a recorded act. {text(stops?.records)}</p>
     {latest && <StopOutcome outcome={latest} />}
   </div>;

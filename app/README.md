@@ -155,17 +155,25 @@ performed an act.
     C-12). A native question lists the live turns, waiting requests, delegated
     agents and workflow runs in force in that home, or says none were observed,
     and waits with no time limit. **Keep Codex running** is the default; it and
-    Cancel change nothing. When the live work changes while the question is
-    open, the question is asked again with the current list. On **Stop Codex**
-    or **Restart Codex**, the App sends `turn/interrupt` for each observed live
-    turn, waits for Codex to report those turns ended, then stops the process
-    (HOSTING §4.5), all within the stop wait limit of 10 s (U-R4 test value).
-    Each turn then shows its TO-4 label ("interrupted by Stop Codex",
-    "completed (Stop Codex requested)", "failed (Stop Codex requested)" or
-    "interrupted by Stop Codex (final status not observed)"). The label comes from
-    the observed `turn/completed`, never from the interrupt acknowledgment.
-    Codex's own status is shown beside it. Waiting requests are not answered,
-    and no workflow run ends. Restart then starts Codex as Start Codex does.
+    Cancel change nothing. On **Stop Codex** or **Restart Codex**, the host
+    stops sending new turns and steers (text, mode, workflow or attachment) to
+    that Codex process. It then assesses the live work again; if the list
+    changed since it was shown, the host reopens and asks again with the
+    current list. The App writes `turn/interrupt` for every observed live turn
+    before waiting. It then waits on one shared deadline for the
+    acknowledgments and for Codex to report those turns ended, then stops the
+    process (HOSTING §4.5). All of this stays within the stop wait limit of
+    10 s (U-R4 test value). Each turn then shows one of the four TO-4 labels:
+    "interrupted by Stop Codex", "completed (Stop Codex requested)",
+    "failed (Stop Codex requested)" or "interrupted by Stop Codex (final status
+    not observed)". The label comes from the observed `turn/completed`, never
+    from the interrupt acknowledgment. Codex's own status is shown beside it. A
+    refused stop is reported as a refusal; its turns get no label and new turns
+    are allowed again. Interrupts go only to a `ready` process (DEL-01-02
+    §4.1). A process in another state (for example a stuck handshake) is
+    reported and may still be stopped, as HOSTING §4.6's stop operation allows.
+    Waiting requests are not answered, and no workflow run ends. Restart then
+    starts Codex as Start Codex does.
     It continues no conversation until the person chooses
     **Continue selected conversation** (R-6). A stop is the person's
     operational choice, not a recorded act. *Limit:* the App writes no REC
