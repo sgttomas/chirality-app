@@ -9,12 +9,13 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {localRequire} from './support/load-src.mjs';
 const url=new URL('../src/ConnectorSourcePanel.tsx',import.meta.url);
 const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});
 const reconstructionUrl=new URL('../src/ConnectorReconstruction.tsx',import.meta.url);
 const reconstructionCode=ts.transpileModule(readFileSync(reconstructionUrl,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
-const reconstructionExports={};new Function('require','exports',reconstructionCode)(createRequire(reconstructionUrl),reconstructionExports);
-const connectedRequire=name=>name==='./ConnectorReconstruction'?reconstructionExports:createRequire(url)(name);
+const reconstructionExports={};new Function('require','exports',reconstructionCode)(localRequire(createRequire(reconstructionUrl)),reconstructionExports);
+const connectedRequire=name=>name==='./ConnectorReconstruction'?reconstructionExports:localRequire(createRequire(url))(name);
 const exports={};new Function('require','exports',compiled.outputText)(connectedRequire,exports);
 const {SourceObservationView,ConnectorSourcePanel,sourceUiTransition,emptySourceUi}=exports;
 const question={id:'Q-fixture',text:'What can be read?',askedRevision:'typed-commit',sinceRevision:'typed-since'};
@@ -136,7 +137,7 @@ test('record-comparison handler carries explicit references and edits invalidate
 test('format toggle remount preserves unique pair and claim keys and existing citations',()=>{
  const nodes=(x,out=[])=>{if(Array.isArray(x))x.forEach(n=>nodes(n,out));else if(x&&typeof x==='object'){out.push(x);nodes(x.props?.children,out);}return out;};
  let parentCursor=0,childCursor=0,childSlots=[];const parentSlots=[],child={},parent={};
- new Function('require','exports',reconstructionCode)(name=>name==='react'?{...React,useRef(initial){const i=childCursor++;if(!(i in childSlots))childSlots[i]={current:initial};return childSlots[i];}}:createRequire(reconstructionUrl)(name),child);
+ new Function('require','exports',reconstructionCode)(name=>name==='react'?{...React,useRef(initial){const i=childCursor++;if(!(i in childSlots))childSlots[i]={current:initial};return childSlots[i];}}:localRequire(createRequire(reconstructionUrl))(name),child);
  new Function('require','exports',compiled.outputText)(name=>name==='./ConnectorReconstruction'?child:name==='react'?{...React,useEffect(){},useRef(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]={current:initial};return parentSlots[i];},useState(initial){const i=parentCursor++;if(!(i in parentSlots))parentSlots[i]=typeof initial==='function'?initial():initial;return[parentSlots[i],v=>parentSlots[i]=typeof v==='function'?v(parentSlots[i]):v];}}:connectedRequire(name),parent);
  const draw=()=>{parentCursor=0;return parent.ConnectorDraftPanel({source:state(),availability:{enabled:true},command:async()=>({})});};
  const toggle=version=>{nodes(draw()).find(n=>n.type==='label'&&n.props.children?.[0]==='Account format').props.children[1].props.onChange({target:{value:version}});if(version==='0.3')childSlots=[];};
