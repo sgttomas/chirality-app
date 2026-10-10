@@ -8,9 +8,9 @@ Field Book v2 and Agent User Manual v4, subject to current steering and product
 commitments. The stable [manual index](../../../../docs/alignment-manual/README.md)
 is the discovery entry; its moving targets are not automatic adoption authority.
 The edition paths and applicable sections are also named in DEL-10-01 through
-DEL-10-04. Exact source bytes are recoverable at the commit introducing these
-editions; a content-bound consumer records that resolved revision in its existing
-basis. This change creates no reading log or per-session approval requirement.
+DEL-10-04. This selection resolves all three sources at
+`22dd62a7f04b6f4f4f9cab3cd3183d57c06cd569`. A content-bound consumer uses that
+revision rather than assuming the current index still names the same bytes. This change creates no reading log or per-session approval requirement.
 
 The account below is the preserved project-definition selection, not a requirement
 to reconstruct its old records for routine development. Its hashes and frozen
