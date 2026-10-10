@@ -861,6 +861,8 @@ pub struct PreparedRunText {
     workflow: WorkflowIdentity,
     text: String,
     record: serde_json::Value,
+    /// WR PR-4: the agent message whose proposal the person confirmed, if any.
+    proposal: Option<serde_json::Value>,
 }
 fn exact_text_identity(text: &str) -> serde_json::Value {
     crate::role_supply::content(text.as_bytes())
@@ -965,7 +967,20 @@ impl PreparedRunText {
             admission: selection.admission.clone(),
             text,
             record,
+            proposal: None,
         })
+    }
+    /// WR PR-4: a start the person confirmed from an agent's proposal line. The
+    /// run text is unchanged; its record says how the start came about, and the
+    /// selection record cites the proposal. The proposal itself selects nothing.
+    pub fn confirmed_from_proposal(mut self, proposal: serde_json::Value) -> Result<Self, String> {
+        self.record["origin_of_start"] = serde_json::json!("agent proposal confirmed by the person");
+        wr_validate("run_text", &self.record)?;
+        self.proposal = Some(proposal);
+        Ok(self)
+    }
+    pub fn proposal(&self) -> Option<&serde_json::Value> {
+        self.proposal.as_ref()
     }
     pub fn text(&self) -> &str {
         &self.text
@@ -1019,6 +1034,7 @@ impl PreparedRunText {
             workflow: self.workflow.clone(),
             text,
             record,
+            proposal: None,
         })
     }
     /// The same composed text and record, scoped to a later generation of the

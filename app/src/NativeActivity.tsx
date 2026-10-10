@@ -12,6 +12,18 @@ export type ActivityModel = { threadId: string; turns: ActivityTurn[]; goal: Jso
 // Native collections are read through list() so an off-schema value (an object
 // or string where Codex documents an array) shows nothing instead of throwing.
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
+
+// NIR §4.7 / NPTD TR-6 item anchors: a request card and its activity row link to
+// each other by these element ids. The key is a short hash of the native
+// identity, so any id characters are safe in a fragment.
+function anchorKey(parts: Json[]): string {
+  const source = JSON.stringify(parts) ?? "";
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < source.length; i++) { hash ^= source.charCodeAt(i); hash = Math.imul(hash, 0x01000193) >>> 0; }
+  return `${hash.toString(36)}-${source.length.toString(36)}`;
+}
+export const itemAnchorId = (threadId: Json, turnId: Json, itemId: Json) => `item-${anchorKey([threadId, turnId, itemId])}`;
+export const requestAnchorId = (generation: Json, requestIdentity: Json) => `request-${anchorKey([generation, requestIdentity])}`;
 const order = (row: Json) => (typeof row?.observedOrder === "number" ? row.observedOrder : Number.MAX_SAFE_INTEGER);
 
 function descendantsOf(view: Json, root: string): Json[] {
@@ -105,7 +117,7 @@ function StateLine({ row }: { row: Json }) {
     {row.observationEnded && " · observation ended"}
     {row.endReason && ` · ${text(row.endReason)}`}
     {row.previewStanding && row.displayState !== "completed" && ` · ${text(row.previewStanding)}`}
-    {row.displayState === "waiting-on-request" && " · answer it on its request card under Native requests; this row offers no answer"}
+    {row.requestRef && <>{" · "}<a href={`#${requestAnchorId(row.requestRef.generation, row.requestRef.requestIdentity)}`}>{row.displayState === "waiting-on-request" ? "answer it on its request card" : "its request card"}</a>{row.displayState === "waiting-on-request" && "; this row offers no answer"}</>}
     {row.settlementOrigin && ` · request settled by ${JSON.stringify(row.settlementOrigin)}`}
   </div>;
 }
@@ -138,12 +150,24 @@ function Unfinished({ row }: { row: Json }) {
 function messageText(content: Json): string {
   return (Array.isArray(content) ? content : []).map((part: Json) => part?.type === "text" ? text(part.text) : `[${text(part?.type ?? "input")} ${JSON.stringify(part)}]`).join("\n");
 }
+// RN-1: the run-start text the App wrote (WR-FRAME-1, its first line App-written)
+// is folded and openable; the rest of the message shows as received.
+const RUN_TEXT = /^\[Chirality\] (Workflow run start:|Previous workflow run ended:)/;
+function UserMessage({ content }: { content: Json }) {
+  const parts = Array.isArray(content) ? content : [];
+  const folded = parts.filter((part: Json) => part?.type === "text" && typeof part.text === "string" && RUN_TEXT.test(part.text));
+  const rest = parts.filter((part: Json) => !folded.includes(part));
+  return <>
+    {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({part.text.length} characters)</summary><pre style={pre}>{part.text}</pre></details>)}
+    {(rest.length > 0 || folded.length === 0) && <pre style={pre}>{messageText(rest)}</pre>}
+  </>;
+}
 
 function ItemBody({ row, plans }: { row: Json; plans: Json[] }) {
   const n = row.native ?? {};
   switch (n.type) {
     case "userMessage":
-      return <div><b>User message</b> (text Codex recorded as input; not an act)<Unfinished row={row} /><pre style={pre}>{messageText(n.content)}</pre></div>;
+      return <div><b>User message</b> (text Codex recorded as input; not an act)<Unfinished row={row} /><UserMessage content={n.content} /></div>;
     case "agentMessage":
       return <div><b>Agent</b>{n.phase ? ` · ${n.phase === "final_answer" ? "final answer" : text(n.phase)}` : ""}<Unfinished row={row} />
         <pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
@@ -247,13 +271,33 @@ export class RowBoundary extends Component<BoundaryProps, { failed: boolean; row
   }
 }
 
-export function NativeActivityView({ view, threadId }: { view: Json; threadId: string | null | undefined }) {
+// RN-1: run start and end markers from the App's own run records (display only).
+// A marker shows what the App recorded; it never comes from message text.
+const marker = { borderTop: "2px dashed #777", borderBottom: "2px dashed #777", padding: "2px 8px", margin: "6px 0", fontSize: "0.9em" };
+const runOpened = (run: Json) => typeof run?.lifecycle?.state === "string" && /^(open|ended)/.test(run.lifecycle.state);
+function runName(run: Json): string {
+  return `${text(run?.workflow?.name) || "workflow"} ${text(run?.workflow?.revision).slice(0, 12)}`.trim();
+}
+export function RunStartMarker({ run }: { run: Json }) {
+  return <div role="note" style={marker}>Workflow run started: <b>{runName(run)}</b> (run {text(run?.reference)}), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;
+}
+export function RunEndMarker({ run }: { run: Json }) {
+  const cause = text(run?.lifecycle?.end?.cause) || "cause not recorded";
+  return <div role="note" style={marker}>Run ended: <b>{cause}</b> ({runName(run)}, run {text(run?.reference)}){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
+}
+
+export function NativeActivityView({ view, threadId, offers, renderOffer, runs }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[] }) {
   const [shown, setShown] = useState<string>("");
   if (!threadId) return <p>Select a conversation to see its activity.</p>;
   const descendants = activityModel(view, threadId).subtree;
   const target = shown && descendants.some((c: Json) => c.threadId === shown) ? shown : threadId;
   const model = activityModel(view, target);
   const plans = list(view?.revisions).filter((r: Json) => r?.kind === "plan-item" && r.threadId === target);
+  // Markers and offers belong to the selected conversation itself, not to a descendant.
+  const ownRuns = target === threadId ? list(runs).filter((run: Json) => run?.conversation === target && runOpened(run)) : [];
+  const shownTurns = new Set(model.turns.map(turn => turn.turnId));
+  const unplaced = ownRuns.filter((run: Json) => !shownTurns.has(run.turn) || (run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn)));
+  const offersFor = (row: Json) => target === threadId && renderOffer ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
   return <div aria-label="Native activity">
     <h3>Activity</h3>
     <p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {list(view?.limits).map(text).join(" ")}</p>
@@ -264,15 +308,19 @@ export function NativeActivityView({ view, threadId }: { view: Json; threadId: s
     {model.parent && <p>Descendant of {text(model.parent.parentThreadId)} ({text(model.parent.parentSource)}).</p>}
     {model.goal && <p>Goal ({text(model.goal.source)}): {model.goal.native === null ? "cleared" : typeof model.goal.native?.objective === "string" ? model.goal.native.objective : JSON.stringify(model.goal.native)}</p>}
     {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn {text(gap.turnId)}: {text(gap.reason)}</p>)}
+    {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
+      {unplaced.map((run: Json) => <div key={text(run.reference)}>{!shownTurns.has(run.turn) && <RunStartMarker run={run} />}{run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn) && <RunEndMarker run={run} />}</div>)}</div>}
     {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
     {model.turns.map(turn => <section key={text(turn.turnId)} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
+      {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
       <div><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></div>
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
-      {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card}>
+      {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card} id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
         <ItemBody row={row} plans={plans} />
         <Raw value={row.native} />
-      </div></RowBoundary>)}
+      </div>{offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}</RowBoundary>)}
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /></RowBoundary>}
+      {ownRuns.filter((run: Json) => run.lifecycle?.end && run.endedAfterTurn === turn.turnId).map((run: Json) => <RunEndMarker key={text(run.reference)} run={run} />)}
     </section>)}
     {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} /></RowBoundary></li>)}</ul></>}
   </div>;

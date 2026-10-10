@@ -599,7 +599,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_log_order(&log);
 
     // ---- Step 6. End explicitly (workflow_end_run); the next ordinary turn carries the notice once.
-    run_a.lock().unwrap().end_run(false, None).unwrap();
+    run_a.lock().unwrap().end_run(None, None).unwrap();
     assert_eq!(run_a.lock().unwrap().lifecycle, RunLifecycle::Ended);
     let log = disk.rs_for(&a);
     assert_eq!(kinds(&log), ["run_opened", "supplied_guidance", "supplied_guidance", "run_ended"]);
@@ -955,7 +955,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let selection = records.resolve(&c_selection).unwrap();
     assert_eq!(selection.body()["identity"]["revision"], revision_three.as_str());
     assert_eq!(selection.body()["standing"], "registered");
-    root.lock().unwrap().runs[&c].clone().lock().unwrap().end_run(false, None).unwrap();
+    root.lock().unwrap().runs[&c].clone().lock().unwrap().end_run(None, None).unwrap();
     drop(selection);
     drop(records);
     drop(root);

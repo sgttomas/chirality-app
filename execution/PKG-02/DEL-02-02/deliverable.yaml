@@ -229,3 +229,7 @@ needs:
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/run_offers.rs
+checks:
+- app/src-tauri/src/run_offers.rs

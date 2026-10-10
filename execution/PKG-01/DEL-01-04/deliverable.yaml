@@ -388,6 +388,10 @@ code_paths:
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/canonical.rs
 - app/src-tauri/src/recovery.rs
+- app/src/RequestCards.tsx
+- app/src/RunOffers.tsx
 checks:
 - app/src-tauri/tests/explicit_context.rs
+- app/tests/request-cards.test.mjs
+- app/tests/run-offers.test.mjs
 - app/tests/validate-records.test.mjs

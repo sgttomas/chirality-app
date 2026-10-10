@@ -45,6 +45,7 @@ pub mod records;
 pub mod recovery;
 mod recovery_root_view;
 pub mod role_supply;
+pub(crate) mod run_offers;
 pub mod runtime_session;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_workspace;
@@ -193,7 +194,12 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["homeResources"]["sourceInputs"] = state.root_home_inputs.clone();
     s["homeRouting"] = state.homes.lock().unwrap().snapshot();
     s["homeAccess"] = home.account_view();
-    s["workflowRoot"] = state.workflows.lock().unwrap().snapshot();
+    {
+        let root = state.workflows.lock().unwrap();
+        s["workflowRoot"] = root.snapshot();
+        // RN-3…RN-7: offers from agent messages observed live; display data only.
+        s["workflowRoot"]["offers"] = root.offers(&s["nativeView"]);
+    }
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
@@ -933,11 +939,39 @@ fn workflow_send_run(state:State<'_,AppState>,run_ref:String)->Result<Value,Stri
     // RE-7 / CH-1 rechecked at dispatch; a successor start supersedes a pending end notice.
     runtime_session::start_workflow_run(&state.workflows,&run_ref)
 }
-/// EXEC AE-7 / A-11: only the person's explicit end ends a run (FN-2: completed on a finished report).
+/// The current native view of a home, received the same way `host_status` does.
+/// Callers hold no Root guard: `host_status` takes the receiver before Root.
+fn current_native_view(home:&Arc<runtime_session::HomeSession>)->Value{
+    let mut runtime=home.runtime.lock().unwrap();
+    let (generation,position)=runtime.cursor();
+    let observation=home.host.observe(generation,position);
+    runtime.receive(&observation)["nativeView"].clone()
+}
+/// EXEC AE-7 / A-11: only the person's explicit end ends a run. FN-2: the cause is
+/// *completed* only when the person ends it on the agent's finished report, which
+/// the host re-reads from the message it observed; the caller cannot assert it.
 #[tauri::command]
-fn workflow_end_run(state:State<'_,AppState>,run_ref:String,completed:bool)->Result<Value,String>{
+fn workflow_end_run(state:State<'_,AppState>,run_ref:String,finished_report:Option<Value>)->Result<Value,String>{
     let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
-    let mut run=run.try_lock().map_err(|_|"Original run operation pending")?;run.end_run(completed,None)
+    let home=run.try_lock().map_err(|_|"Original run operation pending")?.home.clone();
+    let view=current_native_view(&home);
+    let mut root=state.workflows.lock().unwrap();
+    match finished_report{
+        None=>root.end_plain(&run_ref,&view),
+        Some(message)=>root.end_on_report(&run_ref,&view,&run_offers::ItemRef::from_value(&message)?),
+    }
+}
+/// RN-3/RN-4, PR-4: the person starts the workflow an agent message proposed (or,
+/// with a run in force, ends it and starts the proposed one). The proposal is
+/// re-read from the observed message; it never selects or starts anything itself.
+#[tauri::command(async)]
+fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Value,run_ref:Option<String>,person_text:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
+    let message=run_offers::ItemRef::from_value(&message)?;
+    let view=current_native_view(&home);
+    let next=state.workflows.lock().unwrap().start_proposed(&view,home,&generation,&message,run_ref.as_deref(),person_text,state.workspace.as_deref())?;
+    let started=runtime_session::start_workflow_run(&state.workflows,&next);
+    Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"proposed workflow run prepared but not started","limit":e})}}))
 }
 /// CH-1 "End ‹A› and start ‹B›" as one confirmed step: A ends, B is prepared and started.
 #[tauri::command(async)]
@@ -1316,7 +1350,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
+            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,

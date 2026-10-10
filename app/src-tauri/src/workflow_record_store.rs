@@ -861,9 +861,14 @@ impl PreparedRunPublication {
             return Err("prepared text changed".into());
         }
         let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":"registered","selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
+        // WR PR-4: a confirmed agent proposal is recorded as such, citing the proposal.
+        let mut body = body;
+        if let Some(proposal) = prepared.proposal() {
+            body["how"] = json!("agent proposal confirmed by the person");
+            body["proposal"] = proposal.clone();
+        }
         // SL-7: a selection for a chained run records prior_run as a relation, from
         // the same owner end the chain line was composed from (CH-2).
-        let mut body = body;
         if let Some(chain) = prepared.record["chain"].as_object() {
             body["prior_run"] = json!({"run":chain["prior_run"],"workflow":chain["prior_workflow"],"ended":chain["ended"]});
         }

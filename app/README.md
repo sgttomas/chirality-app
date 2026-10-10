@@ -99,6 +99,29 @@ performed an act.
     a recorded act. Codex keeps the mode until another is sent; the App shows
     the last mode it requested. A pending run-end notice still goes with the
     next ordinary turn, so a mode send waits for it.
+19. Codex's requests are shown readably beside the conversation they belong to:
+    tool permissions (command, file change, extra permissions, legacy forms),
+    questions and input requests. A card names what is asked (command, working
+    folder, reason, proposed rules, changes, requested permissions), states the
+    register's state in words and offers the native forms with App words beside
+    the verbatim native value; a tool-permission card says it is tool permission
+    only and its words never say accept or approve. Classification, answer values
+    and register checks are unchanged. A card and its activity row link to each
+    other; the row never answers. The top of the App counts requests waiting for
+    the person, per conversation; opening one answers nothing. Requests of other
+    conversations stay listed under Native requests.
+20. Workflow run offers come only from agent messages this App observed complete
+    live. On the exact `Workflow finished: ‹origin›:‹name›` line naming the run in
+    force, the message offers **End run**; the host re-reads the message and
+    records cause *completed*. Any other end is "ended by the person"; no command
+    can record *completed* without that observed report. On the exact
+    `Next workflow: ‹origin›:‹name›` line naming one registered workflow held in
+    this session, the message offers **Start ‹workflow› (proposed by the agent)**,
+    or **End ‹A› and start ‹B›** while a run is in force (*completed* when the same
+    message reports A finished). The proposal selects nothing until the person
+    presses; the selection is then recorded as "agent proposal confirmed by the
+    person". Unresolved proposals show their notice. The activity view marks run
+    starts and ends from the App's run records and folds the supplied run text.
 
 ## Modules
 
@@ -119,6 +142,8 @@ performed an act.
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
+| `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
+| `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 

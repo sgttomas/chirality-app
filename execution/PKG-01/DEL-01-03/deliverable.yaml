@@ -143,3 +143,4 @@ code_paths:
 checks:
 - app/tests/native-activity.test.mjs
 - app/tests/plan-mode.test.mjs
+- app/tests/request-cards.test.mjs

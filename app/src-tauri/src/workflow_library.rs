@@ -58,6 +58,22 @@ impl LibraryOwner {
     fn is_held(&self, identity: &WorkflowIdentity) -> bool {
         is_held(&self.held, identity)
     }
+    /// WR PR-2: the slot's latest registered revision as the ledger reads now. A
+    /// ledger reading never selects or authenticates; the caller still needs a
+    /// revision this process holds.
+    pub(crate) fn latest_registered(&self, name: &str) -> Result<Option<WorkflowIdentity>, String> {
+        let rows = read_ledger(&self.root)?;
+        latest(&slot_lines(&rows, &self.origin, &self.source_root, name))
+    }
+    /// WR PR-3: whether this library has a draft of that name (a draft is no identity).
+    pub(crate) fn has_draft(&self, name: &str) -> bool {
+        super::valid_name(name) && self.root.join(".chirality/workflow-drafts").join(name).is_dir()
+    }
+    /// The published copy, then the immutable revision store, of a revision; the
+    /// caller verifies whichever it uses against the revision.
+    pub(crate) fn revision_copies(&self, identity: &WorkflowIdentity) -> [PathBuf; 2] {
+        [self.root.join(".chirality/workflows").join(&identity.name), store_path(&self.root, identity)]
+    }
     /// WR §4.6 LS-1 "as read": the registered line's A15 record found with the
     /// same bound content, and store bytes that recompute to the revision. A cold
     /// read of App-kept files (V13 R2-N2): it gates the DS-8 offer only and is

@@ -8,76 +8,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
 import { PlanModeControl } from "./PlanMode";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, requestThread } from "./RequestCards";
+import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-// Request-local drafts are disposable. Secret content is never echoed or saved.
-function NativeRequestCard({ request, answer }: { request: Json; answer: (r: Json, a: Json) => Promise<void> }) {
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [scope, setScope] = useState("turn");
-  const [content, setContent] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const p = request.nativeParameters ?? {};
-  const method = request.method;
-  const send = async (value: Json) => {
-    setBusy(true); setError("");
-    // Remove drafts from the rendered control before crossing the IPC boundary.
-    setDrafts({}); setContent("");
-    try { await answer(request, value); } catch (e) { setError(String(e)); }
-    finally { setBusy(false); }
-  };
-  const button = (label: string, value: Json) => <button key={JSON.stringify(value)} disabled={busy} onClick={() => send(value)}>{label}</button>;
-  const modern = method === "item/commandExecution/requestApproval" || method === "item/fileChange/requestApproval";
-  const legacy = method === "execCommandApproval" || method === "applyPatchApproval";
-  const formMode = ["form", "openai/form", "openaiForm"].includes(p.mode);
-  const elicitationAcceptSupported = formMode || p.mode === "url";
-  let decisions: Json[] = p.availableDecisions ?? ["accept", "acceptForSession", "decline", "cancel"];
-  if (modern && !p.availableDecisions && method === "item/commandExecution/requestApproval") {
-    if (p.proposedExecpolicyAmendment) decisions = [...decisions, { acceptWithExecpolicyAmendment: { execpolicy_amendment: p.proposedExecpolicyAmendment } }];
-    for (const amendment of p.proposedNetworkPolicyAmendments ?? []) decisions = [...decisions, { applyNetworkPolicyAmendment: { network_policy_amendment: amendment } }];
-  }
-  return <article style={{ borderTop: "1px solid #ccc", padding: 8 }}>
-    <h3>{method} · {JSON.stringify(request.requestIdentity)}</h3>
-    <a href="#file-acts">Open standing App-file act facility (no request answer or prefilled act)</a>
-    <p>State: {request.state} · reply: {request.replyWriteResult} · acknowledgment: {request.acknowledgmentObservation?.status ?? "not-observed"}</p>
-    {request.supplierResolution && <p>Supplier resolution: {JSON.stringify(request.supplierResolution)}</p>}
-    {request.settlement && <p>Settlement origin: {JSON.stringify(request.settlement.origin)} · {request.settlement.kind}</p>}
-    <details><summary>Native request parameters and owning generation</summary><pre>{JSON.stringify({ generation: request.generation, parameters: p }, null, 2)}</pre></details>
-    {request.state === "outstanding" && request.classification === "known-answerable" && request.originClass !== "named-service" && <div>
-      {modern && decisions.map((decision: Json) => button(JSON.stringify(decision), { decision }))}
-      {legacy && <>{["approved", "approved_for_session", "abort"].map(decision => button(decision, { decision }))}{button("denied", { decision: { denied: { rejection: "" } } })}</>}
-      {method === "item/permissions/requestApproval" && <>
-        <label>Grant scope <select value={scope} onChange={e => setScope(e.target.value)}><option value="turn">turn</option><option value="session">session</option></select></label>
-        {button("Grant requested permissions", { permissions: p.permissions, scope })}{button("Grant nothing", { permissions: {}, scope })}
-        <label>Partial permissions (native JSON) <input value={content} onChange={e => setContent(e.target.value)} /></label>
-        <button disabled={busy || !content} onClick={() => { try { void send({ permissions: JSON.parse(content), scope }); } catch { setError("Invalid permission JSON"); } }}>Send partial grant…</button>
-      </>}
-      {method === "item/tool/requestUserInput" && <>
-        {(p.questions ?? []).map((q: Json) => <div key={q.id}><p>{q.header}: {q.question}</p>
-          {(q.options ?? []).map((o: Json) => <button disabled={busy} key={o.label} onClick={() => setDrafts(d => ({ ...d, [q.id]: o.label }))}>{o.label} · {o.description}</button>)}
-          {q.isOther && <label>Answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => setDrafts(d => ({ ...d, [q.id]: e.target.value }))} /></label>}
-          <button disabled={busy} onClick={() => setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; })}>Leave unanswered</button>
-          {!q.isOther && <p>Selected: {q.isSecret ? (drafts[q.id] ? "[masked]" : "—") : drafts[q.id] ?? "—"}</p>}
-        </div>)}
-        <button disabled={busy} onClick={() => send({ answers: Object.fromEntries(Object.entries(drafts).map(([id, value]) => [id, { answers: [value] }])) })}>Send current question answers…</button>
-        <p>Unanswered questions are omitted; entered empty answers are preserved.</p>
-        {button("Decline question input", { answers: {} })}
-      </>}
-      {method === "mcpServer/elicitation/request" && <>
-        <p>Native elicitation mode: {p.mode}. Requested schema is available above.</p>
-        {formMode && <label>Native form content (JSON, masked) <input type="password" autoComplete="off" value={content} onChange={e => setContent(e.target.value)} /></label>}
-        {elicitationAcceptSupported && <button disabled={busy || (formMode && !content)} onClick={() => { try { void send({ action: "accept", content: formMode ? JSON.parse(content) : null, _meta: null }); } catch { setError("Invalid native form JSON"); } }}>accept…</button>}
-        {!elicitationAcceptSupported && <p>Acceptance is not supported for this mode in this App path. Device verification requires actual device proof; this App supplies none.</p>}
-        {button("decline", { action: "decline", content: null, _meta: null })}{button("cancel", { action: "cancel", content: null, _meta: null })}
-      </>}
-      <p>Sending opens a native confirmation. Closing this card leaves the request waiting.</p>
-    </div>}
-    {error && <p role="alert">{error}</p>}
-  </article>;
-}
 
 export function SteeringControl({ target, reason, ready, busy, text, submit }: { target: Json; reason?: string; ready: boolean; busy: boolean; text: string; submit: () => void }) {
   return <div>
@@ -88,9 +24,9 @@ export function SteeringControl({ target, reason, ready, busy, text, submit }: {
   </div>;
 }
 
-function ConversationPanel({ host, send, steer, submitAttachments, interrupt, checkPlanMode }: { host: Json; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
-  const [threadKey, setThreadKey] = useState<string>("");
+function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send, steer, submitAttachments, interrupt, checkPlanMode }: { host: Json; threadKey: string; setThreadKey: (key: string) => void; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
+  const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -133,7 +69,13 @@ function ConversationPanel({ host, send, steer, submitAttachments, interrupt, ch
     catch (e) { setError(String(e)); }
     finally { setBusy(""); }
   };
-  return <section>
+  // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
+  const requests: Json[] = (host?.serverRequests ?? []).filter((request: Json) => selected && requestThread(request) === selected.threadId);
+  const ordered = [...requests.filter(answerable), ...requests.filter((request: Json) => !answerable(request))];
+  const offers: Json[] = (host?.workflowRoot?.offers ?? []).filter((offer: Json) => selected && offer?.message?.threadId === selected.threadId);
+  const runs: Json[] = (host?.workflowRoot?.runs ?? []).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
+  const offerAct: RunAct = async (command, args) => { setOfferBusy(true); try { return await runAct(command, args); } finally { setOfferBusy(false); } };
+  return <section id="conversation">
     <h2>Conversation text and turn control</h2>
     <label>Current-generation conversation <select disabled={!!busy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
       <option value="">Select a conversation</option>
@@ -142,7 +84,13 @@ function ConversationPanel({ host, send, steer, submitAttachments, interrupt, ch
     {selected && <p>Original App role: {JSON.stringify(selected.appRole ?? { standing: "unknown", reason: "original App supply binding not established" })}. Native role hints do not establish an App role.</p>}
     {(selected?.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations.</p>)}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
-    <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} />
+    <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
+      renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
+    {selected && <div aria-label="Requests from Codex in this conversation">
+      <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
+      {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
+      {ordered.map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} />)}
+    </div>}
     <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => setText(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button disabled={host?.state !== "ready" || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
@@ -388,12 +336,11 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
       <button disabled={busy||!run.pendingRecords} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
       {run.lifecycle?.state?.startsWith("open")&&<>
-        <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,completed:false})}>End run</button>
-        <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,completed:true})}>End run (the workflow is finished)</button>
+        <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,finishedReport:null})}>End run</button>
         <button disabled={busy||host?.state!=="ready"||data?.selection?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {data?.selection?.identity?.name??"the selected workflow"}</button>
       </>}
       {run.endNotice?.state?.startsWith("sent")&&<button disabled={busy||host?.state!=="ready"} onClick={()=>action("workflow_check_notice",{runRef:run.reference})}>Check the end notice in native history (new check)</button>}
-      <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "finished" line does not end it. After an end, the next ordinary message in this conversation carries the end notice once. Load/select this conversation and its received turn in native History before checking.</p>
+      <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next ordinary message in this conversation carries the end notice once. Load/select this conversation and its received turn in native History before checking.</p>
     </article>)}
     {message&&<p role="status" style={{whiteSpace:"pre-wrap"}}>{message}</p>}
   </section>;
@@ -568,6 +515,7 @@ export function App() {
   const [modelProvider, setModelProvider] = useState<string>("");
   const [entryId, setEntryId] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [threadKey, setThreadKey] = useState<string>("");
   const roleInitialized = useRef(false);
   useEffect(() => {
     if (!roleInitialized.current && host?.roleSet?.available) {
@@ -614,6 +562,29 @@ export function App() {
     if (failed) throw failure;
   };
 
+  const answerRequest = async (r: Json, answer: Json) => {
+    try {
+      const result = await invoke("answer_native_request", { generation: r.generation, requestId: r.requestIdentity, answer });
+      setMessage(`Native answer: ${JSON.stringify(result)}`);
+    } finally { await refresh(); }
+  };
+  // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
+  const openRequests = (thread: string | null) => {
+    const current = (host?.threads ?? []).find((t: Json) => t.threadId === thread && JSON.stringify(t.generation) === JSON.stringify(host?.generation));
+    if (current) setThreadKey(JSON.stringify([current.generation, current.threadId]));
+    document.getElementById(current ? "conversation" : "other-requests")?.scrollIntoView();
+  };
+  const runAct: RunAct = async (command, args) => {
+    try {
+      const result = await invoke(command, args);
+      setMessage(`${command}: ${JSON.stringify(result).slice(0, 600)}`);
+      return result;
+    } catch (e) { setMessage(`${command}: ${String(e)}`); }
+    finally { await refresh(); }
+  };
+  // The conversation the panel actually shows (current generation only), so no request is hidden.
+  const selectedThread: string | null = (host?.threads ?? []).find((t: Json) => JSON.stringify([t.generation, t.threadId]) === threadKey && JSON.stringify(t.generation) === JSON.stringify(host?.generation))?.threadId ?? null;
+
   const openControl = async (requestRef: string) => {
     try {
       setOffer(await invoke("compose_offer", { requestRef }));
@@ -632,6 +603,7 @@ export function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <h1>Chirality App v4 — walking skeleton</h1>
+      <WaitingRequestsIndicator requests={host?.serverRequests ?? []} open={openRequests} />
       <NativeConfirmationContent />
       <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name,args)=>invoke(name,args)} />
       <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes} />
@@ -686,7 +658,7 @@ export function App() {
         read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} />
       <HistoryPanel host={host} refresh={refresh} />
 
-      <ConversationPanel host={host} send={async (generation, threadId, text, mode) => {
+      <ConversationPanel host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} runAct={runAct} send={async (generation, threadId, text, mode) => {
         await conversationAction("conversation_send_text", { generation, threadId, text, mode: mode ?? null });
       }} checkPlanMode={async generation => {
         try { await invoke("collaboration_modes_read", { generation }); } finally { setHost(await invoke("host_status")); }
@@ -710,12 +682,11 @@ export function App() {
         <details><summary>Recovery initialization and historical pointer state</summary><pre>{JSON.stringify({ initialization: host?.recoveryInitialization, recovery: host?.recovery }, null, 2)}</pre></details>
         <p>Observer: {JSON.stringify(host?.observerCursor)} · gap: {String(host?.observerGap ?? true)}</p>
         {(host?.nativeViewLimits ?? []).map((limit: string, i: number) => <p key={i}>{limit}</p>)}
-        {(host?.serverRequests ?? []).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} answer={async (r, answer) => {
-          try {
-            const result = await invoke("answer_native_request", { generation: r.generation, requestId: r.requestIdentity, answer });
-            setMessage(`Native answer: ${JSON.stringify(result)}`);
-          } finally { await refresh(); }
-        }} />)}
+        <div id="other-requests">
+          <h3>Requests outside the selected conversation</h3>
+          <p>Requests of the selected conversation are shown beside it above. Select another conversation to answer its requests there.</p>
+          {(host?.serverRequests ?? []).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread).map((request: Json) => <NativeRequestCard key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} />)}
+        </div>
         <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
         <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
         <details><summary>Raw native envelopes (including unknown fields)</summary><pre>{JSON.stringify(host?.journal, null, 2)}</pre></details>
