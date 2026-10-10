@@ -162,7 +162,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
     conversation** is optional: a new-conversation panel takes the person's
     role and model, puts the trial text first, then the editable inputs
     message; that conversation offers no workflow run, and neither does a fork
-    of it. On its own tick (about once a second) the host reads a new
+    of it, across a relaunch too (an App-kept trial conversation mark). On its own tick (about once a second) the host reads a new
     sub-agent's first input once and links it when it carries the trial's
     begin marker, with a fidelity reading ("workflow given verbatim", "the
     sub-agent's input differs from the run text" or "not checked"); the person
@@ -334,7 +334,7 @@ writes records or operates the act control." `src-tauri/` holds that host;
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |
 | `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
 | `src-tauri/src/trial_flows.rs`, `workflow_trial_transcript.rs`, `src/TrialComposer.tsx` | DEL-02-02 trial flows (WR §17 steps 5–8): pre-filled delegated and clean trials sent only by the person, links on acknowledgment, TT-9 linking and fidelity reads, bring-back transcripts, Compare, TT-2's run refusal and offer silencing, the review's last clean trial line; the composers in the conversation view |
-| `src-tauri/src/host_tick.rs` | The host's own tick (OI-008): receives native frames, records checkpoint observations and makes due trial reads whether or not the interface polls; `host_status` only reads |
+| `src-tauri/src/host_tick.rs` | The host's own ticks (OI-008): a record tick receives native frames and records checkpoint observations, and a separate trial tick makes due trial reads, whether or not the interface polls; each tick is guarded and a failure is shown in `host_status`, which only reads |
 | `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with their recorded listing and arrivals, the run-record write notice, output standing facets from the record only (AS §8), readable advisory compatibility |
 | `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
