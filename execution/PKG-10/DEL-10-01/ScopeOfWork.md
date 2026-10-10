@@ -15,6 +15,11 @@ Translate the confirmed v4 project basis into an execution arrangement that an a
 
 ### Source key and standing
 
+Current manual selection follows the owner-directed re-authoring: discovery uses
+the stable index; reliance uses the named edition and its actual revision. Frozen
+project-definition evidence keeps its earlier inputs. This updates the method
+references, not the deliverable's product commitments.
+
 Paths below are repository-relative. Section references identify the applicable source, rather than importing its whole corpus into this contract.
 
 | Key | Source and use |
@@ -24,9 +29,9 @@ Paths below are repository-relative. Section references identify the applicable 
 | O | `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-01/04/10–14/31–33 and §7; `PRD.md` §0, V4-CST-04 and OQ-05. Post-act consolidated expression of the accepted composite, not bytes previously hash-approved by the owner. |
 | C | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment: required definition stays included while undecided values remain open; method constraints qualify coherent results. |
 | Q | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: actual approved INITIAL setup, DEPENDENCY_TRACKED/FULL_GRAPH, defined-contract maturity and separate lifecycle recording. |
-| F | `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md` §§1–4, 7: compact route, basis, allocation, examination and affected change. |
-| M | `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md` §§1.6–1.7, 2.11–2.12, 3.4–3.8: reasoning for accepted-basis transfer, developmental positions, setup, contracts, evaluation and boundary ownership. |
-| U | `docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md` §§1, 4–7: repository application, adoption boundary, source/state distinctions and SOW_V1 initialization. |
+| F | `docs/alignment-manual/README.md#field-book` selects Field Book v2; §§1–6 and 9 supply the compact route, responsibilities, inputs, examination and delivery. |
+| M | `docs/alignment-manual/README.md#project-management-manual` selects Consolidated v9; chapters 1–3, 6 and 8 explain accountable reliance, production contracts, dependencies, change and delivery. |
+| U | `docs/alignment-manual/README.md#agent-user-manual` selects Agent User Manual v4; §§1–7 and 11 apply the method to active repository work and edition selection. |
 | W | Current selected method `chirality-root:bundled:workflow:scope-of-work` at `workflows/scope-of-work/WORKFLOW.md` and `resources/{brief,checks,tools}.md`, governed by `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md`. Relevant handoff clauses: `chirality-root:bundled:workflow:software-decomp`, `resources/contract.md` downstream use and checkpoint invariants; `chirality-root:bundled:workflow:project-setup`, `WORKFLOW.md` method and `resources/contract.md` lifecycle/coordination invariants. These clauses explain the selected handoff; this contract executes neither workflow nor a new instruction amendment. |
 
 | Assigned scope | Local contribution | Source loci |

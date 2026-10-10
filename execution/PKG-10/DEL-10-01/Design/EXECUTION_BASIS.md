@@ -1,5 +1,17 @@
 # Project execution basis and manual application — the account
 
+## Forward manual application
+
+For current development, use the owner-directed selection in
+`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`: Consolidated v9,
+Field Book v2 and Agent User Manual v4. The repository manual index provides
+stable discovery links. The detailed edition/hash account below preserves the
+original definition run; it does not reinstate retired lifecycle, receipt or
+work-graph maintenance duties. Its frozen prototype input set remains a
+historical reproduction, not a current-manual loader. The new editions guide
+practice without changing the product's accepted output obligations.
+
+
 - **Contribution:** DEL-10-01/EB-v0.4. It supersedes EB-v0.3 (sha256
   `e9f7e9a6100f805d1bfd992bc681056d3ef68b21c203750d69b1a3def6f904ee`,
   committed at `d0e88a52f1`; RV3: READY, addendum 2), which superseded

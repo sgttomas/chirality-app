@@ -1,4 +1,23 @@
-# App v4 current execution basis — project definition
+# App v4 current execution basis
+
+## Current manual selection
+
+The owner requested re-authoring the manuals and updating App v4's pointers.
+Forward development uses the current method expressed in Consolidated v9,
+Field Book v2 and Agent User Manual v4, subject to current steering and product
+commitments. The stable [manual index](../../../../docs/alignment-manual/README.md)
+is the discovery entry; its moving targets are not automatic adoption authority.
+The edition paths and applicable sections are also named in DEL-10-01 through
+DEL-10-04. This selection resolves all three sources at
+`22dd62a7f04b6f4f4f9cab3cd3183d57c06cd569`. A content-bound consumer uses that
+revision rather than assuming the current index still names the same bytes. This change creates no reading log or per-session approval requirement.
+
+The account below is the preserved project-definition selection, not a requirement
+to reconstruct its old records for routine development. Its hashes and frozen
+inputs continue to describe that historical run; they are not rebound to new text.
+
+## Historical project-definition basis
+
 
 **Manager-recorded selection for this App-v4 project-definition run.** This account identifies the already selected manual editions and method sources. It supplies no broader program/consumer adoption, new precedence hierarchy, product implementation authority or completed-deliverable claim.
 
