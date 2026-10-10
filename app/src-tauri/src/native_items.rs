@@ -89,6 +89,9 @@ pub struct NativeView {
     descendants: BTreeMap<String, Value>,
     goals: BTreeMap<String, Value>,
     checklist_gaps: Vec<Value>,
+    /// Order in which this view first received each item; a receipt reading,
+    /// not a native sequence or a claim about when Codex produced the item.
+    next_order: u64,
 }
 impl NativeView {
     pub fn new(home: String) -> Result<Self, String> {
@@ -110,6 +113,7 @@ impl NativeView {
             descendants: BTreeMap::new(),
             goals: BTreeMap::new(),
             checklist_gaps: Vec::new(),
+            next_order: 0,
         })
     }
     /// Display adapter only. The Host owns exact-byte at-use checks; this value
@@ -205,7 +209,11 @@ impl NativeView {
                 let turn = text(p, "turnId")?;
                 let id = text(p, "itemId")?;
                 let key = native_key(thread, turn, id);
-                let row=self.items.entry(key).or_insert_with(||json!({"threadId":thread,"turnId":turn,"native":{"id":id,"type":"plan"},"displayState":"in-progress"}));
+                let order = self.next_order;
+                let row=self.items.entry(key).or_insert_with(||json!({"threadId":thread,"turnId":turn,"native":{"id":id,"type":"plan"},"displayState":"in-progress","observedOrder":order}));
+                if row["observedOrder"] == order {
+                    self.next_order += 1;
+                }
                 if row["displayState"] == "in-progress" {
                     let preview = row["preview"].as_str().unwrap_or("").to_string()
                         + p["delta"].as_str().ok_or("invalid plan delta")?;
@@ -277,6 +285,11 @@ impl NativeView {
             if let Some(start) = old.get("startNative") {
                 row["startNative"] = start.clone();
             }
+            row["observedOrder"] = old["observedOrder"].clone();
+        }
+        if row["observedOrder"].is_null() {
+            row["observedOrder"] = json!(self.next_order);
+            self.next_order += 1;
         }
         if !completed {
             row["startNative"] = native.clone();
@@ -452,7 +465,8 @@ impl NativeView {
     pub fn snapshot(&self) -> Value {
         json!({"home":self.home,"generation":self.generation,"position":self.position,"supplierStanding":self.supplier_standing,"distributionEvidence":self.distribution_evidence,
             "items":self.items.values().collect::<Vec<_>>(),"revisions":self.revisions,"descendants":self.descendants.values().collect::<Vec<_>>(),
-            "turns":self.turns.values().collect::<Vec<_>>(),"goals":self.goals,"checklistGaps":self.checklist_gaps,
+            "turns":self.turns.values().collect::<Vec<_>>(),
+            "turnRecords":self.turns.iter().map(|((thread,_),turn)|json!({"threadId":thread,"native":turn})).collect::<Vec<_>>(),"goals":self.goals,"checklistGaps":self.checklist_gaps,
             "limits":["Tool success is not checking, acceptance or reliance.","Parent completion says nothing about children.","Child completion, return, review and integration are not inferred.","Plan item references require this receiving home namespace; standalone cross-home export remains unsupported."]})
     }
 }
@@ -634,6 +648,23 @@ mod tests {
                 && i["native"]["raw"] == 42));
         v.close(&g(1)).unwrap();
         assert_eq!(v.snapshot()["descendants"][0]["observationEnded"], true);
+    }
+    #[test]
+    fn observed_order_follows_first_receipt_not_identity_sort() {
+        let mut v = view();
+        let item = |id: &str, status: &str| json!({"threadId":"t","turnId":"u","item":{"id":id,"type":"commandExecution","status":status}});
+        frame(&mut v, 1, "item/started", item("z-first", "inProgress"));
+        frame(&mut v, 2, "item/plan/delta", json!({"threadId":"t","turnId":"u","itemId":"m-plan","delta":"p"}));
+        frame(&mut v, 3, "item/started", item("a-third", "inProgress"));
+        frame(&mut v, 4, "item/completed", item("z-first", "completed"));
+        frame(&mut v, 5, "item/completed", json!({"threadId":"t","turnId":"u","item":{"id":"m-plan","type":"plan","text":"final"}}));
+        v.history("h", "thread/items/list", &json!({"threadId":"t","turnId":"u"}), &json!({"data":[{"id":"a-third","type":"commandExecution","status":"completed"},{"id":"b-history","type":"agentMessage","text":"x"}]})).unwrap();
+        let snapshot = v.snapshot();
+        let order = |id: &str| snapshot["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == id).unwrap()["observedOrder"].as_u64().unwrap();
+        assert_eq!([order("z-first"), order("m-plan"), order("a-third"), order("b-history")], [0, 1, 2, 3]);
+        assert_eq!(snapshot["items"][0]["native"]["id"], "a-third");
+        frame(&mut v, 6, "turn/started", json!({"threadId":"t","turn":{"id":"u","status":"inProgress"}}));
+        assert_eq!(v.snapshot()["turnRecords"], json!([{"threadId":"t","native":{"id":"u","status":"inProgress"}}]));
     }
 }
 

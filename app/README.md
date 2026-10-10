@@ -80,6 +80,13 @@ performed an act.
     registration are connected to prepared input and source-owned native page
     comparison. Code and synthetic checks do not establish a native person's
     registration, provider uptake or completed workflow execution.
+17. The selected conversation shows its native activity readably: messages,
+    reasoning summaries, plan items and checklist revisions, tool rows and
+    descendants, grouped by turn in native start order and, within a turn, in
+    the order this App first received each item. Each row keeps the native item
+    and status beside its display reading; unknown, not-completed and
+    result-not-supplied stay distinct, and no act, return or integration is
+    inferred. Agent text appears at item completion; streamed deltas are not shown.
 
 ## Modules
 
@@ -100,6 +107,7 @@ performed an act.
 | `trace_receiving.rs`, `record_relations.rs` | Independent unverified trace imports and general record correction claims; neither verifies native origin |
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
+| `src/NativeActivity.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part); no controls |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
 ## Offline build and checks
