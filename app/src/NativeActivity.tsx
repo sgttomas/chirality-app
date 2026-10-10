@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Component, useState, type ReactNode } from "react";
 type Json = any;
 
 // Readable presentation of the host's native view (DEL-01-03 §5–§7; messages
@@ -9,10 +9,13 @@ type Json = any;
 export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[] };
 export type ActivityModel = { threadId: string; turns: ActivityTurn[]; goal: Json | null; checklistGaps: Json[]; children: Json[]; subtree: Json[]; parent: Json | null };
 
+// Native collections are read through list() so an off-schema value (an object
+// or string where Codex documents an array) shows nothing instead of throwing.
+const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const order = (row: Json) => (typeof row?.observedOrder === "number" ? row.observedOrder : Number.MAX_SAFE_INTEGER);
 
 function descendantsOf(view: Json, root: string): Json[] {
-  const all: Json[] = view?.descendants ?? [], found: Json[] = [], queue = [root];
+  const all: Json[] = list(view?.descendants), found: Json[] = [], queue = [root];
   while (queue.length) {
     const parent = queue.shift();
     for (const child of all) if (child?.parentThreadId === parent && child.threadId !== root && !found.includes(child)) { found.push(child); queue.push(child.threadId); }
@@ -26,12 +29,12 @@ export function activityModel(view: Json, threadId: string): ActivityModel {
     if (!turns.has(turnId)) turns.set(turnId, { turnId, native: null, items: [], checklists: [] });
     return turns.get(turnId)!;
   };
-  for (const row of view?.items ?? []) if (row?.threadId === threadId) turnFor(row.turnId).items.push(row);
+  for (const row of list(view?.items)) if (row?.threadId === threadId) turnFor(row.turnId).items.push(row);
   // turnRecords associates each native turn with its thread; the turn itself stays in `turns`.
-  for (const record of view?.turnRecords ?? []) if (record?.threadId === threadId && record.turnId) turnFor(record.turnId).native = (view?.turns ?? []).find((turn: Json) => turn?.id === record.turnId) ?? null;
-  for (const revision of view?.revisions ?? []) if (revision?.kind === "checklist" && revision.threadId === threadId) turnFor(revision.turnId).checklists.push(revision);
-  const list = Array.from(turns.values());
-  for (const turn of list) {
+  for (const record of list(view?.turnRecords)) if (record?.threadId === threadId && record.turnId) turnFor(record.turnId).native = list(view?.turns).find((turn: Json) => turn?.id === record.turnId) ?? null;
+  for (const revision of list(view?.revisions)) if (revision?.kind === "checklist" && revision.threadId === threadId) turnFor(revision.turnId).checklists.push(revision);
+  const collected = Array.from(turns.values());
+  for (const turn of collected) {
     turn.items.sort((a, b) => order(a) - order(b));
     turn.checklists.sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
   }
@@ -39,8 +42,8 @@ export function activityModel(view: Json, threadId: string): ActivityModel {
   const started = (turn: ActivityTurn) => (typeof turn.native?.startedAt === "number" ? turn.native.startedAt : null);
   // Turns with a native start time keep that order. A turn without one goes
   // after every turn this App received before it.
-  const ordered = list.filter(t => started(t) !== null).sort((a, b) => started(a)! - started(b)! || firstSeen(a) - firstSeen(b));
-  for (const turn of list.filter(t => started(t) === null).sort((a, b) => firstSeen(a) - firstSeen(b))) {
+  const ordered = collected.filter(t => started(t) !== null).sort((a, b) => started(a)! - started(b)! || firstSeen(a) - firstSeen(b));
+  for (const turn of collected.filter(t => started(t) === null).sort((a, b) => firstSeen(a) - firstSeen(b))) {
     let at = 0;
     ordered.forEach((other, index) => { if (firstSeen(other) <= firstSeen(turn)) at = index + 1; });
     ordered.splice(at, 0, turn);
@@ -49,10 +52,10 @@ export function activityModel(view: Json, threadId: string): ActivityModel {
     threadId,
     turns: ordered,
     goal: view?.goals?.[threadId] ?? null,
-    checklistGaps: (view?.checklistGaps ?? []).filter((gap: Json) => gap?.threadId === threadId),
-    children: (view?.descendants ?? []).filter((child: Json) => child?.parentThreadId === threadId),
+    checklistGaps: list(view?.checklistGaps).filter((gap: Json) => gap?.threadId === threadId),
+    children: list(view?.descendants).filter((child: Json) => child?.parentThreadId === threadId),
     subtree: descendantsOf(view, threadId),
-    parent: (view?.descendants ?? []).find((child: Json) => child?.threadId === threadId) ?? null,
+    parent: list(view?.descendants).find((child: Json) => child?.threadId === threadId) ?? null,
   };
 }
 
@@ -64,7 +67,7 @@ const NATIVE_STATE_LABEL: Record<string, string> = {
 };
 export function displayStateText(row: Json): string {
   const state = row?.displayState ?? "unknown";
-  return NATIVE_STATE_LABEL[state] ?? state;
+  return typeof state === "string" && Object.prototype.hasOwnProperty.call(NATIVE_STATE_LABEL, state) ? NATIVE_STATE_LABEL[state] : text(state);
 }
 
 const KNOWN = new Set(["userMessage", "agentMessage", "reasoning", "plan", "commandExecution", "fileChange", "mcpToolCall", "dynamicToolCall", "functionCallOutput", "collabAgentToolCall", "subAgentActivity", "webSearch", "imageView", "imageGeneration", "enteredReviewMode", "exitedReviewMode", "contextCompaction", "sleep", "hookPrompt"]);
@@ -72,8 +75,11 @@ const KNOWN = new Set(["userMessage", "agentMessage", "reasoning", "plan", "comm
 const pre = { whiteSpace: "pre-wrap" as const, overflowWrap: "anywhere" as const, margin: "4px 0" };
 const card = { borderLeft: "3px solid #999", padding: "2px 8px", margin: "6px 0" };
 
+function json(value: Json): string {
+  try { return JSON.stringify(value, null, 2) ?? String(value); } catch { return String(value); }
+}
 function Raw({ value, label = "Native item" }: { value: Json; label?: string }) {
-  return <details><summary>{label}</summary><pre style={pre}>{JSON.stringify(value, null, 2)}</pre></details>;
+  return <details><summary>{label}</summary><pre style={pre}>{json(value)}</pre></details>;
 }
 // Native fields are interpolated through text() so an off-schema value from a
 // different supplier shows as JSON instead of breaking the whole view.
@@ -84,16 +90,17 @@ function Shown({ label, value }: { label: string; value: Json }) {
   if (value === undefined) return null;
   return <div>{label}: {value === null ? <i>null (as supplied)</i> : typeof value === "string" ? value : JSON.stringify(value)}</div>;
 }
-function LongText({ text, label }: { text: string | null | undefined; label: string }) {
-  if (text === null || text === undefined) return <div>{label}: <i>not supplied by Codex</i></div>;
-  if (text.length <= 2000) return <div>{label}:<pre style={pre}>{text}</pre></div>;
-  return <details><summary>{label} ({text.length} characters)</summary><pre style={pre}>{text}</pre></details>;
+function LongText({ text: value, label }: { text: Json; label: string }) {
+  if (value === null || value === undefined) return <div>{label}: <i>not supplied by Codex</i></div>;
+  const shown = text(value);
+  if (shown.length <= 2000) return <div>{label}:<pre style={pre}>{shown}</pre></div>;
+  return <details><summary>{label} ({shown.length} characters)</summary><pre style={pre}>{shown}</pre></details>;
 }
 function StateLine({ row }: { row: Json }) {
   const native = row.native ?? {};
   return <div>
     <b>{displayStateText(row)}</b>
-    {" · native status "}{native.status === undefined ? <i>none in this item kind</i> : String(native.status)}
+    {" · native status "}{native.status === undefined ? <i>none in this item kind</i> : text(native.status)}
     {row.standing === "recovered-from-supplier" && " · read from Codex history"}
     {row.observationEnded && " · observation ended"}
     {row.endReason && ` · ${text(row.endReason)}`}
@@ -129,7 +136,7 @@ function Unfinished({ row }: { row: Json }) {
 }
 
 function messageText(content: Json): string {
-  return (Array.isArray(content) ? content : []).map((part: Json) => part?.type === "text" ? part.text : `[${part?.type ?? "input"} ${JSON.stringify(part)}]`).join("\n");
+  return (Array.isArray(content) ? content : []).map((part: Json) => part?.type === "text" ? text(part.text) : `[${text(part?.type ?? "input")} ${JSON.stringify(part)}]`).join("\n");
 }
 
 function ItemBody({ row, plans }: { row: Json; plans: Json[] }) {
@@ -141,25 +148,31 @@ function ItemBody({ row, plans }: { row: Json; plans: Json[] }) {
       return <div><b>Agent</b>{n.phase ? ` · ${n.phase === "final_answer" ? "final answer" : text(n.phase)}` : ""}<Unfinished row={row} />
         <pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
     case "reasoning": {
-      const summary: Json[] = Array.isArray(row.summaryPreview) && row.displayState !== "completed" ? row.summaryPreview : (n.summary ?? []);
+      const summary: Json[] = Array.isArray(row.summaryPreview) && row.displayState !== "completed" ? row.summaryPreview : list(n.summary);
       return <div><i>Reasoning summary</i><Unfinished row={row} />{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <pre style={pre}>{summary.map(text).join("\n\n")}</pre>}</div>;
     }
     case "plan": {
-      const revision = plans.find(r => r.itemId === n.id && r.turnId === row.turnId);
-      return <div><b>Plan</b>{revision ? ` · revision ${revision.ordinal} in this conversation` : ""}
+      // An ordinal counts revisions in the order this App received them, so it
+      // reads as a revision number only for live-observed plans; recovered
+      // ones follow the order history pages were read.
+      const revision = plans.find(r => r?.itemId === n.id && r?.turnId === row.turnId);
+      // The state line already says "read from Codex history" for a recovered row.
+      const where = revision?.standing === "live-observed" ? ` · revision ${text(revision.ordinal)} in this conversation`
+        : revision?.standing === "recovered-from-supplier" && row.standing !== "recovered-from-supplier" ? " · revision read from Codex history" : "";
+      return <div><b>Plan</b>{where}
         <StateLine row={row} /><pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
     }
     case "commandExecution": {
       const startSource = row.startNative?.source;
       return <div><b>Command</b> <code>{text(n.command)}</code><StateLine row={row} />
         <Shown label="cwd" value={n.cwd} />
-        <div>source: {startSource !== undefined && startSource !== n.source ? `${String(startSource)} at start, ${String(n.source)} at completion` : String(n.source ?? "not supplied")}{n.source === "userShell" && " (the App's call at the person's direction)"}</div>
+        <div>source: {startSource !== undefined && startSource !== n.source ? `${text(startSource)} at start, ${text(n.source)} at completion` : text(n.source ?? "not supplied")}{n.source === "userShell" && " (the App's call at the person's direction)"}</div>
         <Shown label="exit code" value={n.exitCode} /><Shown label="duration ms" value={n.durationMs} />
         {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <LongText label={streamed(row) !== null ? "output so far" : "output"} text={streamed(row) ?? n.aggregatedOutput} />}</div>;
     }
     case "fileChange":
       return <div><b>File change</b><StateLine row={row} />
-        {(n.changes ?? []).map((change: Json, i: number) => <details key={i}><summary>{change.kind?.type ?? "change"} {text(change.path)}{change.kind?.move_path ? ` → ${text(change.kind.move_path)}` : ""}</summary><pre style={pre}>{text(change.diff)}</pre></details>)}</div>;
+        {list(n.changes).map((change: Json, i: number) => <details key={i}><summary>{text(change?.kind?.type) || "change"} {text(change?.path)}{change?.kind?.move_path ? ` → ${text(change.kind.move_path)}` : ""}</summary><pre style={pre}>{text(change?.diff)}</pre></details>)}</div>;
     case "mcpToolCall":
       return <div><b>MCP tool</b> {text(n.server)} / {text(n.tool)}<StateLine row={row} />
         <Shown label="arguments" value={n.arguments} /><Shown label="read-only hint" value={n.readOnlyHint} /><Shown label="duration ms" value={n.durationMs} />
@@ -171,11 +184,11 @@ function ItemBody({ row, plans }: { row: Json; plans: Json[] }) {
     case "functionCallOutput":
       return <div><b>Function output</b> {n.namespace ? `${text(n.namespace)} / ` : ""}{text(n.name)}<StateLine row={row} />{typeof n.output === "string" ? <LongText label="output" text={n.output} /> : <Raw label="output" value={n.output} />}</div>;
     case "collabAgentToolCall":
-      return <div><b>Delegation</b> {String(n.tool)}<StateLine row={row} />
-        <div>from {text(n.senderThreadId)} to {(n.receiverThreadIds ?? []).join(", ") || "no receivers reported"}</div>
+      return <div><b>Delegation</b> {text(n.tool)}<StateLine row={row} />
+        <div>from {text(n.senderThreadId)} to {list(n.receiverThreadIds).map(text).join(", ") || "no receivers reported"}</div>
         <Shown label="requested model" value={n.model} /><Shown label="effort" value={n.reasoningEffort} />
         {n.prompt && <LongText label="prompt" text={n.prompt} />}
-        {Object.entries(n.agentsStates ?? {}).map(([id, state]: [string, Json]) => <div key={id}>agent {id}: Codex status {text(state?.status)}{state?.message ? ` — ${text(state.message)}` : ""}</div>)}</div>;
+        {Object.entries(n.agentsStates && typeof n.agentsStates === "object" && !Array.isArray(n.agentsStates) ? n.agentsStates : {}).map(([id, state]: [string, Json]) => <div key={id}>agent {id}: Codex status {text(state?.status)}{state?.message ? ` — ${text(state.message)}` : ""}</div>)}</div>;
     case "subAgentActivity":
       return <div><b>Subagent activity</b> {text(n.kind)} · {text(n.agentPath)} ({text(n.agentThreadId)})<StateLine row={row} /></div>;
     case "webSearch":
@@ -183,7 +196,7 @@ function ItemBody({ row, plans }: { row: Json; plans: Json[] }) {
     case "contextCompaction":
       return <div><i>Context compacted</i><Unfinished row={row} /></div>;
     default:
-      if (!KNOWN.has(n.type)) return <div><b>unfamiliar item <code>{String(n.type)}</code></b><StateLine row={row} /></div>;
+      if (!KNOWN.has(n.type)) return <div><b>unfamiliar item <code>{text(n.type) || "with no type"}</code></b><StateLine row={row} /></div>;
       return <div><b>{text(n.type)}</b><StateLine row={row} /></div>;
   }
 }
@@ -193,20 +206,45 @@ function Checklist({ revisions }: { revisions: Json[] }) {
   return <div style={card}>
     <b>Checklist</b> · revision {text(latest.ordinal)} of {revisions.length} observed live (Codex does not keep checklist updates in its history){latest.afterTurnEnd && " · received after the turn ended"}
     {latest.content?.explanation && <p>{text(latest.content.explanation)}</p>}
-    <ol>{(latest.content?.steps ?? []).map((step: Json, i: number) => <li key={i}>[{text(step.status)}] {text(step.step)}</li>)}</ol>
-    {revisions.length > 1 && <details><summary>Earlier revisions</summary>{revisions.slice(0, -1).map(r => <div key={r.revisionId}>revision {text(r.ordinal)}{r.unchangedFromPrevious ? " (unchanged)" : ""}: {(r.content?.steps ?? []).map((s: Json) => `[${s.status}] ${s.step}`).join("; ")}</div>)}</details>}
+    <ol>{list(latest.content?.steps).map((step: Json, i: number) => <li key={i}>[{text(step?.status)}] {text(step?.step)}</li>)}</ol>
+    {revisions.length > 1 && <details><summary>Earlier revisions</summary>{revisions.slice(0, -1).map((r, i) => <div key={i}>revision {text(r?.ordinal)}{r?.unchangedFromPrevious ? " (unchanged)" : ""}: {list(r?.content?.steps).map((s: Json) => `[${text(s?.status)}] ${text(s?.step)}`).join("; ")}</div>)}</details>}
   </div>;
 }
 
 function Child({ child }: { child: Json }) {
-  const status = child.lastObservedStatus;
-  return <li>
-    {text(child.threadId)} · last observed Codex status {status?.status ?? "not reported"}{status?.message ? ` — ${text(status.message)}` : ""}
+  const reported = child.lastObservedStatus;
+  const status = reported && typeof reported === "object" ? reported : { status: reported };
+  return <>
+    {text(child.threadId)} · last observed Codex status {text(status.status) || "not reported"}{status.message ? ` — ${text(status.message)}` : ""}
     {child.statusSource ? ` (status source ${text(child.statusSource)})` : ""} · parent from {text(child.parentSource)}
     {child.nativeThread?.agentRole != null && ` · role ${text(child.nativeThread.agentRole)} (as Codex reports)`}{child.nativeThread?.agentNickname != null && ` · nickname ${text(child.nativeThread.agentNickname)}`}
     {child.observationEnded && " · observation ended"} · guidance {child.guidance === "not-known" ? "not known" : text(child.guidance)}
     {" "}· return, review and integration not inferred
-  </li>;
+  </>;
+}
+
+// One unreadable row falls back to its raw JSON instead of unmounting the App:
+// an item shows its native item unchanged; a checklist or descendant shows the
+// App's entry that carries the native content. The fallback resets when the
+// host supplies a new row (`row`, compared by identity or value).
+type BoundaryProps = { value: Json; row?: Json; label: string; children?: ReactNode };
+export class RowBoundary extends Component<BoundaryProps, { failed: boolean; row: Json }> {
+  constructor(props: BoundaryProps) {
+    super(props);
+    this.state = { failed: false, row: props.row ?? props.value };
+  }
+  static getDerivedStateFromProps(props: BoundaryProps, state: { row: Json }) {
+    const row = props.row ?? props.value;
+    return row !== state.row ? { failed: false, row } : null;
+  }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    const what = this.props.label === "native item" ? "the native JSON follows unchanged" : "its JSON entry follows unchanged";
+    return <div style={card}><i>This {this.props.label} could not be shown readably; {what}.</i><pre style={pre}>{json(this.props.value)}</pre></div>;
+  }
 }
 
 export function NativeActivityView({ view, threadId }: { view: Json; threadId: string | null | undefined }) {
@@ -215,27 +253,27 @@ export function NativeActivityView({ view, threadId }: { view: Json; threadId: s
   const descendants = activityModel(view, threadId).subtree;
   const target = shown && descendants.some((c: Json) => c.threadId === shown) ? shown : threadId;
   const model = activityModel(view, target);
-  const plans = (view?.revisions ?? []).filter((r: Json) => r.kind === "plan-item" && r.threadId === target);
+  const plans = list(view?.revisions).filter((r: Json) => r?.kind === "plan-item" && r.threadId === target);
   return <div aria-label="Native activity">
     <h3>Activity</h3>
-    <p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {(view?.limits ?? []).join(" ")}</p>
+    <p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {list(view?.limits).map(text).join(" ")}</p>
     {descendants.length > 0 && <label>Show <select value={target} onChange={e => setShown(e.target.value === threadId ? "" : e.target.value)}>
       <option value={threadId}>this conversation</option>
-      {descendants.map((c: Json) => <option key={c.threadId} value={c.threadId}>descendant {text(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${text(c.parentThreadId)})` : ""}</option>)}
+      {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {text(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${text(c.parentThreadId)})` : ""}</option>)}
     </select></label>}
     {model.parent && <p>Descendant of {text(model.parent.parentThreadId)} ({text(model.parent.parentSource)}).</p>}
     {model.goal && <p>Goal ({text(model.goal.source)}): {model.goal.native === null ? "cleared" : typeof model.goal.native?.objective === "string" ? model.goal.native.objective : JSON.stringify(model.goal.native)}</p>}
     {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn {text(gap.turnId)}: {text(gap.reason)}</p>)}
     {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
-    {model.turns.map(turn => <section key={turn.turnId} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
+    {model.turns.map(turn => <section key={text(turn.turnId)} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       <div><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></div>
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
-      {turn.items.map(row => <div key={row.native?.id} style={card}>
+      {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card}>
         <ItemBody row={row} plans={plans} />
         <Raw value={row.native} />
-      </div>)}
-      {turn.checklists.length > 0 && <Checklist revisions={turn.checklists} />}
+      </div></RowBoundary>)}
+      {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /></RowBoundary>}
     </section>)}
-    {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json) => <Child key={c.threadId} child={c} />)}</ul></>}
+    {model.children.length > 0 && <><h4>Descendants</h4><p>A completed turn here says nothing about these descendants.</p><ul>{model.children.map((c: Json, i: number) => <li key={text(c?.threadId) || `child-${i}`}><RowBoundary value={c} label="descendant"><Child child={c} /></RowBoundary></li>)}</ul></>}
   </div>;
 }

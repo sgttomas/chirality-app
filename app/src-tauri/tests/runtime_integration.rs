@@ -577,10 +577,15 @@ fn person_read_history_pages_reach_only_the_open_generation_view() {
     session.receive(&observation(&current, "ready", vec![], vec![]));
     let page = json!({"thread":{"id":"t","turns":[{"id":"u","status":"completed","items":[{"id":"p","type":"plan","text":"recovered plan"}]}]}});
     session.receive_history(&old, "same-home", "thread/read", &json!({"threadId":"t"}), &page);
+    session.receive_history(&old, "same-home", "thread/read", &json!({"threadId":"t"}), &page);
     session.receive_history(&current, "same-home", "thread/list", &json!({}), &json!({"data":[]}));
     let refused = session.receive(&observation(&current, "ready", vec![], vec![]));
     assert!(refused["nativeView"]["items"].as_array().unwrap().is_empty());
-    assert!(refused["nativeViewLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("not the open receiving generation")));
+    assert_eq!(
+        refused["nativeViewLimits"].as_array().unwrap().iter().filter(|l| l.as_str().unwrap().contains("not the open receiving generation")).count(),
+        1,
+        "a repeated refusal is reported once"
+    );
     session.receive_history(&current, "same-home", "thread/read", &json!({"threadId":"t"}), &page);
     let read = session.receive(&observation(&current, "ready", vec![], vec![]));
     assert_eq!(read["nativeView"]["items"][0]["native"]["text"], "recovered plan");

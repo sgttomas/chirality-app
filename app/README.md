@@ -89,7 +89,9 @@ performed an act.
     inferred. Agent text, reasoning summaries, plans and command output stream
     as labelled previews that the completed native item replaces. Stored-history
     pages the person reads (turns, items, thread read) are added as
-    recovered-from-supplier rows; nothing is rebuilt automatically.
+    recovered-from-supplier rows; nothing is rebuilt automatically. Only a plan
+    observed live shows a revision number in this conversation. A row the view
+    cannot read shows its JSON instead of breaking the view.
 18. Plan mode (experimental) is offered only when this Codex connection declared
     the experimental API and Codex lists a `plan` preset. Sending in plan or
     default mode puts `collaborationMode` on `turn/start` with the conversation's

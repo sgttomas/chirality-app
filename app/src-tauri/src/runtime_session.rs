@@ -164,14 +164,23 @@ impl RuntimeSession {
         if !matches!(method, "thread/read" | "thread/turns/list" | "thread/items/list" | "thread/goal/get") {
             return;
         }
-        if *generation != self.generation || self.closed {
-            self.limits.push(format!("{method} page not read into the native view: its generation is not the open receiving generation"));
-            return;
-        }
-        if let Some(view) = self.view.as_mut() {
+        // Repeated page reads report each distinct refusal once.
+        let refused = if *generation != self.generation || self.closed {
+            Some(format!("{method} page not read into the native view: its generation is not the open receiving generation"))
+        } else if let Some(view) = self.view.as_mut() {
             match view.history(home, method, params, result) {
-                Ok(()) => self.history_pages += 1,
-                Err(e) => self.limits.push(format!("{method} page not read into the native view: {e}")),
+                Ok(()) => {
+                    self.history_pages += 1;
+                    None
+                }
+                Err(e) => Some(format!("{method} page not read into the native view: {e}")),
+            }
+        } else {
+            None
+        };
+        if let Some(limit) = refused {
+            if !self.limits.contains(&limit) {
+                self.limits.push(limit);
             }
         }
     }

@@ -6,9 +6,9 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const url=new URL('../src/NativeActivity.tsx',import.meta.url);
-const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});
+const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
 const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);
-const {NativeActivityView,activityModel,displayStateText,resultNotSupplied}=exports;
+const {NativeActivityView,RowBoundary,activityModel,displayStateText,resultNotSupplied}=exports;
 
 // Invented rows in the host snapshot shape (native_items.rs), native items per the pinned 0.160.0 ThreadItem.
 const row=(turnId,observedOrder,native,extra={})=>({threadId:'T',turnId,native,displayState:'completed',standing:'live-observed',observationEnded:false,observedOrder,...extra});
@@ -34,7 +34,7 @@ const view=()=>({
   turns:[{id:'turn-2',status:'completed',startedAt:200,items:[]},{id:'turn-1',status:'interrupted',startedAt:100,error:{message:'interrupted by request'},items:[]}],
   turnRecords:[{threadId:'T',turnId:'turn-2'},{threadId:'T',turnId:'turn-1'}],
   revisions:[
-    {kind:'plan-item',revisionId:'pi',threadId:'T',turnId:'turn-2',itemId:'turn-2-plan',ordinal:1,typesPin:'0.160.0'},
+    {kind:'plan-item',revisionId:'pi',threadId:'T',turnId:'turn-2',itemId:'turn-2-plan',ordinal:1,standing:'live-observed',typesPin:'0.160.0'},
     {kind:'checklist',revisionId:'cl1',threadId:'T',turnId:'turn-2',ordinal:1,content:{explanation:null,steps:[{step:'Read',status:'inProgress'}]}},
     {kind:'checklist',revisionId:'cl2',threadId:'T',turnId:'turn-2',ordinal:2,content:{explanation:'Updated',steps:[{step:'Read',status:'completed'},{step:'Write',status:'pending'}]}},
   ],
@@ -144,4 +144,64 @@ test('every descendant in the subtree is selectable and roles show as Codex repo
   assert.ok(html.includes('(status source collabAgentToolCall.agentsStates)'));
   const model=activityModel(v,'C');assert.equal(model.parent.parentThreadId,'T');
   assert.ok(!renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'C'})).includes('status source',html.indexOf('G ·')));
+});
+
+test('a plan read from Codex history shows no revision number',()=>{
+  const v=view();v.revisions[0].standing='recovered-from-supplier';v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'recovered-from-supplier'}:r);
+  const html=render(v);
+  assert.match(html,/Plan<\/b><div>.*· read from Codex history/);assert.ok(!html.includes('in this conversation'));
+  assert.equal(html.match(/read from Codex history/g).length,1,'the history label appears once');
+  v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,standing:'live-observed'}:r);
+  assert.match(render(v),/Plan<\/b> · revision read from Codex history/,'a recovered revision on a live row still says so');
+  v.revisions[0].standing='something-else';assert.match(render(v),/Plan<\/b><div>/,'an unrecognised standing shows no ordinal');
+});
+
+test('off-schema collections and nested values render as text instead of throwing',()=>{
+  const v=view();
+  v.limits='one limit';
+  v.items=[
+    row('turn-1',0,{id:'r1',type:'reasoning',summary:'not an array',content:[]}),
+    row('turn-1',1,{id:'r2',type:'reasoning',summary:{odd:1},content:[]}),
+    row('turn-1',2,{id:'f1',type:'fileChange',status:'completed',changes:{path:'a'}}),
+    row('turn-1',3,{id:'f2',type:'fileChange',status:'completed',changes:[null,{path:'b.txt',kind:{type:{deep:1}},diff:{d:2}}]}),
+    row('turn-1',4,{id:'g1',type:'collabAgentToolCall',tool:{t:1},status:'completed',senderThreadId:'T',receiverThreadIds:'C',agentsStates:'running',prompt:{p:'obj prompt'}}),
+    row('turn-1',5,{id:'g2',type:'collabAgentToolCall',tool:'spawnAgent',status:'completed',senderThreadId:'T',receiverThreadIds:[{id:'X'},'Y'],agentsStates:[]}),
+    row('turn-1',6,{id:'c1',type:'commandExecution',command:'cat',cwd:'/w',status:'completed',exitCode:0,aggregatedOutput:{out:'obj output'},commandActions:[]}),
+    row('turn-1',7,{id:'u1',type:'userMessage',content:[{type:'text',text:{t:'obj text'}}]}),
+    row('turn-1',8,{id:'n1',type:{weird:true}}),
+    row('turn-1',9,{id:'s1',type:'mcpToolCall',server:'s',tool:'t',status:{nested:'status'},result:{ok:1},error:null}),
+  ];
+  v.revisions=[{kind:'checklist',revisionId:'a',threadId:'T',turnId:'turn-1',ordinal:1,content:{steps:{not:'array'}}},
+    {kind:'checklist',revisionId:{id:1},threadId:'T',turnId:'turn-1',ordinal:2,content:{steps:[null,{step:{s:1},status:{st:2}}]}}];
+  v.descendants=[{threadId:'C',parentThreadId:'T',lastObservedStatus:{status:{deep:'status'}},guidance:'not-known'},
+    {threadId:'D',parentThreadId:'T',lastObservedStatus:'running',guidance:'not-known'},
+    {threadId:'E',parentThreadId:'T',lastObservedStatus:null,guidance:'not-known'}];
+  const html=render(v);
+  assert.ok(html.includes('one limit')===false,'a non-array limits value is not joined');
+  assert.ok(html.includes('(none supplied)'));
+  assert.ok(html.includes('b.txt'));assert.ok(html.includes('{&quot;deep&quot;:1}'));assert.ok(html.includes('{&quot;d&quot;:2}'));
+  assert.ok(html.includes('{&quot;t&quot;:1}'));assert.ok(html.includes('to no receivers reported'));assert.ok(html.includes('obj prompt'));
+  assert.ok(html.includes('to {&quot;id&quot;:&quot;X&quot;}, Y'));
+  assert.ok(html.includes('obj output'));assert.ok(html.includes('{&quot;t&quot;:&quot;obj text&quot;}'));
+  assert.ok(html.includes('unfamiliar item <code>{&quot;weird&quot;:true}</code>'));
+  assert.ok(html.includes('native status {&quot;nested&quot;:&quot;status&quot;}'));
+  assert.ok(html.includes('[{&quot;st&quot;:2}] {&quot;s&quot;:1}'));
+  assert.ok(html.includes('C · last observed Codex status {&quot;deep&quot;:&quot;status&quot;}'));
+  assert.ok(html.includes('D · last observed Codex status running'));assert.ok(html.includes('E · last observed Codex status not reported'));
+  assert.ok(render({items:{},turns:'x',turnRecords:5,revisions:{},descendants:'d',checklistGaps:{}},'T').includes('No activity observed'));
+  const latest=view();latest.revisions=[{kind:'checklist',revisionId:'l',threadId:'T',turnId:'turn-1',ordinal:1,content:{explanation:{e:1},steps:'not an array'}}];
+  const latestHtml=render(latest);assert.ok(latestHtml.includes('revision 1 of 1'));assert.ok(latestHtml.includes('<ol></ol>'));assert.ok(latestHtml.includes('{&quot;e&quot;:1}'));
+  for(const odd of ['__proto__','toString',{x:1}]) assert.equal(typeof displayStateText({displayState:odd}),'string');
+});
+
+test('a row that cannot be shown falls back to its raw native JSON and resets on a new row',()=>{
+  // renderToStaticMarkup does not run error boundaries, so the boundary's own steps are exercised directly.
+  const native={id:'x',type:'agentMessage',text:'raw <text>'},row={native};
+  const boundary=new RowBoundary({value:native,row,label:'native item',children:React.createElement('span',null,'readable')});
+  assert.equal(renderToStaticMarkup(boundary.render()),'<span>readable</span>');
+  boundary.state={...boundary.state,...RowBoundary.getDerivedStateFromError(new Error('bad item'))};
+  const fallback=renderToStaticMarkup(boundary.render());
+  assert.ok(fallback.includes('This native item could not be shown readably'));assert.ok(fallback.includes('&quot;text&quot;: &quot;raw &lt;text&gt;&quot;'));
+  assert.equal(RowBoundary.getDerivedStateFromProps({value:native,row},boundary.state),null,'the same row stays on its fallback');
+  assert.deepEqual(RowBoundary.getDerivedStateFromProps({value:native,row:{native}},boundary.state),{failed:false,row:{native}},'a new row is tried again');
 });
