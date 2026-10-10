@@ -87,7 +87,9 @@ test('the clean trial panel offers the conversation roles and a model, and stays
   assert.ok(html.indexOf('Open the trial text')<html.indexOf('Inputs for this trial (editable'),'the card comes first, then the inputs');
   assert.match(html,/<textarea[^>]*>Inputs for this trial: …<\/textarea>/);
   const s=spy();
-  assert.equal(buttons(cleanView(clean(),choice(),s.act),'Send')[0].props.disabled,true,'no model, no send');
+  assert.equal(buttons(cleanView(clean(),choice(),s.act),'Send')[0].props.disabled,true,'nothing chosen, no send');
+  assert.equal(buttons(cleanView(clean(),choice({entryId:'chatgpt-account',modelProvider:'openai'}),s.act),'Send')[0].props.disabled,true,'no model, no send');
+  assert.equal(buttons(cleanView(clean(),choice({entryId:'chatgpt-account',model:'gpt-x'}),s.act),'Send')[0].props.disabled,true,'no provider, no send');
   assert.equal(buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai'}),s.act),'Send')[0].props.disabled,true,'no entry, no send');
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:'HELPS_HUMANS'}),s.act),'Send')[0].props.onClick();
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account'}),s.act),'Send')[0].props.onClick();
