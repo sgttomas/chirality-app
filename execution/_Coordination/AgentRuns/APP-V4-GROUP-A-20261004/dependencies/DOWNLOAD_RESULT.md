@@ -1,3 +1,0 @@
-# Approved validator artifact admission
-
-Actual owner approval in OWNER_DECISIONS. Executed download_approved.py exact DOWNLOAD_SET29 artifacts to machine-local staging `/tmp/chirality-app-v4-group-a-approved-crates`. Each artifact HTTP retrieval succeeded, expected Content-Length and registry SHA256 matched before admission;29files3,223,082bytes. No broader49 set downloaded. Isolated Cargo home `/tmp/chirality-app-v4-group-a-cargo-home` seeded with existing local registry index/archive cache plus approved29; global Cargo cache/config untouched. W1 implementation uses isolated offline Cargo. Source/build/MSRV/API/runtime conformance are separate checks ahead; content identity is not code approval.

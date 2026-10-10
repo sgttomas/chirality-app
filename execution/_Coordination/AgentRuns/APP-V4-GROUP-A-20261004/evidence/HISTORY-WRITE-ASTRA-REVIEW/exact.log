@@ -1,6 +1,0 @@
-
-running 1 test
-test hosting::conversation_transport_tests::history_bridge_failed_write_foreign_latest_revision_and_closed_refuse_admission ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 214 filtered out; finished in 0.23s
-

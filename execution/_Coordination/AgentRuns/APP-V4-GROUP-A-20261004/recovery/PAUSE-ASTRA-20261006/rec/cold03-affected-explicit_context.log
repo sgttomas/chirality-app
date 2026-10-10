@@ -1,8 +1,0 @@
-
-running 3 tests
-test hosting::conversation_transport_tests::explicit_context_host_actual_index_p_tag_q_absence_and_idempotence_preserve_source ... ok
-test hosting::conversation_transport_tests::explicit_context_host_no_index_or_home_and_real_append_failure_keep_hot_conflicts ... ok
-test hosting::conversation_transport_tests::explicit_context_paused_ledger_preserves_summary_order_and_allows_actual_stop ... ok
-
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.50s
-

@@ -1,5 +1,0 @@
-(ConsistentThroughReceipt(3, 3), "nativeSchemaValidation=not-performed-by-core", 1944)
-
-thread 'main' (5474693) panicked at /private/tmp/aa-cap-independent/server_request_negative.rs:13:30:
-server requests cannot provide notification evidence
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

@@ -1,8 +1,0 @@
-{
-  "sourceRoot": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4",
-  "ownedPaths": [
-    "app/src-tauri/src/lib.rs",
-    "app/src-tauri/src/runtime_session.rs",
-    "app/src/App.tsx"
-  ]
-}

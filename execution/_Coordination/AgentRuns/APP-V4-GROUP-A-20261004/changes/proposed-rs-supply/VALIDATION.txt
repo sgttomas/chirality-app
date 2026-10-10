@@ -1,1 +1,0 @@
-PASS: private suppliedGuidance fragment; native incomparable + legacy ordinal valid; 7 negatives refused. This is schema shape only; no full external-ref envelope or receiving API executed.

@@ -1,9 +1,0 @@
-{"mono":222152.125537000,"event":"helperStart","mode":"inert-model","pid":94785,"alarmSeconds":10}
-{"mono":222152.125595000,"event":"inertReaperBusy"}
-{"mono":222152.125610000,"event":"inertSignal","inventedNumber":700,"identity":1,"wrongIdentity":false,"brokenControl":false}
-{"mono":222152.125632000,"event":"inertReapFirstRefusal","denied":true,"additionalSignals":0}
-{"mono":222152.125639000,"event":"modelScheduleResult","schedule":"guarded-signal-first-and-reap-first","pass":true,"inertSignals":1,"wrongIdentitySignals":0,"realSignalCalls":0}
-{"mono":222152.125657000,"event":"inertReapAndReuse","inventedNumber":700,"newIdentity":2}
-{"mono":222152.125668000,"event":"inertSignal","inventedNumber":700,"identity":2,"wrongIdentity":true,"brokenControl":true}
-{"mono":222152.125686000,"event":"modelScheduleResult","schedule":"deliberately-broken-red-control","pass":true,"inertSignals":1,"wrongIdentitySignals":1,"realSignalCalls":0}
-{"mono":222152.125694000,"event":"modelResult","pass":true,"realSignalCalls":0}

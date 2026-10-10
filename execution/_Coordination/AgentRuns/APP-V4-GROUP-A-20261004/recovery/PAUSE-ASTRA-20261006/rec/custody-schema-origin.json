@@ -1,6 +1,0 @@
-{
-  "source": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Design/recovery.custody-event.schema.json",
-  "destination": "app/src-tauri/resources/runtime_core/recovery.custody-event.schema.json",
-  "sha256": "033398508abc813e90aee0a074a18cb91bd59be88b6991111504ae5662653773",
-  "unchanged": true
-}

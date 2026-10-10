@@ -1,5 +1,0 @@
-
-> chirality-app-v4-skeleton@0.0.0 build
-> tsc --noEmit && vite build
-
-sh: tsc: command not found

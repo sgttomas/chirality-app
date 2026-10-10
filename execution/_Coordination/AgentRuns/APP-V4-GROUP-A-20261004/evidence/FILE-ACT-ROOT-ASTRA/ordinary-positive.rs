@@ -1,1 +1,0 @@
-use chirality_app_v4_lib::act_control::ActControl; fn main(){let _=ActControl::new(std::path::Path::new("/tmp"));}

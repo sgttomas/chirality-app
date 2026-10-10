@@ -1,7 +1,0 @@
-{
-  "bundle": {
-    "resources": {
-      "<approved-vendor>/": "codex/"
-    }
-  }
-}

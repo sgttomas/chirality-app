@@ -1,9 +1,0 @@
-error[E0451]: field `selection` of struct `DevelopmentCatalog` is private
- --> /Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/evidence/I2-DEVELOPMENT-CATALOG-API/private_catalog.rs:8:72
-  |
-8 | fn forge(selection:Selection)->DevelopmentCatalog {DevelopmentCatalog {selection}} fn main(){}
-  |                                                                        ^^^^^^^^^ private field
-
-error: aborting due to 1 previous error
-
-For more information about this error, try `rustc --explain E0451`.

@@ -1,6 +1,0 @@
-DeliverableID,Reasons
-DEL-01-04,arc added: DEL-02-03 -> DEL-01-04
-DEL-02-01,arc added: DEL-02-01 -> DEL-03-02
-DEL-02-03,arc added: DEL-02-03 -> DEL-01-04; arc added: DEL-02-03 -> DEL-03-02; arc added: DEL-02-03 -> DEL-03-03
-DEL-03-02,arc added: DEL-02-01 -> DEL-03-02; arc added: DEL-02-03 -> DEL-03-02
-DEL-03-03,arc added: DEL-02-03 -> DEL-03-03

@@ -1,7 +1,0 @@
-# Current LT09 and terminal receiving disposition
-
-The new cfg(test) module declaration changes hosting_successor.rs, a source pinned by the prior active LT09-only receiver. Its source-drift refusal is correct. No old48-test pass is claimed at the new source. README/CLI describe an active standalone LT09 entrypoint; silently retiring it to make terminal tests pass would change compatibility.
-
-HELP_HUMAN technically selected the lowest-risk two-cohort route with Group B receiving-owner concurrence: preserve v1 behavior/closed format and every historical cohort/pin; produce a separately named current-source LT09 cohort from exact reviewed9af67409ed0e625fcd8e0e9a0c59975fccfcae71 and unchanged compiled v1 exporter; B first adopts minimal fixed selector/pin/fixture changes and validates its21 tests; then freezes separate terminal consumer pins against final receive.py. No dynamic fallback, bare repin, cross-format acceptance or authority promotion.
-
-Manager temporarily selected clean exact9af in its existing checkout, verified harness digestc568f53b288c142e444f936296cee1d29477f83f0ce19b2cc2c5506139bfca58 unchanged from terminal compilation, ran the existing ignored v1 synthetic exporter, verified all raw members and source/harness fields, and returned to integration branch. No source change or extra build. Independent cohort review READY. Original terminal receipt/exchanges remain unchanged. Both cohorts are synthetic correspondence only, not source/build authentication or native/S3/SEAL-2/qualification.

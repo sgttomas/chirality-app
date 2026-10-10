@@ -1,7 +1,0 @@
-Edge schema valid: True
-Rows: edges=52 nodes=41
-Status: ACTIVE=52 CANDIDATE=0
-Endpoint issues: 0
-Canonical mode: True findings=0
-Active graph: edges=52 sccs=6 duplicates=0 bidirectional=14
-DEV-001 projection: active_edges=52 candidate_edges=0 active_sccs=6

@@ -1,9 +1,0 @@
-{
-  "app/examination/standalone/pre_run_inputs.py": "12453ca2d440707e034a8024c75ed5f7f17424aa93f9a3ccdf27cd82c2ab17a0",
-  "app/examination/standalone/pre_run_inputs.pins.json": "e12b994ce886c7fae13fd162a68a841e7875a51692a494f889ffb4b30d87f9d0",
-  "app/examination/standalone/README.md": "79782a49b0f15698e742d3aee1d9ff9165a3946d50ffd08fc16eeeb6dedca4d8",
-  "app/examination/native_forms/pre_run_form.py": "5b602cbe561034da28294b24d7669afd284a0e285a46cdf777e97d5e5c54e678",
-  "app/examination/native_forms/pre_run_form.pins.json": "5909d3b3b3eb73b41168b927f96a163f58d0b7eb0a2d0bb565f5d43dad849daa",
-  "app/examination/native_forms/README.md": "3403ca4d0945b58e00650292779f830e238374131f254cb3b1b2ddaff0d696a2",
-  "app/tests/group_b_pre_run_inputs_test.py": "c4e7c8701d2e875786a71ba78a3c6010392fb8c43a35f1d33a16341cba99ebc7"
-}

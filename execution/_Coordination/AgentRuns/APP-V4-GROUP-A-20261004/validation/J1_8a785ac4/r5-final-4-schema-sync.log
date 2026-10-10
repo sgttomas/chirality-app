@@ -1,3 +1,0 @@
-PATH=/Users/ryan/Library/Caches/chirality-dev/codex/0.160.0/complete-package/package/vendor/aarch64-apple-darwin/codex-path:/Users/ryan/.opencode/bin:/opt/homebrew/opt/libpq/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Users/ryan/.cargo/bin:/Users/ryan/.local/bin:/Users/ryan/.lmstudio/bin:~/Library/Python/3.9/bin:/usr/sbin
-6 schema resources match source bytes, hashes and declared IDs
-exit=0

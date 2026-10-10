@@ -1,9 +1,0 @@
-# Mirror and same-arc assessment
-
-The assembler examined all 40 explicit comparisons in `MirrorComparisons.csv`: 38 counterpart-register mirrors and two same-register rows. All 40 have distinct statement text, 37 have different dependency types, and 13 have different satisfaction values. RequiredMaturity and ProposedMaturity match in every pair. The 13 satisfaction differences are TBD versus PENDING; none asserts fulfilment.
-
-No material contradiction was identified in this bounded comparison of statements, types, maturity and status, informed by the supplied case and independent closure accounts. HANDOVER at the supplier and PREREQUISITE/INTERFACE/CONSTRAINT at the receiver usually describe compatible sides of a transfer. Distinct fixture/candidate/contract conditions remain additional obligations, not disposable duplicate text. This is not a new full semantic certification of all source SoWs or all 403 obligations.
-
-The two SAME_ARC cases particularly require both obligations: DEP-01-05-012/013 distinguishes selected pin/protocol from candidate-bound embedding qualification; DEP-07-02-010/012 distinguishes actual PEC receiving terms from a later qualified/released/adopted-envelope account. CASE-005 additionally distinguishes connector meanings from actual case handoffs. DEP-10-02-012 and DEP-10-04-014 preserve the same later accepted/current-graph condition despite CONSTRAINT/HANDOVER types. No bootstrap graph prerequisite is introduced.
-
-`MirrorAssessment.csv` records each compared pair and its assessment. Source paths, record ordinals, hashes, exact statements, evidence quotes and clause references remain in `MirrorComparisons.csv` and `all_execution_rows.csv`. No source repair is prescribed by this bounded assessment; a substantive contradiction found by independent review must remain a finding routed to both endpoint owners. SR-6 representatives remain selected by rule, and a future extra hold requires its actual warrant.

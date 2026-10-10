@@ -1,9 +1,0 @@
-
-running 4 tests
-test offer_digest_matches_pass4_fixture ... ok
-test view_model_reads_the_pass4_fixture ... ok
-test no_write_census_detects_changes_in_relocated_log_and_capture_tree ... ok
-test person_decides_a_package_and_the_view_shows_it ... ok
-
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
-

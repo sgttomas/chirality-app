@@ -1,9 +1,0 @@
-# LT23 final design backcheck
-
-READY for bounded implementation of exact proposal SHA-256 2c1249b64d6838a41169e470a8e64387235e49e29b0c10d860f2a1d65597364d. Parent alone releases implementation, with owning source concurrence still required. This is design readiness, not implementation acceptance or tested liveness.
-
-The sole remaining refinement is closed. Pending is established under controller→Inner before spawning, with no post-spawn pending assignment. Spawn failure uses the same source-token settlement. Publication/readback is caught across unwind; Store/namespace guards unwind before the common guarded completion path. A matching panic becomes unavailable; stale/closing completion cannot mutate source; permit release is unwind-safe. No destructor installs under Store guards and no live guarantee is claimed for process abort. Immediate success/failure and panic status-plus-permit tests are explicitly required.
-
-Reuse the preceding design review/backcheck for unchanged ownership, closing, single-permit retention, Stop-return independence, exact event ordering and S1 mapping. No unresolved design choice remains within that bounded fence. Implementation review must establish actual lock order, absence of hidden strong Host/App custody retention, all status transitions and deterministic negative schedules. Source basis remains f25ba6887d85904ebef2a6321c222809d47cfabd; later integration requires currency checks.
-
-Initial H3B_LT23_DESIGN_BACKCHECK.md is preserved unchanged. This final backcheck read the exact revised proposal only; no code, tests, builds, native/supplier actions, downloads or MEMORY edits. Continuing independent harness-native TASK under hosting manager; no delegation. No schema weakening, issuer, restart hydration, canonical adoption or release follows.

@@ -1,7 +1,0 @@
-{
-  "source": "/Users/ryan/.codex/worktrees/hosting-lt23/chirality/projects/chirality-app-v4/app/dist/index.html",
-  "path": "/private/tmp/aa-cap-core/projects/chirality-app-v4/app/dist/index.html",
-  "sha256": "3bdbdb72ac6c1c06209e7fbe295ff834bdc8ae540bdffc4afe9e9d1b942d162d",
-  "bytes": 116,
-  "standing": "exact reuse of approved synthetic offline Rust harness input only; not frontend/App bundle evidence"
-}

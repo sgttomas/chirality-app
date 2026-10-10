@@ -1,9 +1,0 @@
-Executable=/private/tmp/chirality-b2-unsigned-build/target/debug/bundle/macos/Chirality App v4 (development candidate).app/Contents/MacOS/chirality-app-v4
-Identifier=chirality_app_v4-0664cc252b7e30b2
-Format=app bundle with Mach-O thin (arm64)
-CodeDirectory v=20400 size=432186 flags=0x20002(adhoc,linker-signed) hashes=13502+0 location=embedded
-Signature=adhoc
-Info.plist=not bound
-TeamIdentifier=not set
-Sealed Resources=none
-Internal requirements=none
