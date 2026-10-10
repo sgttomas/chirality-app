@@ -1956,10 +1956,19 @@ impl Host {
     }
     /// Caller supplies the explicit native App-data owner and private picker selections.
     pub fn prepare_attachment_turn(&self,custody:Arc<AttachmentCustody>,generation:&Value,thread:&str,expected_turn:Option<&str>,text:&str,selections:&[SelectedTextAttachment])->Result<PreparedAttachmentDispatch,String>{
+        self.prepare_attachment_turn_led(custody,generation,thread,expected_turn,text,selections,None)
+    }
+    /// As `prepare_attachment_turn`, for a new turn led by an App-written text
+    /// element (`lead` = (text, clientUserMessageId)): NIR TC-2's order, the
+    /// run-end line, then the person's text, then the attachments. The lead is
+    /// not an attachment: the ordered supply records and `supplyRefs` name the
+    /// attachments only, exactly as without it. A steer takes no lead.
+    pub(crate) fn prepare_attachment_turn_led(&self,custody:Arc<AttachmentCustody>,generation:&Value,thread:&str,expected_turn:Option<&str>,text:&str,selections:&[SelectedTextAttachment],lead:Option<(&str,&str)>)->Result<PreparedAttachmentDispatch,String>{
         crate::recovery::generation_ref(generation)?;if thread.is_empty()||expected_turn.is_some_and(str::is_empty){return Err("native thread/expected-turn identity required".into());}
+        if lead.is_some_and(|(text,client)|text.is_empty()||client.is_empty()||expected_turn.is_some()){return Err("a leading App text element needs its text and client message identity, and only a new turn takes one".into());}
         let submission=attachments::new_submission_ref()?;let list=attachments::prepare_ordered(selections,&submission,&now_rfc3339()).map_err(|e|e.message)?;
-        let mut input=vec![];if !text.is_empty(){input.push(json!({"type":"text","text":text,"text_elements":[]}));}input.extend(list.native_inputs());
-        let method=if expected_turn.is_some(){"turn/steer"}else{"turn/start"};let mut params=json!({"threadId":thread,"input":input});if let Some(turn)=expected_turn{params["expectedTurnId"]=json!(turn);}
+        let mut input=vec![];if let Some((lead,_))=lead{input.push(json!({"type":"text","text":lead,"text_elements":[]}));}if !text.is_empty(){input.push(json!({"type":"text","text":text,"text_elements":[]}));}input.extend(list.native_inputs());
+        let method=if expected_turn.is_some(){"turn/steer"}else{"turn/start"};let mut params=json!({"threadId":thread,"input":input});if let Some(turn)=expected_turn{params["expectedTurnId"]=json!(turn);}if let Some((_,client))=lead{params["clientUserMessageId"]=json!(client);}
         Self::validate_native_result(if expected_turn.is_some(){"TurnSteerParams"}else{"TurnStartParams"},&params)?;
         let(tx,rx)=channel();let(source,client,pipe_identity,pipe_epoch)={
             let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
@@ -2101,24 +2110,34 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             Self::text_turn_params(thread_id, text)?, Duration::from_secs(20))
     }
 
-    fn prepared_run_turn_params(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str)->Result<Value,String>{
+    fn prepared_run_turn_params(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>)->Result<Value,String>{
         crate::recovery::generation_ref(generation)?;
         if &prepared.scope().generation!=generation||generation["home"]!=prepared.scope().home{return Err("prepared turn full generation/home differs from original run scope".into());}
-        let params=prepared.turn_params(person_text,client_id)?;
+        let mut params=prepared.turn_params(person_text,client_id)?;
+        if let Some(mode)=mode{params["collaborationMode"]=mode.clone();}
         Self::validate_native_result("TurnStartParams",&params)?;
         Ok(params)
     }
     /// Owning native sender for production-prepared exact ordered workflow/person text.
     /// PreparedRunText proves neither an active run nor an act/model qualification here.
     pub(crate) fn turn_start_prepared_run_text(&self,generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str)->Result<SourceRequest,String>{
-        let params=Self::prepared_run_turn_params(generation,prepared,person_text,client_id)?;
+        self.turn_start_prepared_run_text_mode(generation,prepared,person_text,client_id,None)
+    }
+    /// As `turn_start_prepared_run_text`, with the collaboration-mode element a
+    /// plan/default mode turn carries (NIR TC-4, TC-5), from
+    /// `collaboration_mode_element`, unchanged.
+    pub(crate) fn turn_start_prepared_run_text_mode(&self,generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>)->Result<SourceRequest,String>{
+        let params=Self::prepared_run_turn_params(generation,prepared,person_text,client_id,mode)?;
         self.request_begin_scoped("turn/start",params,json!({"kind":"person-directed"}),false,Some(generation))
     }
     /// Root retains the original prepared/person/client tuple and genuine source on every
     /// error/unknown result. No generic evidence JSON can admit a native turn through this API.
     pub(crate) fn turn_start_prepared_finish<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
+        self.turn_start_prepared_finish_mode(source,prepared,person_text,client_id,None,wait)
+    }
+    pub(crate) fn turn_start_prepared_finish_mode<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
         self.check_source(source)?;
-        let expected=Self::prepared_run_turn_params(source.generation(),prepared,person_text,client_id)?;
+        let expected=Self::prepared_run_turn_params(source.generation(),prepared,person_text,client_id,mode)?;
         if source.frame["method"]!="turn/start"||source.frame["params"]!=expected{return Err("original prepared turn sender/ordered text/client identity differs".into());}
         self.wait_source_response(source,wait)?;
         let i=self.inner.0.lock().unwrap();
@@ -2434,34 +2453,46 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// Codex's built-in mode text applies and role guidance is not set aside.
     /// Codex keeps the mode on later turns until another is sent.
     pub fn turn_start_text_mode(&self, generation: &Value, thread_id: &str, text: &str, mode: &str) -> Result<Value, String> {
-        if !matches!(mode, "plan" | "default") { return Err("unknown collaboration mode".into()); }
-        let params = {
-            let i = self.inner.0.lock().unwrap();
-            if i.generation != *generation { return Err("refused-not-sent: generation changed".into()); }
-            if Self::plan_mode_availability(&i)["state"] != "offered" { return Err(format!("not started — plan mode not offered ({})", Self::plan_mode_availability(&i)["reason"].as_str().unwrap_or(""))); }
-            let thread = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id);
-            let model = thread.and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned);
-            let Some(model) = model else { return Err("not started — no model selected".into()); };
-            let effort = thread.map(|t| t["reasoningEffort"].clone()).filter(|e| e.as_str().is_some_and(|s| !s.is_empty())).unwrap_or(Value::Null);
-            let mut params = Self::text_turn_params(thread_id, text)?;
-            params["collaborationMode"] = json!({"mode":mode,"settings":{"model":model,"reasoning_effort":effort,"developer_instructions":null}});
-            Self::validate_native_result("TurnStartParams", &params)?;
-            params
-        };
-        let settings = params["collaborationMode"]["settings"].clone();
+        let element = self.collaboration_mode_element(generation, thread_id, mode)?;
+        let mut params = Self::text_turn_params(thread_id, text)?;
+        params["collaborationMode"] = element.clone();
+        Self::validate_native_result("TurnStartParams", &params)?;
         let response = self.conversation_operation("turn/start", generation, params, Duration::from_secs(20));
         if let Err(e) = &response {
             // Refused before any write: no mode was requested.
             if e.contains("refused-not-sent") || e.contains("conversation-not-loaded") { return response; }
         }
+        self.record_requested_mode(generation, thread_id, &element, response.as_ref().map(|_| ()).map_err(Clone::clone));
+        response
+    }
+
+    /// TC-4/TC-5: the `collaborationMode` element a plan/default mode turn of
+    /// this conversation carries: the conversation's reported model and
+    /// reasoning effort (null when Codex reported none) and null developer
+    /// instructions. Refused, before anything is sent, when plan mode is not
+    /// offered or the conversation has no model.
+    pub(crate) fn collaboration_mode_element(&self, generation: &Value, thread_id: &str, mode: &str) -> Result<Value, String> {
+        if !matches!(mode, "plan" | "default") { return Err("unknown collaboration mode".into()); }
+        let i = self.inner.0.lock().unwrap();
+        if i.generation != *generation { return Err("refused-not-sent: generation changed".into()); }
+        if Self::plan_mode_availability(&i)["state"] != "offered" { return Err(format!("not started — plan mode not offered ({})", Self::plan_mode_availability(&i)["reason"].as_str().unwrap_or(""))); }
+        let thread = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id);
+        let model = thread.and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned);
+        let Some(model) = model else { return Err("not started — no model selected".into()); };
+        let effort = thread.map(|t| t["reasoningEffort"].clone()).filter(|e| e.as_str().is_some_and(|s| !s.is_empty())).unwrap_or(Value::Null);
+        Ok(json!({"mode":mode,"settings":{"model":model,"reasoning_effort":effort,"developer_instructions":null}}))
+    }
+
+    /// The mode the App last requested for a conversation, recorded once a turn
+    /// carrying `element` was written: in force on a result, unknown otherwise.
+    pub(crate) fn record_requested_mode(&self, generation: &Value, thread_id: &str, element: &Value, outcome: Result<(), String>) {
         let mut i = self.inner.0.lock().unwrap();
-        let outcome = match &response {
-            Ok(_) => "turn/start result received; Codex keeps this mode on later turns until another mode is sent".to_string(),
+        let outcome = match outcome {
+            Ok(()) => "turn/start result received; Codex keeps this mode on later turns until another mode is sent".to_string(),
             Err(e) => format!("outcome not established ({e}); the conversation's current mode is unknown"),
         };
         i.requested_modes.retain(|r| !(r["generation"] == *generation && r["threadId"] == thread_id));
-        i.requested_modes.push(json!({"generation":generation,"threadId":thread_id,"mode":mode,"settings":settings,"standing":outcome}));
-        response
+        i.requested_modes.push(json!({"generation":generation,"threadId":thread_id,"mode":element["mode"],"settings":element["settings"],"standing":outcome}));
     }
 
     fn text_turn_params(thread_id: &str, text: &str) -> Result<Value, String> {
