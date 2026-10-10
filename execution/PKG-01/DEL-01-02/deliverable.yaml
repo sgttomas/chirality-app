@@ -8,15 +8,18 @@ needs:
 
 
     Notes: FACT: The technical input is the supplied boundary and selected-version types, not mere existence
-    of the supplier contract. OI-008 allocation, OI-012 supplier pin and DEP-005 inputs remain open as
-    stated. Stock/direct hosting and optional legacy reuse are preserved; no wire fields or Runtime service
+    of the supplier contract. OI-012 supplier pin and DEP-005 inputs remain open as stated; OI-008 allocation
+    is decided (UPDATE 20261010 below). Stock/direct hosting and optional legacy reuse are preserved; no wire fields or Runtime service
     are selected. INITIALIZED is the approved local-contract maturity threshold only; actual artifact/input/transfer
     availability and fulfilment remain unclaimed. No lifecycle or readiness advancement. UPDATE 20261003
     (SCA-V4-003 DX): R3-01-02-d: revised TBD-001 (G-0102-17) records that APP-V4-FIRST-INCREMENT-20260928-DECISION-1
     D4 selected Codex 0.158.0 as the definition and generation pin, not a qualification; the pin used
     for qualification remains open with the App implementation owner (also the Owner, DECISION-L L-7),
     and OI-008''s main-process division is proposed as HOSTING §12 option O-1, not selected. Identity,
-    direction, type, target, quote, maturity and closure unchanged.
+    direction, type, target, quote, maturity and closure unchanged. UPDATE 20261010: the owner decided
+    OI-008 for the whole App: "The Rust host owns everything that writes the person''s files or the App''s
+    records, talks to Codex, or captures a person''s act. The web view presents, and sends only what the
+    person initiates. It never writes records or operates the act control." TBD-001 now records it.
 
 
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'

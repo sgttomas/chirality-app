@@ -34,13 +34,16 @@ needs:
   gating: true
   evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 - from: external:OI-008
-  condition: 'Obtain the App implementation owner process-division choice at affected architecture allocation,
-    retaining main-process session/request ownership.
+  condition: 'Met 2026-10-10: the App implementation owner (the owner) chose the process division: "The
+    Rust host owns everything that writes the person''s files or the App''s records, talks to Codex, or captures
+    a person''s act. The web view presents, and sends only what the person initiates. It never writes records
+    or operates the act control." Main-process session/request ownership is retained (ScopeOfWork TBD-001;
+    docs/ARCHITECTURE.md §3).
 
 
     Notes: FACT: explicitly retained human-owned decision at its stated point of need. This is a point-of-need
-    choice, not a project-wide start gate; its decision/technical availability is unclaimed. Decision
-    artifact/location remains unspecified.
+    choice, not a project-wide start gate. UPDATE 20261010: the decision is recorded in docs/ARCHITECTURE.md
+    §3 and Open_Issues.csv OI-008 (RESOLVED_BY_OWNER_DECISION).
 
 
     Target description — TargetName: App implementation owner — process-division choice; TargetRefID:

@@ -53,13 +53,15 @@ needs:
     evidence; TargetRefID: DEP-006; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-006'
   evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
 - from: external:OI-008
-  condition: 'Obtain the owning App process-division choice at its stated point of need before architecture
-    production contracts determine guidance composition placement.
+  condition: 'Met 2026-10-10: the owner chose the App process division: "The Rust host owns everything that
+    writes the person''s files or the App''s records, talks to Codex, or captures a person''s act. The web
+    view presents, and sends only what the person initiates. It never writes records or operates the act
+    control." Guidance composition and supply-record writing are placed in the Rust host (ScopeOfWork open-matters
+    table; Design ROLE_SUPPLY §8).
 
 
-    Notes: FACT: Rust/TypeScript placement of guidance composition remains unfixed in this source. Preserve
-    the owner decision at that point of need; independent authorized work may continue. No implementation
-    allocation or decision result invented.
+    Notes: FACT: UPDATE 20261010: the source now records the owner''s ruling; Open_Issues.csv OI-008 reads
+    RESOLVED_BY_OWNER_DECISION. Shared-component placement remains with OI-014.
 
 
     Target description — TargetName: App implementation owner — App process division; TargetRefID: OI-008;

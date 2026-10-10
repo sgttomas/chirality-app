@@ -218,14 +218,17 @@ needs:
     TargetRefID: OI-002; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-002'
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: external:OI-008
-  condition: 'Consume the App implementation owner''s Rust/TypeScript allocation disposition, needed before
-    architecture production contracts, while preserving main-process session/request ownership; qualification
-    uses its actual applicable disposition.
+  condition: 'Met 2026-10-10: the App implementation owner (the owner) gave the Rust/TypeScript allocation
+    disposition: "The Rust host owns everything that writes the person''s files or the App''s records, talks
+    to Codex, or captures a person''s act. The web view presents, and sends only what the person initiates.
+    It never writes records or operates the act control." It preserves main-process session/request ownership;
+    qualification uses this disposition.
 
 
-    Notes: FACT: Accepted issue remains OPEN in the source. Its stated point of need is retained; no whole-project
-    hold, new human checkpoint, invented decision or present satisfaction. For OI-008/OI-009 the cited
-    consumption sentence refers to both preceding named issues.
+    Notes: FACT: UPDATE 20261010: docs/ARCHITECTURE.md §3 and Open_Issues.csv OI-008 (RESOLVED_BY_OWNER_DECISION)
+    record the ruling. ScopeOfWork TBD-002 still reads OPEN because that file is hash-pinned by app/examination/standalone;
+    it is brought into line at the re-freeze listed in app/CONTRACT_ISSUES.md CI-33. For OI-008/OI-009
+    the cited consumption sentence refers to both preceding named issues.
 
 
     Target description — TargetName: App implementation owner — App process division; TargetRefID: OI-008;

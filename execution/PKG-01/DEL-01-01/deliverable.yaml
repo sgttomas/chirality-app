@@ -2,15 +2,18 @@ id: DEL-01-01
 name: Stock Codex hosting and supplier contract
 needs:
 - from: external:chirality-app-v4:OI-008
-  condition: 'The App implementation owner must supply the actual Rust/TypeScript responsibility allocation
-    beyond fixed main-process invariants decision before architecture production contracts; the choice
-    remains open in this source.
+  condition: 'Met 2026-10-10: the App implementation owner (the owner) supplied the Rust/TypeScript responsibility
+    allocation beyond the fixed main-process invariants: "The Rust host owns everything that writes the
+    person''s files or the App''s records, talks to Codex, or captures a person''s act. The web view presents,
+    and sends only what the person initiates. It never writes records or operates the act control." (ScopeOfWork
+    TBD-001; docs/ARCHITECTURE.md §3). OUT-003''s account in HOSTING §12 is brought into line at the CI-33
+    re-freeze.
 
 
     Notes: FACT: Internal-project owner decision, external to this bounded unit only; EXTERNAL does not
     imply supplier/provider ownership or new allocation. Included work retains its named actor and point
-    of need. RequiredMaturity=TBD for the non-deliverable act; fulfilment unclaimed; no blanket project
-    hold.
+    of need. RequiredMaturity=TBD for the non-deliverable act; no blanket project hold. UPDATE 20261010:
+    the owner''s general OI-008 ruling supplies the decision; Open_Issues.csv OI-008 reads RESOLVED_BY_OWNER_DECISION.
 
 
     Target description — TargetName: App v4 implementation owner — Rust/TypeScript responsibility allocation

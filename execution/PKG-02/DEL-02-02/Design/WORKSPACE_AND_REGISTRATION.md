@@ -47,7 +47,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 
 - The ScopeOfWork states the obligations; this file says how the deliverable meets them at the 60% description of `loop/LOOP_INIT.md`: interfaces, states, data, sequences with failure behaviour, and verification.
 - First-increment files have already designed most of this deliverable's interfaces from the consumer side (S1-C §A.2.2): the identity tuple (WD §6.1), the trace links (EXEC §6.1), host → App refinement (EXEC §6.5), the A15 act (ACT §2.1) and its record (RS HA-10). They are **consumed unchanged** and cited by section. What this file adds is the library and draft model itself: slot and revision policy, draft identity and storage, review binding, the registration sequence, collision dispositions, package hygiene, selection, and the joins with DEL-01-03 and DEL-01-04. Edits that the other side now needs are returned as a join list, never made here (R17-14).
-- **Not in this file** (and why): visual components and the native draft view (DEL-01-04 OUT-002/OUT-004); plan revision identity (DEL-01-03); the revision digest algorithm (WD U-03, with DEL-04-03); construction and placement of the act control (DEL-01-04; OI-008); shared-type placement (OI-014); host libraries and host precedence evidence (DECISION-3); a checkpoint that requires A15 (ACT §4.1, a possible later extension); the joined V4-EXM-10 witness (DEL-09-02).
+- **Not in this file** (and why): visual components and the native draft view (DEL-01-04 OUT-002/OUT-004); plan revision identity (DEL-01-03); the revision digest algorithm (WD U-03, with DEL-04-03); construction of the act control (DEL-01-04; its placement follows the owner's OI-008 ruling, §11); shared-type placement (OI-014); host libraries and host precedence evidence (DECISION-3); a checkpoint that requires A15 (ACT §4.1, a possible later extension); the joined V4-EXM-10 witness (DEL-09-02).
 
 ## 1. What binds this design
 
@@ -58,7 +58,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 | CC-WR-TRIALS design under K-7 | How a trial mirrors a run: the trial header and the §16.2 composition of the draft's content (TT-3), trial links, fidelity readings, bring-back and the rest of TT-3a…TT-13 | PROPOSED |
 | K-8 | Registration (A15) is performed through **DEL-01-04's person-only act control**, bound to the exact reviewed bytes; a draft changed after review needs a new review | SETTLED |
 | R17-4 | Conversation content is read back from Codex; the App keeps only its own records and the pointers it needs, labelled App-observed | DERIVED |
-| R17-5 | The Rust host owns record writing; act capture is produced in the host from a native interface event, so no agent tool can operate it | INTEGRATION (PROPOSED placement) |
+| R17-5 | The Rust host owns record writing; act capture is produced in the host from a native interface event, so no agent tool can operate it | INTEGRATION; placement SETTLED by the owner's OI-008 ruling (§11) |
 | R17-8 as amended by R19-1, R19-7 | DEL-02-04 composes **role guidance only** into `developerInstructions` at conversation start; the workflow is supplied per run as a text element of the turn that starts the run, composed by DEL-02-02 (§16); an agent's own read of the file is a tool item, not evidence of supply | INTEGRATION |
 | R17-9 | No automatic decline; plan acceptance is ordinary input; untyped sessions are allowed | INTEGRATION |
 | R17-11 | WD §6.1 and EXEC HR-4 keep *derived-from* for the parent workflow identity. The A15 record names its subject by the **reviewed draft content** and, for a new revision, the **prior revision** | INTEGRATION |
@@ -105,7 +105,7 @@ Beside this file (PROPOSED, R17-1): the schema [workspace-registration.schema.js
 - **ID-3 (PROPOSED; used by C-01).** A draft is referred to as `draft:<location>:<name>@<content identity>` wherever a string is needed. A library entry reviewed in place without a draft (§4.7) is `entry:<location>:<name>@<content identity>`. This string is `relations.reviewedDraft.draft` in the persisted A15 form RS defines (R18-1 C-01; F row FR-06). A reference without a content identity names a folder, not content.
 - **ID-4 (DERIVED, EXEC §6.6).** Lineage is followed through derived-from links; a link that cannot be resolved is shown as "lineage incomplete at ‹tuple›", never guessed.
 
-## 3. Layout and data placement (PROPOSED; RS U-05 stays open; OI-008 ruled by the owner for the draft workspace, §11)
+## 3. Layout and data placement (PROPOSED; RS U-05 stays open; process placement decided by the owner, OI-008, §11)
 
 | Item | Where (project library; the user library has the same layout under `~/.chirality/`) | Written by | Standing |
 |---|---|---|---|
@@ -550,13 +550,13 @@ Prior code is optional reuse, assessed against the receiving contracts above (AR
 
 Root's current practice (`create-workflow`; Root `AGENTS.md`) agrees on drafts in `.chirality/workflow-drafts/`, review of the exact bytes, no overwrite and no auto-run; it differs in offering an "explicit authorized replacement with the prior copy kept outside discovery". K-6's revision series covers the same need without replacement.
 
-## 11. Process placement (R17-5; OI-008 ruled by the owner for the draft workspace; otherwise PROPOSED)
+## 11. Process placement (R17-5; OI-008 decided by the owner)
 
 Requirements, stated apart from placement: (a) no agent tool, MCP operation, App rule or supplier request can produce an A15 capture or a ledger line *registered* (CAP-4); (b) no registration is reachable through a local network endpoint; (c) publication reads only the snapshot (RB-6); (d) the ledger is appended under an exclusive lock (G-4).
 
-**Owner ruling for the draft workspace (OI-008; SETTLED).** For the workflow draft workspace, the owner decided: "A, proceed with the Rust host." The ruling covers the draft workspace only. Draft observation (SQ-D D-2…D-4), draft content identity, hygiene (§4.5), the §5.1 draft states and the trial pointer (TT-4) run in the Rust host. The TypeScript interface only lists and presents the drafts, states, findings, attribution and trial pointers the host reports. It names a draft back to the host only by its listed name. The ruling does not decide any other process-division question.
+**Owner ruling (OI-008; SETTLED).** On 2026-10-10 the owner decided for the whole App: "The Rust host owns everything that writes the person's files or the App's records, talks to Codex, or captures a person's act. The web view presents, and sends only what the person initiates. It never writes records or operates the act control." It generalizes the owner's earlier ruling for the workflow draft workspace ("A, proceed with the Rust host."). For the draft workspace, draft observation (SQ-D D-2…D-4), draft content identity, hygiene (§4.5), the §5.1 draft states and the trial pointer (TT-4) run in the Rust host. The TypeScript interface only lists and presents the drafts, states, findings, attribution and trial pointers the host reports. It names a draft back to the host only by its listed name.
 
-Placement under R17-5's O-1 (PROPOSED except where the ruling above settles it): the Rust host owns the library writer (store, ledger, published copy, kept-aside content), content-identity computation, hygiene, the freshness watch and SQ-X; DEL-01-04's act control capture is produced in the host from a native interface event; the Rust host composes the draft list, and the TypeScript interface presents it, the review package and the selection. Because D3 leaves the sandbox to the user, an agent with full file access could still write a forged ledger line and act record together; the App reports standing from what it can check (LS-1, LS-4) and claims no prevention.
+Placement under the ruling (R17-5's O-1 proposal agrees with it): the Rust host owns the library writer (store, ledger, published copy, kept-aside content), content-identity computation, hygiene, the freshness watch and SQ-X; DEL-01-04's act control capture is produced in the host from a native interface event; the Rust host composes the draft list, and the TypeScript interface presents it, the review package and the selection. Because D3 leaves the sandbox to the user, an agent with full file access could still write a forged ledger line and act record together; the App reports standing from what it can check (LS-1, LS-4) and claims no prevention.
 
 ## 12. Verification (designed; the library side runs on the prototype only)
 
@@ -614,7 +614,7 @@ What it does not show: any Codex behaviour, any native view, the real act contro
 | ID | Item | Owner | Point of need | Effect here |
 |---|---|---|---|---|
 | U-WR-1 | Revision identity algorithm and method designation | DEL-02-01 with DEL-04-03 (WD U-03; HOSTING U-08) | Before implementation of the store and the A15 binding | The design needs *a* content identity with a method; the prototype uses WD's illustrative digest |
-| U-WR-2 | Process placement of the library writer and of A15 capture | App implementation owner (OI-008) | Before architecture production contracts | Requirements §11 hold for any placement. **Draft workspace ruled:** The owner decided: "A, proceed with the Rust host." For the draft workspace only, draft observation, content identity, hygiene and the trial pointer run in the Rust host, and the TypeScript interface only lists and presents (§11). For anything else, R17-5's placement is still PROPOSED here |
+| U-WR-2 | *Closed by the owner's OI-008 ruling (2026-10-10):* the Rust host owns the library writer and A15 capture; the web view presents and never writes records or operates the act control (§11). Requirements §11 hold for any placement | — | — | — |
 | U-WR-3 | Location of act records outside a run, per library | DEL-04-03 (RS U-05) | Before writer implementation | The prototype keeps a per-library act log |
 | U-WR-4 | *Closed (DECISION-L L-4 A as clarified, 2026-10-02).* Library content without a registration record | The owner (decided) | — | Shipped workflows registered by the release (LS-5); byte-equal copies recognized (LS-8); the rest registered in place, several per act (§4.7) |
 | U-WR-5 | Host listing, relay and host position in unqualified names | Host owner and DEL-02-01 (WD U-10); DECISION-3 | Before host-origin discovery in the App | SL-3 places host last, PROPOSED; host steps AWAITING INPUT |
@@ -868,7 +868,7 @@ opening/ending/chaining remains EXEC-owned and separately examined.
 
 ## 17. Implementation plan for trials (CC-WR-TRIALS)
 
-For the later implementation batch. Paths are under `projects/chirality-app-v4/app/`. Following OI-008's draft-workspace ruling (§11), which already places the trial pointer in the Rust host, trial composition, snapshots, links and transcripts run there and the TypeScript interface lists and presents. Trial links and snapshots are persistence, so Root's rule asks for targeted regression checks and independent review.
+For the later implementation batch. Paths are under `projects/chirality-app-v4/app/`. Following the owner's OI-008 ruling (§11), trial composition, snapshots, links and transcripts run in the Rust host, as the trial pointer already does, and the TypeScript interface lists and presents. Trial links and snapshots are persistence, so Root's rule asks for targeted regression checks and independent review.
 
 | Step | Component and files | What it does | Tests |
 |---|---|---|---|

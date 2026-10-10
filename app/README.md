@@ -12,6 +12,13 @@ Tests use the maintained invented `tests/fixtures/FX-DP1` content. Native
 confirmation tests are explicit stand-ins; they do not establish that a person
 performed an act.
 
+Process placement follows the owner's OI-008 ruling of 2026-10-10
+(`docs/ARCHITECTURE.md` §3): "The Rust host owns everything that writes the
+person's files or the App's records, talks to Codex, or captures a person's
+act. The web view presents, and sends only what the person initiates. It never
+writes records or operates the act control." `src-tauri/` holds that host;
+`src/` holds the web view.
+
 ## Current path
 
 1. The Rust host starts the stock App Server, completes its handshake and keeps
@@ -129,8 +136,8 @@ performed an act.
     presses; the selection is then recorded as "agent proposal confirmed by the
     person". Unresolved proposals show their notice. The activity view marks run
     starts and ends from the App's run records and folds the supplied run text.
-21. **Save a workflow** starts from a draft list. Under the owner's OI-008 ruling for
-    the draft workspace ("A, proceed with the Rust host."), the Rust host observes
+21. **Save a workflow** starts from a draft list. Under the owner's OI-008 ruling
+    (first given for the draft workspace as "A, proceed with the Rust host."), the Rust host observes
     the open library's `.chirality/workflow-drafts/` folders. **Open this App
     project's workflow library** opens the explicit `CHIRALITY_WORKSPACE`; the
     folder pickers still open other libraries. For each draft the host reports

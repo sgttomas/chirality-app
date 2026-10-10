@@ -99,9 +99,13 @@ DEL-06-02's views, and not human-act records (DEL-04-03).
   hands it. Files written there with
   ordinary tools stay valid input (FR-D1). The owner agreed with this
   recommendation: "For the Fleet workspace I agree with the approach you laid
-  out and your recommendations for what the Design leaves open." This settles
-  OI-008's process placement for these records and selects their path; it
-  allocates nothing beyond them (OI-013, OI-014).
+  out and your recommendations for what the Design leaves open." This settled
+  the records' placement and selected their path. The owner's general OI-008
+  ruling of the same day extends that placement to the whole App: "The Rust host owns everything that
+  writes the person's files or the App's records, talks to Codex, or captures a
+  person's act. The web view presents, and sends only what the person
+  initiates. It never writes records or operates the act control." Neither
+  decides OI-013 or OI-014.
 - **FR-D4 Child index (R23-4).** DEL-06-01 holds the durable index of native
   children: every `dispatch_observed`, associated with a brief or not.
   RECOVERY's ledger is unchanged.
@@ -455,6 +459,6 @@ revision r3 and the vendored EU-D1 v0.2 records (hash-checked):
 |---|---|---|
 | AS-1 is guidance, not enforcement: a manager may spawn without the reference | O-A, with DEL-02-04 (guidance text) | Before the App's guidance is written |
 | PEC envelope (OI-022) | App consumer owner and PEC owner | Before operational consumer reliance |
-| Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3):* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
+| Process placement of reader and writer (OI-008) | *Settled 2026-10-10 by the owner (FR-D3), now under the general OI-008 ruling:* the Rust host reads and writes; fixed folder `<project>/.chirality/fleet/`; no folder picker in v4.0 | — |
 | Content-identity method: the prototype uses sha-256 of file bytes as a TEST VALUE (RS U-04) | Owner with DEL-04-03 | Before reliance |
 | Delegation on a stock route: observed natively at 0.160.0 with limits (§4; one run). No spawn `collabAgentToolCall` item was shown, so AS-2's spawn item and spawn-prompt identity, and AS-1's carriage, are not observable from the parent there; the child came from `subAgentActivity`. Whether another supplier surface (a child-thread read) supplies the prompt is open | A later observation | Before VER-003 on a candidate |

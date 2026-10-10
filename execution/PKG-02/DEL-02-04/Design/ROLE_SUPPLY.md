@@ -93,8 +93,8 @@ changes marked):
 
 Left out, and why: any fifth role or host role picker (V4-HOST-05; CLM-003);
 enforcement of the task limit (K-10); changing a started conversation's role
-(L-2); consumer adoption and retirement (OI-024, DEP-006); placement beyond
-R17-5 (OI-008, OI-014).
+(L-2); consumer adoption and retirement (OI-024, DEP-006); shared-component
+placement (OI-014). Process placement follows the owner's OI-008 ruling (§8).
 
 ## 2. Historical facts and decisions (Codex 0.158.0; current account §2.1)
 
@@ -629,7 +629,13 @@ C-6 (DEL-02-02's registered revision) is withdrawn (R19-7).
   mirror is C1-B's R3-02-04-c. v0.2 had O-8 as a runtime value with no row;
   R22-1 replaces that.
 
-## 8. Placement (R17-5; PROPOSED, OI-008)
+## 8. Placement (R17-5; SETTLED by the owner's OI-008 ruling)
+
+On 2026-10-10 the owner decided OI-008 for the whole App: "The Rust host owns
+everything that writes the person's files or the App's records, talks to
+Codex, or captures a person's act. The web view presents, and sends only what
+the person initiates. It never writes records or operates the act control."
+The placement below, first proposed under R17-5, follows it.
 
 Composition, store reading, child-role files, the request check and
 supply-record writing are in the Rust host, which owns the Codex process and
@@ -768,7 +774,7 @@ amendments are marked "(v0.2)".
 | U-R2 *Closed* (route A/B): L-2, B-8 | — | — | — |
 | U-R3 Current0.160.0 child-role carrier (per-thread `config` or `-c` session flags; CR-1a; historical0.158.0 adapter mechanism retained) | App implementation owner; a later observation | Before native child supply | Carrier open; currently not-supplied; primary sample is not child evidence |
 | U-R4 Composition size bound | App implementation owner | Before implementation | Length recorded |
-| U-R5 `UNRESOLVED{OI-008}` placement | App implementation owner | Before architecture contracts | §8 PROPOSED |
+| U-R5 *Closed* by the owner's OI-008 ruling (2026-10-10) | — | — | §8 SETTLED |
 | U-R6 `UNRESOLVED{OI-014}` role identity set placement | App/shared contract owners | Before allocation | Role set is the App's own |
 | U-R7 Host seat mapping; host distribution | DEL-02-01 with SWB owner | Deferred (DECISION-3) | Not designed |
 | U-R8 Consumer adoption evidence (OI-024; DEP-006) | Owner with consumers | Before adoption | VC-R5 positive waits |

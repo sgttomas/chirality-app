@@ -171,20 +171,24 @@ the workflow workspace, review and registration (DEL-02-02); policy and act
 meanings (DEL-04-01); display component meanings (DEL-04-02); the record
 format, writer and reader (DEL-04-03). §11 traces each exclusion.
 
-### 1.1 Process placement (R17-5; CC-P-A selects act capture/writing)
+### 1.1 Process placement (OI-008 decided by the owner; CC-P-A selects act capture/writing)
 
-The requirements below hold whatever placement implements them. R17-5's
-historical proposed division remains the basis of the placement column.
-CC-P-A, under this run's separate owner native-confirmation decision, selects
-PL-3's Rust-host offer/native capture and authoritative record-writing path for
-Group A: the webview proposes selection, while the native surface shows the
-full immutable selected statement/consequences and only its actual confirmation
-captures (AAC §4.1a/§6.2). Other allocation questions are not silently selected
-by that decision. AAC §5.2b records the separately selected project/library
-capture roots and visible refusal/discovery rules. Neither decision closes
-external OI-013 or remaining OI-014 work, and native qualification is still ahead.
+The requirements below hold whatever placement implements them. On 2026-10-10
+the owner decided OI-008 for the whole App: "The Rust host owns everything
+that writes the person's files or the App's records, talks to Codex, or
+captures a person's act. The web view presents, and sends only what the person
+initiates. It never writes records or operates the act control." The placement
+column below follows that ruling; it was R17-5's proposed division and agrees
+with it. CC-P-A, under this run's separate owner native-confirmation decision,
+selects PL-3's Rust-host offer/native capture and authoritative record-writing
+path for Group A: the webview proposes selection, while the native surface
+shows the full immutable selected statement/consequences and only its actual
+confirmation captures (AAC §4.1a/§6.2). AAC §5.2b records the separately
+selected project/library capture roots and visible refusal/discovery rules.
+Neither decision closes external OI-013 or remaining OI-014 work, and native
+qualification is still ahead.
 
-| # | Requirement (holds for any placement) | PROPOSED placement (R17-5) |
+| # | Requirement (holds for any placement) | Placement (OI-008 ruling) |
 |---|---|---|
 | PL-1 | The register, the answer write path and the state a card shows have one authoritative source that survives a window reload (HOSTING H2, H3; V4-EXE-01) | Rust host: register and write path; the interface renders cards from it |
 | PL-2 | A card never holds an answer as authoritative; closing or reloading a view loses no request and answers none (REQ-001, REQ-002) | Interface state is disposable; cards are rebuilt from "list outstanding" (HOSTING §6.4) |
@@ -845,7 +849,7 @@ by head and grep in `projects/chirality-app-dev/frontend/src`.
 | Record format, writer, reader | DEL-04-03 (CLM-005) | IF-7; the act control writes through the writer |
 | Unresolved policy decisions; OI-021 additions | Owner with App/SWB contract owners | §12 |
 | Every human act (A4–A7, A10, A12, A13, A15), professional reliance | The person; the accountable professional | Presented (§8) and offered (AAC); never performed or inferred |
-| OI-008 placement, OI-014 shared placement | App implementation owner; App/shared contract owners | §1.1, §9 state requirements only |
+| OI-014 shared placement (OI-008 placement is decided by the owner, §1.1) | App/shared contract owners | §9 states requirements only |
 
 No row promotes a presenter or recorder into a decision actor.
 
@@ -855,7 +859,7 @@ No row promotes a presenter or recorder into a decision actor.
 |---|---|---|---|
 | TBD-001 OI-001 residue, OI-021 additions | Owner with App/SWB contract owners | Before operation-policy production contracts | Labels come from ACT V-07; additions fill slots |
 | TBD-002 OI-002 | Ruled (D3) | — | NR-9; LB-3 |
-| TBD-003 OI-008 process division; attachment storage | App implementation owner | Before architecture production contracts | §1.1 placement PROPOSED; AO-1/AO-2 open |
+| TBD-003 OI-008 process division; attachment storage | Process division decided by the owner (2026-10-10); attachment storage: App implementation owner | Before architecture production contracts | §1.1 placement follows the ruling; AO-1/AO-2 open |
 | TBD-004 OI-012 implementation/qualification pin | App implementation owner | Before protocol generation and qualification | Designed at 0.158.0 only |
 | TBD-005 OI-014 shared placement | App/shared contract owners | Before structural/production allocation | §9 places App surfaces; code placement open |
 | U-NIR-1 Effect of the PROPOSED empty-answer and empty-grant declines (DM-4, DM-5) | App implementation owner with DEL-01-01 (U-20) | Before card implementation | Not observed; not in OBS-2's list |
