@@ -6,7 +6,8 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
-import { ContinueAsPanel, RoleChoice, RoleHeader, SupplyStatus } from "./ConversationRoles";
+import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, SupplyStatus } from "./ConversationRoles";
+import { EXACT_TEXT } from "./exactText";
 import { RunPanel, SelectedWorkflow } from "./RunPanel";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
@@ -33,7 +34,7 @@ const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === 
   ? [{ value: "api-key", label: "API key in separate configured key home" }]
   : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
 
-function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
+export function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send, steer, submitAttachments, interrupt, checkPlanMode, codexBusy }: { codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; answer: (r: Json, a: Json) => Promise<void>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default") => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -95,13 +96,17 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
     finally { setBusy(""); }
   };
   const handoffs: Json[] = host?.continueAs ?? [];
+  // Keys of this section's direct children must differ from each other: the role
+  // header and the activity view once shared the thread ID as key, and React then
+  // left the previous conversation's header mounted on every switch (witness
+  // 2026-10-10 D-1). Each per-conversation child keys on its own prefix.
   return <section id="conversation">
     <h2>Conversation text and turn control</h2>
     <label>Current-generation conversation <select disabled={!!ownBusy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
       <option value="">Select a conversation</option>
       {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{thread.threadId} · {thread.model ?? "model not reported"} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
-    {selected && <RoleHeader key={selected.threadId} thread={selected} limits={host?.roleLimits} busy={!!busy} ready={host?.state === "ready"}
+    {selected && <RoleHeader key={`role-header:${selected.threadId}`} thread={selected} limits={host?.roleLimits} busy={!!busy} ready={host?.state === "ready"}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
       fork={() => { void roleAct("forking", "conversation_fork", { generation: selected.generation, threadId: selected.threadId }, result => {
         if (result?.thread?.threadId) setThreadKey(JSON.stringify([result.thread.generation, result.thread.threadId]));
@@ -112,7 +117,7 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
       send={async draft => { const started = handoff.started; if (!started) return false; return (await roleAct("sending the handoff message", "conversation_send_text", { generation: started.generation, threadId: started.threadId, text: draft, mode: null })) !== undefined; }}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
-    <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
+    <NativeActivityView key={`activity:${selected?.threadId ?? ""}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div aria-label="Requests from Codex in this conversation">
@@ -330,10 +335,10 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
     <details><summary>Selection and libraries as the host reports them (paths shown as text; identities keep their exact bytes; a path that is not valid UTF-8 is marked)</summary>
     <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre></details>
     <WorkflowDraftsView data={data?.drafts} attachments={host?.attachmentSelections} workspace={data?.projectLibraryAvailable===true} pointerLimits={data?.trialPointerLimits} busy={busy} act={action}/>
-    <label>New draft name, or in-place library entry name <input value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
+    <label>New draft name, or in-place library entry name <input {...EXACT_TEXT} value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.selection||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>Create draft from selected content</button>
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><ul key={l.reference} aria-label="Registered revisions in the active library">{l.registered.map((row:Json)=><li key={`${row.name}@${row.revision}`}>{row.name} · revision {row.sequence} · {row.label} <button disabled={busy} onClick={()=>action("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button></li>)}</ul>)}
-    <label>Registered revision (content identity) <input value={revision} onChange={e=>setRevision(e.target.value)} disabled={busy}/></label>
+    <label>Registered revision (content identity) <input {...EXACT_TEXT} value={revision} onChange={e=>setRevision(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.activeLibrary||!name||!revision} onClick={()=>action("workflow_refine_registered",{name,revision})}>Refine registered revision from the revision store (no selection)</button>
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace:true})}>Review this unregistered in-place library entry</button>
     <small> Drafts are reviewed from the draft list above.</small>
@@ -507,7 +512,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
   </>;
   return <section>
     <h2>Decision packages</h2>
-    <p>Your name on acts you record: <input value={name} onChange={e => setName(e.target.value)} onBlur={recordName} /></p>
+    <p>Your name on acts you record: <input {...EXACT_TEXT} value={name} onChange={e => setName(e.target.value)} onBlur={recordName} /></p>
     {view?.error && <p role="alert">{view.error}</p>}
     <button onClick={refresh}>Read decision packages</button>{" "}
     <button onClick={continueRecording}>Continue pending recording and record new requests</button>
@@ -675,8 +680,7 @@ export function App() {
         </p>
         <p>Supplier standing: {host?.supplierStanding ?? "not started"}</p>
         <p>
-          <label>Model <input value={model} onChange={(e) => setModel(e.target.value)} /></label>{" "}
-          <label>Configured Codex provider <input value={modelProvider} onChange={(e) => setModelProvider(e.target.value)} /></label>
+          <ModelProviderFields model={model} modelProvider={modelProvider} setModel={setModel} setModelProvider={setModelProvider} />
         </p>
         <p><label>Access entry <select value={entryId} onChange={e => setEntryId(e.target.value)}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
         <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>

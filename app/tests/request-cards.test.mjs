@@ -5,13 +5,14 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {localRequire} from './support/load-src.mjs';
 
 // Each module is transpiled alone; a local import is served from the modules already loaded.
 const load=(name,local={})=>{
   const url=new URL(`../src/${name}.tsx`,import.meta.url);
   const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
   const exports={};const base=createRequire(url);
-  new Function('require','exports',compiled.outputText)(spec=>local[spec]??base(spec),exports);return exports;
+  new Function('require','exports',compiled.outputText)(spec=>local[spec]??localRequire(base)(spec),exports);return exports;
 };
 const activity=load('NativeActivity');
 const cards=load('RequestCards',{'./NativeActivity':activity});

@@ -100,6 +100,18 @@ Lifetime/new-conversation rules remain fixed by L-2; this first-turn pair suppli
 no resume/fork/lifetime witness. Existing VERSION_ADVANCE mechanism observations
 remain separate historical evidence.
 
+A native App witness on 2026-10-10
+(`../../../PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md`) observed the
+App's own start display for two starts on an unverified-development 0.160.0
+candidate:
+- a no-role start, shown as "Supplied at start: AGENTS.md (default, 4101 bytes);
+  base instructions not set";
+- a "Continue as HELPS_HUMANS" start, which showed the fixed role, its
+  continued-from relation and the limit row "Stated, not enforced".
+
+The witness captured no supplier-side bytes, so native supply for these cases
+remains unobserved as stated above.
+
 Native child carrier remains **not-supplied**; U-R3 stays open at0.160.0.
 Per-thread/session-flags carrier, effective user role-name collisions and actual
 fresh-child common+TASK bytes need their own evidence. Historical0.158.0 adapter

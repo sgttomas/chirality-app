@@ -458,10 +458,27 @@ keep handoffs in process memory and write no persistent role-supply log;
 delete or archive beside Fork waits on U-R13.
 
 Stop and Restart Codex (item 22) still lack an ask-first App quit with its
-quit stop-request records (K-4), the startup SR-08 write for an earlier
-session's open requests (shown derived for now), and a native witness of the
-question. The question's readable text and the default-safe buttons are tested
-in code only.
+quit stop-request records (K-4) and the startup SR-08 write for an earlier
+session's open requests (shown derived for now). The Restart Codex question
+was witnessed natively once, on 2026-10-10, with nothing live: it listed nothing
+in force and showed its three buttons with Keep Codex running as the default.
+Restart Codex was pressed, and Cancel and Keep Codex running were not. The
+Stop Codex question, a stop with live work and quit remain unwitnessed.
+
+A [first native App witness](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) was taken on 2026-10-10. It used an improvised
+debug bundle of `3a29171a44`, stock Codex 0.160.0 (unverified-development), and
+`gpt-6-luna` on a ChatGPT account signed in by the owner. It observed:
+- ChatGPT sign-in;
+- a no-role start;
+- text, plan-mode and default-mode turns;
+- an interrupt;
+- Restart Codex, then a history read and resume;
+- Continue as with a role.
+
+It qualifies nothing. Attachments and the run-end notice, workflow runs and A15,
+approval cards, delegation, quit, the WebKit/Chromium matrix and a packaged
+build remain unwitnessed. It also found that an interrupted turn's running
+command can still complete (see the note), and the bundle gap CI-31.
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.
 

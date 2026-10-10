@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { itemAnchorId, requestAnchorId } from "./NativeActivity";
+import { EXACT_TEXT } from "./exactText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Readable request cards (DEL-01-04 NIR §4.1–§4.8). A card presents what Codex
@@ -219,7 +220,7 @@ export function NativeRequestCard({ request, view, answer }: { request: Json; vi
         <label>Grant scope <select value={scope} onChange={e => setScope(e.target.value)}><option value="turn">turn</option><option value="session">session</option></select></label>
         <button disabled={busy} onClick={() => send({ permissions: p.permissions, scope })}>Grant the requested permissions</button>
         <button disabled={busy} onClick={() => send({ permissions: {}, scope })}>Grant nothing</button>
-        <label>Grant part of them (native JSON) <input value={content} onChange={e => setContent(e.target.value)} /></label>
+        <label>Grant part of them (native JSON) <input {...EXACT_TEXT} value={content} onChange={e => setContent(e.target.value)} /></label>
         <button disabled={busy || !content} onClick={() => { try { void send({ permissions: JSON.parse(content), scope }); } catch { setError("Invalid permission JSON"); } }}>Send partial grant…</button>
       </>}
       {method === QUESTION && <>
