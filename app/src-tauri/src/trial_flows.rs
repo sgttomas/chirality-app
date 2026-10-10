@@ -1420,11 +1420,19 @@ pub(crate) fn compare(root: &Mutex<WorkflowRootSession>, resolve: &dyn Fn(&str) 
             Err(cause) => json!({"turns":0,"endings":[],"commands":{"run":0,"failed":0,"list":[]},"fileChanges":[],"finalAgentMessage":null,"limits":[cause]}),
         }
     };
-    let view = |s: &Side| json!({"label":s.label,"kind":s.kind,"version":s.version,"conversation":s.conversation,"snapshot":s.snapshot,"summary":summarize(s)});
+    // The one shape the web view renders, pinned by tests/fixtures/trial-compare.json.
+    let view = |s: &Side| transcript::CompareSide {
+        label: s.label.clone(),
+        kind: s.kind.clone(),
+        version: s.version.clone(),
+        conversation: s.conversation.clone(),
+        snapshot: s.snapshot.clone(),
+        summary: summarize(s),
+    };
     let difference = match (&a.files, &b.files) {
         (Some(x), Some(y)) => transcript::version_difference(x, y),
         _ => json!({"limit":"version bytes not available for one side; no difference shown"}),
     };
-    Ok(json!({"left":view(&a),"right":view(&b),"difference":difference,"standing":"side by side as read from Codex's history, the trial snapshots and the revision store; Compare scores and judges nothing and records nothing"}))
+    Ok(transcript::compare_result(&view(&a), &view(&b), difference))
 }
 
