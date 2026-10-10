@@ -1,16 +1,22 @@
 ---
 name: coordinated-knowledge-work
-description: Use when related contributions must become one usable knowledge-work result and the team needs sustained ownership, independent assurance, and control of handoffs, shared changes, and completion.
+description: Use when related contributions must become one usable knowledge-work result and the team needs sustained ownership, independent assurance, shared changes, and completion.
 ---
 # Coordinated knowledge work
 
 This method addresses a recurring failure: capable contributors produce substantial work, yet the intended user still cannot use the result. It applies to engineering documentation, research, technical review, and similar undertakings. Use specialized workflows for their subject requirements; do not stack duplicate procedures. If work is already underway, enter at the unfinished decision with its existing evidence rather than restarting this sequence.
 
-HELP_HUMAN (Agent 0) keeps the human's purpose, tradeoffs, and reserved choices in view. WORKING_ITEMS (Agent 1) coordinates implementation and integration. HELPS_HUMANS (Agent 1) addresses genuine design questions. TASK owners and reviewers (Agent 2) execute bounded contributions without delegating. HELP_HUMAN may coordinate directly while it can sustain both alignment and integration responsibility. Introduce WORKING_ITEMS when integration demands would otherwise displace attention to the human objective. All decisions remain within assigned authority.
+Keep purpose and continuity with the person, own integration, produce useful
+contributions, and obtain independent scrutiny where warranted. These are
+responsibilities, not a staffing chart. HELP_HUMAN, HELPS_HUMANS, WORKING_ITEMS
+and TASK describe contributions that may serve the undertaking; one session can
+carry the work without delegation. TASK, when assigned, remains a bounded
+executor and does not delegate. The agent working with the person retains
+Agent 0's responsibilities. Authority comes from the assignment and host.
 
 Use one coordinator for a shared result. That role must release work and resolve interfaces; it should not become an approval stop above every operation. Add another manager only where a separate undertaking can deliver a meaningful result across a clear boundary.
 
-## 1. Prove a usable path before multiplying work
+## 1. Establish the consequential premises through a usable path
 
 Name the intended consumer, the result they must be able to use, and the conditions that establish delivery. Bind the source basis, permitted transformations, uncertainty treatment, write boundaries, and decisions reserved for others. Use the existing brief; do not create another form simply to contain these facts. Prioritize reserved choices by what they unlock: present each as a concrete choice with its consequence, and do not make approval of an internal work graph a routine human decision.
 
@@ -22,9 +28,9 @@ In a reader undertaking reported by one reviewer, implementations passed their s
 
 Place cheap, established checks where a defect is introduced. In the motivating corpus, fourteen table JSON defects escaped earlier reviews although a retained schema validator could detect them. Run that validator when generating or admitting the representation. It establishes structural validity; source comparison must still establish that the content and relationships are faithful.
 
-## 2. Commission an owner who can continue without micro-dispatch
+## 2. Keep ownership through production, repair and integration
 
-Give an owner a coherent document, system, or inquiry through production, findings, repair, and integration. Name the input basis, deliverables, write boundary, review route, ordinary decisions they may make, and conditions requiring escalation or a stop. Their first useful return should be a substantive output or a precise obstacle—not a request for permission to perform the next ordinary step.
+Own a coherent document, system, or inquiry through production, findings, repair, and integration, whether doing the work directly or assigning it to a contributor. Name the input basis, deliverables, write boundary, review route, ordinary decisions they may make, and conditions requiring escalation or a stop. Their first useful return should be a substantive output or a precise obstacle—not a request for permission to perform the next ordinary step.
 
 If satisfying an expectation would require removing, narrowing, or bypassing an existing check, pause that affected change and expose the conflict. Establish the requirement and authority for any change to the check; a newly passing result does not justify weakened assurance. Continue unaffected work. Dropping a source qualifier so a table fits its schema is not a representation fix: preserve the meaning and change the representation or expose its limitation.
 
@@ -38,9 +44,18 @@ A document owner may work through connected sections while the coordinator integ
 
 A useful standing assignment says, in substance: “Own this scope through repairs. Make completed units available to this reviewer with their exact versions. Continue the next natural unit while review proceeds, within the agreed ready-work limit. Escalate these defined changes or blockers; ordinary steps are already authorized.” This is an example, not another required template.
 
-Arrange the independent reviewer before expanding production where review is required. Start with a small ready queue and adjust it from actual review demand. Preserve the owner through findings instead of transferring the material to whoever is free. Where the host requires a new turn after a return, the coordinator must explicitly start it; a standing responsibility does not make queued advice executable. Where a host delivers late returns past the coordinator that dispatched them, that coordinator keeps its turn open until its dispatched work returns, and contributors return the result location, checks and unresolved findings through the available channel. Keep a recovery note only when delivery otherwise cannot be recovered.
+Arrange the independent reviewer before expanding production where review is required. Size the ready queue to actual review capacity. Preserve the owner through findings instead of transferring the material to whoever is free. Account for dispatched work and inspect actual returns through the host's
+completion mechanism. Do not mistake a queued message for execution or a
+completed turn for delivery of all its contributions. Keep a recovery note only
+when the undertaking's current artifacts and conversation are insufficient.
 
-Keep concurrent writes disjoint and shared changes under one integration authority. Renewal transfers logical responsibility and valid evidence; it does not justify repeating completed work. Models, staffing, and tools are assignment choices. Do not occupy every available slot merely because it exists.
+
+Keep concurrent writes disjoint and shared changes under one integration authority. Renewal transfers logical responsibility and valid evidence; it does not justify repeating completed work. Models, staffing, and tools are assignment choices. Independence is an opportunity to make progress concurrently. Do not hold
+independent work behind an unresolved branch. Arrange ownership, shared writes,
+resources and review capacity so useful work can proceed without avoidable
+waiting. Choose delegation and concurrency for their contribution to the result.
+A dependency graph exposes declared relationships; missing edges do not prove
+independence. Check relevant interfaces and shared state before relying on it.
 
 ## 3. Move a reviewed contribution into use without restarting its review
 
@@ -82,9 +97,9 @@ Agent 0 should intervene when the undertaking's purpose, tradeoffs, or managemen
 
 ## 5. Correct shared mistakes once, then verify adoption
 
-A coordinator's error can spread farther than one contributor's error. State the basis of consequential rulings and invite challenges grounded in sources or actual behavior. Findings that span owners or implicate a shared premise return to the coordinator for one recorded disposition within authority before conflicting repairs spread. Address a confirmed shared blocker promptly; do not wait for every review to finish. Reserved choices still belong to their decision owner.
+A coordinator's error can spread farther than one contributor's error. State the basis of consequential rulings and invite challenges grounded in sources or actual behavior. Findings that span owners or implicate a shared premise return to the coordinator for one shared resolution within authority before conflicting repairs spread. Address a confirmed shared blocker promptly; do not wait for every review to finish. Reserved choices still belong to their decision owner.
 
-Record the correction, the superseded decision, and affected work. Different owners may need different implementations of the same disposition. The decision remains open to new evidence. **Sending the correction does not establish that the returned result contains it.** Check adoption in the actual result before relying on it.
+Update the governing source and communicate the correction, superseded decision and affected work through the undertaking's existing change record. Different owners may need different implementations of the same disposition. The decision remains open to new evidence. **Sending the correction does not establish that the returned result contains it.** Check adoption in the actual result before relying on it.
 
 For example, a reader can pass its local tests while still implementing a rule withdrawn after dispatch. Repeating those tests alone will not prove adoption. Inspect the affected behavior or change, repair it, and check the corresponding case. Retain unrelated valid evidence.
 
