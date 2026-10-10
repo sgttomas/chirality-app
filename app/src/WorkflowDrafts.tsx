@@ -47,7 +47,7 @@ export function DraftRow({ draft, attachments, busy, act }: { draft: Json; attac
     {draft.slot?.identicalTo !== undefined && draft.slot?.identicalTo !== null && <p>Same bytes as registered revision {text(draft.slot.identicalTo)} of this library.</p>}
     <p><small>{text(draft.standing)}</small></p>
     <button disabled={busy || !!draft.tryLimit || !listed} onClick={() => { void act("workflow_try_draft", { ownerRef: attachments.ownerRef, listRevision: attachments.listRevision, name: draft.name }); }}>Try in a conversation</button>
-    <small> Adds the draft’s files to “Selected text attachments” and sends nothing. You choose an ordinary conversation and send; the message is yours — not a workflow run, not registration.</small>
+    <small> Adds the draft’s files to “Selected text attachments” and sends nothing. You choose an ordinary conversation and send; the message is yours — not a workflow run, not registration. It opens no conversation itself, and non-text files are not attached (pending owner decision, WR U-WR-24).</small>
     {draft.tryLimit && <p role="note">{text(draft.tryLimit)}</p>}
     <div><button disabled={busy || !!draft.reviewLimit} onClick={() => { void act("workflow_review_draft", { name: draft.name }); }}>Review for registration…</button>
       <small> Opens the review of exactly the listed content. Registering is your separate A15 act through the native confirmation.</small></div>
@@ -56,9 +56,12 @@ export function DraftRow({ draft, attachments, busy, act }: { draft: Json; attac
   </article>;
 }
 
-export function WorkflowDraftsView({ data, attachments, workspace, busy, act }: { data: Json; attachments: Json; workspace: boolean; busy: boolean; act: DraftAct }) {
+export function WorkflowDraftsView({ data, attachments, workspace, pointerLimits, busy, act }: { data: Json; attachments: Json; workspace: boolean; pointerLimits?: Json; busy: boolean; act: DraftAct }) {
   const drafts: Json[] = data?.drafts ?? [];
   const transitions: Json[] = data?.transitions ?? [];
+  // Problems the host could not resolve are shown, never hidden (damaged trial
+  // pointers, transitions that did not conform to the WR schema).
+  const limits: string[] = [...(pointerLimits ?? []), ...(data?.transitionLimits ?? [])].map(text);
   return <section aria-label="Workflow drafts">
     <h3>Workflow drafts</h3>
     <p>Drafts are folders under <code>.chirality/workflow-drafts/</code> of the open library. A draft has no workflow identity: trying it is an ordinary conversation, and only a registered revision runs.</p>
@@ -69,6 +72,7 @@ export function WorkflowDraftsView({ data, attachments, workspace, busy, act }: 
     {data?.state && <p>{text(data.state)}</p>}
     {data?.observedAt && <p>Listed at {text(data.observedAt)}. {text(data.standing)}.</p>}
     {data?.limit && <p role="note">{text(data.limit)}</p>}
+    {limits.length > 0 && <ul role="alert" aria-label="Draft workspace limits">{limits.map(l => <li key={l}>{l}</li>)}</ul>}
     {data && !data.state && drafts.length === 0 && !data.limit && <p>No drafts in this library.</p>}
     {drafts.map(draft => <DraftRow key={text(draft.name)} draft={draft} attachments={attachments} busy={busy} act={act} />)}
     {transitions.length > 0 && <details><summary>Observed draft changes in this App session ({transitions.length})</summary><ul>{transitions.map((t, i) =>

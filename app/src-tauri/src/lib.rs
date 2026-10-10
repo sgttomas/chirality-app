@@ -665,14 +665,8 @@ fn submit_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u6
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
     let context=state.project_context.clone();
     let recovery_home=home.thread_home_kinds.lock().unwrap().get(&serde_json::to_string(&json!([generation,thread_id])).unwrap()).copied();
-    let custody=home.attachment_custody.lock().unwrap().clone()?;
-    // WR TT-2/TT-4: draft files go only into an ordinary conversation, and an
-    // acknowledged send of them leaves one App-kept trial pointer per draft.
-    let drafts={let selection=state.attachment_selection.lock().unwrap();selection.as_ref().map_err(Clone::clone)?.draft_trials(&owner_ref,list_revision,&selection_refs)?};
-    if !drafts.is_empty(){state.workflows.lock().unwrap().draft_trial_allowed(generation["home"].as_str().ok_or("Native home absent")?,&thread_id)?;}
-    let mut result=runtime_session::submit_selected_attachments(&state.attachment_selection,&home.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,recovery_home)?;
-    if !drafts.is_empty(){result["trialPointers"]=state.workflows.lock().unwrap().record_trials(&drafts,&thread_id);}
-    Ok(result)
+    let custody=home.attachment_custody.lock().unwrap().clone();
+    runtime_session::submit_attachments_with_draft_trials(&state.attachment_selection,&state.workflows,&home.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,recovery_home)
 }
 
 /// The native selector is the only attachment path/body authority. JS carries

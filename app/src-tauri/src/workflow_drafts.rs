@@ -25,8 +25,8 @@ pub(crate) const DRAFTS: &str = ".chirality/workflow-drafts";
 pub(crate) const TRIAL_POINTERS: &str = "runtime/wr/trial-pointers";
 /// U-WR-7 as resolved by the integrator (WR §4.5 HY-5): at most 1 000 regular
 /// files and 16 MiB of regular-file bytes per package.
-pub(crate) const MAX_FILES: usize = 1000;
-pub(crate) const MAX_BYTES: u64 = 16 * 1024 * 1024;
+pub(crate) const MAX_FILES: usize = crate::workflow_workspace::PACKAGE_MAX_FILES;
+pub(crate) const MAX_BYTES: u64 = crate::workflow_workspace::PACKAGE_MAX_BYTES;
 /// TT-4's fixed standing sentence (WR schema `trial_pointer.standing`).
 pub(crate) const TRIAL_STANDING: &str =
     "draft tried in conversation; not a run of any workflow identity";
@@ -34,7 +34,7 @@ pub(crate) const TRIAL_STANDING: &str =
 /// Metadata-only pre-scan before any file is read: refuses non-regular entries
 /// (HY-3) and stops as soon as the HY-5 bound is exceeded, so an oversized or
 /// linked folder is never read into memory. Returns (files, bytes).
-fn prescan(root: &Path) -> Result<(usize, u64), String> {
+pub(crate) fn prescan(root: &Path) -> Result<(usize, u64), String> {
     fn walk(base: &Path, dir: &Path, files: &mut usize, bytes: &mut u64) -> Result<(), String> {
         let mut entries = fs::read_dir(dir)
             .map_err(|e| format!("draft folder unreadable: {}: {e}", dir.display()))?
@@ -155,6 +155,9 @@ pub(crate) struct DraftObservation {
     pub drafts: Vec<Value>,
     pub transitions: Vec<Value>,
     pub limit: Option<String>,
+    /// Transitions observed but not conforming to the WR schema: named, never
+    /// silently dropped.
+    pub transition_limits: Vec<String>,
     pub observed: Vec<ObservedDraft>,
 }
 
@@ -403,8 +406,9 @@ impl LibraryOwner {
                 if let Some(c) = &now.content {
                     t["content"] = json!({"method":SNAPSHOT_METHOD,"value":c});
                 }
-                if crate::workflow_workspace::wr_validate("draft_transition", &t).is_ok() {
-                    transitions.push(t);
+                match crate::workflow_workspace::wr_validate("draft_transition", &t) {
+                    Ok(()) => transitions.push(t),
+                    Err(e) => out.transition_limits.push(format!("draft {}: {event} transition not reported: {e}", now.name)),
                 }
             }
         }
@@ -414,8 +418,9 @@ impl LibraryOwner {
             let t = json!({"record_kind":"draft_transition","event":"removed","draft":self.draft_key(&gone.name),
                 "from":gone.state,"to":"removed","cause":"the draft folder is no longer present","time":time,
                 "attribution":{"kind":"not observed"}});
-            if crate::workflow_workspace::wr_validate("draft_transition", &t).is_ok() {
-                transitions.push(t);
+            match crate::workflow_workspace::wr_validate("draft_transition", &t) {
+                Ok(()) => transitions.push(t),
+                Err(e) => out.transition_limits.push(format!("draft {}: removed transition not reported: {e}", gone.name)),
             }
         }
         out.transitions = transitions;
@@ -541,9 +546,15 @@ impl TrialPointers {
                 return store;
             }
         };
-        let mut files: Vec<PathBuf> = entries
-            .filter_map(|e| e.ok())
-            .map(|e| e.path())
+        let mut files: Vec<PathBuf> = vec![];
+        for entry in entries {
+            match entry {
+                Ok(entry) => files.push(entry.path()),
+                Err(e) => store.limits.push(format!("trial pointers listing incomplete: {}: {e}", dir.display())),
+            }
+        }
+        let mut files: Vec<PathBuf> = files
+            .into_iter()
             .filter(|p| {
                 p.extension().is_some_and(|x| x == "json")
                     && !p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))

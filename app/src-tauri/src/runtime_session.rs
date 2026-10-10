@@ -1785,6 +1785,12 @@ pub fn reconfirm_attachment_source(
             .iter()
             .find(|slot| slot.selected.selection_ref() == reference)
             .ok_or("Unknown private attachment handle")?;
+        // WR TT-3/TT-4, NIR AT-8: a pre-filled draft file keeps the draft content
+        // it was read with. Re-reading it as an ordinary source would drop its
+        // draft standing and leave a trial pointer naming content not sent.
+        if slot.selected.draft().is_some() {
+            return Err("This file was pre-filled from a draft. If the draft changed since it was pre-filled, remove its files and choose Try in a conversation again; nothing changed".into());
+        }
         let values = (slot.native_path.clone(), slot.selected.snapshot());
         session.operation = json!({"state":"reconfirming","selectionRef":reference});
         values
@@ -1854,6 +1860,41 @@ pub fn freeze_configured_project(
         }
         None => Ok(crate::recovery::ExplicitAppProjectContext::unknown()),
     }
+}
+
+/// The attachment-bearing send with the WR draft rules around it (the IPC glue
+/// of `submit_attachments`). TT-2: a list holding draft files is refused for a
+/// conversation with a workflow run in force, before anything is prepared or
+/// written. TT-4: only an acknowledged send leaves a trial pointer, one per
+/// draft, naming the draft content the sent files were read with.
+pub fn submit_attachments_with_draft_trials(
+    state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
+    workflows: &std::sync::Mutex<WorkflowRootSession>,
+    host: &crate::hosting::Host,
+    custody: Result<std::sync::Arc<crate::hosting::attachment_custody::AttachmentCustody>, String>,
+    owner: &str,
+    revision: u64,
+    order: &[String],
+    generation: &Value,
+    thread: &str,
+    expected_turn: Option<&str>,
+    text: &str,
+    context: crate::recovery::ExplicitAppProjectContext,
+    home: Option<&str>,
+) -> Result<Value, String> {
+    let drafts = {
+        let state = state.lock().unwrap();
+        state.as_ref().map_err(Clone::clone)?.draft_trials(owner, revision, order)?
+    };
+    if !drafts.is_empty() {
+        let native_home = generation["home"].as_str().ok_or("Native home absent")?;
+        workflows.lock().unwrap().draft_trial_allowed(native_home, thread)?;
+    }
+    let mut result = submit_selected_attachments(state, host, custody?, owner, revision, order, generation, thread, expected_turn, text, context, home)?;
+    if !drafts.is_empty() {
+        result["trialPointers"] = workflows.lock().unwrap().record_trials(&drafts, thread);
+    }
+    Ok(result)
 }
 
 /// One-shot actual private list→durable Core preparation→owning context binding→
@@ -4150,14 +4191,23 @@ impl WorkflowRootSession {
             draft
         }).collect::<Vec<_>>();
         json!({"library":library,"observedAt":listing.observed_at,"limit":listing.observation.limit,"drafts":drafts,
-            "transitions":listing.transitions,
+            "transitions":listing.transitions,"transitionLimits":listing.observation.transition_limits,
             "standing":"observed by this App when listed; the App does not watch the folder between observations. A draft has no workflow identity and is not registered"})
     }
     /// TT-3: the draft's files as composer sources (never sent here).
     pub fn draft_trial_sources(&self, name: &str) -> Result<crate::workflow_workspace::registration::drafts::TrialSources, String> {
         let library = self.active_library()?;
+        // Try binds the content the person saw in the list (as RB-1 does for review).
+        let listed = self.drafts.get(&library.reference)
+            .and_then(|l| l.observation.drafts.iter().find(|d| d["name"] == name))
+            .and_then(|d| d["content"]["value"].as_str().map(str::to_owned))
+            .ok_or_else(|| format!("No listed draft named {name} with a content identity; refresh the draft list. Nothing pre-filled"))?;
         let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; nothing pre-filled")?;
-        owner.draft_trial_sources(name)
+        let sources = owner.draft_trial_sources(name)?;
+        if sources.content["value"] != listed.as_str() {
+            return Err(format!("Draft {name} changed since it was listed; refresh the draft list and try again. Nothing pre-filled"));
+        }
+        Ok(sources)
     }
     /// TT-2: a draft is tried in an ordinary conversation. A conversation with
     /// a workflow run in force in this process is refused for draft files.
@@ -4400,8 +4450,8 @@ impl WorkflowRootSession {
             if names.len() != 1 {
                 return Err("One draft name required".into());
             }
-            let now=owner.listed_draft_revision(&names[0])?;
-            owner.review_draft(&names[0],&listed.unwrap_or(now))?
+            let revision=match listed{Some(listed)=>{owner.drop_removed_draft_base(&names[0])?;listed},None=>owner.listed_draft_revision(&names[0])?};
+            owner.review_draft(&names[0],&revision)?
         };
         let view = review.current()?;
         let reference = view.review_ref().to_owned();
@@ -6574,6 +6624,48 @@ for line in sys.stdin:
         std::fs::write(f.root.join(".chirality/workflow-drafts").join(DRAFT).join("WORKFLOW.md"),"---\nname: coordinated-knowledge-work\n---\nrefined\n").unwrap();
         root.observe_drafts(&json!([])).unwrap();
         assert_eq!(draft_row(&root,DRAFT)["state"],"draft","§5.1: files change -> a refinement of that revision");
+    }
+    #[test]
+    fn a_prefilled_draft_file_cannot_be_reconfirmed_as_an_ordinary_source(){
+        let f=Fixture::new();let mut root=library_with_draft(&f);root.observe_drafts(&json!([])).unwrap();
+        let list=std::sync::Mutex::new(AttachmentSelectionSession::new(None));
+        let owner=list.lock().unwrap().as_ref().unwrap().snapshot()["ownerRef"].as_str().unwrap().to_owned();
+        let view=list.lock().unwrap().as_mut().unwrap().prefill_draft(&owner,0,root.draft_trial_sources(DRAFT).unwrap()).unwrap();
+        let first=view["selections"][0]["selection"].clone();
+        // The draft changes after the pre-fill; "Confirm current source" would read the new bytes.
+        std::fs::write(f.root.join(".chirality/workflow-drafts").join(DRAFT).join("WORKFLOW.md"),"---\nname: coordinated-knowledge-work\n---\nchanged after pre-fill\n").unwrap();
+        let mut asked=false;
+        let refused=reconfirm_attachment_source(&list,&owner,1,first["selectionRef"].as_str().unwrap(),|_|{asked=true;true}).unwrap_err();
+        assert!(refused.contains("pre-filled from a draft")&&refused.contains("Try in a conversation again"),"{refused}");
+        assert!(!asked,"no confirmation is offered for a draft file");
+        let after=list.lock().unwrap().as_ref().unwrap().snapshot();
+        assert_eq!(after["listRevision"],1,"nothing changed");
+        assert_eq!(after["selections"][0]["selection"],first,"the draft standing and the original identity stay");
+        // The trial pointer would name the pre-filled content; the send is held by AT-2.
+        let refs:Vec<String>=after["selections"].as_array().unwrap().iter().map(|s|s["selection"]["selectionRef"].as_str().unwrap().to_owned()).collect();
+        let prepared=list.lock().unwrap().as_ref().unwrap().prepare_selected(&owner,1,&refs,&crate::attachments::new_submission_ref().unwrap(),"2026-10-10T00:00:00Z");
+        assert!(prepared.unwrap_err().contains("content changed since selected"),"changed draft bytes are never sent under the old identity");
+        // Try binds the listed content: a draft changed since listing is refused.
+        assert!(root.draft_trial_sources(DRAFT).unwrap_err().contains("changed since it was listed"));
+    }
+    #[test]
+    fn the_real_submit_path_refuses_draft_files_with_a_run_in_force_before_anything_is_written(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();root.observe_drafts(&json!([])).unwrap();
+        let list=std::sync::Mutex::new(AttachmentSelectionSession::new(None));
+        let owner=list.lock().unwrap().as_ref().unwrap().snapshot()["ownerRef"].as_str().unwrap().to_owned();
+        let view=list.lock().unwrap().as_mut().unwrap().prefill_draft(&owner,0,root.draft_trial_sources(DRAFT).unwrap()).unwrap();
+        let refs:Vec<String>=view["selections"].as_array().unwrap().iter().map(|s|s["selection"]["selectionRef"].as_str().unwrap().to_owned()).collect();
+        let run=open_run(&peer,&mut root,"thread");
+        let before=peer.turn_starts();let workflows=std::sync::Mutex::new(root);
+        let refused=submit_attachments_with_draft_trials(&list,&workflows,&peer.home.host,Err("no attachment custody in this fixture".into()),&owner,1,&refs,&peer.generation,"thread",None,"try this draft",crate::recovery::ExplicitAppProjectContext::unknown(),None).unwrap_err();
+        assert!(refused.contains("TT-2")&&refused.contains(&run),"the TT-2 refusal comes before custody or dispatch: {refused}");
+        assert_eq!(peer.turn_starts(),before,"nothing written to Codex");
+        assert!(list.lock().unwrap().as_ref().unwrap().snapshot()["submissions"].as_array().unwrap().is_empty());
+        assert!(draft_row(&workflows.lock().unwrap(),DRAFT)["trials"].as_array().unwrap().is_empty(),"no pointer without a send");
+        // Another conversation passes the TT-2 rule and reaches the send step (here: no custody, so no send and no pointer).
+        let other=submit_attachments_with_draft_trials(&list,&workflows,&peer.home.host,Err("no attachment custody in this fixture".into()),&owner,1,&refs,&peer.generation,"thread-2",None,"try",crate::recovery::ExplicitAppProjectContext::unknown(),None).unwrap_err();
+        assert_eq!(other,"no attachment custody in this fixture");
+        assert!(draft_row(&workflows.lock().unwrap(),DRAFT)["trials"].as_array().unwrap().is_empty());
     }
     fn item_reads(peer:&Peer)->usize{peer.wire().iter().filter(|f|f["method"]=="thread/items/list").count()}
     fn wr_dir(peer:&Peer)->PathBuf{peer.fixture.root.join(".chirality/records/workflow")}

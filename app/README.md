@@ -130,16 +130,21 @@ performed an act.
     its content identity, the hygiene findings (HY-1…HY-5, HY-7), its WR §5.1
     state and its App-recorded base, or that it has none. Attribution names a
     Codex file-change item or an App action, or reads "not observed". Sizes are
-    bounded before any file is read, and links are never followed. Transitions
-    are observed only when the list is read; the folder is not watched.
-    **Try in a conversation** adds the draft's text files, each with its draft
-    reference (NIR AT-8), to the attachment list. It sends nothing, and non-text
-    files are listed "not attached" because the AT-10 named-path carrier is not
-    supplied. The person chooses an ordinary conversation and sends. Draft files
-    are refused for a conversation with a workflow run in force. An acknowledged
-    send keeps one App-kept trial pointer per draft (TT-4), which survives a
-    relaunch. **Review for registration…** opens the existing review for the
-    listed content, refused as DS-6 if the draft changed since listing.
+    bounded from metadata before any file is read and again by a running read
+    budget. Package files are opened no-follow and non-blocking relative to their
+    opened folder: links, FIFOs and devices are refused. Transitions are
+    observed only when the list is read; the folder is not watched.
+    **Try in a conversation** adds the draft's text files, as listed, each with
+    its draft reference (NIR AT-8), to the attachment list. It sends nothing. A
+    pre-filled draft file cannot be re-confirmed as an ordinary source. The person
+    chooses an ordinary conversation and sends. Draft files are refused for a
+    conversation with a workflow run in force. An acknowledged send keeps one
+    App-kept trial pointer per draft (TT-4), which survives a relaunch.
+    *Pending owner decision (WR U-WR-24):* TT-3 as confirmed opens a new
+    not-started conversation and names non-text files (AT-10). The App does
+    neither yet: non-text files are listed "not attached". **Review for
+    registration…** opens the existing review for the listed content, refused
+    as DS-6 if the draft changed since listing.
     Registration stays the person's A15 act at the native confirmation. A trial
     is not a run, registration, checking or acceptance.
 

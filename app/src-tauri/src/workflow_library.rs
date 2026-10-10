@@ -241,6 +241,16 @@ impl LibraryOwner {
         self.base_custody().drop_if_removed(name, &path)?;
         Ok(Snapshot::capture(&path)?.revision().to_string())
     }
+    /// §5.1 "Folder removed → the App's base pointer is dropped", for a review
+    /// whose listed content identity the caller already holds (RB-1).
+    pub(crate) fn drop_removed_draft_base(&self, name: &str) -> Result<(), String> {
+        if !super::valid_name(name) {
+            return Err("invalid draft name".into());
+        }
+        let path = self.root.join(".chirality/workflow-drafts").join(name);
+        storage::check_path(&path)?;
+        self.base_custody().drop_if_removed(name, &path)
+    }
     pub(crate) fn review_draft(
         &self,
         name: &str,
@@ -282,6 +292,11 @@ impl LibraryOwner {
             if !in_place {
                 self.base_custody().drop_if_removed(&name, &live)?;
             }
+            // HY-3/HY-5 from metadata before any byte is read (U-WR-7); the
+            // capture itself also enforces the bound while reading.
+            drafts::prescan(&live).map_err(|e| {
+                if e.starts_with("HY-") { format!("DS-5: {e}") } else { e }
+            })?;
             let snapshot = Snapshot::capture(&live)?;
             let reread = Snapshot::capture(&live)?;
             let slot = slot_lines(&ledger, &self.origin, &self.source_root, &name);

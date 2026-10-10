@@ -111,6 +111,10 @@ pub struct Snapshot {
     files: BTreeMap<String, Vec<u8>>,
     revision: String,
 }
+/// WR §4.5 HY-5 as resolved under U-WR-7: at most 1 000 regular files and
+/// 16 MiB of regular-file bytes per package.
+pub const PACKAGE_MAX_FILES: usize = 1000;
+pub const PACKAGE_MAX_BYTES: u64 = 16 * 1024 * 1024;
 impl Snapshot {
     pub fn capture(root: &Path) -> Result<Self, String> {
         if fs::symlink_metadata(root)
@@ -121,6 +125,19 @@ impl Snapshot {
             return Err("non-regular package root".into());
         }
         let mut files = BTreeMap::new();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            // The opened root descriptor, not the path, is the authority below.
+            let dir = fs::OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+                .open(root)
+                .map_err(|e| format!("non-regular package root: {e}"))?;
+            let mut budget = (0usize, 0u64);
+            walk_fd(&dir, root, "", &mut files, &mut budget)?;
+        }
+        #[cfg(not(unix))]
         walk(root, root, &mut files)?;
         Self::from_files(files)
     }
@@ -156,10 +173,10 @@ impl Snapshot {
         self.files.iter().map(|(path,bytes)|serde_json::json!({"path":path,"bytes":bytes.len(),"content":{"method":crate::role_supply::CONTENT_METHOD,"value":sha256_hex(bytes)}})).collect()
     }
     pub fn hygiene_findings(&self) -> Vec<String> {
-        let mut findings = if self.files.len() > 1000
-            || self.files.values().map(Vec::len).sum::<usize>() > 16 * 1024 * 1024
+        let mut findings = if self.files.len() > PACKAGE_MAX_FILES
+            || self.files.values().map(Vec::len).sum::<usize>() as u64 > PACKAGE_MAX_BYTES
         {
-            vec!["HY-5: package exceeds review bound (1000 files / 16 MiB)".into()]
+            vec![HY5_EXCEEDED.into()]
         } else {
             vec![]
         };
@@ -241,6 +258,109 @@ impl Snapshot {
         Ok(())
     }
 }
+const HY5_EXCEEDED: &str = "HY-5: package exceeds review bound (1000 files / 16 MiB)";
+#[cfg(unix)]
+fn same_inode(a: &fs::Metadata, b: &fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    a.dev() == b.dev() && a.ino() == b.ino()
+}
+/// `openat` relative to an opened directory: the descriptor, not a path that
+/// may have been swapped since, decides which entry is opened.
+#[cfg(unix)]
+fn open_at(dir: &fs::File, name: &std::ffi::OsStr, flags: i32) -> std::io::Result<fs::File> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::ffi::OsStrExt;
+    let name = std::ffi::CString::new(name.as_bytes())
+        .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "NUL in entry name"))?;
+    // SAFETY: `dir` is an open descriptor and `name` a NUL-terminated string.
+    let fd = unsafe { libc::openat(dir.as_raw_fd(), name.as_ptr(), flags | libc::O_CLOEXEC) };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `fd` is a fresh descriptor owned by nothing else.
+    Ok(unsafe { fs::File::from_raw_fd(fd) })
+}
+/// Package walk over opened descriptors (WR RV-2, HY-3, HY-5). Every entry is
+/// opened no-follow and non-blocking relative to its opened parent and checked
+/// with fstat: a link is refused (HY-3) and never followed, a FIFO or device is
+/// refused without blocking, and bytes are read against a running budget, so a
+/// growing file cannot exceed the bound. Names come from listing the parent's
+/// path, accepted only while that path still names the opened directory.
+#[cfg(unix)]
+fn walk_fd(
+    dir: &fs::File,
+    path: &Path,
+    prefix: &str,
+    out: &mut BTreeMap<String, Vec<u8>>,
+    budget: &mut (usize, u64),
+) -> Result<(), String> {
+    use std::io::Read;
+    let opened = dir.metadata().map_err(|e| format!("{}: {e}", path.display()))?;
+    if !opened.is_dir() {
+        return Err(format!("HY-3: non-regular entry {}", path.display()));
+    }
+    let still_here = || {
+        fs::symlink_metadata(path)
+            .is_ok_and(|m| m.file_type().is_dir() && same_inode(&m, &opened))
+    };
+    if !still_here() {
+        return Err(format!("package folder changed while read: {}", path.display()));
+    }
+    let mut names = fs::read_dir(path)
+        .map_err(|e| format!("{}: {e}", path.display()))?
+        .map(|e| e.map(|e| e.file_name()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    if !still_here() {
+        return Err(format!("package folder changed while read: {}", path.display()));
+    }
+    names.sort();
+    for name in names {
+        let shown = path.join(&name);
+        let Some(text) = name.to_str() else {
+            return Err("package path not UTF-8".into());
+        };
+        let relative = if prefix.is_empty() { text.to_owned() } else { format!("{prefix}/{text}") };
+        let flags = libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_NOCTTY;
+        let entry = match open_at(dir, &name, flags) {
+            Ok(entry) => entry,
+            Err(e) => {
+                let non_regular = e.raw_os_error() == Some(libc::ELOOP)
+                    || fs::symlink_metadata(&shown)
+                        .is_ok_and(|m| !m.file_type().is_dir() && !m.file_type().is_file());
+                return Err(if non_regular {
+                    format!("HY-3: non-regular entry {}", shown.display())
+                } else {
+                    format!("{}: {e}", shown.display())
+                });
+            }
+        };
+        let meta = entry.metadata().map_err(|e| format!("{}: {e}", shown.display()))?;
+        if meta.is_dir() {
+            walk_fd(&entry, &shown, &relative, out, budget)?;
+        } else if meta.is_file() {
+            budget.0 += 1;
+            if budget.0 > PACKAGE_MAX_FILES {
+                return Err(HY5_EXCEEDED.into());
+            }
+            let remaining = PACKAGE_MAX_BYTES - budget.1;
+            let mut bytes = Vec::new();
+            (&entry)
+                .take(remaining + 1)
+                .read_to_end(&mut bytes)
+                .map_err(|e| format!("{}: {e}", shown.display()))?;
+            budget.1 += bytes.len() as u64;
+            if budget.1 > PACKAGE_MAX_BYTES {
+                return Err(HY5_EXCEEDED.into());
+            }
+            out.insert(relative, bytes);
+        } else {
+            return Err(format!("HY-3: non-regular entry {}", shown.display()));
+        }
+    }
+    Ok(())
+}
+#[cfg(not(unix))]
 fn walk(base: &Path, dir: &Path, out: &mut BTreeMap<String, Vec<u8>>) -> Result<(), String> {
     for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;

@@ -279,3 +279,77 @@ fn trial_pointers_survive_a_new_process_and_unreadable_ones_are_reported() {
     bad["workflow"] = json!({"name":"load-check"});
     assert!(crate::workflow_workspace::wr_validate("trial_pointer", &bad).is_err());
 }
+
+#[test]
+fn the_sixteen_mebibyte_bound_refuses_listing_trial_capture_and_review() {
+    let s = Scratch::new();
+    let big = s.put("too-big", "x");
+    let used = fs::metadata(big.join("WORKFLOW.md")).unwrap().len() + fs::metadata(big.join("notes.txt")).unwrap().len();
+    // One byte over the bound in total.
+    fs::write(big.join("data.txt"), vec![b'a'; (MAX_BYTES - used + 1) as usize]).unwrap();
+    let o = observe(&s.owner(), None, &none(), &BTreeMap::new());
+    assert_eq!(row(&o, "too-big")["reference"]["findings"][0]["code"], "HY-5 size bound");
+    assert!(s.owner().draft_trial_sources("too-big").unwrap_err().contains("HY-5"));
+    // The capture's running budget refuses on its own, whatever the metadata said.
+    assert!(Snapshot::capture(&big).unwrap_err().starts_with("HY-5"));
+    let refused = s.owner().review_draft("too-big", "listed").err().unwrap();
+    assert!(refused.starts_with("DS-5: HY-5"), "{refused}");
+    // Exactly at the bound is within it.
+    fs::write(big.join("data.txt"), vec![b'a'; (MAX_BYTES - used) as usize]).unwrap();
+    assert!(Snapshot::capture(&big).is_ok());
+    assert!(prescan(&big).is_ok());
+}
+
+#[test]
+fn review_of_a_new_workflow_is_refused_as_ds6_when_the_draft_changed_since_listing() {
+    let s = Scratch::new();
+    let path = s.put("brand-new", "first");
+    let owner = s.owner();
+    let listed = owner.listed_draft_revision("brand-new").unwrap();
+    assert!(owner.latest_registered("brand-new").unwrap().is_none(), "no prior revision in the slot");
+    fs::write(path.join("notes.txt"), b"edited after listing\n").unwrap();
+    let refused = owner.review_draft("brand-new", &listed).err().unwrap();
+    assert!(refused.starts_with("DS-6"), "{refused}");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_fifo_or_a_link_in_a_package_is_refused_without_blocking_or_following() {
+    use std::os::unix::fs::symlink;
+    let s = Scratch::new();
+    let fifo_draft = s.put("with-fifo", "x");
+    let fifo = std::ffi::CString::new(fifo_draft.join("pipe").to_str().unwrap()).unwrap();
+    // SAFETY: a NUL-terminated path in this test's own scratch folder.
+    assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o600) }, 0);
+    let started = std::time::Instant::now();
+    assert!(Snapshot::capture(&fifo_draft).unwrap_err().starts_with("HY-3"), "a FIFO is never read");
+    let o = observe(&s.owner(), None, &none(), &BTreeMap::new());
+    assert_eq!(row(&o, "with-fifo")["reference"]["findings"][0]["code"], "HY-3 non-regular entry");
+    assert!(started.elapsed() < std::time::Duration::from_secs(5), "nothing blocked on the FIFO");
+    // A file or folder that is a link is refused by the descriptor walk itself.
+    let outside = Scratch::new();
+    let target = outside.put("target", "outside bytes");
+    let linked_file = s.put("linked-file", "x");
+    symlink(target.join("WORKFLOW.md"), linked_file.join("borrowed.md")).unwrap();
+    assert!(Snapshot::capture(&linked_file).unwrap_err().starts_with("HY-3"));
+    let linked_dir = s.put("linked-dir", "x");
+    symlink(&target, linked_dir.join("resources")).unwrap();
+    assert!(Snapshot::capture(&linked_dir).unwrap_err().starts_with("HY-3"));
+    // The package root itself is opened no-follow.
+    symlink(&target, s.0.join("root-link")).unwrap();
+    assert!(Snapshot::capture(&s.0.join("root-link")).is_err());
+}
+
+#[test]
+fn pointer_listing_problems_are_reported_not_dropped() {
+    let s = Scratch::new();
+    let mut store = TrialPointers::open(&s.app_data());
+    assert!(store.limits().is_empty());
+    let key = json!({"draft_location":"project","draft_root":"/r","name":"n"});
+    store.record(&key, &json!({"method":"m","value":"v"}), "thread").unwrap();
+    // A pointer entry that is not a regular file is named in the limits.
+    fs::create_dir(s.app_data().join(TRIAL_POINTERS).join("folder.json")).unwrap();
+    let reopened = TrialPointers::open(&s.app_data());
+    assert_eq!(reopened.for_draft(&key).len(), 1);
+    assert!(reopened.limits().iter().any(|l| l.contains("folder.json")), "{:?}", reopened.limits());
+}

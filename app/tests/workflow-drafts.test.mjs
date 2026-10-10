@@ -98,3 +98,13 @@ test('the list offers the project library, refresh and observed changes',()=>{
   const empty=renderToStaticMarkup(React.createElement(WorkflowDraftsView,{data:{...data,drafts:[],transitions:[]},attachments,workspace:true,busy:false,act:async()=>{}}));
   assert.match(empty,/No drafts in this library/);
 });
+
+test('damaged trial pointers and non-conforming transitions are shown, not hidden',()=>{
+  const data={library:'l',observedAt:'t',drafts:[],transitions:[],transitionLimits:['draft x: changed transition not reported: WR draft_transition refused']};
+  const h=renderToStaticMarkup(React.createElement(WorkflowDraftsView,{data,attachments,workspace:true,pointerLimits:['trial pointer malformed: /a/damaged.json: missing field'],busy:false,act:async()=>{}}));
+  assert.match(h,/role="alert" aria-label="Draft workspace limits"/);
+  assert.match(h,/trial pointer malformed: \/a\/damaged.json/);
+  assert.match(h,/changed transition not reported/);
+  const clean=renderToStaticMarkup(React.createElement(WorkflowDraftsView,{data:{...data,transitionLimits:[]},attachments,workspace:true,pointerLimits:[],busy:false,act:async()=>{}}));
+  assert.doesNotMatch(clean,/Draft workspace limits/);
+});

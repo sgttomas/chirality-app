@@ -3169,6 +3169,39 @@ mod conversation_transport_tests {
     fn shared_attachment_submit_actual_context_and_capabilities(){
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};for known in [false,true]{let(host,g,root,custody,_)=context_fixture();let(state,owner,revision,order)=shared_attachment_selected(&root);let context=if known{host.observe_conversation_project(&g,"thread",Some("H-acct"),&Context::known("explicit App P",AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();Context::known("frozen current Root Q",AppProjectSource::OpenedDirectory).unwrap()}else{Context::unknown()};let home=if known{Some("H-acct")}else{None};let result=shared_attachment_exchange(&host,&g,json!({"result":{"turn":complete_turn()}}),||crate::runtime_session::submit_selected_attachments(&state,&host,Arc::clone(&custody),&owner,revision,&order,&g,"thread",None,"explicit ordinary text without WR prefix",context.clone(),home)).unwrap();assert_eq!(result["sourceWriteConfirmed"],true);assert_eq!(result["nativeTurnRef"]["threadId"],"thread");let view=state.lock().unwrap().as_ref().unwrap().snapshot();assert_eq!(view["submissions"].as_array().unwrap().len(),1);let binding=&view["submissions"][0]["contextBinding"];if known{assert_eq!(binding["historicalProject"],"explicit App P");assert_eq!(binding["currentSubmissionProject"],"frozen current Root Q");assert_eq!(binding["persistence"],"durable App metadata");}else{assert!(binding["indexSnapshot"].is_null());assert_eq!(binding["persistence"],"memory-only");assert!(binding["limit"].as_str().unwrap().contains("cold lookup unavailable"));}let count=host.client_requests().len();state.lock().unwrap().as_mut().unwrap().refresh_submissions(&host,&custody);assert_eq!(host.client_requests().len(),count);std::fs::remove_dir_all(root).unwrap();}
     }
+    /// WR TT-4 through the real attachment submit path: a trial pointer only
+    /// after an acknowledged send, none after a native refusal.
+    #[test]
+    fn draft_trial_pointer_is_kept_only_after_an_acknowledged_attachment_send(){
+        use crate::recovery::ExplicitAppProjectContext as Context;
+        for acknowledged in [true,false]{
+            let(host,g,root,custody,_)=context_fixture();
+            let library=root.join("lib");let draft=library.join(".chirality/workflow-drafts/solo-draft");std::fs::create_dir_all(&draft).unwrap();
+            std::fs::write(draft.join("WORKFLOW.md"),"---\nname: solo-draft\n---\n# Solo\n").unwrap();
+            let workflows=Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+            {let mut w=workflows.lock().unwrap();w.set_app_user_data(root.join("app-data"));w.open_library(library.clone(),"project",None,Arc::new(Mutex::new(None))).unwrap();w.observe_drafts(&json!([])).unwrap();}
+            let state=Mutex::new(crate::runtime_session::AttachmentSelectionSession::new(None));
+            let owner=state.lock().unwrap().as_ref().unwrap().snapshot()["ownerRef"].as_str().unwrap().to_owned();
+            let sources=workflows.lock().unwrap().draft_trial_sources("solo-draft").unwrap();
+            let view=state.lock().unwrap().as_mut().unwrap().prefill_draft(&owner,0,sources).unwrap();
+            let order:Vec<String>=view["selections"].as_array().unwrap().iter().map(|r|r["selection"]["selectionRef"].as_str().unwrap().to_owned()).collect();
+            assert_eq!(order.len(),1);
+            let response=if acknowledged{json!({"result":{"turn":complete_turn()}})}else{json!({"error":{"code":-32600,"message":"synthetic refusal"}})};
+            let result=shared_attachment_exchange(&host,&g,response,||crate::runtime_session::submit_attachments_with_draft_trials(&state,&workflows,&host,Ok(Arc::clone(&custody)),&owner,1,&order,&g,"thread",None,"please try this method",Context::unknown(),None));
+            let pointers=crate::workflow_workspace::registration::drafts::TrialPointers::open(&root.join("app-data"));
+            let key=json!({"draft_location":"project","draft_root":library.join(".chirality/workflow-drafts").display().to_string(),"name":"solo-draft"});
+            if acknowledged{
+                let result=result.unwrap();assert_eq!(result["trialPointers"][0]["conversation"],"thread");
+                let kept=pointers.for_draft(&key);assert_eq!(kept.len(),1,"one pointer, kept in the App data folder");
+                assert_eq!(kept[0]["standing"],"draft tried in conversation; not a run of any workflow identity");
+                assert_eq!(kept[0]["content"]["value"],crate::workflow_workspace::Snapshot::capture(&draft).unwrap().revision());
+                assert!(workflows.lock().unwrap().snapshot()["runs"].as_array().unwrap().is_empty(),"a trial opens no run");
+            }else{
+                assert!(result.is_err());assert!(pointers.for_draft(&key).is_empty(),"no pointer after a refused send");
+            }
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
     #[test]
     fn shared_attachment_submit_drift_stale_source_and_native_error_preserve_no_retry(){
         use crate::recovery::ExplicitAppProjectContext as Context;for stale in [false,true]{let(host,g,root,custody,_)=context_fixture();let(state,owner,revision,order)=shared_attachment_selected(&root);if stale{host.inner.0.lock().unwrap().generation["spawnCounter"]=json!(2);}else{std::fs::write(root.join("first.txt"),"changed since native selection").unwrap();}no_attachment_write(&host,||{assert!(crate::runtime_session::submit_selected_attachments(&state,&host,Arc::clone(&custody),&owner,revision,&order,&g,"thread",None,"person text",Context::unknown(),None).is_err());});assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(state.lock().unwrap().as_ref().unwrap().snapshot()["selections"].as_array().unwrap().len(),1);std::fs::remove_dir_all(root).unwrap();}
