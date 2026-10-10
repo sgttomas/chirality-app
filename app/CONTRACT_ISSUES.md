@@ -838,17 +838,36 @@ record's "App implementation items". No Design or schema file was changed.
     published copy equal to the revision gives *in place*) and says so in the
     line's `evidence_limits`. Only that label depends on it: the decision to
     complete does not, and nothing reads the label for standing or selection.
-    For the RS and WR owners: carry the disposition in the A15 record if the
-    label must be the one shown at the act.
+    This is a known limit. The owner decided on 2026-10-10 to leave it as is,
+    with no schema change.
+  - **What X-2 completes that the live process might not have.** X-2
+    completes a registration whenever its A15 record, its store folder and
+    the slot's latest agree, as WR X-2 says ("the act bound this content and
+    this prior revision, and nothing changed"). This includes cases the live
+    process might have refused or never finished: an A15 recorded but whose
+    receipt did not bind the review (`begin_hot_registration` refused it and
+    the attempt was dropped), and a store folder with the same bytes left by
+    an earlier attempt that ended *not completed*. X-2 does not repeat G-1's
+    App-kept base check or ME-5's in-place entry recheck.
   - **Live or lost, without a journal.** Each open review holds the library's
     `.chirality/workflow-registration.live.lock` shared (`flock`), from before
     its A15 can be recorded until its attempt has a durable line for every
     entry. X-2 runs only if it can take that file exclusively without waiting,
-    and then takes the ledger lock and rereads. Otherwise it is deferred,
-    writes nothing, and runs at the next open. A live attempt, including one
-    left pending by a failed or uncertain append, is therefore never closed as
-    lost by another process. The OS releases the lock when a process ends, so
-    a lost attempt is closed at the next open after it.
+    and then takes the ledger lock. Otherwise it is deferred, writes nothing,
+    and runs at the next open. A live attempt, including one left pending by a
+    failed or uncertain append, is therefore not closed as lost while its
+    review holds the lock. The lock is released when its holder drops it or
+    its process ends, so a lost attempt is closed at the next open after that.
+    The tests use separate `LibraryOwner` instances in one test process; BSD
+    `flock` locks belong to each open file description, so those instances
+    conflict as two processes would. That the OS releases a dead process's
+    lock is assumed from `flock`'s documented behaviour, not tested here.
+  - **Each entry against the ledger as it is (review B1).** X-2 rereads the
+    ledger before each uncited entry. It stops when the ledger no longer
+    reads (for example, a torn line from a failed append), and it skips an
+    entry that a line now cites (same A15 and entry name). An append that
+    failed after writing its line therefore never makes the next entry reuse
+    its `ledger_seq`.
   - **One act, one line (RC-7, RB-8, RC-9).** Both writers append only under
     the exclusive ledger lock (G-4), after rereading the ledger for a line
     citing the act. The live attempt also checks this on its first pass and on
@@ -862,6 +881,10 @@ record's "App implementation items". No Design or schema file was changed.
     `sqx_registration_slot_moved_on_is_not_completed`,
     `sqx_registration_without_a_recomputing_store_is_not_completed`,
     `sqx_line_already_present_writes_nothing`,
+    `sqx_two_uncited_entries_in_one_open_take_successive_lines`,
+    `sqx_uncertain_append_in_x2_keeps_the_ledger_readable` (the reviewer's
+    B1 probe), `sqx_torn_append_in_x2_stops_and_appends_nothing_more`,
+    `sqx_multi_entry_act_partly_lost_closes_only_the_unlined_entry`,
     `sqx_live_attempt_in_another_process_is_not_closed_as_lost`,
     `v15_p1_x2_writes_nothing_it_cannot_establish` and
     `v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line` (the

@@ -100,8 +100,11 @@ embedding interface, with native sign-in (D-19; [architecture](ARCHITECTURE.md))
 - **V4-APP-02** The App offers sign-in with the user's Codex (ChatGPT)
   account, an API key, and local model servers; a user may have all three
   configured and choose per conversation (D-06).
-- **V4-APP-03** The App shows the four roles as the relationships a person
-  can choose among (D-10).
+- **V4-APP-03** The App offers HELP_HUMAN, HELPS_HUMANS and WORKING_ITEMS as
+  the conversation roles a person can choose among, or no role (D-10). TASK
+  remains one of the four standing roles: the role a manager assigns bounded
+  work to, supplied for that delegation, and not a conversation role (owner
+  ruling 2026-10-10, "TASK is not a conversational role").
 - **V4-APP-04** The App presents what the harness produces in its native form
   — plans, tool activity, delegation, requests — without translating it into
   a Chirality-specific vocabulary (L-05; [architecture](ARCHITECTURE.md) M-2).

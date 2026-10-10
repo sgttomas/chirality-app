@@ -243,6 +243,14 @@ impl SourceRequest {
     pub fn request_id(&self) -> &Value { &self.frame["id"] }
     pub fn request_ref(&self) -> &str { &self.request_ref }
     pub fn attempted_frame(&self) -> &Value { &self.frame }
+    /// Whether an actual write attempt of this frame was observed, read without
+    /// panicking (a poisoned Host lock is read through). `None` when the source
+    /// Host or its record is gone. Safe to call while unwinding.
+    pub fn write_attempt_observed(&self) -> Option<bool> {
+        let source = self.source.upgrade()?;
+        let i = source.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        i.source_requests.get(&self.frame["id"].to_string()).map(|e| e.attempt_position.is_some())
+    }
     pub fn evidence(&self) -> Value {
         let Some(source) = self.source.upgrade() else {return json!({"outcome":"source-host-unavailable"});};
         let i = source.0.lock().unwrap();

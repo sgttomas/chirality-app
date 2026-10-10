@@ -132,7 +132,8 @@ file-based rules (for FV, V4-PM-06; RF-5a, R23-39).
 ## 4. The route account (`connector.route-account.schema.json`)
 
 One account per affected question, written with the user's project
-(OI-013/OI-014: no common service; as FR-D3). It holds:
+(OI-013/OI-014: no common service; no path is selected here. DEL-06-01
+FR-D3's fixed `.chirality/fleet/` folder covers fleet records only). It holds:
 - the question, the revision asked and, for a change question, the since
   revision;
 - the trigger: which connector, why, and the receiving records that sent it;

@@ -1991,7 +1991,7 @@ struct ClaimedNotice<'a> {
 }
 impl ClaimedNotice<'_> {
     fn write_attempted(&self) -> bool {
-        self.source.as_ref().is_some_and(|source| source.evidence()["actualWriteAttemptObserved"] == true)
+        self.source.as_ref().and_then(|source| source.write_attempt_observed()).unwrap_or(false)
     }
     fn settle(mut self, result: Result<Value, String>) -> Result<Value, String> {
         let carriage = if self.write_attempted() {
@@ -2014,7 +2014,14 @@ impl Drop for ClaimedNotice<'_> {
             return;
         };
         let cause = "the attachment-bearing turn's send path ended abnormally";
-        let carriage = if self.write_attempted() {
+        // Never panics while unwinding: the Host's write facts are read through
+        // a poisoned lock; a prepared frame whose facts cannot be read at all is
+        // taken as written, outcome unknown, so the notice is not resent.
+        let attempted = match &self.source {
+            Some(source) => source.write_attempt_observed().unwrap_or(true),
+            None => false,
+        };
+        let carriage = if attempted {
             NoticeCarriage::Written {
                 turn: None,
                 outcome: json!({"state":"attachment-bearing turn written; outcome unknown; not resent","carrier":"attachment-bearing turn","limit":cause}),
@@ -5270,7 +5277,7 @@ pub(crate) fn start_workflow_run(
 ) -> Result<Value, String> {
     // V10 R-2: the call that claims B's hold (under the Root lock, once) owns A's
     // held end and releases it on every outcome, including a failure before send.
-    let (run, others, predecessor, reserved) = {
+    let (shared_run, others, predecessor, reserved) = {
         let mut root = root.lock().unwrap();
         let run = root.conversation_run(reference)?;
         let predecessor = root
@@ -5289,10 +5296,15 @@ pub(crate) fn start_workflow_run(
             Some(e) => Err(format!("{e}. Nothing sent")),
             None => hold_notices_for_start(&others, reference),
         };
-        let mut run = run.lock().unwrap();
-        let (result, held) = match checked {
-            Ok(held) => (run.send(), held),
-            Err(e) => (Err(e), vec![]),
+        // The holds are released even if the send path panics (StartHolds).
+        let (holds, refusal) = match checked {
+            Ok(held) => (StartHolds::new(held, reference, None), None),
+            Err(e) => (StartHolds::new(vec![], reference, None), Some(e)),
+        };
+        let mut run = shared_run.lock().unwrap();
+        let result = match refusal {
+            None => run.send(),
+            Some(e) => Err(e),
         };
         // V10 G-2: A's held end is written first, then B's run_opened (RE-7 order).
         let started = run.lifecycle == RunLifecycle::Open;
@@ -5305,22 +5317,63 @@ pub(crate) fn start_workflow_run(
         }
         drop(run);
         // As before on this path, other runs' notices are released, not superseded.
-        release_start_holds(&held, reference, false);
+        holds.release(false);
         return result;
     }
     if let Some(e) = reserved {
         return Err(format!("{e}. Nothing sent"));
     }
-    let mut run = run.try_lock().map_err(|_| "Original run operation pending")?;
+    let mut run = shared_run.try_lock().map_err(|_| "Original run operation pending")?;
     if run.hold_open_for.is_some() {
         return Err("This successor's start is already in progress; nothing sent".into());
     }
-    let held = hold_notices_for_start(&others, reference)?;
+    let holds = StartHolds::new(hold_notices_for_start(&others, reference)?, reference, Some(&shared_run));
     let result = run.send();
     let attempted = run.attempted;
     drop(run);
-    release_start_holds(&held, reference, attempted);
+    holds.release(attempted);
     result
+}
+/// A start's notice holds (TX-5), released exactly once: by `release` with the
+/// start's outcome on the normal path, or on drop if the start's send path
+/// ended abnormally (a panic in the send, or a poisoned lock after it), so a
+/// held notice never refuses every later turn until relaunch. On drop the
+/// starting run's `attempted` is used when its lock can be read now (held by
+/// nobody, or poisoned); otherwise the notice is pending again. A successor
+/// start ("End ‹A› and start ‹B›") passes no starting run: on that path the
+/// other runs' notices are always released, not superseded, as on its normal
+/// path.
+struct StartHolds<'a> {
+    held: Vec<std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+    reference: &'a str,
+    starting: Option<&'a std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+    released: bool,
+}
+impl<'a> StartHolds<'a> {
+    fn new(
+        held: Vec<std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+        reference: &'a str,
+        starting: Option<&'a std::sync::Arc<std::sync::Mutex<WorkflowRun>>>,
+    ) -> Self {
+        Self { held, reference, starting, released: false }
+    }
+    fn release(mut self, attempted: bool) {
+        self.released = true;
+        release_start_holds(&self.held, self.reference, attempted);
+    }
+}
+impl Drop for StartHolds<'_> {
+    fn drop(&mut self) {
+        if self.released {
+            return;
+        }
+        let attempted = match self.starting.map(|run| run.try_lock()) {
+            Some(Ok(run)) => run.attempted,
+            Some(Err(std::sync::TryLockError::Poisoned(poisoned))) => poisoned.into_inner().attempted,
+            Some(Err(std::sync::TryLockError::WouldBlock)) | None => false,
+        };
+        release_start_holds(&self.held, self.reference, attempted);
+    }
 }
 /// RE-7 / CH-1 live check of the conversation's other runs before `reference`
 /// starts, each under its own lock. A pending end notice found there is held
@@ -5432,7 +5485,7 @@ fn pending_notice_run(
 }
 const NOTICE_RUN_BUSY: &str = "The end notice of a run in this conversation must go first, and that run is busy (for example checking history); nothing sent. Try again shortly";
 const NOTICE_HELD_BY_START: &str = "A workflow run is starting in this conversation; its chain line says the earlier run ended, so that run's end notice waits for the start's outcome. Nothing sent. Try again shortly";
-const NOTICE_IN_FLIGHT: &str ="The end notice of a run in this conversation is going first in another new turn now; nothing sent. Try again shortly";
+const NOTICE_IN_FLIGHT: &str = "The end notice of a run in this conversation is going first in another new turn now; nothing sent. Try again shortly";
 /// One new turn's claim on a pending end notice (TC-2): the notice's exact
 /// published text scoped to the current generation, and the client message
 /// identity its turn carries (the supply check locates the turn by it).
@@ -7609,6 +7662,33 @@ for line in sys.stdin:
                 assert!(notice_state(&root,&a).starts_with("not sent: the successor run's chain line"));
                 assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").is_none(),"no separate notice");
                 assert_eq!(notice_frames(&peer),0);
+            }else{
+                assert!(notice_state(&root,&a).starts_with("pending"));
+                assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_ok());
+                assert_eq!(notice_frames(&peer),1);
+            }
+        }
+    }
+    // #1236 recheck minor (a): a panic in the start's send path (or a poisoned lock after it)
+    // still releases the start's holds, so the notice does not refuse every later turn until
+    // relaunch. With the starting run readable, its `attempted` decides; otherwise pending again.
+    #[test]
+    fn tc2_a_start_whose_send_path_panics_releases_its_holds(){
+        for attempted in [false,true]{
+            let peer=Peer::new();let (root,a)=ended_run(&peer);
+            let b={let mut r=root.lock().unwrap();r.prepare_run(peer.home.clone(),&peer.generation,"thread","next".into(),peer.project()).unwrap()};
+            let run=root.lock().unwrap().runs[&a].clone();
+            let starting=root.lock().unwrap().runs[&b].clone();
+            starting.lock().unwrap().attempted=attempted;
+            let held=hold_notices_for_start(std::slice::from_ref(&run),&b).unwrap();
+            let unwound=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+                let _holds=StartHolds::new(held,&b,Some(&starting));
+                panic!("fixture: the start's send path panicked");
+            }));
+            assert!(unwound.is_err());
+            assert!(run.lock().unwrap().notice_held_by_start.is_none(),"released on unwind");
+            if attempted{
+                assert!(notice_state(&root,&a).starts_with("not sent: the successor run's chain line"));
             }else{
                 assert!(notice_state(&root,&a).starts_with("pending"));
                 assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("pending").is_ok());

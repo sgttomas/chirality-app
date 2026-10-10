@@ -3,7 +3,7 @@
 Python 3 standard library, plus the installed `jsonschema` for RF-5a only (DEL-07-02's standing schema uses
 `if`/`then`, which the subset validator does not read). Validates records with DEL-04-03's subset validator
 (minischema.py, read-only).
-Layout of a fleet folder (PROPOSED for the prototype only; no placement is selected, FR §2 FR-D3):
+Layout of a fleet folder, the fixed `<project>/.chirality/fleet/` (FR §2 FR-D3, settled by the owner 2026-10-10; the prototype takes any folder):
   briefs/<briefId>.json          one brief per file, never edited (a changed brief is a new brief that supersedes)
   graphs/<undertaking>/r<n>.json  one work-graph revision per file, never edited
   coordination.fleet.jsonl       append-only: current_graph selectors and every coordination event

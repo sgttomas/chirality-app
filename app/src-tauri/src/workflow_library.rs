@@ -1543,19 +1543,28 @@ fn publish_copy_of(root: &Path, name: &str, snapshot: &Snapshot) -> Result<(), S
 }
 #[cfg(test)]
 thread_local! { static FAIL_LEDGER_SYNC: Cell<bool> = const { Cell::new(false) }; }
-/// One append fails before anything is written (V15-R1 P6).
+// One append fails before anything is written (V15-R1 P6).
 #[cfg(test)]
 thread_local! { static FAIL_LEDGER_APPEND: Cell<bool> = const { Cell::new(false) }; }
-/// Test hook: the App process is lost at this point of the next attempt pass
-/// (the attempt is then dropped, as a lost process's memory is).
+// One append writes half its line and fails (review B1: a torn line).
+#[cfg(test)]
+thread_local! { static TEAR_LEDGER_APPEND: Cell<bool> = const { Cell::new(false) }; }
+// Test hook: the App process is lost at this point of the next attempt pass
+// (the attempt is then dropped, as a lost process's memory is).
 #[cfg(test)]
 thread_local! { static LOSE_AT: Cell<u8> = const { Cell::new(0) }; }
 #[cfg(test)]
 const LOSE_BEFORE_STORE: u8 = 1;
 #[cfg(test)]
 const LOSE_BEFORE_COMMIT: u8 = 2;
+// How many times the armed point is passed before the loss (a later entry).
+#[cfg(test)]
+thread_local! { static LOSE_SKIP: Cell<u8> = const { Cell::new(0) }; }
 #[cfg(test)]
 fn lose_at(point: u8) -> Result<(), String> {
+    if LOSE_AT.with(|at| at.get() == point) && LOSE_SKIP.with(|skip| skip.replace(skip.get().saturating_sub(1))) > 0 {
+        return Ok(());
+    }
     if LOSE_AT.with(|at| at.get() == point) {
         LOSE_AT.with(|at| at.set(0));
         return Err(format!("injected process loss at point {point}"));
@@ -1723,7 +1732,7 @@ fn uncited(
 /// to the revision and the slot's latest registered revision is still the
 /// prior the act bound; otherwise it is *not completed*, and a store folder is
 /// left as it is, standing "not registered". Nothing is made selectable (RC-2).
-fn close_uncited(root: &Path, rows: &mut Vec<Value>, u: &Uncited) -> Result<String, String> {
+fn close_uncited(root: &Path, rows: &[Value], u: &Uncited) -> Result<String, String> {
     let slot = slot_lines(rows, &u.subject.origin, &u.subject.source_root, &u.subject.name);
     let in_place = u.reviewed.starts_with("entry:");
     let mut line = json!({"record_kind":"library_entry","ledger_seq":rows.len()+1,"identity":u.subject,
@@ -1810,7 +1819,6 @@ fn close_uncited(root: &Path, rows: &mut Vec<Value>, u: &Uncited) -> Result<Stri
     super::wr_validate("library_entry", &line)?;
     rc9_guard(root, rows, &line)?;
     append_line(root, &line)?;
-    rows.push(line);
     // G-5 after a completed draft registration; a failure is repaired later.
     if let (Some(path), false) = (store, in_place) {
         if let Err(error) = Snapshot::capture(&path).and_then(|s| publish_copy_of(root, name, &s)) {
@@ -1844,21 +1852,46 @@ fn reconcile_attempts(root: &Path, origin: &str, source: &str) -> Vec<String> {
         Ok(lock) => lock,
         Err(e) => return vec![format!("X-2 pending: {e}")],
     };
-    let mut rows = match read_ledger(root) {
-        Ok(rows) => rows,
-        Err(cause) => return vec![format!("X-2 pending: {cause}")],
-    };
-    let found = match uncited(root, origin, source, &rows) {
+    let found = match read_ledger(root).and_then(|rows| uncited(root, origin, source, &rows)) {
         Ok(found) => found,
         Err(cause) => return vec![format!("X-2 pending: {cause}")],
     };
-    found
-        .into_iter()
-        .map(|u| {
-            u.and_then(|u| close_uncited(root, &mut rows, &u))
-                .unwrap_or_else(|cause| format!("X-2 pending: {cause}"))
-        })
-        .collect()
+    let mut outcomes = vec![];
+    for entry in found {
+        let u = match entry {
+            Ok(u) => u,
+            Err(cause) => {
+                outcomes.push(format!("X-2 pending: {cause}"));
+                continue;
+            }
+        };
+        // An earlier append of this pass may have failed after writing bytes
+        // (an uncertain sync, or a torn line): reread the ledger before each
+        // entry, stop on a ledger that no longer reads, and skip an entry a
+        // line now cites. One act keeps one line and every ledger_seq follows
+        // the ledger as it is (RB-8, RC-9).
+        let rows = match read_ledger(root) {
+            Ok(rows) => rows,
+            Err(cause) => {
+                outcomes.push(format!("X-2 stopped: {cause}; nothing more written"));
+                break;
+            }
+        };
+        if rows.iter().any(|v| {
+            v["act"]["record_id"] == u.record_id.as_str()
+                && v["identity"]["name"] == u.subject.name.as_str()
+        }) {
+            outcomes.push(format!(
+                "A15 {} for {} now has a ledger line; nothing written",
+                u.record_id, u.subject.name
+            ));
+            continue;
+        }
+        outcomes.push(
+            close_uncited(root, &rows, &u).unwrap_or_else(|cause| format!("X-2 pending: {cause}")),
+        );
+    }
+    outcomes
 }
 fn append_line(root: &Path, line: &Value) -> Result<(), String> {
     let path = root.join(".chirality/workflow-registry.jsonl");
@@ -1875,6 +1908,11 @@ fn append_line(root: &Path, line: &Value) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     let mut bytes = serde_json::to_vec(line).map_err(|e| e.to_string())?;
     bytes.push(b'\n');
+    #[cfg(test)]
+    if TEAR_LEDGER_APPEND.with(|tear| tear.replace(false)) {
+        file.write_all(&bytes[..bytes.len() / 2]).map_err(|e| e.to_string())?;
+        return Err("injected torn ledger append (half a line written)".into());
+    }
     file.write_all(&bytes).map_err(|e| e.to_string())?;
     #[cfg(test)]
     if FAIL_LEDGER_SYNC.with(|fail| fail.replace(false)) {

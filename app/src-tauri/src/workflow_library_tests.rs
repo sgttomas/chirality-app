@@ -1626,6 +1626,106 @@ fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
     reconfirmed(&attempt.advance()[0]);
 }
 
+/// Two A15s of one library lost right after capture, with no line: one review
+/// each, both open in one process, then the process is lost.
+fn two_lost_captures(s: &Scratch) -> (String, String) {
+    let one = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    let first = owner.review_draft("sample", one.revision()).unwrap();
+    let second = owner.review_draft("sample", one.revision()).unwrap();
+    let records = (receipt(&first).record_id().to_string(), receipt(&second).record_id().to_string());
+    assert_eq!(uncited_count(s), 2);
+    records
+}
+
+/// Two uncited entries closed in one open take successive ledger lines.
+#[test]
+fn sqx_two_uncited_entries_in_one_open_take_successive_lines() {
+    let s = Scratch::new();
+    let (a, b) = two_lost_captures(&s);
+    let relaunched = s.persistent_owner();
+    assert_eq!(relaunched.reconciliation().len(), 2, "{:?}", relaunched.reconciliation());
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 2);
+    assert_eq!((&rows[0]["ledger_seq"], &rows[1]["ledger_seq"]), (&json!(1), &json!(2)));
+    assert_eq!((&rows[0]["act"]["record_id"], &rows[1]["act"]["record_id"]), (&json!(a), &json!(b)));
+    assert_eq!(uncited_count(&s), 0);
+}
+
+/// Review B1: an X-2 append that fails after writing its line (uncertain sync)
+/// must not make the next entry of the same open reuse its ledger_seq. X-2
+/// rereads the ledger before each entry; the library stays readable and each
+/// act has one line.
+#[test]
+fn sqx_uncertain_append_in_x2_keeps_the_ledger_readable() {
+    let s = Scratch::new();
+    let (a, b) = two_lost_captures(&s);
+    FAIL_LEDGER_SYNC.with(|fail| fail.set(true));
+    let relaunched = s.persistent_owner();
+    let outcome = relaunched.reconciliation().join("; ");
+    assert!(outcome.contains("injected ledger sync uncertainty"), "{outcome}");
+    let rows = read_ledger(&s.0).expect("the ledger still reads");
+    assert_eq!(rows.len(), 2, "{rows:?}");
+    for record in [&a, &b] {
+        assert_eq!(rows.iter().filter(|v| v["act"]["record_id"] == record.as_str()).count(), 1, "one act, one line");
+    }
+    assert!(s.persistent_owner().reconciliation().is_empty(), "nothing left");
+}
+
+/// Review B1, torn line: an X-2 append that writes half its line and fails
+/// stops X-2 at the next entry; nothing is appended after the torn line.
+#[test]
+fn sqx_torn_append_in_x2_stops_and_appends_nothing_more() {
+    let s = Scratch::new();
+    two_lost_captures(&s);
+    TEAR_LEDGER_APPEND.with(|tear| tear.set(true));
+    let outcome = s.persistent_owner().reconciliation().join("; ");
+    assert!(outcome.contains("injected torn ledger append"), "{outcome}");
+    assert!(outcome.contains("X-2 stopped") && outcome.contains("incomplete final line"), "{outcome}");
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let bytes = fs::read(&path).unwrap();
+    assert!(!bytes.ends_with(b"\n") && !bytes.contains(&b'\n'), "only the torn half-line");
+    // The library then reports the torn line until it is repaired by hand;
+    // nothing is decided from it.
+    assert!(s.persistent_owner().reconciliation()[0].contains("X-1 not established"));
+    assert_eq!(fs::read(&path).unwrap(), bytes);
+}
+
+/// A multi-entry in-place act partly lost: entry 1 has its line, entry 2 does
+/// not. X-2 closes entry 2 only (citations are per entry, RB-8): it completes
+/// in place citing the same A15, and entry 1 keeps its one line.
+#[test]
+fn sqx_multi_entry_act_partly_lost_closes_only_the_unlined_entry() {
+    let s = Scratch::new();
+    s.put("alpha", true, "Alpha");
+    s.put("beta", true, "Beta");
+    let owner = s.persistent_owner();
+    let session = owner.review_in_place(&["alpha".into(), "beta".into()]).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    LOSE_AT.with(|at| at.set(LOSE_BEFORE_COMMIT));
+    LOSE_SKIP.with(|skip| skip.set(1));
+    let outcomes = attempt.advance();
+    assert!(matches!(&outcomes[0], EntryOutcome::Registered { .. }), "{outcomes:?}");
+    assert!(matches!(&outcomes[1], EntryOutcome::Pending { .. }), "{outcomes:?}");
+    drop(attempt);
+    drop(owner);
+    assert_eq!(ledger(&s).len(), 1);
+    let relaunched = s.persistent_owner();
+    assert_eq!(relaunched.reconciliation().len(), 1, "{:?}", relaunched.reconciliation());
+    assert!(relaunched.reconciliation()[0].contains("completed at relaunch"), "{:?}", relaunched.reconciliation());
+    let rows = ledger(&s);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1]["identity"]["name"], "beta");
+    assert_eq!(rows[1]["outcome"], "registered");
+    assert_eq!(rows[1]["disposition"], "in place");
+    assert_eq!(rows[1]["act"]["record_id"], record.as_str());
+    assert!(rows[1]["reviewed_entry"]["entry"].as_str().unwrap().starts_with("entry:project:beta@"));
+    assert_eq!(rows.iter().filter(|v| v["identity"]["name"] == "alpha").count(), 1);
+    assert!(s.persistent_owner().reconciliation().is_empty());
+}
+
 // ---- V15 F1 (MAJOR): the App never appends a line its own reader refuses, and
 // one act never has two ledger lines (RC-7, RB-8). Based on the reviewer's
 // probes P1, P2, P5 and P6 (`v15-probe-tests.rs.txt`), restated for SQ-X without

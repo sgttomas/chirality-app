@@ -442,7 +442,9 @@ ledger line cites and decides from the record and the revision store (WR §6
 X-1, X-2; CI-24 (b)). Each open review holds
 `.chirality/workflow-registration.live.lock` shared until its attempt is
 closed, and X-2 runs only when it can hold that file exclusively, so a live
-attempt in another App process is never closed as lost. A
+attempt is not closed as lost while its review holds the lock (tested with
+separate owners in one process; release at process death is `flock`'s, not
+tested). A
 `.chirality/.workflow-staging/attempts/` folder left by an earlier build is
 no longer read. Storage keys are separate from governed identities.
 Explicitly discovered legacy `records/coordination.rs.jsonl` stays intact.
