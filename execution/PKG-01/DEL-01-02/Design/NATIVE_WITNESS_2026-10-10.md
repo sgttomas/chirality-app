@@ -57,6 +57,59 @@ input to those cases, not their result.
 the sleep "was interrupted by you after about 15 seconds", but the turn lasted
 48.4 s. The App presented the draft as the agent's, and editable.
 
+## Delegation run, same day
+
+The App was relaunched with the same candidate, Codex 0.160.0, `gpt-6-luna`
+and ChatGPT account. Two conversations were started:
+- **B**, with no role (`01a12781…`);
+- **A**, as HELPS_HUMANS (`01a12782…`), shown as "Supplied at start:
+  AGENTS.md (default, 4101 bytes) + agents/AGENT_HELPS_HUMANS.md (default,
+  1084 bytes)".
+
+| # | What was done | What the App showed | Bears on |
+|---|---|---|---|
+| 11 | A was asked to spawn one sub-agent (count the files in `project/decisions`, change nothing), wait, send one follow-up (the largest file), wait again, then close it | The turn completed in 18861 ms. The activity rows appeared in this order: "Subagent activity started · /root/decision_files (01a12784…)"; "Delegation wait · completed · from 01a12782… to no receivers reported · requested model: null (as supplied)"; "Subagent activity completed"; "Subagent activity interacted"; a second "Delegation wait"; "Subagent activity completed"; "Subagent activity interrupted" (the close). The final answer: "project/decisions contains 2 files. The largest is PKG-1.json at 948 bytes. The sub-agent's thread ID is /root/decision_files". The model knew the agent path, not the thread ID. The Descendants section read "01a12784… · last observed Codex status not reported · parent from subAgentActivity containing thread (inference) · guidance not known · return, review and integration not inferred" | DEL-01-03 REQ-003/AC-003 (NPTD §7, NV-03, VER-003); DEL-06-01 FLEET_RECORDS §4, §11 |
+| 12 | A was asked to message B, which A had not spawned, by its conversation ID using its collaboration tools | `collaboration.send_message` to `01a12781…` returned "agent with id … not found". B then had its own completed turn ("Hello—understood."), and the retry returned the same. `collaboration.list_agents` returned only A's own spawn tree: `/root` (running) and `/root/decision_files` (completed, with its last message). Neither call produced a visible item in A's activity | FLEET_RECORDS §4; delegation reach |
+| 13 | B was selected after A | **D-1 again:** A's HELPS_HUMANS role header stayed displayed above B's header | D-1 (below) |
+
+**What this establishes, with its limits (one run, one model, one account
+home).** Native delegation (spawn, wait, follow-up, close) worked on the stock
+0.160.0 route hosted through the App Server. The App showed the child, its
+activity and its descendant row without inventing a return, review or
+integration. The limits:
+- **Only `wait` appeared as a `collabAgentToolCall` item.** No item was shown
+  for the spawn, the follow-up or the close, although the App renders collab
+  call items generally (it rendered `wait`). So the spawn prompt (the spawn
+  item's `prompt` field) was not available from the parent's items. Checking
+  whether the prompt arrived verbatim would need a read of the child thread.
+  Raw frames were not inspected.
+- **The child was known from `subAgentActivity`,** and its parent only by
+  inference from the containing thread. Its Codex status and guidance were not
+  reported.
+- **The tools carried the `collaboration` namespace names** (`send_message`,
+  `list_agents`), which OBS-2 §6.1 lists under `multi_agent_v2`. Which feature
+  setting produced them was not read.
+- **An agent reached only its own spawn tree.** It could not message another
+  conversation by ID. The owner reports that in the Codex Desktop App, agents
+  in different conversations can message each other by conversation ID. That
+  version and mechanism are not established here.
+
+**Effect on Design text.**
+- **FLEET_RECORDS §11's "Delegation on any stock route is unobserved"** is now
+  observed with limits; updated in place.
+- **FLEET_RECORDS §4 AS-2** records `dispatch_observed` "when a spawn
+  completes", from the spawn item and its prompt. On this route no spawn item
+  was shown, so AS-2's input, and AS-1's `brief:<briefId>` carriage in the
+  spawn message, were not observable from the parent. This is recorded in
+  FLEET_RECORDS §4 and §11 as an open matter, without changing the rule.
+- **NPTD §7 and §14.1** (hash-pinned; not edited) state delegation as
+  "observed through the adapter; absent on stock LM Studio". That now has a
+  native stock observation, with the limits above: no spawn call item,
+  inferred parent, and status not reported.
+- Still not observed: NV-04 (a primary turn completing while a descendant is
+  active); a TASK-role conversation that delegates (NV-05, K-10); interrupting
+  a child, or a cascade from the parent; Stop Codex or quit with a child.
+
 ## Supplier observation at 0.160.0: an interrupt did not stop a running command
 
 When the person interrupted the turn, the `sleep 90` unified-exec command was
@@ -108,8 +161,8 @@ inputs and are not edited here.
 - **D-1, role headers accumulate.** After the resumed conversation was
   selected, the "Role: … / Continue as" header block rendered twice. After
   Continue as there were three blocks, one per conversation viewed, and only
-  the last had live controls. Expected: one header, for the selected
-  conversation.
+  the last had live controls. The delegation run reproduced it (item 13).
+  Expected: one header, for the selected conversation.
 - **D-2, autocapitalisation and autocorrect in identifier fields.** Typed into
   the model and provider fields, "gpt-6-luna" became "Gpt-6-luna" and "openai"
   became "Open". A person could start a conversation with the wrong model or
@@ -124,7 +177,8 @@ witnessed natively.
 - attachments and the run-end notice;
 - workflow runs, registration and A15;
 - native approval request cards (no approval prompt occurred);
-- delegation and subagents;
+- delegation beyond item 11: NV-04, a TASK-role delegation, interrupting a
+  child, and Stop Codex or quit with a child;
 - quit with its ask-first question (Restart Codex was exercised, with nothing
   live);
 - the WebKit/Chromium interface matrix;
