@@ -231,5 +231,10 @@ needs:
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/run_offers.rs
+- app/src-tauri/src/workflow_drafts.rs
+- app/src-tauri/src/workflow_library.rs
+- app/src/WorkflowDrafts.tsx
 checks:
 - app/src-tauri/src/run_offers.rs
+- app/src-tauri/src/workflow_drafts_tests.rs
+- app/tests/workflow-drafts.test.mjs

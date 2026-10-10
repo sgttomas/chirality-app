@@ -122,6 +122,26 @@ performed an act.
     presses; the selection is then recorded as "agent proposal confirmed by the
     person". Unresolved proposals show their notice. The activity view marks run
     starts and ends from the App's run records and folds the supplied run text.
+21. **Save a workflow** starts from a draft list. Under the owner's OI-008 ruling for
+    the draft workspace ("A, proceed with the Rust host."), the Rust host observes
+    the open library's `.chirality/workflow-drafts/` folders. **Open this App
+    project's workflow library** opens the explicit `CHIRALITY_WORKSPACE`; the
+    folder pickers still open other libraries. For each draft the host reports
+    its content identity, the hygiene findings (HY-1…HY-5, HY-7), its WR §5.1
+    state and its App-recorded base, or that it has none. Attribution names a
+    Codex file-change item or an App action, or reads "not observed". Sizes are
+    bounded before any file is read, and links are never followed. Transitions
+    are observed only when the list is read; the folder is not watched.
+    **Try in a conversation** adds the draft's text files, each with its draft
+    reference (NIR AT-8), to the attachment list. It sends nothing, and non-text
+    files are listed "not attached" because the AT-10 named-path carrier is not
+    supplied. The person chooses an ordinary conversation and sends. Draft files
+    are refused for a conversation with a workflow run in force. An acknowledged
+    send keeps one App-kept trial pointer per draft (TT-4), which survives a
+    relaunch. **Review for registration…** opens the existing review for the
+    listed content, refused as DS-6 if the draft changed since listing.
+    Registration stays the person's A15 act at the native confirmation. A trial
+    is not a run, registration, checking or acceptance.
 
 ## Modules
 
@@ -144,6 +164,7 @@ performed an act.
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
+| `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states, TT-3 composer sources, TT-4 trial pointers) and its list presentation in NIR §7 words; nothing here registers, reviews or runs |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
 | `src-tauri/src/lib.rs`, `src/App.tsx` | Native command boundary and presentation; the webview cannot confirm a capture itself |
 
@@ -278,7 +299,9 @@ Unwritable or incomplete targets report limits without silent relocation.
 
 Attachment metadata arrays and pointer-only client request records live under
 the App user-data `runtime/nir/attachment-supplies/` and
-`runtime/hosting/client-requests/` directories. They contain no selected text,
+`runtime/hosting/client-requests/` directories. App-kept draft bases and draft
+trial pointers live under `runtime/wr/draft-bases/` and
+`runtime/wr/trial-pointers/` there (WR §3). They contain no selected text,
 native transcript or generated supplier prompt cache. REC owns project/context
 tags through the existing pointer ledger; no competing ledger is opened.
 

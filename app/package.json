@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "build": "tsc --noEmit && vite build",
-    "test": "node --test tests/validate-records.test.mjs tests/presentation.test.mjs tests/connector-route-presentation.test.mjs tests/connector-source-presentation.test.mjs tests/native-activity.test.mjs tests/plan-mode.test.mjs tests/request-cards.test.mjs tests/run-offers.test.mjs",
+    "test": "node --test tests/validate-records.test.mjs tests/presentation.test.mjs tests/connector-route-presentation.test.mjs tests/connector-source-presentation.test.mjs tests/native-activity.test.mjs tests/plan-mode.test.mjs tests/request-cards.test.mjs tests/run-offers.test.mjs tests/workflow-drafts.test.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

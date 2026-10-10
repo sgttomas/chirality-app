@@ -199,6 +199,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
         s["workflowRoot"] = root.snapshot();
         // RN-3…RN-7: offers from agent messages observed live; display data only.
         s["workflowRoot"]["offers"] = root.offers(&s["nativeView"]);
+        // WR §3: the explicit App project can be opened as its own project library.
+        s["workflowRoot"]["projectLibraryAvailable"] = json!(state.workspace.is_some());
     }
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
@@ -664,7 +666,13 @@ fn submit_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u6
     let context=state.project_context.clone();
     let recovery_home=home.thread_home_kinds.lock().unwrap().get(&serde_json::to_string(&json!([generation,thread_id])).unwrap()).copied();
     let custody=home.attachment_custody.lock().unwrap().clone()?;
-    runtime_session::submit_selected_attachments(&state.attachment_selection,&home.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,recovery_home)
+    // WR TT-2/TT-4: draft files go only into an ordinary conversation, and an
+    // acknowledged send of them leaves one App-kept trial pointer per draft.
+    let drafts={let selection=state.attachment_selection.lock().unwrap();selection.as_ref().map_err(Clone::clone)?.draft_trials(&owner_ref,list_revision,&selection_refs)?};
+    if !drafts.is_empty(){state.workflows.lock().unwrap().draft_trial_allowed(generation["home"].as_str().ok_or("Native home absent")?,&thread_id)?;}
+    let mut result=runtime_session::submit_selected_attachments(&state.attachment_selection,&home.host,custody,&owner_ref,list_revision,&selection_refs,&generation,&thread_id,expected_turn_id.as_deref(),&text,context,recovery_home)?;
+    if !drafts.is_empty(){result["trialPointers"]=state.workflows.lock().unwrap().record_trials(&drafts,&thread_id);}
+    Ok(result)
 }
 
 /// The native selector is the only attachment path/body authority. JS carries
@@ -872,13 +880,49 @@ fn workflow_select_production_copy(state:State<'_,AppState>,name:String)->Result
 fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String)->Result<Value,String>{
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
-    let mut root=state.workflows.lock().unwrap();root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;Ok(root.snapshot())
+    let view=active_native_view(&state);
+    let mut root=state.workflows.lock().unwrap();root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
+    // WR SQ-D D-2: the opened library's drafts are listed at once.
+    Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 #[tauri::command(async)]
 fn workflow_select_registered(app:tauri::AppHandle,state:State<'_,AppState>,review_ref:String,revision:String)->Result<Value,String>{
     let Some(path)=workflow_native_folder(&app,"Select actual holding copy of this hot registered revision")? else{return Ok(json!({"state":"native selection dismissed"}));};
     let view=active_native_view(&state);
     noted_selection(&state,&view,|root|root.select_hot_registered_copy(&review_ref,&revision,path))
+}
+/// WR §3: the explicit App project's own library, without a folder picker.
+#[tauri::command(async)]
+fn workflow_open_project_library(state:State<'_,AppState>)->Result<Value,String>{
+    let view=active_native_view(&state);
+    let mut root=state.workflows.lock().unwrap();root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
+    // The library is open either way; a listing that cannot run now says so in the list.
+    Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
+}
+/// WR SQ-D D-2…D-4 in the host (OI-008 ruling): observe the active library's drafts now.
+#[tauri::command(async)]
+fn workflow_observe_drafts(state:State<'_,AppState>)->Result<Value,String>{
+    let view=active_native_view(&state);
+    state.workflows.lock().unwrap().observe_drafts(&view["items"])
+}
+/// WR TT-3 / NIR AT-8: pre-fill the attachment list with a listed draft's files.
+/// Never sends; the person sends with the ordinary attachment-bearing control.
+#[tauri::command(async)]
+fn workflow_try_draft(state:State<'_,AppState>,owner_ref:String,list_revision:u64,name:String)->Result<Value,String>{
+    let sources=state.workflows.lock().unwrap().draft_trial_sources(&name)?;
+    let mut selection=state.attachment_selection.lock().unwrap();
+    selection.as_mut().map_err(|error|error.clone())?.prefill_draft(&owner_ref,list_revision,sources)
+}
+/// WR RB-1: review a draft chosen from the host's list, bound to the listed content.
+#[tauri::command(async)]
+fn workflow_review_draft(state:State<'_,AppState>,name:String)->Result<Value,String>{
+    let home=state.homes.lock().unwrap().active();state.validate_home_source(&home)?;
+    let (_,context)=current_actor_context_for(&state,&home);
+    let view=current_native_view(&home);
+    let mut root=state.workflows.lock().unwrap();
+    root.review_listed_draft(home,context,&name)?;
+    // The review is open either way; the list shows it at its next observation.
+    Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
 #[tauri::command]
 fn workflow_create_draft(state:State<'_,AppState>,name:String)->Result<Value,String>{state.workflows.lock().unwrap().create_selected_draft(&name)}
@@ -1363,7 +1407,7 @@ pub fn run() {
             conversation_steer_text,
             conversation_interrupt,
             set_person_name,
-            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
+            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_try_draft,workflow_review_draft,workflow_select_registered,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,

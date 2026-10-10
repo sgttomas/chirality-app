@@ -166,6 +166,10 @@ pub struct DraftTrialReference {
     location: String,
     name: String,
     content: Value,
+    /// WR draft key's `draft_root`, set by the WR source owner (TT-4 pointer
+    /// key only). Never emitted in the NIR supply record, whose `draft`
+    /// element has exactly {location, name, content, standing}.
+    root: Option<String>,
 }
 impl DraftTrialReference {
     pub fn new(location: &str, name: &str, content: Value) -> Result<Self, String> {
@@ -181,7 +185,22 @@ impl DraftTrialReference {
             location: location.into(),
             name: name.into(),
             content,
+            root: None,
         })
+    }
+    /// The WR source owner names the drafts folder the draft was read from.
+    pub fn with_root(mut self, root: &str) -> Self {
+        self.root = Some(root.into());
+        self
+    }
+    /// WR `draft_key` and draft content identity for a TT-4 trial pointer;
+    /// `None` when the WR source owner did not name the drafts folder.
+    pub fn trial_key(&self) -> Option<(Value, Value)> {
+        let root = self.root.as_ref()?;
+        Some((
+            json!({"draft_location":self.location,"draft_root":root,"name":self.name}),
+            self.content.clone(),
+        ))
     }
     fn record(&self) -> Value {
         json!({"location":self.location,"name":self.name,"content":self.content,"standing":DRAFT_STANDING})
@@ -244,6 +263,14 @@ impl SelectedTextAttachment {
     }
     pub fn selection_ref(&self) -> &str {
         &self.selection_ref
+    }
+    /// The WR draft this selection belongs to (AT-8), if any.
+    pub fn draft(&self) -> Option<&DraftTrialReference> {
+        self.draft.as_ref()
+    }
+    /// The private source path, for the host-side list that retains it.
+    pub(crate) fn source_path(&self) -> &Path {
+        &self.path
     }
     pub fn native_path(&self) -> Value {
         native_path_identity(&self.path)

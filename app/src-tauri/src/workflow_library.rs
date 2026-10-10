@@ -17,6 +17,9 @@ pub(crate) struct LibraryOwner {
     origin: String,
     source_root: String,
     bases: std::sync::Arc<std::sync::Mutex<HashMap<String, WorkflowIdentity>>>,
+    /// Memory-only counterpart of a stored base record's *registered, unchanged
+    /// since* state (§5.1), for drafts whose base was recorded at G-6.
+    registered_bases: std::sync::Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
     /// WR §3 "Draft bases": the App data folder, once Root attaches it.
     base_store: Option<PathBuf>,
     /// WR §4.8 RC-2: revisions whose registration (G-4) or re-confirmation (G-4R)
@@ -42,6 +45,7 @@ impl LibraryOwner {
             origin: origin.into(),
             source_root: source_root.into(),
             bases: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+            registered_bases: Default::default(),
             base_store: None,
             held: Default::default(),
             reconciliation: vec![],
@@ -184,6 +188,7 @@ impl LibraryOwner {
     fn base_custody(&self) -> BaseCustody {
         BaseCustody {
             memory: self.bases.clone(),
+            registered_memory: self.registered_bases.clone(),
             store: self.base_store.clone(),
             draft_root: self.root.join(".chirality/workflow-drafts"),
             origin: self.origin.clone(),
@@ -525,6 +530,17 @@ impl ReviewSession {
     }
     pub(crate) fn withdraw(&self) {
         self.withdrawn.set(true);
+    }
+    /// The draft this review reads, for a draft review (not an in-place entry).
+    pub(crate) fn draft_name(&self) -> Option<&str> {
+        match self.mode {
+            ReviewMode::Draft => self.entries.first().map(|e| e.review.identity.name.as_str()),
+            _ => None,
+        }
+    }
+    /// The library root this review belongs to.
+    pub(crate) fn library_root(&self) -> &Path {
+        &self.root
     }
     pub(crate) fn current(&self) -> Result<CurrentReviewView<'_>, String> {
         if self.withdrawn.get() {
@@ -1644,6 +1660,7 @@ pub(crate) const BASE_STORE: &str = "runtime/wr/draft-bases";
 #[derive(Clone)]
 struct BaseCustody {
     memory: std::sync::Arc<std::sync::Mutex<HashMap<String, WorkflowIdentity>>>,
+    registered_memory: std::sync::Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
     store: Option<PathBuf>,
     draft_root: PathBuf,
     origin: String,
@@ -1672,10 +1689,17 @@ impl BaseCustody {
                 .map_err(|_| "App-kept base state unavailable")?
                 .get(name)
                 .cloned();
-            return Ok(BaseObservation {
-                base,
-                source: json!({"source":"process memory only; App data folder not attached","limit":"lost with this process (WR §3, U-WR-12)"}),
-            });
+            let mut source = json!({"source":"process memory only; App data folder not attached","limit":"lost with this process (WR §3, U-WR-12)"});
+            if base.is_some()
+                && self
+                    .registered_memory
+                    .lock()
+                    .map_err(|_| "App-kept base state unavailable")?
+                    .contains(name)
+            {
+                source["record"] = json!({"state":"registered, unchanged since"});
+            }
+            return Ok(BaseObservation { base, source });
         };
         let path = self.file(store, name);
         storage::check_path(&path)?;
@@ -1722,6 +1746,15 @@ impl BaseCustody {
                 .lock()
                 .map_err(|_| "App-kept base state unavailable")?
                 .insert(name.into(), base.clone());
+            let mut registered_names = self
+                .registered_memory
+                .lock()
+                .map_err(|_| "App-kept base state unavailable")?;
+            if registered {
+                registered_names.insert(name.into());
+            } else {
+                registered_names.remove(name);
+            }
             return Ok(());
         };
         let draft = self.draft_root.join(name);
@@ -1773,6 +1806,9 @@ impl BaseCustody {
                 .lock()
                 .map_err(|_| "App-kept base state unavailable")?
                 .remove(name);
+            if let Ok(mut names) = self.registered_memory.lock() {
+                names.remove(name);
+            }
             return Ok(());
         };
         let path = self.file(store, name);
@@ -1806,6 +1842,11 @@ fn finding(detail: &str) -> Option<Value> {
 #[cfg(test)]
 #[path = "workflow_library_tests.rs"]
 mod tests;
+
+/// Draft workspace (WR SQ-D D-2…D-4, §5.1, TT-3, TT-4), in the Rust host under
+/// the owner's OI-008 ruling for this workspace.
+#[path = "workflow_drafts.rs"]
+pub(crate) mod drafts;
 
 // Only remove files/directories this attempt actually created, never an existing
 // directory when exclusive reservation fails. Unknown external contents remain.

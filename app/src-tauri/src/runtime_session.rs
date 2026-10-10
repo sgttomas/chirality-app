@@ -1546,7 +1546,7 @@ impl AttachmentSelectionSession {
             "selections":self.slots.iter().enumerate().map(|(position,slot)|json!({"position":position,"selection":slot.selected.snapshot()})).collect::<Vec<_>>(),
             "operation":self.operation,"submissions":self.submissions.iter().map(|submission|json!({"submissionRef":submission.prepared.submission_ref(),"state":submission.prepared.state(),"frozenAppContext":submission.context.view(),"contextBinding":submission.context_binding,"outcome":submission.outcome,"limits":"private hot capability; no imported source or provider adoption"})).collect::<Vec<_>>(),"launchAppProjectObservation":{"source":"explicit App launch CHIRALITY_WORKSPACE","nativeRoot":self.launch_workspace.as_ref().map(|path|crate::attachments::native_path_identity(path)),
                 "associationStanding":"launch source only; no accepted REC context/persistent thread-project binding established by this picker"},
-            "workflowRun":"not supplied; WR prefix/draft association is a separate producer join",
+            "workflowRun":"no workflow run is supplied with attachments; a draft's files pre-filled by Try in a conversation carry their draft reference (WR TT-3, NIR AT-8) and sending them is ordinary input",
             "submissionStanding":"private source handles; each immutable submission has its own source outcome below","custody":"private App memory; DTO/path/hash cannot construct a selection"})
     }
     fn check(&self, owner: &str, revision: u64) -> Result<(), String> {
@@ -1651,6 +1651,56 @@ impl AttachmentSelectionSession {
     fn finish_hold(&mut self, hold: &crate::attachments::AttachmentHold) -> Value {
         self.operation = json!({"state":"held","reason":format!("{:?}",hold.reason),"message":hold.message,"nativePath":hold.native_path,"displayPath":hold.display_path,"priorSelectionsRetained":true});
         self.snapshot()
+    }
+    /// WR TT-3 / NIR AT-8: pre-fill the person's private list with a draft's
+    /// files, supplied by the WR source owner (the Rust host). Nothing is sent:
+    /// the person sends with the ordinary attachment-bearing control, and that
+    /// message is their own input, not a run, workflow supply or registration.
+    pub(crate) fn prefill_draft(
+        &mut self,
+        owner: &str,
+        revision: u64,
+        sources: crate::workflow_workspace::registration::drafts::TrialSources,
+    ) -> Result<Value, String> {
+        self.check(owner, revision)?;
+        if self.slots.iter().any(|slot| {
+            slot.selected
+                .draft()
+                .and_then(|d| d.trial_key())
+                .is_some_and(|(key, content)| key == sources.key && content == sources.content)
+        }) {
+            return Err("This draft content is already in the attachment list; nothing added".into());
+        }
+        let next = self.next_revision()?;
+        self.cancel_unsent();
+        let added = sources.selections.len();
+        for selected in sources.selections {
+            let native_path = selected.source_path().to_path_buf();
+            self.slots.push(AttachmentSelectionSlot { selected, native_path });
+        }
+        self.revision = next;
+        self.operation = json!({"state":"draft-prefilled-not-sent","draft":sources.key,"content":sources.content,
+            "added":added,"notAttached":sources.not_attached,
+            "standing":"pre-filled; not sent. Choose or start an ordinary conversation, then send with the attachment-bearing control. The message is your own: no workflow run, no workflow supply, not registration (WR TT-3)"});
+        Ok(self.snapshot())
+    }
+    /// The WR drafts (TT-4 key and content) among exactly the current list, for
+    /// the trial pointer of an attachment-bearing submission of that list.
+    pub fn draft_trials(&self, owner: &str, revision: u64, order: &[String]) -> Result<Vec<(Value, Value)>, String> {
+        self.check(owner, revision)?;
+        let current = self.slots.iter().map(|slot| slot.selected.selection_ref().to_owned()).collect::<Vec<_>>();
+        if current != order {
+            return Err("Attachment submission must use the entire current private list in its current order".into());
+        }
+        let mut drafts: Vec<(Value, Value)> = vec![];
+        for slot in &self.slots {
+            if let Some(pair) = slot.selected.draft().and_then(|d| d.trial_key()) {
+                if !drafts.contains(&pair) {
+                    drafts.push(pair);
+                }
+            }
+        }
+        Ok(drafts)
     }
 }
 
@@ -3966,7 +4016,21 @@ pub(crate) struct WorkflowRootSession {
     /// WR PR-5: where the person's latest own workflow selection fell in the native
     /// view; older agent proposals are superseded by it.
     selection_mark: Option<crate::run_offers::SelectionMark>,
+    /// WR SQ-D D-2/D-4: the latest draft observation per opened library.
+    drafts: std::collections::HashMap<String, DraftListing>,
+    /// D-3 "app action": per library, draft name -> content the App itself wrote.
+    app_made: std::collections::HashMap<String, std::collections::BTreeMap<String, String>>,
+    /// WR TT-4: App-kept trial pointers (App data folder once attached).
+    trials: crate::workflow_workspace::registration::drafts::TrialPointers,
 }
+/// One library's latest draft observation and the transitions observed so far
+/// in this process (D-4), newest last and bounded.
+struct DraftListing {
+    observation: crate::workflow_workspace::registration::drafts::DraftObservation,
+    observed_at: String,
+    transitions: Vec<Value>,
+}
+const DRAFT_TRANSITIONS_KEPT: usize = 100;
 impl Default for WorkflowRootSession {
     fn default() -> Self {
         Self {
@@ -3982,6 +4046,9 @@ impl Default for WorkflowRootSession {
             held_successors: Default::default(),
             app_user_data: None,
             selection_mark: None,
+            drafts: Default::default(),
+            app_made: Default::default(),
+            trials: Default::default(),
         }
     }
 }
@@ -4004,11 +4071,125 @@ impl WorkflowRootSession {
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>run.view(id),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
             "reopened":self.reopened,
+            "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),
+            "trialPointerLimits":self.trials.limits(),
             "limit":"actual hot registrations may run; development and production bundle candidate selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
     }
     /// Startup wiring (lib.rs setup): the App user-data root for App-kept draft bases.
     pub fn set_app_user_data(&mut self, data: std::path::PathBuf) {
+        // WR §3 "Trial pointers | App data folder": read back what earlier
+        // processes kept (TT-4).
+        self.trials = crate::workflow_workspace::registration::drafts::TrialPointers::open(&data);
         self.app_user_data = Some(data);
+    }
+    /// Opens the explicit App project (CHIRALITY_WORKSPACE) as its project
+    /// library, so its drafts are listed without a folder picker. No fallback:
+    /// without an explicit App project nothing is opened.
+    pub fn open_project_library(
+        &mut self,
+        workspace: Option<&std::path::Path>,
+        workspace_control: std::sync::Arc<std::sync::Mutex<Option<crate::act_control::ActControl>>>,
+    ) -> Result<String, String> {
+        let workspace = workspace.ok_or("No explicit App project (CHIRALITY_WORKSPACE): open a project library with the folder picker instead; nothing opened")?;
+        self.open_library(workspace.to_path_buf(), "project", Some(workspace), workspace_control)
+    }
+    /// WR SQ-D D-2…D-4 for the active library: observe every draft folder now
+    /// (content identity, hygiene, WR §5.1 state, attribution) and keep the
+    /// observation. `native_items` is the active home's native activity
+    /// (`nativeView.items`), read only for D-3 attribution.
+    pub fn observe_drafts(&mut self, native_items: &Value) -> Result<Value, String> {
+        let library = self.active_library()?;
+        // §5.1 review states come from the reviews this process holds.
+        let mut reviewing: std::collections::HashMap<String, String> = Default::default();
+        for review in self.reviews.values() {
+            let Ok(review) = review.try_lock() else { continue };
+            if review.library.reference != library.reference
+                || review.status["state"] == "native confirmation dismissed; no capture/registration"
+            {
+                continue;
+            }
+            let Some(session) = review.review.as_ref() else { continue };
+            let Some(name) = session.draft_name() else { continue };
+            let state = if session.current().is_ok() { "under review" } else { "changed since review" };
+            let slot = reviewing.entry(name.to_owned()).or_insert_with(|| state.into());
+            if state == "under review" {
+                *slot = state.into();
+            }
+        }
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; drafts not observed now")?;
+        let empty = Default::default();
+        let app_made = self.app_made.get(&library.reference).unwrap_or(&empty);
+        let attribution = crate::workflow_workspace::registration::drafts::Attribution { native_items, app_made };
+        let previous = self.drafts.get(&library.reference).map(|l| l.observation.observed.clone());
+        let observation = owner.observe_drafts(previous.as_deref(), &attribution, &|name| reviewing.get(name).cloned());
+        drop(owner);
+        let listing = self.drafts.entry(library.reference.clone()).or_insert_with(|| DraftListing {
+            observation: Default::default(),
+            observed_at: String::new(),
+            transitions: vec![],
+        });
+        listing.transitions.extend(observation.transitions.iter().cloned());
+        let excess = listing.transitions.len().saturating_sub(DRAFT_TRANSITIONS_KEPT);
+        listing.transitions.drain(..excess);
+        listing.observation = observation;
+        listing.observed_at = crate::util::now_rfc3339();
+        Ok(self.snapshot())
+    }
+    /// The active library's listing view, with each draft's trial pointers.
+    fn drafts_view(&self, library: &str) -> Value {
+        let Some(listing) = self.drafts.get(library) else {
+            return json!({"library":library,"state":"not observed yet; refresh the draft list","drafts":[],"transitions":[]});
+        };
+        let drafts = listing.observation.drafts.iter().map(|draft| {
+            let mut draft = draft.clone();
+            let trials = self.trials.for_draft(&draft["reference"]["draft"]).into_iter().map(|mut pointer| {
+                pointer["contentNow"] = json!(if draft["content"]["value"] == pointer["content"]["value"] { "unchanged since it was tried" } else { "changed since it was tried" });
+                pointer
+            }).collect::<Vec<_>>();
+            draft["trials"] = json!(trials);
+            draft
+        }).collect::<Vec<_>>();
+        json!({"library":library,"observedAt":listing.observed_at,"limit":listing.observation.limit,"drafts":drafts,
+            "transitions":listing.transitions,
+            "standing":"observed by this App when listed; the App does not watch the folder between observations. A draft has no workflow identity and is not registered"})
+    }
+    /// TT-3: the draft's files as composer sources (never sent here).
+    pub fn draft_trial_sources(&self, name: &str) -> Result<crate::workflow_workspace::registration::drafts::TrialSources, String> {
+        let library = self.active_library()?;
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; nothing pre-filled")?;
+        owner.draft_trial_sources(name)
+    }
+    /// TT-2: a draft is tried in an ordinary conversation. A conversation with
+    /// a workflow run in force in this process is refused for draft files.
+    pub fn draft_trial_allowed(&self, home: &str, thread: &str) -> Result<(), String> {
+        if let Some((run, _)) = self.run_in_force(home, thread)? {
+            return Err(format!("A draft is tried in an ordinary conversation (WR TT-2); workflow run {run} is in force in this conversation. End it or choose another conversation. Nothing sent"));
+        }
+        Ok(())
+    }
+    /// TT-4: one pointer per draft the person just sent into `conversation`.
+    pub fn record_trials(&mut self, drafts: &[(Value, Value)], conversation: &str) -> Value {
+        json!(drafts.iter().map(|(key, content)| match self.trials.record(key, content, conversation) {
+            Ok(pointer) => pointer,
+            Err(error) => json!({"draft":key,"state":"trial pointer not kept","limit":error}),
+        }).collect::<Vec<_>>())
+    }
+    /// RB-1 from the list: review the draft as the host last listed it. A draft
+    /// whose content changed since that listing is refused as DS-6.
+    pub fn review_listed_draft(
+        &mut self,
+        home: std::sync::Arc<HomeSession>,
+        context: Value,
+        name: &str,
+    ) -> Result<Value, String> {
+        let library = self.active_library()?;
+        let listing = self.drafts.get(&library.reference).ok_or("Drafts of this library not listed yet; refresh the draft list")?;
+        let draft = listing.observation.drafts.iter().find(|d| d["name"] == name).ok_or_else(|| format!("No listed draft named {name} in this library; refresh the draft list"))?;
+        if let Some(limit) = draft["reviewLimit"].as_str() {
+            return Err(limit.to_owned());
+        }
+        let listed = draft["content"]["value"].as_str().ok_or("Listed draft has no content identity; refresh the draft list")?.to_owned();
+        self.begin_review_listed(home, context, vec![name.to_owned()], false, Some(listed))
     }
     pub fn select_development_copy(&mut self, path: std::path::PathBuf) -> Result<Value, String> {
         let catalog = crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?;
@@ -4167,6 +4348,10 @@ impl WorkflowRootSession {
                 Err(kept) => format!("Draft copied but App-kept base not recorded ({error}); the copy was not removed ({kept}); remove {} and create the draft again", crate::attachments::native_path_identity(&target)),
             });
         }
+        drop(owner);
+        // D-3: these bytes were written by an App action.
+        let revision = selected.selection.snapshot().revision().to_owned();
+        self.app_made.entry(library.reference.clone()).or_default().insert(name.into(), revision);
         Ok(
             json!({"state":"draft copied from actual closed selection","library":library.reference,"name":name,"base":selected.selection.identity(),"registration":"not captured/registered; edit then Review"}),
         )
@@ -4178,7 +4363,10 @@ impl WorkflowRootSession {
         let library = self.active_library()?;
         let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; draft operation pending")?;
         let mut made = owner.refine_from_store(name, revision)?;
+        drop(owner);
         made["library"] = json!(library.reference);
+        // D-3: the draft's bytes are the revision's, written by an App action.
+        self.app_made.entry(library.reference.clone()).or_default().insert(name.into(), revision.into());
         Ok(made)
     }
     pub fn begin_review(
@@ -4187,6 +4375,18 @@ impl WorkflowRootSession {
         context: Value,
         names: Vec<String>,
         in_place: bool,
+    ) -> Result<Value, String> {
+        self.begin_review_listed(home, context, names, in_place, None)
+    }
+    /// `listed`: the draft content identity the host's draft list showed (RB-1);
+    /// otherwise the draft is listed now, at review.
+    fn begin_review_listed(
+        &mut self,
+        home: std::sync::Arc<HomeSession>,
+        context: Value,
+        names: Vec<String>,
+        in_place: bool,
+        listed: Option<String>,
     ) -> Result<Value, String> {
         let library = self.active_library()?;
         // The caller holds Root. Never wait for an owner retained by native
@@ -4200,8 +4400,8 @@ impl WorkflowRootSession {
             if names.len() != 1 {
                 return Err("One draft name required".into());
             }
-            let revision=owner.listed_draft_revision(&names[0])?;
-            owner.review_draft(&names[0],&revision)?
+            let now=owner.listed_draft_revision(&names[0])?;
+            owner.review_draft(&names[0],&listed.unwrap_or(now))?
         };
         let view = review.current()?;
         let reference = view.review_ref().to_owned();
@@ -6270,6 +6470,110 @@ for line in sys.stdin:
         let r3:Vec<Value>=peer.fixture.rs_entries().into_iter().filter(|e|e["kind"]=="supplied_guidance").collect();
         assert_eq!(r3.len(),2,"{}",run.view("run")["checks"]);for e in &r3{assert_eq!(e["body"]["supplyCheck"],"verified");assert_eq!(e["body"]["adoption"],"unknown");}
         assert_eq!(peer.turn_starts(),1);
+    }
+    // ---- Draft workspace (WR SQ-D, §5.1, TT-3, TT-4; OI-008 ruling: Rust host) ----
+    const DRAFT:&str="coordinated-knowledge-work";
+    fn draft_row(root:&WorkflowRootSession,name:&str)->Value{root.snapshot()["drafts"]["drafts"].as_array().unwrap().iter().find(|d|d["name"]==name).cloned().unwrap_or_else(||panic!("{name} not listed"))}
+    fn library_with_draft(f:&Fixture)->WorkflowRootSession{
+        let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));
+        root.open_project_library(Some(&f.root),control).unwrap();
+        root.observe_drafts(&json!([])).unwrap();
+        root.create_selected_draft(DRAFT).unwrap();root
+    }
+    fn fixture_home()->Arc<HomeSession>{Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("supplier intentionally unavailable".into())).unwrap())}
+    #[test]
+    fn draft_workspace_lists_the_project_drafts_without_a_typed_name_or_picker(){
+        let f=Fixture::new();
+        assert!(WorkflowRootSession::default().open_project_library(None,Arc::new(Mutex::new(None))).unwrap_err().contains("No explicit App project"),"no fallback library");
+        let mut root=library_with_draft(&f);
+        root.observe_drafts(&json!([])).unwrap();
+        let row=draft_row(&root,DRAFT);
+        assert_eq!(row["state"],"draft");
+        assert_eq!(row["attribution"],json!({"kind":"app action"}),"D-3: the App wrote this copy");
+        assert_eq!(row["reference"]["base_recorded_by"],"app");
+        let written=root.snapshot()["drafts"]["transitions"].as_array().unwrap().iter().find(|t|t["event"]=="written").cloned().unwrap();
+        assert_eq!(written["attribution"],json!({"kind":"app action"}));
+        // A draft written by the agent's shell or the person's editor: "not observed".
+        let other=f.root.join(".chirality/workflow-drafts/site-visit");std::fs::create_dir_all(&other).unwrap();
+        std::fs::write(other.join("WORKFLOW.md"),"---\nname: site-visit\n---\n# Visit\n").unwrap();
+        root.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&root,"site-visit")["attribution"],json!({"kind":"not observed"}));
+        assert!(draft_row(&root,"site-visit")["base"].is_null());
+    }
+    #[test]
+    fn draft_trial_prefills_without_sending_and_only_a_send_leaves_a_pointer(){
+        let f=Fixture::new();let mut root=library_with_draft(&f);root.observe_drafts(&json!([])).unwrap();
+        let data=f.root.join("app-data");root.set_app_user_data(data.clone());
+        let mut list=AttachmentSelectionSession::new(None).unwrap();
+        let owner=list.snapshot()["ownerRef"].as_str().unwrap().to_owned();
+        let view=list.prefill_draft(&owner,0,root.draft_trial_sources(DRAFT).unwrap()).unwrap();
+        assert_eq!(view["operation"]["state"],"draft-prefilled-not-sent");
+        assert!(view["operation"]["standing"].as_str().unwrap().contains("no workflow run, no workflow supply, not registration"));
+        assert!(view["submissions"].as_array().unwrap().is_empty(),"pre-filling sends nothing");
+        let selections=view["selections"].as_array().unwrap();assert!(!selections.is_empty());
+        assert_eq!(selections[0]["selection"]["displayName"],format!("WORKFLOW.md (draft {DRAFT})"));
+        assert!(selections.iter().all(|s|s["selection"]["draft"]["name"]==DRAFT&&s["selection"]["standing"]=="selected; not sent"));
+        assert!(draft_row(&root,DRAFT)["trials"].as_array().unwrap().is_empty(),"no pointer until the person sends");
+        assert!(list.prefill_draft(&owner,1,root.draft_trial_sources(DRAFT).unwrap()).unwrap_err().contains("already"));
+        assert!(list.prefill_draft(&owner,0,root.draft_trial_sources(DRAFT).unwrap()).is_err(),"a stale list revision is refused");
+        let refs:Vec<String>=selections.iter().map(|s|s["selection"]["selectionRef"].as_str().unwrap().to_owned()).collect();
+        assert!(list.draft_trials(&owner,1,&refs[1..]).is_err(),"a subset of the list is not a submission");
+        let drafts=list.draft_trials(&owner,1,&refs).unwrap();assert_eq!(drafts.len(),1);
+        let pointers=root.record_trials(&drafts,"thread-a");assert_eq!(pointers[0]["standing"],"draft tried in conversation; not a run of any workflow identity");
+        let trials=draft_row(&root,DRAFT)["trials"].clone();assert_eq!(trials.as_array().unwrap().len(),1);assert_eq!(trials[0]["contentNow"],"unchanged since it was tried");assert_eq!(trials[0]["conversation"],"thread-a");
+        // TT-4: the pointer survives a new App process (App data folder).
+        let mut fresh=WorkflowRootSession::default();fresh.set_app_user_data(data);
+        let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));fresh.open_project_library(Some(&f.root),control).unwrap();fresh.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&fresh,DRAFT)["trials"],trials);
+        std::fs::write(f.root.join(".chirality/workflow-drafts").join(DRAFT).join("WORKFLOW.md"),"---\nname: coordinated-knowledge-work\n---\nchanged\n").unwrap();
+        fresh.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&fresh,DRAFT)["trials"][0]["contentNow"],"changed since it was tried");
+        assert!(fresh.snapshot()["runs"].as_array().unwrap().is_empty()&&fresh.snapshot()["selection"].is_null(),"a trial opens no run and selects nothing");
+    }
+    #[test]
+    fn draft_trial_is_refused_in_a_conversation_with_a_run_in_force_and_prefill_sends_nothing(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let home=peer.generation["home"].as_str().unwrap().to_owned();
+        assert!(root.draft_trial_allowed(&home,"thread").is_ok());
+        let run=open_run(&peer,&mut root,"thread");
+        let refused=root.draft_trial_allowed(&home,"thread").unwrap_err();assert!(refused.contains(&run)&&refused.contains("TT-2"),"{refused}");
+        assert!(root.draft_trial_allowed(&home,"thread-2").is_ok(),"another conversation stays ordinary");
+        let before=peer.turn_starts();root.observe_drafts(&json!([])).unwrap();
+        let mut list=AttachmentSelectionSession::new(None).unwrap();let owner=list.snapshot()["ownerRef"].as_str().unwrap().to_owned();
+        list.prefill_draft(&owner,0,root.draft_trial_sources(DRAFT).unwrap()).unwrap();
+        assert_eq!(peer.turn_starts(),before,"pre-filling writes nothing to Codex");
+    }
+    #[test]
+    fn draft_review_from_the_list_binds_the_listed_content_and_shows_review_states(){
+        let f=Fixture::new();let mut root=library_with_draft(&f);root.observe_drafts(&json!([])).unwrap();
+        let path=f.root.join(".chirality/workflow-drafts").join(DRAFT).join("WORKFLOW.md");let original=std::fs::read(&path).unwrap();
+        // Changed after it was listed: refused as DS-6, nothing offered.
+        std::fs::write(&path,[original.as_slice(),b"\nlater edit\n"].concat()).unwrap();
+        let refused=root.review_listed_draft(fixture_home(),json!({"identityVerified":false}),DRAFT).unwrap_err();assert!(refused.contains("DS-6"),"{refused}");
+        assert!(root.active_review.is_none());
+        root.observe_drafts(&json!([])).unwrap();
+        root.review_listed_draft(fixture_home(),json!({"identityVerified":false}),DRAFT).unwrap();
+        assert!(root.active_review.is_some());
+        root.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&root,DRAFT)["state"],"under review");
+        let shown=root.snapshot()["drafts"]["transitions"].as_array().unwrap().iter().any(|t|t["event"]=="review shown");assert!(shown);
+        std::fs::write(&path,&original).unwrap();
+        root.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&root,DRAFT)["state"],"changed since review","RB-3: the descriptor is withdrawn");
+        assert!(root.snapshot()["drafts"]["transitions"].as_array().unwrap().iter().any(|t|t["event"]=="review stale"));
+        // A not-valid draft is not reviewable from the list (DS-5).
+        let bad=f.root.join(".chirality/workflow-drafts/bad-draft");std::fs::create_dir_all(&bad).unwrap();std::fs::write(bad.join("notes.txt"),b"n").unwrap();
+        root.observe_drafts(&json!([])).unwrap();
+        assert!(root.review_listed_draft(fixture_home(),json!({}),"bad-draft").unwrap_err().contains("DS-5"));
+        assert!(root.review_listed_draft(fixture_home(),json!({}),"never-listed").unwrap_err().contains("No listed draft"));
+    }
+    #[test]
+    fn a_registered_draft_reads_registered_unchanged_since_and_changes_back_to_draft(){
+        let f=Fixture::new();let mut root=f.registered();
+        root.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&root,DRAFT)["state"],"registered, unchanged since");
+        std::fs::write(f.root.join(".chirality/workflow-drafts").join(DRAFT).join("WORKFLOW.md"),"---\nname: coordinated-knowledge-work\n---\nrefined\n").unwrap();
+        root.observe_drafts(&json!([])).unwrap();
+        assert_eq!(draft_row(&root,DRAFT)["state"],"draft","§5.1: files change -> a refinement of that revision");
     }
     fn item_reads(peer:&Peer)->usize{peer.wire().iter().filter(|f|f["method"]=="thread/items/list").count()}
     fn wr_dir(peer:&Peer)->PathBuf{peer.fixture.root.join(".chirality/records/workflow")}

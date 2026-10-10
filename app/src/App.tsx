@@ -11,6 +11,7 @@ import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, WaitingRequestsIndicator, answerable, requestThread } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
+import { WorkflowDraftsView } from "./WorkflowDrafts";
 import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -252,13 +253,15 @@ function NativeConfirmationContent() {
 
 export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json> }) {
   const [name,setName]=useState("coordinated-knowledge-work");
-  const [inPlace,setInPlace]=useState(false);
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
   const [text,setText]=useState("");
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
-  const action=async(command:string,args:Record<string,unknown>)=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));}catch(e){setMessage(String(e));}finally{setBusy(false);}};
+  const action=async(command:string,args:Record<string,unknown>)=>{setBusy(true);try{const result=await act(command,args);setMessage(JSON.stringify(result));
+    // An App-made draft is listed again by the host (WR SQ-D D-2).
+    if(command==="workflow_create_draft"||command==="workflow_refine_registered"){await act("workflow_observe_drafts",{}).catch(()=>undefined);}
+  }catch(e){setMessage(String(e));}finally{setBusy(false);}};
   const entries:Json[]=data?.reviews??[];
   // J6 D-1 / V14 F2, F8: the digest of each complete review as the host
   // reports it (the native A15 statement names the same value), and this
@@ -296,13 +299,14 @@ export function WorkflowRootPanel({ data, host, act }:{ data: Json; host: Json; 
     <button disabled={busy} onClick={()=>action("workflow_open_library",{origin:"user"})}>Open user workflow library…</button>
     <p>Paths are shown as text (display only: identities keep their exact bytes; a path that is not valid UTF-8 is marked).</p>
     <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:data?.selection,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre>
-    <label>Draft or entry name <input value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
+    <WorkflowDraftsView data={data?.drafts} attachments={host?.attachmentSelections} workspace={data?.projectLibraryAvailable===true} busy={busy} act={action}/>
+    <label>New draft name, or in-place library entry name <input value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.selection||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>Create draft from selected content</button>
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><ul key={l.reference} aria-label="Registered revisions in the active library">{l.registered.map((row:Json)=><li key={`${row.name}@${row.revision}`}>{row.name} · revision {row.sequence} · {row.label} <button disabled={busy} onClick={()=>action("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button></li>)}</ul>)}
     <label>Registered revision (content identity) <input value={revision} onChange={e=>setRevision(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.activeLibrary||!name||!revision} onClick={()=>action("workflow_refine_registered",{name,revision})}>Refine registered revision from the revision store (no selection)</button>
-    <label><input type="checkbox" checked={inPlace} onChange={e=>setInPlace(e.target.checked)} disabled={busy}/> Review existing unregistered in-place entry</label>
-    <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace})}>Read actual library entry for review</button>
+    <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace:true})}>Review this unregistered in-place library entry</button>
+    <small> Drafts are reviewed from the draft list above.</small>
     {entries.map(review=><article key={review.reference}>
       <h3>{review.reference}</h3>
       {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?"":" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}. Read the complete review below before choosing {review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm":"Register"}: the native confirmation shows the act statement and this digest, not the review itself.</p>}
@@ -394,8 +398,11 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     <button disabled={busy || !data?.ownerRef} onClick={() => invokeAction("select_attachment")}>Select text attachment…</button>
     <p>List revision: {data?.listRevision ?? "unavailable"} · operation: {data?.operation?.state ?? data?.state ?? "not initialized"}.</p>
     {data?.reason && <p>{data.reason}</p>}{data?.operation?.message && <p role="alert">{data.operation.message}</p>}{error && <p role="alert">{error}</p>}
+    {data?.operation?.state === "draft-prefilled-not-sent" && <div role="status"><p>Draft {data.operation.draft?.name} added ({data.operation.added} files). {data.operation.standing}</p>
+      {(data.operation.notAttached ?? []).length > 0 && <ul role="alert" aria-label="Draft files not attached">{data.operation.notAttached.map((f: Json) => <li key={f.path}>Not attached: {f.path} ({f.bytes} bytes) — {f.reason}</li>)}</ul>}</div>}
     {rows.map((row, index) => <article key={row.selection.selectionRef} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
       <h3>{index + 1}. {row.selection.displayName} · {row.selection.standing}</h3>
+      {row.selection.draft && <p>draft {row.selection.draft.name} at content {String(row.selection.draft.content?.value ?? "").slice(0, 12)} — not a registered workflow; this conversation is not a workflow run.</p>}
       <p>{row.selection.displayPath} · carrier: {row.selection.carrier}.</p>
       <pre>{JSON.stringify(readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft }), null, 2)}</pre>
       <button disabled={busy || index === 0} onClick={() => move(index, -1)}>Move earlier</button>{" "}
