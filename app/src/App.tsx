@@ -5,7 +5,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { CodexProcessControls, stopLabel } from "./CodexControls";
+import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, RoleChoice, RoleHeader, SupplyStatus } from "./ConversationRoles";
 import { RunPanel, SelectedWorkflow } from "./RunPanel";
 import { FileActPanel } from "./FileActPanel";
@@ -113,7 +113,7 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
     <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
-      stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests)}
+      stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>

@@ -195,7 +195,7 @@ performed an act.
     requests** read each turn's label back from the ledger: "interrupted by the
     person", "completed (stop requested)", "interrupted by Stop Codex" and so
     on. A request whose App session ended before a final status was recorded
-    reads *outcome unknown*, derived and not written. *Limits:* SR records do
+    reads *outcome unknown*, marked "(derived; not written)". *Limits:* SR records do
     not list the items or delegated agents at the outcome. A turn that ended
     after SR-01 but before the send is recorded as SR-03 *not-sent (not-ready)*
     with the reason, a gap in the Design's send values. Quitting the App does
@@ -216,13 +216,17 @@ performed an act.
     observe its arrival. Arrivals come only from native items observed live in
     the run's conversation and turns: a completed agent message whose first
     non-empty line is exactly the output's designating line (AW-6), or a
-    completed file change on the output's declared path (AW-7). Each arrival
+    completed file change that adds or updates the declared path, or moves a
+    file onto it (AW-7 as this App reads it; a delete or a move away is not a
+    production). Each arrival
     is written as `checkpoint_arrival` (CE-3), with the item, its time,
     the bound subject and its limits, then a *waiting* `disposition_change`.
     The agent's next own action (RC-9) records `continued_past` once (CE-12);
     `run_resumed` (CE-11) is implemented but cannot occur until acts are
     counted. Recording never sends, opens, pauses or ends anything (RC-4).
-    `run_ended` lists the arrivals still waiting (CE-17). Each checkpoint
+    `run_ended` lists the arrivals still waiting (CE-17). Acts are not counted
+    yet, so an arrival stays waiting after its act, and `run_ended` can list it
+    (CI-20 (h), partly addressed). Each checkpoint
     shows its listing, its arrivals with their labels and limits, and "no
     request from the agent observed". A run record entry that cannot be
     written is shown on the run (A-12). It is written later, in order, with a

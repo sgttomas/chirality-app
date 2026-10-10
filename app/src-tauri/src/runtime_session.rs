@@ -5577,7 +5577,9 @@ impl WorkflowRun {
             RunLifecycle::Ended => "ended by the person",
         };
         json!({"state":state,"follows":self.follows,"end":self.end.as_ref().map(|e|json!({"run":e.run,"cause":run_end_cause(&e.reason)})),
-            "records":self.entries.iter().map(|e|json!({"kind":e.kind,"recordId":e.record_id,"observedAt":e.observed_at,"written":e.written.is_some(),"limit":e.failure,"body":e.body})).collect::<Vec<_>>()})
+            // CE-19: an entry is marked written only after its "record write failed"
+            // limit is in the log, so `writtenLate` shows that limit on the live run.
+            "records":self.entries.iter().map(|e|json!({"kind":e.kind,"recordId":e.record_id,"observedAt":e.observed_at,"written":e.written.is_some(),"writtenLate":e.written.is_some()&&e.failure.is_some(),"limit":e.failure,"body":e.body})).collect::<Vec<_>>()})
     }
     pub fn has_pending_records(&self) -> bool {
         let pending_check = |c: &WorkflowCheckSlot| {
@@ -5959,7 +5961,7 @@ impl WorkflowRun {
         if successor.is_some_and(|name| !crate::workflow_workspace::valid_name(name)) || cause == "invalid" {
             return Err("successor workflow name invalid; nothing ended".into());
         }
-        // CE-17 (closes CI-20 (h)): the arrivals whose recorded disposition is *waiting*.
+        // CE-17 (CI-20 (h), partly): the arrivals whose recorded disposition is *waiting*; acts are not counted, so one may be listed after its act.
         let waiting = crate::checkpoint_recorder::waiting_arrivals(&self.recorded_bodies());
         let entry = crate::records::supply::PendingRunEntry::new(
             "run_ended",
@@ -7207,6 +7209,8 @@ for line in sys.stdin:
         let log=rs_for(&peer,&a);let arrival=log.iter().position(|e|e["kind"]=="checkpoint_arrival").unwrap();
         let limit=log.iter().position(|e|e["kind"]=="evidence_limit"&&e["body"]["label"]=="record write failed"&&e["body"]["subjectRef"]==log[arrival]["recordId"]).expect("CE-19 names the late arrival");
         assert!(limit>arrival,"W-2: the late entry, then its limit");
+        let shown=run.lock().unwrap().view(&a);let live=shown["lifecycle"]["records"].as_array().unwrap().iter().find(|r|r["kind"]=="checkpoint_arrival").unwrap().clone();
+        assert_eq!((live["written"].as_bool(),live["writtenLate"].as_bool()),(Some(true),Some(true)),"the live run shows the late write: {live}");
         assert_eq!(log.iter().filter(|e|e["kind"]=="checkpoint_arrival").count(),1,"written once");
     }
     // RC-10 after relaunch: a reopened run's end lists the arrivals its record shows waiting.

@@ -165,6 +165,26 @@ fn each_production_arrives_and_nothing_arrives_outside_the_run() {
     assert!(fresh.observe(&other_session, &scope(&root), &[]).is_empty(), "rows not received in this App session");
 }
 
+// AW-7 as read here: only a change that produces the declared path arrives.
+// A delete, or a move away from it, is not a production of the output.
+#[test]
+fn a_delete_or_a_move_away_from_the_declared_path_is_not_an_arrival() {
+    let root = std::path::PathBuf::from("/project/root");
+    let change = |id: &str, path: &str, kind: Value| json!({"id":id,"type":"fileChange","status":"completed","changes":[{"path":path,"kind":kind,"diff":""}]});
+    let arrivals = |item: Value| {
+        let (mut recorder, _) = CheckpointRecorder::start(Ok(declaration()));
+        let items = vec![row("turn-1", json!({"id":"start","type":"userMessage","content":[]}), 1, Some(1), Some(1)), row("turn-1", item, 2, Some(2), Some(3))];
+        recorder.observe(&view(items), &scope(&root), &[]).iter().filter(|(k, _)| *k == "checkpoint_arrival").count()
+    };
+    assert_eq!(arrivals(change("d", "out/summary.md", json!({"type":"delete"}))), 0, "a delete produces nothing");
+    assert_eq!(arrivals(change("m", "out/summary.md", json!({"type":"update","move_path":"out/elsewhere.md"}))), 0, "a move's source is not produced");
+    assert_eq!(arrivals(change("t", "out/draft.md", json!({"type":"update","move_path":"out/summary.md"}))), 1, "a move onto the declared path produces it");
+    assert_eq!(arrivals(change("u", "out/summary.md", json!({"type":"update","move_path":null}))), 1, "an update in place");
+    assert_eq!(arrivals(change("u2", "/project/root/out/summary.md", json!({"type":"update"}))), 1, "an update without move_path, absolute path");
+    assert_eq!(arrivals(change("a", "out/summary.md", json!({"type":"add"}))), 1);
+    assert_eq!(arrivals(change("x", "out/summary.md", json!({"type":"rename"}))), 0, "an unknown change kind produces nothing");
+}
+
 #[test]
 fn file_paths_compare_as_text_against_the_project_root() {
     let root = std::path::Path::new("/project/root");

@@ -196,3 +196,75 @@ fn without_a_ledger_the_record_is_kept_in_this_process_and_says_so() {
     assert!(row["persistence"].as_str().unwrap().contains("App ledger unavailable"), "{row}");
     assert_eq!(row["earlierSession"], false);
 }
+
+// The App-wide writer is not held across the pipe write: SR-01 is durable
+// before the send, another writer can take the App writer during the send,
+// and SR-02 then waits, in order and visibly, until that writer is done.
+#[test]
+fn the_app_writer_is_released_before_the_send_and_later_records_wait_for_it() {
+    let root = scratch();
+    let (host, g, path) = ledger_host(&root);
+    event(&host, &g, "turn", "inProgress");
+    let (release_tx, release_rx) = channel::<()>();
+    let (held_tx, held_rx) = channel::<()>();
+    let writer = Arc::clone(&host.recovery_writer);
+    let ledger = path.clone();
+    *host.before_interrupt_send.lock().unwrap() = Some(Box::new(move || {
+        assert_eq!(transitions(&ledger), ["SR-01"], "SR-01 is durable before the send");
+        std::thread::spawn(move || {
+            let _guard = writer.lock().unwrap();
+            held_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+        });
+        held_rx.recv_timeout(Duration::from_secs(5)).expect("another writer can take the App writer while this interrupt is sent");
+    }));
+    let (begun, outbound) = exchange(&host, &g, None, || {}, || host.turn_interrupt_begin(&g, "thread", "turn", crate::stop_records::Cause::PersonInterrupt, "H-acct", &person()));
+    begun.unwrap();
+    assert_eq!(outbound["method"], "turn/interrupt");
+    assert_eq!(transitions(&path), ["SR-01"], "SR-02 is not written past the busy writer");
+    let row = host.snapshot()["stopRequests"]["records"][0].clone();
+    assert_eq!(row["transition"], "SR-02");
+    assert!(row["persistence"].as_str().unwrap().starts_with("not yet written to the App ledger"), "{row}");
+    release_tx.send(()).unwrap();
+    drop(host.recovery_writer.lock().unwrap());
+    host.flush_recovery_observations();
+    assert_eq!(transitions(&path), ["SR-01", "SR-02"], "written in order once the writer is free");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A generation that closes after the frame is written but before the request
+// is linked still settles it (SR-08), instead of leaving it sent.
+#[test]
+fn a_generation_closed_between_the_write_and_the_link_still_settles_the_request() {
+    let root = scratch();
+    let (host, g, path) = ledger_host(&root);
+    event(&host, &g, "turn", "inProgress");
+    let inner = Arc::clone(&host.inner);
+    *host.after_interrupt_send.lock().unwrap() = Some(Box::new(move || {
+        Host::close_generation(&mut inner.0.lock().unwrap());
+    }));
+    let (begun, _) = exchange(&host, &g, None, || {}, || host.turn_interrupt_begin(&g, "thread", "turn", crate::stop_records::Cause::CodexStop, "H-acct", &person()));
+    begun.unwrap();
+    host.flush_recovery_observations();
+    assert_eq!(transitions(&path), ["SR-01", "SR-02", "SR-08"]);
+    let row = host.snapshot()["stopRequests"]["records"][0].clone();
+    assert_eq!((row["state"].as_str(), row["label"].as_str()), (Some("outcome-unknown"), Some("interrupted by Stop Codex (final status not observed)")));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+// A transition that was not recorded stays visible even when the latest
+// queued record is in the ledger.
+#[test]
+fn a_transition_that_was_not_recorded_is_shown_beside_the_recorded_one() {
+    let root = scratch();
+    let (host, g, _path) = ledger_host(&root);
+    event(&host, &g, "turn", "inProgress");
+    let (ack, _) = exchange(&host, &g, Some(json!({"result":{}})), || {}, || host.turn_interrupt(&g, "thread", "turn", "H-acct", &person()));
+    ack.unwrap();
+    host.flush_recovery_observations();
+    let id = host.inner.0.lock().unwrap().stop_requests[0].id().to_owned();
+    assert!(!Host::stop_request_update(&mut host.inner.0.lock().unwrap(), &id, |_| Err("forced failure".into())));
+    let row = host.snapshot()["stopRequests"]["records"][0].clone();
+    assert_eq!(row["persistence"], "a transition was not recorded: forced failure; its latest queued record is recorded in the App ledger", "{row}");
+    std::fs::remove_dir_all(root).unwrap();
+}

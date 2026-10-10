@@ -202,6 +202,8 @@ struct Inner {
     /// REC stop requests (DEL-01-02 §3.4) of this Host, each with its latest
     /// record; their ledger entries go through `pending_recovery`.
     stop_requests: Vec<crate::stop_records::StopRequest>,
+    /// The ledger's stop requests, indexed incrementally for the view.
+    stop_ledger_index: Mutex<crate::stop_records::LedgerIndex>,
     /// The generation for which the person confirmed Stop/Restart Codex:
     /// from then on no new turn or steer is sent in it (only interrupts).
     stop_confirmed: Option<Value>,
@@ -493,6 +495,10 @@ pub struct Host {
     submission_contexts:Arc<Mutex<Vec<Value>>>,
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
+    /// One stop request at a time for this Host (SR-11): its guard, SR-01 and
+    /// its send are not interleaved with another. Per Host, so a home whose
+    /// Codex stops reading holds up only its own interrupts.
+    interrupt_gate: Mutex<()>,
     #[cfg(test)]
     after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     #[cfg(test)]
@@ -503,6 +509,10 @@ pub struct Host {
     child: Mutex<Option<Child>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
+    #[cfg(test)]
+    before_interrupt_send: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    #[cfg(test)]
+    after_interrupt_send: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     cce_before_prepare: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
     #[cfg(test)]
@@ -560,6 +570,7 @@ impl Host {
             submission_contexts:Arc::new(Mutex::new(Vec::new())),
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
+            interrupt_gate: Mutex::new(()),
             #[cfg(test)]
             after_attachment_namespace_write:Mutex::new(None),
             #[cfg(test)]
@@ -570,6 +581,10 @@ impl Host {
             child: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
+            #[cfg(test)]
+            before_interrupt_send: Mutex::new(None),
+            #[cfg(test)]
+            after_interrupt_send: Mutex::new(None),
             #[cfg(test)] cce_before_prepare: Mutex::new(None),
             #[cfg(test)] cce_before_cut: Mutex::new(None),
             #[cfg(test)] cce_after_cut: Mutex::new(None),
@@ -2162,9 +2177,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
         crate::recovery::generation_ref(generation)?;
         let params = json!({"threadId":thread_id,"turnId":turn_id});
-        // One writer: the guard, SR-01 and the send are not interleaved with
-        // another stop request, so a second press is refused (SR-11).
-        let _writer = self.recovery_writer.lock().unwrap();
+        // The guard, SR-01 and the send are not interleaved with another stop
+        // request of this Host, so a second press is refused (SR-11). Lock
+        // order: interrupt gate, then the App's recovery writer, then Inner.
+        let _gate = self.interrupt_gate.lock().unwrap();
+        let writer = self.recovery_writer.lock().unwrap();
         let id = {
             let mut i = self.inner.0.lock().unwrap();
             if i.state != "ready" { return Err(format!("refused-not-sent(not-ready): state {}", i.state)); }
@@ -2184,9 +2201,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 }
             }
         };
+        // SR-01 is durable (or visibly queued) before the send. The App-wide
+        // writer is released before the pipe write, which can block on a
+        // Codex that stops reading, so other homes' records are not held up.
         self.drain_recovery_owned();
+        drop(writer);
+        #[cfg(test)]
+        if let Some(hook) = self.before_interrupt_send.lock().unwrap().take() { hook(); }
         let begun = self.request_begin_scoped("turn/interrupt", params, json!({"kind":"person-directed"}), false, Some(generation));
         let evidence = begun.as_ref().ok().map(SourceRequest::evidence);
+        #[cfg(test)]
+        if let Some(hook) = self.after_interrupt_send.lock().unwrap().take() { hook(); }
         if let Some(id) = id {
             let mut i = self.inner.0.lock().unwrap();
             match (&begun, &evidence) {
@@ -2199,7 +2224,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 (Err(error), _) => { Self::stop_request_update(&mut i, &id, |r| r.not_sent(false, &format!("refused before sending: {error}")).map(Some)); }
             }
         }
-        self.drain_recovery_owned();
+        // SR-02/03 go through the deferred flush: written now if the writer is
+        // free, otherwise kept queued in order and written by the next flush.
+        self.flush_recovery_observations();
         begun
     }
     /// SR-02, then any response or turn end the reader observed before the
@@ -2226,6 +2253,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 let status = ended.as_ref().unwrap().0.clone();
                 Self::stop_request_update(i, id, |r| r.turn_completed(&status));
             }
+        }
+        // The generation may have closed after the frame was written and
+        // before this link: its SR-08 then found the request not yet sent.
+        // Apply it now so the request does not stay sent forever.
+        if i.server_requests.is_closed(&generation) {
+            Self::stop_request_update(i, id, |r| r.generation_closed());
         }
     }
     /// Applies one transition to a stop request and queues its record.
@@ -2285,18 +2318,27 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     fn stop_request_view(i: &Inner) -> Value {
         let queued = i.pending_recovery.facts.lock().unwrap();
         let queue_limit = i.pending_recovery.limit.lock().unwrap().clone();
-        let recorded = |entry: &Value| i.recovery_snapshot.as_ref().and_then(|s| s["entries"].as_array()).is_some_and(|rows| rows.contains(entry));
+        let mut index = i.stop_ledger_index.lock().unwrap();
+        index.update(i.recovery_snapshot.as_ref());
+        let recorded = |entry: &Value| index.contains(entry);
         let live: Vec<(Value, String)> = i.stop_requests.iter().map(|r| {
-            let persistence = match (r.last_entry(), r.note()) {
-                (Some(entry), _) if recorded(entry) => "recorded in the App ledger".to_owned(),
-                (Some(entry), _) if queued.contains(entry) => format!("not yet written to the App ledger; kept in this App process{}", queue_limit.as_ref().map(|l| format!(" ({l})")).unwrap_or_default()),
-                (_, Some(note)) => note.to_owned(),
+            // A note (a transition or an earlier record that was not
+            // recorded) is always shown: the latest record being in the ledger
+            // does not make the request's record complete.
+            let latest = match r.last_entry() {
+                Some(entry) if recorded(entry) => "recorded in the App ledger".to_owned(),
+                Some(entry) if queued.contains(entry) => format!("not yet written to the App ledger; kept in this App process{}", queue_limit.as_ref().map(|l| format!(" ({l})")).unwrap_or_default()),
                 _ => "not recorded".to_owned(),
+            };
+            let persistence = match (r.note(), r.last_entry()) {
+                (Some(note), Some(_)) => format!("{note}; its latest queued record is {latest}"),
+                (Some(note), None) => note.to_owned(),
+                (None, _) => latest,
             };
             (r.record().clone(), persistence)
         }).collect();
         let current = if i.app_session.is_empty() { i.generation["appSession"].as_str().unwrap_or_default() } else { i.app_session.as_str() };
-        crate::stop_records::outcomes(i.recovery_snapshot.as_ref(), &live, current)
+        crate::stop_records::outcomes_indexed(&index, &live, current)
     }
     /// C-12: the ledger `codex_stop` entry for the person's confirmed Stop or
     /// Restart Codex, written before any interrupt is sent (§3.1). Returns

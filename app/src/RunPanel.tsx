@@ -79,9 +79,10 @@ const recordKinds = (run: Json): string[] => list(run?.lifecycle?.records).map((
 const records = (run: Json): Json[] => list(run?.lifecycle?.records);
 const sameArrival = (a: Json, checkpoint: string, ordinal: Json) => text(a?.checkpoint) === checkpoint && a?.arrivalOrdinal === ordinal;
 const TIME_SOURCE: Record<string, string> = { supplier_item_time: "time Codex gave for the item", app_observation_time: "time the App observed it" };
-// An entry not yet in the run record says so; one written late carries its CE-19 limit.
+// An entry not yet in the run record says so; one written late carries its CE-19
+// limit (`writtenLate` on the live run, or the limit entry read from the record).
 const writtenNote = (r: Json, all: Json[]): string => r?.written === false ? `Not yet written to the run record: ${text(r.limit) || "the write did not complete"}.`
-  : all.some((e: Json) => e?.kind === "evidence_limit" && e?.body?.label === "record write failed" && e?.body?.subjectRef === r?.recordId) ? "Written late; the run record carries a “record write failed” limit for it." : "";
+  : r?.writtenLate === true || all.some((e: Json) => e?.kind === "evidence_limit" && e?.body?.label === "record write failed" && e?.body?.subjectRef === r?.recordId) ? "Written late; the run record carries a “record write failed” limit for it." : "";
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
 
 /** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from

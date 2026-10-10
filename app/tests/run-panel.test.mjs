@@ -90,6 +90,9 @@ test('recorded arrivals are shown from the run record, as information that holds
   // An arrival written late carries its CE-19 limit.
   const late=[...records.slice(0,5),entry('evidence_limit',{label:'record write failed',subjectRef:a.recordId})];
   assert.ok(h(RunPanel,{run:run({lifecycle:{state:'open',records:late}})}).includes('Written late; the run record carries a “record write failed” limit for it.'));
+  // On the live run the host marks the entry itself (the limit entry is not in its view).
+  const live=[...records.slice(0,3),{...a,writtenLate:true,limit:'run record write failed: Not a directory'},disposition('CP-check',1,'waiting')];
+  assert.ok(h(RunPanel,{run:run({lifecycle:{state:'open',records:live}})}).includes('Written late; the run record carries a “record write failed” limit for it.'));
   // Listed with no arrival yet.
   const quiet=h(RunPanel,{run:run({lifecycle:{state:'open',records:[entry('run_opened',{}),listedAccept,listedCheck]}})});
   assert.ok(quiet.includes('No arrival recorded in this run.'));

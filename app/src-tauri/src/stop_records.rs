@@ -264,7 +264,9 @@ pub(crate) fn codex_stop_entry(session: &str, actor: &Value, home: &str, restart
 /// What the person is shown for one stop request: the record's own label
 /// where it has one, otherwise a reading that claims nothing more than the
 /// record holds. `earlier` is true for a request of an earlier App session.
-fn reading(record: &Value, earlier: bool) -> (Option<String>, String) {
+/// The third value is true when the label is derived here and is not in any
+/// record (R-2: an earlier session's request with no final status).
+fn reading(record: &Value, earlier: bool) -> (Option<String>, String, bool) {
     let cause = record["cause"].as_str().unwrap_or_default();
     if let Some(label) = record["outcomeLabel"].as_str() {
         let reading = match record["state"].as_str() {
@@ -272,47 +274,86 @@ fn reading(record: &Value, earlier: bool) -> (Option<String>, String) {
             Some("outcome-recovered") => "Final status recovered from Codex's history.",
             _ => "Final status observed when the turn ended.",
         };
-        return (Some(label.to_owned()), reading.to_owned());
+        return (Some(label.to_owned()), reading.to_owned(), false);
     }
-    match (record["state"].as_str().unwrap_or_default(), earlier) {
+    let (label, reading) = match (record["state"].as_str().unwrap_or_default(), earlier) {
         ("not-sent", _) => (None, format!("Stop not sent: {}", record["responseError"].as_str().unwrap_or("reason not recorded"))),
         ("requested", true) => (None, "Stop requested; the App session ended before its send was recorded, so whether it was sent is not known.".into()),
         ("requested", false) => (None, "Stop requested; not yet sent.".into()),
         (_, true) => (
             label(cause, "unknown").map(str::to_owned),
-            "The App session ended before a final status was recorded for this turn.".into(),
+            "The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.".into(),
         ),
         ("accepted", false) => (None, "Codex accepted the stop request. That is not the turn's end; its final status is not yet observed.".into()),
         ("refused", false) => (None, format!("Codex refused the stop request: {}", record["responseError"].as_str().unwrap_or("message not recorded"))),
         (_, false) => (None, "Stop requested; Codex's answer and the turn's final status are not yet observed.".into()),
+    };
+    let derived = label.is_some();
+    (label, reading, derived)
+}
+
+/// The ledger's stop-request entries, indexed once as they are appended
+/// (a snapshot does not re-validate or re-scan the whole ledger). The ledger
+/// is append-only; if the snapshot no longer continues the indexed prefix
+/// (another ledger, or a shorter one) the index is rebuilt.
+#[derive(Debug, Default)]
+pub(crate) struct LedgerIndex {
+    seen: usize,
+    last: Option<Value>,
+    order: Vec<String>,
+    latest: std::collections::BTreeMap<String, Value>,
+    entries: std::collections::HashMap<String, Vec<Value>>,
+    limits: Vec<String>,
+}
+impl LedgerIndex {
+    pub(crate) fn update(&mut self, ledger: Option<&Value>) {
+        let rows: &[Value] = ledger.and_then(|l| l["entries"].as_array()).map(Vec::as_slice).unwrap_or(&[]);
+        let continues = self.seen <= rows.len() && (self.seen == 0 || rows.get(self.seen - 1) == self.last.as_ref());
+        if !continues {
+            *self = Self::default();
+        }
+        for entry in rows[self.seen..].iter().filter(|e| e["kind"] == "stop_request") {
+            let record = &entry["record"];
+            if let Err(error) = validate(record) {
+                self.limits.push(format!("a stop_request ledger entry is not a valid stop-request record and is not shown: {error}"));
+                continue;
+            }
+            let id = record["stopRequestId"].as_str().unwrap_or_default().to_owned();
+            if !self.latest.contains_key(&id) {
+                self.order.push(id.clone());
+            }
+            self.latest.insert(id.clone(), record.clone());
+            self.entries.entry(id).or_default().push(entry.clone());
+        }
+        self.seen = rows.len();
+        self.last = rows.last().cloned();
+    }
+    /// Whether this exact ledger entry is in the ledger (compared only with
+    /// the entries of its own stop request).
+    pub(crate) fn contains(&self, entry: &Value) -> bool {
+        entry["record"]["stopRequestId"].as_str().and_then(|id| self.entries.get(id)).is_some_and(|rows| rows.contains(entry))
     }
 }
 
 /// The stop requests the App can show: every request in the ledger (latest
-/// record per request, every App session) and this process's requests whose
-/// latest record is not in the ledger yet. `current` names this App session.
-/// Pointer facts only; Codex's own history is read separately.
+/// record per request, every App session) and this process's requests, each
+/// with this process's own persistence reading. `current` names this App
+/// session. Pointer facts only; Codex's own history is read separately.
 pub(crate) fn outcomes(ledger: Option<&Value>, live: &[(Value, String)], current: &str) -> Value {
-    let mut order: Vec<String> = Vec::new();
-    let mut latest = std::collections::BTreeMap::<String, (Value, String)>::new();
-    let mut limits = Vec::new();
-    for entry in ledger.and_then(|l| l["entries"].as_array()).into_iter().flatten().filter(|e| e["kind"] == "stop_request") {
-        let record = &entry["record"];
-        if let Err(error) = validate(record) {
-            limits.push(format!("a stop_request ledger entry is not a valid stop-request record and is not shown: {error}"));
-            continue;
-        }
-        let id = record["stopRequestId"].as_str().unwrap_or_default().to_owned();
-        if !latest.contains_key(&id) {
-            order.push(id.clone());
-        }
-        latest.insert(id, (record.clone(), "recorded in the App ledger".into()));
-    }
+    let mut index = LedgerIndex::default();
+    index.update(ledger);
+    outcomes_indexed(&index, live, current)
+}
+pub(crate) fn outcomes_indexed(index: &LedgerIndex, live: &[(Value, String)], current: &str) -> Value {
+    let mut order = index.order.clone();
+    let mut latest: std::collections::BTreeMap<String, (Value, String)> =
+        index.latest.iter().map(|(id, record)| (id.clone(), (record.clone(), "recorded in the App ledger".to_owned()))).collect();
+    let limits = index.limits.clone();
+    // This process knows more than the ledger about its own requests (a
+    // transition that was not recorded, a record still queued): its reading
+    // replaces the ledger's, and its newer record is shown.
     for (record, persistence) in live {
         let id = record["stopRequestId"].as_str().unwrap_or_default().to_owned();
-        if latest.get(&id).is_some_and(|(r, _)| r == record) {
-            continue;
-        }
         if !latest.contains_key(&id) {
             order.push(id.clone());
         }
@@ -320,12 +361,12 @@ pub(crate) fn outcomes(ledger: Option<&Value>, live: &[(Value, String)], current
     }
     let rows: Vec<Value> = order.iter().filter_map(|id| latest.get(id)).map(|(record, persistence)| {
         let earlier = record["appSession"] != current;
-        let (label, reading) = reading(record, earlier);
+        let (label, reading, derived) = reading(record, earlier);
         let reported = matches!(record["outcomeSource"].as_str(), Some("observed" | "recovered-from-supplier")).then(|| record["turnOutcome"].clone());
         json!({"stopRequestId":record["stopRequestId"],"appSession":record["appSession"],"earlierSession":earlier,"home":record["home"],
             "generation":record["generation"],"threadId":record["threadId"],"turnId":record["turnId"],"cause":record["cause"],
             "requestedAt":record["requestedAt"],"state":record["state"],"transition":record["transition"],"send":record["send"],
-            "response":record["response"],"waitingEnded":record["waitingEnded"],"label":label,"reading":reading,"codexReported":reported,
+            "response":record["response"],"waitingEnded":record["waitingEnded"],"label":label,"labelDerived":derived,"reading":reading,"codexReported":reported,
             "persistence":persistence})
     }).collect();
     json!({"records":rows,"limits":limits,

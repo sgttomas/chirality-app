@@ -6,7 +6,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);return exports;};
-const {CodexProcessControls,StopOutcome,stopLabel,StopRequests}=load('CodexControls.tsx');
+const {CodexProcessControls,StopOutcome,stopLabel,StopRequests,appHome}=load('CodexControls.tsx');
 const {StopLabel}=load('NativeActivity.tsx');
 const g={appSession:'s',home:'h',spawnCounter:1};
 const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00:00Z',modeHomeClass:'account',generation:g,
@@ -85,7 +85,7 @@ const sr=(over={})=>({stopRequestId:'stop:1',appSession:'s',earlierSession:false
   requestedAt:'2026-10-10T00:00:01Z',state:'outcome-observed',label:'interrupted by the person',reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger',...over});
 
 test('stop-request records label turns first and read back after a relaunch (REC SR)',()=>{
-  const requests={records:[sr(),sr({stopRequestId:'stop:2',turnId:'t3',appSession:'old',earlierSession:true,state:'sent',label:'outcome unknown (stop requested)',
+  const requests={records:[sr(),sr({stopRequestId:'stop:2',turnId:'t3',appSession:'old',earlierSession:true,state:'sent',label:'outcome unknown (stop requested)',labelDerived:true,
     reading:'The App session ended before a final status was recorded for this turn.',codexReported:null}),
     sr({stopRequestId:'stop:3',turnId:'t4',state:'refused',label:null,reading:'Codex refused the stop request: no active turn',codexReported:null,persistence:'not yet written to the App ledger; kept in this App process'})],
     limits:[],standing:'App-observed stop requests (REC SR).'};
@@ -96,14 +96,15 @@ test('stop-request records label turns first and read back after a relaunch (REC
   assert.ok(label.includes('App label: <b>interrupted by the person</b>. Final status observed when the turn ended. Codex reported: interrupted.'));
   assert.ok(label.includes('Record: recorded in the App ledger.'));
   const earlier=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t3',requests)}));
-  assert.ok(earlier.includes('<b>outcome unknown (stop requested)</b>')&&earlier.includes('From an earlier App session.'),earlier);
+  assert.ok(earlier.includes('<b>outcome unknown (stop requested)</b> (derived; not written).')&&earlier.includes('From an earlier App session.'),earlier);
+  assert.ok(!label.includes('derived'),'a recorded label is not marked derived');
   const refused=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t4',requests)}));
   assert.ok(refused.includes('Stop request: Codex refused the stop request: no active turn')&&!refused.includes('App label'),refused);
   assert.ok(refused.includes('Record: not yet written to the App ledger; kept in this App process.'),'a write not yet accepted is visible');
   const listed=renderToStaticMarkup(React.createElement(StopRequests,{requests}));
   assert.ok(listed.includes('Recorded stop requests (3)'));
   assert.ok(listed.includes('turn t1 · your interrupt at 2026-10-10T00:00:01Z: <b>interrupted by the person</b>. Final status observed'));
-  assert.ok(listed.includes('turn t3 · your interrupt at 2026-10-10T00:00:01Z (earlier App session)'));
+  assert.ok(listed.includes('turn t3 · your interrupt at 2026-10-10T00:00:01Z (earlier App session): <b>outcome unknown (stop requested)</b> (derived; not written).'));
   assert.equal(renderToStaticMarkup(React.createElement(StopRequests,{requests:{records:[],limits:[]}})),'');
   assert.ok(render({state:'ready',generation:g,codexStops:stops([]),stopRequests:requests}).includes('Recorded stop requests (3)'));
   const bad=renderToStaticMarkup(React.createElement(StopRequests,{requests:{records:[],limits:['a stop_request ledger entry is not a valid stop-request record and is not shown: x']}}));
@@ -115,7 +116,11 @@ test('stop-request records label turns first and read back after a relaunch (REC
   assert.ok(html.includes('stop-request record: recorded in the App ledger'));
   assert.ok(html.includes('stop-request record: not recorded'));
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('stopLabel(host?.codexStops, thread, turn, host?.stopRequests)'));
+  assert.ok(app.includes('stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))'));
+  // The ledger is App-wide: a row of the other home does not label this home's turn.
+  assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('account')).label,'interrupted by the person');
+  assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('api-key')),null);
+  assert.equal(appHome('other'),undefined);
 });
 
 test('conversation sends are paused while Stop or Restart Codex runs',()=>{

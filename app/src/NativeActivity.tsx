@@ -292,7 +292,7 @@ export function RunEndMarker({ run }: { run: Json }) {
 // row carries its own reading and where it is recorded.
 export function StopLabel({ stop }: { stop: Json | null }) {
   if (!stop) return null;
-  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <b>{text(stop.label)}</b>. </> : "Stop request: "}{text(stop.reading)}{stop.codexReported ? ` Codex reported: ${text(stop.codexReported)}.` : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: {text(stop.persistence)}.</small></p>;
+  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <b>{text(stop.label)}</b>{stop.labelDerived ? " (derived; not written)" : ""}. </> : "Stop request: "}{text(stop.reading)}{stop.codexReported ? ` Codex reported: ${text(stop.codexReported)}.` : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: {text(stop.persistence)}.</small></p>;
   return <p role="note">App label: <b>{text(stop.label)}</b> ({stop.codexReported ? `Codex reported at the stop: ${text(stop.codexReported)}` : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
 }
 

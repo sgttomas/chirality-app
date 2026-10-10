@@ -141,6 +141,7 @@ fn read_back_after_relaunch_keeps_labels_and_claims_no_unrecorded_end() {
     assert_eq!(rows[1]["label"], "outcome unknown (stop requested)");
     assert!(rows[1]["codexReported"].is_null());
     assert!(rows[1]["reading"].as_str().unwrap().contains("ended before a final status was recorded"));
+    assert_eq!((rows[1]["labelDerived"].as_bool(), rows[0]["labelDerived"].as_bool()), (Some(true), Some(false)), "a derived label is marked; a recorded one is not");
     assert_eq!(view["limits"].as_array().unwrap().len(), 1, "an invalid record is a visible limit, not a row");
     // The same request in this session, not yet in the ledger: the newer live record is shown with its persistence.
     let mut later = settled.record().clone();
@@ -151,4 +152,28 @@ fn read_back_after_relaunch_keeps_labels_and_claims_no_unrecorded_end() {
     assert_eq!(current["records"][0]["earlierSession"], false);
     assert!(current["records"][0]["persistence"].as_str().unwrap().starts_with("not yet written"));
     assert_eq!(current["records"][1]["label"], Value::Null, "a request of this session without a final status has no label yet");
+}
+
+// The view's index reads each appended ledger entry once, and is rebuilt if
+// the ledger no longer continues what it read.
+#[test]
+fn the_ledger_index_reads_appended_entries_once_and_rebuilds_on_a_different_ledger() {
+    let g = json!({"appSession":"session-a","home":"native-home","spawnCounter":1});
+    let mut request = StopRequest::requested(&g, "H-acct", "thread", "turn", Cause::PersonInterrupt, &person("")).unwrap();
+    let first = ledger_entry("session-a", request.record());
+    request.sent("app:client:1", &json!(1)).unwrap();
+    let second = ledger_entry("session-a", request.record());
+    let bad = json!({"kind":"stop_request","session":"session-a","at":"t","record":{"kind":"stop_request"}});
+    let mut index = LedgerIndex::default();
+    index.update(Some(&json!({"entries":[first.clone(), bad.clone()]})));
+    index.update(Some(&json!({"entries":[first.clone(), bad.clone()]})));
+    let view = outcomes_indexed(&index, &[], "session-b");
+    assert_eq!(view["limits"].as_array().unwrap().len(), 1, "an entry already read is not read again");
+    assert!(index.contains(&first) && !index.contains(&second));
+    index.update(Some(&json!({"entries":[first.clone(), bad.clone(), second.clone()]})));
+    assert!(index.contains(&second));
+    assert_eq!(outcomes_indexed(&index, &[], "session-b")["records"][0]["transition"], "SR-02");
+    index.update(Some(&json!({"entries":[second.clone()]})));
+    assert!(!index.contains(&first) && index.contains(&second), "a ledger that does not continue the read prefix is read afresh");
+    assert!(outcomes_indexed(&index, &[], "session-b")["limits"].as_array().unwrap().is_empty());
 }

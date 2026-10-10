@@ -10,13 +10,19 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const text = (v: unknown) => (v === null || v === undefined ? "" : typeof v === "string" ? v : JSON.stringify(v));
 const list = (v: unknown): Json[] => (Array.isArray(v) ? v : []);
 
+/** The App-owned home (REC H-acct / H-key) for an ACCESS home class. */
+export const appHome = (cls: unknown): string | undefined => (cls === "account" ? "H-acct" : cls === "api-key" ? "H-key" : undefined);
+
 /** The App's stop label for a turn. First the newest stop-request record
- *  (REC SR, read back from the App ledger after a relaunch) for the turn; then
- *  the newest Stop Codex outcome of this App process that stopped Codex and
- *  names it. A refused stop gives no label (the turn kept running). */
-export function stopLabel(stops: Json, threadId: string | null | undefined, turnId: string | null | undefined, requests?: Json): Json | null {
+ *  (REC SR, read back from the App ledger after a relaunch) for the turn in
+ *  the given App-owned home; then the newest Stop Codex outcome of this App
+ *  process that stopped Codex and names it. A refused stop gives no label
+ *  (the turn kept running). The ledger is App-wide, so rows of another home
+ *  are not matched. Generations are not matched: a turn read from history
+ *  may come from an earlier generation. */
+export function stopLabel(stops: Json, threadId: string | null | undefined, turnId: string | null | undefined, requests?: Json, home?: string): Json | null {
   if (!threadId || !turnId) return null;
-  const recorded = list(requests?.records).filter((r: Json) => r?.threadId === threadId && r?.turnId === turnId);
+  const recorded = list(requests?.records).filter((r: Json) => r?.threadId === threadId && r?.turnId === turnId && (!home || r?.home === home));
   if (recorded.length) return recorded[recorded.length - 1];
   const outcomes = list(stops?.outcomes).filter((o: Json) => o?.state === "stopped");
   for (let i = outcomes.length - 1; i >= 0; i--) {
@@ -38,7 +44,7 @@ export function StopRequests({ requests }: { requests: Json }) {
     <summary>Recorded stop requests ({rows.length})</summary>
     <ul>
       {rows.map((r: Json) => <li key={text(r.stopRequestId)}>
-        Conversation {text(r.threadId)} · turn {text(r.turnId)} · {CAUSE[text(r.cause)] ?? text(r.cause)} at {text(r.requestedAt)}{r.earlierSession ? " (earlier App session)" : ""}: {r.label ? <b>{text(r.label)}</b> : null}{r.label ? ". " : ""}{text(r.reading)}{r.codexReported ? ` Codex reported: ${text(r.codexReported)}.` : ""}
+        Conversation {text(r.threadId)} · turn {text(r.turnId)} · {CAUSE[text(r.cause)] ?? text(r.cause)} at {text(r.requestedAt)}{r.earlierSession ? " (earlier App session)" : ""}: {r.label ? <b>{text(r.label)}</b> : null}{r.label && r.labelDerived ? " (derived; not written)" : ""}{r.label ? ". " : ""}{text(r.reading)}{r.codexReported ? ` Codex reported: ${text(r.codexReported)}.` : ""}
         <br /><small>Record: {text(r.persistence)}.</small>
       </li>)}
       {limits.map((l: Json, i: number) => <li key={`limit${i}`}>Limit: {text(l)}</li>)}

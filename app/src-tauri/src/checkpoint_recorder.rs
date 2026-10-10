@@ -28,7 +28,7 @@ use std::collections::BTreeSet;
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
 const NO_ACT_COUNTING: &str = "Acts are not counted by this App yet (EXEC CE-5/CE-6): an earlier or later act on this subject is not evaluated against this arrival, so waiting means only that no act is recorded against it here.";
 const MESSAGE_LIMIT: &str = "The designating line marks where the agent put the output; it does not show that the content is what the declaration describes (AW-6).";
-const FILE_LIMIT: &str = "The change's path is compared with the declared project-relative path as text, after removing the project root from an absolute path; how Codex reports file paths is not observed (AW-7, O-8, U-E26).";
+const FILE_LIMIT: &str = "Only an add, an in-place update or a move onto the declared path counts; a delete or a move away does not (this App's reading of AW-7). The path is compared with the declared project-relative path as text, after removing the project root from an absolute path; how Codex reports file paths is not observed (O-8, U-E26).";
 /// RC-9 run actions at the definition pin; agent messages, reasoning and plans are conversation.
 const RUN_ACTIONS: [&str; 7] = ["mcpToolCall", "dynamicToolCall", "commandExecution", "fileChange", "collabAgentToolCall", "webSearch", "imageGeneration"];
 
@@ -287,8 +287,7 @@ impl CheckpointRecorder {
                     found.push((index, referents(listed, output, &format!("agentMessage {}", native["id"].as_str().unwrap_or_default()), content), MESSAGE_LIMIT));
                 }
                 Trigger::File { output, path } if native["type"] == "fileChange" && native["status"] == "completed" => {
-                    let paths: Vec<&str> = native["changes"].as_array().into_iter().flatten()
-                        .flat_map(|c| [c["path"].as_str(), c["kind"]["move_path"].as_str()]).flatten().collect();
+                    let paths: Vec<&str> = native["changes"].as_array().into_iter().flatten().filter_map(produced_path).collect();
                     if !paths.iter().any(|p| same_path(p, path, scope.project_root)) {
                         continue;
                     }
@@ -305,6 +304,21 @@ impl CheckpointRecorder {
 /// The first non-empty line of a message, trimmed (WD OP-1).
 fn first_line(text: &str) -> Option<&str> {
     text.lines().map(str::trim).find(|l| !l.is_empty())
+}
+/// AW-7 as this App reads it: the path a change *produces*. An `add` or an
+/// in-place `update` produces its `path`; a moving `update` produces only its
+/// destination `move_path`, never its source; a `delete` produces nothing.
+/// Any other change kind produces nothing (PatchChangeKind at the pin).
+fn produced_path(change: &Value) -> Option<&str> {
+    let kind = &change["kind"];
+    match kind["type"].as_str()? {
+        "add" => change["path"].as_str(),
+        "update" => match &kind["move_path"] {
+            Value::Null => change["path"].as_str(),
+            moved => moved.as_str(),
+        },
+        _ => None,
+    }
 }
 /// AW-7: the change's path against the declared project-relative path.
 fn same_path(changed: &str, declared: &str, root: &std::path::Path) -> bool {
