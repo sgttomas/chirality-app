@@ -107,3 +107,4 @@ checks:
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/tests/role_lifecycle.rs
 - app/tests/conversation-roles.test.mjs
+- app/tests/conversation-panel.test.mjs

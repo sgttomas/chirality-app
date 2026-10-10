@@ -1568,6 +1568,57 @@ fn v15_p2_second_process_x2_then_continue_keeps_one_line_per_act() {
     assert!(!owner_b.is_held(first.identity()));
 }
 
+/// P6 (V15-R1 R1-1): process B's append fails before writing anything, so its
+/// attempt is *Intended*; process C's X-2 closes the attempt as lost with a
+/// *not completed* line citing B's A15. B's Continue then ends with that line,
+/// a definite outcome, instead of "durability uncertain" on every Continue.
+/// One act, one ledger line.
+#[test]
+fn v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line() {
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let first = register(&s.persistent_owner(), one.revision());
+    let owner_b = s.persistent_owner();
+    let session = owner_b.review_draft("sample", one.revision()).unwrap();
+    let r = receipt(&session);
+    let record = r.record_id().to_string();
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    FAIL_LEDGER_APPEND.with(|fail| fail.set(true));
+    match &attempt.advance()[0] {
+        EntryOutcome::Pending { reason, .. } => {
+            assert!(reason.contains("durability uncertain"), "{reason}")
+        }
+        other => panic!("expected pending: {other:?}"),
+    }
+    assert_eq!(ledger(&s).len(), 1, "the failed append wrote nothing");
+    assert_eq!(journal_files(&s), 1, "the attempt was stored first");
+    let owner_c = s.persistent_owner();
+    assert!(
+        owner_c.reconciliation()[0].contains("not completed"),
+        "{:?}",
+        owner_c.reconciliation()
+    );
+    assert_eq!(ledger(&s).len(), 2, "X-2 wrote its not completed line");
+    for _ in 0..2 {
+        match &attempt.advance()[0] {
+            EntryOutcome::NotCompleted { reason, .. } => assert!(
+                reason.contains(&format!("A15 {record} already has ledger line 2 (not completed)")),
+                "{reason}"
+            ),
+            other => panic!("expected the definite line, not uncertainty: {other:?}"),
+        }
+    }
+    let raw = fs::read_to_string(s.0.join(".chirality/workflow-registry.jsonl")).unwrap();
+    assert_eq!(
+        raw.lines().filter(|l| l.contains(&record)).count(),
+        1,
+        "one act, one line"
+    );
+    assert!(read_ledger(&s.0).is_ok());
+    assert_eq!(journal_files(&s), 0);
+    assert!(!owner_b.is_held(first.identity()));
+}
+
 /// P5: after capture, registered line 1 is edited outside the App so it no
 /// longer reads as registered. WR G-1R says *not completed*, but no such line
 /// can satisfy RC-9 here (CI-25): the App appends nothing and the attempt stays

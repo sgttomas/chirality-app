@@ -1,4 +1,5 @@
 import { ReconstructionFields, ReconstructionView, emptyReconstruction, reconstructionPayload } from "./ConnectorReconstruction";
+import { EXACT_TEXT } from "./exactText";
 import { useEffect, useRef, useState } from "react";
 import type { RouteAvailability } from "./ConnectorRoutePanel";
 type Json = any;
@@ -113,9 +114,9 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
     <h2>Observe a project text source</h2>
     <p>Transient local evidence for one affected question. No send, save, route account, supported conclusion, or performed duty. Source text is data, not instructions.</p>
     {!availability?.enabled && <p>Unavailable: {availability?.reason ?? "Explicit project association pending"}</p>}
-    {([['id','Question identity'],['text','Affected question'],['askedRevision','Asked revision (caller request)'],['sinceRevision','Since revision (optional caller request)']] as const).map(([key,title])=><label key={key} style={{display:"block"}}>{title}<input disabled={state.busy} value={question[key]} onChange={e=>{setQuestion({...question,[key]:e.target.value});edit();}}/></label>)}
+    {([['id','Question identity'],['text','Affected question'],['askedRevision','Asked revision (caller request)'],['sinceRevision','Since revision (optional caller request)']] as const).map(([key,title])=><label key={key} style={{display:"block"}}>{title}<input {...(key==="text"?{}:EXACT_TEXT)} disabled={state.busy} value={question[key]} onChange={e=>{setQuestion({...question,[key]:e.target.value});edit();}}/></label>)}
     <label>Constructed trigger<select disabled={state.busy} value={trigger} onChange={e=>{setTrigger(e.target.value);edit();}}>{['absent','stale','partial','failing'].map(v=><option key={v}>{v}</option>)}</select></label>
-    <label>Responsible route (optional caller assignment)<input disabled={state.busy} value={responsible} onChange={e=>{setResponsible(e.target.value);edit();}}/></label>
+    <label>Responsible route (optional caller assignment)<input {...EXACT_TEXT} disabled={state.busy} value={responsible} onChange={e=>{setResponsible(e.target.value);edit();}}/></label>
     <button disabled={!ready} onClick={()=>act("prepare_connector_source",{question:{...question,sinceRevision:question.sinceRevision||null},trigger,responsible:responsible||null},true)}>Prepare question</button>
     <button disabled={!prepared} onClick={()=>act("select_connector_source",bindings())}>Select / reread through native picker…</button>
     <p>One regular project-contained UTF-8 text file, at most 262144 bytes, no NUL or symlink descendants. Cancelling retains only prior evidence; rereading creates a new observation.</p>
@@ -123,8 +124,8 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
     <fieldset disabled={!prepared || state.view?.operation!=="observed"}>
       <legend>Inspect exact Git commits for the selected source path</legend>
       <p>Lowercase full commit IDs only (40 or 64 hex characters). No branch, tag, path or repository input. The local preview remains separate from committed bytes.</p>
-      <label>At commit<input value={gitAt} onChange={e=>setGitAt(e.target.value)}/></label>
-      <label>Since commit (optional)<input value={gitSince} onChange={e=>setGitSince(e.target.value)}/></label>
+      <label>At commit<input {...EXACT_TEXT} value={gitAt} onChange={e=>setGitAt(e.target.value)}/></label>
+      <label>Since commit (optional)<input {...EXACT_TEXT} value={gitSince} onChange={e=>setGitSince(e.target.value)}/></label>
       <button onClick={readGit}>Read Git objects</button>
     </fieldset>
     {gitPending && <button onClick={cancelGit}>Cancel Git request</button>}
@@ -191,16 +192,16 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  <label>Constructed connector label<select value={connector} onChange={e=>{invalidate();setConnector(e.target.value);}}><option value="">Choose…</option><option value="pec">PEC</option><option value="domains">Domains</option></select></label>
  {(["at","since"] as const).map(side=>{const item=result?.observation?.[side];if(item?.status!=="Git-object-verified")return null;const ref=item.object.reference,c=choices[ref]??{selected:false,role:"",anchors:[]};return <fieldset key={ref}><legend>{side}: {item.object.readCommit}</legend>
  <label><input type="checkbox" checked={c.selected} onChange={e=>choose(ref,{selected:e.target.checked})}/>Include this successfully observed side</label>
- <label>Intended source role (caller assertion)<input value={c.role} onChange={e=>choose(ref,{role:e.target.value})}/></label>
+ <label>Intended source role (caller assertion)<input {...EXACT_TEXT} value={c.role} onChange={e=>choose(ref,{role:e.target.value})}/></label>
  {result.anchors?.filter((a:Json)=>a.sideObservationReference===ref).map((a:Json)=><label key={a.reference}><input type="checkbox" checked={c.anchors.includes(a.reference)} onChange={e=>choose(ref,{anchors:e.target.checked?[...c.anchors,a.reference]:c.anchors.filter(x=>x!==a.reference)})}/>Include checked excerpt {a.anchor}: {a.text}</label>)}
  </fieldset>;})}
  {format==="0.3"&&<><label>Optional caller interpretation<textarea value={statement} onChange={e=>{invalidate();setStatement(e.target.value);}}/></label>
- <label>Asserted by (unverified caller identity)<input value={assertedBy} onChange={e=>{invalidate();setAssertedBy(e.target.value);}}/></label>
+ <label>Asserted by (unverified caller identity)<input {...EXACT_TEXT} value={assertedBy} onChange={e=>{invalidate();setAssertedBy(e.target.value);}}/></label>
  <label><input type="checkbox" checked={linkEvidence} onChange={e=>{invalidate();setLinkEvidence(e.target.checked);}}/>Reference explicitly selected evidence in this interpretation</label></>}
  {format==="0.4"&&<ReconstructionFields value={reconstruction} onChange={v=>{invalidate();setReconstruction(v);}} anchors={(result?.anchors??[]).filter((a:Json)=>Object.values(choices).some(c=>c.selected&&c.anchors.includes(a.reference)))}/> }
  <label>Optional caller gap<input value={gap} onChange={e=>{invalidate();setGap(e.target.value);}}/></label><label>Caller gap effect<input value={effect} onChange={e=>{invalidate();setEffect(e.target.value);}}/></label>
  <label><input type="checkbox" checked={assigned} onChange={e=>{invalidate();setAssigned(e.target.checked);}}/>Assign responsibility for this caller gap</label>
- {assigned&&<label>Caller-assigned identity<input value={responsible} onChange={e=>{invalidate();setResponsible(e.target.value);}}/></label>}
+ {assigned&&<label>Caller-assigned identity<input {...EXACT_TEXT} value={responsible} onChange={e=>{invalidate();setResponsible(e.target.value);}}/></label>}
  <label>Optional unsupported conclusion<input value={unsupported} onChange={e=>{invalidate();setUnsupported(e.target.value);}}/></label><label>Why unsupported<input value={unsupportedWhy} onChange={e=>{invalidate();setUnsupportedWhy(e.target.value);}}/></label>
  {Object.entries(duties).map(([duty,value])=><fieldset key={duty}><legend>{duty} — caller-reported, unverified</legend><label>Explicit standing<select value={value.standing} onChange={e=>{invalidate();setDuties(old=>({...old,[duty]:{...value,standing:e.target.value}}));}}><option value="">Choose…</option><option value="prepared">Prepared only</option><option value="outstanding">Outstanding</option></select></label><label>Explicit reason<input value={value.reason} onChange={e=>{invalidate();setDuties(old=>({...old,[duty]:{...value,reason:e.target.value}}));}}/></label></fieldset>)}
  <button onClick={prepare}>Freeze draft for inspection</button></fieldset>

@@ -58,6 +58,10 @@ witness. Do not insert a synthetic anchor. FP-1(b), FP-2/W-4, FP-3/4/5, SIGN-1,
 M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 
+Without this overlay a bundle carries no `instructions/` or `workflows/`, and
+every conversation start is refused with "role-set-invalid". The default
+`tauri.conf.json` declares no bundle resources (CI-31 in `../../CONTRACT_ISSUES.md`).
+
 
 A separate [compiled synthetic-selection route](SYNTHETIC_SELECTION.md) is
 available only by explicit debug-feature opt-in. Its separate configuration and

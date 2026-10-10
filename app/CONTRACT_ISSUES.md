@@ -235,12 +235,14 @@ consumer/native/qualification work. CI-10 custody and CI-11 native supplier rece
 - **OH-1 affected privacy continuation (2026-10-05):** [OAuth Host receiving review](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/reviews/V3-I1-OAUTH-HOST-RECEIVING.md) reproduced two retained-evidence canary failures while admission correctly stayed Pending/unmatched: private material echoed in a known completion's unexpected top-level `id`, and unexpected-key-only echo in a wrong-typed original RPC reply. The same genuine synthetic SourceRequest/cat controls also failed on immutable merged e2/196 baseline Host6c48/auth566. These are pre-existing known-auth reflection gaps preserved by the new OAuth projection, not newly introduced admission/cancel defects or real credential exposure. Original Unit A and candidate116 passes remain valid for their recorded vectors; only this framing/weak-association privacy scope is reopened.
 - **OH-1 bounded repair:** exact original controls now pass unchanged; source-warranted typed public framing and privacy-only weak association preserve unmatched standing, while mandatory malformed-auth replies retain raw IDs only on the private original pipe. Host84/controller15 pass99 distinct checks and independent original-vector/preservation backcheck is READYdabb7e40. Prior baseline0/2 and successor0/2 failures remain historical; no generic filtering/DLP over unrelated notifications was adopted.
 - **Remaining:** actual native UI/authentication/browser/device/model/provider qualification still needs its own actual witnesses. No real credential/home content, authentication, native key operation or provider model execution is authorized by this issue.
+- **Native witness, 2026-10-10:** [first native App witness](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md). The owner signed in with a ChatGPT account through the App on an unverified-development 0.160.0 build. `account/read` reported the account type without details, and the App showed the identity as not verified. Model turns ran with `gpt-6-luna` via `openai`. This is development evidence for one account home. It is not access qualification, and API-key, device and logout journeys remain unwitnessed.
 
 ## CI-15 Native child-role collision discovery and shared-resource fit
 
 - **Found:** 2026-10-05 through Parent's isolated stock 0.160.0 probe, [carrier and collision evidence](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/probes/ROLE_0160_THREAD_CARRIER_AND_COLLISION.json). Per-thread agent definitions appear only in that thread, but a same-name definition shadows a synthetic standalone user agent. `config/read` reports `agents:null` without those origins. The complete published package repeats the result; no child or real model was executed.
 - **Contract fit:** ROLE CR2's `config/read` route cannot establish complete collision exclusion from this response. ACCESS/HOST's current M-A boundary explicitly shares `config.toml`, `AGENTS.md` and `skills`, with other home files not linked; native `agents/` definitions are not covered. [CC-ROLE-ACCESS-0160-FIT](../execution/_Coordination/AgentRuns/APP-V4-GROUP-A-20261004/changes/CC-ROLE-ACCESS-0160-FIT.md) preserves both clauses and the required discovery, namespace-protection and receiving consequences.
 - **Standing:** open named source/Design fit, with no fourth target, process-wide fallback, user-configuration edit or governance change adopted. Current child supply remains not supplied. Complete discovery/collision exclusion, additive child content/base preservation and actual child association require their own inputs; ordinary workflow and native operations continue.
+- **Native witness, 2026-10-10:** a [delegated child](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) (items 11–12) ran from a HELPS_HUMANS conversation on stock 0.160.0. The App showed its guidance as "not known". This observes delegation, not child role supply, which stays not supplied.
 
 ## CI-16 WR supplier records and RS native supply receiving
 
@@ -274,7 +276,10 @@ No native content, new recorder, liveTurn inference or automatic resume is added
 The adopted source is implemented with cold-tuple tests (cold03); the final V6
 custody review records RC1-COLD as repaired for the core scope. Root consumer
 integration is in the combined checkpoint. Actual native quit/relaunch evidence
-and external PI-6 mapping remain open. Exact source pins are in the Group A run's
+and external PI-6 mapping remain open.
+The [native witness of 2026-10-10](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) covered Restart Codex with nothing live,
+followed by a history read and resume. It covered no quit, relaunch or open item
+across a restart. Exact source pins are in the Group A run's
 CC-REC-ITEM-TURN-SOURCE-ADOPTION.json; review status in V6-RECOVERY-CUSTODY-CORE.md.
 
 ## CI-18 Development workflow selections were composed and sent as runs
@@ -518,6 +523,20 @@ owner or the owner. No Design file was changed.
     refused request, or a record that could not be written. A pending notice is
     re-scoped to the current generation of the same home, so a Codex relaunch
     does not strand it. Its record identity and bytes are unchanged.
+  - Which turn carries it (NIR TC-2): any new turn of the conversation, as its
+    first element. That is ordinary text, a plan or default mode turn (its
+    `collaborationMode` unchanged), the Continue-as summary request, or an
+    attachment-bearing turn (run-end line, the person's text, then the
+    attachments). A steer is not a new turn. One turn claims the notice at a
+    time. An attachment-bearing turn holds that claim without the run's lock,
+    because the attachment list's lock comes first (`host_status` order).
+    While it is held, every other new turn in the conversation, a run start
+    included, is refused before anything is written. If that send path ends
+    abnormally, the claim is settled from the Host's write facts.
+  - A run start holds a pending notice from its live check until its send
+    outcome; no turn can claim it meanwhile. Once the start's frame was
+    attempted, its chain line supersedes the notice; otherwise the notice is
+    pending again (TX-5: no separate notice).
   - After its frame was written: if Codex then refuses the turn, or the outcome
     is unknown, the notice is not resent, and the model may not have received
     it. The panel shows the outcome. A *native* fork
@@ -827,17 +846,17 @@ record's "App implementation items". No Design or schema file was changed.
     A15 re-confirms.
   - Tested: `v15_p2_second_process_x2_then_continue_keeps_one_line_per_act`,
     through the `storage::fail_directory_for_test` hook.
-  - **Exception (V15-R1 R1-1, open).** The ending above holds only when the
-    first process's attempt is not in *Intended*. If its append failed
-    without writing anything, the attempt is *Intended*. On every Continue
-    it then takes the intended-line path, is refused on `ledger_seq`, and
-    reports "registration ledger durability uncertain; same hot attempt
-    retained" for as long as the process runs. This is safe: there is still
-    one ledger line for the act, the ledger stays readable, and ‹k› is not
-    held. But it never shows the definite *not completed* line already in
-    the ledger. The repair is to fail on the intended path with the same
-    "already has ledger line ‹n›" reason, with the reviewer's probe P6 as a
-    test. It is open as a follow-up.
+  - **An attempt left *Intended* (V15-R1 R1-1, repaired).** If the first
+    process's append failed without writing anything, its attempt is
+    *Intended*, and Continue takes the intended-line path. That path now
+    checks for a ledger line citing the attempt's A15 before the `ledger_seq`
+    refusal. When X-2 of another process has written its *not completed*
+    line, the attempt ends *not completed* with the same "already has ledger
+    line ‹n›" reason. Before the repair it reported "registration ledger
+    durability uncertain; same hot attempt retained" on every Continue.
+    Tested: `v15_r1_p6_intended_attempt_ends_with_the_other_process_x2_line`
+    (the reviewer's probe P6), through a test hook that fails one append
+    before it writes.
 - **(c) Registration X-2 is still absent.** The App keeps no attempt journal
   for a *registration* (F15). A registration lost after G-3 and before G-4
   leaves its store folder and no ledger line, as before J8.
@@ -1173,6 +1192,26 @@ changed.
   prerequisite is added to native_development. DEL-11-03 handoff rights and
   DEL-01-06 conditional package contract are unchanged. Exact source/custody
   records: AgentRuns/APP-V4-GROUP-B-20261008/sq-result-receiver-adoption.
+
+## CI-31 App bundle resources: the default configuration carries none
+
+- **Found:** the [native witness of 2026-10-10](../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md), item 1. A bundle built
+  with `tauri build --debug --bundles app` and `bundle.active` overridden to
+  true had no `Contents/Resources/instructions` or `workflows`. A non-dev build
+  reads role guidance from `resource_dir()/instructions`, so every start was
+  refused before sending: "role-set-invalid: packaged instruction missing,
+  linked or unreadable". The start succeeded after the resources were copied
+  in by hand.
+- **Cause:** `src-tauri/tauri.conf.json` declares no `bundle.resources`. Only
+  the [unsigned development overlay](packaging/unsigned/README.md)
+  (`packaging/unsigned/tauri.development.conf.json`) maps
+  `resources/instructions/` and `resources/production_workflows/`, so a bundle
+  built without that overlay carries neither. The refusal is the designed
+  fail-closed result; the gap is in packaging.
+- **Open (DEL-01-06 packaging; Group B B4 package preparation):** the product
+  bundle must carry the instruction and workflow resources. Either the default
+  configuration declares them, or a bundle build without them fails instead of
+  producing an App that refuses every start. Not fixed in this change.
 
 ## CI-32 WR §16.2 files line: run start names a placeholder folder
 
