@@ -132,7 +132,8 @@ export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, op
   const [choice, setChoice] = useState<StartChoice>({ model: "", modelProvider: "", entryId: "" });
   const [sending, setSending] = useState<SendState>({ state: "unsent" });
   const sent = sending.state === "sent" || sending.state === "sending";
-  // The draft is seeded once when the summary arrives; the person's edits are kept after that.
+  // The draft is seeded once when the summary arrives. It cannot be edited while
+  // the summary is still awaited, so the seed never replaces the person's edits.
   useEffect(() => {
     const state = text(handoff?.draft?.state);
     if (state !== seededFrom && state !== "waiting") { setDraft(text(handoff?.draftText)); setSeededFrom(state); }
@@ -142,7 +143,7 @@ export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, op
   return <section aria-label="Continue as" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
     <h3>Continue as {target} from conversation {text(handoff?.sourceThread)}</h3>
     <p>Source conversation: {text(handoff?.sourceThread)} ({text(handoff?.sourceRoleLabel)}); it keeps its role. {text(handoff?.draft?.reading)}</p>
-    <label>Handoff message (editable; not sent) <textarea value={draft} disabled={busy || sent} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
+    <label>Handoff message (editable; not sent) <textarea value={draft} disabled={busy || sent || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose one.</p>
       <label>Model <input value={choice.model} onChange={e => setChoice({ ...choice, model: e.target.value })} /></label>{" "}

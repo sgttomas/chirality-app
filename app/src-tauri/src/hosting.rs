@@ -1826,8 +1826,9 @@ impl Host {
     /// the fork keeps the source's guidance and the source is unchanged. It also
     /// sets `deferGoalContinuation` (0.160.0 ThreadForkParams): a source with an
     /// active goal would otherwise start an automatic continuation turn in the
-    /// fork that the person did not start. This suppresses that turn only; it
-    /// is not guidance.
+    /// fork that the person did not start, per the 0.160.0 generated schema
+    /// description; not observed. This suppresses that turn only; it is not
+    /// guidance.
     pub fn thread_fork_dispatch(&self, generation: &Value, source_thread: &str) -> Result<SourceRequest,String> {
         crate::recovery::generation_ref(generation)?;
         {

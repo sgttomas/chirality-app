@@ -40,8 +40,12 @@ pub fn handoff_header(source_thread: &str, role: &RoleInForce) -> String {
 
 /// A send refused before any frame was written (the Host's `refused-not-sent`
 /// convention, or the selection check before the Host is called).
+/// Anchored at the start: the Host's pre-write refusals begin with
+/// `refused-not-sent`, and the selection check's errors with their own fixed
+/// words. A later native error that merely mentions those words is a written
+/// request and keeps the header-only fallback.
 fn not_sent(reason: &str) -> bool {
-    reason.contains("refused-not-sent") || reason.starts_with("conversation selection is stale") || reason.starts_with("conversation is not loaded")
+    reason.starts_with("refused-not-sent") || reason.starts_with("conversation selection is stale") || reason.starts_with("conversation is not loaded")
 }
 
 #[derive(Clone, Debug)]

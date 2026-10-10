@@ -95,6 +95,11 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   assert.ok(started.includes('Send this message to the new conversation'));
   const fallback=h(ContinueAsPanel,{handoff:{...handoff,draft:{state:'header-only',reading:'The source turn ended failed. The draft holds the header only; write the summary yourself.'},draftText:handoff.header},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
   assert.ok(fallback.includes('write the summary yourself')&&fallback.includes('(role HELP_HUMAN).</textarea>'));
+  // While the summary is awaited the draft cannot be edited, so its arrival never replaces the person's edits.
+  const textarea=html=>html.match(/<textarea[^>]*>/)[0];
+  const waiting=h(ContinueAsPanel,{handoff:{...handoff,draft:{state:'waiting',reading:'Waiting for the source conversation\'s agent to finish the summary turn.'},draftText:handoff.header},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
+  assert.ok(textarea(waiting).includes('disabled=""'),'not editable while waiting');
+  assert.ok(!textarea(html).includes('disabled=""')&&!textarea(fallback).includes('disabled=""'),'editable once drafted or header-only');
 });
 
 test('the handoff message reads sent only after the send resolved; a refusal keeps the draft and allows another try',async()=>{

@@ -265,6 +265,10 @@ fn continue_as_falls_back_to_the_header_when_the_source_turn_fails() {
         assert!(error.contains("No summary was requested") && error.contains(reason), "{error}");
         assert_eq!(refused.view(&json!({})), json!([]), "{reason}: no handoff left open");
     }
+    // A written request's later error that only mentions those words keeps the header-only fallback.
+    let out = refused.begin(&f.generation, "other", RoleInForce::Unknown { reason: "r".into() }, None, |_| Err("turn/start native error: {\"message\":\"upstream said refused-not-sent\"}".into())).unwrap();
+    assert_eq!(out["request"]["state"], "failed");
+    assert_eq!(refused.view(&json!({})).as_array().unwrap().len(), 1, "the handoff stays open with the header only");
 }
 
 #[test]
