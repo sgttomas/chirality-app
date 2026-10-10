@@ -297,9 +297,11 @@ pub(crate) fn fork_command(homes: &std::sync::Mutex<crate::runtime_session::Home
 }
 
 /// The `continue_as_begin` command body (CA-1, CA-2). Checks, before anything
-/// is opened or sent: a pending run-end notice must go with ordinary text first
-/// (as for attachments, WR TX-5), and the source must be a current conversation
-/// of a ready Codex. Then one visible ordinary turn asks for the summary.
+/// is opened or sent, that the source is a current conversation of a ready
+/// Codex. Then one visible ordinary turn asks for the summary; when a run in
+/// that conversation ended with no successor, that turn carries the run-end
+/// notice first, once (WR TX-5, NIR TC-2). A request whose turn was not
+/// written, notice or not, closes the handoff and leaves the notice pending.
 pub(crate) fn continue_as_begin(
     handoffs: &std::sync::Mutex<Handoffs>,
     workflows: &std::sync::Mutex<crate::runtime_session::WorkflowRootSession>,
@@ -308,7 +310,6 @@ pub(crate) fn continue_as_begin(
     thread: &str,
     target: Option<Role>,
 ) -> Result<Value, String> {
-    crate::runtime_session::mode_send_blocked_by_notice(workflows, generation, thread)?;
     crate::runtime_session::current_conversation(&home.host.snapshot(), generation, thread)
         .map_err(|e| format!("{e}; nothing sent"))?;
     let home_name = generation["home"].as_str().ok_or("generation home required")?.to_owned();
@@ -316,9 +317,23 @@ pub(crate) fn continue_as_begin(
         .map(|binding| binding.role_in_force(&home_name, thread))
         .unwrap_or(RoleInForce::Unknown { reason: "original App supply binding not established".into() });
     let (id, text) = handoffs.lock().unwrap().reserve(generation, thread, source_role, target)?;
-    let outcome = crate::runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, &text,
-        |generation, thread, text| home.host.turn_start_text(generation, thread, text));
+    let outcome = match crate::runtime_session::send_with_pending_notice_in_mode(workflows, generation, thread, &text, None) {
+        Some(sent) => notice_turn_outcome(sent),
+        None => crate::runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, &text,
+            |generation, thread, text| home.host.turn_start_text(generation, thread, text)),
+    };
     handoffs.lock().unwrap().sent(&id, outcome)
+}
+
+/// The summary request's outcome when it carried a run-end notice, in the
+/// shape `Handoffs::sent` reads: the turn Codex named, or a refusal marked
+/// `refused-not-sent` exactly when no frame was written.
+fn notice_turn_outcome(sent: crate::runtime_session::NoticeSend) -> Result<Value, String> {
+    match sent.result {
+        Ok(value) => Ok(json!({"result":{"turn":{"id":value["turnId"]}},"endNotice":value["endNotice"]})),
+        Err(reason) if !sent.written => Err(format!("refused-not-sent: {reason}")),
+        Err(reason) => Err(reason),
+    }
 }
 
 /// `thread_start` with `continue_as` (CA-3): the relation to record, read from

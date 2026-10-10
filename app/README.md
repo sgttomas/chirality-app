@@ -59,11 +59,13 @@ performed an act.
     source list. Explicit attachment-bearing send or steering uses that whole
     list, durable metadata and the actual Host request; failures do not fall back
     to text-only sending or automatic retry. A native acknowledgment is separate
-    from provider uptake or completion. While a run-end notice is pending in the
-    conversation (item 18), an attachment-bearing new turn is refused with
-    "send ordinary text first. Nothing sent"; an attachment steer is not
-    affected. The App does not yet put the notice and attachments into one turn
-    (NIR TC-2 allows it).
+    from provider uptake or completion. When a run-end notice is pending in the
+    conversation (WR TX-5), an attachment-bearing new turn carries it in one
+    frame, in NIR TC-2's order: the run-end line, then the person's text, then
+    the attachments. The supply records still name only the attachments, in
+    their order. The notice is marked sent only once that frame's write was
+    attempted; a send refused or failed before then leaves it pending. An
+    attachment steer is not a new turn and does not carry it.
 13. Explicit App project association comes from configured `CHIRALITY_WORKSPACE`,
     separately from native thread cwd, Codex home and workflow run. Unknown context
     produces no canonical project row. Historical project P remains intact when
@@ -101,8 +103,9 @@ performed an act.
     default mode puts `collaborationMode` on `turn/start` with the conversation's
     reported model and null developer instructions; it is ordinary input, never
     a recorded act. Codex keeps the mode until another is sent; the App shows
-    the last mode it requested. A pending run-end notice still goes with the
-    next ordinary turn, so a mode send waits for it.
+    the last mode it requested. A pending run-end notice goes first in a mode
+    turn too, with its `collaborationMode` unchanged. A mode that cannot be
+    sent is refused before the notice is touched.
 19. Codex's requests are shown readably beside the conversation they belong to:
     tool permissions (command, file change, extra permissions, legacy forms),
     questions and input requests. A card names what is asked (command, working
@@ -260,9 +263,10 @@ performed an act.
     a store that cannot be read is said to be not compared. **Continue as
     ‹role›…** sends one visible ordinary turn to the source conversation asking
     its agent for a handoff summary. It is refused, with nothing opened or
-    sent, while a run-end notice is pending (as for attachments) or when the
-    source is not a current conversation of a ready Codex; a request refused
-    before any write closes the handoff. The completed agent message observed
+    sent, when the source is not a current conversation of a ready Codex. When
+    a run-end notice is pending there, that request carries it first, once (as
+    for any new turn); a request refused before any write closes the handoff
+    and leaves the notice pending. The completed agent message observed
     live is placed under an App header naming the source and its role,
     editable and unsent; a written request whose turn failed, was interrupted
     or has an unknown outcome leaves the header only. The new

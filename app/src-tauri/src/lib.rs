@@ -647,17 +647,17 @@ fn conversation_send_text(
     mode: Option<String>,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
+    // WR TX-5 / SQ-END EN-2 / NIR TC-2: when a run in this conversation ended
+    // with no successor, this next turn carries its end notice first, exactly
+    // once, in plan or default mode as well (its collaborationMode unchanged).
+    if let Some(sent) = runtime_session::send_with_pending_notice_in_mode(&state.workflows, &generation, &thread_id, &text, mode.as_deref()) {
+        return sent.result;
+    }
     if let Some(mode) = mode {
-        runtime_session::mode_send_blocked_by_notice(&state.workflows, &generation, &thread_id)?;
         return runtime_session::send_conversation_text(
             &home.host.snapshot(), &generation, &thread_id, &text,
             |generation, thread, text| home.host.turn_start_text_mode(generation, thread, text, &mode),
         );
-    }
-    // WR TX-5 / SQ-END: when a run in this conversation ended with no successor,
-    // this next ordinary turn carries its end notice first, exactly once.
-    if let Some(result) = runtime_session::send_with_pending_notice(&state.workflows, &generation, &thread_id, &text) {
-        return result;
     }
     runtime_session::send_conversation_text(
         &home.host.snapshot(),

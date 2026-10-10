@@ -271,6 +271,30 @@ fn continue_as_falls_back_to_the_header_when_the_source_turn_fails() {
     assert_eq!(refused.view(&json!({})).as_array().unwrap().len(), 1, "the handoff stays open with the header only");
 }
 
+/// WR TX-5 / NIR TC-2: when the summary request carried a pending run-end
+/// notice, its outcome reaches `Handoffs::sent` in the same shape: the turn
+/// Codex named, or, when no frame was written, a `refused-not-sent` refusal
+/// that closes the handoff (the notice stays pending for the next turn). A
+/// written request that failed keeps the header-only fallback.
+#[test]
+fn continue_as_request_carrying_the_end_notice_keeps_the_handoff_rules() {
+    use crate::runtime_session::NoticeSend;
+    let sent = notice_turn_outcome(NoticeSend { result: Ok(json!({"state":"end notice and the person's text sent once","turnId":"turn-9","endNotice":{"state":"sent once with the next ordinary turn"}})), written: true });
+    let mut handoffs = Handoffs::default();
+    let generation = json!({"appSession":"s","home":"h","spawnCounter":1});
+    let out = handoffs.begin(&generation, "src", RoleInForce::Unknown { reason: "r".into() }, None, |_| sent.clone()).unwrap();
+    assert_eq!((out["request"]["state"].as_str(), out["request"]["turnId"].as_str()), (Some("sent"), Some("turn-9")));
+    let unwritten = notice_turn_outcome(NoticeSend { result: Err("End notice not durably recorded; nothing sent: disk full".into()), written: false });
+    let mut closed = Handoffs::default();
+    let error = closed.begin(&generation, "src", RoleInForce::Unknown { reason: "r".into() }, None, |_| unwritten.clone()).unwrap_err();
+    assert!(error.contains("No summary was requested") && error.contains("disk full"), "{error}");
+    assert_eq!(closed.view(&json!({})), json!([]), "nothing written: no handoff left open");
+    let failed = notice_turn_outcome(NoticeSend { result: Err("End notice turn outcome unavailable; not resent".into()), written: true });
+    let mut kept = Handoffs::default();
+    let out = kept.begin(&generation, "src", RoleInForce::Unknown { reason: "r".into() }, None, |_| failed.clone()).unwrap();
+    assert_eq!(out["request"]["state"], "failed", "a written request is never treated as unsent");
+}
+
 #[test]
 fn continue_as_glue_checks_the_source_before_opening_anything() {
     let f = Fixture::new();

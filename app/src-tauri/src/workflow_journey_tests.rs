@@ -619,30 +619,30 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(kinds(&log), ["run_opened", "supplied_guidance", "supplied_guidance", "run_ended"]);
     assert_eq!(log[3]["body"], json!({"stoppedBy":"the person","cause":"ended by the person","waitingArrivals":[]}));
     assert_log_order(&log);
-    let refused = crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).unwrap_err();
-    assert!(refused.contains("end notice goes with the next ordinary turn"), "a plan/default mode send waits for the notice");
-    assert_eq!(disk.frames("turn/start").len(), 1, "the refused mode send wrote nothing");
-    // TX-5: an attachment-bearing new turn (submit_attachments command body) is
-    // refused while the notice is pending; a steer starts no turn and is not.
+    // NIR TC-2 / WR TX-5: any new turn carries the pending notice first. A turn
+    // refused before its frame is written leaves it pending: a plan mode send
+    // that Codex has not offered (conversation_send_text with a mode), and an
+    // attachment-bearing turn (submit_attachments) whose list is unavailable.
+    // A steer starts no turn and neither carries nor claims it.
+    let mode = send_with_pending_notice_in_mode(&root, &one.generation, THREAD, "plan it", Some("plan")).expect("notice pending");
+    assert!(!mode.written && mode.result.unwrap_err().contains("plan mode not offered"));
     let no_selection: Mutex<Result<AttachmentSelectionSession, String>> = Mutex::new(Err("fixture: no attachment selection".into()));
     let submit = |expected: Option<&str>| submit_attachments_with_draft_trials(&no_selection, &root, &one.host, Err("fixture: no custody".into()), "owner", 1, &[], &one.generation, THREAD, expected, "with files", crate::recovery::ExplicitAppProjectContext::unknown(), None);
-    let refused = submit(None).unwrap_err();
-    assert!(refused.contains("end notice goes with the next ordinary turn; send ordinary text first. Nothing sent"), "{refused}");
-    assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no attachment selection", "the notice does not block a steer");
-    assert_eq!(disk.frames("turn/start").len(), 1, "the refused attachment send wrote nothing");
+    assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection");
+    assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no attachment selection", "a steer is not held by the notice");
+    assert_eq!(disk.frames("turn/start").len(), 1, "the refused sends wrote nothing");
     assert!(disk.frames("turn/steer").is_empty());
-    // Continue as (continue_as_begin command body) is refused the same way: no
-    // handoff is opened and no summary turn is written while the notice is pending.
+    assert!(run_a.lock().unwrap().view(&a)["endNotice"]["state"].as_str().unwrap().starts_with("pending"), "still pending");
+    // Continue as (continue_as_begin command body): its one visible summary
+    // request is the next new turn, so it carries the notice first, once.
     let handoffs = Mutex::new(crate::conversation_roles::Handoffs::default());
-    let refused = crate::conversation_roles::continue_as_begin(&handoffs, &root, &one.home, &one.generation, THREAD, None).unwrap_err();
-    assert!(refused.contains("end notice goes with the next ordinary turn; send ordinary text first. Nothing sent"), "{refused}");
-    assert_eq!(handoffs.lock().unwrap().view(&json!({})), json!([]));
-    assert_eq!(disk.frames("turn/start").len(), 1, "the refused Continue as wrote nothing");
-    conversation_send_text(&root, &one, "hello").unwrap();
-    assert!(crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).is_ok(), "after the notice went, mode sends are allowed");
-    assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection", "after the notice went, attachment sends are not refused for it");
+    let opened = crate::conversation_roles::continue_as_begin(&handoffs, &root, &one.home, &one.generation, THREAD, None).unwrap();
+    assert_eq!(opened["request"]["state"], "sent", "{opened}");
+    assert_eq!(opened["request"]["turnId"], "turn");
     let starts = disk.frames("turn/start");
     assert_eq!(starts.len(), 2);
+    assert_eq!(starts[1]["params"]["input"][1]["text"], crate::conversation_roles::handoff_request_text(None).as_str());
+    assert_eq!(run_a.lock().unwrap().view(&a)["endNotice"]["state"], "sent once with the next ordinary turn");
     let notice_file = {
         let mut now = disk.wr_files();
         now.retain(|f| ![disk.wr_file(&selection_ref), disk.wr_file(&text_ref), disk.wr_file(&first_ref), disk.wr_file(&second_ref)].contains(f));
@@ -659,8 +659,9 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(notice_text, notice.body()["lines"]["end_line"].as_str().unwrap(), "the turn carries the published notice text");
     assert_eq!(text_identity(&notice_text), notice.body()["text_identity"]);
     assert!(notice_text.contains(&a));
-    assert_eq!(starts[1]["params"]["input"][1]["text"], "hello");
     assert_eq!(starts[1]["params"]["input"].as_array().unwrap().len(), 2);
+    assert!(send_with_pending_notice_in_mode(&root, &one.generation, THREAD, "plan it", Some("plan")).is_none(), "after the notice went, nothing waits for it");
+    assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection");
     conversation_send_text(&root, &one, "later").unwrap();
     let starts = disk.frames("turn/start");
     assert_eq!(starts.len(), 3);
