@@ -83,4 +83,7 @@ test('conversation sends are paused while Stop or Restart Codex runs',()=>{
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
   assert.ok(app.includes('<ConversationPanel codexBusy={processBusy}'));
   assert.ok(app.includes('const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");'));
+  // Interrupting stays available during a stop; only the panel's own operation blocks it.
+  assert.ok(app.includes('!live || !!ownBusy || alreadyRequested} onClick={interruptTurn}'));
+  assert.ok(app.includes('<select disabled={!!ownBusy} value={threadKey}')&&app.includes('<select disabled={!!ownBusy} value={turnId}'));
 });

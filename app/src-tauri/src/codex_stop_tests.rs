@@ -341,6 +341,7 @@ def emit(v):
  with lock: print(json.dumps(v),flush=True)
 def events():
  while True:
+  if os.path.exists('crash-now'): os._exit(3)
   try:
    os.rename('queued-event.json','reading-event.json')
    with open('reading-event.json') as f: v=json.load(f)
@@ -355,6 +356,8 @@ for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log: log.write(json.dumps(f)+'\n')
  m=f.get('method')
+ if m=='initialize' and os.path.exists('fail-initialize'):
+  emit({'id':f['id'],'error':{'code':-32000,'message':'fixture handshake refused'}});continue
  if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
  elif m=='thread/start':
   starts[0]+=1
@@ -379,6 +382,26 @@ for line in sys.stdin:
     }
     impl Fixture {
         fn new() -> Self {
+            let (root, cfg) = Self::prepare();
+            let host = Arc::new(Host::new());
+            host.start(&cfg, "stop fixture").unwrap();
+            let generation = host.snapshot()["generation"].clone();
+            host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+            let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
+            Self { root, cfg, home, generation }
+        }
+        /// A Host whose handshake is refused: `halted-after-repeated-failure`.
+        fn halted() -> Self {
+            let (root, cfg) = Self::prepare();
+            std::fs::write(root.join("fail-initialize"), "").unwrap();
+            let host = Arc::new(Host::new());
+            assert!(host.start(&cfg, "stop fixture").is_err());
+            assert_eq!(host.snapshot()["state"], "halted-after-repeated-failure");
+            let generation = host.snapshot()["generation"].clone();
+            let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
+            Self { root, cfg, home, generation }
+        }
+        fn prepare() -> (PathBuf, HostConfig) {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("codex-stop-").unwrap());
             for name in ["account", "probe"] {
@@ -390,12 +413,18 @@ for line in sys.stdin:
             let mut cfg = HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
             cfg.allow_unverified_dev = true;
             cfg.wait_limit = Duration::from_secs(2);
-            let host = Arc::new(Host::new());
-            host.start(&cfg, "stop fixture").unwrap();
-            let generation = host.snapshot()["generation"].clone();
-            host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
-            let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
-            Self { root, cfg, home, generation }
+            (root, cfg)
+        }
+        /// The child ends with no stop record: `exited-unexpectedly`, its
+        /// generation closed (HOSTING LT-12).
+        fn crash(&self) {
+            std::fs::write(self.root.join("crash-now"), "").unwrap();
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while self.home.host.snapshot()["state"] != "exited-unexpectedly" {
+                assert!(Instant::now() < deadline, "no unexpected exit observed: {}", self.home.host.snapshot()["state"]);
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            std::fs::remove_file(self.root.join("crash-now")).unwrap();
         }
         fn emit(&self, event: Value) {
             let tmp = self.root.join("new-event.json");
@@ -535,6 +564,55 @@ for line in sys.stdin:
         let current = now["threads"].as_array().unwrap().iter().filter(|t| t["generation"] == now["generation"]).count();
         assert_eq!(current, 0, "no conversation is loaded in the new process until the person continues one");
         assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt", "initialize", "initialized"], "no thread/resume or other request after the restart");
+    }
+
+    #[test]
+    fn real_host_crashed_codex_is_reported_and_can_be_stopped_without_sending() {
+        let f = Fixture::new();
+        f.live_turn("turn-1");
+        f.crash();
+        let wire = f.wire();
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let mut shown = Vec::new();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, Duration::from_secs(1), |view| { shown.push(view.clone()); true }, || panic!("no start")).unwrap();
+        assert_eq!(out["state"], "stopped", "{out}");
+        assert_eq!(f.home.host.snapshot()["state"], "stopped");
+        assert_eq!(shown[0]["state"], "exited-unexpectedly");
+        assert!(shown[0]["notReady"].as_str().unwrap().contains("nothing is sent to it"));
+        assert_eq!(out["turns"], json!([]), "no interrupt to a process that is not ready");
+        assert_eq!(f.wire(), wire, "nothing written");
+    }
+
+    #[test]
+    fn real_host_crashed_codex_can_be_restarted() {
+        let f = Fixture::new();
+        f.crash();
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let host = f.home.host.clone();
+        let cfg = f.cfg.clone();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, Duration::from_secs(1), |_| true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
+        assert_eq!(out["state"], "stopped", "{out}");
+        assert_eq!(out["start"]["state"], "started", "{out}");
+        let now = f.home.host.snapshot();
+        assert_eq!(now["state"], "ready");
+        assert_ne!(now["generation"], f.generation);
+    }
+
+    #[test]
+    fn real_host_halted_codex_can_be_stopped_and_restarted() {
+        let f = Fixture::halted();
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, Duration::from_secs(1), |view| view["state"] == "halted-after-repeated-failure", || panic!("no start")).unwrap();
+        assert_eq!(out["state"], "stopped", "{out}");
+        assert_eq!(f.home.host.snapshot()["state"], "stopped");
+        // Halted again, then Restart once the handshake would succeed.
+        let f = Fixture::halted();
+        std::fs::remove_file(f.root.join("fail-initialize")).unwrap();
+        let host = f.home.host.clone();
+        let cfg = f.cfg.clone();
+        let out = stop_native_home_within(&f.home, &workflows, &f.generation, true, Duration::from_secs(1), |_| true, move || host.start(&cfg, "the person: Restart Codex")).unwrap();
+        assert_eq!(out["start"]["state"], "started", "{out}");
+        assert_eq!(f.home.host.snapshot()["state"], "ready");
     }
 
     #[test]

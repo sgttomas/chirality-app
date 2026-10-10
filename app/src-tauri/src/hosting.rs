@@ -661,10 +661,13 @@ impl Host {
     /// Stop/Restart Codex confirmed for `generation`: from now on this Host
     /// sends no new `turn/start` or `turn/steer` there (text, mode, workflow or
     /// attachment), so no work begins that the stop would end unlabelled.
-    /// Interrupts and request answers stay possible.
+    /// Interrupts and request answers stay possible. Only the generation must
+    /// match: a crashed, halted or verifying source (its generation already
+    /// closed) can still be stopped, and no send begins there anyway, since
+    /// every request requires `ready` (HOSTING §4.6 stop; CR-03).
     pub fn close_to_new_turns(&self, generation: &Value) -> Result<(), String> {
         let mut i=self.inner.0.lock().unwrap();
-        if i.generation!=*generation||i.server_requests.is_closed(generation){return Err("Codex changed since this view (another Codex process); nothing stopped".into());}
+        if i.generation!=*generation{return Err("The Codex process in this view is no longer the current one; refresh and choose again. Nothing stopped".into());}
         i.stop_confirmed=Some(generation.clone());Ok(())
     }
     /// Reopens `generation` to new turns when its confirmed stop was refused.

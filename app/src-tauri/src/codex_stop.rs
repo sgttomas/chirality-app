@@ -82,7 +82,7 @@ pub(crate) fn assess(
     crate::recovery::generation_ref(generation)?;
     let snapshot = home.host.snapshot();
     if snapshot["generation"] != *generation {
-        return Err("Codex changed since this view (another Codex process); refresh and choose again. Nothing stopped".into());
+        return Err("The Codex process in this view is no longer the current one; refresh and choose again. Nothing stopped".into());
     }
     let state = snapshot["state"].as_str().unwrap_or("not reported").to_owned();
     // HOSTING §4.6 stop: every state except absent, stopped and refused
