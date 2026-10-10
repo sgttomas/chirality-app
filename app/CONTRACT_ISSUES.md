@@ -1245,3 +1245,36 @@ changed.
   bundle must carry the instruction and workflow resources. Either the default
   configuration declares them, or a bundle build without them fails instead of
   producing an App that refuses every start. Not fixed in this change.
+
+## CI-32 WR §16.2 files line: run start names a placeholder folder
+
+- **Found:** 2026-10-10, while revising WR trials (CC-WR-TRIALS, U-WR-24), by
+  checking how a registered run's supporting files reach the agent.
+- **Design text** (`DEL-02-02 …/Design/WORKSPACE_AND_REGISTRATION.md` §16.2
+  line 4): the files line names "the folder" of the revision's other files,
+  where "‹folder› is project-relative for a project library and `~`-relative
+  for the user library".
+- **Code:** `runtime_session.rs` starts a run with
+  `PreparedRunText::start(…, "selected native workflow holding copy", …)`, so a
+  revision with files besides `WORKFLOW.md` gets a files line naming that fixed
+  label rather than the holding folder. The agent is told the files' names and
+  digests but not where they are. Revisions with `WORKFLOW.md` only are not
+  affected.
+- **Consequence:** supporting files of a registered run are named but not
+  locatable. §16.2 line 4 also covered only project and user libraries, while
+  bundled revisions (LS-5; for example the shipped `coordinated-knowledge-work`,
+  which has `REVIEW-NOTES.md`), and holding copies the person picked outside the
+  project, have no relative folder, and the composer refuses absolute labels.
+- **Design:** WR §16.2 TX-7 (CC-WR-TRIALS) now names a project- or
+  `~`-relative folder, or a content-addressed supply copy under
+  `.chirality/workflow-supply/` for any other holding copy, and refuses the run
+  start when that copy fails. A trial names its snapshot the same way (TT-8).
+- **State:** OPEN until WR §17 step 2 implements TX-7.
+
+## CI-33 Examination source pins need re-freezing
+
+- The WR and NIR Design pins (and DEL-09-02's `STANDALONE_QUALIFICATION.md`
+  and `sq.step-map.json`, whose J-4 should add WR-VC-21…WR-VC-25) in
+  `app/examination/standalone/{sources.json,pre_run_inputs.pins.json}` and
+  `app/examination/sq_receiving/pins.json` need a reviewed re-freeze before the
+  next examination dispatch run; the WR pin was already stale on `main`.
