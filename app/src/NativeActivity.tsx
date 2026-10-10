@@ -287,7 +287,14 @@ export function RunEndMarker({ run }: { run: Json }) {
   return <div role="note" style={marker}>Run ended: <b>{cause}</b> ({runName(run)}, run {text(run?.reference)}){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[] }) {
+// TO-4 / RECOVERY §3.4: the App's own label for a turn it interrupted at Stop
+// Codex, beside Codex's reported status (Codex cannot say who interrupted).
+export function StopLabel({ stop }: { stop: Json | null }) {
+  if (!stop) return null;
+  return <p role="note">App label: <b>{text(stop.label)}</b> ({stop.codexReported ? `Codex reported at the stop: ${text(stop.codexReported)}` : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
+}
+
+export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null }) {
   const [shown, setShown] = useState<string>("");
   if (!threadId) return <p>Select a conversation to see its activity.</p>;
   const descendants = activityModel(view, threadId).subtree;
@@ -315,6 +322,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs }
     {model.turns.map(turn => <section key={text(turn.turnId)} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
       <div><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></div>
+      <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
       {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card} id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
         <ItemBody row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} />

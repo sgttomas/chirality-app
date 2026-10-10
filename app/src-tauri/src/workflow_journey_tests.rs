@@ -598,8 +598,22 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(log[2]["body"]["supplyCheckRecord"]["ref"], second_ref.as_str());
     assert_log_order(&log);
 
+    // The Stop/Restart Codex question (codex_stop command body) lists the run in
+    // force; assessing sends nothing.
+    let asked = crate::codex_stop::assess(&one.home, &root, &one.generation, false).unwrap();
+    let in_force = asked.view()["runsInForce"].as_array().unwrap().clone();
+    assert_eq!(in_force.len(), 1);
+    assert_eq!(in_force[0]["run"], a.as_str());
+    assert_eq!(in_force[0]["conversation"], THREAD);
+    assert_eq!(in_force[0]["state"], "open");
+    assert_eq!(in_force[0]["workflow"]["name"], NAME);
+    assert!(crate::act_control::native_statement::codex_stop_statement(asked.view()).unwrap().text.contains("Workflow run in force: "));
+    assert!(disk.frames("turn/interrupt").is_empty(), "assessing sends nothing");
+
     // ---- Step 6. End explicitly (workflow_end_run); the next ordinary turn carries the notice once.
     run_a.lock().unwrap().end_run(None, None).unwrap();
+    let asked = crate::codex_stop::assess(&one.home, &root, &one.generation, false).unwrap();
+    assert_eq!(asked.view()["runsInForce"], json!([]), "an ended run is not in force");
     assert_eq!(run_a.lock().unwrap().lifecycle, RunLifecycle::Ended);
     let log = disk.rs_for(&a);
     assert_eq!(kinds(&log), ["run_opened", "supplied_guidance", "supplied_guidance", "run_ended"]);
@@ -608,8 +622,18 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let refused = crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).unwrap_err();
     assert!(refused.contains("end notice goes with the next ordinary turn"), "a plan/default mode send waits for the notice");
     assert_eq!(disk.frames("turn/start").len(), 1, "the refused mode send wrote nothing");
+    // TX-5: an attachment-bearing new turn (submit_attachments command body) is
+    // refused while the notice is pending; a steer starts no turn and is not.
+    let no_selection: Mutex<Result<AttachmentSelectionSession, String>> = Mutex::new(Err("fixture: no attachment selection".into()));
+    let submit = |expected: Option<&str>| submit_attachments_with_draft_trials(&no_selection, &root, &one.host, Err("fixture: no custody".into()), "owner", 1, &[], &one.generation, THREAD, expected, "with files", crate::recovery::ExplicitAppProjectContext::unknown(), None);
+    let refused = submit(None).unwrap_err();
+    assert!(refused.contains("end notice goes with the next ordinary turn; send ordinary text first. Nothing sent"), "{refused}");
+    assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no attachment selection", "the notice does not block a steer");
+    assert_eq!(disk.frames("turn/start").len(), 1, "the refused attachment send wrote nothing");
+    assert!(disk.frames("turn/steer").is_empty());
     conversation_send_text(&root, &one, "hello").unwrap();
     assert!(crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).is_ok(), "after the notice went, mode sends are allowed");
+    assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection", "after the notice went, attachment sends are not refused for it");
     let starts = disk.frames("turn/start");
     assert_eq!(starts.len(), 2);
     let notice_file = {

@@ -396,8 +396,10 @@ code_paths:
 - app/src/RequestCards.tsx
 - app/src/RunOffers.tsx
 - app/src/WorkflowDrafts.tsx
+- app/src/CodexControls.tsx
 checks:
 - app/src-tauri/tests/explicit_context.rs
+- app/tests/codex-controls.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/run-offers.test.mjs
 - app/tests/workflow-drafts.test.mjs

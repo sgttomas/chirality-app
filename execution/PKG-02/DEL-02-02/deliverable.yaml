@@ -237,4 +237,5 @@ code_paths:
 checks:
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/workflow_drafts_tests.rs
+- app/src-tauri/src/workflow_journey_tests.rs
 - app/tests/workflow-drafts.test.mjs

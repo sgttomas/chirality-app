@@ -57,6 +57,9 @@ needs:
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: true
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/codex_stop.rs
 checks:
+- app/src-tauri/src/codex_stop_tests.rs
 - execution/PKG-01/DEL-01-02/Design/prototype/check_generation_ref.py
 - execution/PKG-01/DEL-01-02/Design/prototype/check_project_context.py

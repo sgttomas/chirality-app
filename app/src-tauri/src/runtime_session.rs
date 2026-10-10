@@ -1882,6 +1882,12 @@ pub fn submit_attachments_with_draft_trials(
     context: crate::recovery::ExplicitAppProjectContext,
     home: Option<&str>,
 ) -> Result<Value, String> {
+    // WR TX-5: a run-end notice goes, alone, with the next ordinary text turn.
+    // An attachment-bearing new turn neither carries nor skips it, so it is
+    // refused before anything is prepared. A steer starts no turn: unaffected.
+    if expected_turn.is_none() {
+        mode_send_blocked_by_notice(workflows, generation, thread)?;
+    }
     let drafts = {
         let state = state.lock().unwrap();
         state.as_ref().map_err(Clone::clone)?.draft_trials(owner, revision, order)?
@@ -4846,6 +4852,31 @@ impl WorkflowRootSession {
         }
         Ok(None)
     }
+    /// DEL-01-04 §5.2 (C-12): the workflow runs in force in one Codex home, as
+    /// this App process holds them, for the Stop/Restart Codex question. A run
+    /// whose operation is pending is listed with that limit, never dropped.
+    /// Stopping Codex ends none of them (DEF-5). Runs recorded only by earlier
+    /// App sessions are not listed here.
+    pub(crate) fn runs_in_force_in_home(&self, home: &str) -> Vec<Value> {
+        let mut rows = Vec::new();
+        for ((run_home, thread), references) in &self.conversations {
+            if run_home != home {
+                continue;
+            }
+            for reference in references {
+                match self.runs.get(reference).map(|run| run.try_lock()) {
+                    Some(Ok(run)) if run.lifecycle == RunLifecycle::Open => {
+                        let id = run.prepared().workflow();
+                        rows.push(json!({"run":reference,"conversation":thread,"workflow":{"origin":id.origin,"name":id.name},"state":"open"}));
+                    }
+                    Some(Err(_)) => rows.push(json!({"run":reference,"conversation":thread,"workflow":null,"state":"operation pending; whether it is open is not established now"})),
+                    _ => {}
+                }
+            }
+        }
+        rows.sort_by_key(Value::to_string);
+        rows
+    }
     /// Where each run this process sent in a conversation started, for PR-5's
     /// supersession of an older proposal. A busy run is skipped (display only).
     fn run_starts(&self, view: &Value, home: &str, thread: &str) -> Vec<crate::run_offers::RunStart> {
@@ -5126,8 +5157,9 @@ pub(crate) fn start_workflow_run(
 /// SQ-END / TX-5: the person's next ordinary turn in a conversation whose run
 /// ended without a successor carries the end notice first, exactly once. Returns
 /// None when no notice is pending (ordinary sending applies unchanged).
-/// A plan/default mode turn never carries or skips a pending run-end notice
-/// (TX-5): while one is pending, the mode send is refused before anything is sent.
+/// A plan/default mode turn, or an attachment-bearing new turn, never carries or
+/// skips a pending run-end notice (TX-5): while one is pending, that send is
+/// refused before anything is sent.
 pub(crate) fn mode_send_blocked_by_notice(
     root: &std::sync::Mutex<WorkflowRootSession>,
     generation: &Value,

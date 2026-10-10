@@ -11,6 +11,7 @@ pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
 pub mod catalog;
+pub mod codex_stop;
 pub mod connector_standing;
 pub mod connector_route_store;
 mod connector_answer_only;
@@ -87,6 +88,11 @@ pub struct AppState {
     key_namespace_admission: Mutex<Value>,
     key_setup: Mutex<()>,
     root_home_inputs: Value,
+    /// One Stop/Restart Codex question at a time.
+    codex_stop_gate: Mutex<()>,
+    /// Confirmed Stop/Restart Codex outcomes, newest last, in this process only
+    /// (`codex_stop::RECORDS_LIMIT`).
+    codex_stops: Mutex<Vec<Value>>,
 }
 
 impl AppState {
@@ -203,6 +209,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
         s["workflowRoot"]["projectLibraryAvailable"] = json!(state.workspace.is_some());
     }
     s["homeOAuth"] = runtime_session::native_oauth_observation(&home);
+    s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
@@ -419,22 +426,51 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
 #[tauri::command(async)]
 fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
+    start_home(&state, &home, "the person")
+}
+/// Start Codex for one home (Start Codex, and Restart Codex after its stop).
+fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
     let cfg = home.host_config.clone()?;
-    state.validate_home_source(&home)?;
+    state.validate_home_source(home)?;
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,
         &home.recovery_startup,
         root.as_deref().map_err(String::as_str),
         Some(&cfg.codex_home),
-        || home.host.start(&cfg, "the person"),
+        || home.host.start(&cfg, actor),
     )
 }
 
+/// Stop Codex and Restart Codex (DEL-01-04 §5.2, C-12). The person is always
+/// asked first in a native question; there is no command that stops Codex
+/// without it (the App quit path is separate). See `codex_stop`.
 #[tauri::command(async)]
-fn host_stop(state: State<'_, AppState>, generation:Value) -> Result<Value, String> {
+fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Value, restart: bool) -> Result<Value, String> {
+    let _question = state.codex_stop_gate.try_lock().map_err(|_| "A Stop or Restart Codex question is already open; nothing else asked")?;
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    home.host.stop_scoped(&generation,"the person", "Stop Codex")
+    if restart {
+        // Restart must be able to start again; otherwise nothing is stopped.
+        home.host_config.as_ref().map_err(|e| format!("Restart Codex cannot start Codex again here ({e}); nothing stopped"))?;
+        state.validate_home_source(&home).map_err(|e| format!("Restart Codex cannot start Codex again here ({e}); nothing stopped"))?;
+    }
+    let (title, act) = if restart { ("Restart Codex", act_control::native_statement::RESTART_CODEX) } else { ("Stop Codex", act_control::native_statement::STOP_CODEX) };
+    let mut refused = None;
+    let result = codex_stop::stop_native_home(&home, &state.workflows, &generation, restart,
+        |view| confirm_choice(&app, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act, &mut refused),
+        || start_home(&state, &home, "the person: Restart Codex"));
+    let outcome = act_control::native_statement::refusal_or(refused, result)?;
+    if outcome["state"] == "cancelled" { return Ok(outcome); }
+    {
+        let mut kept = state.codex_stops.lock().unwrap();
+        kept.push(outcome.clone());
+        let excess = kept.len().saturating_sub(codex_stop::OUTCOMES_KEPT);
+        kept.drain(..excess);
+    }
+    if outcome["state"] != "stopped" {
+        return Err(format!("{title}: Codex was not stopped: {}", outcome["stop"]["reading"].as_str().unwrap_or("reason not reported")));
+    }
+    Ok(outcome)
 }
 
 fn role_set_metadata() -> Value {
@@ -823,6 +859,15 @@ fn confirm_bounded(app:&tauri::AppHandle,title:&str,statement:Result<act_control
     match statement {
         Ok(s)=>act_control::native_statement::showing_in_app(s.in_app.as_ref(),||app.dialog().message(s.text.clone()).title(title).kind(MessageDialogKind::Info).buttons(buttons).blocking_show()),
         Err(cause)=>{app.dialog().message(cause.clone()).title(title).kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();*refused=Some(cause);false}
+    }
+}
+/// `confirm_bounded` with the owner's default-safe layout (`act_buttons`):
+/// only the explicit `act` button proceeds; Return, Escape and Cancel do not.
+fn confirm_choice(app:&tauri::AppHandle,title:&str,statement:Result<act_control::native_statement::NativeStatement,String>,dont:&str,act:&str,refused:&mut Option<String>)->bool{
+    use act_control::native_statement as ns;
+    match statement {
+        Ok(s)=>ns::showing_in_app(s.in_app.as_ref(),||ns::chose(&app.dialog().message(s.text.clone()).title(title).kind(MessageDialogKind::Info).buttons(ns::act_buttons(dont,act)).blocking_show_with_result(),act)),
+        Err(cause)=>confirm_bounded(app,title,Err(cause),MessageDialogButtons::Ok,refused),
     }
 }
 /// Content an open native confirmation names by digest (read-only).
@@ -1290,6 +1335,8 @@ pub fn run() {
         key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
         key_setup: Mutex::new(()),
         root_home_inputs: json!({"source":"explicit Root native environment path inputs","keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
+        codex_stop_gate: Mutex::new(()),
+        codex_stops: Mutex::new(Vec::new()),
     };
     let host = Arc::clone(&home.host);
             app.manage(state);
@@ -1392,7 +1439,7 @@ pub fn run() {
             reconfirm_attachment,
             answer_native_request,
             host_start,
-            host_stop,
+            codex_stop,
             thread_start,
             history_action,
             history_select,
@@ -1434,7 +1481,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null};
+        let state=AppState{compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new())};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

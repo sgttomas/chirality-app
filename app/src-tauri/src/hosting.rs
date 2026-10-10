@@ -655,6 +655,12 @@ impl Host {
         }
     }
     pub fn snapshot(&self) -> Value {let i=self.inner.0.lock().unwrap();Self::snapshot_inner(&i)}
+    /// This App's receiving reading of one turn, without a whole snapshot
+    /// (Stop Codex polls it while waiting for interrupted turns to end).
+    pub fn conversation_turn(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Option<Value> {
+        let i=self.inner.0.lock().unwrap();
+        i.conversation_turns.iter().find(|t|t["generation"]==*generation&&t["threadId"]==thread_id&&t["turnId"]==turn_id).cloned()
+    }
     fn snapshot_inner(i: &Inner) -> Value {
         json!({
             "state": i.state,
@@ -2065,9 +2071,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     /// Native interrupt acknowledgment is distinct from turn completion.
     pub fn turn_interrupt(&self, generation: &Value, thread_id: &str, turn_id: &str) -> Result<Value, String> {
+        self.turn_interrupt_within(generation, thread_id, turn_id, Duration::from_secs(20))
+    }
+    /// The same request with the caller's wait for its acknowledgment (Stop
+    /// Codex bounds the whole stop by its stop wait limit, RECOVERY SR-10).
+    /// When the wait ends the request stays pending; nothing is resent.
+    pub fn turn_interrupt_within(&self, generation: &Value, thread_id: &str, turn_id: &str, wait: Duration) -> Result<Value, String> {
         if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
         self.conversation_operation("turn/interrupt", generation,
-            json!({"threadId":thread_id,"turnId":turn_id}), Duration::from_secs(20))
+            json!({"threadId":thread_id,"turnId":turn_id}), wait)
     }
 
     /// Native expected-turn precondition, never a fallback start or settings edit.

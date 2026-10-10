@@ -59,7 +59,11 @@ performed an act.
     source list. Explicit attachment-bearing send or steering uses that whole
     list, durable metadata and the actual Host request; failures do not fall back
     to text-only sending or automatic retry. A native acknowledgment is separate
-    from provider uptake or completion.
+    from provider uptake or completion. While a run-end notice is pending in the
+    conversation (item 18), an attachment-bearing new turn is refused with
+    "send ordinary text first. Nothing sent"; an attachment steer is not
+    affected. The App does not yet put the notice and attachments into one turn
+    (NIR TC-2 allows it).
 13. Explicit App project association comes from configured `CHIRALITY_WORKSPACE`,
     separately from native thread cwd, Codex home and workflow run. Unknown context
     produces no canonical project row. Historical project P remains intact when
@@ -147,6 +151,28 @@ performed an act.
     as DS-6 if the draft changed since listing.
     Registration stays the person's A15 act at the native confirmation. A trial
     is not a run, registration, checking or acceptance.
+22. **Stop Codex…** and **Restart Codex…** always ask first (DEL-01-04 §5.2,
+    C-12). A native question lists the live turns, waiting requests, delegated
+    agents and workflow runs in force in that home, or says none were observed,
+    and waits with no time limit. **Keep Codex running** is the default; it and
+    Cancel change nothing. When the live work changes while the question is
+    open, the question is asked again with the current list. On **Stop Codex**
+    or **Restart Codex**, the App sends `turn/interrupt` for each observed live
+    turn, waits for Codex to report those turns ended, then stops the process
+    (HOSTING §4.5), all within the stop wait limit of 10 s (U-R4 test value).
+    Each turn then shows its TO-4 label ("interrupted by Stop Codex",
+    "completed (Stop Codex requested)", "failed (Stop Codex requested)" or
+    "interrupted by Stop Codex (final status not observed)"). The label comes from
+    the observed `turn/completed`, never from the interrupt acknowledgment.
+    Codex's own status is shown beside it. Waiting requests are not answered,
+    and no workflow run ends. Restart then starts Codex as Start Codex does.
+    It continues no conversation until the person chooses
+    **Continue selected conversation** (R-6). A stop is the person's
+    operational choice, not a recorded act. *Limit:* the App writes no REC
+    stop-request (SR) record and no ledger `codex_stop` record. The outcome is
+    kept in App process memory, so after a relaunch the App cannot say that a
+    turn was interrupted by Stop Codex. Quitting the App does not ask first yet
+    (K-4, SQ-Q Q-2): it stops each home's Codex on exit, as before.
 
 ## Modules
 
@@ -168,6 +194,7 @@ performed an act.
 | `native_history.rs`, `role_lifecycle.rs` | Read-only native history, scoped Continue receiving and immutable original guidance bindings; cold role-source custody remains unfinished |
 | `connector_standing.rs`, `connector_route_store.rs`, `connector_route_view.rs`, `src/ConnectorRoutePanel.tsx` | Provider-independent standing, caller-account persistence and read-only inspection; saved claims do not verify source truth or actor duties |
 | `src/RequestCards.tsx` | Readable DEL-01-04 request cards, item anchors and the waiting-request indicator; answer values come unchanged from the host's register |
+| `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, interrupts before the stop within the stop wait limit, TO-4 labels and the in-memory outcome |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
 | `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states, TT-3 composer sources, TT-4 trial pointers) and its list presentation in NIR §7 words; nothing here registers, reviews or runs |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
@@ -316,6 +343,11 @@ Native authenticity, real process-kill/fsync failure witnesses, durable history 
 retain generation/terminal limits. Transport and receiving tests do not prove a
 provider prediction. A separately frozen controlled live backend greeting passed;
 its exact source pins and limits are recorded in the run. An approved no-supplier native window inspection establishes tool/window reachability only; corrected UI/storage, browser/device/auth/provider and capture journeys remain separate unfinished witnesses. Host joins stay deferred to their owning sessions.
+
+Stop and Restart Codex (item 22) still lack three things: the REC stop-request
+(SR) and ledger `codex_stop` records, an ask-first App quit (K-4), and a native
+witness of the question. The question's readable text and the default-safe
+buttons are tested in code only.
 
 See `CONTRACT_ISSUES.md`, `EVIDENCE.md` and the current Group A `WORK_GRAPH.md`.
 

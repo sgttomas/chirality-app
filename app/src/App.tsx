@@ -5,6 +5,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { CodexProcessControls, stopLabel } from "./CodexControls";
 import { FileActPanel } from "./FileActPanel";
 import { NativeActivityView } from "./NativeActivity";
 import { PlanModeControl } from "./PlanMode";
@@ -86,6 +87,7 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
     {(selected?.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.reason}; applies to future conversations.</p>)}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
+      stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn)}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
@@ -557,6 +559,20 @@ export function App() {
     }
     await refresh();
   };
+  // Start / Stop / Restart Codex: one at a time; the host asks first for Stop and Restart.
+  const [processBusy, setProcessBusy] = useState(false);
+  const processAct = async (cmd: string, args: Record<string, unknown>) => {
+    setProcessBusy(true);
+    try {
+      const r: Json = await invoke(cmd, args);
+      setMessage(r?.state === "cancelled" ? `${r.action}: ${r.reading}` : cmd === "codex_stop" ? `${r?.action}: see the outcome under Codex host.` : `${cmd}: ${JSON.stringify(r).slice(0, 300)}`);
+    } catch (e) {
+      setMessage(`${cmd}: ${String(e)}`);
+    } finally {
+      setProcessBusy(false);
+      await refresh();
+    }
+  };
 
   const conversationAction = async (command: "conversation_send_text" | "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>) => {
     let failed = false;
@@ -641,10 +657,9 @@ export function App() {
         <p>Selection: {host?.accessSelection ? JSON.stringify(host.accessSelection) : "No model selected"}</p>
         <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
         <p>
-          <button onClick={() => act("thread_start", { model, modelProvider, entryId, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: role || null })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>{" "}
-          <button onClick={() => act("host_start", {modeHomeClass:host?.homeRouting?.activeModeHomeClass})}>Start Codex</button>{" "}
-          <button onClick={() => act("host_stop", {generation:host?.generation})}>Stop Codex</button>
+          <button onClick={() => act("thread_start", { model, modelProvider, entryId, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: role || null })} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryId}>Start thread</button>
         </p>
+        <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }} />
         <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
 
         <h3>Expected network contacts</h3>

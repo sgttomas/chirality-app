@@ -425,6 +425,85 @@ pub(crate) mod native_statement {
                 .join("\n")
         })
     }
+    /// Labels of the Stop/Restart Codex question (the owner's default-safe
+    /// layout, `act_buttons`: Return keeps Codex running).
+    pub(crate) const KEEP_CODEX: &str = "Keep Codex running";
+    pub(crate) const STOP_CODEX: &str = "Stop Codex";
+    pub(crate) const RESTART_CODEX: &str = "Restart Codex";
+    /// DEL-01-04 §5.2 Stop Codex / Restart Codex question (C-12, K-4): the
+    /// live turns, waiting requests, delegated agents and workflow runs in
+    /// force, one per line; with none observed, a simple confirmation. When
+    /// the list does not fit, the App shows the assessment in full while the
+    /// alert is open and the alert names it by digest, as for logout.
+    pub(crate) fn codex_stop_statement(view: &Value) -> Result<NativeStatement, String> {
+        let restart = view["restart"] == true;
+        let act = if restart { RESTART_CODEX } else { STOP_CODEX };
+        let generation = &view["generation"];
+        let runs = &view["runsInForce"];
+        let live = count(&view["observedLiveTurns"]);
+        let others = count(&view["observedOutstandingRequests"])
+            + count(&view["observedActiveChildren"])
+            + count(&view["knownChildActivityUnknown"])
+            + count(&view["coverage"]["turns"]["unresolved"])
+            + count(runs);
+        let mut head = vec![
+            format!("{act} for this home?"),
+            format!(
+                "Home: {} · App session {} · Codex process start {} · state {}",
+                text_or(&view["modeHomeClass"], "not reported"),
+                text_or(&generation["appSession"], "not reported"),
+                cell(&generation["spawnCounter"]),
+                text_or(&view["state"], "not reported")
+            ),
+        ];
+        if view["changedWhileAsking"] == true {
+            head.push("Live work changed while this question was open; this is the current list.".into());
+        }
+        if let Some(note) = view["notReady"].as_str() {
+            head.push(format!("{note}."));
+        }
+        let mut listed = live_work_lines(view);
+        for r in rows(runs) {
+            listed.push(format!(
+                "Workflow run in force: {} (run {}) in {}{}",
+                text_or(&r["workflow"]["name"], "workflow not established"),
+                cell(&r["run"]),
+                cell(&r["conversation"]),
+                if r["state"] == "open" { String::new() } else { format!("; {}", cell(&r["state"])) }
+            ));
+        }
+        let mut tail = Vec::new();
+        if live + others == 0 {
+            head.push("Observed: no live turns, waiting requests, delegated agents or workflow runs in force.".into());
+            tail.push(format!("{act} stops this Codex process{}.", if restart { " and starts it again" } else { "" }));
+        } else {
+            head.push(format!(
+                "Observed: {live} live turns, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                count(&view["observedOutstandingRequests"]),
+                count(&view["observedActiveChildren"]) + count(&view["knownChildActivityUnknown"]),
+                count(runs)
+            ));
+            tail.push(format!(
+                "{act} interrupts each live turn, waits up to {} s for Codex to report it ended, then stops this Codex process{}.",
+                cell(&view["stopWaitLimitSeconds"]),
+                if restart { " and starts it again" } else { "" }
+            ));
+            tail.push("Waiting requests are not answered; they end with the process. Workflow runs stay open: stopping Codex ends no run.".into());
+        }
+        if restart {
+            tail.push("No conversation is continued automatically; continue one yourself.".into());
+        }
+        tail.push("None observed is not none: coverage is not complete.".into());
+        tail.push("This is your operational choice, not a recorded act. No stop record survives a relaunch.".into());
+        tail.push(format!("Observed at {}.", text_or(&view["observedAt"], "not reported")));
+        tail.push(format!("{act} proceeds; {KEEP_CODEX} (the default) and Cancel change nothing."));
+        let whole = [head.clone(), listed, tail.clone()].concat().join("\n");
+        whole_or_in_app("Stop Codex question", "live work at Stop Codex", whole, view, |digest| {
+            [head, vec![format!("Each item is listed in the assessment, {IN_APP}"), digest.to_owned()], tail]
+                .concat()
+                .join("\n")
+        })
+    }
     /// Native cancellation of a pending sign-in: the safe observation as lines.
     /// The observation is a fixed set of short fields, so it is shown whole or
     /// refused with its cause (reported as a refusal, V14 F4).
