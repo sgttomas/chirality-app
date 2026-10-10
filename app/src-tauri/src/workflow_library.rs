@@ -568,6 +568,13 @@ impl ReviewSession {
             _ => None,
         }
     }
+    /// The draft content identity value this review binds (a draft review only).
+    pub(crate) fn reviewed_draft_content(&self) -> Option<&str> {
+        match self.mode {
+            ReviewMode::Draft => self.entries.first().map(|e| e.review.snapshot().revision()),
+            _ => None,
+        }
+    }
     /// The library root this review belongs to.
     pub(crate) fn library_root(&self) -> &Path {
         &self.root

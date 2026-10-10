@@ -13,10 +13,7 @@
 //! A trial is never a workflow run, registration, checking or acceptance
 //! (TT-2): nothing here opens a run, writes a `run_text` or `supply_check`, or
 //! names a workflow identity in a record.
-// The trial flows and their interface (WR §17 steps 5–8) are this module's
-// callers; until they land, only the tests call it.
-#![allow(dead_code)]
-use super::{prescan, read_folder, LibraryOwner, DRAFTS, TRIAL_POINTERS, TRIAL_STANDING};
+use super::{prescan, read_folder, LibraryOwner, DRAFTS, TRIAL_POINTERS};
 use crate::storage;
 use crate::workflow_workspace::package_copy::{self, ContentCopy, CopyStanding};
 use crate::workflow_workspace::{
@@ -272,20 +269,6 @@ impl TrialLinks {
         store
     }
 
-    /// An earlier attachment trial (before CC-WR-TRIALS): the person sent this
-    /// draft's files into `conversation`. Kept until §17 step 8 removes the
-    /// attachment pre-fill. Without an App data folder it is held in this
-    /// process only.
-    pub(crate) fn record(&mut self, key: &Value, content: &Value, conversation: &str) -> Result<Value, String> {
-        let pointer = json!({"record_kind":"trial_pointer","draft":key,"content":content,
-            "conversation":conversation,"time":crate::util::now_rfc3339(),"standing":TRIAL_STANDING});
-        crate::workflow_workspace::wr_validate("trial_pointer", &pointer)?;
-        let file = format!("{}.json", crate::util::opaque_id("trial-")?);
-        self.keep(&file, &pointer)?;
-        self.pointers.push(pointer.clone());
-        Ok(pointer)
-    }
-
     /// TT-4: the trial link, written once when the host acknowledged the send
     /// of `prepared`'s trial message. One link per trial reference: a second
     /// call for the same trial returns the existing link when it records the
@@ -395,6 +378,10 @@ impl TrialLinks {
         }
     }
 
+    /// Every CC-WR-TRIALS trial link (earlier attachment pointers excluded), oldest first.
+    pub(crate) fn all_links(&self) -> Vec<Value> {
+        self.pointers.iter().filter(|p| p.get("trial").is_some()).cloned().collect()
+    }
     /// The trial link of `reference`, if this store holds it.
     pub(crate) fn link(&self, reference: &str) -> Option<&Value> {
         self.pointers.iter().find(|p| p["trial"]["reference"] == reference)

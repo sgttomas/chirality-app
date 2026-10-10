@@ -214,6 +214,30 @@ fn validators() -> Result<&'static HashMap<String, jsonschema::Validator>, Strin
         .as_ref()
         .map_err(Clone::clone)
 }
+/// WR TT-9 and TT-10: a history read the workflow workspace makes for a trial
+/// (a sub-agent's or a clean trial conversation's first turn, the pages of a
+/// bring-back transcript or a comparison). Read methods only. The query is
+/// owned by no `NativeHistory` (factory 0 is never issued to one), so its
+/// page is neither added to the person's history view nor accepted as a
+/// supply-check page; the caller reads the response itself and records only
+/// what WR's trial records say.
+pub(crate) fn workspace_read(home: &str, generation: &Value, method: &str, params: Value) -> Result<HistoryQuery, String> {
+    let target = match method {
+        "thread/read" => "ThreadReadParams",
+        "thread/turns/list" => "ThreadTurnsListParams",
+        "thread/items/list" => "ThreadItemsListParams",
+        _ => return Err(format!("{method} is not a read the workflow workspace makes")),
+    };
+    if home.is_empty() || !generation_valid(generation) || generation["home"] != home {
+        return Err("explicit home/full generation required".into());
+    }
+    validate(target, &params)?;
+    static NEXT_READ: AtomicU64 = AtomicU64::new(1);
+    let query_id = NEXT_READ
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
+        .map_err(|_| "workspace read identity exhausted")?;
+    Ok(HistoryQuery { factory_id: 0, query_id, home: home.into(), generation: generation.clone(), method: method.into(), params })
+}
 fn validate(target: &str, value: &Value) -> Result<(), String> {
     validators()?
         .get(target)

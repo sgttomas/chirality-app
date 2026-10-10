@@ -22,6 +22,10 @@ impl RuntimeSession {
     pub fn cursor(&self) -> (&Value, u64) {
         (&self.generation, self.position)
     }
+    /// The native view as last received, without consuming new frames.
+    pub fn native_view(&self) -> Value {
+        self.view.as_ref().map_or(Value::Null, NativeView::snapshot)
+    }
     pub fn receive(&mut self, observation: &Value) -> Value {
         let snapshot = &observation["snapshot"];
         let generation = &observation["generation"];
@@ -4221,8 +4225,11 @@ pub(crate) struct WorkflowRootSession {
     drafts: std::collections::HashMap<String, DraftListing>,
     /// D-3 "app action": per library, draft name -> content the App itself wrote.
     app_made: std::collections::HashMap<String, std::collections::BTreeMap<String, String>>,
-    /// WR TT-4: App-kept trial pointers (App data folder once attached).
+    /// WR TT-4: App-kept trial links and observations (App data folder once attached).
     trials: crate::workflow_workspace::registration::drafts::TrialPointers,
+    /// WR §4.2 trial flows: pre-filled trials and bring-backs, sent trials'
+    /// linking state (process memory; the records are `trials`).
+    trial_desk: trial_flows::TrialDesk,
 }
 /// One library's latest draft observation and the transitions observed so far
 /// in this process (D-4), newest last and bounded.
@@ -4250,6 +4257,7 @@ impl Default for WorkflowRootSession {
             drafts: Default::default(),
             app_made: Default::default(),
             trials: Default::default(),
+            trial_desk: Default::default(),
         }
     }
 }
@@ -6775,6 +6783,10 @@ impl WorkflowRun {
         }
     }
 }
+
+/// WR §4.2 trial flows (TT-3a, TT-3b, TT-9, TT-10, TT-11, TT-13).
+#[path = "trial_flows.rs"]
+pub(crate) mod trial_flows;
 
 #[cfg(all(test,unix))]
 mod workflow_root_tests {

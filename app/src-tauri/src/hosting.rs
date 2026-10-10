@@ -2118,6 +2118,23 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             Self::text_turn_params(thread_id, text)?, Duration::from_secs(20))
     }
 
+    /// WR TT-3a, TT-3b and TT-10 (NIR TC-2, AT-8): one new turn whose input is
+    /// the given text elements, in order, exactly as given (a trial message:
+    /// the person's text then the trial text, or for a clean trial the trial
+    /// text then the person's text; a bring-back: the prompt then the
+    /// transcript). `client_id` is sent as `clientUserMessageId` so the turn's
+    /// first user message can be found in Codex's history (SC-3). A trial text
+    /// is never a run text: nothing here opens or records a run.
+    pub(crate) fn turn_start_texts(&self, generation: &Value, thread_id: &str, elements: &[&str], client_id: &str) -> Result<Value, String> {
+        if thread_id.is_empty() || client_id.is_empty() || elements.is_empty() || elements.iter().any(|e| e.is_empty()) {
+            return Err("refused-not-sent: thread, client message identity and non-empty text elements required".into());
+        }
+        let input: Vec<Value> = elements.iter().map(|text| json!({"type":"text","text":text,"text_elements":[]})).collect();
+        let params = json!({"threadId":thread_id,"input":input,"clientUserMessageId":client_id});
+        Self::validate_native_result("TurnStartParams", &params).map_err(|e| format!("refused-not-sent: {e}"))?;
+        self.conversation_operation("turn/start", generation, params, Duration::from_secs(20))
+    }
+
     fn prepared_run_turn_params(generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>)->Result<Value,String>{
         crate::recovery::generation_ref(generation)?;
         if &prepared.scope().generation!=generation||generation["home"]!=prepared.scope().home{return Err("prepared turn full generation/home differs from original run scope".into());}
