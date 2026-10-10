@@ -31,8 +31,7 @@ needs:
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: false
   evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: doc:execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native
-    OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_HOME_DECISION_RECORD.md
+- from: doc:execution/PKG-01/DEL-01-05/Design/ACCOUNT_HOME_DECISION_RECORD.md
   condition: 'The account-home decision record carries the choice made by the Owner, who is also the App
     implementation owner, before account integration depends on it. The choice is decided at choice level
     by APP-V4-DESIGN-PASS-3-20261001-DECISION-K3 K-1 (shared Codex settings, providers and MCP servers,
@@ -59,8 +58,7 @@ needs:
     TargetLocation: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native
     OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_HOME_DECISION_RECORD.md'
   evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: doc:execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native
-    OAuth-sign-in, API-key and local-provider access/Design/ACCOUNT_AND_PROVIDER_ACCESS.md §10 (draft)
+- from: doc:execution/PKG-01/DEL-01-05/Design/ACCOUNT_AND_PROVIDER_ACCESS.md
   condition: 'The App implementation owner must establish supported API-key sign-in/account behavior against
     the identified pinned protocol before dependent API-key implementation or qualification; OI-010 remains
     open until supported behavior is established.
