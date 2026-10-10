@@ -1,12 +1,15 @@
 # Codex 0.160.0 macOS arm64 supplier reference (A-IN-S3)
 
-**Standing: authored reference, frozen for independent review. It is not attested,
-adopted or qualified.** `expected.json` is an `expected-reference.s1` record for
-the stock `@openai/codex@0.160.0-darwin-arm64` vendor tree, made by DEL-01-01
-under method `codex-vendor-tree-v1`. Reliance requires a separate
-`adoption-attestation.s1` naming its exact SHA-256, an independent reviewer and
-technical adoption by the App implementation owner through HELP_HUMAN. The S1
-model refuses the reference without one. No attestation exists yet.
+**Standing: qualified supplier reference, independently reviewed and technically
+adopted; not yet selected by any App build.** `expected.json` is an
+`expected-reference.s1` record for the stock `@openai/codex@0.160.0-darwin-arm64`
+vendor tree, made by DEL-01-01 under method `codex-vendor-tree-v1`.
+`attestation.json` (`adoption-attestation.s1`, SHA-256
+`09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9`) names the
+record's exact digest. It cites the independent review in `review.md` (READY at
+revision `b616fe3db0`) and HELP_HUMAN's technical adoption for the App
+implementation owner in `adoption.json`. Reliance still requires a trusted App
+build recipe that selects both digests.
 
 DISTRIBUTION_IDENTITY names the producer (DEL-01-01) but no directory. This
 location is proposed here, beside the S1 cohort it conforms to. The cohort's
@@ -32,12 +35,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 test_codex_0160_reference.py
 ```
 
 This checks schema conformance, exact evidence bytes, inventory validity and the
-label, tree and generation joins. The attestation case is skipped until an
-attestation exists. A pass does not establish review, adoption, authenticity of
-evidence, installed custody, signature validity or App/package qualification.
-R23-22 still selects the qualification pin when a candidate is built.
+label, tree and generation joins. It also checks that the attestation, selected
+by its pinned digest, joins the record, and that an unselected or changed
+attestation is refused. A pass does not establish authenticity of review,
+adoption or evidence, installed custody, signature validity or App/package
+qualification. R23-22 still selects the qualification pin when a candidate is
+built.
 
-The reviewer may reproduce the tree from the retained archive with
-`extraction.json` and compare it to the inventory in `expected.json`. Record the
-review and adoption in the attestation, then select both digests in the App build
-recipe. Do not edit these bytes after review: a correction is a new reference.
+A tree can be reproduced from the retained archive with `extraction.json` and
+compared to the inventory in `expected.json`. Do not edit the reviewed or
+attested bytes: a correction is a new reference with a new review and attestation.

@@ -1,7 +1,7 @@
 """Offline value checks for the Codex 0.160.0 macOS arm64 supplier reference.
 
 Reads committed bytes only; never reads, extracts or executes a supplier tree.
-Passing establishes record consistency, not review, adoption or qualification.
+Passing establishes record consistency and the pinned attestation join, not the authenticity of review or adoption.
 """
 import hashlib
 import json
@@ -18,7 +18,10 @@ import model  # noqa: E402
 
 EXPECTED = {'path': 'distribution-s1/references/codex-0.160.0-macos-arm64/expected.json',
             'sha256': '754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37'}
-APP_MANIFEST = model.ROOT / 'projects/chirality-app-v4/app/src-tauri/resources/supplier/0.160.0/MANIFEST.sha256'
+SELECTED_ATTESTATION_SHA256 = '09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9'
+ATTESTATION = {'path': 'distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json',
+               'sha256': SELECTED_ATTESTATION_SHA256}
+APP_MANIFEST =model.ROOT / 'projects/chirality-app-v4/app/src-tauri/resources/supplier/0.160.0/MANIFEST.sha256'
 
 
 def sha(raw):
@@ -71,12 +74,15 @@ class Reference(unittest.TestCase):
         inventory['entries'][0]['mode'] = 448
         self.assertFalse(model.inventory.compare(self.e['inventory'], inventory)['equal'])
 
-    def test_attestation_when_present(self):
-        path = HERE / 'attestation.json'
-        if not path.exists():
-            self.skipTest('no adoption attestation yet: reference is unattested and unqualified')
-        ref = {'path': str(path.relative_to(DESIGN)), 'sha256': sha(path.read_bytes())}
-        self.assertEqual(model.reference(EXPECTED, ref, DESIGN, ref['sha256'])['pin'], '0.160.0')
+    def test_selected_attestation(self):
+        # The pinned digest stands in for the trusted build selection; the file's
+        # own current digest never selects itself.
+        self.assertEqual(model.reference(EXPECTED, ATTESTATION, DESIGN, SELECTED_ATTESTATION_SHA256)['pin'], '0.160.0')
+        with self.assertRaises(ValueError):
+            model.reference(EXPECTED, ATTESTATION, DESIGN, '0' * 64)
+        changed = dict(ATTESTATION, sha256='0' * 64)
+        with self.assertRaises(ValueError):
+            model.reference(EXPECTED, changed, DESIGN, changed['sha256'])
 
 
 if __name__ == '__main__':
