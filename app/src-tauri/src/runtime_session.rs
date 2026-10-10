@@ -3963,6 +3963,9 @@ pub(crate) struct WorkflowRootSession {
     held_successors: std::collections::HashMap<String, String>,
     /// App user-data root: libraries opened later keep App-kept draft bases there (WR §3).
     app_user_data: Option<std::path::PathBuf>,
+    /// WR PR-5: where the person's latest own workflow selection fell in the native
+    /// view; older agent proposals are superseded by it.
+    selection_mark: Option<crate::run_offers::SelectionMark>,
 }
 impl Default for WorkflowRootSession {
     fn default() -> Self {
@@ -3978,6 +3981,7 @@ impl Default for WorkflowRootSession {
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
+            selection_mark: None,
         }
     }
 }
@@ -4463,7 +4467,21 @@ impl WorkflowRootSession {
         person_text: String,
         project: Option<&std::path::Path>,
     ) -> Result<String, String> {
-        self.end_and_start_with(live, home, generation, thread, person_text, project, None, None)
+        self.end_and_start_with(live, home, generation, thread, person_text, project, None, None, None)
+    }
+    /// `workflow_end_and_start` with the current native view, so A's end marker is placed (RN-1).
+    #[allow(clippy::too_many_arguments)]
+    pub fn end_and_start_viewed(
+        &mut self,
+        view: &Value,
+        live: &str,
+        home: std::sync::Arc<HomeSession>,
+        generation: &Value,
+        thread: &str,
+        person_text: String,
+        project: Option<&std::path::Path>,
+    ) -> Result<String, String> {
+        self.end_and_start_with(live, home, generation, thread, person_text, project, None, None, Some(view))
     }
     /// RN-4/RN-7, FN-2: the same one step from an agent message. With the agent's
     /// finished report for A in that message, A ends with cause *completed*;
@@ -4479,6 +4497,7 @@ impl WorkflowRootSession {
         project: Option<&std::path::Path>,
         proposal: Option<Value>,
         finished: Option<crate::run_offers::FinishedReport>,
+        view: Option<&Value>,
     ) -> Result<String, String> {
         if finished.as_ref().is_some_and(|r| r.run() != live) {
             return Err("That finished report belongs to another run; nothing ended".into());
@@ -4514,7 +4533,11 @@ impl WorkflowRootSession {
         let ended = run
             .try_lock()
             .map_err(|_| "Original run operation pending; nothing ended".to_string())
-            .and_then(|mut run| run.end_run(finished.as_ref(), Some(&successor)));
+            .and_then(|mut run| {
+                let ended = run.end_run(finished.as_ref(), Some(&successor))?;
+                run.ended_after_turn = view.and_then(|v| run.latest_turn(v));
+                Ok(ended)
+            });
         match ended {
             Ok(_) => {
                 self.runs[&next].lock().unwrap().hold_open_for = Some(live.to_owned());
@@ -4584,6 +4607,19 @@ impl WorkflowRootSession {
             .filter_map(|run| run.try_lock().ok().map(|run| run.start_in(view)))
             .collect()
     }
+    /// WR PR-5: the person made their own workflow selection while `view` was current
+    /// (lib.rs reads the view before the selection command). Proposals received up
+    /// to then are superseded; a stale offer can no longer replace this selection.
+    pub fn note_selection(&mut self, view: &Value) {
+        self.selection_mark = Some(crate::run_offers::SelectionMark::in_view(view));
+    }
+    /// PR-5 supersession points for a conversation: runs started there, and the
+    /// person's latest own selection.
+    fn supersessions(&self, view: &Value, home: &str, thread: &str) -> Vec<crate::run_offers::RunStart> {
+        let mut points = self.run_starts(view, home, thread);
+        points.extend(self.selection_mark.as_ref().map(|mark| mark.supersession(view)));
+        points
+    }
     /// RN-3…RN-7, PR-1…PR-5, FN-1…FN-3: the offers the person may act on, from
     /// agent messages this App observed live. Display data only: an offer records,
     /// selects, ends and starts nothing; each press is re-verified by the host.
@@ -4599,7 +4635,7 @@ impl WorkflowRootSession {
                 finished = crate::run_offers::finished_report(view, &run.in_force(reference, view));
                 run_name = Some(run.prepared().workflow().name.clone());
             }
-            let proposal = crate::run_offers::current_proposal(view, &thread, &self.run_starts(view, home, &thread));
+            let proposal = crate::run_offers::current_proposal(view, &thread, &self.supersessions(view, home, &thread));
             if let Some(report) = &finished {
                 let same = proposal.as_ref().is_some_and(|(m, _)| m.item == *report.item());
                 if !same {
@@ -4666,6 +4702,14 @@ impl WorkflowRootSession {
             .ok_or_else(|| format!("proposed workflow {proposed}: its latest registered revision is not selectable in this App session; re-confirm it in the workflow panel"))?;
         Ok(ProposedRevision { identity: revision.identity().clone(), revision, library })
     }
+    /// `workflow_end_run`: no report is a plain end; a report names the message, which
+    /// the host re-reads (FN-2). The caller's value never asserts *completed*.
+    pub fn end_requested(&mut self, run_ref: &str, view: &Value, finished_report: Option<&Value>) -> Result<Value, String> {
+        match finished_report.filter(|v| !v.is_null()) {
+            None => self.end_plain(run_ref, view),
+            Some(message) => self.end_on_report(run_ref, view, &crate::run_offers::ItemRef::from_value(message)?),
+        }
+    }
     /// The person's plain end of a run (DEF-4), cause "ended by the person".
     pub fn end_plain(&mut self, run_ref: &str, view: &Value) -> Result<Value, String> {
         let run = self.conversation_run(run_ref)?;
@@ -4699,17 +4743,18 @@ impl WorkflowRootSession {
         view: &Value,
         home: std::sync::Arc<HomeSession>,
         generation: &Value,
-        message: &crate::run_offers::ItemRef,
+        message: &Value,
         live: Option<&str>,
         person_text: String,
         project: Option<&std::path::Path>,
     ) -> Result<String, String> {
+        let message = &crate::run_offers::ItemRef::from_value(message)?;
         let home_key = generation["home"].as_str().ok_or("Native home absent")?.to_owned();
         if view["home"] != home_key.as_str() || view["generation"] != *generation {
             return Err("The proposal is not in the current Codex generation of this home; nothing selected or started".into());
         }
         let thread = message.thread.clone();
-        let (_, named) = crate::run_offers::verify_proposal(view, &thread, &self.run_starts(view, &home_key, &thread), message)?;
+        let (_, named) = crate::run_offers::verify_proposal(view, &thread, &self.supersessions(view, &home_key, &thread), message)?;
         let found = self.resolve_proposal(&named)?;
         let in_force = self.run_in_force(&home_key, &thread)?;
         let finished = match (&in_force, live) {
@@ -4740,7 +4785,7 @@ impl WorkflowRootSession {
         let proposal = json!({"conversation":thread,"item":message.item,"proposed_name":named.text()});
         let prepared = match live {
             None => self.prepare_run_with(home, generation, &thread, person_text, project, None, Some(proposal)),
-            Some(live) => self.end_and_start_with(live, home, generation, &thread, person_text, project, Some(proposal), finished),
+            Some(live) => self.end_and_start_with(live, home, generation, &thread, person_text, project, Some(proposal), finished, Some(view)),
         };
         // Nothing was prepared: the person's earlier selection stays in force.
         if prepared.is_err() {
@@ -6561,6 +6606,7 @@ for line in sys.stdin:
         json!({"home":peer.generation["home"],"generation":peer.generation,"items":items})
     }
     fn message(turn:&str,item:&str)->crate::run_offers::ItemRef{crate::run_offers::ItemRef{thread:"thread".into(),turn:turn.into(),item:item.into()}}
+    fn msgv(turn:&str,item:&str)->Value{message(turn,item).view()}
     const FINISHED:&str="Done.\nWorkflow finished: project:coordinated-knowledge-work";
     const PROPOSED:&str="Next workflow: project:coordinated-knowledge-work";
     // FN-1/FN-2: ending on the agent's observed finished report records cause *completed*,
@@ -6615,11 +6661,11 @@ for line in sys.stdin:
         // Unresolvable proposals show their notice and cannot start (PR-3, RN-5).
         let unknown=offer_view(&peer,&[("turn","p",1,"Next workflow: project:not-here","live-observed")]);
         assert_eq!(root.offers(&unknown)[0]["proposal"]["resolution"]["notice"],"proposed workflow project:not-here is not registered in this App session");
-        assert!(root.start_proposed(&unknown,peer.home.clone(),&peer.generation,&message("turn","p"),None,String::new(),peer.project()).is_err());
+        assert!(root.start_proposed(&unknown,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).is_err());
         let user=offer_view(&peer,&[("turn","p",1,"Next workflow: user:coordinated-knowledge-work","live-observed")]);
         assert!(root.offers(&user)[0]["proposal"]["resolution"]["workflow"].is_null(),"the origin must match");
         assert!(root.runs.is_empty());
-        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&message("turn","p"),None,String::new(),peer.project()).unwrap();
+        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).unwrap();
         let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();assert_eq!(peer.turn_starts(),1);
         let guard=root.lock().unwrap();let run=guard.runs[&b].lock().unwrap();
         let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
@@ -6638,10 +6684,10 @@ for line in sys.stdin:
         let offers=root.offers(&view);assert_eq!(offers.as_array().unwrap().len(),1,"one message, one offer row: {offers}");
         assert_eq!(offers[0]["finished"]["run"],a.as_str());assert_eq!(offers[0]["proposal"]["runInForce"]["run"],a.as_str());
         assert_eq!(offers[0]["proposal"]["runInForce"]["endCause"],"completed");
-        let refused=root.start_proposed(&view,peer.home.clone(),&peer.generation,&message("turn","m"),None,String::new(),peer.project());
+        let refused=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),None,String::new(),peer.project());
         assert!(refused.is_err_and(|e|e.contains("End and start")),"no plain start while A is in force");
         assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);
-        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&message("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
+        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
         let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
         assert_eq!(rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["cause"],"completed");
         assert_eq!(rs_for(&peer,&b).into_iter().find(|e|e["kind"]=="run_opened").unwrap()["body"]["follows"],a.as_str());
@@ -6651,7 +6697,7 @@ for line in sys.stdin:
         let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
         let view=offer_view(&peer,&[("turn","m",1,PROPOSED,"live-observed")]);
         assert_eq!(root.offers(&view)[0]["proposal"]["runInForce"]["endCause"],"ended to start coordinated-knowledge-work");
-        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&message("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
+        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
         let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
         assert_eq!(rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["cause"],"ended to start coordinated-knowledge-work");
     }
@@ -6662,11 +6708,91 @@ for line in sys.stdin:
         let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
         let both=format!("{FINISHED}\n{PROPOSED}");
         let view=offer_view(&peer,&[("turn","m",1,&both,"live-observed")]);
-        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&message("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
+        let b=root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
         peer.set_mode("turn-mode","error");
         let root=Mutex::new(root);let _=start_workflow_run(&root,&b);
         assert_eq!(rs_for(&peer,&a).into_iter().find(|e|e["kind"]=="run_ended").unwrap()["body"]["cause"],"completed");
         assert!(matches!(root.lock().unwrap().runs[&a].lock().unwrap().notice,NoticeState::AwaitingTurn),"the next ordinary turn carries A's end notice");
+    }
+    fn agent_row(turn:&str,item:&str,order:u64,text:&str)->Value{json!({"threadId":"thread","turnId":turn,"native":{"id":item,"type":"agentMessage","text":text},"displayState":"completed","standing":"live-observed","observedOrder":order})}
+    fn user_row(turn:&str,item:&str,order:u64)->Value{json!({"threadId":"thread","turnId":turn,"native":{"id":item,"type":"userMessage","content":[]},"displayState":"completed","standing":"live-observed","observedOrder":order})}
+    fn ended_cause(peer:&Peer,run:&str)->Value{rs_for(peer,run).into_iter().find(|e|e["kind"]=="run_ended").map(|e|e["body"]["cause"].clone()).unwrap_or(Value::Null)}
+    // PR-5 (review M1): the person's own later selection supersedes an open proposal; pressing
+    // the stale offer refuses and never replaces that selection. A newer proposal is offered.
+    #[test]
+    fn j3_a_later_selection_by_the_person_supersedes_a_proposal(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
+        assert!(!root.offers(&view)[0]["proposal"].is_null());
+        let before=root.snapshot()["selection"]["reference"].clone();assert!(before.is_string());
+        root.note_selection(&view); // the person selected their own workflow while this view was current
+        assert!(root.offers(&view).as_array().unwrap().iter().all(|o|o["proposal"].is_null()),"{}",root.offers(&view));
+        assert!(root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).is_err());
+        assert_eq!(root.snapshot()["selection"]["reference"],before,"the stale offer did not replace the person's selection");
+        assert!(root.runs.is_empty());assert_eq!(peer.turn_starts(),0);
+        let newer=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed"),("turn","q",2,PROPOSED,"live-observed")]);
+        let offers=root.offers(&newer);assert_eq!(offers[0]["message"]["itemId"],"q","a proposal received after the selection is offered: {offers}");
+    }
+    // RN-1 (review M3): chain ends place A's end marker; rows read from history never move it.
+    #[test]
+    fn j3_chain_ends_place_the_end_marker_from_live_rows_only(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let view=offer_view(&peer,&[("turn","m",1,"Working.","live-observed"),("history-turn","h",5,"Older","recovered-from-supplier")]);
+        let b=root.end_and_start_viewed(&view,&a,peer.home.clone(),&peer.generation,"thread","B".into(),peer.project()).unwrap();
+        assert_eq!(root.runs[&a].lock().unwrap().view(&a)["endedAfterTurn"],"turn");
+        let root=Mutex::new(root);start_workflow_run(&root,&b).unwrap();
+        assert_eq!(ended_cause(&peer,&a),"ended to start coordinated-knowledge-work");
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let view=offer_view(&peer,&[("turn","m",1,PROPOSED,"live-observed"),("history-turn","h",5,"Older","recovered-from-supplier")]);
+        root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","m"),Some(&a),String::new(),peer.project()).unwrap();
+        assert_eq!(root.runs[&a].lock().unwrap().view(&a)["endedAfterTurn"],"turn");
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let view=offer_view(&peer,&[("turn","m",1,"Working.","live-observed"),("history-turn","h",5,"Older","recovered-from-supplier")]);
+        root.end_plain(&a,&view).unwrap();assert_eq!(root.runs[&a].lock().unwrap().view(&a)["endedAfterTurn"],"turn");
+    }
+    // Review M4: a run started in an earlier generation of this App session still ends on a
+    // report observed in the later generation; the lib.rs request shape is parsed by the host.
+    #[test]
+    fn j3_report_in_a_later_generation_and_the_end_request_shape(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        let mut later=peer.generation.clone();later["spawnCounter"]=json!(peer.generation["spawnCounter"].as_u64().unwrap()+1);
+        let view=json!({"home":peer.generation["home"],"generation":later,"items":[agent_row("t9","m",0,FINISHED)]});
+        assert!(root.end_requested(&a,&view,Some(&json!({"threadId":"thread","turnId":"t9"}))).is_err(),"a malformed reference is refused");
+        assert_eq!(root.runs[&a].lock().unwrap().lifecycle,RunLifecycle::Open);
+        root.end_requested(&a,&view,Some(&msgv("t9","m"))).unwrap();
+        assert_eq!(ended_cause(&peer,&a),"completed");
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.end_requested(&a,&view,Some(&Value::Null)).unwrap();
+        assert_eq!(ended_cause(&peer,&a),"ended by the person","no report is a plain end");
+    }
+    // Review M4: start_proposed refusals: a stale generation, a run that is no longer in force,
+    // and a proposal superseded by a later run start.
+    #[test]
+    fn j3_start_proposed_refusals(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();
+        let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
+        let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(999);
+        assert!(root.start_proposed(&view,peer.home.clone(),&stale,&msgv("turn","p"),None,String::new(),peer.project()).is_err(),"stale generation");
+        let a=open_run(&peer,&mut root,"thread");root.end_plain(&a,&view).unwrap();
+        assert!(root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),Some(&a),String::new(),peer.project()).is_err_and(|e|e.contains("no longer the run in force")),"ended run");
+        assert!(root.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),Some("run:workflow:unknown"),String::new(),peer.project()).is_err(),"unknown run");
+        let runs=root.runs.len();
+        // The proposal came before a run that then started in this conversation (start turn "turn").
+        let earlier=json!({"home":peer.generation["home"],"generation":peer.generation,"items":[agent_row("t0","p",0,PROPOSED),user_row("turn","start-user",1)]});
+        assert!(root.offers(&earlier).as_array().unwrap().iter().all(|o|o["proposal"].is_null()),"superseded by the later run start");
+        assert!(root.start_proposed(&earlier,peer.home.clone(),&peer.generation,&msgv("t0","p"),None,String::new(),peer.project()).is_err());
+        assert_eq!(root.runs.len(),runs,"nothing prepared by any refusal");
+    }
+    // Review M4: a finished report from an earlier run of the same workflow in the same
+    // conversation is not the current run's report.
+    #[test]
+    fn j3_an_earlier_runs_report_does_not_end_the_current_run(){
+        let peer=Peer::new();let mut root=peer.fixture.registered();let a=open_run(&peer,&mut root,"thread");
+        root.runs[&a].lock().unwrap().end_run(None,None).unwrap();let b=open_run(&peer,&mut root,"thread");
+        let view=json!({"home":peer.generation["home"],"generation":peer.generation,"items":[agent_row("t-a","m",1,FINISHED),user_row("turn","b-user",2)]});
+        assert!(root.offers(&view).as_array().unwrap().iter().all(|o|o["finished"].is_null()));
+        assert!(root.end_on_report(&b,&view,&message("t-a","m")).is_err());
+        assert_eq!(root.runs[&b].lock().unwrap().lifecycle,RunLifecycle::Open);assert!(ended_cause(&peer,&b).is_null());
     }
     // VC-E-17 (iii), CH-1, RE-7: End ‹A› and start ‹B›: A's run_ended (cause "ended to start ‹B›")
     // precedes B's run_opened, which follows A; B's text opens with the exact chain line; no

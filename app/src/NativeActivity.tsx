@@ -150,12 +150,13 @@ function Unfinished({ row }: { row: Json }) {
 function messageText(content: Json): string {
   return (Array.isArray(content) ? content : []).map((part: Json) => part?.type === "text" ? text(part.text) : `[${text(part?.type ?? "input")} ${JSON.stringify(part)}]`).join("\n");
 }
-// RN-1: the run-start text the App wrote (WR-FRAME-1, its first line App-written)
-// is folded and openable; the rest of the message shows as received.
+// RN-1: in the start turn of a run the App recorded, the run-start text the App
+// wrote (WR-FRAME-1, its first line App-written) is folded and openable; the rest
+// of the message, and any other message, shows as received.
 const RUN_TEXT = /^\[Chirality\] (Workflow run start:|Previous workflow run ended:)/;
-function UserMessage({ content }: { content: Json }) {
+function UserMessage({ content, fold }: { content: Json; fold: boolean }) {
   const parts = Array.isArray(content) ? content : [];
-  const folded = parts.filter((part: Json) => part?.type === "text" && typeof part.text === "string" && RUN_TEXT.test(part.text));
+  const folded = parts.filter((part: Json) => fold && part?.type === "text" && typeof part.text === "string" && RUN_TEXT.test(part.text));
   const rest = parts.filter((part: Json) => !folded.includes(part));
   return <>
     {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({part.text.length} characters)</summary><pre style={pre}>{part.text}</pre></details>)}
@@ -163,11 +164,11 @@ function UserMessage({ content }: { content: Json }) {
   </>;
 }
 
-function ItemBody({ row, plans }: { row: Json; plans: Json[] }) {
+function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; runStart?: boolean }) {
   const n = row.native ?? {};
   switch (n.type) {
     case "userMessage":
-      return <div><b>User message</b> (text Codex recorded as input; not an act)<Unfinished row={row} /><UserMessage content={n.content} /></div>;
+      return <div><b>User message</b> (text Codex recorded as input; not an act)<Unfinished row={row} /><UserMessage content={n.content} fold={runStart} /></div>;
     case "agentMessage":
       return <div><b>Agent</b>{n.phase ? ` · ${n.phase === "final_answer" ? "final answer" : text(n.phase)}` : ""}<Unfinished row={row} />
         <pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
@@ -316,7 +317,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs }
       <div><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></div>
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
       {turn.items.map((row, i) => <RowBoundary key={text(row.native?.id) || `row-${i}`} value={row.native} row={row} label="native item"><div style={card} id={itemAnchorId(row.threadId, row.turnId, row.native?.id)}>
-        <ItemBody row={row} plans={plans} />
+        <ItemBody row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} />
         <Raw value={row.native} />
       </div>{offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}</RowBoundary>)}
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /></RowBoundary>}

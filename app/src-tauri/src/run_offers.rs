@@ -42,19 +42,20 @@ pub(crate) struct LineForms {
 /// PR-1: a proposal is the last non-empty line, exactly `Next workflow: ‹origin›:‹name›`,
 /// and the message has no other line of that form. FN-1: a finished report is a line
 /// exactly `Workflow finished: ‹origin›:‹name›`, the only line of its form, that is the
-/// last non-empty line or the line immediately before the proposal line.
+/// last non-empty line or the line immediately before a PR-1 proposal line. A line is
+/// read from its first character (as the prototype's anchored forms): an indented or
+/// quoted line is not the form. Only trailing whitespace is ignored.
 pub(crate) fn read_lines(text: &str) -> LineForms {
-    let lines: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    let lines: Vec<&str> = text.lines().map(str::trim_end).filter(|l| !l.is_empty()).collect();
     let proposal_lines = lines.iter().filter(|l| l.starts_with(PROPOSAL_FORM)).count();
     let finished_lines = lines.iter().filter(|l| l.starts_with(FINISHED_FORM)).count();
     let mut forms = LineForms::default();
     let Some(last) = lines.last() else { return forms };
-    let ends_with_proposal_line = proposal_lines == 1 && last.starts_with(PROPOSAL_FORM);
-    if ends_with_proposal_line {
+    if proposal_lines == 1 {
         forms.proposal = last.strip_prefix("Next workflow: ").and_then(Named::parse);
     }
     if finished_lines == 1 {
-        let candidate = if ends_with_proposal_line { lines.len().checked_sub(2).map(|i| lines[i]) } else { Some(*last) };
+        let candidate = if forms.proposal.is_some() { lines.len().checked_sub(2).map(|i| lines[i]) } else { Some(*last) };
         forms.finished = candidate.and_then(|l| l.strip_prefix("Workflow finished: ")).and_then(Named::parse);
     }
     forms
@@ -103,12 +104,13 @@ pub(crate) fn turn_order(view: &Value, thread: &str, turn: &str) -> Option<u64> 
     view["items"].as_array()?.iter().filter(|r| r["threadId"] == thread && r["turnId"] == turn).filter_map(|r| r["observedOrder"].as_u64()).min()
 }
 
-/// The turn of the thread's most recently received row (RN-1 end-marker position).
+/// The turn of the thread's most recently received live row (RN-1 end-marker
+/// position). History pages read later never move it.
 pub(crate) fn latest_turn(view: &Value, thread: &str) -> Option<String> {
     view["items"]
         .as_array()?
         .iter()
-        .filter(|r| r["threadId"] == thread)
+        .filter(|r| r["threadId"] == thread && r["standing"] == "live-observed")
         .filter_map(|r| Some((r["observedOrder"].as_u64()?, r["turnId"].as_str()?)))
         .max_by_key(|(order, _)| *order)
         .map(|(_, turn)| turn.to_owned())
@@ -174,6 +176,30 @@ impl RunStart {
     /// Whether the run started after a message (that message's offer is superseded).
     pub fn after(self, message_order: u64) -> bool {
         matches!(self, Self::At(start) if start > message_order)
+    }
+}
+
+/// PR-5: where the person's latest workflow selection falls in a home's view. A
+/// proposal received at or before it is superseded by that selection.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct SelectionMark {
+    pub home: Value,
+    pub generation: Value,
+    /// The last receipt order in that view when the person selected (None: nothing received yet).
+    pub order: Option<u64>,
+}
+impl SelectionMark {
+    pub fn in_view(view: &Value) -> Self {
+        let order = view["items"].as_array().into_iter().flatten().filter_map(|r| r["observedOrder"].as_u64()).max();
+        Self { home: view["home"].clone(), generation: view["generation"].clone(), order }
+    }
+    /// The mark as a supersession point in `view`: it supersedes messages received
+    /// at or before it in the same generation; a later generation is newer than it.
+    pub fn supersession(&self, view: &Value) -> RunStart {
+        match self.order {
+            Some(order) if view["home"] == self.home && view["generation"] == self.generation => RunStart::At(order + 1),
+            _ => RunStart::Unknown,
+        }
     }
 }
 
@@ -271,6 +297,31 @@ mod tests {
         assert_eq!(read_lines("Workflow finished: project:a\nWorkflow finished: project:a").finished, None, "twice");
         assert_eq!(read_lines("Workflow finished: project:a\nDone.\nNext workflow: project:b").finished, None, "not immediately before the proposal");
         assert_eq!(read_lines("").finished, None);
+        // Review M2: leading whitespace is not the form; a finished line counts as "before
+        // the proposal line" only when that last line is a valid PR-1 proposal.
+        assert_eq!(read_lines("Quoted:\n    Workflow finished: project:a").finished, None, "indented line");
+        assert_eq!(read_lines("> Workflow finished: project:a").finished, None, "quoted line");
+        assert_eq!(read_lines("Done.\n  Next workflow: project:b").proposal, None, "indented proposal");
+        assert_eq!(read_lines("Workflow finished: project:a\nNext workflow: elsewhere:x"), LineForms::default(), "an invalid last line is no proposal line, so the finished line is not last");
+        assert_eq!(read_lines("Done.\r\nWorkflow finished: project:a  \r\n").finished, named("project", "a"), "trailing whitespace and CRLF are ignored");
+    }
+    #[test]
+    fn message_references_and_marks() {
+        // The lib.rs commands parse the person's message reference with this function.
+        let ok = ItemRef::from_value(&json!({"threadId":"T","turnId":"u","itemId":"i"})).unwrap();
+        assert_eq!(ok.view(), json!({"threadId":"T","turnId":"u","itemId":"i"}));
+        for bad in [json!(null), json!({"threadId":"T","turnId":"u"}), json!({"threadId":"T","turnId":"u","itemId":""}), json!({"threadId":1,"turnId":"u","itemId":"i"})] {
+            assert!(ItemRef::from_value(&bad).is_err(), "{bad}");
+        }
+        let v = json!({"home":"h","generation":g(1),"items":[row("t1","a",3,"x","live-observed","completed"),row("t1","b",7,"x","recovered-from-supplier","completed")]});
+        let mark = SelectionMark::in_view(&v);
+        assert_eq!(mark.order, Some(7));
+        assert_eq!(mark.supersession(&v), RunStart::At(8));
+        let later = json!({"home":"h","generation":g(2),"items":[]});
+        assert_eq!(mark.supersession(&later), RunStart::Unknown, "a later generation is newer than the mark");
+        assert_eq!(SelectionMark::in_view(&later).supersession(&later), RunStart::Unknown, "nothing received yet supersedes nothing");
+        let live = json!({"items":[row("t1","a",3,"x","live-observed","completed"),row("t2","b",9,"x","recovered-from-supplier","completed")]});
+        assert_eq!(latest_turn(&live, "T").as_deref(), Some("t1"), "a history row read later does not move the end marker");
     }
     fn row(turn: &str, item: &str, order: u64, text: &str, standing: &str, state: &str) -> Value {
         json!({"threadId":"T","turnId":turn,"native":{"id":item,"type":"agentMessage","text":text},"displayState":state,"standing":standing,"observedOrder":order})

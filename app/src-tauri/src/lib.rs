@@ -841,16 +841,32 @@ fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathB
 #[tauri::command(async)]
 fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
     let Some(path)=workflow_native_folder(&app,"Select exact coordinated-knowledge-work development holding copy")? else{return Ok(json!({"state":"native selection dismissed"}));};
-    state.workflows.lock().unwrap().select_development_copy(path)
+    let view=active_native_view(&state);
+    noted_selection(&state,&view,|root|root.select_development_copy(path))
+}
+/// The active home's native view, read before a selection takes the Root guard.
+fn active_native_view(state:&AppState)->Value{
+    let home=state.homes.lock().unwrap().active();
+    current_native_view(&home)
+}
+/// WR PR-5: a successful selection by the person supersedes agent proposals
+/// received up to `view`; a failed one changes nothing.
+fn noted_selection(state:&AppState,view:&Value,select:impl FnOnce(&mut runtime_session::WorkflowRootSession)->Result<Value,String>)->Result<Value,String>{
+    let mut root=state.workflows.lock().unwrap();
+    let selected=select(&mut root)?;
+    root.note_selection(view);
+    Ok(selected)
 }
 #[tauri::command(async)]
 fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String)->Result<Value,String>{
     let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join("workflows");
-    state.workflows.lock().unwrap().select_production_bundle(root,&name)
+    let view=active_native_view(&state);
+    noted_selection(&state,&view,|workflows|workflows.select_production_bundle(root,&name))
 }
 #[tauri::command]
 fn workflow_select_production_copy(state:State<'_,AppState>,name:String)->Result<Value,String>{
-    state.workflows.lock().unwrap().select_production_copy(&name)
+    let view=active_native_view(&state);
+    noted_selection(&state,&view,|root|root.select_production_copy(&name))
 }
 #[tauri::command(async)]
 fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String)->Result<Value,String>{
@@ -861,7 +877,8 @@ fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:St
 #[tauri::command(async)]
 fn workflow_select_registered(app:tauri::AppHandle,state:State<'_,AppState>,review_ref:String,revision:String)->Result<Value,String>{
     let Some(path)=workflow_native_folder(&app,"Select actual holding copy of this hot registered revision")? else{return Ok(json!({"state":"native selection dismissed"}));};
-    state.workflows.lock().unwrap().select_hot_registered_copy(&review_ref,&revision,path)
+    let view=active_native_view(&state);
+    noted_selection(&state,&view,|root|root.select_hot_registered_copy(&review_ref,&revision,path))
 }
 #[tauri::command]
 fn workflow_create_draft(state:State<'_,AppState>,name:String)->Result<Value,String>{state.workflows.lock().unwrap().create_selected_draft(&name)}
@@ -955,11 +972,7 @@ fn workflow_end_run(state:State<'_,AppState>,run_ref:String,finished_report:Opti
     let run=state.workflows.lock().unwrap().runs.get(&run_ref).cloned().ok_or("Actual run unavailable in this process")?;
     let home=run.try_lock().map_err(|_|"Original run operation pending")?.home.clone();
     let view=current_native_view(&home);
-    let mut root=state.workflows.lock().unwrap();
-    match finished_report{
-        None=>root.end_plain(&run_ref,&view),
-        Some(message)=>root.end_on_report(&run_ref,&view,&run_offers::ItemRef::from_value(&message)?),
-    }
+    state.workflows.lock().unwrap().end_requested(&run_ref,&view,finished_report.as_ref())
 }
 /// RN-3/RN-4, PR-4: the person starts the workflow an agent message proposed (or,
 /// with a run in force, ends it and starts the proposed one). The proposal is
@@ -967,7 +980,6 @@ fn workflow_end_run(state:State<'_,AppState>,run_ref:String,finished_report:Opti
 #[tauri::command(async)]
 fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Value,run_ref:Option<String>,person_text:String)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    let message=run_offers::ItemRef::from_value(&message)?;
     let view=current_native_view(&home);
     let next=state.workflows.lock().unwrap().start_proposed(&view,home,&generation,&message,run_ref.as_deref(),person_text,state.workspace.as_deref())?;
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
@@ -977,7 +989,8 @@ fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Val
 #[tauri::command(async)]
 fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String)->Result<Value,String>{
     let home=state.homes.lock().unwrap().for_generation(&generation)?;state.validate_home_source(&home)?;
-    let next=state.workflows.lock().unwrap().end_and_start(&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
+    let view=current_native_view(&home);
+    let next=state.workflows.lock().unwrap().end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
     Ok(json!({"ended":run_ref,"started":next,"start":match started{Ok(v)=>v,Err(e)=>json!({"state":"successor not started","limit":e})}}))
 }

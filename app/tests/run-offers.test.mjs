@@ -75,6 +75,8 @@ test('the activity view places offers beneath their message and run markers at t
   assert.ok(start>=0&&start<brief&&brief<offer&&offer<end&&end<later,`order: ${[start,brief,offer,end,later]}`);
   assert.match(out,/<summary>Workflow run text the App supplied \(\d+ characters\)<\/summary>/,'the supplied bytes are folded and openable');
   assert.match(out,/you ended it on the agent&#x27;s “Workflow finished” statement/);
+  const unrecorded=renderToStaticMarkup(React.createElement(NativeActivityView,{view,threadId:'T'}));
+  assert.ok(!unrecorded.includes('Workflow run text the App supplied'),'text that only looks like run text is not folded without a recorded run start');
   const prepared={...run,lifecycle:{state:'prepared; not a run until its start turn is observed'},endedAfterTurn:null};
   assert.ok(!renderToStaticMarkup(React.createElement(NativeActivityView,{view,threadId:'T',runs:[prepared]})).includes('Workflow run started'),'a prepared run is not a run');
   const elsewhere={...run,turn:'gone',endedAfterTurn:null,lifecycle:{state:'open (live); only the person\'s explicit end ends it'}};
