@@ -188,18 +188,15 @@ Piping component passes do not prove the connected outcome (B-HTML 04–05).
 
 ## 5. Scenarios — connectors and records
 
-**V4-EXM-30 Qualified, limited and absent connectors.** For a selected
-receiving consumer, first trace one source pin through qualified PEC
-extraction/response and the permitted receiving action. Then ask the same
-coordination question with absent, stale, partial and failing feeds. Observe
-coverage, freshness, source route and actual fallback responsibility; no
-missing feed implies empty work or permission. An unqualified delivery is
-reported as such, not as a failed demonstration of the finished product.
-Retain the original combination of absent PEC and a stale Domains source,
-and also distinguish the connectors' independent availability. The App is
-the first intended PEC consumer; later Piping adoption has its own evidence.
-*Covers* V4-CON-02…04, V4-HI-60…63 and B-HTML 06; no new v4 start gate.
-Domains-specific receiving evidence joins its later increment (V4-EXM-32).
+**V4-EXM-30 Qualified, limited and absent connectors.** For a connector
+actually adopted by the receiving consumer, trace source identity through
+its permitted action. Examine absent, stale, partial and failing inputs:
+coverage, freshness, source route and fallback responsibility stay visible;
+a missing feed never implies empty work or permission. PEC's active delivery
+and first-consumer examination are retired. Retained PEC fixtures exercise
+compatibility only and do not imply a qualified live provider. No replacement
+provider is required. Domains-specific evidence joins its later increment
+(V4-EXM-32). *Covers* V4-CON-02…04 and V4-HI-60…63.
 
 **V4-EXM-31 Reconstructing a run.** A week after V4-EXM-20, someone
 reconstructs from the project's files what was asked, what the agent
@@ -250,6 +247,6 @@ acceptance).
 This evidence is for the human's replacement judgment, not blanket
 all-project retirement or professional reliance. Staged coexistence preserves
 history, current work and receiving responsibilities (B-HTML 07). Domains
-joins subsequently under U2; PEC remains optional to start. Completion of
+joins subsequently under U2; PEC delivery is retired. Completion of
 decomposition, prepared handoffs, accepted provider contracts and independent
 component checks do not stand in for the applicable connected witnesses.

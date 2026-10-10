@@ -184,24 +184,9 @@ needs:
   gating: true
   evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
 - from: DEL-07-01
-  condition: 'The guide integrates and checks PEC first-consumer receiving and adoption-evidence expectations
-    from App v4 DEL-07-01 at the relevant guide entry and completeness comparison; actual identified input
-    and evidence limits are required.
-
-
-    Notes: FACT: Required guide-definition/comparison input at actual use, supported by receiving-map
-    introduction (line 52), REQ-001 and VER-008; not inferred from REQ-008 exclusions. RequiredMaturity=INITIALIZED
-    is only the local checked-contract threshold; receipt, checked technical input and fulfilment remain
-    unclaimed. Conditional connector coverage in guide, not a connector availability prerequisite. PEC
-    qualified/released coverage and receiving adoption are required only before covered claim reliance;
-    D108 accepts retained MAJOR/partly-met limitations as-is, not repair/release/adoption. Domains source/query/method/host/actual-approval
-    inputs remain separately evidenced for the later increment; provider deployment/allocation stays unresolved,
-    and initial work may proceed without either connector.
-
-
-    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: DEL-07-02
   condition: 'The guide integrates and checks independent connector limitation and source-file recovery
     responsibilities from App v4 DEL-07-02 at the relevant guide entry and completeness comparison; actual

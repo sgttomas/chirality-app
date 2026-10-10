@@ -31,20 +31,9 @@ needs:
   gating: true
   evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
 - from: DEL-07-01
-  condition: 'Before relying on a changed PEC consumer path, obtain the affected coverage/receiving-adoption
-    account and required adoption evidence owned by DEL-07-01; use it in the record-format compatibility
-    account.
-
-
-    Notes: FACT: REQ-005 and VER-006 require the actual receiving evidence; CLM-004 resolves its owner.
-    Conditional at changed-consumer-path reliance. INITIALIZED is not receiving adoption or delivered
-    technical evidence. OI-022 exact response details remain open; independent file-native work continues
-    without PEC.
-
-
-    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
-  gating: true
-  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: external:DEP-002
   condition: 'At reliance on covered PEC consumer claims, check the actual externally owned PEC contribution
     and receiving records, including affected findings and actual disposition; the provider envelope,

@@ -9,6 +9,12 @@ package_objective_refs: [OBJ-006, OBJ-010]
 
 # DEL-10-04 — Project production dependency DAG
 
+PEC provider delivery, qualification and receiving adoption are no longer
+required inputs. References below to PEC, OI-022 and DEP-002 describe retained
+compatibility constraints only; they do not require a receiving witness or
+hold this deliverable open. Other commitments remain unchanged. See the
+current DEL-07-01 scope and PRD V4-CON-02.
+
 ## Purpose and Objective Traceability
 
 Establish one identified, examined and human-accepted project production

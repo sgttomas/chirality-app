@@ -24,7 +24,7 @@ programming interface; each host implements it in its own code (M-1).
 | Responsible host implementation owner | The embedded minimal loop and host panel/integration, with host-specific workflow/tool realization; SWBPIPE implementation is in the external session |
 | The embedded agent | Acting through the catalog within the autonomy the person has set |
 | An external agent | Acting through the same catalog, exposed as an MCP server or command-line interface |
-| PEC provider | Existing PEC project; its qualified delivered capability and evidence are distinct from receiving consumer adoption |
+| Retained PEC compatibility | Existing source only; no provider delivery or receiving-adoption commitment |
 | Domains provider, allocation open | Database/search capability and evidence within an identified contract; provider ownership/location are not assigned or excluded by this seed |
 | Human coordinating the external session | Relays proposed contracts, questions and returns using repository files; retains consequential decisions |
 
@@ -164,19 +164,18 @@ of need before relying on it.
   source standing make its research context inspectable; retrieval is not
   authority or proof of suitability. The provider/query and admission/
   freshness contracts remain to be defined (U1/U3; PRD OQ-03).
-- **V4-HI-61** **PEC** is consumed through its own interface when available.
-  Covered record-tier claims expose the examined-through pin, source
-  reference, coverage and freshness. Operational reliance is confined to
-  qualified/released coverage adopted by the consumer. Ephemeral presence
-  is not correctness or live-execution authority; PEC does not dispatch,
-  own an execution queue or write human rulings (B-HTML 06).
+- **V4-HI-61** Optional coordination inputs expose their source, coverage,
+  freshness and limitations when consumed. They do not dispatch, own an
+  execution queue or write human decisions. PEC's active provider and App
+  adoption commitments are retired; retained compatibility code and fixtures
+  do not establish a live service or require a replacement.
 - **V4-HI-62** Consumers distinguish qualified/current, limited/stale/failing
   and absent connectors. They show the affected limitations and support
   source-based reconstruction where the basis is sound; a missing feed
   cannot imply empty work, readiness or permission. Connector-dependent
   work may wait while separately supported work continues.
 - **V4-HI-63** Coordination file formats have identified versions and
-  consumers. Changes account for PEC feed coverage and receiving adoption;
+  consumers. Changes account for actual retained interface consumers;
   a writer is not governed by a projection merely because it reads the
   files. Share the necessary contract, not an assumed implementation.
 - **V4-HI-64** Domains develops alongside the first connected activity and
@@ -208,9 +207,8 @@ Resolve a compatible query/tool arrangement before relying on it, or obtain
 an explicit decision on an affected constraint. No database platform,
 corpus, remote service or delivery date is inferred.
 
-PEC and Domains remain independent. Without PEC, agents and managers perform
-more file comparison/orientation and retain review/integration ownership;
-the human carries more cross-undertaking coordination. With Domains absent,
+PEC is not an expected provider input. Agents use deliverable files and
+available tools; managers retain review/integration ownership. With Domains absent,
 the first connected activity continues, but its later database-grounded
 research capability is not falsely reported as available.
 

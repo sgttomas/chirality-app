@@ -101,8 +101,7 @@ Domains increment, the host's agent uses a search-tool call within a research
 workflow to query the domain database, build context and prepare a design
 candidate for human approval (U2/U3). Provider, tool and host integration are
 separate responsibilities; the initial connected activity has no Domains
-prerequisite. PEC consumption is a parallel coordination path, not a v4
-start gate.
+prerequisite. PEC delivery is retired; no coordination-provider replacement is needed.
 
 ## 3. The Chirality App
 
@@ -220,12 +219,12 @@ receiving commitment or evidence of delivery.
   such as the Chirality App's Codex — through an MCP server, which Codex
   supports natively, or a command-line interface, built from the same catalog
   (SWBPIPE's "controller first" path).
-- **V4-ARC-22** PEC and Domains are consumed through distinct provider/tool
-  and receiving contracts. Show standing, coverage and freshness; qualified,
-  limited and absent paths remain distinct. Neither connector's presence
-  establishes the other's readiness. Domains joins the host research/design
-  activity in a later increment, with provider ownership/deployment still
-  open; PEC is optional to start ([host integration](HOST_INTEGRATION.md) §8).
+- **V4-ARC-22** Optional connectors and Domains have distinct receiving
+  contracts. Show standing, coverage and freshness; qualified, limited and
+  absent paths remain distinct. Domains joins a later host research/design
+  increment, with provider ownership/deployment still open. PEC is retired
+  as an active provider; retained compatibility is not a delivery dependency.
+  No successor service or adapter is required by that retirement.
 
 Renewing shared material must account for existing packaging, tool paths,
 source-qualified selection/supply and other consumers. Historical placement

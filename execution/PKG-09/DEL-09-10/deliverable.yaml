@@ -2,19 +2,9 @@ id: DEL-09-10
 name: Optional connector consumption witness
 needs:
 - from: DEL-07-01
-  condition: 'Consume the applicable PEC receiving-contract/adapter contribution for the identified candidate
-    and selected receiving consumer.
-
-
-    Notes: FACT; CLM-002 resolves the named PKG-07 receiving contribution to DEL-07-01. Candidate and
-    consumer selection is run-specific; no adapter completion or adoption is inferred from its source
-    contract. INITIALIZED is checked local contract maturity only; actual required contribution must be
-    received for the dependent examination and is not marked fulfilled.
-
-
-    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
-  gating: true
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+  gating: false
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: DEL-07-02
   condition: 'Consume the applicable connector limitation/fallback implementation for the identified candidate;
     observe the actual source-file recovery or record its sound-basis limitation.
@@ -43,21 +33,6 @@ needs:
 
     Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
   gating: true
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
-- from: external:PEC / CURRENT DEP-002
-  condition: 'The required qualified source-to-response-to-action witness consumes actual identified PEC
-    extraction/response and provider qualification/release evidence within the applicable covered envelope.
-    Missing input leaves that witness incomplete; independent definition/development and negative cases
-    continue.
-
-
-    Notes: FACT; Provider evidence is external to App. D108 accepted the exact D1 files and limitations
-    as-is; RF-001 remains MAJOR and PEC DEL-00-01/AC-002 partly met. No repair, qualification, release,
-    readiness or adoption follows from D108. Never resolve the PEC DEL identifier as an App target.
-
-
-    Target description — TargetName: PEC owning project: identified qualified extraction/response and
-    release evidence; TargetRefID: PEC / CURRENT DEP-002; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv#DEP-002'
   evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
 - from: 'external:Selected receiving consumer: actual adopted envelope and permitted-action evidence'
   condition: 'The qualified-case execution record must be checked against the selected receiving consumer''s

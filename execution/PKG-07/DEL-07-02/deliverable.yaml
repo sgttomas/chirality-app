@@ -2,19 +2,9 @@ id: DEL-07-02
 name: Connector limitation and source-file recovery paths
 needs:
 - from: DEL-07-01
-  condition: 'Use DEL-07-01 actual PEC receiving terms before PEC-dependent implementation or reliance;
-    the source-file route can be defined and used independently.
-
-
-    Notes: FACT; INITIALIZED is only local contract maturity; actual technical input remains required
-    at its stated point of need and is not established by this extraction. OI-022 remains open until the
-    receiving owners supply actual terms; no inferred schema, freshness cutoff, provider delivery or blanket
-    start gate.
-
-
-    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
   gating: false
-  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: DEL-08-01
   condition: 'Consume DEL-08-01 Domains admission/query/provenance/freshness meanings and the applicable
     resolved data-boundary terms when integrating the Domains-specific path; common fallback and independent
@@ -31,21 +21,9 @@ needs:
   gating: false
   evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
 - from: DEL-07-01
-  condition: 'For a later operational PEC join, consume the App receiving-owner evidence account for the
-    exact envelope coverage, qualification, release and deliberate App adoption; unsupported material
-    retains source recovery.
-
-
-    Notes: FACT; INITIALIZED is only local contract maturity; actual technical input remains required
-    at its stated point of need and is not established by this extraction. Distinct from receiving-term
-    production: this row concerns actual claim/use evidence. Only the dependent operational PEC use needs
-    that evidence; no global provider-completion or v4 restart gate. Simulation, contract maturity and
-    D108 acceptance establish neither qualification nor release/adoption.
-
-
-    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
   gating: false
-  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: doc:Question-specific project graphs, decisions, revisions and other source records
   condition: 'Use available actual project graphs, decisions, revisions and other source records to reconstruct
     the affected question and identify source gaps; if necessary records are unavailable retain an explicit
@@ -61,16 +39,7 @@ needs:
     source records'
   evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
 - from: DEL-07-01
-  condition: 'DEL-07-01 hands DEL-07-02 the affected coordination question, unsupported conclusions, source-file
-    route context and accountable agent/manager/human responsibility for fallback treatment.
-
-
-    Notes: FACT: Distinct output flow from the upstream route interface; REQ-005 and VER-005 support the
-    limitation/source-route handoff. Actual handoff remains unclaimed; execution, integration and human
-    decisions stay with their owners.
-
-
-    Required input maturity in source: INITIALIZED; this is not a fulfilment or completion claim.'
+  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
   gating: false
   evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: DEL-08-01

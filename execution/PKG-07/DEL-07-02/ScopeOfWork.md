@@ -11,7 +11,7 @@ package_objective_refs: [OBJ-007]
 
 ## Purpose and Objective Traceability
 
-Provide the App's receiving behavior and accountable source-file route when optional PEC or Domains material is absent, stale, partial or failing. Work with a sound independent basis can proceed; connector-dependent questions retain their missing inputs. Later qualified PEC consumption can join the work without becoming a new starting condition.
+Provide the App's receiving behavior and source-file route when optional connector or Domains material is absent, stale, partial or failing. Work with an independent basis can proceed. PEC delivery/adoption is retired: PEC cases below are retained compatibility examples only, and create no future provider or receiving obligation. SOW-246's later PEC joining requirement is withdrawn; general limitation and source-reconstruction behaviour remains.
 
 The accepted Group3 snapshot named above and its `DECISION.md` govern the canonical `Deliverables.csv` row DEL-07-02, `Packages.csv` row PKG-07, `Objectives.csv` row OBJ-007 and assigned `ScopeLedger.csv` rows. Historical pending labels in frozen tables do not reverse the actual Group3 acceptance. OBJ-007 is shared across receiving and examination contributions; this contract supplies the common limitation/fallback slice, not the whole objective.
 

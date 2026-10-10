@@ -9,6 +9,12 @@ package_objective_refs: [OBJ-007, OBJ-008]
 
 # Optional connector consumption witness
 
+PEC provider delivery, qualification and receiving adoption are no longer
+required inputs. References below to PEC, OI-022 and DEP-002 describe retained
+compatibility constraints only; they do not require a receiving witness or
+hold this deliverable open. Other commitments remain unchanged. See the
+current DEL-07-01 scope and PRD V4-CON-02.
+
 ## Purpose and Objective Traceability
 
 Define the candidate-bound examination of optional connector consumption and actual source-file recovery. SOW-205 contributes to OBJ-007 by examining explicit receiving contracts and truthful fallback, and to OBJ-008 by retaining candidate-specific outcomes without overstating partial or unrun evidence. This contribution covers V4-EXM-30; it does not discharge every connector or examination obligation mapped to those objectives. The accepted type is TEST_SUITE and the integration owner is the **App connector examination owner; provider owners supply identified qualification/response evidence**. [Basis: DECOMP, EXAM, HTML06.]

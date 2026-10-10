@@ -96,22 +96,6 @@ needs:
     choice; TargetRefID: OI-002; TargetLocation: ScopeOfWork.md#Governing Values and Decisions — Axiology
     / TBD-002'
   evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
-- from: external:PEC owning project / OI-022 / DEP-002
-  condition: 'Before operational reliance on covered PEC consumer claims, obtain the first consumer questions,
-    exact response/tool contract, coverage/freshness/limits, no-response fallback and release/adoption
-    evidence from the PEC/App receiving owners.
-
-
-    Notes: FACT: Conditional future consumption only, through the identified adopted interface; PKG-07
-    owns App receiving/qualification and no exact local DEL is inferred. File-native views proceed with
-    PEC absent/limited. D108 accepts limitations as-is and proves neither repair, readiness, release nor
-    adoption. No provider construction is authorized.
-
-
-    Target description — TargetName: PEC owning project with App consumer owner — conditional adopted
-    receiving envelope; TargetRefID: PEC owning project / OI-022 / DEP-002; TargetLocation: ScopeOfWork.md#Governing
-    Values and Decisions — Axiology / TBD-004'
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
 - from: DEL-06-01
   condition: 'Supply source coordination files to DEL-06-02 for return-review, waiting-cause and prepared
     decision-package views; preserve actual ownership and separate returned, reviewed and integrated standing.

@@ -1,5 +1,10 @@
 # PEC first-consumer receiving contract
 
+PEC's provider programme and first-consumer delivery commitment are retired.
+This design is retained solely to interpret existing compatibility code and
+fixtures. Its provider qualification/adoption steps are not pending work;
+current scope is `../ScopeOfWork.md`. It does not require a successor.
+
 - **Contribution:** DEL-07-01/PRC-v0.4. It supersedes PRC-v0.3 (sha256
   `7c829352725ee646c1b5a7969d98a2a582d2b0e2ee89dec7565f2ffd295173aa`, READY
   by RV2) for R23-52 only: §7's situation 2 now rests on a successful call

@@ -9,6 +9,12 @@ package_objective_refs: [OBJ-006, OBJ-007]
 
 # Bounded delegation and current work-graph records
 
+PEC provider delivery, qualification and receiving adoption are no longer
+required inputs. References below to PEC, OI-022 and DEP-002 describe retained
+compatibility constraints only; they do not require a receiving witness or
+hold this deliverable open. Other commitments remain unchanged. See the
+current DEL-07-01 scope and PRD V4-CON-02.
+
 ## Purpose and Objective Traceability
 
 Define the App's file-based product records for bounded delegation and one current undertaking work graph. The App fleet-record owner is responsible for this DATA_MODEL_CHANGE contribution. It supplies recoverable source records and native child/evidence associations to adjacent product consumers; it does not establish that the future product already exists.

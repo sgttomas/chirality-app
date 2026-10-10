@@ -138,9 +138,11 @@ the same operations the professional uses.
 
 ### 2.3 Connectors
 
-PEC and Domains are independent program capabilities consumed through their
-own contracts (D-08; U1–U3; B-HTML decision 06). The first connected activity
-can proceed without either. PEC has its existing provider project. Domains
+PEC's active product programme and App first-consumer delivery commitment
+are retired by the owner's 2026-10-09 direction. Existing PEC compatibility
+code may remain, but no App work awaits PEC qualification or adoption.
+Optional connectors retain their own receiving contracts. The first connected
+activity can proceed without Domains. Domains
 provider ownership and location remain unresolved; this seed neither assigns
 that construction to App nor excludes it from future App/program allocation.
 Receiving responsibilities remain explicit.
@@ -150,11 +152,11 @@ Receiving responsibilities remain explicit.
   results locate evidence; they do not by themselves prove its standing,
   applicability or authority. Provider ownership, content admission, query
   contract and deployment details remain open (U1/U3; OQ-03).
-- **V4-CON-02 PEC** supplies pinned, freshness-stamped coordination claims
-  across applications: App first, then Piping, then others. Record-tier
-  operational reliance is limited to qualified, released coverage adopted
-  by the receiving consumer. PEC does not own execution, an execution queue
-  or human rulings. Its absence is not a v4 start gate (A–I/E; B-HTML 06).
+- **V4-CON-02** Optional coordination connectors, if deliberately adopted,
+  expose source identity, coverage, freshness and limitations. They do not
+  own execution, queues or human decisions. PEC delivery and adoption are
+  no longer required; retained PEC fixtures are compatibility examples,
+  not evidence of an available service or a successor commitment.
 - **V4-CON-03** Consumers show a connector's standing, coverage, freshness
   and limitations. Absent, stale, partial or failing feeds produce a visible
   limitation and a source-based route for work whose basis remains sound;
@@ -222,10 +224,9 @@ open in OQ-04; the selected activities are not an exhaustive product scope.
   access and source-admission evidence are needed before research-context
   reliance; host integration and the candidate's human-approval route are
   needed before the connected demonstration. No calendar date is invented.
-- PEC provider delivery and each application's adoption remain distinct.
-  Without PEC, agents perform more source comparison and managers retain
-  review/integration ownership; the human carries more cross-undertaking
-  coordination. Domains does not depend on PEC, nor PEC on Domains.
+- Agents discover current commitments and dependencies from deliverable
+  files and available tools. Managers retain review/integration ownership.
+  Domains has no PEC dependency; no PEC delivery or adoption remains due.
 
 [Host integration](HOST_INTEGRATION.md) allocates the interfaces;
 [examination](EXAMINATION.md) states the candidate-specific evidence. These
@@ -422,7 +423,8 @@ Not in v4.0:
   any later migration choice is made (B-HTML 07; OQ-12).
 
 SWBPIPE implementation is explicitly assigned to the outside session, and
-PEC retains its existing provider project. Domains database/search-provider
+PEC source remains for compatibility without an active provider programme.
+Domains database/search-provider
 ownership and location remain open for project definition; they are not
 excluded from future App/program scope by this consolidation's no-provider-
 implementation execution boundary. All interface and receiving obligations
@@ -438,7 +440,7 @@ Summarised here; specified in the companion documents.
 | Harness interface (Codex App Server) | Chirality App ↔ harness | [architecture](ARCHITECTURE.md) |
 | Host agent loop and model server | Host ↔ its embedded agent ↔ model | [architecture](ARCHITECTURE.md) |
 | Capability catalog, proposals, receipts | Host ↔ agents (embedded and external) | [host integration](HOST_INTEGRATION.md) |
-| Connector consumption | Chirality ↔ PEC, Domains | [host integration](HOST_INTEGRATION.md) |
+| Connector consumption | Chirality ↔ optional providers, Domains | [host integration](HOST_INTEGRATION.md) |
 | Workflow, skill and role files | Every expression ↔ every harness | this PRD §4.1–4.2 |
 
 ## 8. Replacing the v3.0.1 fallback
@@ -455,8 +457,8 @@ Summarised here; specified in the companion documents.
   from all-project retirement or professional reliance (B-HTML 07).
 - Domains is not a prerequisite to the initial V4-REP-01 journey. Its
   subsequent increment has its own receiving/examination obligations (U2).
-  PEC is likewise not a v4 start gate; its absence leaves explicit work with
-  agents, managers and the human.
+  PEC has no outstanding delivery or adoption obligation. Agents work from
+  deliverable sources and available tools.
 
 ## 9. Open questions
 
@@ -492,7 +494,7 @@ to repeat already settled direction.
 | Proposal | A change an agent submits for a person's acceptance |
 | Human act | An attributable act actually performed by a person; exact always-reserved operation classes remain in OQ-02, with professional reliance distinct from execution |
 | Receipt | The host's record that an operation was applied, with its identities and hashes |
-| Connector | A separately identified capability consumed through a receiving contract: PEC or Domains; Domains provider allocation remains open |
+| Connector | A separately identified capability consumed through a receiving contract: Domains or an optional adopted provider; PEC is retained compatibility only |
 | SWB Piping Designer agent | The SWBPIPE agent using domain-database research context to create a design candidate for human approval; an application expression, not a new standing role |
 | Scope of Work (SoW) | A production contract for outputs, criteria, interfaces, examination and evidence |
 | Accepted composite | The original seed, accepted HTML recommendations and later directions identified in B-ACCEPT; distinct from later consolidated bytes |
