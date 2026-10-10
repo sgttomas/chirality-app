@@ -38,6 +38,12 @@ pub fn handoff_header(source_thread: &str, role: &RoleInForce) -> String {
     format!("Handoff from conversation {source_thread} ({}).", role_label(role))
 }
 
+/// A send refused before any frame was written (the Host's `refused-not-sent`
+/// convention, or the selection check before the Host is called).
+fn not_sent(reason: &str) -> bool {
+    reason.contains("refused-not-sent") || reason.starts_with("conversation selection is stale") || reason.starts_with("conversation is not loaded")
+}
+
 #[derive(Clone, Debug)]
 struct Handoff {
     id: String,
@@ -61,8 +67,9 @@ pub struct Handoffs {
 impl Handoffs {
     /// CA-1, CA-2: ask the source conversation's agent, in a visible ordinary
     /// turn of that conversation, for a handoff summary. `send` is the real
-    /// text-send path. A refused or failed send is kept as the CA-2 fallback
-    /// (the draft holds the header only); nothing is retried.
+    /// text-send path. A request refused before anything was written closes
+    /// the handoff and is returned as an error; a written request that failed
+    /// is kept as the CA-2 fallback (header only). Nothing is retried.
     pub fn begin(
         &mut self,
         generation: &Value,
@@ -72,7 +79,7 @@ impl Handoffs {
         send: impl FnOnce(&str) -> Result<Value, String>,
     ) -> Result<Value, String> {
         let (id, text) = self.reserve(generation, source_thread, source_role, target)?;
-        Ok(self.sent(&id, send(&text)))
+        self.sent(&id, send(&text))
     }
     /// The first half of `begin`: checks the choice and opens the handoff with
     /// its request "sending", so no lock is held while Codex answers and a
@@ -110,20 +117,28 @@ impl Handoffs {
         self.open.push(handoff);
         Ok(reserved)
     }
-    /// The second half of `begin`: the send's outcome. A failure is kept as
-    /// the CA-2 fallback (header only); nothing is retried.
-    pub fn sent(&mut self, id: &str, outcome: Result<Value, String>) -> Value {
+    /// The second half of `begin`: the send's outcome. A request refused
+    /// before any frame was written (`refused-not-sent`, or a stale or
+    /// not-ready selection) asked the source agent nothing: the handoff is
+    /// closed and the refusal returned, so the person can try again. A written
+    /// request whose turn failed or whose outcome is unknown is kept as the
+    /// CA-2 fallback (header only); nothing is retried.
+    pub fn sent(&mut self, id: &str, outcome: Result<Value, String>) -> Result<Value, String> {
         let request = match outcome {
             Ok(response) => match response["result"]["turn"]["id"].as_str() {
                 Some(turn) => json!({"state":"sent","turnId":turn}),
                 None => json!({"state":"failed","reason":"Codex's response named no turn; the summary cannot be read from it"}),
             },
+            Err(reason) if not_sent(&reason) => {
+                self.open.retain(|h| h.id != id);
+                return Err(format!("{reason}. No summary was requested; the Continue-as handoff was closed"));
+            }
             Err(reason) => json!({"state":"failed","reason":reason}),
         };
         if let Some(h) = self.open.iter_mut().find(|h| h.id == id) {
             h.request = request.clone();
         }
-        json!({"id":id,"request":request})
+        Ok(json!({"id":id,"request":request}))
     }
 
     /// CA-3: the relation a "Continue as" start records, read from the open
@@ -257,15 +272,67 @@ pub fn limit_account(root: Option<&std::path::Path>) -> Value {
 }
 
 /// NIR CA-4 / ROLE F-1 through the real Host: `thread/fork` with the thread
-/// id only, the forked conversation admitted from its correlated result, and
-/// its role bound as inherited from the source's original binding.
+/// id and no instructions (plus `deferGoalContinuation`, see
+/// `Host::thread_fork_dispatch`), the forked conversation admitted from its
+/// correlated result, and its role bound as inherited from the source's
+/// original binding.
 pub fn fork_conversation(home: &crate::runtime_session::HomeSession, generation: &Value, source_thread: &str, wait: std::time::Duration) -> Result<Value, String> {
     let receipt = home.host.thread_fork_dispatch(generation, source_thread)?;
     let evidence = home.host.source_request_wait(&receipt, wait)?;
     let row = home.host.thread_fork_finish(&receipt).map_err(|e| format!("{e} (fork request outcome: {})", evidence["outcome"]))?;
     let binding = home.history.lock().unwrap().fork_observed(&home.host, &receipt, source_thread);
     Ok(json!({"thread":row,"role":binding.unwrap_or_else(|error| json!({"standing":"unknown","reason":format!("the fork's role binding was refused: {error}")})),
-        "standing":"Same-role copy: thread/fork carried only the thread id, so the fork keeps the source's guidance; the source conversation is unchanged."}))
+        "standing":"Same-role copy: thread/fork carried no instructions, so the fork keeps the source's guidance; the source conversation is unchanged."}))
+}
+
+/// The `conversation_fork` command body: route to the home that owns the
+/// generation, then fork there.
+pub(crate) fn fork_command(homes: &std::sync::Mutex<crate::runtime_session::HomeRouter>, generation: &Value, source_thread: &str, wait: std::time::Duration) -> Result<Value, String> {
+    let home = homes.lock().unwrap().for_generation(generation)?;
+    fork_conversation(&home, generation, source_thread, wait)
+}
+
+/// The `continue_as_begin` command body (CA-1, CA-2). Checks, before anything
+/// is opened or sent: a pending run-end notice must go with ordinary text first
+/// (as for attachments, WR TX-5), and the source must be a current conversation
+/// of a ready Codex. Then one visible ordinary turn asks for the summary.
+pub(crate) fn continue_as_begin(
+    handoffs: &std::sync::Mutex<Handoffs>,
+    workflows: &std::sync::Mutex<crate::runtime_session::WorkflowRootSession>,
+    home: &crate::runtime_session::HomeSession,
+    generation: &Value,
+    thread: &str,
+    target: Option<Role>,
+) -> Result<Value, String> {
+    crate::runtime_session::mode_send_blocked_by_notice(workflows, generation, thread)?;
+    crate::runtime_session::current_conversation(&home.host.snapshot(), generation, thread)
+        .map_err(|e| format!("{e}; nothing sent"))?;
+    let home_name = generation["home"].as_str().ok_or("generation home required")?.to_owned();
+    let source_role = home.history.lock().unwrap().binding(&home_name, thread)
+        .map(|binding| binding.role_in_force(&home_name, thread))
+        .unwrap_or(RoleInForce::Unknown { reason: "original App supply binding not established".into() });
+    let (id, text) = handoffs.lock().unwrap().reserve(generation, thread, source_role, target)?;
+    let outcome = crate::runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, &text,
+        |generation, thread, text| home.host.turn_start_text(generation, thread, text));
+    handoffs.lock().unwrap().sent(&id, outcome)
+}
+
+/// `thread_start` with `continue_as` (CA-3): the relation to record, read from
+/// the open handoff in the start's own home, or a refusal before anything is sent.
+pub(crate) fn continuation_for_start(handoffs: &std::sync::Mutex<Handoffs>, home: &crate::runtime_session::HomeSession, continue_as: Option<&str>, role: Option<Role>) -> Result<Option<Value>, String> {
+    match continue_as {
+        Some(id) => handoffs.lock().unwrap().continuation(id, &home.host.snapshot()["generation"], role).map(Some),
+        None => Ok(None),
+    }
+}
+
+/// `thread_start` with `continue_as`: an admitted start marks its handoff started.
+pub(crate) fn mark_started(handoffs: &std::sync::Mutex<Handoffs>, continue_as: Option<&str>, result: &Result<Value, String>, generation: &Value) {
+    if let (Some(id), Ok(response)) = (continue_as, result) {
+        if let Some(thread) = response["result"]["thread"]["id"].as_str() {
+            handoffs.lock().unwrap().started(id, thread, generation);
+        }
+    }
 }
 
 #[cfg(test)]

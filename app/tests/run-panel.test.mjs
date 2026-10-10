@@ -64,6 +64,13 @@ test('standing facets show only what the run record supports',()=>{
   // A record holding entries this view does not read makes the facets unknown, never stronger.
   const withActs=outputStanding(output,run({lifecycle:{state:'open',records:record(['run_opened','human_act','examination_findings'])}}));
   assert.ok(Object.values(withActs).every(v=>v.startsWith('unknown')),JSON.stringify(withActs));
+  // Only kinds known to say nothing about outputs leave "none recorded"; any other kind, including future ones, reads unknown.
+  for(const kind of ['act_counted','item_decision','continued_past','observation_lost','evidence_limit','operation_entry','a_kind_not_yet_defined']){
+    const f=outputStanding(output,run({lifecycle:{state:'open',records:record(['run_opened',kind])}}));
+    assert.ok(Object.values(f).every(v=>v.startsWith('unknown')),`${kind}: ${JSON.stringify(f)}`);
+  }
+  const neutral=outputStanding(output,run({lifecycle:{state:'ended',records:record(['run_opened','supplied_guidance','compatibility_report_ref','run_ended'])}}));
+  assert.equal(neutral.hostChecks,'none reported');
   const html=h(StandingFacets,{facets});
   assert.ok(!/\bchecked\b|verified|approved|accepted|relied|passed/i.test(html),'no checking, acceptance or reliance is inferred');
   const panel=h(RunPanel,{run:run()});

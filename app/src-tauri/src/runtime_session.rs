@@ -746,7 +746,7 @@ pub fn start_with_recovery<T>(
 }
 
 /// Plain conversation controls use only current native identities and supplied text.
-fn current_conversation(
+pub(crate) fn current_conversation(
     snapshot: &Value,
     generation: &Value,
     thread_id: &str,

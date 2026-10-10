@@ -515,8 +515,16 @@ impl MetadataRequest {
             "thread/resume"
         }
     }
+    /// The thread id only: no instructions, model or settings (ROLE §5.2). A fork
+    /// also asks Codex not to start the source goal's automatic continuation
+    /// (0.160.0 `ThreadForkParams.deferGoalContinuation`), so no turn runs that
+    /// the person did not start; the next explicit turn owns the goal.
     pub fn params(&self) -> Value {
-        json!({"threadId":self.source.thread})
+        if self.is_fork {
+            json!({"threadId":self.source.thread,"deferGoalContinuation":true})
+        } else {
+            json!({"threadId":self.source.thread})
+        }
     }
     pub fn generation(&self) -> &Value {
         &self.generation

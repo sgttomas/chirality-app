@@ -6,7 +6,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);return exports;};
-const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,guidanceChange,roleName}=load('ConversationRoles.tsx');
+const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const noop=()=>{};
 
@@ -95,4 +95,22 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   assert.ok(started.includes('Send this message to the new conversation'));
   const fallback=h(ContinueAsPanel,{handoff:{...handoff,draft:{state:'header-only',reading:'The source turn ended failed. The draft holds the header only; write the summary yourself.'},draftText:handoff.header},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
   assert.ok(fallback.includes('write the summary yourself')&&fallback.includes('(role HELP_HUMAN).</textarea>'));
+});
+
+test('the handoff message reads sent only after the send resolved; a refusal keeps the draft and allows another try',async()=>{
+  assert.deepEqual(await attemptSend(async()=>true,'hello'),{state:'sent'});
+  assert.equal((await attemptSend(async()=>false,'hello')).state,'failed');
+  const thrown=await attemptSend(async()=>{throw new Error('refused-not-sent(not-ready)');},'hello');
+  assert.equal(thrown.state,'failed');
+  assert.ok(thrown.failure.includes('refused-not-sent(not-ready)'));
+  const failedLine=h(SendOutcome,{outcome:thrown});
+  assert.ok(failedLine.includes('Not sent: Error: refused-not-sent(not-ready)')&&failedLine.includes('The draft is kept; nothing is resent automatically.'));
+  assert.ok(!failedLine.includes('Sent once'),'a refused send is never reported as sent');
+  assert.ok(h(SendOutcome,{outcome:{state:'sent'}}).includes('Sent once as an ordinary message'));
+  assert.equal(h(SendOutcome,{outcome:{state:'unsent'}}),'');
+  // The panel takes its state from attemptSend's result, never before the send resolves.
+  const source=readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
+  assert.ok(source.includes('void attemptSend(send, draft).then(setSending)')&&!/setSent\(true\)/.test(source));
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
+  assert.ok(app.includes('mode: null })) !== undefined'),'the App reports a failed send as not sent');
 });

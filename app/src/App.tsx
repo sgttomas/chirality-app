@@ -88,9 +88,10 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
   const runs: Json[] = (host?.workflowRoot?.runs ?? []).filter((run: Json) => selected && run?.conversation === selected.threadId && run?.home === selected.generation?.home);
   const offerAct: RunAct = async (command, args) => { setOfferBusy(true); try { return await runAct(command, args); } finally { setOfferBusy(false); } };
   // NIR §5.8: Continue as and Fork go through the host; neither changes this conversation's role.
-  const roleAct = async (label: string, command: string, args: Record<string, unknown>, after?: (result: Json) => void) => {
+  // Resolves to the host's result, or undefined when the command failed (runAct shows the error).
+  const roleAct = async (label: string, command: string, args: Record<string, unknown>, after?: (result: Json) => void): Promise<Json> => {
     setBusy(label); setError("");
-    try { const result = await runAct(command, args); if (result === undefined) setError(`${label} did not complete; see the message below.`); else after?.(result); }
+    try { const result = await runAct(command, args); if (result === undefined) setError(`${label} did not complete; see the message below.`); else after?.(result); return result; }
     finally { setBusy(""); }
   };
   const handoffs: Json[] = host?.continueAs ?? [];
@@ -108,7 +109,7 @@ function ConversationPanel({ host, threadKey, setThreadKey, answer, runAct, send
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
       start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, continueAs: handoff.id }); }}
-      send={draft => { const started = handoff.started; if (started) void roleAct("sending the handoff message", "conversation_send_text", { generation: started.generation, threadId: started.threadId, text: draft, mode: null }); }}
+      send={async draft => { const started = handoff.started; if (!started) return false; return (await roleAct("sending the handoff message", "conversation_send_text", { generation: started.generation, threadId: started.threadId, text: draft, mode: null })) !== undefined; }}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
     <NativeActivityView key={selected?.threadId ?? ""} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}

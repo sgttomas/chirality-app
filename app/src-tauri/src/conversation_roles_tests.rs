@@ -149,7 +149,13 @@ fn fork_is_a_same_role_copy_and_leaves_the_source_unchanged() {
     assert_eq!(role_before["role"], "WORKING_ITEMS");
     let out = fork_conversation(&f.home, &f.generation, &source, Duration::from_secs(5)).unwrap();
     let sent = f.wire().into_iter().find(|frame| frame["method"] == "thread/fork").expect("thread/fork written");
-    assert_eq!(sent["params"], json!({"threadId":source}), "thread id only: no instructions, model or settings");
+    assert_eq!(sent["params"], json!({"threadId":source,"deferGoalContinuation":true}),
+        "the thread id and no instructions, model or settings; no automatic goal continuation turn");
+    // The exact params are valid 0.160.0 ThreadForkParams.
+    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
+    schema["$ref"] = json!("#/definitions/v2/ThreadForkParams");
+    jsonschema::options().with_draft(jsonschema::Draft::Draft7).offline().build(&schema).unwrap().validate(&sent["params"]).unwrap();
+    assert!(crate::role_supply::check_role_inputs("thread/fork", &sent["params"]).is_ok(), "carries no role input");
     let fork = out["thread"]["threadId"].as_str().unwrap().to_owned();
     assert_eq!(fork, "fork-1");
     assert_eq!(out["thread"]["forkedFrom"]["threadId"], source);
@@ -171,9 +177,8 @@ fn fork_is_a_same_role_copy_and_leaves_the_source_unchanged() {
 #[test]
 fn fork_refuses_an_unknown_conversation_and_keeps_an_unbound_role_unknown() {
     let f = Fixture::new();
-    let before = f.wire().len();
     assert!(fork_conversation(&f.home, &f.generation, "no-such-thread", Duration::from_secs(1)).unwrap_err().contains("refused-not-sent"));
-    assert_eq!(f.wire().len(), before, "nothing written for a refused fork");
+    assert!(f.wire().iter().all(|frame| frame["method"] != "thread/fork"), "nothing written for a refused fork");
     // A conversation started outside the App's binding (no original supply) forks with its role unknown.
     f.home.host.thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
     let out = fork_conversation(&f.home, &f.generation, "thread", Duration::from_secs(5)).unwrap();
@@ -247,12 +252,69 @@ fn continue_as_falls_back_to_the_header_when_the_source_turn_fails() {
     let view = &handoffs.view(&s)[0];
     assert_eq!(view["draftText"], format!("Handoff from conversation {source} (no role)."));
     assert!(view["draft"]["reading"].as_str().unwrap().contains("ended failed"));
-    // A send that never reached Codex is also header only, never retried.
-    let mut refused = Handoffs::default();
+    // A request written whose outcome failed is also header only, never retried.
+    let mut written = Handoffs::default();
     let calls = std::cell::Cell::new(0);
-    let out = refused.begin(&f.generation, "other", RoleInForce::Unknown { reason: "r".into() }, None, |_| { calls.set(calls.get() + 1); Err("refused-not-sent".into()) }).unwrap();
+    let out = written.begin(&f.generation, "other", RoleInForce::Unknown { reason: "r".into() }, None, |_| { calls.set(calls.get() + 1); Err("no response to turn/start within the wait limit (outcome stays pending/unknown)".into()) }).unwrap();
     assert_eq!((out["request"]["state"].as_str(), calls.get()), (Some("failed"), 1));
-    assert_eq!(refused.view(&json!({}))[0]["draftText"], "Handoff from conversation other (role not established in this App process).");
+    assert_eq!(written.view(&json!({}))[0]["draftText"], "Handoff from conversation other (role not established in this App process).");
+    // A request refused before any write asked nothing: no handoff stays open, and trying again is possible.
+    let mut refused = Handoffs::default();
+    for reason in ["refused-not-sent(not-ready): state stopping", "refused-not-sent: Stop Codex was confirmed for this Codex process; no turn/start is sent", "conversation is not loaded in this home generation"] {
+        let error = refused.begin(&f.generation, "other", RoleInForce::Unknown { reason: "r".into() }, None, |_| Err(reason.into())).unwrap_err();
+        assert!(error.contains("No summary was requested") && error.contains(reason), "{error}");
+        assert_eq!(refused.view(&json!({})), json!([]), "{reason}: no handoff left open");
+    }
+}
+
+#[test]
+fn continue_as_glue_checks_the_source_before_opening_anything() {
+    let f = Fixture::new();
+    let source = f.start(Some(Role::HELP_HUMAN), None);
+    let handoffs = std::sync::Mutex::new(Handoffs::default());
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let starts = || f.wire().iter().filter(|frame| frame["method"] == "turn/start").count();
+    // A stale or foreign conversation is refused before any handoff is opened or frame written.
+    for thread in ["no-such-thread", ""] {
+        let error = continue_as_begin(&handoffs, &workflows, &f.home, &f.generation, thread, None).unwrap_err();
+        assert!(error.contains("nothing sent"), "{error}");
+    }
+    let mut stale = f.generation.clone();
+    stale["spawnCounter"] = json!(99);
+    assert!(continue_as_begin(&handoffs, &workflows, &f.home, &stale, &source, None).unwrap_err().contains("stale"));
+    assert_eq!((handoffs.lock().unwrap().view(&json!({})), starts()), (json!([]), 0));
+    // The real path: one visible turn in the source conversation.
+    let out = continue_as_begin(&handoffs, &workflows, &f.home, &f.generation, &source, Some(Role::WORKING_ITEMS)).unwrap();
+    assert_eq!((out["request"]["state"].as_str(), starts()), (Some("sent"), 1));
+    let id = out["id"].as_str().unwrap().to_owned();
+    // thread_start(continue_as): a role or home differing from the handoff refuses before anything is sent.
+    assert!(continuation_for_start(&handoffs, &f.home, Some(&id), Some(Role::HELPS_HUMANS)).unwrap_err().contains("differs"));
+    assert_eq!(continuation_for_start(&handoffs, &f.home, None, Some(Role::HELPS_HUMANS)).unwrap(), None);
+    let other = Fixture::new();
+    assert!(continuation_for_start(&handoffs, &other.home, Some(&id), Some(Role::WORKING_ITEMS)).unwrap_err().contains("home"));
+    let relation = continuation_for_start(&handoffs, &f.home, Some(&id), Some(Role::WORKING_ITEMS)).unwrap().unwrap();
+    // Only an admitted start marks the handoff started.
+    mark_started(&handoffs, Some(&id), &Err("start-failed-or-unknown".into()), &f.generation);
+    assert!(handoffs.lock().unwrap().view(&json!({}))[0]["started"].is_null());
+    let new = f.start(Some(Role::WORKING_ITEMS), Some(relation));
+    mark_started(&handoffs, Some(&id), &Ok(json!({"result":{"thread":{"id":new}}})), &f.generation);
+    assert_eq!(handoffs.lock().unwrap().view(&json!({}))[0]["started"]["threadId"], new);
+    assert!(continuation_for_start(&handoffs, &f.home, Some(&id), Some(Role::WORKING_ITEMS)).unwrap_err().contains("already started"));
+}
+
+#[test]
+fn fork_command_routes_to_the_owning_home_only() {
+    let f = Fixture::new();
+    let source = f.start(None, None);
+    let homes = std::sync::Mutex::new(crate::runtime_session::HomeRouter::new(Arc::clone(&f.home)).unwrap());
+    let mut foreign = f.generation.clone();
+    foreign["home"] = json!("another-home");
+    assert!(fork_command(&homes, &foreign, &source, Duration::from_secs(1)).is_err());
+    assert!(f.wire().iter().all(|frame| frame["method"] != "thread/fork"), "no fork written for a foreign generation");
+    let out = fork_command(&homes, &f.generation, &source, Duration::from_secs(5)).unwrap();
+    assert_eq!(out["thread"]["forkedFrom"]["threadId"], source);
+    assert_eq!(f.role(out["thread"]["threadId"].as_str().unwrap())["role"], Value::Null, "the fork keeps the source's no-role binding");
+    assert_eq!(f.role(out["thread"]["threadId"].as_str().unwrap())["standing"], "app-observed");
 }
 
 #[test]

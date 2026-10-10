@@ -94,17 +94,19 @@ export function CheckpointGuidance({ element, run }: { element: Json; run?: Json
     {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? `If declined: ${decisionPath(v.on_negative_decision)}. ` : ""}{v.on_mixed_decision ? `If mixed: ${decisionPath(v.on_mixed_decision)}. ` : ""}{v.on_subject_absent ? `If the subject is absent: ${decisionPath(v.on_subject_absent)}.` : ""}</small></>}
     {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : `Governed value not recognized (${text(v.governed)}); preserved and reported (FB-19).`}</small></>}
     <br /><small>The agent asks you for the act when its work reaches this point; the act is recorded only when you perform it.</small>
-    {run && <><br /><small>Run record: {arrivals ? `${arrivals} arrival entr${arrivals === 1 ? "y" : "ies"} recorded; this view does not read their bodies, so their labels are not shown.` : "no arrival recorded. This App does not yet record checkpoint arrivals, so none is shown."}{listed === false ? " The checkpoint list itself is missing in record (no checkpoint_listed entry); it is shown here from the declaration." : ""}</small></>}
+    {run && <><br /><small>Run record: {arrivals ? `${arrivals} arrival entr${arrivals === 1 ? "y" : "ies"} recorded in this run, for any of its checkpoints; this view does not read their bodies, so which checkpoint each concerns and its label are not shown.` : "no arrival recorded. This App does not yet record checkpoint arrivals, so none is shown."}{listed === false ? " The checkpoint list itself is missing in record (no checkpoint_listed entry); it is shown here from the declaration." : ""}</small></>}
   </li>;
 }
 
 /** AS §8: separate facets, each no stronger than the record. Values are the
  * record's; with no record of the output every facet says so. */
 export type Facets = { temporal: string; hostChecks: string; limitations: string; humanActs: string; examination: string; evidence: string; route: string };
-const BODY_KINDS = ["operation_entry", "human_act", "act_lapsed", "act_declined", "examination_findings", "evidence_limit"];
+// Kinds known to say nothing about an output's standing. Any other kind,
+// including one this view has never seen, makes the facets unknown.
+export const OUTPUT_NEUTRAL_KINDS = ["run_opened", "supplied_guidance", "compatibility_report_ref", "run_ended"];
 export function outputStanding(output: Json, run: Json): Facets {
   const kinds = recordKinds(run);
-  const unread = BODY_KINDS.filter(k => kinds.includes(k));
+  const unread = Array.from(new Set(kinds.filter(k => !OUTPUT_NEUTRAL_KINDS.includes(k))));
   if (unread.length) {
     const unknown = `unknown: the run record holds ${unread.join(", ")} entries whose bodies this view does not read, so their relation to ${text(output?.name)} is not shown`;
     return { temporal: unknown, hostChecks: unknown, limitations: unknown, humanActs: unknown, examination: unknown, evidence: `unknown (record entries not read by this view)`, route: unknown };

@@ -103,17 +103,35 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork }: { 
 
 export type StartChoice = { model: string; modelProvider: string; entryId: string };
 
+/** The handoff message's send state. "sent" only after the send resolved
+ * with a result; a refusal or error keeps the draft and allows another try. */
+export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string };
+export async function attemptSend(send: (text: string) => Promise<boolean>, draft: string): Promise<SendState> {
+  try {
+    return (await send(draft)) ? { state: "sent" } : { state: "failed", failure: "The message was not accepted; see the App message below." };
+  } catch (e) {
+    return { state: "failed", failure: String(e) };
+  }
+}
+export function SendOutcome({ outcome }: { outcome: SendState }) {
+  if (outcome.state === "sending") return <p><small>Sending; waiting for Codex's response.</small></p>;
+  if (outcome.state === "sent") return <p><small>Sent once as an ordinary message; see the new conversation for Codex's response.</small></p>;
+  if (outcome.state === "failed") return <p role="alert"><small>Not sent: {outcome.failure} The draft is kept; nothing is resent automatically. You can send it again.</small></p>;
+  return null;
+}
+
 /** CA-2, CA-3: one open handoff. The draft is editable and unsent; the new
  * conversation starts with no model chosen; its first message is sent only
  * when the person sends it. */
 export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, open, dismiss }: {
   handoff: Json; entries: { value: string; label: string }[]; busy: boolean; ready: boolean;
-  start: (choice: StartChoice) => void; send: (text: string) => void; open: () => void; dismiss: () => void;
+  start: (choice: StartChoice) => void; send: (text: string) => Promise<boolean>; open: () => void; dismiss: () => void;
 }) {
   const [draft, setDraft] = useState<string>(text(handoff?.draftText));
   const [seededFrom, setSeededFrom] = useState<string>(text(handoff?.draft?.state));
   const [choice, setChoice] = useState<StartChoice>({ model: "", modelProvider: "", entryId: "" });
-  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState<SendState>({ state: "unsent" });
+  const sent = sending.state === "sent" || sending.state === "sending";
   // The draft is seeded once when the summary arrives; the person's edits are kept after that.
   useEffect(() => {
     const state = text(handoff?.draft?.state);
@@ -136,10 +154,10 @@ export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, op
     </div>}
     {started && <div>
       <p>New conversation {text(started.threadId)} started with {target}. Nothing has been sent to it.</p>
-      <button disabled={busy || !ready || !draft || sent} onClick={() => { setSent(true); send(draft); }}>Send this message to the new conversation</button>{" "}
+      <button disabled={busy || !ready || !draft || sent} onClick={() => { setSending({ state: "sending" }); void attemptSend(send, draft).then(setSending); }}>Send this message to the new conversation</button>{" "}
       <button disabled={busy} onClick={open}>Open the new conversation</button>{" "}
       <button disabled={busy} onClick={dismiss}>Close</button>
-      {sent && <p><small>Sent once as an ordinary message; see the new conversation for Codex's response.</small></p>}
+      <SendOutcome outcome={sending} />
     </div>}
     <details><summary>Summary request sent to the source conversation</summary><p>{text(handoff?.requestText)}</p><p>Request: {text(handoff?.request?.state)}{handoff?.request?.reason ? ` (${text(handoff.request.reason)})` : ""}</p></details>
   </section>;

@@ -631,6 +631,13 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     assert_eq!(submit(Some("turn")).unwrap_err(), "fixture: no attachment selection", "the notice does not block a steer");
     assert_eq!(disk.frames("turn/start").len(), 1, "the refused attachment send wrote nothing");
     assert!(disk.frames("turn/steer").is_empty());
+    // Continue as (continue_as_begin command body) is refused the same way: no
+    // handoff is opened and no summary turn is written while the notice is pending.
+    let handoffs = Mutex::new(crate::conversation_roles::Handoffs::default());
+    let refused = crate::conversation_roles::continue_as_begin(&handoffs, &root, &one.home, &one.generation, THREAD, None).unwrap_err();
+    assert!(refused.contains("end notice goes with the next ordinary turn; send ordinary text first. Nothing sent"), "{refused}");
+    assert_eq!(handoffs.lock().unwrap().view(&json!({})), json!([]));
+    assert_eq!(disk.frames("turn/start").len(), 1, "the refused Continue as wrote nothing");
     conversation_send_text(&root, &one, "hello").unwrap();
     assert!(crate::runtime_session::mode_send_blocked_by_notice(&root, &one.generation, THREAD).is_ok(), "after the notice went, mode sends are allowed");
     assert_eq!(submit(None).unwrap_err(), "fixture: no attachment selection", "after the notice went, attachment sends are not refused for it");

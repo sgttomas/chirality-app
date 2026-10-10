@@ -42,6 +42,9 @@ fn sent_start(id: u64, c: &Composition) -> Value {
     json!({"id":id,"method":"thread/start","params":{"developerInstructions":c.text,"model":"chosen-model","modelProvider":"chosen-provider","cwd":"/test/work"}})
 }
 fn sent_metadata(id: u64, method: &str) -> Value {
+    if method == "thread/fork" {
+        return json!({"id":id,"method":method,"params":{"threadId":"original-thread","deferGoalContinuation":true}});
+    }
     json!({"id":id,"method":method,"params":{"threadId":"original-thread"}})
 }
 fn binding(role: Option<Role>) -> RoleBinding {
@@ -268,7 +271,10 @@ fn fork_inherits_only_original_app_binding_and_native_source_relation() {
         .fork("home-A", current.clone(), json!(4), "req:fork", "sup:fork")
         .unwrap();
     assert_eq!(fork.method(), "thread/fork");
-    assert_eq!(fork.params(), json!({"threadId":"original-thread"}));
+    assert_eq!(
+        fork.params(),
+        json!({"threadId":"original-thread","deferGoalContinuation":true})
+    );
     let mut response = frame(4, "new-fork");
     response["result"]["thread"]["forkedFromId"] = json!("original-thread");
     response["result"]["thread"]["agentRole"] = json!("TASK");

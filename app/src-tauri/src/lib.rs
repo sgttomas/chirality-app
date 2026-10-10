@@ -508,10 +508,7 @@ fn thread_start(
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
-    let continued_from = match &continue_as {
-        Some(id) => Some(state.continue_as.lock().unwrap().continuation(id, &home.host.snapshot()["generation"], role)?),
-        None => None,
-    };
+    let continued_from = conversation_roles::continuation_for_start(&state.continue_as, &home, continue_as.as_deref(), role)?;
     let cwd = home.host_config
         .as_ref()
         .map_err(Clone::clone)?
@@ -580,9 +577,9 @@ fn thread_start(
         }
         result
     };
+    conversation_roles::mark_started(&state.continue_as, continue_as.as_deref(), &result, &generation);
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
-            if let Some(id) = &continue_as { state.continue_as.lock().unwrap().started(id, thread, &generation); }
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
             let _ = home.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
         }
@@ -704,16 +701,7 @@ fn conversation_interrupt(
 #[tauri::command(async)]
 fn continue_as_begin(state: State<'_, AppState>, generation: Value, thread_id: String, role: Option<role_supply::Role>) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    // As for an attachment send: a pending run-end notice goes with ordinary text first.
-    runtime_session::mode_send_blocked_by_notice(&state.workflows, &generation, &thread_id)?;
-    let home_name = generation["home"].as_str().ok_or("generation home required")?.to_owned();
-    let source_role = home.history.lock().unwrap().binding(&home_name, &thread_id)
-        .map(|binding| binding.role_in_force(&home_name, &thread_id))
-        .unwrap_or(role_lifecycle::RoleInForce::Unknown { reason: "original App supply binding not established".into() });
-    let (id, text) = state.continue_as.lock().unwrap().reserve(&generation, &thread_id, source_role, role)?;
-    let outcome = runtime_session::send_conversation_text(&home.host.snapshot(), &generation, &thread_id, &text,
-        |generation, thread, text| home.host.turn_start_text(generation, thread, text));
-    Ok(state.continue_as.lock().unwrap().sent(&id, outcome))
+    conversation_roles::continue_as_begin(&state.continue_as, &state.workflows, &home, &generation, &thread_id, role)
 }
 
 #[tauri::command]
@@ -724,8 +712,7 @@ fn continue_as_dismiss(state: State<'_, AppState>, id: String) -> Result<(), Str
 /// NIR CA-4, ROLE F-1: "Fork (same role)".
 #[tauri::command(async)]
 fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: String) -> Result<Value, String> {
-    let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    conversation_roles::fork_conversation(&home, &generation, &thread_id, std::time::Duration::from_secs(20))
+    conversation_roles::fork_command(&state.homes, &generation, &thread_id, std::time::Duration::from_secs(20))
 }
 
 /// Paths come exclusively from native file selection; no path/origin is an IPC argument.

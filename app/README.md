@@ -205,20 +205,27 @@ performed an act.
     "No role", and each role's limits as the limit account hands them (TASK
     "A task agent does not delegate: Stated, not enforced"; a modified copy
     reads not known). TASK is listed but not offered as a conversation role,
-    as before. The conversation header shows the role, fixed for the
+    as before; ROLE SL-1/CA-1 and NIR ST-5 name all four, so whether TASK may
+    start a conversation is an open owner choice. The conversation header shows the role, fixed for the
     conversation's life, and its relation (its own start, continued from, or
     fork of). **Guidance changed since this conversation started** appears
     only when a file the conversation started with now differs or is missing;
     a store that cannot be read is said to be not compared. **Continue as
     ‹role›…** sends one visible ordinary turn to the source conversation asking
-    its agent for a handoff summary (refused while a run-end notice is
-    pending, as for attachments); the completed agent message observed live is
-    placed under an App header naming the source and its role, editable and
-    unsent; a failed or interrupted turn leaves the header only. The new
+    its agent for a handoff summary. It is refused, with nothing opened or
+    sent, while a run-end notice is pending (as for attachments) or when the
+    source is not a current conversation of a ready Codex; a request refused
+    before any write closes the handoff. The completed agent message observed
+    live is placed under an App header naming the source and its role,
+    editable and unsent; a written request whose turn failed, was interrupted
+    or has an unknown outcome leaves the header only. The new
     conversation starts with no model chosen and records `continuedFrom`
     {source thread, source start record}; its first message is sent only when
-    the person sends it. **Fork (same role)** sends `thread/fork` with the
-    thread id only and admits the fork only when Codex reports a new thread
+    the person sends it, and it reads sent only once the send succeeded.
+    **Fork (same role)** sends `thread/fork` with the thread id, no
+    instructions or settings, and `deferGoalContinuation: true` so that a
+    source goal starts no automatic turn in the fork that the person did not
+    start. It admits the fork only when Codex reports a new thread
     forked from the source; the fork inherits the source's role binding. Neither
     changes the source conversation's role or record. Handoffs are kept in App
     process memory.
