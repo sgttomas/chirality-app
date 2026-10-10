@@ -22,6 +22,9 @@ pub(crate) struct ContentCopy {
     pub path: PathBuf,
     /// True when the folder already held exactly these files.
     pub reused: bool,
+    /// Hidden `.staging-…` folders beside the copy, left by a write that was
+    /// interrupted (a lost process): reported, left as they are.
+    pub leftovers: Vec<String>,
 }
 
 /// `<root>/.chirality/<area>/<name>/<content key>/<name>`, the WR §3 layout of
@@ -226,7 +229,7 @@ mod unix {
                         read.revision()
                     ));
                 }
-                Ok(ContentCopy { path: dest.to_path_buf(), reused: true })
+                Ok(ContentCopy { path: dest.to_path_buf(), reused: true, leftovers: vec![] })
             }
             _ => Err(format!("{} exists and is not a folder; not replaced", dest.display())),
         }
@@ -237,7 +240,7 @@ mod unix {
         storage::check_path(dest)?;
         storage::ensure_directory(parent)?;
         let dir = open_dir(parent)?;
-        let copy = match stat_at(&dir, name)? {
+        let mut copy = match stat_at(&dir, name)? {
             Some(st) => existing(dest, &st, snapshot)?,
             None => {
                 let staging_name = std::ffi::OsString::from(format!(
@@ -259,7 +262,7 @@ mod unix {
                 match published {
                     Ok(()) => {
                         dir.sync_all().map_err(|e| format!("folder sync: {e}"))?;
-                        ContentCopy { path: dest.to_path_buf(), reused: false }
+                        ContentCopy { path: dest.to_path_buf(), reused: false, leftovers: vec![] }
                     }
                     Err(cause) => {
                         // The staging folder is this call's own; remove_dir_all
@@ -275,6 +278,16 @@ mod unix {
                 }
             }
         };
+        // Staging folders this call did not remove: an interrupted earlier write.
+        copy.leftovers = fs::read_dir(parent)
+            .map(|d| {
+                d.filter_map(Result::ok)
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .filter(|n| n.starts_with(".staging-"))
+                    .map(|n| format!("staging folder left by an interrupted write (left as it is): {}", parent.join(n).display()))
+                    .collect()
+            })
+            .unwrap_or_default();
         // Recomputed before it is named (TX-7, TT-8).
         match Snapshot::capture(dest) {
             Ok(read) if read.revision() == snapshot.revision() => Ok(copy),

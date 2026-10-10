@@ -164,6 +164,10 @@ pub(crate) enum TrialObservation {
 #[derive(Default)]
 pub(crate) struct TrialLinks {
     dir: Option<PathBuf>,
+    /// Set when an App data folder is attached but its trial folder is
+    /// refused (for example a link in its path): writes are then refused with
+    /// this cause, never kept in memory as if no folder were attached.
+    refused: Option<String>,
     /// trial_pointer records: earlier attachment pointers and trial links.
     pointers: Vec<Value>,
     observations: Vec<Value>,
@@ -177,6 +181,7 @@ impl TrialLinks {
         if let Err(cause) = storage::check_path(&dir) {
             store.limits.push(format!("trial pointers not readable: {cause}"));
             store.dir = None;
+            store.refused = Some(cause);
             return store;
         }
         let entries = match fs::read_dir(&dir) {
@@ -194,14 +199,24 @@ impl TrialLinks {
                 Err(e) => store.limits.push(format!("trial pointers listing incomplete: {}: {e}", dir.display())),
             }
         }
-        // Hidden entries are staging files of an interrupted write: never records.
-        let mut files: Vec<PathBuf> = files
-            .into_iter()
-            .filter(|p| {
-                p.extension().is_some_and(|x| x == "json")
-                    && !p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))
-            })
-            .collect();
+        // Hidden entries are staging files of an interrupted write: never
+        // records, but reported (left as they are). Any other entry that is
+        // not a `.json` file is reported too, never dropped silently.
+        let mut records: Vec<PathBuf> = vec![];
+        for p in files {
+            let name = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            if name.starts_with('.') {
+                store.limits.push(format!(
+                    "trial pointers: staging file left by an interrupted write, not a record (left as it is): {}",
+                    p.display()
+                ));
+            } else if p.extension().is_some_and(|x| x == "json") {
+                records.push(p);
+            } else {
+                store.limits.push(format!("trial pointers: not a record (not a .json file), not listed: {}", p.display()));
+            }
+        }
+        let mut files = records;
         files.sort();
         for file in files {
             let shown = file.display().to_string();
@@ -349,21 +364,18 @@ impl TrialLinks {
             .filter_map(|o| o["time"].as_str())
             .max()
             .map(str::to_owned);
-        let mut now = crate::util::now_rfc3339();
-        for _ in 0..50 {
-            if latest.as_deref().is_none_or(|l| now.as_str() > l) {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(1));
-            now = crate::util::now_rfc3339();
-        }
-        now
+        later_than(latest.as_deref(), crate::util::now_rfc3339, || {
+            std::thread::sleep(std::time::Duration::from_millis(1))
+        })
     }
 
     /// One create-once file; an uncertain outcome is settled by reading the
     /// file back (equal bytes: written; absent: not written; other bytes:
     /// refused, nothing overwritten).
     fn keep(&mut self, file: &str, value: &Value) -> Result<(), String> {
+        if let Some(cause) = &self.refused {
+            return Err(format!("trial record not written: the App data trial folder is refused ({cause})"));
+        }
         let Some(dir) = &self.dir else {
             self.limits
                 .push("trial record held in process memory only: App data folder not attached (WR §3)".into());
@@ -444,6 +456,19 @@ impl TrialLinks {
     pub(crate) fn limits(&self) -> &[String] {
         &self.limits
     }
+}
+/// The first clock reading later than `latest`, reading again (with `wait`
+/// between readings) at most 50 times; after that the last reading as it is.
+fn later_than(latest: Option<&str>, mut now: impl FnMut() -> String, mut wait: impl FnMut()) -> String {
+    let mut reading = now();
+    for _ in 0..50 {
+        if latest.is_none_or(|l| reading.as_str() > l) {
+            break;
+        }
+        wait();
+        reading = now();
+    }
+    reading
 }
 fn link_stem(reference: &str) -> String {
     format!("trial-{}", reference.trim_start_matches("trial:"))

@@ -802,14 +802,24 @@ pub struct FilesFolder {
     /// The folder the files line names; empty when there is no files line.
     pub label: String,
     pub basis: FilesFolderBasis,
+    /// What the supply copy's writer reported beside it (interrupted-write
+    /// staging folders), shown, never acted on.
+    pub limits: Vec<String>,
 }
 impl FilesFolder {
     pub fn describe(&self) -> serde_json::Value {
+        let mut described = self.describe_basis();
+        if !self.limits.is_empty() {
+            described["limits"] = serde_json::json!(self.limits);
+        }
+        described
+    }
+    fn describe_basis(&self) -> serde_json::Value {
         match &self.basis {
             FilesFolderBasis::NoOtherFiles => serde_json::json!({"basis":"no other files; no files line"}),
             FilesFolderBasis::ProjectRelative => serde_json::json!({"basis":"holding folder inside the project","folder":self.label}),
             FilesFolderBasis::HomeRelative => serde_json::json!({"basis":"holding folder inside the home folder","folder":self.label}),
-            FilesFolderBasis::SupplyCopy { reused, .. } => serde_json::json!({"basis":if *reused {"supply copy in the project (already present, recomputed)"} else {"supply copy in the project (written, recomputed)"},"folder":self.label,"retention":"never rewritten or removed by the App; if deleted, the next run start recreates it"}),
+            FilesFolderBasis::SupplyCopy { reused, .. } => serde_json::json!({"basis":if *reused {"supply copy in the project (already present, recomputed)"} else {"supply copy in the project (written, recomputed)"},"folder":self.label,"retention":"never rewritten or removed by the App; if deleted, the next run preparation recreates it"}),
         }
     }
 }
@@ -862,10 +872,10 @@ pub fn files_folder(
         return Err("workflow identity does not name these package bytes".into());
     }
     if other_files(snapshot).is_empty() {
-        return Ok(FilesFolder { label: String::new(), basis: FilesFolderBasis::NoOtherFiles });
+        return Ok(FilesFolder { label: String::new(), basis: FilesFolderBasis::NoOtherFiles, limits: vec![] });
     }
     if let Some((label, basis)) = relative_folder_label(holding, Some(project), home) {
-        return Ok(FilesFolder { label, basis });
+        return Ok(FilesFolder { label, basis, limits: vec![] });
     }
     let refuse = |cause: String| format!("other files of this revision could not be supplied: {cause}");
     if !project.is_absolute() {
@@ -878,6 +888,7 @@ pub fn files_folder(
     Ok(FilesFolder {
         label,
         basis: FilesFolderBasis::SupplyCopy { path: copy.path, reused: copy.reused },
+        limits: copy.leftovers,
     })
 }
 

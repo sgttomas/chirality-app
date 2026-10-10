@@ -538,11 +538,19 @@ fn connected_root_sources_keep_ordinary_input_reply_and_scoped_stop_during_key_a
     ordinary_fixture_roundtrip(&peer, &key_generation, &key_path, "key original source");
     let leaf = reviewed_ledger_path(&fixture.data);
     let saved = fixture.data.join("runtime/saved-ledger");
-    let before = std::fs::read(&leaf).unwrap();
     std::fs::rename(&leaf, &saved).unwrap();
+    // The ledger append opens with create(true), so a late asynchronous
+    // record from the round trip above can recreate the leaf right after the
+    // rename. Read the saved ledger after the move, and plant the link
+    // atomically over whatever is at the leaf now (link at a temporary name in
+    // the same folder, then rename over the leaf).
+    let before = std::fs::read(&saved).unwrap();
     let canary = fixture.targets[0].as_ref().unwrap();
     let untouched = std::fs::read(canary).unwrap();
-    std::os::unix::fs::symlink(canary, &leaf).unwrap();
+    let planted = leaf.with_file_name("recovery.ledger.jsonl.planted-link");
+    std::os::unix::fs::symlink(canary, &planted).unwrap();
+    std::fs::rename(&planted, &leaf).unwrap();
+    assert!(std::fs::symlink_metadata(&leaf).unwrap().file_type().is_symlink());
     assert!(prepare_native_key_namespace(&set, &fixture.data, &cap).is_err());
     assert!(cap
         .preflight_native_namespaces(&admitted.namespaces)

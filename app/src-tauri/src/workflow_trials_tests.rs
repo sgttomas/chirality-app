@@ -260,6 +260,19 @@ fn copy_destinations_refuse_links_fifos_and_other_bytes_without_following_or_blo
     });
     let copy = write_content_copy(&snapshot, &d).unwrap();
     assert!(copy.reused);
+    // An EMPTY folder planted after the checks: the exclusive rename refuses
+    // it (a plain rename would replace it), and the empty folder is no package.
+    let d = dest("race-empty");
+    BEFORE_PUBLISH.with(|h| *h.borrow_mut() = Some(Box::new(move |dest: &Path| fs::create_dir(dest).unwrap())));
+    let refused = write_content_copy(&snapshot, &d).unwrap_err();
+    assert!(refused.contains("cannot be read as a package") && refused.ends_with("not replaced"), "{refused}");
+    assert!(entries(&d).is_empty(), "the planted folder is left as it is");
+    // A staging folder left by an interrupted (crashed) write is reported, left alone.
+    let d = dest("crashed");
+    fs::create_dir_all(d.parent().unwrap().join(".staging-old")).unwrap();
+    let copy = write_content_copy(&snapshot, &d).unwrap();
+    assert!(copy.leftovers.len() == 1 && copy.leftovers[0].contains(".staging-old"), "{:?}", copy.leftovers);
+    assert!(d.parent().unwrap().join(".staging-old").is_dir());
     // Bytes that change between the write and the naming are caught by the
     // recomputation: refused, and the folder is left as it is.
     let d = dest("tampered");
@@ -412,7 +425,8 @@ fn trial_links_are_create_once_survive_relaunch_and_list_per_draft_with_observat
 }
 
 // Torn or damaged records are reported, never hidden or rewritten; hidden
-// staging leftovers are not records; a record's file name must name it.
+// staging leftovers and non-.json entries are reported, not read as records;
+// a record's file name must name it.
 #[test]
 fn damaged_links_and_observations_are_reported_not_hidden_or_rewritten() {
     let s = Scratch::new();
@@ -447,7 +461,7 @@ fn damaged_links_and_observations_are_reported_not_hidden_or_rewritten() {
     for name in ["trial-11111111", "trial-22222222", "cites trial", "pipe.json", "alias.json"] {
         assert!(limits.contains(name), "{name} missing from {limits}");
     }
-    assert!(!limits.contains(".trial-x"), "staging leftovers are not records");
+    assert!(limits.contains("staging file left by an interrupted write") && limits.contains(".trial-x"), "staging leftovers reported: {limits}");
     assert_eq!(reopened.for_draft(&trial.key), vec![link], "the intact link is still listed");
     assert_eq!(reopened.observations(trial.text.reference()), vec![observed]);
     assert_eq!(fs::read(&torn).unwrap(), &bytes[..bytes.len() / 2], "never rewritten");
@@ -508,4 +522,73 @@ fn design_conformance_instances_hold_against_the_resource_schema() {
         let kind = case["kind"].as_str().unwrap();
         assert!(crate::workflow_workspace::wr_validate(kind, &case["instance"]).is_err(), "{} accepted", case["case"]);
     }
+}
+
+// Observations of one trial are strictly ordered by time: the clock is read
+// again until it passes the latest observation (bounded).
+#[test]
+fn observation_times_strictly_increase_over_the_latest() {
+    let mut readings = vec!["2026-10-10T00:00:00.006Z", "2026-10-10T00:00:00.005Z", "2026-10-10T00:00:00.005Z"];
+    let mut waits = 0;
+    let t = later_than(Some("2026-10-10T00:00:00.005Z"), || readings.pop().unwrap().to_owned(), || waits += 1);
+    assert_eq!((t.as_str(), waits), ("2026-10-10T00:00:00.006Z", 2));
+    assert_eq!(later_than(None, || "x".to_owned(), || panic!("no wait without a latest")), "x");
+    // Through the store: an observation pre-seeded 20 ms in the future is
+    // still followed by a strictly later one.
+    let s = Scratch::new();
+    s.put("load-check", "x");
+    let trial = s.prepare("load-check").unwrap();
+    let mut store = TrialLinks::open(&s.app_data());
+    store.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
+    let first = store.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked { child_thread: "c".into(), by_person: false }).unwrap();
+    let future = loop {
+        let now = crate::util::now_rfc3339();
+        let ms: u32 = now[20..23].parse().unwrap();
+        if ms <= 970 {
+            break format!("{}{:03}Z", &now[..20], ms + 20);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    };
+    let mut seeded = first.clone();
+    seeded["time"] = json!(future);
+    seeded["observation_id"] = json!("trial-observation:55555555-5555-4555-8555-555555555555");
+    fs::write(s.app_data().join(TRIAL_POINTERS).join("observation-55555555-5555-4555-8555-555555555555.json"), serde_json::to_vec(&seeded).unwrap()).unwrap();
+    let mut store = TrialLinks::open(&s.app_data());
+    assert!(store.limits().is_empty(), "{:?}", store.limits());
+    let next = store.record_observation(trial.text.reference(), TrialObservation::SubAgentUnlinked { child_thread: "c".into() }).unwrap();
+    assert!(next["time"].as_str().unwrap() > future.as_str(), "{} after {future}", next["time"]);
+}
+
+// A non-hidden entry that is not a `.json` file is reported, not dropped.
+#[test]
+fn non_json_entries_in_the_link_store_are_reported() {
+    let s = Scratch::new();
+    let dir = s.app_data().join(TRIAL_POINTERS);
+    fs::create_dir_all(dir.join("sub")).unwrap();
+    fs::write(dir.join("trial-66666666-6666-4666-8666-666666666666"), b"{}").unwrap();
+    fs::write(dir.join("UPPER.JSON"), b"{}").unwrap();
+    let limits = TrialLinks::open(&s.app_data()).limits().join("\n");
+    for name in ["sub", "trial-66666666-6666-4666-8666-666666666666", "UPPER.JSON"] {
+        assert!(limits.contains(&format!("not a record (not a .json file), not listed: {}", dir.join(name).display())), "{name}: {limits}");
+    }
+}
+
+// An attached App data folder whose trial folder is refused (a link in its
+// path) refuses writes with the cause; only a store with no App data folder
+// at all keeps records in memory.
+#[test]
+fn a_refused_app_data_folder_refuses_writes_instead_of_keeping_them_in_memory() {
+    let s = Scratch::new();
+    s.put("load-check", "x");
+    let trial = s.prepare("load-check").unwrap();
+    let elsewhere = Scratch::new();
+    fs::create_dir_all(s.app_data().join("runtime")).unwrap();
+    symlink(&elsewhere.0, s.app_data().join("runtime/wr")).unwrap();
+    let mut store = TrialLinks::open(&s.app_data());
+    assert!(store.limits()[0].contains("symlink"));
+    let refused = store.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap_err();
+    assert!(refused.contains("refused") && refused.contains("symlink"), "{refused}");
+    assert!(store.link(trial.text.reference()).is_none(), "nothing kept in memory");
+    assert!(store.record(&trial.key, &trial.content, "thread").is_err());
+    assert!(entries(&elsewhere.0).is_empty());
 }
