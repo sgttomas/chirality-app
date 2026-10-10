@@ -1285,6 +1285,9 @@ changed.
   case (c) already covers them. Tests: `workflow_trials_tests.rs`
   (`files_folder_…`, `copy_destinations_…`) and `runtime_session.rs`
   (`run_start_files_line_names_a_usable_folder_or_refuses_the_start`).
+  WR §17 steps 5–9 (CC-WR-TRIALS phase 2) send the trial text that names
+  its snapshot through the same composer, so trials and runs name their
+  other files alike; nothing of CI-32 remains open.
 
 ## CI-33 Examination source pins need re-freezing
 
@@ -1297,8 +1300,10 @@ changed.
   until that re-freeze: `execution/PKG-01/DEL-01-02/Design/EXECUTION_AND_RECOVERY.md`
   line 757 still speaks of "AT-8 trial attachments" retaining WR's draft/source
   handle. Since CC-WR-TRIALS a trial reaches its agent as the trial text (WR
-  TT-3, TT-8), not as draft attachments; the attachment pre-fill remains only
-  until WR §17 step 8. Reword it with the re-freeze. The WR Design itself
+  TT-3, TT-8), not as draft attachments, and WR §17 step 8 (phase 2) removed
+  the attachment pre-fill. Reword it with the re-freeze. Phase 2 also edited
+  WR TT-3a, TT-3b, TT-9, TT-10, §5.5, §11, §12 and §17, so the WR pin moves
+  further from the frozen hash. The WR Design itself
   changed again with CC-WR-TRIALS phase 1 (TX-7 retention and destination
   handling, the §3 supply-copy row, §8, §12, §17), so its pin moves further
   from the frozen hash.

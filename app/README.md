@@ -148,21 +148,34 @@ writes records or operates the act control." `src-tauri/` holds that host;
     budget. Package files are opened no-follow and non-blocking relative to their
     opened folder: links, FIFOs and devices are refused. Transitions are
     observed only when the list is read; the folder is not watched.
-    **Try in a conversation** adds the draft's text files, as listed, each with
-    its draft reference (NIR AT-8), to the attachment list. It sends nothing. A
-    pre-filled draft file cannot be re-confirmed as an ordinary source. The person
-    chooses an ordinary conversation and sends. Draft files are refused for a
-    conversation with a workflow run in force. An acknowledged send keeps one
-    App-kept trial pointer per draft (TT-4), which survives a relaunch.
-    Non-text files are listed "not attached". *Owner decision (WR U-WR-24,
-    2026-10-10), not yet implemented:* WR §4.2 replaces this pre-fill with a
-    trial that mirrors a real run. **Try with the authoring agent** pre-fills a
-    message asking the authoring conversation's agent to run the draft's trial
-    text through one sub-agent and report. **Try in a fresh conversation** is
-    optional and opens a new conversation with the trial text pre-filled; its
-    transcript can be brought back to the authoring conversation. Supporting
-    files are named as a registered run names them. WR §17 is the
-    implementation plan; until it lands the App behaves as described above.
+    **Trials (WR §4.2, owner direction U-WR-24).** A trial mirrors a real run:
+    the host takes a content-addressed trial snapshot and composes the trial
+    text, a trial header followed by the run text a registered run of that
+    exact content would receive, whose files line names the snapshot folder.
+    Nothing is sent until the person presses Send, and the trial link is
+    written only when Codex acknowledges the turn. **Try with the authoring
+    agent** pre-fills, in the conversation chosen as authoring conversation,
+    the person's editable message and then the trial text as a removable card;
+    the message asks the authoring agent to run the trial through one
+    sub-agent and report. The App does not read the delegation signals yet,
+    so availability reads "not established" with that note. **Try in a fresh
+    conversation** is optional: a new-conversation panel takes the person's
+    role and model, puts the trial text first, then the editable inputs
+    message; that conversation offers no workflow run, and neither does a fork
+    of it. On its own tick (about once a second) the host reads a new
+    sub-agent's first input once and links it when it carries the trial's
+    begin marker, with a fidelity reading ("workflow given verbatim", "the
+    sub-agent's input differs from the run text" or "not checked"); the person
+    can link, unlink or read again. Each draft lists its trials newest first,
+    with **Try again**, **Bring trial back** (a transcript read from Codex's
+    history, pre-filled unsent in the authoring conversation; *brought back*
+    is recorded on acknowledgment) and **Compare** (two trials, or a trial and
+    a run of the same slot, side by side with the version difference). A run
+    offers **Bring a real run back to authoring**. Proposal and finished lines
+    in a trial's turn, conversation or sub-agent offer nothing. The review
+    shows the last clean trial (matches, differs or none) as information
+    only. Earlier attachment trial pointers are still listed. A draft's files
+    the person attaches are ordinary attachments.
     **Review for registration…** opens the existing review for the listed
     content, refused as DS-6 if the draft changed since listing.
     Registration stays the person's A15 act at the native confirmation. A trial
@@ -318,8 +331,10 @@ writes records or operates the act control." `src-tauri/` holds that host;
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |
 | `src-tauri/src/run_offers.rs`, `src/RunOffers.tsx` | Exact run-offer line forms (WR §16.5 PR/FN), the finished-report proof for a *completed* end, and their presentation beneath the message |
-| `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states, TT-3 composer sources, TT-4 trial pointers) and its list presentation in NIR §7 words; nothing here registers, reviews or runs |
-| `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies, TT-8 trial snapshots, and the create-once TT-4 trial links and observations; the trial flows and their interface are not built yet, so drafts are still tried by the attachment pre-fill |
+| `src-tauri/src/workflow_drafts.rs`, `src/WorkflowDrafts.tsx` | DEL-02-02 draft workspace in the Rust host (SQ-D D-2…D-4 observation, hygiene, §5.1 states) and its list presentation in NIR §7 words, with the two Try buttons and each draft's trial list; nothing here registers, reviews or runs |
+| `src-tauri/src/workflow_trials.rs`, `workflow_package_copy.rs`, `workflow_workspace.rs` (`compose_run_text`, `TrialText`, `files_folder`) | DEL-02-02 trial core (WR §17 steps 1–4): one composer for run texts and trial texts (TT-3), TX-7's files-line folder with content-addressed supply copies, TT-8 trial snapshots, and the create-once TT-4 trial links and observations |
+| `src-tauri/src/trial_flows.rs`, `workflow_trial_transcript.rs`, `src/TrialComposer.tsx` | DEL-02-02 trial flows (WR §17 steps 5–8): pre-filled delegated and clean trials sent only by the person, links on acknowledgment, TT-9 linking and fidelity reads, bring-back transcripts, Compare, TT-2's run refusal and offer silencing, the review's last clean trial line; the composers in the conversation view |
+| `src-tauri/src/host_tick.rs` | The host's own tick (OI-008): receives native frames, records checkpoint observations and makes due trial reads whether or not the interface polls; `host_status` only reads |
 | `src/RunPanel.tsx` | Run panel and selected-workflow view (NIR §9 PD-1…PD-7): readable declared part, checkpoints as guidance with their recorded listing and arrivals, the run-record write notice, output standing facets from the record only (AS §8), readable advisory compatibility |
 | `src-tauri/src/conversation_roles.rs`, `src/ConversationRoles.tsx` | Continue as ‹role› handoffs and same-role Fork through the Host (NIR §5.8, ROLE §3.3), the role limit account (ROLE §6.2), the readable start display, role header and guidance-changed flag (ROLE §4.4) |
 | `src/NativeActivity.tsx`, `src/PlanMode.tsx` | Readable per-thread native activity from the `native_items.rs` view (DEL-01-03 plans/tools/delegation with the DEL-01-04 message part) and the experimental plan-mode element |
