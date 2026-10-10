@@ -205,3 +205,15 @@ test('a row that cannot be shown falls back to its raw native JSON and resets on
   assert.equal(RowBoundary.getDerivedStateFromProps({value:native,row},boundary.state),null,'the same row stays on its fallback');
   assert.deepEqual(RowBoundary.getDerivedStateFromProps({value:native,row:{native}},boundary.state),{failed:false,row:{native}},'a new row is tried again');
 });
+
+test('the host’s trial labels show on the trial turn and the linked sub-agent row (TT-2, TT-4)',()=>{
+  const trialTurns=[{threadId:'T',turnId:'turn-2',label:'trial 4 of draft load-check; not a step of resolve-spacing’s run'},{threadId:'OTHER',turnId:'turn-1',label:'elsewhere'}];
+  const trialChildren=[{threadId:'C',label:'sub-agent of trial 4 of draft load-check'}];
+  const html=renderToStaticMarkup(React.createElement(NativeActivityView,{view:view(),threadId:'T',trialTurns,trialChildren}));
+  const turn2=html.indexOf('Turn turn-2'),label=html.indexOf('trial 4 of draft load-check; not a step');
+  assert.ok(label>turn2&&label<html.indexOf('Second answer'),'the label sits on turn-2’s row');
+  assert.equal(html.match(/not a step of/g).length,1,'only the labelled turn');
+  assert.ok(!html.includes('elsewhere'));
+  assert.ok(html.includes('<b>sub-agent of trial 4 of draft load-check</b> · C · last observed'));
+  assert.ok(!render().includes('trial 4'),'no labels without the host’s');
+});

@@ -78,7 +78,19 @@ export function SupplyStatus({ supply }: { supply: Json }) {
 
 /** ST-6 and §5.8: the conversation header's role line, its relation, the
  * guidance-changed flag and the two ways to go on in another conversation. */
-export function RoleHeader({ thread, limits, busy, ready, continueAs, fork }: { thread: Json; limits: Json; busy: boolean; ready: boolean; continueAs: (role: string | null) => void; fork: () => void }) {
+/** WR TT-3b, TT-4: the trial line beside the role header, worded by the host.
+ * A clean trial conversation (or a fork of one) shows the host's header; an
+ * authoring conversation lists the trials started here. Display only. */
+export function TrialHeader({ trialConversation, trialsStartedHere }: { trialConversation?: Json; trialsStartedHere?: Json }) {
+  const started = list(trialsStartedHere?.trials);
+  if (!trialConversation && started.length === 0) return null;
+  return <div aria-label="Trial header">
+    {trialConversation && <p role="note"><b>{text(trialConversation.header)}</b></p>}
+    {started.length > 0 && <p><small>Trials started here: {started.map((t: Json) => `trial ${text(t.sequence)} of draft ${text(t.draftName)} (${t.kind === "clean" ? "clean" : "delegated"})`).join("; ")}.</small></p>}
+  </div>;
+}
+
+export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, trialConversation, trialsStartedHere }: { thread: Json; limits: Json; busy: boolean; ready: boolean; continueAs: (role: string | null) => void; fork: () => void; trialConversation?: Json; trialsStartedHere?: Json }) {
   const appRole = thread?.appRole;
   const own: string | null | undefined = appRole?.standing === "app-observed" ? (appRole.role ?? null) : undefined;
   // The choice starts at this conversation's own role (Continue as the same role takes up new guidance).
@@ -87,6 +99,7 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork }: { 
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
   return <div aria-label="Conversation role">
     <p>Role: <b>{roleName(appRole)}</b>. It is fixed for this conversation's life; native role hints do not set it.</p>
+    <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}
     {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the fork was sent no instructions, so it keeps the source's guidance.</small></p>}
     {own !== undefined && <RoleLimits limits={limits} role={own} />}
